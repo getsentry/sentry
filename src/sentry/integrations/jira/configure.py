@@ -1,12 +1,16 @@
 from __future__ import absolute_import
 
+from jwt import ExpiredSignatureError
+
 from django import forms
+from django.core.urlresolvers import reverse
+from django.views.generic import View
 
 from sentry import roles
 from sentry.integrations.atlassian_connect import AtlassianConnectValidationError, get_integration_from_request
-from sentry.web.frontend.base import BaseView
+from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
-from sentry.models import OrganizationIntegration, OrganizationMember, ProjectIntegration
+from sentry.models import OrganizationIntegration, OrganizationMember
 
 
 class JiraConfigForm(forms.Form):
@@ -24,7 +28,7 @@ class JiraConfigForm(forms.Form):
         self.fields['organizations'].choices = [(o.id, o.slug) for o in organizations]
 
 
-class JiraConfigureView(BaseView):
+class JiraConfigureView(View):
 
     def get_response(self, context):
         context['ac_js_src'] = '%(base_url)s%(context_path)s/atlassian-connect/all.js' % {
@@ -35,18 +39,33 @@ class JiraConfigureView(BaseView):
         res['X-Frame-Options'] = 'ALLOW-FROM %s' % self.request.GET['xdm_e']
         return res
 
+    def get(self, request, *args, **kwargs):
+        return self.handle(request)
+
+    def post(self, request, *args, **kwargs):
+        return self.handle(request)
+
     def handle(self, request):
         try:
-            integration = get_integration_from_request(request)
+            integration = get_integration_from_request(request, 'jira')
         except AtlassianConnectValidationError:
             return self.get_response({'error_message': 'Unable to verify installation.'})
+        except ExpiredSignatureError:
+            return self.get_response({'refresh_required': True})
 
-        organizations = request.user.get_orgs().filter(
+        if not request.user.is_authenticated():
+            return self.get_response({
+                'login_required': True,
+                'login_url': absolute_uri(reverse('sentry-login')),
+            })
+
+        organizations = list(request.user.get_orgs().filter(
             id__in=OrganizationMember.objects.filter(
                 role__in=[r.id for r in roles.get_all() if r.is_global],
                 user=request.user,
             ).values('organization'),
-        )
+        ))
+
         form = JiraConfigForm(organizations, request.POST)
 
         if request.method == 'GET' or not form.is_valid():
@@ -59,24 +78,18 @@ class JiraConfigureView(BaseView):
             form = JiraConfigForm(organizations, initial={'organizations': active_orgs})
             return self.get_response({'form': form})
 
-        enabled_orgs = form.cleaned_data['organizations']
-        disabled_orgs = list(set(o.id for o in organizations) - set(enabled_orgs))
+        enabled_orgs = [o for o in organizations if o.id in form.cleaned_data['organizations']]
+        disabled_orgs = list(set(organizations) - set(enabled_orgs))
 
-        # Remove organization and project Jira integrations not in the set of
-        # enabled organizations
+        # Remove Jira integrations not in the set of enabled organizations
         OrganizationIntegration.objects.filter(
             integration__provider='jira',
             integration=integration,
             organization__in=disabled_orgs,
         ).delete()
-        ProjectIntegration.objects.filter(
-            integration__provider='jira',
-            integration=integration,
-            integration__organizations__in=disabled_orgs,
-        ).delete()
 
         # Ensure all enabled integrations.
-        for org_id in enabled_orgs:
-            integration.add_organization(org_id)
+        for org in enabled_orgs:
+            integration.add_organization(org, request.user)
 
         return self.get_response({'form': form, 'completed': True})

@@ -4,7 +4,7 @@ jest.unmock('app/utils/recreateRoute');
 
 const routes = [
   {path: '/', childRoutes: []},
-  {newnew: true, path: '/settings/', name: 'Settings'},
+  {path: '/settings/', name: 'Settings'},
   {name: 'Organizations', path: ':orgId/', childRoutes: []},
   {childRoutes: []},
   {path: 'api-keys/', name: 'API Key'},
@@ -12,7 +12,7 @@ const routes = [
 
 const projectRoutes = [
   {path: '/', childRoutes: []},
-  {newnew: true, path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
+  {path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
   {name: 'Organizations', path: ':orgId/', childRoutes: []},
   {name: 'Projects', path: ':projectId/', childRoutes: []},
   {name: 'Alerts', path: 'alerts/'},
@@ -48,6 +48,10 @@ describe('recreateRoute', function() {
     expect(recreateRoute('test/', {routes, location, params, stepBack: -2})).toBe(
       '/settings/org-slug/test/'
     );
+  });
+
+  it('stepBack needs to be less than 0', function() {
+    expect(() => recreateRoute('', {routes, location, params, stepBack: 0})).toThrow();
   });
 
   it('switches to new org but keeps current route', function() {

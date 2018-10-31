@@ -50,7 +50,7 @@ class ApiHostError(ApiError):
     @classmethod
     def from_request(cls, request):
         host = urlparse(request.url).netloc
-        return cls('Unable to reach host: {}'.format(host))
+        return cls(u'Unable to reach host: {}'.format(host))
 
 
 class ApiUnauthorized(ApiError):
@@ -65,3 +65,9 @@ class UnsupportedResponseType(ApiError):
 
 class IntegrationError(Exception):
     pass
+
+
+class IntegrationFormError(IntegrationError):
+    def __init__(self, field_errors):
+        super(IntegrationFormError, self).__init__('Invalid integration action')
+        self.field_errors = field_errors

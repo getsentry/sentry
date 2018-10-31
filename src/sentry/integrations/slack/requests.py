@@ -160,7 +160,7 @@ class SlackEventRequest(SlackRequest):
             raise SlackRequestError(status=400)
 
     def _log_request(self):
-        self._info('slack.event.{}'.format(self.type))
+        self._info(u'slack.event.{}'.format(self.type))
 
 
 class SlackActionRequest(SlackRequest):

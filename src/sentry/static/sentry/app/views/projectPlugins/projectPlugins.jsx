@@ -8,7 +8,9 @@ import {
   PanelHeader,
   PanelItem,
 } from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
+import Access from 'app/components/acl/access';
+import Link from 'app/components/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
 import RouteError from 'app/views/routeError';
@@ -26,6 +28,7 @@ class ProjectPlugins extends Component {
 
   render() {
     let {plugins, loading, error, onError, onChange, routes, params} = this.props;
+    let {orgId} = this.props.params;
     let hasError = error;
     let isLoading = !hasError && loading;
 
@@ -45,9 +48,20 @@ class ProjectPlugins extends Component {
         </PanelHeader>
         <PanelBody>
           <PanelAlert type="warning">
-            {t(
-              "Legacy Integrations must be configured per-project. It's recommended to prefer organization-integrations over the legacy project integrations when available, as features will be more robust and flexible."
-            )}
+            <Access access={['org:integrations']}>
+              {({hasAccess}) => {
+                return hasAccess
+                  ? tct(
+                      "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the [link:organization integrations] settings to manage them.",
+                      {
+                        link: <Link to={`/settings/${orgId}/integrations`} />,
+                      }
+                    )
+                  : t(
+                      "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available."
+                    );
+              }}
+            </Access>
           </PanelAlert>
 
           {plugins.map(plugin => (

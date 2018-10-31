@@ -4,10 +4,10 @@ import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
 
 import ConfirmDelete from 'app/components/confirmDelete';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 
-storiesOf('Confirm/ConfirmDelete', module).add(
-  'default',
+storiesOf('UI|Confirm', module).add(
+  'ConfirmDelete',
   withInfo({
     text: 'A Confirm Modal that requires a user to enter a confirmation string.',
     propTablesExclude: [Button],

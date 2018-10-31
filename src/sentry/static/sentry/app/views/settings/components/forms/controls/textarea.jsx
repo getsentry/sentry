@@ -2,57 +2,29 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import styled from 'react-emotion';
+import isPropValid from '@emotion/is-prop-valid';
 
 import {inputStyles} from 'app/styles/input';
 
-class TextareaOrAutosize extends React.Component {
-  static propTypes = {
-    /**
-     * Enable autosizing of the textarea.
-     */
-    autosize: PropTypes.bool,
+const TextAreaControl = React.forwardRef(
+  ({autosize, rows, ...p}, ref) =>
+    autosize ? (
+      <TextareaAutosize async innerRef={ref} rows={rows ? rows : 2} {...p} />
+    ) : (
+      <textarea ref={ref} {...p} />
+    )
+);
 
-    /**
-     * Number of rows to start with if autosize
-     */
-    rows: PropTypes.number,
+TextAreaControl.propTypes = {
+  /**
+   * Enable autosizing of the textarea.
+   */
+  autosize: PropTypes.bool,
+};
 
-    innerRef: PropTypes.func,
-  };
+const propFilter = p => ['autosize', 'rows', 'maxRows'].includes(p) || isPropValid(p);
 
-  render() {
-    let {
-      autosize,
-      rows,
-      innerRef,
-      highlighted, // eslint-disable-line
-      field, // eslint-disable-line
-      multiline, // eslint-disable-line
-      getValue, // eslint-disable-line
-      setValue, // eslint-disable-line
-      error, // eslint-disable-line
-      initialData, // eslint-disable-line
-      getData, // eslint-disable-line
-      extraHelp, // eslint-disable-line
-      ...props
-    } = this.props;
-
-    if (autosize) {
-      return (
-        <TextareaAutosize
-          rows={rows ? rows : 2}
-          async={true}
-          innerRef={innerRef}
-          {...props}
-        />
-      );
-    }
-
-    return <textarea {...props} ref={innerRef} />;
-  }
-}
-
-const TextArea = styled(TextareaOrAutosize)`
+const TextArea = styled(TextAreaControl, {shouldForwardProp: propFilter})`
   ${inputStyles};
 `;
 

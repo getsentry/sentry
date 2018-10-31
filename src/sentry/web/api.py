@@ -6,6 +6,7 @@ import math
 import jsonschema
 import logging
 import os
+import random
 import six
 import traceback
 import uuid
@@ -25,17 +26,17 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
 from functools import wraps
 from querystring_parser import parser
-from raven.contrib.django.models import client as Raven
 from symbolic import ProcessMinidumpError
 
-from sentry import quotas, tsdb
+from sentry import features, quotas, tsdb, options
+from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, LazyData,
-    MinidumpApiHelper,
+    APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, MinidumpApiHelper, safely_load_json_string, logger as api_logger
 )
+from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.utils import merge_minidump_event
+from sentry.lang.native.minidump import merge_minidump_event, MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
@@ -49,7 +50,7 @@ from sentry.utils.http import (
     get_origins,
     is_same_domain,
 )
-from sentry.utils.pubsub import QueuedPublisher, RedisPublisher
+from sentry.utils.pubsub import QueuedPublisherService, KafkaPublisher
 from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
 
@@ -61,10 +62,14 @@ PIXEL = base64.b64decode('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
 
 PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
 
-
-pubsub = QueuedPublisher(
-    RedisPublisher(getattr(settings, 'REQUESTS_PUBSUB_CONNECTION', None))
-) if getattr(settings, 'REQUESTS_PUBSUB_ENABLED', False) else None
+kafka_publisher = QueuedPublisherService(
+    KafkaPublisher(
+        getattr(
+            settings,
+            'KAFKA_RAW_EVENTS_PUBLISHER_CONNECTION',
+            None),
+        asynchronous=False)
+) if getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_ENABLED', False) else None
 
 
 def api(func):
@@ -111,6 +116,39 @@ class APIView(BaseView):
 
         return auth
 
+    def _publish_to_kafka(self, request):
+        """
+        Sends raw event data to Kafka for later offline processing.
+        """
+        try:
+            # This may fail when we e.g. send a multipart form. We ignore those errors for now.
+            data = request.body
+
+            if not data or len(data) > options.get('kafka-publisher.max-event-size'):
+                return
+
+            # Sampling
+            if random.random() >= options.get('kafka-publisher.raw-event-sample-rate'):
+                return
+
+            # We want to send only serializable items from request.META
+            meta = {}
+            for key, value in request.META.items():
+                try:
+                    json.dumps([key, value])
+                    meta[key] = value
+                except (TypeError, ValueError):
+                    pass
+
+            meta['SENTRY_API_VIEW_NAME'] = self.__class__.__name__
+
+            kafka_publisher.publish(
+                channel=getattr(settings, 'KAFKA_RAW_EVENTS_PUBLISHER_TOPIC', 'raw-store-events'),
+                value=json.dumps([meta, base64.b64encode(data)])
+            )
+        except Exception as e:
+            logger.debug("Cannot publish event to Kafka: {}".format(e.message))
+
     @csrf_exempt
     @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
@@ -120,6 +158,9 @@ class APIView(BaseView):
             ip_address=request.META['REMOTE_ADDR'],
         )
         origin = None
+
+        if kafka_publisher is not None:
+            self._publish_to_kafka(request)
 
         try:
             origin = helper.origin_from_request(request)
@@ -198,7 +239,6 @@ class APIView(BaseView):
         project = self._get_project_from_id(project_id)
         if project:
             helper.context.bind_project(project)
-            Raven.tags_context(helper.context.get_tags_context())
 
         if origin is not None:
             # This check is specific for clients who need CORS support
@@ -225,7 +265,6 @@ class APIView(BaseView):
                 raise APIError('Two different projects were specified')
 
             helper.context.bind_auth(auth)
-            Raven.tags_context(helper.context.get_tags_context())
 
             # Explicitly bind Organization so we don't implicitly query it later
             # this just allows us to comfortably assure that `project.organization` is safe.
@@ -306,9 +345,6 @@ class StoreView(APIView):
             # bubble up as an APIError.
             data = None
 
-        if pubsub is not None and data is not None:
-            pubsub.publish('requests', data)
-
         response_or_event_id = self.process(request, data=data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
@@ -328,7 +364,11 @@ class StoreView(APIView):
             response['X-Sentry-ID'] = response_or_event_id
         return response
 
-    def process(self, request, project, key, auth, helper, data, **kwargs):
+    def pre_normalize(self, data, helper):
+        """Mutate the given EventManager. Hook for subtypes of StoreView (CSP)"""
+        pass
+
+    def process(self, request, project, key, auth, helper, data, attachments=None, **kwargs):
         metrics.incr('events.total')
 
         if not data:
@@ -336,25 +376,25 @@ class StoreView(APIView):
 
         remote_addr = request.META['REMOTE_ADDR']
 
-        data = LazyData(
-            data=data,
-            content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
-            helper=helper,
+        event_mgr = EventManager(
+            data,
             project=project,
             key=key,
             auth=auth,
             client_ip=remote_addr,
+            user_agent=helper.context.agent,
+            content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
         )
+        del data
 
-        event_received.send_robust(
-            ip=remote_addr,
-            project=project,
-            sender=type(self),
-        )
+        self.pre_normalize(event_mgr, helper)
+        event_mgr.normalize()
+
+        event_received.send_robust(ip=remote_addr, project=project, sender=type(self))
+
         start_time = time()
         tsdb_start_time = to_datetime(start_time)
-        should_filter, filter_reason = helper.should_filter(
-            project, data, ip_address=remote_addr)
+        should_filter, filter_reason = event_mgr.should_filter()
         if should_filter:
             increment_list = [
                 (tsdb.models.project_total_received, project.id),
@@ -398,8 +438,7 @@ class StoreView(APIView):
         # it cannot cascade
         if rate_limit is None or rate_limit.is_limited:
             if rate_limit is None:
-                helper.log.debug(
-                    'Dropped event due to error with rate limiter')
+                api_logger.debug('Dropped event due to error with rate limiter')
             tsdb.incr_multi(
                 [
                     (tsdb.models.project_total_received, project.id),
@@ -440,6 +479,9 @@ class StoreView(APIView):
 
         org_options = OrganizationOption.objects.get_all_values(
             project.organization_id)
+
+        data = event_mgr.get_data()
+        del event_mgr
 
         event_id = data['event_id']
 
@@ -484,11 +526,11 @@ class StoreView(APIView):
             helper.ensure_does_not_have_ip(data)
 
         # mutates data (strips a lot of context if not queued)
-        helper.insert_data_to_database(data, start_time=start_time)
+        helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
 
         cache.set(cache_key, '', 60 * 5)
 
-        helper.log.debug('New event received (%s)', event_id)
+        api_logger.debug('New event received (%s)', event_id)
 
         event_accepted.send_robust(
             ip=remote_addr,
@@ -525,7 +567,6 @@ class MinidumpView(StoreView):
 
         project = self._get_project_from_id(project_id)
         helper.context.bind_project(project)
-        Raven.tags_context(helper.context.get_tags_context())
 
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
@@ -537,13 +578,12 @@ class MinidumpView(StoreView):
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
-        Raven.tags_context(helper.context.get_tags_context())
 
         return super(APIView, self).dispatch(
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
         )
 
-    def post(self, request, **kwargs):
+    def post(self, request, project, **kwargs):
         # Minidump request payloads do not have the same structure as
         # usual events from other SDKs. Most notably, the event needs
         # to be transfered in the `sentry` form field. All other form
@@ -584,14 +624,6 @@ class MinidumpView(StoreView):
         except KeyError:
             raise APIError('Missing minidump upload')
 
-        if settings.SENTRY_MINIDUMP_CACHE:
-            if not os.path.exists(settings.SENTRY_MINIDUMP_PATH):
-                os.mkdir(settings.SENTRY_MINIDUMP_PATH, 0o744)
-
-            with open('%s/%s.dmp' % (settings.SENTRY_MINIDUMP_PATH, event_id), 'wb') as out:
-                for chunk in minidump.chunks():
-                    out.write(chunk)
-
         # Breakpad on linux sometimes stores the entire HTTP request body as
         # dump file instead of just the minidump. The Electron SDK then for
         # example uploads a multipart formdata body inside the minidump file.
@@ -624,13 +656,45 @@ class MinidumpView(StoreView):
             except KeyError:
                 raise APIError('Missing minidump upload')
 
+        if minidump.size == 0:
+            raise APIError('Empty minidump upload received')
+
+        if settings.SENTRY_MINIDUMP_CACHE:
+            if not os.path.exists(settings.SENTRY_MINIDUMP_PATH):
+                os.mkdir(settings.SENTRY_MINIDUMP_PATH, 0o744)
+
+            with open('%s/%s.dmp' % (settings.SENTRY_MINIDUMP_PATH, event_id), 'wb') as out:
+                for chunk in minidump.chunks():
+                    out.write(chunk)
+
+        # Always store the minidump in attachments so we can access it during
+        # processing, regardless of the event-attachments feature. This will
+        # allow us to stack walk again with CFI once symbols are loaded.
+        attachments = []
+        minidump.seek(0)
+        attachments.append(CachedAttachment.from_upload(minidump, type=MINIDUMP_ATTACHMENT_TYPE))
+
+        # Append all other files as generic attachments. We can skip this if the
+        # feature is disabled since they won't be saved.
+        if features.has('organizations:event-attachments',
+                        project.organization, actor=request.user):
+            for name, file in six.iteritems(request.FILES):
+                if name != 'upload_file_minidump':
+                    attachments.append(CachedAttachment.from_upload(file))
+
         try:
             merge_minidump_event(data, minidump)
         except ProcessMinidumpError as e:
             logger.exception(e)
             raise APIError(e.message.split('\n', 1)[0])
 
-        response_or_event_id = self.process(request, data=data, **kwargs)
+        response_or_event_id = self.process(
+            request,
+            attachments=attachments,
+            data=data,
+            project=project,
+            **kwargs)
+
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
 
@@ -675,7 +739,6 @@ class SecurityReportView(StoreView):
 
         project = self._get_project_from_id(project_id)
         helper.context.bind_project(project)
-        Raven.tags_context(helper.context.get_tags_context())
 
         # This is yanking the auth from the querystring since it's not
         # in the POST body. This means we expect a `sentry_key` and
@@ -687,14 +750,13 @@ class SecurityReportView(StoreView):
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
-        Raven.tags_context(helper.context.get_tags_context())
 
         return super(APIView, self).dispatch(
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
         )
 
     def post(self, request, project, helper, **kwargs):
-        json_body = helper.safely_load_json_string(request.body)
+        json_body = safely_load_json_string(request.body)
         report_type = self.security_report_type(json_body)
         if report_type is None:
             raise APIError('Unrecognized security report type')
@@ -724,7 +786,7 @@ class SecurityReportView(StoreView):
         )
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
-        return HttpResponse(status=201)
+        return HttpResponse(content_type='application/javascript', status=201)
 
     def security_report_type(self, body):
         report_type_for_key = {
@@ -739,17 +801,13 @@ class SecurityReportView(StoreView):
                     return report_type_for_key[k]
         return None
 
+    def pre_normalize(self, data, helper):
+        data.process_csp_report()
+
 
 @cache_control(max_age=3600, public=True)
 def robots_txt(request):
     return HttpResponse("User-agent: *\nDisallow: /\n", content_type='text/plain')
-
-
-@cache_control(max_age=3600, public=True)
-def crossdomain_xml_index(request):
-    response = render_to_response('sentry/crossdomain_index.xml')
-    response['Content-Type'] = 'application/xml'
-    return response
 
 
 @cache_control(max_age=60)

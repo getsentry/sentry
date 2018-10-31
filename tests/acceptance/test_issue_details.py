@@ -20,10 +20,11 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def create_sample_event(self, platform, sample_name=None):
+    def create_sample_event(self, platform, default=None, sample_name=None):
         event = create_sample_event(
             project=self.project,
             platform=platform,
+            default=default,
             sample_name=sample_name,
             event_id='d964fdbd649a4cf8bfc35d18082b6b0e',
             timestamp=1452683305,
@@ -40,7 +41,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details python')
@@ -51,10 +52,24 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.entries')
+        self.browser.wait_until('[data-test-id="loaded-device-name"]')
         self.browser.snapshot('issue details cocoa')
+
+    def test_unity_event(self):
+        event = self.create_sample_event(
+            default='unity',
+            platform='csharp'
+        )
+
+        self.browser.get(
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+        )
+        self.browser.wait_until('.entries')
+        self.browser.wait_until('[data-test-id="loaded-device-name"]')
+        self.browser.snapshot('issue details unity')
 
     def test_javascript_specific_event(self):
         event = self.create_sample_event(
@@ -62,7 +77,8 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/events/{}/'.format(self.org.slug, self.project.slug, event.group.id, event.id)
+            u'/{}/{}/issues/{}/events/{}/'.format(self.org.slug,
+                                                  self.project.slug, event.group.id, event.id)
         )
         self.browser.wait_until('.event-details-container')
         self.browser.wait_until_not('.loading-indicator')
@@ -76,7 +92,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details rust')
@@ -87,10 +103,22 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.entries')
+        self.browser.wait_until('[data-test-id="loaded-device-name"]')
         self.browser.snapshot('issue details cordova')
+
+    def test_stripped_event(self):
+        event = self.create_sample_event(
+            platform='pii'
+        )
+
+        self.browser.get(
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+        )
+        self.browser.wait_until('.entries')
+        self.browser.snapshot('issue details pii stripped')
 
     def test_activity_page(self):
         event = self.create_sample_event(
@@ -98,7 +126,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
 
         self.browser.get(
-            '/{}/{}/issues/{}/activity'.format(self.org.slug, self.project.slug, event.group.id)
+            u'/{}/{}/issues/{}/activity'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.activity-item')
         self.browser.snapshot('issue activity python')

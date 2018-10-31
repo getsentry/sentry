@@ -24,7 +24,7 @@ class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the organization short name
         :auth: required
         """
-        if not features.has('organizations:sso', organization, actor=request.user):
+        if not features.has('organizations:sso-basic', organization, actor=request.user):
             return Response(ERR_NO_SSO, status=status.HTTP_403_FORBIDDEN)
 
         try:

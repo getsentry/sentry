@@ -189,7 +189,7 @@ class OrganizationOnboardingTaskTest(TestCase):
     def test_member_joined(self):
         user = self.create_user(email='test@example.org')
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)
-        member_joined.send(member=member, sender=type(member))
+        member_joined.send(member=member, organization=self.organization, sender=type(member))
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -200,7 +200,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         user2 = self.create_user(email='test@example.com')
         member2 = self.create_member(organization=self.organization, teams=[self.team], user=user2)
-        member_joined.send(member=member2, sender=type(member2))
+        member_joined.send(member=member2, organization=self.organization, sender=type(member2))
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -270,7 +270,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         first_event_received.send(
             project=second_project, group=second_group, sender=type(second_project)
         )
-        member_joined.send(member=member, sender=type(member))
+        member_joined.send(member=member, organization=self.organization, sender=type(member))
         plugin_enabled.send(
             plugin=IssueTrackingPlugin(),
             project=project,

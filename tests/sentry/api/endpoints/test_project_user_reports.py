@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 import six
+from datetime import timedelta
+from django.utils import timezone
 from exam import fixture
 
 from sentry.testutils import APITestCase, UserReportEnvironmentTestCase
@@ -43,7 +45,7 @@ class ProjectUserReportListTest(APITestCase):
             group=group2,
         )
 
-        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
             project.organization.slug,
             project.slug,
         )
@@ -72,12 +74,12 @@ class ProjectUserReportListTest(APITestCase):
             group=group,
         )
 
-        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
             project.organization.slug,
             project.slug,
         )
 
-        response = self.client.get('{}?status='.format(url), format='json')
+        response = self.client.get(u'{}?status='.format(url), format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -104,10 +106,13 @@ class CreateProjectUserReportTest(APITestCase):
         project = self.create_project()
         group = self.create_group(project=project)
         environment = self.make_environment(project)
-        event = self.create_event(group=group, tags={
-            'environment': environment.name})
+        event = self.create_event(
+            group=group,
+            tags={'environment': environment.name},
+            datetime=timezone.now(),
+        )
 
-        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
             project.organization.slug,
             project.slug,
         )
@@ -139,8 +144,11 @@ class CreateProjectUserReportTest(APITestCase):
         project = self.create_project()
         group = self.create_group(project=project)
         environment = self.make_environment(project)
-        event = self.create_event(group=group, tags={
-            'environment': environment.name})
+        event = self.create_event(
+            group=group,
+            tags={'environment': environment.name},
+            datetime=timezone.now(),
+        )
 
         UserReport.objects.create(
             group=group,
@@ -151,7 +159,7 @@ class CreateProjectUserReportTest(APITestCase):
             comments='',
         )
 
-        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
             project.organization.slug,
             project.slug,
         )
@@ -184,10 +192,12 @@ class CreateProjectUserReportTest(APITestCase):
         group = self.create_group(project=project)
         environment = self.make_environment(project)
         event = self.create_event(
-            group=group, tags={
+            group=group,
+            tags={
                 'sentry:user': 'email:foo@example.com',
                 'environment': environment.name,
-            }
+            },
+            datetime=timezone.now(),
         )
         euser = EventUser.objects.create(
             project_id=project.id,
@@ -203,7 +213,7 @@ class CreateProjectUserReportTest(APITestCase):
             comments='',
         )
 
-        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
             project.organization.slug,
             project.slug,
         )
@@ -233,6 +243,71 @@ class CreateProjectUserReportTest(APITestCase):
         euser = EventUser.objects.get(id=euser.id)
         assert euser.name == 'Foo Bar'
 
+    def test_already_present_after_deadline(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        environment = self.make_environment(project)
+        event = self.create_event(group=group, tags={
+            'environment': environment.name})
+
+        UserReport.objects.create(
+            group=group,
+            project=project,
+            event_id=event.event_id,
+            name='foo',
+            email='bar@example.com',
+            comments='',
+            date_added=timezone.now() - timedelta(minutes=10),
+        )
+
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.post(
+            url,
+            data={
+                'event_id': event.event_id,
+                'email': 'foo@example.com',
+                'name': 'Foo Bar',
+                'comments': 'It broke!',
+            }
+        )
+
+        assert response.status_code == 409, response.content
+
+    def test_after_event_deadline(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        environment = self.make_environment(project)
+        event = self.create_event(
+            group=group,
+            tags={'environment': environment.name},
+            datetime=timezone.now() - timedelta(minutes=60),
+        )
+
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.post(
+            url,
+            data={
+                'event_id': event.event_id,
+                'email': 'foo@example.com',
+                'name': 'Foo Bar',
+                'comments': 'It broke!',
+            }
+        )
+
+        assert response.status_code == 409, response.content
+
 
 class ProjectUserReportByEnvironmentsTest(UserReportEnvironmentTestCase):
 
@@ -252,7 +327,7 @@ class ProjectUserReportByEnvironmentsTest(UserReportEnvironmentTestCase):
 
     @fixture
     def path(self):
-        return '/api/0/projects/{}/{}/user-feedback/'.format(
+        return u'/api/0/projects/{}/{}/user-feedback/'.format(
             self.project.organization.slug,
             self.project.slug,
         )

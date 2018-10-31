@@ -11,9 +11,14 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github import GitHubIntegrationProvider
 from sentry.models import (
     Identity, IdentityProvider, IdentityStatus, Integration, OrganizationIntegration,
-    Repository,
+    Repository, Project
 )
+from sentry.plugins import plugins
 from sentry.testutils import IntegrationTestCase
+from tests.sentry.plugins.testutils import (
+    register_mock_plugins,
+    unregister_mock_plugins,
+)
 
 
 class GitHubIntegrationTest(IntegrationTestCase):
@@ -29,6 +34,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.expires_at = '3000-01-01T00:00:00Z'
 
         self._stub_github()
+        register_mock_plugins()
+
+    def tearDown(self):
+        unregister_mock_plugins()
+        super(GitHubIntegrationTest, self).tearDown()
 
     def _stub_github(self):
         responses.reset()
@@ -48,7 +58,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            'https://api.github.com/installations/{}/access_tokens'.format(
+            u'https://api.github.com/installations/{}/access_tokens'.format(
                 self.installation_id,
             ),
             json={
@@ -107,6 +117,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
             }
         )
 
+        responses.add(
+            responses.GET,
+            u'https://api.github.com/repos/Test-Organization/foo/hooks',
+            json=[],
+        )
+
     def assert_setup_flow(self):
         resp = self.client.get(self.init_path)
         assert resp.status_code == 302
@@ -116,7 +132,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert redirect.path == '/apps/sentry-test-app'
 
         # App installation ID is provided
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({'installation_id': self.installation_id})
         ))
@@ -138,7 +154,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         # Compact list values into singular values, since there's only ever one.
         authorize_params = {k: v[0] for k, v in six.iteritems(params)}
 
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({
                 'code': 'oauth-code',
@@ -171,6 +187,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             url='https://github.com/Test-Organization/foo',
             provider='github',
             external_id=123,
+            config={
+                'name': 'Test-Organization/foo',
+            },
         )
 
         inaccessible_repo = Repository.objects.create(
@@ -178,9 +197,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
             name='Not-My-Org/other',
             provider='github',
             external_id=321,
+            config={
+                'name': 'Not-My-Org/other',
+            },
         )
 
-        self.assert_setup_flow()
+        with self.tasks():
+            self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -195,18 +218,47 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ).integration_id is None
 
     @responses.activate
+    def test_disables_plugin_when_fully_migrated(self):
+        project = Project.objects.create(
+            organization_id=self.organization.id,
+        )
+
+        plugin = plugins.get('github')
+        plugin.enable(project)
+
+        # Accessible to new Integration
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name='Test-Organization/foo',
+            url='https://github.com/Test-Organization/foo',
+            provider='github',
+            external_id=123,
+            config={
+                'name': 'Test-Organization/foo',
+            },
+        )
+
+        assert 'github' in [p.slug for p in plugins.for_project(project)]
+
+        with self.tasks():
+            self.assert_setup_flow()
+
+        assert 'github' not in [p.slug for p in plugins.for_project(project)]
+
+    @responses.activate
     def test_basic_flow(self):
-        self.assert_setup_flow()
+        with self.tasks():
+            self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
 
         assert integration.external_id == self.installation_id
         assert integration.name == 'Test Organization'
         assert integration.metadata == {
-            'access_token': self.access_token,
+            'access_token': None,
             # The metadata doesn't get saved with the timezone "Z" character
             # for some reason, so just compare everything but that.
-            'expires_at': self.expires_at[:-1],
+            'expires_at': None,
             'icon': 'http://example.com/avatar.png',
             'domain_name': 'github.com/Test-Organization',
             'account_type': 'Organization',
@@ -247,7 +299,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         Identity.objects.get().update(user=user2)
         resp = self.assert_setup_flow()
         assert '"success":false' in resp.content
-        assert 'The provided Github account is linked to a different user' in resp.content
+        assert 'The provided GitHub account is linked to a different user' in resp.content
 
     @responses.activate
     def test_reinstall_flow(self):
@@ -259,7 +311,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert integration.status == ObjectStatus.DISABLED
         assert integration.external_id == self.installation_id
 
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.init_path,
             urlencode({'reinstall_id': integration.id})
         ))
@@ -273,7 +325,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         # New Installation
         self.installation_id = 'install_2'
 
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({'installation_id': self.installation_id})
         ))
@@ -297,7 +349,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         self._stub_github()
 
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({
                 'code': 'oauth-code',
@@ -321,3 +373,35 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.status == ObjectStatus.VISIBLE
         assert integration.external_id == self.installation_id
+
+    @responses.activate
+    def test_disable_plugin_when_fully_migrated(self):
+        self._stub_github()
+
+        project = Project.objects.create(
+            organization_id=self.organization.id,
+        )
+
+        plugin = plugins.get('github')
+        plugin.enable(project)
+
+        # Accessible to new Integration - mocked in _stub_github
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name='Test-Organization/foo',
+            url='https://github.com/Test-Organization/foo',
+            provider='github',
+            external_id='123',
+            config={
+                'name': 'Test-Organization/foo',
+            },
+        )
+
+        # Enabled before
+        assert 'github' in [p.slug for p in plugins.for_project(project)]
+
+        with self.tasks():
+            self.assert_setup_flow()
+
+        # Disabled after Integration installed
+        assert 'github' not in [p.slug for p in plugins.for_project(project)]

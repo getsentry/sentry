@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -8,9 +8,7 @@ import {Panel, PanelHeader, PanelItem} from 'app/components/panels';
 export const TableChart = styled(
   class TableChartComponent extends React.Component {
     static propTypes = {
-      data: PropTypes.arrayOf(
-        PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number]))
-      ),
+      data: PropTypes.arrayOf(PropTypes.any),
       /**
        * The column index where your data starts.
        * This is used to calculate totals.
@@ -117,7 +115,7 @@ export const TableChart = styled(
         ...props
       }) => {
         return (
-          <Flex flex={1} css={css}>
+          <Row>
             {items &&
               items.slice(0, dataStartIndex).map((rowHeaderValue, columnIndex) =>
                 renderCell({
@@ -156,7 +154,7 @@ export const TableChart = styled(
                   return renderCell(renderCellProps);
                 })}
             </DataGroup>
-          </Flex>
+          </Row>
         );
       };
 
@@ -291,7 +289,12 @@ export const TableChart = styled(
 
       // If we need to calculate totals...
       let dataTotals =
-        showRowTotal || showColumnTotal || shadeRowPercentage ? this.getTotals(data) : [];
+        showRowTotal || showColumnTotal || shadeRowPercentage
+          ? this.getTotals(data)
+          : {
+              rowTotals: [],
+              columnTotals: [],
+            };
       let dataMaybeWithTotals = this.getDataWithTotals(dataTotals);
 
       // For better render customization
@@ -330,7 +333,7 @@ export const TableChart = styled(
 export default TableChart;
 
 export const TableChartRow = styled(
-  class extends React.Component {
+  class TableChartRowComponent extends React.Component {
     static propTypes = {
       /**
        * Show percentage as a bar in the row
@@ -377,7 +380,7 @@ export const TableChartRowBar = styled(({width, ...props}) => <div {...props} />
   z-index: 1;
 `;
 
-export const Cell = styled(Box)`
+export const Cell = styled('div')`
   z-index: 2;
   display: block;
   white-space: nowrap;
@@ -389,4 +392,8 @@ export const Cell = styled(Box)`
 
 const DataGroup = styled(Flex)`
   flex-shrink: 0;
+`;
+const Row = styled(Flex)`
+  flex: 1;
+  overflow: hidden;
 `;

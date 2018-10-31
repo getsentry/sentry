@@ -1,14 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import BooleanField from 'app/views/settings/components/forms/booleanField';
-import RangeField from 'app/views/settings/components/forms/rangeField';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import TextField from 'app/views/settings/components/forms/textField';
-import TextareaField from 'app/views/settings/components/forms/textareaField';
-import RadioField from 'app/views/settings/components/forms/radioField';
-import InputField from 'app/views/settings/components/forms/inputField';
-import ChoiceMapper from 'app/views/settings/components/forms/choiceMapper';
+import BooleanField from './booleanField';
+import EmailField from './emailField';
+import NumberField from './numberField';
+import RangeField from './rangeField';
+import SelectField from './selectField';
+import TextField from './textField';
+import TextareaField from './textareaField';
+import RadioField from './radioField';
+import InputField from './inputField';
+import ChoiceMapper from './choiceMapper';
 
 export default class FieldFromConfig extends React.Component {
   static propTypes = {
@@ -39,6 +41,11 @@ export default class FieldFromConfig extends React.Component {
       visible: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
       disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
       /**
+       * Function to format the value displayed in the undo toast. May also be
+       * specified as false to disable showing the changed fields in the toast.
+       */
+      formatMessageValue: PropTypes.oneOfType([PropTypes.func, PropTypes.oneOf([false])]),
+      /**
        * Should show a "return key" icon in input?
        */
       showReturnButton: PropTypes.bool,
@@ -68,7 +75,7 @@ export default class FieldFromConfig extends React.Component {
       case 'boolean':
         return <BooleanField {...props} />;
       case 'email':
-        return <InputField {...props} type="email" />;
+        return <EmailField {...props} />;
       case 'string':
       case 'text':
       case 'url':
@@ -81,17 +88,12 @@ export default class FieldFromConfig extends React.Component {
 
         return <TextField {...props} />;
       case 'number':
-        return <InputField {...props} type="number" />;
+        return <NumberField {...props} />;
       case 'textarea':
         return <TextareaField {...props} />;
       case 'choice':
       case 'select':
       case 'array':
-        // the chrome required tip winds up in weird places
-        // so just make it look like it's required in field (with *),
-        // and rely on server validation
-        delete props.required;
-
         // TODO(billy): Handle `props.has_autocomplete` with an "async" SelectField
         // if (props.has_autocomplete) {
         // return <SelectAsyncField {...props} />;

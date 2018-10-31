@@ -234,14 +234,16 @@ class OrganizationReleaseCreateTest(APITestCase):
             )
 
         release_commits1 = list(
-            ReleaseCommit.objects.filter(release=release).values_list('commit__key', flat=True)
+            ReleaseCommit.objects.filter(
+                release=release).order_by('order').values_list(
+                'commit__key', flat=True)
         )
 
         # check that commits are overwritten
         assert release_commits1 == [
-            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             u'62de626b7c7cfb8e77efb4273b1a3df4123e6216',
             u'58de626b7c7cfb8e77efb4273b1a3df4123e6345',
+            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         ]
 
         # should be 201 because project was added
@@ -278,14 +280,16 @@ class OrganizationReleaseCreateTest(APITestCase):
                 )
 
         release_commits2 = list(
-            ReleaseCommit.objects.filter(release=release).values_list('commit__key', flat=True)
+            ReleaseCommit.objects.filter(
+                release=release).order_by('order').values_list(
+                'commit__key', flat=True)
         )
 
         # check that commits are overwritten
         assert release_commits2 == [
-            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             u'cccccccccccccccccccccccccccccccccccccccc',
             u'dddddddddddddddddddddddddddddddddddddddd',
+            u'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         ]
 
         assert response2.status_code == 208, response.content
@@ -755,7 +759,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             url,
             data={'version': '1.2.1',
                   'projects': [project1.slug]},
-            HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(bad_api_key.key))
+            HTTP_AUTHORIZATION='Basic ' + b64encode(u'{}:'.format(bad_api_key.key))
         )
         assert response.status_code == 403
 
@@ -768,7 +772,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             url,
             data={'version': '1.2.1',
                   'projects': [project1.slug]},
-            HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(wrong_org_api_key.key))
+            HTTP_AUTHORIZATION='Basic ' + b64encode(u'{}:'.format(wrong_org_api_key.key))
         )
         assert response.status_code == 403
 
@@ -781,7 +785,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             url,
             data={'version': '1.2.1',
                   'projects': [project1.slug]},
-            HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(good_api_key.key))
+            HTTP_AUTHORIZATION='Basic ' + b64encode(u'{}:'.format(good_api_key.key))
         )
         assert response.status_code == 201, response.content
 
@@ -838,7 +842,7 @@ class OrganizationReleaseCreateTest(APITestCase):
                 ],
                 'projects': [project1.slug]
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(api_token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(api_token.token)
         )
 
         mock_fetch_commits.apply_async.assert_called_with(

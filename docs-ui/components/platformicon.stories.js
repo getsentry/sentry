@@ -9,8 +9,8 @@ const StyledPlatformicon = styled(Platformicon)`
   margin: 0 15px 15px 0;
 `;
 
-storiesOf('Platformicon', module).add(
-  'default',
+storiesOf('Style|Icons', module).add(
+  'Platformicon',
   withInfo('Scalable platform and framework icons')(() => (
     <div>
       <StyledPlatformicon platform="generic" size="24" />

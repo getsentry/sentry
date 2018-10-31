@@ -44,6 +44,24 @@
     border-radius: 15px;
   }
 
+  .event-message {
+    position: relative;
+
+    .error-level {
+      position: absolute;
+      left: 0;
+    }
+
+    .message {
+      margin-left: 21px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-height: 38px;
+      display: block;
+    }
+  }
+
   .event-meta {
     font-size: 80%;
     margin-top: 6px;
@@ -345,36 +363,39 @@
     border-bottom: 1px dotted @trim;
   }
 
-  .bar-chart figure a {
+  .bar-chart figure a,
+  .bar-chart figure g {
     height: 50px;
 
-    span {
+    span,
+    .barchart-rect {
       background: @purple;
-      #gradient > .vertical(@purple-light, @purple);
+      fill: @purple;
 
       &.inactive {
         background: @gray-lightest;
-        #gradient > .vertical(@gray-lightest, @gray-lightest);
+        fill: @gray-lightest;
       }
 
       &.environment {
         background: @purple-lightest;
-        #gradient > .vertical(@purple-lightest, @purple-lightest);
+        fill: @purple-lightest;
       }
     }
 
-    &:hover span {
+    &:hover span,
+    &:hover .barchart-rect {
       background: @purple-dark;
-      #gradient > .vertical(@purple, @purple-dark);
+      fill: @purple-dark;
 
       &.inactive {
         background: @gray-lighter;
-        #gradient > .vertical(@gray-lighter, @gray-lighter);
+        fill: @gray-lighter;
       }
 
       &.environment {
         background: @purple;
-        #gradient > .vertical(@purple, @purple);
+        fill: @purple;
       }
     }
   }
@@ -919,6 +940,21 @@
       }
     }
 
+    &.arm .context-item-icon {
+      background-image: url(../images/icons/context/arm.png);
+      background-size: contain;
+    }
+
+    &.amd .context-item-icon {
+      background-image: url(../images/icons/context/amd.png);
+      background-size: contain;
+    }
+
+    &.nvidia .context-item-icon {
+      background-image: url(../images/icons/context/nvidia.png);
+      background-size: contain;
+    }
+
     &.electron .context-item-icon {
       background-image: url(../images/icons/context/electron.png);
     }
@@ -976,6 +1012,7 @@
     &.tvos,
     &.mac-os-x,
     &.mac,
+    &.apple,
     &.watchos {
       .context-item-icon {
         background-image: url(../images/icons/context/apple-ios.svg);
@@ -1310,9 +1347,11 @@ div.traceback > ul {
       padding: 8px 20px;
       font-size: 13px;
       margin: 0;
-      // line-height: 1.4;
       line-height: 16px;
       background: lighten(@blue-light, 35);
+
+      word-break: break-all; /* for firefox */
+      word-break: break-word; /* for chrome */
 
       code {
         font-family: inherit;
@@ -1538,6 +1577,7 @@ div.traceback > ul {
       line-height: 16px;
       font-size: 9px;
       text-align: center;
+      flex-shrink: 0;
     }
 
     .expand-button:hover {
@@ -1558,19 +1598,6 @@ div.traceback > ul {
       .toggle-expand .btn {
         margin-bottom: -13px;
       }
-    }
-  }
-  .repeated-frames {
-    border-radius: 50px;
-    padding: 1px 3px;
-    margin-left: 1em;
-    border-width: thin;
-    border-style: solid;
-    border-color: @yellow-orange-dark;
-    color: @yellow-orange-dark;
-    background-color: @white-dark;
-    span {
-      vertical-align: middle;
     }
   }
 
@@ -2135,6 +2162,10 @@ span.val {
       display: none;
     }
 
+    .event-message .message {
+      margin-left: 0;
+    }
+
     .details {
       max-width: 960px;
       margin: 0 auto;
@@ -2654,6 +2685,19 @@ ul.crumbs {
 }
 
 /**
+* Responsive medium-large screen
+* ============================================================================
+*/
+
+@media (max-width: 1460px) {
+  .context-summary {
+    .context-item:nth-child(4) {
+      display: none;
+    }
+  }
+}
+
+/**
 * Responsive medium screen
 * ============================================================================
 */
@@ -2778,6 +2822,10 @@ ul.crumbs {
       padding-top: 14px;
       padding-bottom: 14px;
       min-height: 67px;
+
+      &:nth-child(4) {
+        display: block;
+      }
 
       .context-item-icon {
         top: 9px;

@@ -16,16 +16,16 @@ const aggregationList = [
     external: ['uniq', 'message', 'uniq_message'],
   },
   {
-    internal: 'topK(10)(message)',
-    external: ['topK(10)', 'message', 'topK_10_message'],
-  },
-  {
-    internal: 'avg(retention_days)',
-    external: ['avg', 'retention_days', 'avg_retention_days'],
+    internal: 'avg(device_battery_level)',
+    external: ['avg', 'device_battery_level', 'avg_device_battery_level'],
   },
   {
     internal: 'uniq(tags[server_name])',
     external: ['uniq', 'tags[server_name]', 'uniq_tags_server_name'],
+  },
+  {
+    internal: 'uniq(tags[browser.name])',
+    external: ['uniq', 'tags[browser.name]', 'uniq_tags_browser_name'],
   },
 ];
 
@@ -49,18 +49,6 @@ describe('Aggregations', function() {
       expect(isValidAggregation(['count()', null, 'count'], COLUMNS)).toEqual(true);
       expect(isValidAggregation(['count', null, 'count'], COLUMNS)).toEqual(false);
       expect(isValidAggregation(['count()', 'email', 'count'], COLUMNS)).toEqual(false);
-    });
-
-    it('validates topK', function() {
-      expect(isValidAggregation(['topK(5)', 'email', 'topK_5_email'], COLUMNS)).toEqual(
-        true
-      );
-      expect(isValidAggregation(['topK()', 'email', 'topK_5_email'], COLUMNS)).toEqual(
-        false
-      );
-      expect(isValidAggregation(['topK(5)', null, 'topK_5_email'], COLUMNS)).toEqual(
-        false
-      );
     });
 
     it('validates uniq', function() {

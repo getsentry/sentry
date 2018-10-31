@@ -38,12 +38,27 @@ class Webhook(object):
     def __call__(self, event, host=None):
         external_id = event['installation']['id']
         if host:
-            external_id = '{}:{}'.format(host, event['installation']['id'])
+            external_id = u'{}:{}'.format(host, event['installation']['id'])
 
-        integration = Integration.objects.get(
-            external_id=external_id,
-            provider=self.provider,
-        )
+        try:
+            integration = Integration.objects.get(
+                external_id=external_id,
+                provider=self.provider,
+            )
+        except Integration.DoesNotExist:
+            # It seems possible for the GH or GHE app to be installed on their
+            # end, but the integration to not exist. Possibly from deleting in
+            # Sentry first or from a failed install flow (where the integration
+            # didn't get created in the first place)
+            logger.info(
+                'github.missing-integration',
+                extra={
+                    'action': event.get('action'),
+                    'repository': event.get('repository'),
+                    'external_id': external_id,
+                }
+            )
+            return
 
         if 'repository' in event:
 
@@ -74,12 +89,26 @@ class InstallationEventWebhook(Webhook):
         if installation and event['action'] == 'deleted':
             external_id = event['installation']['id']
             if host:
-                external_id = '{}:{}'.format(host, event['installation']['id'])
-            integration = Integration.objects.get(
-                external_id=external_id,
-                provider=self.provider,
-            )
-            self._handle_delete(event, integration)
+                external_id = u'{}:{}'.format(host, event['installation']['id'])
+            try:
+                integration = Integration.objects.get(
+                    external_id=external_id,
+                    provider=self.provider,
+                )
+                self._handle_delete(event, integration)
+            except Integration.DoesNotExist:
+                # It seems possible for the GH or GHE app to be installed on their
+                # end, but the integration to not exist. Possibly from deleting in
+                # Sentry first or from a failed install flow (where the integration
+                # didn't get created in the first place)
+                logger.info(
+                    'github.deletion-missing-integration',
+                    extra={
+                        'action': event['action'],
+                        'installation_name': event['account']['login'],
+                        'external_id': external_id,
+                    }
+                )
 
     def _handle_delete(self, event, integration):
 

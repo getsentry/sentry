@@ -8,7 +8,7 @@ import sdk from 'app/utils/sdk';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationState from 'app/mixins/organizationState';
@@ -203,6 +203,28 @@ const InviteMember = createReactClass({
     });
   },
 
+  allSelected() {
+    let {teams} = this.getOrganization();
+    let {selectedTeams} = this.state;
+    return teams.length === selectedTeams.size;
+  },
+
+  handleSelectAll() {
+    let {teams} = this.getOrganization();
+
+    this.setState(state => {
+      let {selectedTeams} = state;
+      if (this.allSelected()) {
+        selectedTeams.clear();
+      } else {
+        selectedTeams = new Set(teams.map(({slug}) => slug));
+      }
+      return {
+        selectedTeams,
+      };
+    });
+  },
+
   render() {
     let {error, loading, roleList, selectedRole, selectedTeams} = this.state;
     let {teams} = this.getOrganization();
@@ -246,6 +268,8 @@ const InviteMember = createReactClass({
               teams={teams}
               selectedTeams={selectedTeams}
               toggleTeam={this.toggleTeam}
+              onSelectAll={this.handleSelectAll}
+              allSelected={this.allSelected}
             />
             <Button
               priority="primary"

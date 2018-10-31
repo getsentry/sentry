@@ -20,6 +20,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         self.vsts_account_id = 'c8a585ae-b61f-4ba6-833c-9e8d5d1674d8'
         self.vsts_account_name = 'MyVSTSAccount'
         self.vsts_account_uri = 'https://MyVSTSAccount.vssps.visualstudio.com:443/'
+        self.vsts_base_url = 'https://MyVSTSAccount.visualstudio.com/'
 
         self.vsts_user_id = 'd6245f20-2af8-44f4-9451-8107cb2767db'
         self.vsts_user_name = 'Foo Bar'
@@ -60,15 +61,25 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://app.vssps.visualstudio.com/_apis/accounts',
-            json=[{
-                'AccountId': self.vsts_account_id,
-                'AccountUri': self.vsts_account_uri,
-                'AccountName': self.vsts_account_name,
-                'Properties': {},
-            }],
+            'https://app.vssps.visualstudio.com/_apis/accounts?ownerId=%s&api-version=4.1' % self.vsts_user_id,
+            json={
+                'count': 1,
+                'value': [{
+                    'accountId': self.vsts_account_id,
+                    'accountUri': self.vsts_account_uri,
+                    'accountName': self.vsts_account_name,
+                    'properties': {},
+                }]
+            },
         )
 
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1' % self.vsts_account_id,
+            json={
+                'locationUrl': self.vsts_base_url,
+            }
+        )
         responses.add(
             responses.GET,
             'https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=1.0',
@@ -91,7 +102,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://{}.visualstudio.com/DefaultCollection/_apis/projects'.format(
+            u'https://{}.visualstudio.com/_apis/projects'.format(
                 self.vsts_account_name.lower(),
             ),
             json={
@@ -104,7 +115,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            'https://{}.visualstudio.com/_apis/hooks/subscriptions'.format(
+            u'https://{}.visualstudio.com/_apis/hooks/subscriptions'.format(
                 self.vsts_account_name.lower(),
             ),
             json=CREATE_SUBSCRIPTION,
@@ -112,7 +123,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://{}.visualstudio.com/_apis/git/repositories'.format(
+            u'https://{}.visualstudio.com/_apis/git/repositories'.format(
                 self.vsts_account_name.lower(),
             ),
             json={
@@ -128,7 +139,23 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states'.format(
+            u'https://{}.visualstudio.com/ProjectA/_apis/git/repositories/ProjectA'.format(
+                self.vsts_account_name.lower(),
+            ),
+            json={
+                'repository': {
+                    'id': self.repo_id,
+                    'name': self.repo_name,
+                    'project': {
+                        'name': self.project_a['name'],
+                    },
+                },
+            },
+        )
+
+        responses.add(
+            responses.GET,
+            u'https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states'.format(
                 self.vsts_account_name.lower(),
                 self.project_a['name'],
                 'Bug',
@@ -143,29 +170,44 @@ class VstsIntegrationTestCase(IntegrationTestCase):
             }
         )
 
-    def assert_installation(self):
-        # Initial request to the installation URL for VSTS
-        resp = self.client.get(self.init_path)
+    def make_init_request(self, path=None, body=None):
+        return self.client.get(
+            path or self.init_path,
+            body or {},
+        )
 
-        redirect = urlparse(resp['Location'])
-        query = parse_qs(redirect.query)
+    def make_oauth_redirect_request(self, state):
+        return self.client.get(u'{}?{}'.format(
+            self.setup_path,
+            urlencode({
+                'code': 'oauth-code',
+                'state': state,
+            }),
+        ))
 
-        assert resp.status_code == 302
+    def assert_vsts_oauth_redirect(self, redirect):
         assert redirect.scheme == 'https'
         assert redirect.netloc == 'app.vssps.visualstudio.com'
         assert redirect.path == '/oauth2/authorize'
 
-        # OAuth redirect back to Sentry (identity_pipeline_view)
-        resp = self.client.get('{}?{}'.format(
-            self.setup_path,
-            urlencode({
-                'code': 'oauth-code',
-                'state': query['state'][0],
-            }),
-        ))
+    def assert_account_selection(self, response, account_id=None):
+        account_id = account_id or self.vsts_account_id
+        assert response.status_code == 200
+        assert u'<option value="{}"'.format(account_id) in response.content
 
-        assert resp.status_code == 200
-        assert '<option value="{}"'.format(self.vsts_account_id) in resp.content
+    def assert_installation(self):
+        # Initial request to the installation URL for VSTS
+        resp = self.make_init_request()
+        redirect = urlparse(resp['Location'])
+
+        assert resp.status_code == 302
+        self.assert_vsts_oauth_redirect(redirect)
+
+        query = parse_qs(redirect.query)
+
+        # OAuth redirect back to Sentry (identity_pipeline_view)
+        resp = self.make_oauth_redirect_request(query['state'][0])
+        self.assert_account_selection(resp)
 
         # User choosing which VSTS Account to use (AccountConfigView)
         # Final step.
@@ -726,3 +768,15 @@ WORK_ITEM_STATES = {
         }
     ]
 }
+
+GET_PROJECTS_RESPONSE = """{
+    "count": 1,
+    "value": [{
+        "id": "ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
+        "name": "Fabrikam-Fiber-Git",
+        "url": "https://jess-dev.visualstudio.com/_apis/projects/ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
+        "state": "wellFormed",
+        "revision": 16,
+        "visibility": "private"
+    }]
+}"""

@@ -11,14 +11,10 @@ PIP = LDFLAGS="$(LDFLAGS)" pip
 WEBPACK = NODE_ENV=production ./node_modules/.bin/webpack
 
 develop: setup-git develop-only
-# develop-only is used by https://github.com/getsentry/sentry-docs/blob/master/bin/extract-docs
 develop-only: update-submodules install-system-pkgs install-yarn-pkgs install-sentry-dev
 test: develop lint test-js test-python test-cli
 
 build: locale
-
-dev-docs:
-	$(PIP) install -r doc-requirements.txt
 
 reset-db:
 	@echo "--> Dropping existing 'sentry' database"
@@ -97,6 +93,11 @@ build-platform-assets:
 	sentry init
 	@echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
 
+fetch-release-registry:
+	@echo "--> Fetching release registry"
+	sentry init
+	@echo "from sentry.utils.distutils import sync_registry; sync_registry()" | sentry exec
+
 test-cli:
 	@echo "--> Testing CLI"
 	rm -rf test_cli
@@ -153,7 +154,7 @@ publish:
 	python setup.py sdist bdist_wheel upload
 
 
-.PHONY: develop develop-only test build dev-docs test reset-db clean setup-git update-submodules node-version-check install-system-pkgs install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-acceptance lint lint-python lint-js publish
+.PHONY: develop develop-only test build test reset-db clean setup-git update-submodules node-version-check install-system-pkgs install-yarn-pkgs install-sentry-dev build-js-po locale update-transifex build-platform-assets test-cli test-js test-styleguide test-python test-snuba test-acceptance lint lint-python lint-js publish
 
 
 ############################

@@ -54,6 +54,32 @@ exports[`Project render() should render NotFound if no matching organization 1`]
         />
       </div>
     </div>
+    <div
+      className="new-project-team"
+    >
+      <h4>
+        Team:
+      </h4>
+      <div>
+        <SelectField
+          clearable={false}
+          disabled={false}
+          hideErrorMessage={false}
+          multiple={false}
+          name="select-team"
+          onChange={[Function]}
+          options={Array []}
+          required={false}
+          style={
+            Object {
+              "marginBottom": 0,
+              "width": 180,
+            }
+          }
+          value=""
+        />
+      </div>
+    </div>
     <div>
       <button
         className="btn btn-primary new-project-submit"
@@ -146,190 +172,192 @@ exports[`Project render() should set required class on empty submit 1`] = `
       <div
         className="platform-picker"
       >
-        <ul
-          className="nav nav-tabs"
-        >
-          <li
-            style={
-              Object {
-                "float": "right",
-                "marginRight": 0,
+        <NavTabs>
+          <ul
+            className="nav nav-tabs"
+          >
+            <li
+              style={
+                Object {
+                  "float": "right",
+                  "marginRight": 0,
+                }
               }
-            }
-          >
-            <div
-              className="platform-filter-container"
             >
-              <span
-                className="icon icon-search"
-              />
-              <input
-                className="platform-filter"
-                label="Filter"
-                onChange={[Function]}
-                placeholder="Filter"
-                type="text"
-                value=""
-              />
-            </div>
-          </li>
-          <ListLink
-            activeClassName="active"
-            index={false}
-            isActive={[Function]}
-            key="popular"
-            onClick={[Function]}
-            to=""
-          >
-            <li
-              className="active"
-            >
-              <Link
-                onClick={[Function]}
-                onlyActiveOnIndex={false}
-                style={Object {}}
-                to=""
+              <div
+                className="platform-filter-container"
               >
-                <a
-                  onClick={[Function]}
-                  style={Object {}}
-                >
-                  Popular
-                </a>
-              </Link>
+                <span
+                  className="icon icon-search"
+                />
+                <input
+                  className="platform-filter"
+                  label="Filter"
+                  onChange={[Function]}
+                  placeholder="Filter"
+                  type="text"
+                  value=""
+                />
+              </div>
             </li>
-          </ListLink>
-          <ListLink
-            activeClassName="active"
-            index={false}
-            isActive={[Function]}
-            key="browser"
-            onClick={[Function]}
-            to=""
-          >
-            <li
-              className=""
+            <ListLink
+              activeClassName="active"
+              index={false}
+              isActive={[Function]}
+              key="popular"
+              onClick={[Function]}
+              to=""
             >
-              <Link
-                onClick={[Function]}
-                onlyActiveOnIndex={false}
-                style={Object {}}
-                to=""
+              <li
+                className="active"
               >
-                <a
+                <Link
                   onClick={[Function]}
+                  onlyActiveOnIndex={false}
                   style={Object {}}
+                  to=""
                 >
-                  Browser
-                </a>
-              </Link>
-            </li>
-          </ListLink>
-          <ListLink
-            activeClassName="active"
-            index={false}
-            isActive={[Function]}
-            key="server"
-            onClick={[Function]}
-            to=""
-          >
-            <li
-              className=""
+                  <a
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    Popular
+                  </a>
+                </Link>
+              </li>
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={false}
+              isActive={[Function]}
+              key="browser"
+              onClick={[Function]}
+              to=""
             >
-              <Link
-                onClick={[Function]}
-                onlyActiveOnIndex={false}
-                style={Object {}}
-                to=""
+              <li
+                className=""
               >
-                <a
+                <Link
                   onClick={[Function]}
+                  onlyActiveOnIndex={false}
                   style={Object {}}
+                  to=""
                 >
-                  Server
-                </a>
-              </Link>
-            </li>
-          </ListLink>
-          <ListLink
-            activeClassName="active"
-            index={false}
-            isActive={[Function]}
-            key="mobile"
-            onClick={[Function]}
-            to=""
-          >
-            <li
-              className=""
+                  <a
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    Browser
+                  </a>
+                </Link>
+              </li>
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={false}
+              isActive={[Function]}
+              key="server"
+              onClick={[Function]}
+              to=""
             >
-              <Link
-                onClick={[Function]}
-                onlyActiveOnIndex={false}
-                style={Object {}}
-                to=""
+              <li
+                className=""
               >
-                <a
+                <Link
                   onClick={[Function]}
+                  onlyActiveOnIndex={false}
                   style={Object {}}
+                  to=""
                 >
-                  Mobile
-                </a>
-              </Link>
-            </li>
-          </ListLink>
-          <ListLink
-            activeClassName="active"
-            index={false}
-            isActive={[Function]}
-            key="desktop"
-            onClick={[Function]}
-            to=""
-          >
-            <li
-              className=""
+                  <a
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    Server
+                  </a>
+                </Link>
+              </li>
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={false}
+              isActive={[Function]}
+              key="mobile"
+              onClick={[Function]}
+              to=""
             >
-              <Link
-                onClick={[Function]}
-                onlyActiveOnIndex={false}
-                style={Object {}}
-                to=""
+              <li
+                className=""
               >
-                <a
+                <Link
                   onClick={[Function]}
+                  onlyActiveOnIndex={false}
                   style={Object {}}
+                  to=""
                 >
-                  Desktop
-                </a>
-              </Link>
-            </li>
-          </ListLink>
-          <ListLink
-            activeClassName="active"
-            index={false}
-            isActive={[Function]}
-            key="all"
-            onClick={[Function]}
-            to=""
-          >
-            <li
-              className=""
+                  <a
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    Mobile
+                  </a>
+                </Link>
+              </li>
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={false}
+              isActive={[Function]}
+              key="desktop"
+              onClick={[Function]}
+              to=""
             >
-              <Link
-                onClick={[Function]}
-                onlyActiveOnIndex={false}
-                style={Object {}}
-                to=""
+              <li
+                className=""
               >
-                <a
+                <Link
                   onClick={[Function]}
+                  onlyActiveOnIndex={false}
                   style={Object {}}
+                  to=""
                 >
-                  All
-                </a>
-              </Link>
-            </li>
-          </ListLink>
-        </ul>
+                  <a
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    Desktop
+                  </a>
+                </Link>
+              </li>
+            </ListLink>
+            <ListLink
+              activeClassName="active"
+              index={false}
+              isActive={[Function]}
+              key="all"
+              onClick={[Function]}
+              to=""
+            >
+              <li
+                className=""
+              >
+                <Link
+                  onClick={[Function]}
+                  onlyActiveOnIndex={false}
+                  style={Object {}}
+                  to=""
+                >
+                  <a
+                    onClick={[Function]}
+                    style={Object {}}
+                  >
+                    All
+                  </a>
+                </Link>
+              </li>
+            </ListLink>
+          </ul>
+        </NavTabs>
         <ul
           className="client-platform-list platform-tiles"
         >
@@ -848,6 +876,268 @@ exports[`Project render() should set required class on empty submit 1`] = `
             type="text"
             value="bar"
           />
+        </div>
+      </div>
+      <div
+        className="new-project-team"
+      >
+        <h4>
+          Team:
+        </h4>
+        <div>
+          <SelectField
+            clearable={false}
+            disabled={false}
+            hideErrorMessage={false}
+            multiple={false}
+            name="select-team"
+            onChange={[Function]}
+            options={Array []}
+            required={false}
+            style={
+              Object {
+                "marginBottom": 0,
+                "width": 180,
+              }
+            }
+            value=""
+          >
+            <div
+              className=""
+              style={
+                Object {
+                  "marginBottom": 0,
+                  "width": 180,
+                }
+              }
+            >
+              <div
+                className="controls"
+              >
+                <StyledSelectControl
+                  clearable={false}
+                  disabled={false}
+                  id="id-select-team"
+                  multiple={false}
+                  name="select-team"
+                  onChange={[Function]}
+                  options={Array []}
+                  required={false}
+                  value=""
+                >
+                  <SelectControl
+                    className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                    clearable={false}
+                    disabled={false}
+                    height={36}
+                    id="id-select-team"
+                    multiple={false}
+                    name="select-team"
+                    onChange={[Function]}
+                    options={Array []}
+                    required={false}
+                    value=""
+                  >
+                    <StyledSelect
+                      arrowRenderer={[Function]}
+                      backspaceRemoves={false}
+                      className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                      clearable={false}
+                      deleteRemoves={false}
+                      disabled={false}
+                      height={36}
+                      id="id-select-team"
+                      multiple={false}
+                      name="select-team"
+                      onChange={[Function]}
+                      options={Array []}
+                      required={false}
+                      value=""
+                    >
+                      <ForwardRef(SelectPicker)
+                        arrowRenderer={[Function]}
+                        backspaceRemoves={false}
+                        className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
+                        clearable={false}
+                        deleteRemoves={false}
+                        disabled={false}
+                        height={36}
+                        id="id-select-team"
+                        multiple={false}
+                        name="select-team"
+                        onChange={[Function]}
+                        options={Array []}
+                        required={false}
+                        value=""
+                      >
+                        <SelectPicker
+                          arrowRenderer={[Function]}
+                          backspaceRemoves={false}
+                          className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
+                          clearable={false}
+                          deleteRemoves={false}
+                          disabled={false}
+                          forwardedRef={null}
+                          height={36}
+                          id="id-select-team"
+                          multiple={false}
+                          name="select-team"
+                          onChange={[Function]}
+                          options={Array []}
+                          required={false}
+                          value=""
+                        >
+                          <Select
+                            arrowRenderer={[Function]}
+                            autosize={true}
+                            backspaceRemoves={false}
+                            backspaceToRemoveMessage="Press backspace to remove {label}"
+                            className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
+                            clearAllText="Clear all"
+                            clearRenderer={[Function]}
+                            clearValueText="Clear value"
+                            clearable={false}
+                            closeOnSelect={true}
+                            deleteRemoves={false}
+                            delimiter=","
+                            disabled={false}
+                            escapeClearsValue={true}
+                            filterOptions={[Function]}
+                            height={36}
+                            id="id-select-team"
+                            ignoreAccents={true}
+                            ignoreCase={true}
+                            inputProps={Object {}}
+                            isLoading={false}
+                            joinValues={false}
+                            labelKey="label"
+                            matchPos="any"
+                            matchProp="any"
+                            menuBuffer={0}
+                            menuRenderer={[Function]}
+                            multi={false}
+                            multiple={false}
+                            name="select-team"
+                            noResultsText="No results found"
+                            onBlurResetsInput={true}
+                            onChange={[Function]}
+                            onCloseResetsInput={true}
+                            onSelectResetsInput={true}
+                            openOnClick={true}
+                            optionComponent={[Function]}
+                            options={Array []}
+                            pageSize={5}
+                            placeholder="Select..."
+                            removeSelected={true}
+                            required={false}
+                            rtl={false}
+                            scrollMenuIntoView={true}
+                            searchable={true}
+                            simpleValue={false}
+                            tabSelectsValue={true}
+                            trimFilter={true}
+                            value=""
+                            valueComponent={[Function]}
+                            valueKey="value"
+                          >
+                            <div
+                              className="Select e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
+                            >
+                              <div
+                                className="Select-control"
+                                onKeyDown={[Function]}
+                                onMouseDown={[Function]}
+                                onTouchEnd={[Function]}
+                                onTouchMove={[Function]}
+                                onTouchStart={[Function]}
+                              >
+                                <span
+                                  className="Select-multi-value-wrapper"
+                                  id="react-select-2--value"
+                                >
+                                  <div
+                                    className="Select-placeholder"
+                                  >
+                                    Select...
+                                  </div>
+                                  <AutosizeInput
+                                    aria-activedescendant="react-select-2--value"
+                                    aria-expanded="false"
+                                    aria-haspopup="false"
+                                    aria-owns=""
+                                    className="Select-input"
+                                    id="id-select-team"
+                                    injectStyles={true}
+                                    minWidth="5"
+                                    onBlur={[Function]}
+                                    onChange={[Function]}
+                                    onFocus={[Function]}
+                                    required={false}
+                                    role="combobox"
+                                    value=""
+                                  >
+                                    <div
+                                      className="Select-input"
+                                      style={
+                                        Object {
+                                          "display": "inline-block",
+                                        }
+                                      }
+                                    >
+                                      <input
+                                        aria-activedescendant="react-select-2--value"
+                                        aria-expanded="false"
+                                        aria-haspopup="false"
+                                        aria-owns=""
+                                        id="id-select-team"
+                                        onBlur={[Function]}
+                                        onChange={[Function]}
+                                        onFocus={[Function]}
+                                        required={false}
+                                        role="combobox"
+                                        style={
+                                          Object {
+                                            "boxSizing": "content-box",
+                                            "width": "5px",
+                                          }
+                                        }
+                                        value=""
+                                      />
+                                      <div
+                                        style={
+                                          Object {
+                                            "height": 0,
+                                            "left": 0,
+                                            "overflow": "scroll",
+                                            "position": "absolute",
+                                            "top": 0,
+                                            "visibility": "hidden",
+                                            "whiteSpace": "pre",
+                                          }
+                                        }
+                                      />
+                                    </div>
+                                  </AutosizeInput>
+                                </span>
+                                <span
+                                  className="Select-arrow-zone"
+                                  onMouseDown={[Function]}
+                                >
+                                  <span
+                                    className="icon-arrow-down"
+                                  />
+                                </span>
+                              </div>
+                            </div>
+                          </Select>
+                        </SelectPicker>
+                      </ForwardRef(SelectPicker)>
+                    </StyledSelect>
+                  </SelectControl>
+                </StyledSelectControl>
+              </div>
+            </div>
+          </SelectField>
         </div>
       </div>
       <div>

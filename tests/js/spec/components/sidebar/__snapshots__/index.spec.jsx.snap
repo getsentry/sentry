@@ -39,7 +39,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
         to="/organizations/new/"
       >
         <Component
-          className="css-1vsrn4x-MenuItemLink ebifsjx1"
+          className="css-1hgw4do-MenuItemLink e1ru2gxu1"
           data-test-id="sidebar-create-org"
           style={
             Object {
@@ -49,7 +49,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
           to="/organizations/new/"
         >
           <Link
-            className="css-1vsrn4x-MenuItemLink ebifsjx1"
+            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
             data-test-id="sidebar-create-org"
             style={
               Object {
@@ -59,7 +59,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
             to="/organizations/new/"
           >
             <Link
-              className="css-1vsrn4x-MenuItemLink ebifsjx1"
+              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
               data-test-id="sidebar-create-org"
               onlyActiveOnIndex={false}
               style={
@@ -70,7 +70,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
               to="/organizations/new/"
             >
               <a
-                className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                className="css-1hgw4do-MenuItemLink e1ru2gxu1"
                 data-test-id="sidebar-create-org"
                 onClick={[Function]}
                 style={
@@ -83,7 +83,7 @@ exports[`Sidebar SidebarDropdown can open "Switch Organization" sub-menu 1`] = `
                   hasMenu={false}
                 >
                   <span
-                    className="css-3xcmix-MenuItemLabel-MenuItemLabel ebifsjx0"
+                    className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                   >
                     <MenuItemLabelWithIcon>
                       <span
@@ -168,7 +168,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
   }
 >
   <div
-    className="css-1d11loe-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-14uk1a6-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -204,7 +204,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
     >
       <OrgSummary>
         <div
-          className="css-1d1he2f-OrgSummary e1n88pby0"
+          className="css-1d1he2f-OrgSummary e1dvf3yd0"
         >
           <Avatar
             className="css-6su6fj"
@@ -287,6 +287,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                 >
                   <StyledBaseAvatar
                     className="avatar css-6su6fj"
+                    loaded={true}
                     style={
                       Object {
                         "height": "36px",
@@ -295,7 +296,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     }
                   >
                     <span
-                      className="avatar css-1m7k3tg-StyledBaseAvatar e1z0ohzl0"
+                      className="avatar css-1ezk8y8-StyledBaseAvatar e1z0ohzl0"
                       style={
                         Object {
                           "height": "36px",
@@ -348,11 +349,11 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           </Avatar>
           <Details>
             <div
-              className="css-r07pll-Details e1n88pby3"
+              className="css-r07pll-Details e1dvf3yd3"
             >
               <SummaryOrgName>
                 <div
-                  className="css-18gl0tz-SummaryOrgName e1n88pby1"
+                  className="css-18gl0tz-SummaryOrgName e1dvf3yd1"
                 >
                   Organization Name
                 </div>
@@ -369,21 +370,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         to="/settings/org-slug/"
       >
         <Component
-          className="css-1vsrn4x-MenuItemLink ebifsjx1"
+          className="css-1hgw4do-MenuItemLink e1ru2gxu1"
           to="/settings/org-slug/"
         >
           <Link
-            className="css-1vsrn4x-MenuItemLink ebifsjx1"
+            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
             to="/settings/org-slug/"
           >
             <Link
-              className="css-1vsrn4x-MenuItemLink ebifsjx1"
+              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
               onlyActiveOnIndex={false}
               style={Object {}}
               to="/settings/org-slug/"
             >
               <a
-                className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                className="css-1hgw4do-MenuItemLink e1ru2gxu1"
                 onClick={[Function]}
                 style={Object {}}
               >
@@ -391,7 +392,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   hasMenu={false}
                 >
                   <span
-                    className="css-3xcmix-MenuItemLabel-MenuItemLabel ebifsjx0"
+                    className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                   >
                     Organization settings
                   </span>
@@ -409,21 +410,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         to="/settings/org-slug/teams/"
       >
         <Component
-          className="css-1vsrn4x-MenuItemLink ebifsjx1"
+          className="css-1hgw4do-MenuItemLink e1ru2gxu1"
           to="/settings/org-slug/teams/"
         >
           <Link
-            className="css-1vsrn4x-MenuItemLink ebifsjx1"
+            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
             to="/settings/org-slug/teams/"
           >
             <Link
-              className="css-1vsrn4x-MenuItemLink ebifsjx1"
+              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
               onlyActiveOnIndex={false}
               style={Object {}}
               to="/settings/org-slug/teams/"
             >
               <a
-                className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                className="css-1hgw4do-MenuItemLink e1ru2gxu1"
                 onClick={[Function]}
                 style={Object {}}
               >
@@ -431,7 +432,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                   hasMenu={false}
                 >
                   <span
-                    className="css-3xcmix-MenuItemLabel-MenuItemLabel ebifsjx0"
+                    className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                   >
                     Teams
                   </span>
@@ -480,16 +481,16 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
     <SidebarMenuItem>
       <MenuItemLink>
         <Component
-          className="css-kv4jq4-MenuItemLink ebifsjx1"
+          className="css-1xkywpr-MenuItemLink e1ru2gxu1"
         >
           <div
-            className="css-kv4jq4-MenuItemLink ebifsjx1"
+            className="css-1xkywpr-MenuItemLink e1ru2gxu1"
           >
             <MenuItemLabel
               hasMenu={true}
             >
               <span
-                className="css-rkoh57-MenuItemLabel-MenuItemLabel ebifsjx0"
+                className="css-rkoh57-MenuItemLabel-MenuItemLabel e1ru2gxu0"
               >
                 <withOrganizations(SwitchOrganization)
                   canCreateOrganization={false}
@@ -742,6 +743,8 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                     >
                                       <StyledBaseAvatar
                                         className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
+                                        loaded={true}
+                                        round={true}
                                         style={
                                           Object {
                                             "height": "32px",
@@ -750,7 +753,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                                         }
                                       >
                                         <span
-                                          className="avatar ev46mzr4 css-1dbvbxh-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                                           style={
                                             Object {
                                               "height": "32px",
@@ -851,21 +854,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           to="/settings/account/"
         >
           <Component
-            className="css-1vsrn4x-MenuItemLink ebifsjx1"
+            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
             to="/settings/account/"
           >
             <Link
-              className="css-1vsrn4x-MenuItemLink ebifsjx1"
+              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
               to="/settings/account/"
             >
               <Link
-                className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                className="css-1hgw4do-MenuItemLink e1ru2gxu1"
                 onlyActiveOnIndex={false}
                 style={Object {}}
                 to="/settings/account/"
               >
                 <a
-                  className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                  className="css-1hgw4do-MenuItemLink e1ru2gxu1"
                   onClick={[Function]}
                   style={Object {}}
                 >
@@ -873,7 +876,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     hasMenu={false}
                   >
                     <span
-                      className="css-3xcmix-MenuItemLabel-MenuItemLabel ebifsjx0"
+                      className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                     >
                       User settings
                     </span>
@@ -891,21 +894,21 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
           to="/settings/account/api/"
         >
           <Component
-            className="css-1vsrn4x-MenuItemLink ebifsjx1"
+            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
             to="/settings/account/api/"
           >
             <Link
-              className="css-1vsrn4x-MenuItemLink ebifsjx1"
+              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
               to="/settings/account/api/"
             >
               <Link
-                className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                className="css-1hgw4do-MenuItemLink e1ru2gxu1"
                 onlyActiveOnIndex={false}
                 style={Object {}}
                 to="/settings/account/api/"
               >
                 <a
-                  className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                  className="css-1hgw4do-MenuItemLink e1ru2gxu1"
                   onClick={[Function]}
                   style={Object {}}
                 >
@@ -913,7 +916,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     hasMenu={false}
                   >
                     <span
-                      className="css-3xcmix-MenuItemLabel-MenuItemLabel ebifsjx0"
+                      className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                     >
                       API keys
                     </span>
@@ -925,40 +928,157 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
         </MenuItemLink>
       </SidebarMenuItem>
       <SidebarMenuItem
-        href="/auth/logout/"
+        data-test-id="sidebarSignout"
+        onClick={[Function]}
       >
         <MenuItemLink
-          href="/auth/logout/"
+          data-test-id="sidebarSignout"
+          onClick={[Function]}
         >
           <Component
-            className="css-1vsrn4x-MenuItemLink ebifsjx1"
-            href="/auth/logout/"
+            className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+            data-test-id="sidebarSignout"
+            onClick={[Function]}
           >
-            <Link
-              className="css-1vsrn4x-MenuItemLink ebifsjx1"
-              href="/auth/logout/"
+            <div
+              className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+              data-test-id="sidebarSignout"
+              onClick={[Function]}
             >
-              <a
-                className="css-1vsrn4x-MenuItemLink ebifsjx1"
-                href="/auth/logout/"
+              <MenuItemLabel
+                hasMenu={true}
               >
-                <MenuItemLabel
-                  hasMenu={false}
+                <span
+                  className="css-rkoh57-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                 >
-                  <span
-                    className="css-3xcmix-MenuItemLabel-MenuItemLabel ebifsjx0"
-                  >
-                    Sign out
-                  </span>
-                </MenuItemLabel>
-              </a>
-            </Link>
+                  Sign out
+                </span>
+              </MenuItemLabel>
+            </div>
           </Component>
         </MenuItemLink>
       </SidebarMenuItem>
     </div>
   </div>
 </OrgAndUserMenu>
+`;
+
+exports[`Sidebar SidebarHelp can toggle help menu 1`] = `
+<HelpMenu
+  innerRef={[Function]}
+  onClick={[Function]}
+  onMouseEnter={[Function]}
+  onMouseLeave={[Function]}
+>
+  <div
+    className="css-10k5q9j-HelpMenu-SidebarDropdownMenu e1q2bb9t2"
+    onClick={[Function]}
+    onMouseEnter={[Function]}
+    onMouseLeave={[Function]}
+  >
+    <SidebarMenuItem
+      onClick={[Function]}
+    >
+      <MenuItemLink
+        onClick={[Function]}
+      >
+        <Component
+          className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+          onClick={[Function]}
+        >
+          <div
+            className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+            onClick={[Function]}
+          >
+            <MenuItemLabel
+              hasMenu={true}
+            >
+              <span
+                className="css-rkoh57-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+              >
+                Search Docs and FAQs
+              </span>
+            </MenuItemLabel>
+          </div>
+        </Component>
+      </MenuItemLink>
+    </SidebarMenuItem>
+    <SidebarMenuItem
+      href="https://forum.sentry.io/"
+      target="_blank"
+    >
+      <MenuItemLink
+        href="https://forum.sentry.io/"
+        target="_blank"
+      >
+        <Component
+          className="css-1hgw4do-MenuItemLink e1ru2gxu1"
+          href="https://forum.sentry.io/"
+          target="_blank"
+        >
+          <Link
+            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
+            href="https://forum.sentry.io/"
+            target="_blank"
+          >
+            <a
+              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
+              href="https://forum.sentry.io/"
+              target="_blank"
+            >
+              <MenuItemLabel
+                hasMenu={false}
+              >
+                <span
+                  className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                >
+                  Community Discussions
+                </span>
+              </MenuItemLabel>
+            </a>
+          </Link>
+        </Component>
+      </MenuItemLink>
+    </SidebarMenuItem>
+    <SidebarMenuItem
+      href="https://status.sentry.io/"
+      target="_blank"
+    >
+      <MenuItemLink
+        href="https://status.sentry.io/"
+        target="_blank"
+      >
+        <Component
+          className="css-1hgw4do-MenuItemLink e1ru2gxu1"
+          href="https://status.sentry.io/"
+          target="_blank"
+        >
+          <Link
+            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
+            href="https://status.sentry.io/"
+            target="_blank"
+          >
+            <a
+              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
+              href="https://status.sentry.io/"
+              target="_blank"
+            >
+              <MenuItemLabel
+                hasMenu={false}
+              >
+                <span
+                  className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
+                >
+                  Service Status
+                </span>
+              </MenuItemLabel>
+            </a>
+          </Link>
+        </Component>
+      </MenuItemLink>
+    </SidebarMenuItem>
+  </div>
+</HelpMenu>
 `;
 
 exports[`Sidebar SidebarPanel can display Broadcasts panel and mark as seen 1`] = `
@@ -1089,7 +1209,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
             >
               <Component
                 aria-label="Learn more"
-                className="css-dkprmi-StyledButton-getColors e17811v30"
+                className="css-dkprmi-StyledButton-getColors eqrebog0"
                 disabled={false}
                 external={true}
                 href="https://status.sentry.io"
@@ -1099,7 +1219,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
               >
                 <ExternalLink
                   aria-label="Learn more"
-                  className="css-dkprmi-StyledButton-getColors e17811v30"
+                  className="css-dkprmi-StyledButton-getColors eqrebog0"
                   disabled={false}
                   href="https://status.sentry.io"
                   onClick={[Function]}
@@ -1110,7 +1230,7 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                 >
                   <a
                     aria-label="Learn more"
-                    className="css-dkprmi-StyledButton-getColors e17811v30"
+                    className="css-dkprmi-StyledButton-getColors eqrebog0"
                     disabled={false}
                     href="https://status.sentry.io"
                     onClick={[Function]}
@@ -1123,28 +1243,14 @@ exports[`Sidebar SidebarPanel can show Incidents in Sidebar Panel 1`] = `
                       size="small"
                     >
                       <Component
-                        className="css-19bmqb3-ButtonLabel e17811v31"
+                        className="css-7ui8bl-ButtonLabel eqrebog1"
                         size="small"
                       >
-                        <Flex
-                          align="center"
-                          className="css-19bmqb3-ButtonLabel e17811v31"
-                          size="small"
+                        <span
+                          className="css-7ui8bl-ButtonLabel eqrebog1"
                         >
-                          <Base
-                            align="center"
-                            className="e17811v31 css-1eblpyp-ButtonLabel"
-                            size="small"
-                          >
-                            <div
-                              className="e17811v31 css-1eblpyp-ButtonLabel"
-                              is={null}
-                              size="small"
-                            >
-                              Learn more
-                            </div>
-                          </Base>
-                        </Flex>
+                          Learn more
+                        </span>
                       </Component>
                     </ButtonLabel>
                   </a>
@@ -1596,7 +1702,7 @@ exports[`Sidebar renders without org and router 1`] = `
   org={null}
 >
   <div
-    className="css-1d11loe-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
+    className="css-14uk1a6-OrgAndUserMenu-SidebarDropdownMenu e1fowdfw9"
     onClick={[Function]}
     onMouseEnter={[Function]}
     onMouseLeave={[Function]}
@@ -1801,6 +1907,8 @@ exports[`Sidebar renders without org and router 1`] = `
                                     >
                                       <StyledBaseAvatar
                                         className="avatar css-1u6j7yz-StyledAvatar ev46mzr4"
+                                        loaded={true}
+                                        round={true}
                                         style={
                                           Object {
                                             "height": "32px",
@@ -1809,7 +1917,7 @@ exports[`Sidebar renders without org and router 1`] = `
                                         }
                                       >
                                         <span
-                                          className="avatar ev46mzr4 css-1dbvbxh-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
+                                          className="avatar ev46mzr4 css-wxw9er-StyledBaseAvatar-StyledAvatar e1z0ohzl0"
                                           style={
                                             Object {
                                               "height": "32px",
@@ -1910,21 +2018,21 @@ exports[`Sidebar renders without org and router 1`] = `
           to="/settings/account/"
         >
           <Component
-            className="css-1vsrn4x-MenuItemLink ebifsjx1"
+            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
             to="/settings/account/"
           >
             <Link
-              className="css-1vsrn4x-MenuItemLink ebifsjx1"
+              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
               to="/settings/account/"
             >
               <Link
-                className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                className="css-1hgw4do-MenuItemLink e1ru2gxu1"
                 onlyActiveOnIndex={false}
                 style={Object {}}
                 to="/settings/account/"
               >
                 <a
-                  className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                  className="css-1hgw4do-MenuItemLink e1ru2gxu1"
                   onClick={[Function]}
                   style={Object {}}
                 >
@@ -1932,7 +2040,7 @@ exports[`Sidebar renders without org and router 1`] = `
                     hasMenu={false}
                   >
                     <span
-                      className="css-3xcmix-MenuItemLabel-MenuItemLabel ebifsjx0"
+                      className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                     >
                       User settings
                     </span>
@@ -1950,21 +2058,21 @@ exports[`Sidebar renders without org and router 1`] = `
           to="/settings/account/api/"
         >
           <Component
-            className="css-1vsrn4x-MenuItemLink ebifsjx1"
+            className="css-1hgw4do-MenuItemLink e1ru2gxu1"
             to="/settings/account/api/"
           >
             <Link
-              className="css-1vsrn4x-MenuItemLink ebifsjx1"
+              className="css-1hgw4do-MenuItemLink e1ru2gxu1"
               to="/settings/account/api/"
             >
               <Link
-                className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                className="css-1hgw4do-MenuItemLink e1ru2gxu1"
                 onlyActiveOnIndex={false}
                 style={Object {}}
                 to="/settings/account/api/"
               >
                 <a
-                  className="css-1vsrn4x-MenuItemLink ebifsjx1"
+                  className="css-1hgw4do-MenuItemLink e1ru2gxu1"
                   onClick={[Function]}
                   style={Object {}}
                 >
@@ -1972,7 +2080,7 @@ exports[`Sidebar renders without org and router 1`] = `
                     hasMenu={false}
                   >
                     <span
-                      className="css-3xcmix-MenuItemLabel-MenuItemLabel ebifsjx0"
+                      className="css-3xcmix-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                     >
                       API keys
                     </span>
@@ -1984,34 +2092,33 @@ exports[`Sidebar renders without org and router 1`] = `
         </MenuItemLink>
       </SidebarMenuItem>
       <SidebarMenuItem
-        href="/auth/logout/"
+        data-test-id="sidebarSignout"
+        onClick={[Function]}
       >
         <MenuItemLink
-          href="/auth/logout/"
+          data-test-id="sidebarSignout"
+          onClick={[Function]}
         >
           <Component
-            className="css-1vsrn4x-MenuItemLink ebifsjx1"
-            href="/auth/logout/"
+            className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+            data-test-id="sidebarSignout"
+            onClick={[Function]}
           >
-            <Link
-              className="css-1vsrn4x-MenuItemLink ebifsjx1"
-              href="/auth/logout/"
+            <div
+              className="css-1xkywpr-MenuItemLink e1ru2gxu1"
+              data-test-id="sidebarSignout"
+              onClick={[Function]}
             >
-              <a
-                className="css-1vsrn4x-MenuItemLink ebifsjx1"
-                href="/auth/logout/"
+              <MenuItemLabel
+                hasMenu={true}
               >
-                <MenuItemLabel
-                  hasMenu={false}
+                <span
+                  className="css-rkoh57-MenuItemLabel-MenuItemLabel e1ru2gxu0"
                 >
-                  <span
-                    className="css-3xcmix-MenuItemLabel-MenuItemLabel ebifsjx0"
-                  >
-                    Sign out
-                  </span>
-                </MenuItemLabel>
-              </a>
-            </Link>
+                  Sign out
+                </span>
+              </MenuItemLabel>
+            </div>
           </Component>
         </MenuItemLink>
       </SidebarMenuItem>

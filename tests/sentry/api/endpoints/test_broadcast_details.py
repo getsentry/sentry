@@ -13,7 +13,7 @@ class BroadcastDetailsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get('/api/0/broadcasts/{}/'.format(broadcast1.id))
+        response = self.client.get(u'/api/0/broadcasts/{}/'.format(broadcast1.id))
         assert response.status_code == 200
         assert response.data['id'] == six.text_type(broadcast1.id)
 
@@ -26,7 +26,7 @@ class BroadcastUpdateTest(APITestCase):
         self.add_user_permission(user=self.user, permission='broadcasts.admin')
         self.login_as(user=self.user)
 
-        response = self.client.put('/api/0/broadcasts/{}/'.format(broadcast1.id), {
+        response = self.client.put(u'/api/0/broadcasts/{}/'.format(broadcast1.id), {
             'hasSeen': '1',
             'message': 'foobar',
         })
@@ -53,7 +53,7 @@ class BroadcastUpdateTest(APITestCase):
         self.add_user_permission(user=self.user, permission='broadcasts.admin')
         self.login_as(user=self.user, superuser=True)
 
-        response = self.client.put('/api/0/broadcasts/{}/'.format(broadcast1.id), {
+        response = self.client.put(u'/api/0/broadcasts/{}/'.format(broadcast1.id), {
             'hasSeen': '1',
             'message': 'foobar',
         })

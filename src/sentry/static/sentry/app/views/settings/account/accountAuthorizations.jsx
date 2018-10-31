@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IndicatorStore from 'app/stores/indicatorStore';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';

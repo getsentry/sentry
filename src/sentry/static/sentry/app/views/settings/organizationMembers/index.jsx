@@ -7,11 +7,10 @@ import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ConfigStore from 'app/stores/configStore';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Input from 'app/views/settings/components/forms/controls/input';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -82,18 +81,6 @@ class OrganizationMembersView extends AsyncView {
     let org = this.context.organization;
     return `${org.name} Members`;
   }
-
-  handleSearch = e => {
-    let {router} = this.context;
-    let {location} = this.props;
-    e.preventDefault();
-    router.push({
-      pathname: location.pathname,
-      query: {
-        query: this.state.searchQuery,
-      },
-    });
-  };
 
   removeMember = id => {
     let {params} = this.props;
@@ -282,14 +269,12 @@ class OrganizationMembersView extends AsyncView {
         <Panel>
           <PanelHeader hasButtons>
             {t('Member')}
-            <form onSubmit={this.handleSearch}>
-              <Input
-                value={this.state.searchQuery}
-                onChange={this.handleChange}
-                className="search"
-                placeholder={t('Search Members')}
-              />
-            </form>
+
+            {this.renderSearchInput({
+              updateRoute: true,
+              placeholder: t('Search Members'),
+              className: 'search',
+            })}
           </PanelHeader>
 
           <PanelBody>

@@ -41,6 +41,10 @@ EXTENSION_EXC_VALUES = re.compile(
                 # Dragon Web Extension from Nuance Communications
                 # See: https://forum.sentry.io/t/error-in-raven-js-plugin-setsuspendstate/481/
                 'plugin.setSuspendState is not a function',
+                # Google Translate extension
+                # See:
+                # https://medium.com/@amir.harel/a-b-target-classname-indexof-is-not-a-function-at-least-not-mine-8e52f7be64ca
+                'a[b].target.className.indexOf is not a function',
             )
         )
     ),
@@ -51,9 +55,9 @@ EXTENSION_EXC_SOURCES = re.compile(
     '|'.join(
         (
             # Facebook flakiness
-            r'graph\.facebook\.com'
+            r'graph\.facebook\.com',
             # Facebook blocked
-            r'connect\.facebook\.net\/en_US\/all\.js',
+            r'connect\.facebook\.net',
             # Woopra flakiness
             r'eatdifferent\.com\.woopra-ns\.com',
             r'static\.woopra\.com\/js\/woopra\.js',

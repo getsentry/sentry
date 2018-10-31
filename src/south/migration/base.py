@@ -1,23 +1,23 @@
 from __future__ import print_function
 
-from collections import deque
 import datetime
-from imp import reload
 import os
 import re
+import six
 import sys
 
+from collections import deque
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.conf import settings
 from django.utils import importlib
+from imp import reload
 
 from south import exceptions
-from south.migration.utils import depends, dfs, flatten, get_app_label
+from south.constants import DJANGO_17
+from south.migration.utils import app_label_to_app_module, depends, dfs, flatten, get_app_label
 from south.orm import FakeORM
 from south.utils import memoize, ask_for_it_by_name, datetime_utils
-from south.migration.utils import app_label_to_app_module
-from south.utils.py3 import string_types, with_metaclass
 
 
 def all_migrations(applications=None):
@@ -27,45 +27,34 @@ def all_migrations(applications=None):
     if applications is None:
         applications = models.get_apps()
     for model_module in applications:
-        # The app they've passed is the models module - go up one level
-        app_path = ".".join(model_module.__name__.split(".")[:-1])
-        app = ask_for_it_by_name(app_path)
+        app_label = get_app_label(model_module)
         try:
-            yield Migrations(app)
+            yield Migrations(app_label)
         except exceptions.NoMigrations:
             pass
 
 
-def application_to_app_label(application):
-    "Works out the app label from either the app label, the app name, or the module"
-    if isinstance(application, string_types):
-        app_label = application.split('.')[-1]
-    else:
-        app_label = application.__name__.split('.')[-1]
-    return app_label
-
-
 class MigrationsMetaclass(type):
-
     """
     Metaclass which ensures there is only one instance of a Migrations for
     any given app.
+
+    This implements an identity mapper on ``Migrations(application)`` based on the label.
     """
 
     def __init__(self, name, bases, dict):
         super(MigrationsMetaclass, self).__init__(name, bases, dict)
         self.instances = {}
 
-    def __call__(self, application, **kwds):
-
-        app_label = application_to_app_label(application)
-
-        # If we don't already have an instance, make one
+    def __call__(self, application_or_app_label, **kwds):
+        if isinstance(application_or_app_label, six.string_types):
+            app_label = application_or_app_label
+        else:
+            app_label = get_app_label(application_or_app_label)
         if app_label not in self.instances:
             self.instances[app_label] = super(
                 MigrationsMetaclass, self).__call__(
-                app_label_to_app_module(app_label), **kwds)
-
+                application_or_app_label, **kwds)
         return self.instances[app_label]
 
     def _clear_cache(self):
@@ -73,7 +62,7 @@ class MigrationsMetaclass(type):
         self.instances = {}
 
 
-class Migrations(with_metaclass(MigrationsMetaclass, list)):
+class Migrations(six.with_metaclass(MigrationsMetaclass, list)):
     """
     Holds a list of Migration objects for a particular app.
     """
@@ -91,10 +80,15 @@ class Migrations(with_metaclass(MigrationsMetaclass, list)):
                                         r'[0-9a-zA-Z_]*'
                                         r'(\.py)?$')       # Match only .py files, or module dirs
 
-    def __init__(self, application, force_creation=False, verbose_creation=True):
+    def __init__(self, application_or_app_label, force_creation=False, verbose_creation=True):
         "Constructor. Takes the module of the app, NOT its models (like get_app returns)"
         self._cache = {}
-        self.set_application(application, force_creation, verbose_creation)
+        self.set_application(application_or_app_label, force_creation, verbose_creation)
+
+    def __repr__(self):
+        return u'<Migrations: {}>'.format(
+            self.app_label(),
+        )
 
     def create_migrations_directory(self, verbose=True):
         "Given an application, ensures that the migrations directory is ready."
@@ -118,42 +112,15 @@ class Migrations(with_metaclass(MigrationsMetaclass, list)):
         If it doesn't exist yet, returns where it would exist, based on the
         app's migrations module (defaults to app.migrations)
         """
-        module_path = self.migrations_module()
-        try:
-            module = importlib.import_module(module_path)
-        except ImportError:
-            # There's no migrations module made yet; guess!
-            try:
-                parent = importlib.import_module(".".join(module_path.split(".")[:-1]))
-            except ImportError:
-                # The parent doesn't even exist, that's an issue.
-                raise exceptions.InvalidMigrationModule(
-                    application=self.application.__name__,
-                    module=module_path,
-                )
-            else:
-                # Good guess.
-                return os.path.join(os.path.dirname(parent.__file__), module_path.split(".")[-1])
-        else:
-            # Get directory directly
-            return os.path.dirname(module.__file__)
+        module = self.migrations_module()
+        return os.path.dirname(module.__file__)
 
     def migrations_module(self):
         "Returns the module name of the migrations module for this"
-        app_label = application_to_app_label(self.application)
-        if hasattr(settings, "SOUTH_MIGRATION_MODULES"):
-            if app_label in settings.SOUTH_MIGRATION_MODULES:
-                # There's an override.
-                return settings.SOUTH_MIGRATION_MODULES[app_label]
-        # We see if the south_migrations module exists first, and
-        # use that if we find it.
-        module_name = self._application.__name__ + '.south_migrations'
-        try:
-            importlib.import_module(module_name)
-        except ImportError:
-            return self._application.__name__ + '.migrations'
-        else:
-            return module_name
+        full_name = '{}.south_migrations'.format(self._application.__name__)
+        if full_name in sys.modules:
+            return sys.modules[full_name]
+        return __import__(full_name, {}, {}, ['south_migrations'], -1)
 
     def get_application(self):
         return self._application
@@ -163,22 +130,26 @@ class Migrations(with_metaclass(MigrationsMetaclass, list)):
         Called when the application for this Migrations is set.
         Imports the migrations module object, and throws a paddy if it can't.
         """
+        if isinstance(application, six.string_types):
+            if application in sys.modules:
+                application = sys.modules[application]
+            else:
+                application = app_label_to_app_module(application)
+
         self._application = application
-        if not hasattr(application, 'migrations') and not hasattr(application, 'south_migrations'):
+        if not hasattr(application, 'south_migrations'):
             try:
-                module = importlib.import_module(self.migrations_module())
-                self._migrations = application.migrations = module
+                module = self.migrations_module()
+                self._migrations = application.south_migrations = module
             except ImportError:
                 if force_creation:
                     self.create_migrations_directory(verbose_creation)
-                    module = importlib.import_module(self.migrations_module())
-                    self._migrations = application.migrations = module
+                    module = self.migrations_module()
+                    self._migrations = application.south_migrations = module
                 else:
-                    raise exceptions.NoMigrations(application)
+                    six.reraise(exceptions.NoMigrations, exceptions.NoMigrations(application))
         if hasattr(application, 'south_migrations'):
             self._load_migrations_module(application.south_migrations)
-        else:
-            self._load_migrations_module(application.migrations)
 
     application = property(get_application, set_application)
 
@@ -209,7 +180,7 @@ class Migrations(with_metaclass(MigrationsMetaclass, list)):
         return self._cache[name]
 
     def __getitem__(self, value):
-        if isinstance(value, string_types):
+        if isinstance(value, six.string_types):
             return self.migration(value)
         return super(Migrations, self).__getitem__(value)
 
@@ -232,7 +203,7 @@ class Migrations(with_metaclass(MigrationsMetaclass, list)):
             return self._guess_migration(prefix=target_name)
 
     def app_label(self):
-        return self._application.__name__.split('.')[-1]
+        return self._application.__name__
 
     def full_name(self):
         return self._migrations.__name__

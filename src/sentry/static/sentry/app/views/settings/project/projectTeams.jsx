@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
 import {Box} from 'grid-emotion';
+import sdk from 'app/utils/sdk';
 
 import {removeTeamFromProject, addTeamToProject} from 'app/actionCreators/projects';
 import {getOrganizationState} from 'app/mixins/organizationState';
@@ -10,7 +11,7 @@ import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
@@ -170,16 +171,24 @@ class ProjectTeams extends AsyncView {
   renderAddTeamToProject() {
     let projectTeams = new Set(this.state.projectTeams.map(team => team.slug));
     let canCreateTeam = this.canCreateTeam();
+    let teamsToAdd;
 
-    let teamsToAdd = this.state.allTeams
-      .filter(team => {
-        return team.hasAccess && !projectTeams.has(team.slug);
-      })
-      .map(team => ({
-        value: team.id,
-        searchKey: team.slug,
-        label: <TeamDropdownElement>#{team.slug}</TeamDropdownElement>,
-      }));
+    if (!this.state.allTeams) {
+      teamsToAdd = [];
+      sdk.captureException(new Error('This.state.allTeams is null'), {
+        extra: {state: this.state},
+      });
+    } else {
+      teamsToAdd = this.state.allTeams
+        .filter(team => {
+          return team.hasAccess && !projectTeams.has(team.slug);
+        })
+        .map(team => ({
+          value: team.id,
+          searchKey: team.slug,
+          label: <TeamDropdownElement>#{team.slug}</TeamDropdownElement>,
+        }));
+    }
 
     let menuHeader = (
       <StyledTeamsLabel>

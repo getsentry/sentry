@@ -15,6 +15,22 @@ import {t} from 'app/locale';
 import SearchDropdown from 'app/views/stream/searchDropdown';
 import OrganizationState from 'app/mixins/organizationState';
 
+export function addSpace(query = '') {
+  if (query.length !== 0 && query[query.length - 1] !== ' ') {
+    return query + ' ';
+  } else {
+    return query;
+  }
+}
+
+export function removeSpace(query = '') {
+  if (query[query.length - 1] === ' ') {
+    return query.slice(0, query.length - 1);
+  } else {
+    return query;
+  }
+}
+
 const SearchBar = createReactClass({
   displayName: 'SearchBar',
 
@@ -110,10 +126,9 @@ const SearchBar = createReactClass({
   },
 
   getInitialState() {
-    const hasEnvironmentsFeature = this.getFeatures().has('environments');
-
     return {
-      query: this.props.query !== null ? this.props.query : this.props.defaultQuery,
+      query:
+        this.props.query !== null ? addSpace(this.props.query) : this.props.defaultQuery,
 
       searchTerm: '',
       searchItems: [],
@@ -124,7 +139,6 @@ const SearchBar = createReactClass({
 
       dropdownVisible: false,
       loading: false,
-      hasEnvironmentsFeature,
     };
   },
 
@@ -132,7 +146,7 @@ const SearchBar = createReactClass({
     // query was updated by another source (e.g. sidebar filters)
     if (nextProps.query !== this.props.query) {
       this.setState({
-        query: nextProps.query,
+        query: addSpace(nextProps.query),
       });
     }
   },
@@ -146,7 +160,7 @@ const SearchBar = createReactClass({
   onSubmit(evt) {
     evt.preventDefault();
     this.blur();
-    this.props.onSearch(this.state.query);
+    this.props.onSearch(removeSpace(this.state.query));
   },
 
   clearSearch() {
@@ -195,7 +209,7 @@ const SearchBar = createReactClass({
 
     // If the environment feature is active and excludeEnvironment = true
     // then remove the environment key
-    if (this.state.hasEnvironmentsFeature && this.props.excludeEnvironment) {
+    if (this.props.excludeEnvironment) {
       return allKeys.filter(key => key !== 'environment:');
     } else {
       return allKeys;
@@ -246,24 +260,7 @@ const SearchBar = createReactClass({
   },
 
   onInputClick() {
-    let cursor = this.getCursorPosition();
-
-    if (
-      cursor === this.state.query.length &&
-      this.state.query.charAt(cursor - 1) !== ' '
-    ) {
-      // If the cursor lands at the end of the input value, and the preceding character
-      // is not whitespace, then add a space and move the cursor beyond that space.
-      this.setState({query: this.state.query + ' '}, () => {
-        ReactDOM.findDOMNode(this.refs.searchInput).setSelectionRange(
-          cursor + 1,
-          cursor + 1
-        );
-        this.updateAutoCompleteItems();
-      });
-    } else {
-      this.updateAutoCompleteItems();
-    }
+    this.updateAutoCompleteItems();
   },
 
   updateAutoCompleteItems() {
@@ -326,11 +323,7 @@ const SearchBar = createReactClass({
       if (!tag) return undefined;
 
       // Ignore the environment tag if the feature is active and excludeEnvironment = true
-      if (
-        this.state.hasEnvironmentsFeature &&
-        this.props.excludeEnvironment &&
-        tagName === 'environment'
-      ) {
+      if (this.props.excludeEnvironment && tagName === 'environment') {
         return undefined;
       }
 

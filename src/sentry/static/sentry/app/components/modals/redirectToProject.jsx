@@ -5,7 +5,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Text from 'app/components/text';
 import recreateRoute from 'app/utils/recreateRoute';
 

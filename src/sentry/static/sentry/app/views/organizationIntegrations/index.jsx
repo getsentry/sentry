@@ -1,44 +1,76 @@
-import {Box, Flex} from 'grid-emotion';
-import {keyBy} from 'lodash';
-import {withTheme} from 'emotion-theming';
+import {Box} from 'grid-emotion';
+import {compact, groupBy, keyBy} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {openIntegrationDetails} from 'app/actionCreators/modal';
+import {analytics} from 'app/utils/analytics';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/buttons/button';
-import CircleIndicator from 'app/components/circleIndicator';
-import InstalledIntegration from 'app/views/organizationIntegrations/installedIntegration';
-import Link from 'app/components/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import PluginIcon from 'app/plugins/components/pluginIcon';
-import SentryTypes from 'app/sentryTypes';
+import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
+import ProviderRow from 'app/views/organizationIntegrations/providerRow';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import space from 'app/styles/space';
+import withOrganization from 'app/utils/withOrganization';
 
-export default class OrganizationIntegrations extends AsyncComponent {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
+class OrganizationIntegrations extends AsyncComponent {
   // Some integrations require visiting a different website to add them. When
   // we come back to the tab we want to show our integrations as soon as we can.
   reloadOnVisible = true;
   shouldReloadOnVisible = true;
 
+  componentDidMount() {
+    analytics('integrations.index_viewed', {
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+  }
+
   getEndpoints() {
     let {orgId} = this.props.params;
+    const query = {plugins: ['vsts', 'github', 'bitbucket']};
+
     return [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integrations', `/organizations/${orgId}/integrations/`],
+      ['plugins', `/organizations/${orgId}/plugins/`, {query}],
     ];
   }
 
-  mergeIntegration = integration => {
+  // State
+
+  get enabledPlugins() {
+    // List of slugs for each Plugin the Org/Project has currently enabled.
+    return compact(this.state.plugins.map(plugin => plugin.enabled && plugin.slug));
+  }
+
+  get unmigratableReposByOrg() {
+    // Group by [GitHub|BitBucket|VSTS] Org name
+    return groupBy(this.state.unmigratableRepos, repo => repo.name.split('/')[0]);
+  }
+
+  get providers() {
+    // Adds a list of `integrations` (installed Integration records)
+    // for each Provider, as well as an `isInstalled` boolean denoting
+    // when at least one Integration is present.
+    return this.state.config.providers.map(provider => {
+      const integrations = this.state.integrations.filter(
+        i => i.provider.key == provider.key
+      );
+      const isInstalled = integrations.length > 0;
+
+      return {
+        ...provider,
+        integrations,
+        isInstalled,
+      };
+    });
+  }
+
+  // Actions
+
+  onInstall = integration => {
     // Merge the new integration into the list. If we're updating an
     // integration overwrite the old integration.
     const keyedItems = keyBy(this.state.integrations, i => i.id);
@@ -56,7 +88,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
     this.setState({integrations});
   };
 
-  handleDeleteIntegration = integration => {
+  onRemove = integration => {
     const {orgId} = this.props.params;
 
     const origIntegrations = [...this.state.integrations];
@@ -75,69 +107,48 @@ export default class OrganizationIntegrations extends AsyncComponent {
     this.api.request(`/organizations/${orgId}/integrations/${integration.id}/`, options);
   };
 
-  handleDisableIntegration = integration => {
+  onDisable = integration => {
     let url;
     let [domainName, orgName] = integration.domainName.split('/');
 
     if (integration.accountType === 'User') {
-      url = `https://${domainName}/settings/installations`;
+      url = `https://${domainName}/settings/installations/`;
     } else {
-      url = `https://${domainName}/organizations/${orgName}/settings/installations`;
+      url = `https://${domainName}/organizations/${orgName}/settings/installations/`;
     }
+
     window.open(url, '_blank');
   };
 
+  // Rendering
+
   renderBody() {
-    const {orgId} = this.props.params;
-
-    const integrations = this.state.config.providers.map(provider => {
-      const installed = this.state.integrations
-        .filter(i => i.provider.key === provider.key)
-        .map(integration => (
-          <StyledInstalledIntegration
-            key={integration.id}
-            orgId={orgId}
-            provider={provider}
-            integration={integration}
-            onRemove={this.handleDeleteIntegration}
-            onDisable={this.handleDisableIntegration}
-            onReinstallIntegration={this.mergeIntegration}
-          />
-        ));
-
-      const openModal = () =>
-        openIntegrationDetails({
-          provider,
-          onAddIntegration: this.mergeIntegration,
-        });
-
-      return (
-        <React.Fragment key={provider.key}>
-          <PanelItem p={0} direction="column">
-            <Flex align="center" p={2}>
-              <PluginIcon size={36} pluginId={provider.key} />
-              <Box px={2} flex={1}>
-                <ProviderName>{provider.name}</ProviderName>
-                <ProviderDetails>
-                  <Status enabled={installed.length > 0} />
-                  <Link onClick={openModal}>Learn More</Link>
-                </ProviderDetails>
-              </Box>
-              <Box>
-                <Button icon="icon-circle-add" size="small" onClick={openModal}>
-                  {installed.length > 0 ? t('Add Another') : t('Install')}
-                </Button>
-              </Box>
-            </Flex>
-            {installed.length > 0 && installed}
-          </PanelItem>
-        </React.Fragment>
-      );
-    });
+    const providers = this.providers
+      .sort((a, b) => b.isInstalled - a.isInstalled)
+      .map(provider => (
+        <ProviderRow
+          key={provider.key}
+          provider={provider}
+          orgId={this.props.params.orgId}
+          integrations={provider.integrations}
+          onInstall={this.onInstall}
+          onRemove={this.onRemove}
+          onDisable={this.onDisable}
+          onReinstall={this.onInstall}
+          enabledPlugins={this.enabledPlugins}
+        />
+      ));
 
     return (
       <React.Fragment>
         {!this.props.hideHeader && <SettingsPageHeader title={t('Integrations')} />}
+
+        <MigrationWarnings
+          orgId={this.props.params.orgId}
+          providers={this.providers}
+          onInstall={this.onInstall}
+        />
+
         <Panel>
           <PanelHeader disablePadding>
             <Box px={2} flex="1">
@@ -145,7 +156,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
             </Box>
             {this.state.reloading && <StyledLoadingIndicator mini />}
           </PanelHeader>
-          <PanelBody>{integrations}</PanelBody>
+          <PanelBody>{providers}</PanelBody>
         </Panel>
       </React.Fragment>
     );
@@ -159,70 +170,5 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   transform: translateY(-16px);
 `;
 
-const ProviderName = styled('div')`
-  font-weight: bold;
-`;
-
-const ProviderDetails = styled(Flex)`
-  align-items: center;
-  margin-top: 6px;
-  font-size: 0.8em;
-`;
-
-const Status = styled(
-  withTheme(props => {
-    const {enabled, ...p} = props;
-    return (
-      <React.Fragment>
-        <CircleIndicator size={6} color={enabled ? p.theme.success : p.theme.gray2} />
-        <div {...p}>{enabled ? t('Installed') : t('Not Installed')}</div>
-      </React.Fragment>
-    );
-  })
-)`
-  color: ${p => (p.enabled ? p.theme.success : p.theme.gray2)};
-  margin-left: 5px;
-  margin-right: 10px;
-`;
-
-const NewInstallation = styled('div')`
-  @keyframes slidein {
-    from {
-      height: 0;
-    }
-    to {
-      height: 59px;
-    }
-  }
-  @keyframes highlight {
-    0%,
-    100% {
-      height: rgba(255, 255, 255, 0);
-    }
-
-    25% {
-      background: ${p => p.theme.yellowLightest};
-    }
-  }
-
-  height: 0;
-  overflow: hidden;
-  animation: slidein 160ms 500ms ease-in-out forwards,
-    highlight 1000ms 500ms ease-in-out forwards;
-`;
-
-const StyledInstalledIntegration = styled(
-  p =>
-    p.integration.newlyAdded ? (
-      <NewInstallation>
-        <InstalledIntegration {...p} />
-      </NewInstallation>
-    ) : (
-      <InstalledIntegration {...p} />
-    )
-)`
-  padding: ${space(2)};
-  padding-left: 0;
-  margin-left: 68px;
-  border-top: 1px dotted ${p => p.theme.borderLight};
-`;
+export default withOrganization(OrganizationIntegrations);
+export {OrganizationIntegrations};

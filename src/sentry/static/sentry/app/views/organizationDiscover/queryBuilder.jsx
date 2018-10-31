@@ -1,22 +1,19 @@
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
 
 import moment from 'moment-timezone';
+import {uniq} from 'lodash';
 
 import {Client} from 'app/api';
-import {COLUMNS, PROMOTED_TAGS} from './data';
+import {t} from 'app/locale';
+import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
-
-const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
 const DEFAULTS = {
   projects: [],
   fields: [],
   conditions: [],
   aggregations: [],
-  start: moment()
-    .subtract(14, 'days')
-    .format(DATE_TIME_FORMAT),
-  end: moment().format(DATE_TIME_FORMAT),
+  range: '14d',
   orderby: '-timestamp',
   limit: 1000,
 };
@@ -47,13 +44,14 @@ export default function createQueryBuilder(initial = {}, organization) {
     getExternal,
     updateField,
     fetch,
+    getQueryByType,
     getColumns,
     load,
     reset,
   };
 
   /**
-   * Loads tags keys for user's projectsand updates `tags` with the result.
+   * Loads tags keys for user's projects and updates `tags` with the result.
    * If the request fails updates `tags` to be the hardcoded list of predefined
    * promoted tags.
    *
@@ -62,14 +60,16 @@ export default function createQueryBuilder(initial = {}, organization) {
   function load() {
     return fetch({
       projects: defaultProjects,
-      aggregations: [['topK(1000)', 'tags_key', 'tags_key']],
-      start: moment()
-        .subtract(90, 'days')
-        .format(DATE_TIME_FORMAT),
-      end: moment().format(DATE_TIME_FORMAT),
+      fields: ['tags_key'],
+      aggregations: [['count()', null, 'count']],
+      orderby: '-count',
+      range: '90d',
     })
       .then(res => {
-        tags = res.data[0].tags_key.map(tag => ({name: `tags[${tag}]`, type: 'string'}));
+        tags = res.data.map(tag => {
+          const type = SPECIAL_TAGS[tags.tags_key] || 'string';
+          return {name: `tags[${tag.tags_key}]`, type};
+        });
       })
       .catch(err => {
         tags = PROMOTED_TAGS;
@@ -145,7 +145,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     // If orderby value becomes invalid, update it to the first valid aggregation
     if (hasInvalidOrderbyField) {
       if (validAggregations.length > 0) {
-        query.orderby = validAggregations[0][2];
+        query.orderby = `-${validAggregations[0][2]}`;
       } else {
         query.orderby = '-timestamp';
       }
@@ -162,16 +162,71 @@ export default function createQueryBuilder(initial = {}, organization) {
    * if this is not provided and returns the result wrapped in a promise
    *
    * @param {Object} [data] Optional field to provide data to fetch
-   * @returns {Promise<Object>}
+   * @returns {Promise<Object|Error>}
    */
-  function fetch(data) {
+  function fetch(data, cursor = '0:0:1') {
     const api = new Client();
-    const endpoint = `/organizations/${organization.slug}/discover/`;
+    const limit = data.limit || 1000;
+    const endpoint = `/organizations/${organization.slug}/discover/query/?per_page=${limit}&cursor=${cursor}`;
 
-    return api.requestPromise(endpoint, {
-      method: 'POST',
-      data: data || getExternal(),
-    });
+    data = data || getExternal();
+
+    // Reject immediately if no projects are available
+    if (!data.projects.length) {
+      return Promise.reject(new Error(t('No projects selected')));
+    }
+
+    if (typeof data.limit === 'number') {
+      if (data.limit < 1 || data.limit > 1000) {
+        return Promise.reject(new Error(t('Invalid limit parameter')));
+      }
+    }
+
+    if (moment.utc(data.start).isAfter(moment.utc(data.end))) {
+      return Promise.reject(new Error('Start date cannot be after end date'));
+    }
+
+    return api
+      .requestPromise(endpoint, {includeAllArgs: true, method: 'POST', data})
+      .then(([responseData, _, utils]) => {
+        responseData.pageLinks = utils.getResponseHeader('Link');
+        return responseData;
+      })
+      .catch(err => {
+        throw new Error(t('An error occurred'));
+      });
+  }
+
+  /**
+   * Get the actual query to be run for each visualization type
+   *
+   * @param {Object} originalQuery Original query input by user (external query representation)
+   * @param {String} Type to fetch - currently either byDay or base
+   * @returns {Object} Modified query to be run for that type
+   */
+  function getQueryByType(originalQuery, type) {
+    if (type === 'byDayQuery') {
+      return {
+        ...originalQuery,
+        groupby: ['time'],
+        rollup: 60 * 60 * 24,
+        orderby: 'time',
+        limit: 1000,
+      };
+    }
+
+    // If there are no aggregations, always ensure we fetch event ID and
+    // project ID so we can display the link to event
+    if (type === 'baseQuery') {
+      return !originalQuery.aggregations.length && originalQuery.fields.length
+        ? {
+            ...originalQuery,
+            fields: uniq([...originalQuery.fields, 'event_id', 'project_id']),
+          }
+        : originalQuery;
+    }
+
+    throw new Error('Invalid query type');
   }
 
   /**
@@ -188,7 +243,7 @@ export default function createQueryBuilder(initial = {}, organization) {
    *
    * @returns {Void}
    */
-  function reset() {
-    query = applyDefaults({});
+  function reset(q = {}) {
+    query = applyDefaults(q);
   }
 }

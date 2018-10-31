@@ -3,7 +3,7 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
 import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';
@@ -72,7 +72,7 @@ const EventEntries = createReactClass({
   componentDidMount() {
     let {event} = this.props;
 
-    if (!event.errors || !event.errors.length > 0) return;
+    if (!event || !event.errors || !event.errors.length > 0) return;
     let errors = event.errors;
     let errorTypes = errors.map(errorEntries => errorEntries.type);
     let errorMessages = errors.map(errorEntries => errorEntries.message);
@@ -89,7 +89,7 @@ const EventEntries = createReactClass({
     let orgId = this.getOrganization().id;
 
     analytics('issue_error_banner.viewed', {
-      org_id: orgId,
+      org_id: parseInt(orgId, 10),
       platform: project.platform,
       group: event.groupID,
       error_type: errorTypes,
@@ -99,11 +99,10 @@ const EventEntries = createReactClass({
 
   interfaces: INTERFACES,
 
-  render() {
-    let {group, isShare, project, event, orgId} = this.props;
-    let organization = this.getOrganization();
-    let features = organization ? new Set(organization.features) : new Set();
-    let entries = event.entries.map((entry, entryIdx) => {
+  renderEntries() {
+    let {event, group, isShare} = this.props;
+
+    return event.entries.map((entry, entryIdx) => {
       try {
         let Component = this.interfaces[entry.type];
         if (!Component) {
@@ -137,9 +136,24 @@ const EventEntries = createReactClass({
         );
       }
     });
+  },
+
+  render() {
+    let {group, isShare, project, event, orgId} = this.props;
+
+    let organization = this.getOrganization();
+    let features = organization ? new Set(organization.features) : new Set();
 
     let hasContext =
-      !utils.objectIsEmpty(event.user) || !utils.objectIsEmpty(event.contexts);
+      event && (!utils.objectIsEmpty(event.user) || !utils.objectIsEmpty(event.contexts));
+
+    if (!event) {
+      return (
+        <div style={{padding: '15px 30px'}}>
+          <h3>{t('Latest Event Not Available')}</h3>
+        </div>
+      );
+    }
 
     return (
       <div className="entries">
@@ -160,7 +174,7 @@ const EventEntries = createReactClass({
         )}
         {hasContext && <EventContextSummary group={group} event={event} />}
         <EventTags group={group} event={event} orgId={orgId} projectId={project.slug} />
-        {entries}
+        {this.renderEntries()}
         {hasContext && <EventContexts group={group} event={event} />}
         {!utils.objectIsEmpty(event.context) && (
           <EventExtraData group={group} event={event} />

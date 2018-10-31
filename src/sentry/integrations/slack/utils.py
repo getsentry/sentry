@@ -18,15 +18,21 @@ from sentry.models import (
 logger = logging.getLogger('sentry.integrations.slack')
 
 # Attachment colors used for issues with no actions take
-NEW_ISSUE_COLOR = '#E03E2F'
 ACTIONED_ISSUE_COLOR = '#EDEEEF'
+LEVEL_TO_COLOR = {
+    'debug': '#fbe14f',
+    'info': '#2788ce',
+    'warning': '#f18500',
+    'error': '#E03E2F',
+    'fatal': '#d20f2a',
+}
 
 
 def format_actor_option(actor):
     if isinstance(actor, User):
         return {'text': actor.get_display_name(), 'value': u'user:{}'.format(actor.id)}
     if isinstance(actor, Team):
-        return {'text': actor.slug, 'value': u'team:{}'.format(actor.id)}
+        return {'text': u'#{}'.format(actor.slug), 'value': u'team:{}'.format(actor.id)}
 
     raise NotImplementedError
 
@@ -152,7 +158,9 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
     teams = get_team_assignees(group)
 
     logo_url = absolute_uri(get_asset_url('sentry', 'images/sentry-email-avatar.png'))
-    color = NEW_ISSUE_COLOR
+    color = LEVEL_TO_COLOR.get(
+        event.get_tag('level'),
+        'error') if event else LEVEL_TO_COLOR['error']
 
     text = build_attachment_text(group, event) or ''
 

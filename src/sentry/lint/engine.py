@@ -85,7 +85,6 @@ def get_less_files(file_list=None):
     if file_list is None:
         file_list = ['src/sentry/static/sentry/less', 'src/sentry/static/sentry/app']
     return [x for x in get_files_for_list(file_list) if x.endswith(('.less'))]
-    return file_list
 
 
 def get_python_files(file_list=None):
@@ -192,7 +191,7 @@ def is_prettier_valid(project_root, prettier_path):
         [prettier_path, '--version']).rstrip()
     if prettier_version != package_version:
         print(  # noqa: B314
-            '[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.'.format(
+            u'[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.'.format(
                 prettier_version,
                 package_version),
             file=sys.stderr)
@@ -320,10 +319,11 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
         if prompt_on_changes:
             with open('/dev/tty') as fp:
                 print('\033[1m' + 'Stage this patch and continue? [Y/n] ' + '\033[0m')  # noqa: B314
-                if fp.readline().strip().lower() != 'y':
+                if fp.readline().strip() not in ('Y', 'y', ''):
                     print(  # noqa: B314
-                        '[sentry.lint] Aborted! Changes have been applied but not staged.', file=sys.stderr)
+                        '[sentry.lint] Unstaged changes have not been staged.', file=sys.stderr)
                     if not os.environ.get('SENTRY_SKIP_FORCE_PATCH'):
+                        print('[sentry.lint] Aborted!', file=sys.stderr)  # noqa: B314
                         sys.exit(1)
                 else:
                     status = subprocess.Popen(

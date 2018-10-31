@@ -34,7 +34,7 @@ class OrganizationStatsTest(APITestCase):
         tsdb.incr(tsdb.models.organization_total_received, org.id, count=3)
 
         url = reverse('sentry-api-0-organization-stats', args=[org.slug])
-        response = self.client.get('{}?resolution=1d'.format(url))
+        response = self.client.get(u'{}?resolution=1d'.format(url))
 
         assert response.status_code == 200, response.content
         assert response.data[-1][1] == 3, response.data

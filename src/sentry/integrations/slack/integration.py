@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import http
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
-    IntegrationFeatures, IntegrationMetadata, IntegrationProvider,
+    IntegrationFeatures, IntegrationMetadata, IntegrationProvider, FeatureDescription,
 )
 from sentry.pipeline import NestedPipelineView
 from sentry.utils.http import absolute_uri
@@ -14,14 +14,31 @@ DESCRIPTION = """
 Connect your Sentry organization to one or more Slack workspaces, and start
 getting errors right in front of you where all the action happens in your
 office!
-
- * Unfurls Sentry URLs directly within Slack, providing you context and
-   actionability on issues right at your fingertips.
- * Resolve, ignore, and assign issues with minimal context switching.
- * Configure rule based Slack notifications to automatically be posted into a
-   specific channel. Want any error that's happening more than 100 times a
-   minute to be posted in `#critical-errors`? Setup a rule for it!
 """
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Unfurls Sentry URLs directly within Slack, providing you context and
+        actionability on issues right at your fingertips.
+        """,
+        IntegrationFeatures.CHAT_UNFURL,
+    ),
+    FeatureDescription(
+        """
+        Resolve, ignore, and assign issues with minimal context switching.
+        """,
+        IntegrationFeatures.ACTION_NOTIFICATION,
+    ),
+    FeatureDescription(
+        """
+        Configure rule based Slack notifications to automatically be posted into a
+        specific channel. Want any error that's happening more than 100 times a
+        minute to be posted in `#critical-errors`? Setup a rule for it!
+        """,
+        IntegrationFeatures.ALERT_RULE,
+    ),
+]
 
 setup_alert = {
     'type': 'info',
@@ -30,6 +47,7 @@ setup_alert = {
 
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
+    features=FEATURES,
     author='The Sentry Team',
     noun=_('Workspace'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Slack%20Integration:%20&labels=Component%3A%20Integrations',
@@ -45,8 +63,9 @@ class SlackIntegrationProvider(IntegrationProvider):
     name = 'Slack'
     metadata = metadata
     features = frozenset([
-        IntegrationFeatures.NOTIFICATION,
+        IntegrationFeatures.ACTION_NOTIFICATION,
         IntegrationFeatures.CHAT_UNFURL,
+        IntegrationFeatures.ALERT_RULE,
     ])
 
     identity_oauth_scopes = frozenset([

@@ -26,12 +26,6 @@ export default function getConfiguration({project}) {
           description: t('Manage alerts and alert rules for a project'),
         },
         {
-          path: `${pathPrefix}/quotas/`,
-          title: t('Rate Limits'),
-          show: ({features}) => features.has('quotas'),
-          description: t("Configure project's rate limits"),
-        },
-        {
           path: `${pathPrefix}/tags/`,
           title: t('Tags'),
           description: t("View and manage a  project's tags"),
@@ -40,10 +34,6 @@ export default function getConfiguration({project}) {
           path: `${pathPrefix}/environments/`,
           title: t('Environments'),
           description: t('Manage environments in a project'),
-        },
-        {
-          path: `${pathPrefix}/issue-tracking/`,
-          title: t('Issue Tracking'),
         },
         {
           path: `${pathPrefix}/release-tracking/`,
@@ -110,11 +100,11 @@ export default function getConfiguration({project}) {
       ],
     },
     {
-      name: t('Integrations'),
+      name: t('Legacy Integrations'),
       items: [
         {
           path: `${pathPrefix}/plugins/`,
-          title: t('All Integrations'),
+          title: t('Legacy Integrations'),
           description: t('View, enable, and disable all integrations for a project'),
         },
         ...plugins.map(plugin => ({

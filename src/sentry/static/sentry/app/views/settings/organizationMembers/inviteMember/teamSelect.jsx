@@ -3,14 +3,10 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
+import Button from 'app/components/button';
 import Checkbox from 'app/components/checkbox';
 import IdBadge from 'app/components/idBadge';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
-
-const TeamItem = styled.div`
-  width: 25%;
-  padding: 6px;
-`;
 
 class TeamSelect extends React.Component {
   static propTypes = {
@@ -18,16 +14,38 @@ class TeamSelect extends React.Component {
     selectedTeams: PropTypes.instanceOf(Set),
     teams: PropTypes.array,
     toggleTeam: PropTypes.func,
+    onSelectAll: PropTypes.func,
+    allSelected: PropTypes.func,
   };
 
   render() {
-    let {disabled, teams, selectedTeams, toggleTeam} = this.props;
+    let {
+      disabled,
+      teams,
+      selectedTeams,
+      toggleTeam,
+      onSelectAll,
+      allSelected,
+    } = this.props;
     //no need to select a team when there's only one option
     if (teams.length < 2) return null;
+    let hasSelectAll = !!onSelectAll && !!allSelected;
 
     return (
       <Panel className="new-invite-team">
-        <PanelHeader>{t('Team')}</PanelHeader>
+        <PanelHeader hasButtons={hasSelectAll}>
+          {t('Team')}
+          {hasSelectAll && (
+            <Button
+              data-test-id="select-all"
+              size="small"
+              disabled={disabled}
+              onClick={onSelectAll}
+            >
+              <SelectAll>{allSelected() ? t('Deselect') : t('Select All')}</SelectAll>
+            </Button>
+          )}
+        </PanelHeader>
 
         <PanelBody className="grouping-controls team-choices">
           <PanelItem css={{flexWrap: 'wrap'}}>
@@ -53,5 +71,15 @@ class TeamSelect extends React.Component {
     );
   }
 }
+
+const TeamItem = styled.div`
+  width: 25%;
+  padding: 6px;
+`;
+
+const SelectAll = styled.span`
+  font-size: 13px;
+  color: ${p => (p.lightText ? p.theme.gray2 : p.theme.gray3)};
+`;
 
 export default TeamSelect;

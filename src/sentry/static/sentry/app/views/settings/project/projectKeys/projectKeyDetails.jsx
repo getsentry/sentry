@@ -12,14 +12,16 @@ import {
   removeIndicator,
 } from 'app/actionCreators/indicator';
 import {getOrganizationState} from 'app/mixins/organizationState';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
+import getDynamicText from 'app/utils/getDynamicText';
 import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import BooleanField from 'app/views/settings/components/forms/booleanField';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import ExternalLink from 'app/components/externalLink';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
@@ -30,6 +32,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
+import SelectField from 'app/views/settings/components/forms/selectField';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
@@ -210,7 +213,7 @@ class KeyRateLimitsForm extends React.Component {
             </PanelBody>
           ) : (
             <PanelBody>
-              <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
+              <PanelAlert type="info" icon="icon-circle-exclamation">
                 {t(
                   'Rate limits provide a flexible way to manage your event volume. If you have a noisy project or environment you can configure a rate limit for this key to reduce the number of events processed.'
                 )}
@@ -337,6 +340,10 @@ const KeySettings = createReactClass({
       project,
     } = this.props;
     let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
+    const loaderLink = getDynamicText({
+      value: data.dsn.cdn,
+      fixed: '__JS_SDK_LOADER_URL__',
+    });
 
     return (
       <React.Fragment>
@@ -382,7 +389,6 @@ const KeySettings = createReactClass({
         {jsSdkLoaderEnabled && (
           <Form
             saveOnBlur
-            allowUndo
             apiEndpoint={apiEndpoint}
             apiMethod="PUT"
             initialData={data}
@@ -391,13 +397,30 @@ const KeySettings = createReactClass({
               <PanelHeader>{t('CDN')}</PanelHeader>
               <PanelBody>
                 <Field
-                  help={t('Copy this into your website and you are good to go')}
+                  help={tct(
+                    'Copy this script into your website to setup our JavaScript SDK without any additional configuration. [link]',
+                    {
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/platforms/javascript/browser/">
+                          What does the script provide?
+                        </ExternalLink>
+                      ),
+                    }
+                  )}
                   inline={false}
                   flexibleControlStateSize
                 >
-                  <TextCopyInput>{`<script src='${data.dsn
-                    .cdn}'></script>`}</TextCopyInput>
+                  <TextCopyInput>{`<script src='${loaderLink}' crossorigin="anonymous"></script>`}</TextCopyInput>
                 </Field>
+                <SelectField
+                  name="browserSdkVersion"
+                  choices={data.browserSdk.choices}
+                  placeholder={t('4.x')}
+                  allowClear={false}
+                  help={t(
+                    'Select the version of the SDK that should be loaded'
+                  )}
+                />
               </PanelBody>
             </Panel>
           </Form>
@@ -406,7 +429,7 @@ const KeySettings = createReactClass({
         <Panel>
           <PanelHeader>{t('Credentials')}</PanelHeader>
           <PanelBody>
-            <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
+            <PanelAlert type="info" icon="icon-circle-exclamation">
               {t(
                 'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
               )}
@@ -481,7 +504,7 @@ export default class ProjectKeyDetails extends AsyncView {
     let features = new Set(project.features);
     let hasRateLimitsEnabled = features.has('rate-limits');
     let orgFeatures = new Set(organization.features);
-    let hasjsSdkLoaderEnabled = orgFeatures.has('relay');
+    let hasjsSdkLoaderEnabled = orgFeatures.has('js-loader');
 
     return (
       <div className="ref-key-details">

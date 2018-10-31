@@ -13,7 +13,7 @@ class ListProjectServiceHooksTest(APITestCase):
             url='http://example.com',
         )[0]
         self.login_as(user=self.user)
-        url = '/api/0/projects/{}/{}/hooks/'.format(
+        url = u'/api/0/projects/{}/{}/hooks/'.format(
             project.organization.slug,
             project.slug,
         )
@@ -29,7 +29,7 @@ class CreateProjectServiceHookTest(APITestCase):
         super(CreateProjectServiceHookTest, self).setUp()
         self.project = self.create_project()
         self.login_as(user=self.user)
-        self.path = '/api/0/projects/{}/{}/hooks/'.format(
+        self.path = u'/api/0/projects/{}/{}/hooks/'.format(
             self.project.organization.slug,
             self.project.slug,
         )

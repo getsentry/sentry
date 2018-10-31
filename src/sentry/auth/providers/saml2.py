@@ -1,22 +1,32 @@
 from __future__ import absolute_import, print_function
 
+import logging
+
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.core.urlresolvers import reverse
+from django.db import models
+
 from django.http import HttpResponse, HttpResponseServerError
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from six import iteritems
+from six import iteritems, add_metaclass
 from six.moves.urllib.parse import urlparse
 
 from sentry import options
 from sentry.auth import Provider, AuthView
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.models import (AuthProvider, Organization, OrganizationStatus)
+from sentry.models import (
+    AuditLogEntryEvent, AuthProvider, Organization, OrganizationStatus
+)
+from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import BaseView
+
+logger = logging.getLogger('sentry.auth')
+
 
 try:
     from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
@@ -30,6 +40,14 @@ except ImportError:
 
     def OneLogin_Saml2_Settings(*args, **kwargs):
         raise NotImplementedError('Missing SAML libraries')
+
+    class OneLogin_Saml2_ConstantsType(type):
+        def __getattr__(self, attr):
+            raise NotImplementedError('Missing SAML libraries')
+
+    @add_metaclass(OneLogin_Saml2_ConstantsType)
+    class OneLogin_Saml2_Constants(object):
+        pass
 
 
 ERR_NO_SAML_SSO = _('The organization does not exist or does not have SAML SSO enabled.')
@@ -63,10 +81,12 @@ class SAML2LoginView(AuthView):
 
         provider = helper.provider
 
-        # If we're authenticating during the setup piepline the provider will
-        # not have been configured yet, build the config first from the state
+        # During the setup pipeline, the provider will not have been configured yet,
+        # so build the config first from the state. Then disable require 2FA for the
+        # orgnization, since only SAML or require 2FA can be enabled.
         if not provider.config:
             provider.config = provider.build_config(helper.fetch_state())
+            disable_2fa_required(request, helper.organization)
 
         saml_config = build_saml_config(provider.config, helper.organization.slug)
         auth = build_auth(request, saml_config)
@@ -173,11 +193,9 @@ class SAML2SLSView(BaseView):
 class SAML2MetadataView(BaseView):
     def dispatch(self, request, organization_slug):
         provider = get_provider(organization_slug)
-        if provider is None:
-            messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
-            return self.redirect('/')
+        config = provider.config if provider else {}
 
-        saml_config = build_saml_config(provider.config, organization_slug)
+        saml_config = build_saml_config(config, organization_slug)
         saml_settings = OneLogin_Saml2_Settings(settings=saml_config, sp_validation_only=True)
         metadata = saml_settings.get_sp_metadata()
         errors = saml_settings.validate_metadata(metadata)
@@ -325,8 +343,6 @@ def build_saml_config(provider_config, org):
         'wantNameId': False,
     }
 
-    idp = provider_config['idp']
-
     # TODO(epurkhiser): This is also available in the helper and should probably come from there.
     acs_url = absolute_uri(reverse('sentry-auth-organization-saml-acs', args=[org]))
     sls_url = absolute_uri(reverse('sentry-auth-organization-saml-sls', args=[org]))
@@ -334,12 +350,6 @@ def build_saml_config(provider_config, org):
 
     saml_config = {
         'strict': True,
-        'idp': {
-            'entityId': idp['entity_id'],
-            'x509cert': idp['x509cert'],
-            'singleSignOnService': {'url': idp['sso_url']},
-            'singleLogoutService': {'url': idp['slo_url']},
-        },
         'sp': {
             'entityId': metadata_url,
             'assertionConsumerService': {
@@ -353,6 +363,16 @@ def build_saml_config(provider_config, org):
         },
         'security': security_config,
     }
+
+    idp = provider_config.get('idp')
+
+    if idp is not None:
+        saml_config['idp'] = {
+            'entityId': idp['entity_id'],
+            'x509cert': idp['x509cert'],
+            'singleSignOnService': {'url': idp['sso_url']},
+            'singleLogoutService': {'url': idp['slo_url']},
+        }
 
     if avd.get('x509cert') is not None:
         saml_config['sp']['x509cert'] = avd['x509cert']
@@ -378,3 +398,27 @@ def build_auth(request, saml_config):
     }
 
     return OneLogin_Saml2_Auth(saml_request, saml_config)
+
+
+def disable_2fa_required(request, organization):
+    require_2fa = organization.flags.require_2fa
+    if require_2fa and require_2fa.is_set:
+        organization.update(
+            flags=models.F('flags').bitand(~Organization.flags.require_2fa)
+        )
+
+        logger.info(
+            'Require 2fa disabled during saml sso setup',
+            extra={
+                'organization_id': organization.id,
+            }
+        )
+        create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=organization.id,
+            event=AuditLogEntryEvent.ORG_EDIT,
+            data={
+                'require_2fa': u'to False when enabling SAML SSO'
+            },
+        )

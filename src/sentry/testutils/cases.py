@@ -24,8 +24,9 @@ import six
 import types
 import logging
 
+from sentry_sdk import Hub
+
 from click.testing import CliRunner
-from contextlib import contextmanager
 from datetime import datetime
 from django.conf import settings
 from django.contrib.auth import login
@@ -39,7 +40,7 @@ from django.test import TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from django.utils.importlib import import_module
-from exam import before, fixture, Exam
+from exam import before, after, fixture, Exam
 from mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -48,7 +49,8 @@ from six.moves.urllib.parse import urlencode
 from sentry import auth
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.superuser import (
-    Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME
+    Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME, ORG_ID as SU_ORG_ID,
+    COOKIE_SECURE as SU_COOKIE_SECURE, COOKIE_DOMAIN as SU_COOKIE_DOMAIN, COOKIE_PATH as SU_COOKIE_PATH
 )
 from sentry.constants import MODULE_ROOT
 from sentry.models import (
@@ -75,6 +77,10 @@ class BaseTestCase(Fixtures, Exam):
         resp = getattr(self.client, method.lower())(path)
         assert resp.status_code == 302
         assert resp['Location'].startswith('http://testserver' + reverse('sentry-login'))
+
+    @after
+    def teardown_internal_sdk(self):
+        Hub.main.bind_client(None)
 
     @before
     def setup_dummy_auth_provider(self):
@@ -109,18 +115,22 @@ class BaseTestCase(Fixtures, Exam):
 
     def save_session(self):
         self.session.save()
+        self.save_cookie(
+            name=settings.SESSION_COOKIE_NAME,
+            value=self.session.session_key,
+            max_age=None,
+            path='/',
+            domain=settings.SESSION_COOKIE_DOMAIN,
+            secure=settings.SESSION_COOKIE_SECURE or None,
+            expires=None
+        )
 
-        cookie_data = {
-            'max-age': None,
-            'path': '/',
-            'domain': settings.SESSION_COOKIE_DOMAIN,
-            'secure': settings.SESSION_COOKIE_SECURE or None,
-            'expires': None,
-        }
-
-        session_cookie = settings.SESSION_COOKIE_NAME
-        self.client.cookies[session_cookie] = self.session.session_key
-        self.client.cookies[session_cookie].update(cookie_data)
+    def save_cookie(self, name, value, **params):
+        self.client.cookies[name] = value
+        self.client.cookies[name].update({
+            k.replace('_', '-'): v
+            for k, v in six.iteritems(params)
+        })
 
     def make_request(self, user=None, auth=None, method=None):
         request = HttpRequest()
@@ -129,6 +139,8 @@ class BaseTestCase(Fixtures, Exam):
         request.META['REMOTE_ADDR'] = '127.0.0.1'
         request.META['SERVER_NAME'] = 'testserver'
         request.META['SERVER_PORT'] = 80
+        request.REQUEST = {}
+
         # order matters here, session -> user -> other things
         request.session = self.session
         request.auth = auth
@@ -148,16 +160,19 @@ class BaseTestCase(Fixtures, Exam):
         request.user = user
 
         if organization_ids is None:
-            organization_ids = []
-        if superuser and superuser_sso is None:
-            if superuser.ORG_ID:
-                organization_ids.append(superuser.ORG_ID)
+            organization_ids = set()
+        else:
+            organization_ids = set(organization_ids)
+        if superuser and superuser_sso is not False:
+            if SU_ORG_ID:
+                organization_ids.add(SU_ORG_ID)
         if organization_id:
-            organization_ids.append(organization_id)
+            organization_ids.add(organization_id)
 
+        # TODO(dcramer): ideally this would get abstracted
         if organization_ids:
             request.session[SSO_SESSION_KEY] = ','.join(
-                six.text_type(o) for o in set(organization_ids))
+                six.text_type(o) for o in organization_ids)
 
         # logging in implicitly binds superuser, but for test cases we
         # want that action to be explicit to avoid accidentally testing
@@ -169,9 +184,17 @@ class BaseTestCase(Fixtures, Exam):
             request.superuser.set_logged_in(request.user)
             # XXX(dcramer): awful hack to ensure future attempts to instantiate
             # the Superuser object are successful
-            self.client.cookies[SU_COOKIE_NAME] = signing.get_cookie_signer(
-                salt=SU_COOKIE_NAME + SU_COOKIE_SALT,
-            ).sign(request.superuser.token)
+            self.save_cookie(
+                name=SU_COOKIE_NAME,
+                value=signing.get_cookie_signer(
+                    salt=SU_COOKIE_NAME + SU_COOKIE_SALT,
+                ).sign(request.superuser.token),
+                max_age=None,
+                path=SU_COOKIE_PATH,
+                domain=SU_COOKIE_DOMAIN,
+                secure=SU_COOKIE_SECURE or None,
+                expires=None,
+            )
         # Save the session values.
         self.save_session()
 
@@ -239,6 +262,19 @@ class BaseTestCase(Fixtures, Exam):
                 **extra
             )
 
+    def _postMinidumpWithHeader(self, upload_file_minidump, data=None, key=None, **extra):
+        data = dict(data or {})
+        data['upload_file_minidump'] = upload_file_minidump
+        path = reverse('sentry-api-minidump', kwargs={'project_id': self.project.id})
+        path += '?sentry_key=%s' % self.projectkey.public_key
+        with self.tasks():
+            return self.client.post(
+                path,
+                data=data,
+                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
+                **extra
+            )
+
     def _getWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
         if key is None:
             key = self.projectkey.public_key
@@ -290,19 +326,6 @@ class BaseTestCase(Fixtures, Exam):
         back to the original value when exiting the context.
         """
         return override_options(options)
-
-    @contextmanager
-    def dsn(self, dsn):
-        """
-        A context manager that temporarily sets the internal client's DSN
-        """
-        from raven.contrib.django.models import client
-
-        try:
-            client.set_dsn(dsn)
-            yield
-        finally:
-            client.set_dsn(None)
 
     _postWithSignature = _postWithHeader
     _postWithNewSignature = _postWithHeader
@@ -534,6 +557,7 @@ class RuleTestCase(TestCase):
         kwargs.setdefault('is_new', True)
         kwargs.setdefault('is_regression', True)
         kwargs.setdefault('is_new_group_environment', True)
+        kwargs.setdefault('has_reappeared', True)
         return EventState(**kwargs)
 
     def assertPasses(self, rule, event=None, **kwargs):
@@ -723,9 +747,16 @@ class AcceptanceTestCase(TransactionTestCase):
         self.addCleanup(patcher.stop)
         super(AcceptanceTestCase, self).setUp()
 
+    def save_cookie(self, name, value, **params):
+        self.browser.save_cookie(
+            name=name,
+            value=value,
+            **params
+        )
+
     def save_session(self):
         self.session.save()
-        self.browser.save_cookie(
+        self.save_cookie(
             name=settings.SESSION_COOKIE_NAME,
             value=self.session.session_key,
         )
@@ -760,10 +791,6 @@ class IntegrationTestCase(TestCase):
 
         self.pipeline.initialize()
         self.save_session()
-
-        feature = Feature('organizations:integrations-v3')
-        feature.__enter__()
-        self.addCleanup(feature.__exit__, None, None, None)
 
     def assertDialogSuccess(self, resp):
         assert 'window.opener.postMessage(' in resp.content
@@ -811,15 +838,16 @@ class SnubaTestCase(TestCase):
         if not data.get('received'):
             data['received'] = calendar.timegm(event.datetime.timetuple())
 
-        environment = Environment.get_or_create(
-            event.project,
-            tags['environment'],
-        )
+        if 'environment' in tags:
+            environment = Environment.get_or_create(
+                event.project,
+                tags['environment'],
+            )
 
-        GroupEnvironment.objects.get_or_create(
-            environment_id=environment.id,
-            group_id=event.group_id,
-        )
+            GroupEnvironment.objects.get_or_create(
+                environment_id=environment.id,
+                group_id=event.group_id,
+            )
 
         hashes = get_hashes_from_fingerprint(
             event,

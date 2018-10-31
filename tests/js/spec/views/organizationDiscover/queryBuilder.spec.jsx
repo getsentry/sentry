@@ -11,7 +11,7 @@ describe('Query Builder', function() {
 
       expect(external.projects).toEqual([2]);
       expect(external.fields).toEqual(expect.arrayContaining([expect.any(String)]));
-      expect(external.fields).toHaveLength(47);
+      expect(external.fields).toHaveLength(46);
       expect(external.conditions).toHaveLength(0);
       expect(external.aggregations).toHaveLength(0);
       expect(external.orderby).toBe('-timestamp');
@@ -26,10 +26,10 @@ describe('Query Builder', function() {
 
     it('loads tags', async function() {
       const discoverMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/',
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
         body: {
-          data: [{tags_key: ['tag1', 'tag2']}],
+          data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
         },
       });
       const queryBuilder = createQueryBuilder(
@@ -39,13 +39,14 @@ describe('Query Builder', function() {
       await queryBuilder.load();
 
       expect(discoverMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/discover/',
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         expect.objectContaining({
           data: expect.objectContaining({
-            aggregations: [['topK(1000)', 'tags_key', 'tags_key']],
+            fields: ['tags_key'],
+            aggregations: [['count()', null, 'count']],
+            orderby: '-count',
             projects: [2],
-            start: '2017-07-19T02:41:20',
-            end: '2017-10-17T02:41:20',
+            range: '90d',
           }),
         })
       );
@@ -66,7 +67,7 @@ describe('Query Builder', function() {
 
     it('loads hardcoded tags when API request fails', async function() {
       const discoverMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/',
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
       });
       const queryBuilder = createQueryBuilder(
@@ -85,6 +86,49 @@ describe('Query Builder', function() {
         name: 'tags[tag1]',
         type: 'string',
       });
+    });
+  });
+
+  describe('fetch()', function() {
+    let queryBuilder, discoverMock;
+
+    beforeEach(function() {
+      queryBuilder = createQueryBuilder(
+        {},
+        TestStubs.Organization({projects: [TestStubs.Project()]})
+      );
+      discoverMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+        method: 'POST',
+        body: {
+          data: [],
+          timing: {},
+          meta: [],
+        },
+      });
+    });
+
+    afterEach(function() {
+      MockApiClient.clearMockResponses();
+    });
+
+    it('makes request', async function() {
+      const data = {projects: [1], fields: ['event_id']};
+      await queryBuilder.fetch(data);
+      expect(discoverMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+        expect.objectContaining({
+          data,
+        })
+      );
+    });
+
+    it('handles no projects', async function() {
+      const result = queryBuilder.fetch({projects: []});
+      await expect(result).rejects.toMatchObject({
+        message: 'No projects selected',
+      });
+      expect(discoverMock).not.toHaveBeenCalled();
     });
   });
 
@@ -109,12 +153,12 @@ describe('Query Builder', function() {
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
       const query = queryBuilder.getInternal();
-      expect(query.orderby).toBe('count');
+      expect(query.orderby).toBe('-count');
     });
 
     it('updates orderby if there is no aggregation and value is not a valid field', function() {
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
-      expect(queryBuilder.getInternal().orderby).toBe('count');
+      expect(queryBuilder.getInternal().orderby).toBe('-count');
       queryBuilder.updateField('aggregations', []);
       expect(queryBuilder.getInternal().orderby).toBe('-timestamp');
     });

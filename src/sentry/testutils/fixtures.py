@@ -24,10 +24,12 @@ from hashlib import sha1
 from loremipsum import Generator
 from uuid import uuid4
 
+from sentry.constants import SentryAppStatus
+from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
-    CommitAuthor, Repository, CommitFileChange, ProjectDSymFile, File, UserPermission
+    CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment
 )
 from sentry.utils.canonical import CanonicalKeyDict
 
@@ -421,7 +423,7 @@ class Fixtures(object):
         return commit_file_change
 
     def create_user(self, email=None, **kwargs):
-        if not email:
+        if email is None:
             email = uuid4().hex + '@example.com'
 
         kwargs.setdefault('username', email)
@@ -621,11 +623,78 @@ class Fixtures(object):
     def create_file(self, **kwargs):
         return File.objects.create(**kwargs)
 
-    def create_dsym_file(self, project=None, **kwargs):
+    def create_file_from_path(self, path, name=None, **kwargs):
+        if name is None:
+            name = os.path.basename(path)
+
+        file = self.create_file(name=name, **kwargs)
+        with open(path) as f:
+            file.putfile(f)
+        return file
+
+    def create_event_attachment(self, event=None, file=None, **kwargs):
+        if event is None:
+            event = self.event
+
+        if file is None:
+            file = self.create_file(
+                name='log.txt',
+                size=32,
+                headers={'Content-Type': 'text/plain'},
+                checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+            )
+
+        return EventAttachment.objects.create(
+            project_id=event.project_id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+            file=file,
+            **kwargs
+        )
+
+    def create_dif_file(self, debug_id=None, project=None, object_name=None,
+                        features=None, data=None, file=None, cpu_name=None, **kwargs):
         if project is None:
             project = self.project
 
-        return ProjectDSymFile.objects.create(project=project, **kwargs)
+        if debug_id is None:
+            debug_id = six.text_type(uuid4())
+
+        if object_name is None:
+            object_name = '%s.dSYM' % debug_id
+
+        if features is not None:
+            if data is None:
+                data = {}
+            data['features'] = features
+
+        if file is None:
+            file = self.create_file(
+                name=object_name,
+                size=42,
+                headers={'Content-Type': 'application/x-mach-binary'},
+                checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+            )
+
+        return ProjectDebugFile.objects.create(
+            debug_id=debug_id,
+            project=project,
+            object_name=object_name,
+            cpu_name=cpu_name or 'x86_64',
+            file=file,
+            data=data,
+            **kwargs
+        )
+
+        return ProjectDebugFile.objects.create(project=project, **kwargs)
+
+    def create_dif_from_path(self, path, object_name=None, **kwargs):
+        if object_name is None:
+            object_name = os.path.basename(path)
+
+        headers = {'Content-Type': 'application/x-mach-binary'}
+        file = self.create_file_from_path(path, name=object_name, headers=headers)
+        return self.create_dif_file(file=file, object_name=object_name, **kwargs)
 
     def add_user_permission(self, user, permission):
         try:
@@ -633,3 +702,24 @@ class Fixtures(object):
                 UserPermission.objects.create(user=user, permission=permission)
         except IntegrityError:
             raise
+
+    def create_sentry_app(self, name=None, organization=None, published=False, scopes=(),
+                          webhook_url=None, **kwargs):
+        if not name:
+            name = 'Test App'
+        if not organization:
+            organization = self.create_organization()
+        if not webhook_url:
+            webhook_url = 'https://example.com/webhook'
+
+        app = SentryAppCreator.run(
+            name=name,
+            organization=organization,
+            scopes=scopes,
+            webhook_url=webhook_url,
+            **kwargs
+        )
+        if published:
+            app.update(status=SentryAppStatus.PUBLISHED)
+
+        return app

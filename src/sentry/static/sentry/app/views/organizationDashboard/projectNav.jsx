@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Flex, Box} from 'grid-emotion';
@@ -5,17 +6,18 @@ import styled from 'react-emotion';
 
 import space from 'app/styles/space';
 
+import {openCreateTeamModal} from 'app/actionCreators/modal';
+import ApiMixin from 'app/mixins/apiMixin';
 import OrganizationState from 'app/mixins/organizationState';
-
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import Tooltip from 'app/components/tooltip';
 
 const ProjectNav = createReactClass({
-  mixins: [OrganizationState],
+  mixins: [ApiMixin, OrganizationState],
 
   render() {
     const org = this.getOrganization();
@@ -33,6 +35,16 @@ const ProjectNav = createReactClass({
       {
         title: t('Team'),
         to: `/organizations/${org.slug}/teams/new/`,
+        onSelect: () => {
+          openCreateTeamModal({
+            organization: org,
+            onClose: data => {
+              if (!data) return;
+
+              browserHistory.push(`/settings/${org.slug}/teams/${data.slug}/members/`);
+            },
+          });
+        },
         disabled: !hasTeamWrite,
         tooltip: t('You do not have permission to create new teams'),
       },
@@ -63,6 +75,7 @@ const ProjectNav = createReactClass({
             to={item.to}
             key={item.title}
             disabled={item.disabled}
+            onSelect={item.onSelect}
           >
             {item.title}
           </MenuItem>

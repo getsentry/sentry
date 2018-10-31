@@ -1,15 +1,15 @@
 from __future__ import absolute_import
 
 import logging
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 from django.db import transaction
 
-from sentry import tagstore
+from sentry import eventstream, tagstore
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import (
-    ScoreClause, generate_culprit, get_fingerprint_for_event, get_hashes_from_fingerprint, md5_from_hash
+    generate_culprit, get_fingerprint_for_event, get_hashes_from_fingerprint, md5_from_hash
 )
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group,
@@ -18,6 +18,9 @@ from sentry.models import (
 from sentry.similarity import features
 from sentry.tasks.base import instrumented_task
 from six.moves import reduce
+
+
+logger = logging.getLogger(__name__)
 
 
 def cache(function):
@@ -104,7 +107,7 @@ backfill_fields = {
         event.get_tag('sentry:release'),
     ) if event.get_tag('sentry:release') else data.get('first_release', None),
     'times_seen': lambda caches, data, event: data['times_seen'] + 1,
-    'score': lambda caches, data, event: ScoreClause.calculate(
+    'score': lambda caches, data, event: Group.calculate_score(
         data['times_seen'] + 1,
         data['last_seen'],
     ),
@@ -148,14 +151,15 @@ def get_fingerprint(event):
     return md5_from_hash(primary_hash)
 
 
-def migrate_events(caches, project, source_id, destination_id, fingerprints, events, actor_id):
+def migrate_events(caches, project, source_id, destination_id,
+                   fingerprints, events, actor_id, eventstream_state):
     # XXX: This is only actually able to create a destination group and migrate
     # the group hashes if there are events that can be migrated. How do we
     # handle this if there aren't any events? We can't create a group (there
     # isn't any data to derive the aggregates from), so we'd have to mark the
     # hash as in limbo somehow...?)
     if not events:
-        return destination_id
+        return (destination_id, eventstream_state)
 
     if destination_id is None:
         # XXX: There is a race condition here between the (wall clock) time
@@ -176,6 +180,13 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
         )
 
         destination_id = destination.id
+
+        eventstream_state = eventstream.start_unmerge(
+            project.id,
+            fingerprints,
+            source_id,
+            destination_id
+        )
 
         # Move the group hashes to the destination.
         GroupHash.objects.filter(
@@ -238,7 +249,7 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
         event_id__in=event_event_id_set,
     ).update(group=destination_id)
 
-    return destination.id
+    return (destination.id, eventstream_state)
 
 
 def truncate_denormalizations(group):
@@ -285,7 +296,7 @@ def collect_group_environment_data(events):
     Find the first release for a each group and environment pair from a
     date-descending sorted list of events.
     """
-    results = {}
+    results = OrderedDict()
     for event in events:
         results[(event.group_id, get_environment_name(event))] = event.get_tag('sentry:release')
     return results
@@ -293,9 +304,11 @@ def collect_group_environment_data(events):
 
 def repair_group_environment_data(caches, project, events):
     for (group_id, env_name), first_release in collect_group_environment_data(events).items():
-        fields = {
-            'first_release_id': caches['Release'](project.organization_id, first_release).id,
-        }
+        fields = {}
+        if first_release:
+            fields['first_release_id'] = caches['Release'](
+                project.organization_id, first_release
+            ).id
 
         GroupEnvironment.objects.create_or_update(
             environment_id=caches['Environment'](project.organization_id, env_name).id,
@@ -306,7 +319,7 @@ def repair_group_environment_data(caches, project, events):
 
 
 def collect_tag_data(events):
-    results = {}
+    results = OrderedDict()
 
     for event in events:
         environment = get_environment_name(event)
@@ -372,7 +385,7 @@ def get_environment_name(event):
 
 
 def collect_release_data(caches, project, events):
-    results = {}
+    results = OrderedDict()
 
     for event in events:
         release = event.get_tag('sentry:release')
@@ -544,7 +557,8 @@ def unmerge(
     actor_id,
     cursor=None,
     batch_size=500,
-    source_fields_reset=False
+    source_fields_reset=False,
+    eventstream_state=None,
 ):
     # XXX: The queryset chunking logic below is awfully similar to
     # ``RangeQuerySetWrapper``. Ideally that could be refactored to be able to
@@ -583,6 +597,11 @@ def unmerge(
     if not events:
         tagstore.update_group_tag_key_values_seen(project_id, [source_id, destination_id])
         unlock_hashes(project_id, fingerprints)
+
+        logger.warning('Unmerge complete (eventstream state: %s)', eventstream_state)
+        if eventstream_state:
+            eventstream.end_unmerge(eventstream_state)
+
         return destination_id
 
     Event.objects.bind_nodes(events, 'data')
@@ -608,7 +627,7 @@ def unmerge(
                 source_events,
             ))
 
-    destination_id = migrate_events(
+    (destination_id, eventstream_state) = migrate_events(
         caches,
         project,
         source_id,
@@ -616,6 +635,7 @@ def unmerge(
         fingerprints,
         destination_events,
         actor_id,
+        eventstream_state,
     )
 
     repair_denormalizations(
@@ -633,4 +653,5 @@ def unmerge(
         cursor=events[-1].id,
         batch_size=batch_size,
         source_fields_reset=source_fields_reset,
+        eventstream_state=eventstream_state,
     )

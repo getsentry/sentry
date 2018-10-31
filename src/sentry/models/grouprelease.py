@@ -28,7 +28,7 @@ class GroupRelease(Model):
 
     @classmethod
     def get_cache_key(cls, group_id, release_id, environment):
-        return 'grouprelease:1:{}:{}'.format(
+        return u'grouprelease:1:{}:{}'.format(
             group_id,
             md5_text(u'{}:{}'.format(release_id, environment)).hexdigest(),
         )

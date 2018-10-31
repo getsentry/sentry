@@ -47,5 +47,5 @@ class CsvMixin(object):
             content_type='text/csv',
         )
         response['Content-Disposition'] = \
-            'attachment; filename="{}.csv"'.format(filename)
+            u'attachment; filename="{}.csv"'.format(filename)
         return response

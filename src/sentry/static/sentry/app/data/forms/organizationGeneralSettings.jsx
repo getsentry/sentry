@@ -2,6 +2,7 @@ import React from 'react';
 
 import {extractMultilineFields} from 'app/utils';
 import {t, tct} from 'app/locale';
+import slugify from 'app/utils/slugify';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';
@@ -17,6 +18,7 @@ const formGroups = [
         required: true,
         label: t('Name'),
         help: t('A unique ID used to identify this organization'),
+        transformInput: slugify,
 
         saveOnBlur: false,
         saveMessageAlertType: 'info',
@@ -83,8 +85,9 @@ const formGroups = [
         help: t('Require two-factor authentication for all members'),
         confirm: {
           true: t(
-            'This will immediately force all users to enable two-factor authentication.' +
-              ' It will also send an email reminder to setup two-factor authentication. Do you want to continue?'
+            'This will remove all members without two-factor authentication' +
+              ' from your organization. It will also send them an email to setup 2FA' +
+              ' and reinstate their access and settings. Do you want to continue?'
           ),
           false: t(
             'Are you sure you want to allow users to access your organization without having two-factor authentication enabled?'
@@ -197,6 +200,30 @@ const formGroups = [
         },
         label: t('Allow JavaScript source fetching'),
         help: t('Allow Sentry to scrape missing JavaScript source context when possible'),
+      },
+      {
+        name: 'storeCrashReports',
+        type: 'boolean',
+        label: t('Store Native Crash Reports'),
+        help: t(
+          'Store native crash reports such as Minidumps for improved processing and download in issue details'
+        ),
+        visible: ({features}) => features.has('event-attachments'),
+      },
+      {
+        name: 'trustedRelays',
+        type: 'string',
+        multiline: true,
+        autosize: true,
+        maxRows: 10,
+        placeholder: t('Paste the relay public keys here'),
+        label: t('Trusted Relays'),
+        help: t(
+          'The list of relay public keys that should be trusted. Any relay in this list will be permitted to access org and project configs. Separate multiple entries with a newline.'
+        ),
+        getValue: val => extractMultilineFields(val),
+        setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+        visible: ({features}) => features.has('relay'),
       },
     ],
   },

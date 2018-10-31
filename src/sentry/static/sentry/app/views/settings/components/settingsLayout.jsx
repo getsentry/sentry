@@ -76,6 +76,7 @@ const ContentContainerWrapper = styled(Box)`
 const SidebarWrapper = styled(Box)`
   flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
+  margin-top: 7px;
 `;
 
 /**
@@ -84,6 +85,7 @@ const SidebarWrapper = styled(Box)`
  */
 const Content = styled(Box)`
   flex: 1;
+  min-width: 0; /* keep children from stretching container */
 `;
 
 const SettingsSubheader = styled('div')`

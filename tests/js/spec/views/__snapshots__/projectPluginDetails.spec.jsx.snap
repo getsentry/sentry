@@ -205,7 +205,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                             >
                               <Component
                                 aria-label="Enable Plugin"
-                                className="css-dkprmi-StyledButton-getColors e17811v30"
+                                className="css-dkprmi-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -218,7 +218,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               >
                                 <button
                                   aria-label="Enable Plugin"
-                                  className="css-dkprmi-StyledButton-getColors e17811v30"
+                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -233,28 +233,14 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     size="small"
                                   >
                                     <Component
-                                      className="css-19bmqb3-ButtonLabel e17811v31"
+                                      className="css-7ui8bl-ButtonLabel eqrebog1"
                                       size="small"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-19bmqb3-ButtonLabel e17811v31"
-                                        size="small"
+                                      <span
+                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="e17811v31 css-1eblpyp-ButtonLabel"
-                                          size="small"
-                                        >
-                                          <div
-                                            className="e17811v31 css-1eblpyp-ButtonLabel"
-                                            is={null}
-                                            size="small"
-                                          >
-                                            Enable Plugin
-                                          </div>
-                                        </Base>
-                                      </Flex>
+                                        Enable Plugin
+                                      </span>
                                     </Component>
                                   </ButtonLabel>
                                 </button>
@@ -275,7 +261,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                             >
                               <Component
                                 aria-label="Reset Configuration"
-                                className="css-dkprmi-StyledButton-getColors e17811v30"
+                                className="css-dkprmi-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -283,7 +269,7 @@ exports[`ProjectPluginDetails renders 1`] = `
                               >
                                 <button
                                   aria-label="Reset Configuration"
-                                  className="css-dkprmi-StyledButton-getColors e17811v30"
+                                  className="css-dkprmi-StyledButton-getColors eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -293,28 +279,14 @@ exports[`ProjectPluginDetails renders 1`] = `
                                     size="small"
                                   >
                                     <Component
-                                      className="css-19bmqb3-ButtonLabel e17811v31"
+                                      className="css-7ui8bl-ButtonLabel eqrebog1"
                                       size="small"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-19bmqb3-ButtonLabel e17811v31"
-                                        size="small"
+                                      <span
+                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="e17811v31 css-1eblpyp-ButtonLabel"
-                                          size="small"
-                                        >
-                                          <div
-                                            className="e17811v31 css-1eblpyp-ButtonLabel"
-                                            is={null}
-                                            size="small"
-                                          >
-                                            Reset Configuration
-                                          </div>
-                                        </Base>
-                                      </Flex>
+                                        Reset Configuration
+                                      </span>
                                     </Component>
                                   </ButtonLabel>
                                 </button>
@@ -397,10 +369,10 @@ exports[`ProjectPluginDetails renders 1`] = `
                   className="plugin-config ref-plugin-config-amazon-sqs"
                 >
                   <Component
-                    className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e1laxa7d0"
+                    className="plugin-config ref-plugin-config-amazon-sqs css-yahxlu-Panel e1laxa7d0"
                   >
                     <div
-                      className="plugin-config ref-plugin-config-amazon-sqs css-10qfvek-Panel e1laxa7d0"
+                      className="plugin-config ref-plugin-config-amazon-sqs css-yahxlu-Panel e1laxa7d0"
                     >
                       <PanelHeader
                         hasButtons={true}

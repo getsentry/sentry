@@ -13,7 +13,7 @@ import {fields} from 'app/data/forms/projectGeneralSettings';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
@@ -223,6 +223,7 @@ class ProjectGeneralSettings extends AsyncView {
     let endpoint = `/projects/${orgId}/${projectId}/`;
     let jsonFormProps = {
       additionalFieldProps: {organization},
+      features: new Set(organization.features),
       access: new Set(organization.access),
     };
 
@@ -274,6 +275,8 @@ class ProjectGeneralSettings extends AsyncView {
               fields.scrubIPAddresses,
               fields.sensitiveFields,
               fields.safeFields,
+              fields.storeCrashReports,
+              fields.relayPiiConfig,
             ]}
           />
 

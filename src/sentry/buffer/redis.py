@@ -12,13 +12,15 @@ import six
 from time import time
 from binascii import crc32
 
+from datetime import datetime
 from django.db import models
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 
 from sentry.buffer import Buffer
 from sentry.exceptions import InvalidConfiguration
 from sentry.tasks.process_buffer import process_incr, process_pending
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.compat import pickle
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
@@ -110,6 +112,47 @@ class RedisBuffer(Buffer):
     def _make_lock_key(self, key):
         return 'l:%s' % (key, )
 
+    def _dump_values(self, values):
+        result = {}
+        for k, v in six.iteritems(values):
+            result[k] = self._dump_value(v)
+        return result
+
+    def _dump_value(self, value):
+        if isinstance(value, six.string_types):
+            type_ = 's'
+        elif isinstance(value, datetime):
+            type_ = 'd'
+            value = value.strftime('%s.%f')
+        elif isinstance(value, int):
+            type_ = 'i'
+        elif isinstance(value, float):
+            type_ = 'f'
+        else:
+            raise TypeError(type(value))
+        return (type_, six.text_type(value))
+
+    def _load_values(self, payload):
+        result = {}
+        for k, (t, v) in six.iteritems(payload):
+            result[k] = self._load_value((t, v))
+        return result
+
+    def _load_value(self, payload):
+        (type_, value) = payload
+        if type_ == 's':
+            return value
+        elif type_ == 'd':
+            return datetime.fromtimestamp(float(value)).replace(
+                tzinfo=timezone.utc
+            )
+        elif type_ == 'i':
+            return int(value)
+        elif type_ == 'f':
+            return float(value)
+        else:
+            raise TypeError('invalid type: {}'.format(type_))
+
     def incr(self, model, columns, filters, extra=None):
         """
         Increment the key by doing the following:
@@ -129,16 +172,30 @@ class RedisBuffer(Buffer):
 
         pipe = conn.pipeline()
         pipe.hsetnx(key, 'm', '%s.%s' % (model.__module__, model.__name__))
+        # TODO(dcramer): once this goes live in production, we can kill the pickle path
+        # (this is to ensure a zero downtime deploy where we can transition event processing)
         pipe.hsetnx(key, 'f', pickle.dumps(filters))
+        # pipe.hsetnx(key, 'f', json.dumps(self._dump_values(filters)))
         for column, amount in six.iteritems(columns):
             pipe.hincrby(key, 'i+' + column, amount)
 
         if extra:
+            # Group tries to serialize 'score', so we'd need some kind of processing
+            # hook here
+            # e.g. "update score if last_seen or times_seen is changed"
             for column, value in six.iteritems(extra):
+                # TODO(dcramer): once this goes live in production, we can kill the pickle path
+                # (this is to ensure a zero downtime deploy where we can transition event processing)
                 pipe.hset(key, 'e+' + column, pickle.dumps(value))
+                # pipe.hset(key, 'e+' + column, json.dumps(self._dump_value(value)))
         pipe.expire(key, self.key_expire)
         pipe.zadd(pending_key, time(), key)
         pipe.execute()
+
+        metrics.incr('buffer.incr', skip_internal=True, tags={
+            'module': model.__module__,
+            'model': model.__name__,
+        })
 
     def process_pending(self, partition=None):
         if partition is None and self.pending_partitions > 1:
@@ -224,15 +281,24 @@ class RedisBuffer(Buffer):
                 self.logger.debug('buffer.revoked.empty', extra={'redis_key': key})
                 return
 
-            model = import_string(values['m'])
-            filters = pickle.loads(values['f'])
+            model = import_string(values.pop('m'))
+            if values['f'].startswith('{'):
+                filters = self._load_values(json.loads(values.pop('f')))
+            else:
+                # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
+                filters = pickle.loads(values.pop('f'))
+
             incr_values = {}
             extra_values = {}
             for k, v in six.iteritems(values):
                 if k.startswith('i+'):
                     incr_values[k[2:]] = int(v)
                 elif k.startswith('e+'):
-                    extra_values[k[2:]] = pickle.loads(v)
+                    if v.startswith('['):
+                        extra_values[k[2:]] = self._load_value(json.loads(v))
+                    else:
+                        # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
+                        extra_values[k[2:]] = pickle.loads(v)
 
             super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
         finally:

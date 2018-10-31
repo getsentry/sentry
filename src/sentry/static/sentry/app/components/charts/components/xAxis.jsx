@@ -1,8 +1,15 @@
+import moment from 'moment';
+
 import theme from 'app/utils/theme';
 
-export default function XAxis(props = {}) {
+export default function XAxis({isGroupedByDate, ...props} = {}) {
+  const axisLabelFormatter = isGroupedByDate
+    ? (value, index) => moment.utc(value).format('MMM Do')
+    : undefined;
+
   return {
-    boundaryGap: true,
+    type: 'category',
+    boundaryGap: false,
     axisLine: {
       lineStyle: {
         color: theme.gray1,
@@ -17,6 +24,7 @@ export default function XAxis(props = {}) {
     },
     axisLabel: {
       margin: 12,
+      formatter: axisLabelFormatter,
       ...(props.axisLabel || {}),
     },
     ...props,

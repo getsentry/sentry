@@ -30,6 +30,7 @@ class UserSerializerTest(TestCase):
         assert len(result['emails']) == 1
         assert result['emails'][0]['email'] == user.email
         assert result['emails'][0]['is_verified']
+        assert result['isSuperuser'] is False
 
     def test_no_useremail(self):
         user = self.create_user()
@@ -39,6 +40,13 @@ class UserSerializerTest(TestCase):
 
         result = serialize(user)
         assert len(result['emails']) == 0
+
+    def test_is_superuser(self):
+        """Test that the user is a superuser"""
+        user = self.create_user(is_superuser=True)
+
+        result = serialize(user)
+        assert result['isSuperuser'] is True
 
 
 class DetailedUserSerializerTest(TestCase):

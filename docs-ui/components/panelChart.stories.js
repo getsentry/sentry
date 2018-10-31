@@ -7,67 +7,61 @@ import AreaChart from 'app/components/charts/areaChart';
 import PanelChart from 'app/components/charts/panelChart';
 import PieChart from 'app/components/charts/pieChart';
 
-// eslint-disable-next-line
-storiesOf('Charts/PanelChart', module).add(
-  'default',
+storiesOf('Charts|PanelChart', module).add(
+  'PanelChart',
   withInfo('PanelChart')(() => {
-    const browsers = [
-      {
-        name: 'Chrome',
-        value: 3500,
-      },
-      {
-        name: 'Firefox',
-        value: 650,
-      },
-      {
-        name: 'Safari',
-        value: 250,
-      },
-    ];
+    const TOTAL = 6;
+    const NOW = new Date().getTime();
+    const getValue = () => Math.round(Math.random() * 1000);
+    const getDate = num => NOW - (TOTAL - num) * 86400000;
+    const getData = num =>
+      [...Array(num)].map((v, i) => ({value: getValue(), name: getDate(i)}));
+    const browsers = {
+      seriesName: '',
+      data: [
+        {
+          name: 'Chrome',
+          value: 3500,
+        },
+        {
+          name: 'Firefox',
+          value: 650,
+        },
+        {
+          name: 'Safari',
+          value: 250,
+        },
+      ],
+    };
+
     const errorSeries = [
       {
-        name: 'Handled',
-        data: [150, 300, 250, 600, 342, 800, 750],
+        seriesName: 'Handled',
+        data: getData(7),
       },
       {
-        name: 'Unhandled',
-        data: [50, 200, 150, 300, 102, 283, 341],
+        seriesName: 'Unhandled',
+        data: getData(7),
       },
     ];
     const previousPeriodData = {
-      name: 'Previous',
-      data: [650, 300, 350, 300, 400, 250, 200],
+      seriesName: 'Previous',
+      data: getData(7),
     };
 
     return (
       <React.Fragment>
-        <PanelChart
-          title="Pie Chart"
-          startDate={new Date()}
-          name="Browsers"
-          series={browsers}
-        >
-          <PieChart data={browsers} />
-          {({series, title, ...props}) => (
-            <PieChart {...props} name={title} data={series} />
-          )}
+        <PanelChart title="Pie Chart" name="Browsers" series={[browsers]}>
+          {({...props}) => <PieChart {...props} />}
         </PanelChart>
 
         <PanelChart
           title="Area Chart"
-          startDate={new Date()}
           name="Browsers"
           series={errorSeries}
           previousPeriod={previousPeriodData}
         >
-          {({title, previousPeriod, ...props}) => (
-            <AreaChart
-              {...props}
-              lines={(previousPeriod && [previousPeriod]) || []}
-              name={title}
-            />
-          )}
+          {({...props}) => <AreaChart {...props} />}
         </PanelChart>
       </React.Fragment>
     );

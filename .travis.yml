@@ -35,7 +35,6 @@ env:
     # node's version is pinned by .nvmrc and is autodetected by `nvm install`.
     - NODE_DIR="${HOME}/.nvm/versions/node/v$(< .nvmrc)"
     - YARN_VERSION="1.3.2"
-
 script:
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
@@ -152,9 +151,21 @@ matrix:
       before_script:
         - psql -c 'create database sentry;' -U postgres
 
-    # django 1.8 in testing - allowed to fail
+    # django 1.8 compatibility
     - python: 2.7
       env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+      install:
+        - pip install -e ".[dev,tests,optional]"
+      before_script:
+        - psql -c 'create database sentry;' -U postgres
+
+    # django 1.8 compatibility with migrations
+    - python: 2.7
+      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9" SOUTH_TESTS_MIGRATE=0
       services:
         - memcached
         - redis-server
@@ -175,7 +186,7 @@ matrix:
       before_install:
         - docker run -d --network host --name zookeeper -e ZOOKEEPER_CLIENT_PORT=2181 confluentinc/cp-zookeeper:4.1.0
         - docker run -d --network host --name kafka -e KAFKA_ZOOKEEPER_CONNECT=localhost:2181 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 confluentinc/cp-kafka:4.1.0
-        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server
+        - docker run -d --network host --name clickhouse-server --ulimit nofile=262144:262144 yandex/clickhouse-server:18.14.9
         - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
         - docker ps -a
       install:
@@ -206,10 +217,6 @@ matrix:
 # jobs are defined in matrix/include
 # to specify which jobs are allowed to fail, match the env exactly in matrix/allow_failures
   allow_failures:
-    - python: 2.7
-      env: TEST_SUITE=postgres DJANGO_VERSION=">=1.8,<1.9"
-    - python: 2.7
-      env: TEST_SUITE=snuba SENTRY_TAGSTORE=sentry.tagstore.snuba.SnubaTagStorage SENTRY_ZOOKEEPER_HOSTS=localhost:2181 SENTRY_KAFKA_HOSTS=localhost:9092
     - language: node_js
       env: STORYBOOK_BUILD=1
 

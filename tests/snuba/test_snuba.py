@@ -19,6 +19,7 @@ class SnubaTest(SnubaTestCase):
         events = [{
             'event_id': 'x' * 32,
             'primary_hash': '1' * 32,
+            'group_id': 1,
             'project_id': self.project.id,
             'message': 'message',
             'platform': 'python',
@@ -70,10 +71,11 @@ class SnubaTest(SnubaTestCase):
         assert self.group.id in group_ids
         assert None not in group_ids
 
-    def _insert_event_for_time(self, ts, hash='a' * 32):
+    def _insert_event_for_time(self, ts, hash='a' * 32, group_id=None):
         self.snuba_insert({
             'event_id': uuid.uuid4().hex,
             'primary_hash': hash,
+            'group_id': group_id if group_id else int(hash[:16], 16),
             'project_id': self.project.id,
             'message': 'message',
             'platform': 'python',
@@ -171,3 +173,34 @@ class SnubaTest(SnubaTestCase):
                     'project_id': [self.project.id],
                 },
             ) == {}
+
+    def test_use_group_id(self):
+        base_time = datetime.utcnow()
+        group = self.create_group()
+        self._insert_event_for_time(base_time, group_id=group.id)
+
+        with self.options({'snuba.use_group_id_column': True}):
+            # verify filter_keys and aggregation
+            assert snuba.query(
+                start=base_time - timedelta(days=1),
+                end=base_time + timedelta(days=1),
+                groupby=['issue'],
+                filter_keys={
+                    'project_id': [self.project.id],
+                    'issue': [group.id]
+                },
+            ) == {group.id: 1}
+
+            # verify raw_query selecting issue row
+            assert snuba.raw_query(
+                start=base_time - timedelta(days=1),
+                end=base_time + timedelta(days=1),
+                selected_columns=['issue', 'timestamp'],
+                filter_keys={
+                    'project_id': [self.project.id],
+                    'issue': [group.id]
+                },
+            )['data'] == [{
+                'issue': group.id,
+                'timestamp': base_time.strftime('%Y-%m-%dT%H:%M:%S+00:00'),
+            }]

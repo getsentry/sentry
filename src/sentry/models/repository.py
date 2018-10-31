@@ -17,7 +17,7 @@ class Repository(Model):
     url = models.URLField(null=True)
     provider = models.CharField(max_length=64, null=True)
     external_id = models.CharField(max_length=64, null=True)
-    config = JSONField(default=lambda: {})
+    config = JSONField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE,
         choices=ObjectStatus.as_choices(),
@@ -65,6 +65,10 @@ class Repository(Model):
 
 
 def on_delete(instance, actor=None, **kwargs):
+    # If there is no provider, we don't have any webhooks, etc to delete
+    if not instance.provider:
+        return
+
     # TODO(lb): I'm assuming that this is used by integrations... is it?
     def handle_exception(exc):
         from sentry.exceptions import InvalidIdentity, PluginError
@@ -79,7 +83,7 @@ def on_delete(instance, actor=None, **kwargs):
 
     if instance.has_integration_provider():
         try:
-            instance.get_provider().delete_repository(repo=instance)
+            instance.get_provider().on_delete_repository(repo=instance)
         except Exception as exc:
             handle_exception(exc)
     else:

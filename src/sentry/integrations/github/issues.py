@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.core.urlresolvers import reverse
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.issues import IssueBasicMixin
 from sentry.utils.http import absolute_uri
@@ -7,12 +8,12 @@ from sentry.utils.http import absolute_uri
 
 class GitHubIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
-        return '{}#{}'.format(data['repo'], data['key'])
+        return u'{}#{}'.format(data['repo'], data['key'])
 
     def get_issue_url(self, key):
         domain_name, user = self.model.metadata['domain_name'].split('/')
         repo, issue_id = key.split('#')
-        return "https://{}/{}/issues/{}".format(domain_name, repo, issue_id)
+        return u"https://{}/{}/issues/{}".format(domain_name, repo, issue_id)
 
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs['data']
@@ -38,18 +39,22 @@ class GitHubIssueBasic(IssueBasicMixin):
             except ApiError as e:
                 raise IntegrationError(self.message_from_error(e))
 
+    def get_persisted_default_config_fields(self):
+        return ['repo']
+
+    def create_default_repo_choice(self, default_repo):
+        return (default_repo, default_repo.split('/')[1])
+
     def get_create_issue_config(self, group, **kwargs):
         fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
-        try:
-            repos = self.get_repositories()
-        except ApiError:
-            repo_choices = [(' ', ' ')]
-        else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
+        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
-        params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
         assignees = self.get_allowed_assignees(default_repo)
+
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-github-search', args=[org.slug, self.model.id],
+        )
 
         return [
             {
@@ -58,6 +63,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'type': 'select',
                 'default': default_repo,
                 'choices': repo_choices,
+                'url': autocomplete_url,
                 'updatesForm': True,
                 'required': True,
             }
@@ -100,16 +106,12 @@ class GitHubIssueBasic(IssueBasicMixin):
         }
 
     def get_link_issue_config(self, group, **kwargs):
-        try:
-            repos = self.get_repositories()
-        except ApiError:
-            repo_choices = [(' ', ' ')]
-        else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
+        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
-        params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
-        issues = self.get_repo_issues(default_repo)
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-github-search', args=[org.slug, self.model.id],
+        )
 
         return [
             {
@@ -118,6 +120,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'type': 'select',
                 'default': default_repo,
                 'choices': repo_choices,
+                'url': autocomplete_url,
                 'required': True,
                 'updatesForm': True,
             },
@@ -126,7 +129,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'label': 'Issue',
                 'default': '',
                 'type': 'select',
-                'choices': issues,
+                'url': autocomplete_url,
                 'required': True,
             },
             {
@@ -186,6 +189,6 @@ class GitHubIssueBasic(IssueBasicMixin):
         except Exception as e:
             self.raise_error(e)
 
-        issues = tuple((i['number'], '#{} {}'.format(i['number'], i['title'])) for i in response)
+        issues = tuple((i['number'], u'#{} {}'.format(i['number'], i['title'])) for i in response)
 
         return issues

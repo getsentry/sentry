@@ -5,28 +5,35 @@ import {withInfo} from '@storybook/addon-info';
 
 import AreaChart from 'app/components/charts/areaChart';
 
-// eslint-disable-next-line
-storiesOf('Charts/AreaChart', module).add(
-  'default',
-  withInfo('Stacked AreaChart with previous period')(() => (
-    <AreaChart
-      startDate={new Date()}
-      series={[
-        {
-          name: 'Handled',
-          data: [150, 300, 250, 600, 342, 800, 750],
-        },
-        {
-          name: 'Unhandled',
-          data: [50, 200, 150, 300, 102, 283, 341],
-        },
-      ]}
-      lines={[
-        {
-          name: 'Previous',
-          data: [650, 300, 350, 300, 400, 250, 200],
-        },
-      ]}
-    />
-  ))
+storiesOf('Charts|AreaChart', module).add(
+  'AreaChart',
+  withInfo('Stacked AreaChart with previous period')(() => {
+    const TOTAL = 6;
+    const NOW = new Date().getTime();
+    const getValue = () => Math.round(Math.random() * 1000);
+    const getDate = num => NOW - (TOTAL - num) * 86400000;
+    const getData = num =>
+      [...Array(num)].map((v, i) => ({value: getValue(), name: getDate(i)}));
+    return (
+      <div>
+        <AreaChart
+          style={{height: 250}}
+          series={[
+            {
+              seriesName: 'Handled',
+              data: getData(7),
+            },
+            {
+              seriesName: 'Unhandled',
+              data: getData(7),
+            },
+          ]}
+          previousPeriod={{
+            seriesName: 'Previous',
+            data: getData(7),
+          }}
+        />
+      </div>
+    );
+  })
 );

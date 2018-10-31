@@ -38,10 +38,10 @@ describe('RecoveryOptionsModal', function() {
     wrapper.find('RecoveryOptionsModal Button[name="skipStep"]').simulate('click');
     expect(wrapper.find(getRecoveryCodes)).toHaveLength(1);
 
-    let mockId = 16;
+    let mockId = TestStubs.Authenticators().Recovery().authId;
     expect(
       wrapper.find('RecoveryOptionsModal Button[name="getCodes"]').prop('to')
-    ).toMatch(`/settings/account/security/${mockId}/`);
+    ).toMatch(`/settings/account/security/mfa/${mockId}/`);
 
     wrapper.find(getRecoveryCodes).simulate('click');
     expect(closeModal).toHaveBeenCalled();
@@ -52,10 +52,36 @@ describe('RecoveryOptionsModal', function() {
 
     expect(wrapper.find(backupPhone)).toHaveLength(1);
     expect(wrapper.find(backupPhone).prop('to')).toMatch(
-      '/settings/account/security/sms/enroll/'
+      '/settings/account/security/mfa/sms/enroll/'
     );
 
     wrapper.find(backupPhone).simulate('click');
     expect(closeModal).toHaveBeenCalled();
+  });
+
+  it('skips backup phone setup if text message authenticator unavailable', async function() {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/users/me/authenticators/',
+      method: 'GET',
+      body: [TestStubs.Authenticators().Totp(), TestStubs.Authenticators().Recovery()],
+    });
+    wrapper = mount(
+      <RecoveryOptionsModal
+        Body={Modal.Body}
+        Header={Modal.Header}
+        authenticatorName="Authenticator App"
+        closeModal={closeModal}
+        onClose={onClose}
+      />,
+      TestStubs.routerContext()
+    );
+    let mockId = TestStubs.Authenticators().Recovery().authId;
+    expect(
+      wrapper.find('RecoveryOptionsModal Button[name="getCodes"]').prop('to')
+    ).toMatch(`/settings/account/security/mfa/${mockId}/`);
+
+    expect(wrapper.find('RecoveryOptionsModal Button[name="skipStep"]')).toHaveLength(0);
+    expect(wrapper.find('RecoveryOptionsModal Button[name="addPhone"]')).toHaveLength(0);
   });
 });

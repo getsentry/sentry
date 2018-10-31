@@ -50,15 +50,21 @@ def sync_group_assignee_inbound(integration, email, external_issue_key, assign=T
     assign linked groups to matching users. Checks project membership.
     Returns a list of groups that were successfully assigned.
     """
+    from sentry import features
     from sentry.models import Group, UserEmail, User
 
     logger = logging.getLogger('sentry.integrations.%s' % integration.provider)
 
     orgs_with_sync_enabled = []
-    for org_id in integration.organizations.values_list('id', flat=True):
-        installation = integration.get_installation(org_id)
+    for org in integration.organizations.all():
+        has_issue_sync = features.has('organizations:integrations-issue-sync',
+                                      org)
+        if not has_issue_sync:
+            continue
+
+        installation = integration.get_installation(org.id)
         if installation.should_sync('inbound_assignee'):
-            orgs_with_sync_enabled.append(org_id)
+            orgs_with_sync_enabled.append(org.id)
 
     affected_groups = list(
         Group.objects.get_groups_by_external_issue(
@@ -168,7 +174,11 @@ class GroupAssigneeManager(BaseManager):
             })
         else:
             affected = True
-            issue_assigned.send(project=group.project, group=group, sender=acting_user)
+            issue_assigned.send_robust(
+                project=group.project,
+                group=group,
+                user=acting_user,
+                sender=self.__class__)
 
         if affected:
             activity = Activity.objects.create(
@@ -185,7 +195,7 @@ class GroupAssigneeManager(BaseManager):
             activity.send_notification()
             # sync Sentry assignee to external issues
             if assignee_type == 'user' and features.has(
-                    'organizations:internal-catchall', group.organization, actor=acting_user):
+                    'organizations:integrations-issue-sync', group.organization, actor=acting_user):
                 sync_group_assignee_outbound(group, assigned_to.id, assign=True)
 
     def deassign(self, group, acting_user=None):
@@ -206,7 +216,7 @@ class GroupAssigneeManager(BaseManager):
             )
             activity.send_notification()
             # sync Sentry assignee to external issues
-            if features.has('organizations:internal-catchall',
+            if features.has('organizations:integrations-issue-sync',
                             group.organization, actor=acting_user):
                 sync_group_assignee_outbound(group, None, assign=False)
 

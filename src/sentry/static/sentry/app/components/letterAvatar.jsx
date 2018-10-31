@@ -14,8 +14,8 @@ const LetterAvatar = createReactClass({
   displayName: 'LetterAvatar',
 
   propTypes: {
-    identifier: PropTypes.string.isRequired,
-    displayName: PropTypes.string.isRequired,
+    identifier: PropTypes.string,
+    displayName: PropTypes.string,
     round: PropTypes.bool,
   },
 
@@ -50,7 +50,12 @@ const LetterAvatar = createReactClass({
 
   getInitials() {
     let names = (this.props.displayName.trim() || '?').split(' ');
-    let initials = names[0][0] + (names.length > 1 ? names[names.length - 1][0] : '');
+    // Use Array.from as slicing and substring() work on ucs2 segments which
+    // results in only getting half of any 4+ byte character.
+    let initials = Array.from(names[0])[0];
+    if (names.length > 1) {
+      initials += Array.from(names[names.length - 1])[0];
+    }
     return initials.toUpperCase();
   },
 

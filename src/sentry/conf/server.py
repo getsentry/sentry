@@ -13,6 +13,7 @@ from django.conf.global_settings import *  # NOQA
 
 import os
 import os.path
+import re
 import socket
 import sys
 import tempfile
@@ -211,6 +212,7 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = (
     'sentry.middleware.proxy.ChunkedMiddleware',
+    'sentry.middleware.proxy.DecompressBodyMiddleware',
     'sentry.middleware.proxy.ContentLengthHeaderMiddleware',
     'sentry.middleware.security.SecurityHeadersMiddleware',
     'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
@@ -257,7 +259,7 @@ INSTALLED_APPS = (
     'django.contrib.admin', 'django.contrib.auth', 'django.contrib.contenttypes',
     'django.contrib.messages', 'django.contrib.sessions', 'django.contrib.sites',
     'django.contrib.staticfiles', 'crispy_forms', 'debug_toolbar',
-    'raven.contrib.django.raven_compat', 'rest_framework', 'sentry', 'sentry.analytics',
+    'rest_framework', 'sentry', 'sentry.analytics',
     'sentry.analytics.events', 'sentry.nodestore', 'sentry.search', 'sentry.lang.java',
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
@@ -266,7 +268,7 @@ INSTALLED_APPS = (
 )
 
 import django
-if django.VERSION < (1, 7):
+if django.VERSION < (1, 9):
     INSTALLED_APPS += ('south', )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
@@ -491,7 +493,7 @@ def create_partitioned_queues(name):
     exchange = Exchange(name, type='direct')
     for num in range(1):
         CELERY_QUEUES.append(Queue(
-            '{0}-{1}'.format(name, num),
+            u'{0}-{1}'.format(name, num),
             exchange=exchange,
         ))
 
@@ -603,6 +605,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60 * 60 * 3,
         },
     },
+    'schedule-vsts-integration-subscription-check': {
+        'task': 'sentry.tasks.integrations.kickoff_vsts_subscription_check',
+        'schedule': timedelta(hours=6),
+        'options': {
+            'expires': 60 * 25,
+        }
+    }
 }
 
 BGTASKS = {
@@ -634,7 +643,7 @@ LOGGING = {
         'internal': {
             'level': 'ERROR',
             'filters': ['sentry:internal'],
-            'class': 'raven.contrib.django.handlers.SentryHandler',
+            'class': 'sentry_sdk.integrations.logging.EventHandler',
         },
         'metrics': {
             'level': 'WARNING',
@@ -644,12 +653,12 @@ LOGGING = {
         'django_internal': {
             'level': 'WARNING',
             'filters': ['sentry:internal', 'important_django_request'],
-            'class': 'raven.contrib.django.handlers.SentryHandler',
+            'class': 'sentry_sdk.integrations.logging.EventHandler',
         },
     },
     'filters': {
         'sentry:internal': {
-            '()': 'sentry.utils.raven.SentryInternalFilter',
+            '()': 'sentry.utils.sdk.SentryInternalFilter',
         },
         'important_django_request': {
             '()': 'sentry.logging.handlers.MessageContainsFilter',
@@ -677,6 +686,11 @@ LOGGING = {
         },
         'sentry.errors': {
             'handlers': ['console'],
+            'propagate': False,
+        },
+        'sentry_sdk.errors': {
+            'handlers': ['console'],
+            'level': "INFO",
             'propagate': False,
         },
         'sentry.rules': {
@@ -750,44 +764,89 @@ DEBUG_TOOLBAR_PANELS = (
 
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
-# Sentry and Raven configuration
-
-SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
+# Sentry and internal client configuration
 
 SENTRY_FEATURES = {
+    # Enables user registration.
     'auth:register': True,
+
+    # Enable obtaining and using API keys.
     'organizations:api-keys': False,
+    # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
+    # is not enabled).
     'organizations:create': True,
+    # Enable the 'discover' interface.
+    'organizations:discover': False,
+    # Enable attaching arbitrary files to events.
     'organizations:event-attachments': False,
-    'organizations:repos': True,
-    'organizations:sso': True,
-    'organizations:sso-saml2': True,
-    'organizations:sso-rippling': False,
+    # Enable the organization wide events stream interface.
+    'organizations:events-stream': False,
+    # Enable the interface and functionality for unmerging event groups.
     'organizations:group-unmerge': False,
-    'organizations:github-apps': False,
-    'organizations:integrations-v3': False,
-    'organizations:invite-members': True,
-    'organizations:new-settings': True,
-    'organizations:require-2fa': False,
-    'organizations:environments': False,
-    'organizations:internal-catchall': False,
-    'organizations:new-issue-ui': False,
-    'organizations:github-enterprise': False,
-    'organizations:new-teams': True,
-    'organizations:unreleased-changes': False,
-    'organizations:suggested-commits': True,
-    'organizations:relay': False,
+    # Enable the 'health' interface.
     'organizations:health': False,
-    'projects:global-events': False,
-    'projects:plugins': True,
-    'projects:dsym': False,
-    'projects:sample-events': True,
-    'projects:data-forwarding': True,
-    'projects:rate-limits': True,
-    'projects:discard-groups': False,
+    # Enable integration functionality to create and link groups to issues on
+    # external services.
+    'organizations:integrations-issue-basic': False,
+    # Enable interface functionality to synchronize groups between sentry and
+    # issues on external services.
+    'organizations:integrations-issue-sync': False,
+    # Special feature flag primarily used on the sentry.io SAAS product for
+    # easily enabling features while in early development.
+    'organizations:internal-catchall': False,
+    # Enable inviting members to organizations.
+    'organizations:invite-members': True,
+    # DEPRECATED: pending removal.
+    'organizations:js-loader': False,
+    # DEPRECATED: pending removal.
+    'organizations:new-issue-ui': True,
+    # DEPRECATED: pending removal.
+    'organizations:new-teams': True,
+    # Enable the relay functionality, for use with sentry semaphore. See
+    # https://github.com/getsentry/semaphore.
+    'organizations:relay': False,
+    # Enable managing repositories associated to an organization.
+    'organizations:repos': True,
+    # DEPCREATED: pending removal.
+    'organizations:require-2fa': False,
+    # Enable basic SSO functionality, providing configurable single signon
+    # using services like GitHub / Google. This is *not* the same as the signup
+    # and login with Github / Azure DevOps that sentry.io provides.
+    'organizations:sso-basic': True,
+    # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
+    # must be installed to use this functionality.
+    'organizations:sso-saml2': True,
+    # Enable Rippling SSO functionality.
+    'organizations:sso-rippling': False,
+    # Enable suggested commits associated to a event group in the UI.
+    'organizations:suggested-commits': True,
+    # DEPCREATED: pending removal.
+    'organizations:unreleased-changes': False,
+
+    # Enable functionality to specify custom inbound filters on events.
     'projects:custom-inbound-filters': False,
+    # Enable data forwarding functionality for projects.
+    'projects:data-forwarding': True,
+    # Enable functionality to discard groups.
+    'projects:discard-groups': False,
+    # DEPRECATED: pending removal
+    'projects:dsym': False,
+    # DEPRECATED: pending removal.
+    'projects:global-events': False,
+    # Enable functionality for attaching  minidumps to events and displaying
+    # then in the group UI.
     'projects:minidump': True,
+    # Enable functionality for project plugins.
+    'projects:plugins': True,
+    # Enable functionality for rate-limiting events on projects.
+    'projects:rate-limits': True,
+    # Enable functionality for sampling of events on projects.
+    'projects:sample-events': True,
+    # Enable functionality to trigger service hooks upon event ingestion.
     'projects:servicehooks': False,
+
+    # Don't add feature defaults down here! Please add them in their associated
+    # group sorted alphabetically.
 }
 
 # Default time zone for localization in the UI.
@@ -921,6 +980,10 @@ SENTRY_BUFFER_OPTIONS = {}
 SENTRY_CACHE = None
 SENTRY_CACHE_OPTIONS = {}
 
+# Attachment blob cache backend
+SENTRY_ATTACHMENTS = 'sentry.attachments.default.DefaultAttachmentCache'
+SENTRY_ATTACHMENTS_OPTIONS = {}
+
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
 CACHES = {
@@ -1024,7 +1087,10 @@ SENTRY_MAX_HTTP_BODY_SIZE = 4096 * 4  # 16kb
 SENTRY_MAX_DICTIONARY_ITEMS = 50
 
 SENTRY_MAX_MESSAGE_LENGTH = 1024 * 8
+# how many frames are fat
 SENTRY_MAX_STACKTRACE_FRAMES = 50
+# how many frames there can be at all
+SENTRY_STACKTRACE_FRAMES_HARD_LIMIT = 250
 SENTRY_MAX_EXCEPTIONS = 25
 
 # Gravatar service base url
@@ -1063,7 +1129,6 @@ SENTRY_SCOPES = set(
         'project:write',
         'project:admin',
         'project:releases',
-        'project:integrations',
         'event:read',
         'event:write',
         'event:admin',
@@ -1077,7 +1142,6 @@ SENTRY_SCOPE_SETS = (
         ('org:read', 'Read access to organization details.'),
     ), (
         ('org:integrations', 'Read, write, and admin access to organization integrations.'),
-        ('project:integrations', 'Read, write, and admin access to project integrations.'),
     ), (
         ('member:admin', 'Read, write, and admin access to organization members.'),
         ('member:write', 'Read and write access to organization members.'),
@@ -1136,7 +1200,6 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
-                'project:integrations',
                 'team:read',
                 'team:write',
                 'team:admin',
@@ -1160,7 +1223,6 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
-                'project:integrations',
                 'team:read',
                 'team:write',
                 'team:admin',
@@ -1190,7 +1252,6 @@ SENTRY_ROLES = (
                 'project:write',
                 'project:admin',
                 'project:releases',
-                'project:integrations',
                 'event:read',
                 'event:write',
                 'event:admin',
@@ -1226,7 +1287,7 @@ SENTRY_WATCHERS = (
     (
         'webpack', [
             os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch',
-            "--config={}".format(
+            u"--config={}".format(
                 os.path.
                 normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))
             )
@@ -1255,31 +1316,31 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     'sentry.integrations.slack.SlackIntegrationProvider',
     'sentry.integrations.github.GitHubIntegrationProvider',
     'sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider',
+    'sentry.integrations.gitlab.GitlabIntegrationProvider',
     'sentry.integrations.jira.JiraIntegrationProvider',
     'sentry.integrations.vsts.VstsIntegrationProvider',
+    'sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider',
 )
 
 SENTRY_INTERNAL_INTEGRATIONS = (
-    'bitbucket',
-    'github',
-    'github_enterprise',
-    'jira',
-    'vsts',
+    'gitlab',
+    'vsts-extension',
 )
 
 
-def get_raven_config():
+def get_sentry_sdk_config():
     return {
         'release': sentry.__build__,
-        'register_signals': True,
         'environment': ENVIRONMENT,
-        'include_paths': [
+        'in_app_include': [
             'sentry',
         ],
+        'debug': True,
+        'send_default_pii': True
     }
 
 
-RAVEN_CONFIG = get_raven_config()
+SENTRY_SDK_CONFIG = get_sentry_sdk_config()
 
 # Config options that are explicitly disabled from Django
 DEAD = object()
@@ -1349,8 +1410,13 @@ SENTRY_MINIDUMP_CACHE = False
 SENTRY_MINIDUMP_PATH = '/tmp/minidump'
 
 # Relay
-# List of PKs whitelisted by Sentry
+# List of PKs whitelisted by Sentry.  All relays here are always
+# registered as internal relays.
 SENTRY_RELAY_WHITELIST_PK = []
+
+# When open registration is not permitted then only relays in the
+# whitelist can register.
+SENTRY_RELAY_OPEN_REGISTRATION = False
 
 # CDN
 # If this is an absolute url like e.g.: https://js.sentry-cdn.com/
@@ -1361,3 +1427,13 @@ JS_SDK_LOADER_CDN_URL = ''
 JS_SDK_LOADER_SDK_VERSION = ''
 # This should be the url pointing to the JS SDK
 JS_SDK_LOADER_DEFAULT_SDK_URL = ''
+
+# block domains which are generally used by spammers -- keep this configurable in case an onpremise
+# install wants to allow it
+INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r'\@qq\.com$', re.I)
+
+# This is customizable for sentry.io, but generally should only be additive
+# (currently the values not used anymore so this is more for documentation purposes)
+SENTRY_USER_PERMISSIONS = (
+    'broadcasts.admin',
+)

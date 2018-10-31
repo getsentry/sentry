@@ -7,9 +7,10 @@ sentry.event_manager
 from __future__ import absolute_import, print_function
 
 import logging
-import math
 import re
 import six
+import jsonschema
+
 
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -18,12 +19,20 @@ from django.db import connection, IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
-from uuid import uuid4
 
-from sentry import buffer, eventtypes, eventstream, features, tsdb
+from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
     DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS
+)
+from sentry.coreapi import (
+    APIError,
+    APIForbidden,
+    decompress_gzip,
+    decompress_deflate,
+    decode_and_decompress_data,
+    decode_data,
+    safely_load_json_string,
 )
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.exception import normalize_mechanism_meta
@@ -32,26 +41,41 @@ from sentry.lang.native.utils import get_sdk_from_event
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupRelease, GroupResolution, GroupStatus,
-    Organization, Project, Release, ReleaseEnvironment, ReleaseProject,
+    Project, Release, ReleaseEnvironment, ReleaseProject,
     ReleaseProjectEnvironment, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import event_discarded, event_saved, first_event_received
 from sentry.tasks.integrations import kick_off_status_syncs
-from sentry.tasks.merge import merge_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.db import get_db_engine
+from sentry.utils.data_filters import (
+    is_valid_ip,
+    is_valid_release,
+    is_valid_error_message,
+    FilterStatKeys,
+)
+from sentry.utils.dates import to_timestamp
+from sentry.utils.db import is_postgres, is_mysql
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import is_float
 from sentry.stacktraces import normalize_in_app
 
 
+logger = logging.getLogger("sentry.events")
+
+
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 ALLOWED_FUTURE_DELTA = timedelta(minutes=1)
+SECURITY_REPORT_INTERFACES = (
+    "sentry.interfaces.Csp",
+    "hpkp",
+    "expectct",
+    "expectstaple",
+)
 
 
 def count_limit(count):
@@ -141,6 +165,19 @@ def get_hashes_from_fingerprint_with_reason(event, fingerprint):
             else:
                 hashes[bit] = bit
     return list(hashes.items())
+
+
+def parse_client_as_sdk(value):
+    if not value:
+        return {}
+    try:
+        name, version = value.split("/", 1)
+    except ValueError:
+        try:
+            name, version = value.split(" ", 1)
+        except ValueError:
+            return {}
+    return {"name": name, "version": version}
 
 
 if not settings.SENTRY_SAMPLE_DATA:
@@ -237,19 +274,44 @@ class HashDiscarded(Exception):
     pass
 
 
+def scoreclause_sql(sc, connection):
+    db = getattr(connection, 'alias', 'default')
+    has_values = sc.last_seen is not None and sc.times_seen is not None
+    if is_postgres(db):
+        if has_values:
+            sql = 'log(times_seen + %d) * 600 + %d' % (sc.times_seen, to_timestamp(sc.last_seen))
+        else:
+            sql = 'log(times_seen) * 600 + last_seen::abstime::int'
+    elif is_mysql(db):
+        if has_values:
+            sql = 'log(times_seen + %d) * 600 + %d' % (sc.times_seen, to_timestamp(sc.last_seen))
+        else:
+            sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
+    else:
+        # XXX: if we cant do it atomically let's do it the best we can
+        sql = int(sc)
+
+    return (sql, [])
+
+
 try:
     from django.db.models import Func
 except ImportError:
     # XXX(dramer): compatibility hack for Django 1.6
     class ScoreClause(object):
-        def __init__(self, group, *args, **kwargs):
+        def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
             self.group = group
+            self.last_seen = last_seen
+            self.times_seen = times_seen
+            # times_seen is likely an F-object that needs the value extracted
+            if hasattr(self.times_seen, 'children'):
+                self.times_seen = self.times_seen.children[1]
             super(ScoreClause, self).__init__(*args, **kwargs)
 
         def __int__(self):
             # Calculate the score manually when coercing to an int.
             # This is used within create_or_update and friends
-            return self.group.get_score()
+            return self.group.get_score() if self.group else 0
 
         def prepare_database_save(self, unused):
             return self
@@ -258,63 +320,133 @@ except ImportError:
             return
 
         def evaluate(self, node, qn, connection):
-            engine = get_db_engine(getattr(connection, 'alias', 'default'))
-            if engine.startswith('postgresql'):
-                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-            elif engine.startswith('mysql'):
-                sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
-            else:
-                # XXX: if we cant do it atomically let's do it the best we can
-                sql = int(self)
+            return scoreclause_sql(self, connection)
 
-            return (sql, [])
-
-        @classmethod
-        def calculate(cls, times_seen, last_seen):
-            return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
 else:
     # XXX(dramer): compatibility hack for Django 1.8+
     class ScoreClause(Func):
-        def __init__(self, group, *args, **kwargs):
+        def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
             self.group = group
+            self.last_seen = last_seen
+            self.times_seen = times_seen
+            # times_seen is likely an F-object that needs the value extracted
+            if hasattr(self.times_seen, 'rhs'):
+                self.times_seen = self.times_seen.rhs.value
             super(ScoreClause, self).__init__(*args, **kwargs)
 
         def __int__(self):
             # Calculate the score manually when coercing to an int.
             # This is used within create_or_update and friends
-            return self.group.get_score()
+            return self.group.get_score() if self.group else 0
 
         def as_sql(self, compiler, connection, function=None, template=None):
-            engine = get_db_engine(getattr(connection, 'alias', 'default'))
-            if engine.startswith('postgresql'):
-                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-            elif engine.startswith('mysql'):
-                sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
-            else:
-                # XXX: if we cant do it atomically let's do it the best we can
-                sql = int(self)
-
-            return (sql, [])
-
-        @classmethod
-        def calculate(cls, times_seen, last_seen):
-            return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
+            return scoreclause_sql(self, connection)
 
 
 class InvalidTimestamp(Exception):
     pass
 
 
+def _decode_event(data, content_encoding):
+    if isinstance(data, six.binary_type):
+        if content_encoding == 'gzip':
+            data = decompress_gzip(data)
+        elif content_encoding == 'deflate':
+            data = decompress_deflate(data)
+        elif data[0] != b'{':
+            data = decode_and_decompress_data(data)
+        else:
+            data = decode_data(data)
+    if isinstance(data, six.text_type):
+        data = safely_load_json_string(data)
+
+    return CanonicalKeyDict(data)
+
+
 class EventManager(object):
-    logger = logging.getLogger('sentry.events')
+    """
+    Handles normalization in both the store endpoint and the save task. The
+    intention is to swap this class out with a reimplementation in Rust.
+    """
 
-    def __init__(self, data, version='5'):
-        self.data = CanonicalKeyDict(data)
+    def __init__(
+        self,
+        data,
+        version='5',
+        project=None,
+        client_ip=None,
+        user_agent=None,
+        auth=None,
+        key=None,
+        content_encoding=None,
+    ):
+        self._data = _decode_event(data, content_encoding=content_encoding)
         self.version = version
+        self._project = project
+        self._client_ip = client_ip
+        self._user_agent = user_agent
+        self._auth = auth
+        self._key = key
 
-    def normalize(self, request_env=None):
-        request_env = request_env or {}
-        data = self.data
+    def process_csp_report(self):
+        """Only called from the CSP report endpoint."""
+        data = self._data
+
+        try:
+            interface = get_interface(data.pop('interface'))
+            report = data.pop('report')
+        except KeyError:
+            raise APIForbidden('No report or interface data')
+
+        # To support testing, we can either accept a built interface instance, or the raw data in
+        # which case we build the instance ourselves
+        try:
+            instance = (
+                report if isinstance(report, interface) else interface.from_raw(report)
+            )
+        except jsonschema.ValidationError as e:
+            raise APIError('Invalid security report: %s' % str(e).splitlines()[0])
+
+        def clean(d):
+            return dict(filter(lambda x: x[1], d.items()))
+
+        data.update(
+            {
+                'logger': 'csp',
+                'message': instance.get_message(),
+                'culprit': instance.get_culprit(),
+                instance.get_path(): instance.to_json(),
+                'tags': instance.get_tags(),
+                'errors': [],
+                'sentry.interfaces.User': {'ip_address': self._client_ip},
+                # Construct a faux Http interface based on the little information we have
+                # This is a bit weird, since we don't have nearly enough
+                # information to create an Http interface, but
+                # this automatically will pick up tags for the User-Agent
+                # which is actually important here for CSP
+                'sentry.interfaces.Http': {
+                    'url': instance.get_origin(),
+                    'headers': clean(
+                        {
+                            'User-Agent': self._user_agent,
+                            'Referer': instance.get_referrer(),
+                        }
+                    ),
+                },
+            }
+        )
+
+        self._data = data
+
+    def normalize(self):
+        data = self._data
+        if self._project is not None:
+            data['project'] = self._project.id
+        if self._key is not None:
+            data['key_id'] = self._key.id
+        if self._auth is not None:
+            data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
+
         errors = data['errors'] = []
 
         # Before validating with a schema, attempt to cast values to their desired types
@@ -364,24 +496,34 @@ class EventManager(object):
         # See GH-3248
         msg_str = data.pop('message', None)
         if msg_str:
-            msg_if = data.setdefault('sentry.interfaces.Message', {'message': msg_str})
+            msg_if = data.get('logentry')
+            msg_meta = data.get('_meta', {}).get('message')
+
+            if not msg_if:
+                msg_if = data['logentry'] = {'message': msg_str}
+                if msg_meta:
+                    data.setdefault('_meta', {}).setdefault('logentry', {})['message'] = msg_meta
+
             if msg_if.get('message') != msg_str:
-                msg_if.setdefault('formatted', msg_str)
+                if not msg_if.get('formatted'):
+                    msg_if['formatted'] = msg_str
+                    if msg_meta:
+                        data.setdefault('_meta', {}).setdefault(
+                            'logentry', {})['formatted'] = msg_meta
 
         # Fill in ip addresses marked as {{auto}}
-        client_ip = request_env.get('client_ip')
-        if client_ip:
+        if self._client_ip:
             if get_path(data, ['sentry.interfaces.Http', 'env', 'REMOTE_ADDR']) == '{{auto}}':
-                data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = client_ip
+                data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = self._client_ip
 
             if get_path(data, ['request', 'env', 'REMOTE_ADDR']) == '{{auto}}':
-                data['request']['env']['REMOTE_ADDR'] = client_ip
+                data['request']['env']['REMOTE_ADDR'] = self._client_ip
 
             if get_path(data, ['sentry.interfaces.User', 'ip_address']) == '{{auto}}':
-                data['sentry.interfaces.User']['ip_address'] = client_ip
+                data['sentry.interfaces.User']['ip_address'] = self._client_ip
 
             if get_path(data, ['user', 'ip_address']) == '{{auto}}':
-                data['user']['ip_address'] = client_ip
+                data['user']['ip_address'] = self._client_ip
 
         # Validate main event body and tags against schema.
         # XXX(ja): jsonschema does not like CanonicalKeyDict, so we need to pass
@@ -400,13 +542,13 @@ class EventManager(object):
             value = data.pop(k)
 
             if not value:
-                self.logger.debug('Ignored empty interface value: %s', k)
+                logger.debug('Ignored empty interface value: %s', k)
                 continue
 
             try:
                 interface = get_interface(k)
             except ValueError:
-                self.logger.debug('Ignored unknown attribute: %s', k)
+                logger.debug('Ignored unknown attribute: %s', k)
                 errors.append({'type': EventError.INVALID_ATTRIBUTE, 'name': k})
                 continue
 
@@ -414,8 +556,8 @@ class EventManager(object):
                 inst = interface.to_python(value)
                 data[inst.get_path()] = inst.to_json()
             except Exception as e:
-                log = self.logger.debug if isinstance(
-                    e, InterfaceValidationError) else self.logger.error
+                log = logger.debug if isinstance(
+                    e, InterfaceValidationError) else logger.error
                 log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
                 errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
 
@@ -496,15 +638,14 @@ class EventManager(object):
 
         # If there is no User ip_addres, update it either from the Http interface
         # or the client_ip of the request.
-        auth = request_env.get('auth')
-        is_public = auth and auth.is_public
+        is_public = self._auth and self._auth.is_public
         add_ip_platforms = ('javascript', 'cocoa', 'objc')
 
         http_ip = data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR')
         if http_ip:
             data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', http_ip)
-        elif client_ip and (is_public or data.get('platform') in add_ip_platforms):
-            data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', client_ip)
+        elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
+            data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', self._client_ip)
 
         # Trim values
         data['logger'] = trim(data['logger'].strip(), 64)
@@ -516,13 +657,60 @@ class EventManager(object):
         if data['transaction']:
             data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
 
-        return data
+        self._data = data
 
-    def save(self, project, raw=False):
+    def should_filter(self):
+        '''
+        returns (result: bool, reason: string or None)
+        Result is True if an event should be filtered
+        The reason for filtering is passed along as a string
+        so that we can store it in metrics
+        '''
+        for name in SECURITY_REPORT_INTERFACES:
+            if name in self._data:
+                interface = get_interface(name)
+                if interface.to_python(self._data[name]).should_filter(self._project):
+                    return (True, FilterStatKeys.INVALID_CSP)
+
+        if self._client_ip and not is_valid_ip(self._project, self._client_ip):
+            return (True, FilterStatKeys.IP_ADDRESS)
+
+        release = self._data.get('release')
+        if release and not is_valid_release(self._project, release):
+            return (True, FilterStatKeys.RELEASE_VERSION)
+
+        message_interface = self._data.get('sentry.interfaces.Message', {})
+        error_message = message_interface.get('formatted', '') or message_interface.get(
+            'message', ''
+        )
+        if error_message and not is_valid_error_message(self._project, error_message):
+            return (True, FilterStatKeys.ERROR_MESSAGE)
+
+        for exception_interface in self._data.get(
+            'sentry.interfaces.Exception', {}
+        ).get('values', []):
+            message = u': '.join(
+                filter(None, map(exception_interface.get, ['type', 'value']))
+            )
+            if message and not is_valid_error_message(self._project, message):
+                return (True, FilterStatKeys.ERROR_MESSAGE)
+
+        for filter_cls in filters.all():
+            filter_obj = filter_cls(self._project)
+            if filter_obj.is_enabled() and filter_obj.test(self._data):
+                return (True, six.text_type(filter_obj.id))
+
+        return (False, None)
+
+    def get_data(self):
+        return self._data
+
+    def save(self, project_id, raw=False):
         from sentry.tasks.post_process import index_event_tags
-        data = self.data
 
-        project = Project.objects.get_from_cache(id=project)
+        data = self._data
+
+        project = Project.objects.get_from_cache(id=project_id)
 
         # Check to make sure we're not about to do a bunch of work that's
         # already been done if we've processed an event with this ID. (This
@@ -537,7 +725,7 @@ class EventManager(object):
         except Event.DoesNotExist:
             pass
         else:
-            self.logger.info(
+            logger.info(
                 'duplicate.found',
                 exc_info=True,
                 extra={
@@ -551,9 +739,8 @@ class EventManager(object):
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
         level = data.pop('level')
-        culprit = data.pop('transaction', None)
-        if not culprit:
-            culprit = data.pop('culprit', None)
+        transaction_name = data.pop('transaction', None)
+        culprit = data.pop('culprit', None)
         logger_name = data.pop('logger', None)
         server_name = data.pop('server_name', None)
         site = data.pop('site', None)
@@ -569,14 +756,14 @@ class EventManager(object):
         message = data.pop('message', '')
 
         if not culprit:
-            # if we generate an implicit culprit, lets not call it a
-            # transaction
-            transaction_name = None
-            culprit = generate_culprit(data, platform=platform)
-        else:
-            transaction_name = culprit
+            if transaction_name:
+                culprit = transaction_name
+            else:
+                culprit = generate_culprit(data, platform=platform)
 
         culprit = force_text(culprit)
+        if transaction_name:
+            transaction_name = force_text(transaction_name)
 
         recorded_timestamp = data.pop('timestamp')
         date = datetime.fromtimestamp(recorded_timestamp)
@@ -778,7 +965,7 @@ class EventManager(object):
                 with transaction.atomic(using=router.db_for_write(EventMapping)):
                     EventMapping.objects.create(project=project, group=group, event_id=event_id)
             except IntegrityError:
-                self.logger.info(
+                logger.info(
                     'duplicate.found',
                     exc_info=True,
                     extra={
@@ -878,7 +1065,7 @@ class EventManager(object):
                 with transaction.atomic(using=router.db_for_write(Event)):
                     event.save()
             except IntegrityError:
-                self.logger.info(
+                logger.info(
                     'duplicate.found',
                     exc_info=True,
                     extra={
@@ -931,9 +1118,9 @@ class EventManager(object):
         if not raw:
             if not project.first_event:
                 project.update(first_event=date)
-                first_event_received.send(project=project, group=group, sender=Project)
+                first_event_received.send_robust(project=project, group=group, sender=Project)
 
-        eventstream.publish(
+        eventstream.insert(
             group=group,
             event=event,
             is_new=is_new,
@@ -976,7 +1163,7 @@ class EventManager(object):
         if not euser.hash:
             return
 
-        cache_key = 'euserid:1:{}:{}'.format(
+        cache_key = u'euserid:1:{}:{}'.format(
             project.id,
             euser.hash,
         )
@@ -1012,34 +1199,6 @@ class EventManager(object):
             hash_list,
         )
 
-    def _ensure_hashes_merged(self, group, hash_list):
-        # TODO(dcramer): there is a race condition with selecting/updating
-        # in that another group could take ownership of the hash
-        # XXX: This function is currently unused, and hasn't been updated to
-        # take `GroupHash.state` into account.
-        bad_hashes = GroupHash.objects.filter(
-            id__in=[h.id for h in hash_list],
-        ).exclude(
-            group=group,
-        )
-        if not bad_hashes:
-            return
-
-        for hash in bad_hashes:
-            if hash.group_id:
-                merge_group.delay(
-                    from_object_id=hash.group_id,
-                    to_object_id=group.id,
-                    transaction_id=uuid4().hex,
-                )
-
-        return GroupHash.objects.filter(
-            project=group.project,
-            hash__in=[h.hash for h in bad_hashes],
-        ).update(
-            group=group,
-        )
-
     def _save_aggregate(self, event, hashes, release, **kwargs):
         project = event.project
 
@@ -1058,7 +1217,6 @@ class EventManager(object):
         # it should be resolved by the hash merging function later but this
         # should be better tested/reviewed
         if existing_group_id is None:
-            kwargs['score'] = ScoreClause.calculate(1, kwargs['last_seen'])
             # it's possible the release was deleted between
             # when we queried for the release and now, so
             # make sure it still exists
@@ -1095,7 +1253,7 @@ class EventManager(object):
             # add some event(s) to it, and then subsequently have the hash
             # "stolen" by this process. This then "orphans" those events from
             # their "siblings" in the group we've created here. We don't have a
-            # way to fix this, since we can't call `_ensure_hashes_merged`
+            # way to fix this, since we can't update the group on those hashes
             # without filtering on `group_id` (which we can't do due to query
             # planner weirdness.) For more context, see 84c6f75a and d0e22787,
             # as well as GH-5085.
@@ -1221,14 +1379,11 @@ class EventManager(object):
                 }
             )
             activity.send_notification()
-            organization = Organization.objects.get_from_cache(
-                id=group.project.organization_id,
-            )
-            if features.has('organizations:internal-catchall', organization):
-                kick_off_status_syncs.apply_async(kwargs={
-                    'project_id': group.project_id,
-                    'group_id': group.id,
-                })
+
+            kick_off_status_syncs.apply_async(kwargs={
+                'project_id': group.project_id,
+                'group_id': group.id,
+            })
 
         return is_regression
 

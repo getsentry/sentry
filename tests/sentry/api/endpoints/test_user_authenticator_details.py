@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+import datetime
 import mock
 import six
 
 from django.core.urlresolvers import reverse
 from django.db.models import F
 from django.conf import settings
+from django.utils import timezone
 
 from sentry.models import Authenticator, TotpInterface, RecoveryCodeInterface, SmsInterface, Organization
 from sentry.testutils import APITestCase
@@ -243,15 +245,20 @@ class UserAuthenticatorDetailsTest(APITestCase):
         resp = self.client.get(url)
         assert resp.status_code == 200
         old_codes = resp.data['codes']
+        old_created_at = resp.data['createdAt']
 
         resp = self.client.get(url)
         assert old_codes == resp.data['codes']
+        assert old_created_at == resp.data['createdAt']
 
         # regenerate codes
-        resp = self.client.put(url)
+        tomorrow = timezone.now() + datetime.timedelta(days=1)
+        with mock.patch.object(timezone, 'now', return_value=tomorrow):
+            resp = self.client.put(url)
 
-        resp = self.client.get(url)
-        assert old_codes != resp.data['codes']
+            resp = self.client.get(url)
+            assert old_codes != resp.data['codes']
+            assert old_created_at != resp.data['createdAt']
 
         self._assert_security_email_sent('recovery-codes-regenerated', email_log)
 

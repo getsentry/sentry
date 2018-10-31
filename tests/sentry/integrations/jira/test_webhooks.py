@@ -85,8 +85,10 @@ SAMPLE_EDIT_ISSUE_PAYLOAD_STATUS = """
 }
 """
 
+SAMPLE_MISSING_CHANGELOG = '{}'
 
-class JiraSearchEndpointTest(APITestCase):
+
+class JiraWebhooksTest(APITestCase):
     @patch('sentry.integrations.jira.webhooks.sync_group_assignee_inbound')
     def test_simple_assign(self, mock_sync_group_assignee_inbound):
         org = self.organization
@@ -95,7 +97,7 @@ class JiraSearchEndpointTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = reverse('sentry-extensions-jira-issue-updated')
 
@@ -111,6 +113,29 @@ class JiraSearchEndpointTest(APITestCase):
             )
 
     @patch('sentry.integrations.jira.webhooks.sync_group_assignee_inbound')
+    def test_assign_missing_email(self, mock_sync_group_assignee_inbound):
+        org = self.organization
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org, self.user)
+
+        path = reverse('sentry-extensions-jira-issue-updated')
+
+        with patch('sentry.integrations.jira.webhooks.get_integration_from_jwt', return_value=integration):
+            data = json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE.strip())
+            data['issue']['fields']['assignee'].pop('emailAddress')
+            resp = self.client.post(
+                path,
+                data=data,
+                HTTP_AUTHORIZATION='JWT anexampletoken',
+            )
+            assert resp.status_code == 200
+            assert not mock_sync_group_assignee_inbound.called
+
+    @patch('sentry.integrations.jira.webhooks.sync_group_assignee_inbound')
     def test_simple_deassign(self, mock_sync_group_assignee_inbound):
         org = self.organization
 
@@ -118,7 +143,7 @@ class JiraSearchEndpointTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = reverse('sentry-extensions-jira-issue-updated')
 
@@ -141,17 +166,25 @@ class JiraSearchEndpointTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = reverse('sentry-extensions-jira-issue-updated')
 
-        with patch('sentry.integrations.jira.webhooks.get_integration_from_jwt', return_value=integration):
+        with patch('sentry.integrations.jira.webhooks.get_integration_from_jwt', return_value=integration) \
+                as mock_get_integration_from_jwt:
             resp = self.client.post(
                 path,
                 data=json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_STATUS.strip()),
                 HTTP_AUTHORIZATION='JWT anexampletoken',
             )
             assert resp.status_code == 200
+            mock_get_integration_from_jwt.assert_called_with(
+                'anexampletoken',
+                u'/extensions/jira/issue-updated/',
+                'jira',
+                {},
+                method='POST',
+            )
             mock_sync_status_inbound.assert_called_with('APP-123', {
                 'changelog': {
                     'from': '10101',
@@ -169,3 +202,22 @@ class JiraSearchEndpointTest(APITestCase):
                     }, u'key': u'APP-123',
                 },
             })
+
+    def test_missing_changelog(self):
+        org = self.organization
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org, self.user)
+
+        path = reverse('sentry-extensions-jira-issue-updated')
+
+        with patch('sentry.integrations.jira.webhooks.get_integration_from_jwt', return_value=integration):
+            resp = self.client.post(
+                path,
+                data=json.loads(SAMPLE_MISSING_CHANGELOG.strip()),
+                HTTP_AUTHORIZATION='JWT anexampletoken',
+            )
+            assert resp.status_code == 200

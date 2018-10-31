@@ -48,9 +48,9 @@ class BaseApiResponse(object):
             return XmlApiResponse(response.text, response.headers, response.status_code)
         elif response.text.startswith('<'):
             if not allow_text:
-                raise ValueError('Not a valid response type: {}'.format(response.text[:128]))
+                raise ValueError(u'Not a valid response type: {}'.format(response.text[:128]))
             elif response.status_code < 200 or response.status_code >= 300:
-                raise ValueError('Received unexpected plaintext response for code {}'.format(
+                raise ValueError(u'Received unexpected plaintext response for code {}'.format(
                     response.status_code,
                 ))
             return TextApiResponse(response.text, response.headers, response.status_code)
@@ -123,12 +123,13 @@ class ApiClient(object):
     def build_url(self, path):
         if path.startswith('/'):
             if not self.base_url:
-                raise ValueError('Invalid URL: {}'.format(path))
-            return '{}{}'.format(self.base_url, path)
+                raise ValueError(u'Invalid URL: {}'.format(path))
+            return u'{}{}'.format(self.base_url, path)
         return path
 
     def _request(self, method, path, headers=None, data=None, params=None,
-                 auth=None, json=True, allow_text=None, allow_redirects=None):
+                 auth=None, json=True, allow_text=None, allow_redirects=None,
+                 timeout=None):
 
         if allow_text is None:
             allow_text = self.allow_text
@@ -138,6 +139,9 @@ class ApiClient(object):
 
         if allow_redirects is None:  # is still None
             allow_redirects = method.upper() == 'GET'
+
+        if timeout is None:
+            timeout = 30
 
         full_url = self.build_url(path)
         session = build_session()
@@ -151,6 +155,7 @@ class ApiClient(object):
                 auth=auth,
                 verify=self.verify_ssl,
                 allow_redirects=allow_redirects,
+                timeout=timeout,
             )
             resp.raise_for_status()
         except ConnectionError as e:
@@ -210,7 +215,7 @@ class AuthApiClient(ApiClient):
 
     def bind_auth(self, **kwargs):
         token = self.auth.tokens['access_token']
-        kwargs['headers']['Authorization'] = 'Bearer {}'.format(token)
+        kwargs['headers']['Authorization'] = u'Bearer {}'.format(token)
         return kwargs
 
     def _request(self, method, path, **kwargs):

@@ -882,16 +882,19 @@ table.integrations {
 * ============================================================================
 */
 .inbound-filters-stats {
-  .bar-chart figure a {
+  .bar-chart figure a,
+  .bar-chart figure g {
     height: 50px;
 
-    span {
+    span,
+    .barchart-rect {
       &.filtered {
         background: @gray-lightest;
       }
     }
 
-    &:hover span {
+    &:hover span,
+    &:hover .barchart-rect {
       &.filtered {
         background: @gray-light;
       }
@@ -1135,190 +1138,6 @@ table.integrations {
   }
 }
 
-/**
-* Project Dropdown
-* ============================================================================
-*/
-.project-select {
-  position: relative;
-
-  > a {
-    color: @gray-darker;
-  }
-
-  h3 {
-    font-size: 20px;
-    margin: 0;
-    display: flex;
-    align-items: center;
-
-    a {
-      color: @gray-dark;
-
-      &:hover {
-        color: @gray-darkest;
-      }
-    }
-  }
-
-  .project-selected {
-    background-color: lighten(@blue-light, 30);
-  }
-
-  .home-crumb {
-    color: @gray-lighter !important;
-    border-right: 1px solid @trim;
-    padding-right: 10px;
-    margin-right: 10px;
-
-    &:hover {
-      color: @gray-light !important;
-    }
-  }
-}
-
-.project-dropdown {
-  position: static;
-  height: 24px;
-
-  .dropdown-toggle {
-    height: 23px;
-    width: 23px;
-    line-height: 21px;
-    position: relative;
-
-    margin-left: 2px;
-    display: inline-block;
-    vertical-align: middle;
-
-    .icon-arrow-down {
-      position: relative;
-      left: 2px;
-      font-size: 15px !important;
-      color: @gray;
-      top: -1px;
-    }
-  }
-
-  .dropdown-menu {
-    z-index: 1001;
-    min-width: 250px;
-    max-width: 500px;
-    width: auto;
-    padding-bottom: 0;
-    left: 0;
-    top: 100%;
-    .clearfix;
-    overflow: auto;
-    max-height: 500px;
-    white-space: nowrap;
-    overflow: show;
-
-    &:before {
-      left: 11px;
-    }
-
-    &:after {
-      left: 12px;
-    }
-
-    .project-filter {
-      padding: 0;
-      margin-bottom: -1px;
-
-      input {
-        .form-control();
-        width: 100%;
-        border-radius: 3px 3px 0 0;
-        font-size: 15px;
-        border: 0;
-        border-bottom: 1px solid lighten(@gray-lighter, 5);
-        margin-top: -5px;
-        box-shadow: none;
-        padding-left: 15px;
-
-        &:focus {
-          border-bottom: 1px solid lighten(@gray-lighter, 10);
-        }
-      }
-    }
-
-    .empty-message {
-      font-weight: normal;
-      font-size: 1.2em;
-      text-align: center;
-      opacity: 0.7;
-      padding: 5px;
-    }
-
-    li {
-      position: relative;
-
-      &:nth-child(2) {
-        margin-top: 5px;
-      }
-
-      &:last-child {
-        margin-bottom: 5px;
-      }
-
-      strong {
-        font-weight: normal;
-        background: lighten(@yellow, 15);
-        color: @gray-dark;
-      }
-
-      > a {
-        .truncate();
-        padding: 6px 6px 6px 0;
-        border-radius: 0;
-        line-height: 1;
-        border-left: 3px solid transparent;
-
-        &:hover {
-          background: transparent;
-        }
-
-        &.active,
-        &:active {
-          color: @gray-darkest;
-          background: @white-dark;
-
-          &:after {
-            display: block;
-            content: '';
-            position: absolute;
-            width: 4px;
-            left: -1px;
-            top: 0;
-            bottom: 0;
-            background: @purple-light;
-            border-radius: 0 2px 2px 0;
-          }
-        }
-      }
-    }
-  }
-
-  &.is-empty {
-    .dropdown-menu {
-      li.empty-projects-item {
-        padding: 0 5px;
-
-        // need to override bootstrap for <a> in dropdown-menu
-        a {
-          border-radius: 3px;
-          font-weight: 600;
-          color: #ffffff;
-          &:hover {
-            background-color: darken(@purple, 5);
-          }
-        }
-      }
-    }
-  }
-}
-
 .bar-chart {
   h6 {
     font-weight: 600;
@@ -1331,45 +1150,54 @@ table.integrations {
     margin-bottom: 20px;
     position: relative;
 
-    a {
+    a,
+    g {
       height: 90px;
       position: relative;
       cursor: default;
 
-      span {
+      span,
+      rect {
         display: block;
         min-height: 2px;
 
         &.accepted {
           background: @gray-lightest;
+          fill: @gray-lightest;
         }
 
         &.rate-limited,
         &.dropped {
           background: @red;
+          fill: @red;
           min-height: 0;
         }
 
         &.black-listed,
         &.filtered {
           background: @orange-light;
+          fill: @orange-light;
           min-height: 0;
         }
       }
 
-      &:hover span {
+      &:hover span,
+      &:hover rect {
         &.accepted {
           background: @gray-light;
+          fill: @gray-light;
         }
 
         &.rate-limited,
         &.dropped {
           background: @red-dark;
+          fill: @red-dark;
         }
 
         &.black-listed,
         &.filtered {
           background: @orange-dark;
+          fill: @orange-dark;
         }
       }
     }
@@ -1636,95 +1464,6 @@ ul.faces {
 
   &.no-margin {
     margin-bottom: -10px;
-  }
-}
-
-/**
-* Assignee Selector
-* ============================================================================
-*/
-
-.assignee-selector {
-  display: flex;
-  justify-content: flex-end;
-
-  .icon-arrow-down {
-    position: static;
-    top: 0;
-  }
-
-  .dropdown-toggle {
-    color: inherit;
-  }
-
-  .dropdown-menu {
-    right: -14px !important;
-    min-width: 180px;
-    max-width: 250px;
-    padding: 0;
-    font-size: 13px;
-
-    .form-control {
-      border: 0;
-      border-bottom: 1px solid #e9ebec;
-      padding-bottom: 8px;
-      box-shadow: none;
-      border-radius: 0;
-      font-size: 13px;
-
-      &:focus {
-        box-shadow: none;
-      }
-    }
-
-    ul {
-      .list-unstyled();
-      max-height: 500px;
-      overflow-y: auto;
-    }
-
-    li {
-      &.not-found span {
-        padding: 5px 8px;
-        display: block;
-        font-style: italic;
-        text-align: center;
-      }
-
-      strong {
-        font-weight: normal;
-        background: lighten(@yellow, 15);
-      }
-
-      a {
-        padding: 0;
-      }
-    }
-  }
-
-  &.unassigned {
-    .icon-user {
-      display: block;
-      margin-right: 3px;
-      font-size: 20px;
-    }
-  }
-
-  .invite-member a {
-    .icon-plus {
-      font-size: 16px;
-      opacity: 0.3;
-      margin-right: 5px;
-    }
-  }
-
-  .clear-assignee a {
-    background: rgba(52, 60, 69, 0.03);
-    border-bottom: 1px solid rgba(52, 60, 69, 0.06);
-  }
-
-  .list-loading-container {
-    padding: 15px 0 10px 0;
   }
 }
 
@@ -2464,7 +2203,7 @@ header + .alert {
   }
 
   &.border-bottom {
-    border-bottom: 1px solid lighten(@trim, 2);
+    border-bottom: 1px solid @trim;
   }
 
   &.anchor-right {
@@ -2570,28 +2309,6 @@ header + .alert {
 }
 
 /**
-* Circle indicators
-* ============================================================================
-*/
-
-.circle-indicator {
-  display: inline-block;
-  .square(14px);
-  border-radius: 14px;
-  margin-right: 8px;
-  position: relative;
-  top: 1px;
-
-  &.enabled {
-    background: @green;
-  }
-
-  &.disabled {
-    background: @red;
-  }
-}
-
-/**
 * Project nav
 * ============================================================================
 */
@@ -2671,7 +2388,6 @@ ul.radio-inputs {
     box-shadow: 0 15px 40px 0 rgba(67, 62, 75, 0.3), 0 1px 15px 0 rgba(67, 61, 74, 0.15);
     border-radius: 7px;
     border: 0;
-    overflow: hidden;
   }
 
   .modal-header {
@@ -2743,12 +2459,6 @@ ul.radio-inputs {
   }
 }
 
-.custom-resolution-modal {
-  .modal-content {
-    overflow: visible;
-  }
-}
-
 // Sudo Modal
 .sudo-modal.modal {
   .modal-header {
@@ -2769,7 +2479,13 @@ ul.radio-inputs {
 .command-palette.modal {
   .modal-content {
     padding: 0;
-    overflow: visible;
+  }
+}
+
+// Docs Search
+.docs-search-modal.modal {
+  .modal-content {
+    padding: 0;
   }
 }
 
@@ -2782,12 +2498,6 @@ ul.radio-inputs {
   }
   .modal-content {
     overflow: initial;
-  }
-}
-
-.context-picker-modal.modal {
-  .modal-content {
-    overflow: visible;
   }
 }
 
@@ -2848,45 +2558,14 @@ ul.radio-inputs {
 * Well
 * ============================================================================
 */
-
-.well {
-  border: 1px solid @trim;
-  box-shadow: none;
-  background: @white-dark;
-  padding: 15px 20px;
-  margin-bottom: 20px;
-  border-radius: 3px;
-
-  p {
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  &.important {
-    background: @yellow;
-    border: 0;
-    a,
-    a:active {
-      color: @gray-dark;
-    }
-  }
-
-  &.image-well {
-    padding: 80px 30px;
-  }
-}
-
 .blankslate {
   text-align: center;
   padding: 50px 0;
-
   .icon {
     font-size: 72px;
     color: @40;
     margin-bottom: 10px;
   }
-
   h5 {
     margin-bottom: 10px;
   }
@@ -2990,6 +2669,9 @@ ul.tag-list {
     &.python-celery .platformicon:before {
       content: '\e602';
     }
+    &.python-awslambda .platformicon:before {
+      content: '\e602';
+    }
     &.python-pyramid .platformicon:before {
       content: '\e602';
     }
@@ -2997,6 +2679,9 @@ ul.tag-list {
       content: '\e602';
     }
     &.python-rq .platformicon:before {
+      content: '\e602';
+    }
+    &.python-sanic .platformicon:before {
       content: '\e602';
     }
 
@@ -3115,25 +2800,6 @@ ul.tag-list {
     .platformicon {
       color: black !important;
       background: white !important;
-    }
-  }
-}
-
-/**
-* QR Code
-* ============================================================================
-*/
-div.qrcode {
-  table {
-    border-spacing: 0;
-    margin: 40px auto;
-    td {
-      width: 5px;
-      height: 5px;
-
-      &.black {
-        background: black;
-      }
     }
   }
 }

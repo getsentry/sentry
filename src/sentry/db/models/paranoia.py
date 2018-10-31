@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
 from django.db import models
-from django.db.models import Manager
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
-from sentry.db.models import Model
+from sentry.db.models import Model, BaseManager
 
 
 class ParanoidQuerySet(QuerySet):
@@ -18,7 +17,7 @@ class ParanoidQuerySet(QuerySet):
         self.update(date_deleted=timezone.now())
 
 
-class ParanoidManager(Manager):
+class ParanoidManager(BaseManager):
     """
     Only exposes objects that have NOT been soft-deleted.
     """

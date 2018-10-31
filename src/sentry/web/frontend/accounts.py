@@ -62,16 +62,17 @@ def recover(request):
     }
 
     if request.method == 'POST' and ratelimiter.is_limited(
-        'accounts:recover:{}'.format(extra['ip_address']),
+        u'accounts:recover:{}'.format(extra['ip_address']),
         limit=5,
         window=60,  # 5 per minute should be enough for anyone
     ):
+        logger.warning('recover.rate-limited', extra=extra)
+
         return HttpResponse(
             'You have made too many password recovery attempts. Please try again later.',
             content_type='text/plain',
             status=429,
         )
-        logger.warning('recover.rate-limited', extra=extra)
 
     prefill = {'user': request.GET.get('email')}
 
@@ -80,16 +81,17 @@ def recover(request):
 
     if form.is_valid():
         email = form.cleaned_data['user']
-        password_hash = LostPasswordHash.for_user(email)
-        password_hash.send_email(request)
+        if email:
+            password_hash = LostPasswordHash.for_user(email)
+            password_hash.send_email(request)
 
-        extra['passwordhash_id'] = password_hash.id
-        extra['user_id'] = password_hash.user_id
+            extra['passwordhash_id'] = password_hash.id
+            extra['user_id'] = password_hash.user_id
 
-        logger.info('recover.sent', extra=extra)
+            logger.info('recover.sent', extra=extra)
 
         tpl = 'sentry/account/recover/sent.html'
-        context = {'email': password_hash.user.email}
+        context = {'email': email}
 
         return render_to_response(tpl, context, request)
 
@@ -103,7 +105,7 @@ def recover(request):
 
 
 def get_template(name, mode):
-    return 'sentry/account/{}/{}.html'.format(mode, name)
+    return u'sentry/account/{}/{}.html'.format(mode, name)
 
 
 def recover_confirm(request, user_id, hash, mode='recover'):
@@ -168,7 +170,7 @@ def start_confirm_email(request):
     from sentry.app import ratelimiter
 
     if ratelimiter.is_limited(
-        'auth:confirm-email:{}'.format(request.user.id),
+        u'auth:confirm-email:{}'.format(request.user.id),
         limit=10,
         window=60,  # 10 per minute should be enough for anyone
     ):
@@ -283,7 +285,7 @@ def disconnect_identity(request, identity_id):
 
     backend = get_backend(auth.provider, request, '/')
     if backend is None:
-        raise Exception('Backend was not found for request: {}'.format(auth.provider))
+        raise Exception(u'Backend was not found for request: {}'.format(auth.provider))
 
     # stop this from bubbling up errors to social-auth's middleware
     # XXX(dcramer): IM SO MAD ABOUT THIS
@@ -305,7 +307,7 @@ def disconnect_identity(request, identity_id):
     backend_name = backend.AUTH_BACKEND.name
 
     messages.add_message(
-        request, messages.SUCCESS, 'Your {} identity has been disconnected.'.format(
+        request, messages.SUCCESS, u'Your {} identity has been disconnected.'.format(
             settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name),
         )
     )

@@ -15,12 +15,13 @@ import {conditionalGuideAnchor} from 'app/components/assistant/guideAnchor';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ListLink from 'app/components/listLink';
+import NavTabs from 'app/components/navTabs';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
@@ -284,12 +285,12 @@ class ProjectAlertRules extends AsyncView {
             </Tooltip>
           }
           tabs={
-            <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
+            <NavTabs underlined={true}>
               <ListLink to={recreateRoute('alerts', {...this.props, stepBack: -4})}>
                 {t('Settings')}
               </ListLink>
               <ListLink to={recreateRoute('', this.props)}>{t('Rules')}</ListLink>
-            </ul>
+            </NavTabs>
           }
         />
         {!!ruleList.length && this.renderResults()}

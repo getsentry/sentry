@@ -8,7 +8,7 @@ from sentry.testutils import TestCase
 from sentry.tasks.assemble import assemble_dif
 from sentry.models import FileBlob
 from sentry.models.file import ChunkFileState
-from sentry.models.dsymfile import get_assemble_status, ProjectDSymFile
+from sentry.models.debugfile import get_assemble_status, ProjectDebugFile
 
 
 class AssembleTest(TestCase):
@@ -49,7 +49,7 @@ class AssembleTest(TestCase):
 
         assert get_assemble_status(self.project, total_checksum)[0] == ChunkFileState.ERROR
 
-    def test_dif(self):
+    def test_dif_and_caches(self):
         sym_file = self.load_fixture('crash.sym')
         blob1 = FileBlob.from_file(ContentFile(sym_file))
         total_checksum = sha1(sym_file).hexdigest()
@@ -61,9 +61,11 @@ class AssembleTest(TestCase):
             chunks=[blob1.checksum],
         )
 
-        dif = ProjectDSymFile.objects.filter(
+        dif = ProjectDebugFile.objects.filter(
             project=self.project,
             file__checksum=total_checksum,
         ).get()
 
         assert dif.file.headers == {'Content-Type': 'text/x-breakpad'}
+        assert dif.projectsymcachefile.exists()
+        assert dif.projectcficachefile.exists()

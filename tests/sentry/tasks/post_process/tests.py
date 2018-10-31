@@ -9,7 +9,7 @@ from mock import Mock, patch
 from sentry import tagstore
 from sentry.models import Group, GroupSnooze, GroupStatus, ServiceHook
 from sentry.testutils import TestCase
-from sentry.tasks.merge import merge_group
+from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import index_event_tags, post_process_group
 
 
@@ -34,7 +34,7 @@ class PostProcessGroupTest(TestCase):
             is_new_group_environment=True,
         )
 
-        mock_processor.assert_called_once_with(event, True, False, True)
+        mock_processor.assert_called_once_with(event, True, False, True, False)
         mock_processor.return_value.apply.assert_called_once_with()
 
         mock_callback.assert_called_once_with(event, mock_futures)
@@ -49,7 +49,7 @@ class PostProcessGroupTest(TestCase):
         assert event.group == group1
 
         with self.tasks():
-            merge_group(group1.id, group2.id)
+            merge_groups([group1.id], group2.id)
 
         mock_callback = Mock()
         mock_futures = [Mock()]
@@ -69,7 +69,8 @@ class PostProcessGroupTest(TestCase):
         assert event.group == group2
         assert event.group_id == group2.id
 
-    def test_invalidates_snooze(self):
+    @patch('sentry.rules.processor.RuleProcessor')
+    def test_invalidates_snooze(self, mock_processor):
         group = self.create_group(
             project=self.project, status=GroupStatus.IGNORED)
         event = self.create_event(group=group)
@@ -86,6 +87,8 @@ class PostProcessGroupTest(TestCase):
             is_new_group_environment=True,
         )
 
+        mock_processor.assert_called_with(event, True, False, True, True)
+
         assert not GroupSnooze.objects.filter(
             id=snooze.id,
         ).exists()
@@ -93,7 +96,8 @@ class PostProcessGroupTest(TestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
 
-    def test_maintains_valid_snooze(self):
+    @patch('sentry.rules.processor.RuleProcessor')
+    def test_maintains_valid_snooze(self, mock_processor):
         group = self.create_group(project=self.project)
         event = self.create_event(group=group)
         snooze = GroupSnooze.objects.create(
@@ -108,6 +112,8 @@ class PostProcessGroupTest(TestCase):
             is_sample=False,
             is_new_group_environment=True,
         )
+
+        mock_processor.assert_called_with(event, True, False, True, False)
 
         assert GroupSnooze.objects.filter(
             id=snooze.id,

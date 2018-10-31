@@ -7,13 +7,13 @@ import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import Condition from './condition';
-import {PlaceholderText, SelectListItem, AddText} from '../styles';
+import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
 
 export default class Conditions extends React.Component {
   static propTypes = {
     value: PropTypes.arrayOf(PropTypes.array).isRequired,
     onChange: PropTypes.func.isRequired,
-    columns: PropTypes.array,
+    columns: PropTypes.array.isRequired,
   };
 
   addRow() {
@@ -40,7 +40,7 @@ export default class Conditions extends React.Component {
     return (
       <div>
         <div>
-          <strong>{t('Conditions')}</strong>
+          <SidebarLabel>{t('Conditions')}</SidebarLabel>
           <AddText>
             (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
           </AddText>
@@ -49,7 +49,7 @@ export default class Conditions extends React.Component {
           <PlaceholderText>{t('None, showing all events')}</PlaceholderText>
         )}
         {value.map((condition, idx) => (
-          <SelectListItem key={idx}>
+          <SelectListItem key={`${idx}_${condition[2]}`}>
             <Condition
               value={condition}
               onChange={val => this.handleChange(val, idx)}

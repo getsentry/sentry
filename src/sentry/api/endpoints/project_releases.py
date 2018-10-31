@@ -14,8 +14,7 @@ from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.models import Activity, Environment, Release, ReleaseEnvironment
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.constants import VERSION_LENGTH
-
-BAD_RELEASE_CHARS = '\n\f\t/'
+from sentry.signals import release_created
 
 
 class ReleaseSerializer(serializers.Serializer):
@@ -145,6 +144,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     version=result['version'],
                 ), False
                 was_released = bool(release.date_released)
+            else:
+                release_created.send_robust(release=release, sender=self.__class__)
 
             created = release.add_project(project)
 

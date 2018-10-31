@@ -1,9 +1,20 @@
 from __future__ import absolute_import
 
-from sentry import analytics
-from sentry.models import ExternalIssue, Group, GroupLink, GroupStatus, Integration, User
-from sentry.integrations.exceptions import IntegrationError
+from time import time
+from datetime import timedelta
+
+import logging
+
+from sentry import analytics, features
+from sentry.models import (
+    ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization,
+    ObjectStatus, OrganizationIntegration, Repository, User
+)
+
+from sentry.integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.tasks.base import instrumented_task, retry
+
+logger = logging.getLogger('sentry.tasks.integrations')
 
 
 @instrumented_task(
@@ -14,21 +25,28 @@ from sentry.tasks.base import instrumented_task, retry
 )
 # TODO(jess): Add more retry exclusions once ApiClients have better error handling
 @retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
-def post_comment(external_issue_id, data, **kwargs):
+def post_comment(external_issue_id, data, user_id, **kwargs):
     # sync Sentry comments to an external issue
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
+
+    organization = Organization.objects.get(id=external_issue.organization_id)
+    has_issue_sync = features.has('organizations:integrations-issue-sync',
+                                  organization)
+    if not has_issue_sync:
+        return
+
     integration = Integration.objects.get(id=external_issue.integration_id)
     installation = integration.get_installation(
         organization_id=external_issue.organization_id,
     )
     if installation.should_sync('comment'):
-        installation.create_comment(
-            external_issue.key, data['text'])
+        installation.create_comment(external_issue.key, user_id, data['text'])
         analytics.record(
             'integration.issue.comments.synced',
             provider=integration.provider,
             id=integration.id,
             organization_id=external_issue.organization_id,
+            user_id=user_id,
         )
 
 
@@ -38,8 +56,10 @@ def post_comment(external_issue_id, data, **kwargs):
     default_retry_delay=20,
     max_retries=5
 )
-@retry(on=(IntegrationError,))
-def sync_metadata(installation):
+@retry(on=(IntegrationError,), exclude=(Integration.DoesNotExist,))
+def sync_metadata(integration_id, **kwargs):
+    integration = Integration.objects.get(id=integration_id)
+    installation = integration.get_installation(None)
     installation.sync_metadata()
 
 
@@ -49,10 +69,19 @@ def sync_metadata(installation):
     default_retry_delay=60 * 5,
     max_retries=5
 )
-@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist, User.DoesNotExist))
+@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist,
+                User.DoesNotExist, Organization.DoesNotExist))
 def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
     # sync Sentry assignee to an external issue
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
+
+    organization = Organization.objects.get(id=external_issue.organization_id)
+    has_issue_sync = features.has('organizations:integrations-issue-sync',
+                                  organization)
+
+    if not has_issue_sync:
+        return
+
     integration = Integration.objects.get(id=external_issue.integration_id)
     # assume unassign if None
     if user_id is None:
@@ -87,6 +116,11 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
             status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED],
         )[0]
     except IndexError:
+        return
+
+    has_issue_sync = features.has('organizations:integrations-issue-sync',
+                                  group.organization)
+    if not has_issue_sync:
         return
 
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
@@ -129,3 +163,111 @@ def kick_off_status_syncs(project_id, group_id, **kwargs):
                 'external_issue_id': external_issue_id,
             }
         )
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.migrate_repo',
+    queue='integrations',
+    default_retry_delay=60 * 5,
+    max_retries=5
+)
+@retry(exclude=(Integration.DoesNotExist, Repository.DoesNotExist, Organization.DoesNotExist))
+def migrate_repo(repo_id, integration_id, organization_id):
+    integration = Integration.objects.get(id=integration_id)
+    installation = integration.get_installation(
+        organization_id=organization_id,
+    )
+    repo = Repository.objects.get(id=repo_id)
+    if installation.has_repo_access(repo):
+        # this probably shouldn't happen, but log it just in case
+        if repo.integration_id is not None and repo.integration_id != integration_id:
+            logger.info(
+                'repo.migration.integration-change',
+                extra={
+                    'integration_id': integration_id,
+                    'old_integration_id': repo.integration_id,
+                    'organization_id': organization_id,
+                    'repo_id': repo.id,
+                }
+            )
+
+        repo.integration_id = integration_id
+        repo.provider = 'integrations:%s' % (integration.provider,)
+        # check against disabled specifically -- don't want to accidentally un-delete repos
+        if repo.status == ObjectStatus.DISABLED:
+            repo.status = ObjectStatus.VISIBLE
+        repo.save()
+        logger.info(
+            'repo.migrated',
+            extra={
+                'integration_id': integration_id,
+                'organization_id': organization_id,
+                'repo_id': repo.id,
+            }
+        )
+
+        from sentry.mediators.plugins import Migrator
+        Migrator.run(
+            integration=integration,
+            organization=Organization.objects.get(id=organization_id),
+        )
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.kickoff_vsts_subscription_check',
+    queue='integrations',
+    default_retry_delay=60 * 5,
+    max_retries=5,
+)
+@retry()
+def kickoff_vsts_subscription_check():
+    organization_integrations = OrganizationIntegration.objects.filter(
+        integration__provider='vsts',
+        integration__status=ObjectStatus.VISIBLE,
+        status=ObjectStatus.VISIBLE,
+    ).select_related('integration')
+    six_hours_ago = time() - timedelta(hours=6).seconds
+    for org_integration in organization_integrations:
+        organization_id = org_integration.organization_id
+        integration = org_integration.integration
+
+        try:
+            if 'subscription' not in integration.metadata or integration.metadata[
+                    'subscription']['check'] > six_hours_ago:
+                continue
+        except KeyError:
+            pass
+
+        vsts_subscription_check.apply_async(
+            kwargs={
+                'integration_id': integration.id,
+                'organization_id': organization_id,
+            }
+        )
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.vsts_subscription_check',
+    queue='integrations',
+    default_retry_delay=60 * 5,
+    max_retries=5,
+)
+@retry(exclude=(ApiError, ApiUnauthorized, Integration.DoesNotExist))
+def vsts_subscription_check(integration_id, organization_id, **kwargs):
+    integration = Integration.objects.get(id=integration_id)
+    installation = integration.get_installation(organization_id=organization_id)
+    client = installation.get_client()
+    subscription_id = integration.metadata['subscription']['id']
+    subscription = client.get_subscription(
+        instance=installation.instance,
+        subscription_id=subscription_id,
+    )
+
+    # https://docs.microsoft.com/en-us/rest/api/vsts/hooks/subscriptions/replace%20subscription?view=vsts-rest-4.1#subscriptionstatus
+    if subscription['status'] == 'disabledBySystem':
+        client.update_subscription(
+            instance=installation.instance,
+            subscription_id=subscription_id,
+        )
+        integration.metadata['subscription']['check'] = time()
+        integration.save()

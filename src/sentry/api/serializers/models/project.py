@@ -157,17 +157,21 @@ class ProjectSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         from sentry import features
+        from sentry.features.base import ProjectFeature
 
-        feature_list = []
-        for feature in (
-            'global-events', 'data-forwarding', 'rate-limits', 'discard-groups', 'similarity-view',
-            'custom-inbound-filters',
-        ):
-            if features.has('projects:' + feature, obj, actor=user):
-                feature_list.append(feature)
+        # Retrieve all registered organization features
+        project_features = features.all(feature_type=ProjectFeature).keys()
+        feature_list = set()
+
+        for feature_name in project_features:
+            if not feature_name.startswith('projects:'):
+                continue
+            if features.has(feature_name, obj, actor=user):
+                # Remove the project scope prefix
+                feature_list.add(feature_name[len('projects:'):])
 
         if obj.flags.has_releases:
-            feature_list.append('releases')
+            feature_list.add('releases')
 
         status_label = STATUS_LABELS.get(obj.status, 'unknown')
 
@@ -307,7 +311,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'firstEvent': obj.first_event,
             'platform': obj.platform,
             'platforms': attrs['platforms'],
-            'latestDeploys': attrs['deploys']
+            'latestDeploys': attrs['deploys'],
         }
         if 'stats' in attrs:
             context['stats'] = attrs['stats']
@@ -322,6 +326,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:scrub_data',
             'sentry:scrub_defaults',
             'sentry:safe_fields',
+            'sentry:store_crash_reports',
             'sentry:sensitive_fields',
             'sentry:csp_ignored_sources_defaults',
             'sentry:csp_ignored_sources',
@@ -335,6 +340,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:token_header',
             'sentry:verify_ssl',
             'sentry:scrub_ip_address',
+            'sentry:relay_pii_config',
             'feedback:branding',
             'digests:mail:minimum_delay',
             'digests:mail:maximum_delay',
@@ -360,7 +366,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
         latest_release_list = list(
             Release.objects.raw(
-                """
+                u"""
             SELECT lr.project_id as actual_project_id, r.*
             FROM (
                 SELECT (
@@ -432,12 +438,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     'filters:blacklisted_ips':
                     '\n'.join(attrs['options'].get(
                         'sentry:blacklisted_ips', [])),
-                    'filters:{}'.format(FilterTypes.RELEASES):
+                    u'filters:{}'.format(FilterTypes.RELEASES):
                     '\n'.join(attrs['options'].get(
-                        'sentry:{}'.format(FilterTypes.RELEASES), [])),
-                    'filters:{}'.format(FilterTypes.ERROR_MESSAGES):
+                        u'sentry:{}'.format(FilterTypes.RELEASES), [])),
+                    u'filters:{}'.format(FilterTypes.ERROR_MESSAGES):
                     '\n'.
-                    join(attrs['options'].get('sentry:{}'.format(
+                    join(attrs['options'].get(u'sentry:{}'.format(
                         FilterTypes.ERROR_MESSAGES), [])),
                     'feedback:branding':
                     attrs['options'].get('feedback:branding', '1') == '1',
@@ -465,6 +471,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 bool(attrs['options'].get('sentry:scrub_defaults', True)),
                 'safeFields':
                 attrs['options'].get('sentry:safe_fields', []),
+                'storeCrashReports': bool(attrs['options'].get('sentry:store_crash_reports', False)),
                 'sensitiveFields':
                 attrs['options'].get('sentry:sensitive_fields', []),
                 'subjectTemplate':
@@ -484,12 +491,10 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                         if plugin.has_project_conf()
                     ], user, PluginSerializer(obj)
                 ),
-                'platforms':
-                attrs['platforms'],
-                'processingIssues':
-                attrs['processing_issues'],
-                'defaultEnvironment':
-                attrs['options'].get('sentry:default_environment'),
+                'platforms': attrs['platforms'],
+                'processingIssues': attrs['processing_issues'],
+                'defaultEnvironment': attrs['options'].get('sentry:default_environment'),
+                'relayPiiConfig': attrs['options'].get('sentry:relay_pii_config'),
             }
         )
         return data

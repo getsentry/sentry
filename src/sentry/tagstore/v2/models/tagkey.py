@@ -8,12 +8,9 @@ sentry.tagstore.v2.models.tagkey
 
 from __future__ import absolute_import, print_function
 
-import six
-
 from django.db import models, router, connections, transaction, IntegrityError
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.api.serializers import Serializer, register
 from sentry.tagstore import TagKeyStatus
 from sentry.tagstore.query import TagStoreManager
 from sentry.constants import MAX_TAG_KEY_LENGTH
@@ -172,16 +169,3 @@ class TagKey(Model):
             key_to_model[key] = cls.get_or_create(project_id, environment_id, key)[0]
 
         return key_to_model
-
-
-@register(TagKey)
-class TagKeySerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        from sentry import tagstore
-
-        return {
-            'id': six.text_type(obj.id),
-            'key': tagstore.get_standardized_key(obj.key),
-            'name': tagstore.get_tag_key_label(obj.key),
-            'uniqueValues': obj.values_seen,
-        }

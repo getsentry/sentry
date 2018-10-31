@@ -7,7 +7,7 @@ from uuid import uuid4
 import six
 from django.utils import timezone
 from exam import fixture
-from mock import patch
+from mock import patch, Mock
 
 from sentry import tagstore
 from sentry.models import (
@@ -32,7 +32,7 @@ class GroupListTest(APITestCase):
 
     @fixture
     def path(self):
-        return '/api/0/projects/{}/{}/issues/'.format(
+        return u'/api/0/projects/{}/{}/issues/'.format(
             self.project.organization.slug,
             self.project.slug,
         )
@@ -47,12 +47,27 @@ class GroupListTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group1.id)
+
+    def test_invalid_query(self):
+        now = timezone.now()
+        self.create_group(
+            checksum='a' * 32,
+            last_seen=now - timedelta(seconds=1),
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(
+            u'{}?sort_by=date&query=timesSeen:>1k'.format(self.path),
+            format='json',
+        )
+        assert response.status_code == 400
+        assert 'could not' in response.data['detail']
 
     def test_simple_pagination(self):
         now = timezone.now().replace(microsecond=0)
@@ -64,14 +79,10 @@ class GroupListTest(APITestCase):
             checksum='b' * 32,
             last_seen=now,
         )
-        # group3 = self.create_group(
-        #     checksum='c' * 32,
-        #     last_seen=now - timedelta(seconds=1),
-        # )
 
         self.login_as(user=self.user)
         response = self.client.get(
-            '{}?sort_by=date&limit=1'.format(self.path),
+            u'{}?sort_by=date&limit=1'.format(self.path),
             format='json',
         )
         assert response.status_code == 200
@@ -141,16 +152,16 @@ class GroupListTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?statsPeriod=24h'.format(self.path), format='json')
+        response = self.client.get(u'{}?statsPeriod=24h'.format(self.path), format='json')
         assert response.status_code == 200
 
-        response = self.client.get('{}?statsPeriod=14d'.format(self.path), format='json')
+        response = self.client.get(u'{}?statsPeriod=14d'.format(self.path), format='json')
         assert response.status_code == 200
 
-        response = self.client.get('{}?statsPeriod='.format(self.path), format='json')
+        response = self.client.get(u'{}?statsPeriod='.format(self.path), format='json')
         assert response.status_code == 200
 
-        response = self.client.get('{}?statsPeriod=48h'.format(self.path), format='json')
+        response = self.client.get(u'{}?statsPeriod=48h'.format(self.path), format='json')
         assert response.status_code == 400
 
     def test_environment(self):
@@ -198,7 +209,7 @@ class GroupListTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?query={}'.format(self.path, 'c' * 32), format='json')
+        response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group.id)
@@ -220,7 +231,7 @@ class GroupListTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.client.get(
-            '{}?query={}&environment=test'.format(
+            u'{}?query={}&environment=test'.format(
                 self.path, 'c' * 32), format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -241,7 +252,7 @@ class GroupListTest(APITestCase):
 
         self.login_as(user=self.user)
         response = self.client.get(
-            '{}?query=%20%20{}%20%20'.format(self.path, 'c' * 32), format='json'
+            u'{}?query=%20%20{}%20%20'.format(self.path, 'c' * 32), format='json'
         )
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -254,7 +265,7 @@ class GroupListTest(APITestCase):
         self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
-        response = self.client.get('{}?query={}'.format(self.path, 'c' * 32), format='json')
+        response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
         assert response.status_code == 200
         assert len(response.data) == 0
 
@@ -347,7 +358,7 @@ class GroupListTest(APITestCase):
 class GroupUpdateTest(APITestCase):
     @fixture
     def path(self):
-        return '/api/0/projects/{}/{}/issues/'.format(
+        return u'/api/0/projects/{}/{}/issues/'.format(
             self.project.organization.slug,
             self.project.slug,
         )
@@ -369,7 +380,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
         response = self.client.put(
-            '{}?status=unresolved'.format(self.path),
+            u'{}?status=unresolved'.format(self.path),
             data={
                 'status': 'resolved',
             },
@@ -428,14 +439,14 @@ class GroupUpdateTest(APITestCase):
             self.create_group(status=GroupStatus.UNRESOLVED)
 
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
 
         assert len(response.data) == 100
 
         response = self.client.put(
-            '{}?status=unresolved'.format(self.path),
+            u'{}?status=unresolved'.format(self.path),
             data={
                 'status': 'resolved',
             },
@@ -448,7 +459,7 @@ class GroupUpdateTest(APITestCase):
             'statusDetails': {},
         }
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
 
@@ -464,10 +475,7 @@ class GroupUpdateTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
-        integration.add_project(
-            self.project.id, {
-                'resolve_status': 'Resolved', 'resolve_when': 'Resolved'})
+        integration.add_organization(org, self.user)
         group = self.create_group(status=GroupStatus.UNRESOLVED, organization=org)
 
         OrganizationIntegration.objects.filter(
@@ -497,16 +505,18 @@ class GroupUpdateTest(APITestCase):
         )[0]
 
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
 
         assert len(response.data) == 1
 
         with self.tasks():
-            with self.feature('organizations:internal-catchall'):
+            with self.feature({
+                'organizations:integrations-issue-sync': True,
+            }):
                 response = self.client.put(
-                    '{}?status=unresolved'.format(self.path),
+                    u'{}?status=unresolved'.format(self.path),
                     data={
                         'status': 'resolved',
                     },
@@ -526,7 +536,7 @@ class GroupUpdateTest(APITestCase):
                 )
 
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
         assert len(response.data) == 0
@@ -540,7 +550,7 @@ class GroupUpdateTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
         OrganizationIntegration.objects.filter(
             integration_id=integration.id,
             organization_id=group.organization.id,
@@ -553,9 +563,6 @@ class GroupUpdateTest(APITestCase):
                 'sync_assignee_inbound': True,
             }
         )
-        integration.add_project(
-            group.project_id, {
-                'resolve_status': 'Resolved', 'resolve_when': 'Resolved'})
         GroupResolution.objects.create(
             group=group,
             release=release,
@@ -576,13 +583,15 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
 
         with self.tasks():
-            with self.feature('organizations:internal-catchall'):
+            with self.feature({
+                'organizations:integrations-issue-sync': True,
+            }):
                 response = self.client.put(
                     url, data={
                         'status': 'unresolved',
@@ -615,7 +624,7 @@ class GroupUpdateTest(APITestCase):
         uo1 = UserOption.objects.create(key='self_assign_issue', value='1', project=None, user=user)
 
         self.login_as(user=user)
-        url = '{url}?id={group.id}'.format(url=self.path, group=group)
+        url = u'{url}?id={group.id}'.format(url=self.path, group=group)
         response = self.client.put(
             url,
             data={
@@ -654,7 +663,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -701,7 +710,7 @@ class GroupUpdateTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -751,7 +760,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -806,7 +815,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -859,7 +868,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -912,7 +921,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -959,7 +968,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -995,7 +1004,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1023,7 +1032,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1051,7 +1060,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1100,7 +1109,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1144,7 +1153,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1184,7 +1193,7 @@ class GroupUpdateTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1231,7 +1240,7 @@ class GroupUpdateTest(APITestCase):
         group4 = self.create_group(project=self.create_project(slug='foo'), checksum='b' * 32)
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1277,7 +1286,7 @@ class GroupUpdateTest(APITestCase):
         group2 = self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1310,7 +1319,7 @@ class GroupUpdateTest(APITestCase):
             assert bool(g.get_share_id())
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1342,7 +1351,7 @@ class GroupUpdateTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1371,8 +1380,12 @@ class GroupUpdateTest(APITestCase):
         assert not r4.exists()
 
     @patch('sentry.api.endpoints.project_group_index.uuid4')
-    @patch('sentry.api.endpoints.project_group_index.merge_group')
-    def test_merge(self, merge_group, mock_uuid4):
+    @patch('sentry.api.endpoints.project_group_index.merge_groups')
+    @patch('sentry.api.endpoints.project_group_index.eventstream')
+    def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
+        eventstream_state = object()
+        mock_eventstream.start_merge = Mock(return_value=eventstream_state)
+
         class uuid(object):
             hex = 'abc123'
 
@@ -1383,7 +1396,7 @@ class GroupUpdateTest(APITestCase):
         self.create_group(checksum='d' * 32)
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&id={group3.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&id={group3.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1403,16 +1416,15 @@ class GroupUpdateTest(APITestCase):
             ]
         )
 
-        assert len(merge_group.mock_calls) == 2
-        merge_group.delay.assert_any_call(
-            from_object_id=group1.id,
+        mock_eventstream.start_merge.assert_called_once_with(
+            group1.project_id, [group3.id, group1.id], group2.id)
+
+        assert len(merge_groups.mock_calls) == 1
+        merge_groups.delay.assert_any_call(
+            from_object_ids=[group3.id, group1.id],
             to_object_id=group2.id,
             transaction_id='abc123',
-        )
-        merge_group.delay.assert_any_call(
-            from_object_id=group3.id,
-            to_object_id=group2.id,
-            transaction_id='abc123',
+            eventstream_state=eventstream_state,
         )
 
     def test_assign(self):
@@ -1421,7 +1433,7 @@ class GroupUpdateTest(APITestCase):
         user = self.user
 
         self.login_as(user=user)
-        url = '{url}?id={group1.id}'.format(
+        url = u'{url}?id={group1.id}'.format(
             url=self.path,
             group1=group1,
         )
@@ -1468,7 +1480,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=member)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1491,7 +1503,7 @@ class GroupUpdateTest(APITestCase):
 
         group.project.add_team(team)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1536,7 +1548,7 @@ class GroupUpdateTest(APITestCase):
         user = self.user
 
         self.login_as(user=user)
-        url = '{url}?id={group1.id}'.format(
+        url = u'{url}?id={group1.id}'.format(
             url=self.path,
             group1=group1,
         )
@@ -1570,12 +1582,17 @@ class GroupUpdateTest(APITestCase):
 class GroupDeleteTest(APITestCase):
     @fixture
     def path(self):
-        return '/api/0/projects/{}/{}/issues/'.format(
+        return u'/api/0/projects/{}/{}/issues/'.format(
             self.project.organization.slug,
             self.project.slug,
         )
 
-    def test_delete_by_id(self):
+    @patch('sentry.api.endpoints.project_group_index.eventstream')
+    @patch('sentry.eventstream')
+    def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
+        eventstream_state = object()
+        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
         group3 = self.create_group(checksum='c' * 32, status=GroupStatus.IGNORED)
@@ -1596,7 +1613,7 @@ class GroupDeleteTest(APITestCase):
             )
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1607,6 +1624,9 @@ class GroupDeleteTest(APITestCase):
             set()
 
         response = self.client.delete(url, format='json')
+
+        mock_eventstream_api.start_delete_groups.assert_called_once_with(
+            group1.project_id, [group1.id, group2.id])
 
         assert response.status_code == 204
 
@@ -1629,6 +1649,8 @@ class GroupDeleteTest(APITestCase):
 
         with self.tasks():
             response = self.client.delete(url, format='json')
+
+        mock_eventstream_task.end_delete_groups.assert_called_once_with(eventstream_state)
 
         assert response.status_code == 204
 

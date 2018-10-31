@@ -9,7 +9,6 @@
  */
 export function isValidAggregation(aggregation, cols) {
   const columns = new Set(cols.map(({name}) => name));
-  const topKRegex = /topK\((\d+)\)/;
 
   const [func, col] = aggregation;
 
@@ -21,7 +20,7 @@ export function isValidAggregation(aggregation, cols) {
     return col === null;
   }
 
-  if (func === 'uniq' || func.match(topKRegex)) {
+  if (func === 'uniq') {
     return columns.has(col);
   }
 
@@ -60,24 +59,20 @@ export function getInternal(external) {
     return `avg(${col})`;
   }
 
-  if (func.startsWith('topK')) {
-    const count = func.match(/topK\((\d+)\)/)[1];
-    return `topK(${count})(${col})`;
-  }
-
   return func;
 }
 
 /**
 * Returns an alias for a given column name, which is either just the column name
-* or a string with an underscore instead of square brackets for tags
+* or a string with an underscore instead of square brackets for tags. We'll also
+* replace the characters `.`, `:` and `-` from aliases.
 *
 * @param {String} columnName Name of column
 * @return {String} Alias
 */
 function getAlias(columnName) {
   const tagMatch = columnName.match(/^tags\[(.+)]$/);
-  return tagMatch ? `tags_${tagMatch[1]}` : columnName;
+  return tagMatch ? `tags_${tagMatch[1].replace(/[.:-]/, '_')}` : columnName;
 }
 
 /**
@@ -89,7 +84,6 @@ function getAlias(columnName) {
 export function getExternal(internal) {
   const uniqRegex = /^uniq\((.+)\)$/;
   const avgRegex = /^avg\((.+)\)$/;
-  const topKRegex = /^topK\((\d+)\)\((.+)\)$/;
 
   if (internal === 'count') {
     return ['count()', null, 'count'];
@@ -104,15 +98,6 @@ export function getExternal(internal) {
   if (internal.match(avgRegex)) {
     const column = internal.match(avgRegex)[1];
     return ['avg', column, `avg_${getAlias(column)}`];
-  }
-
-  const topKMatch = internal.match(topKRegex);
-  if (topKMatch) {
-    return [
-      `topK(${parseInt(topKMatch[1], 10)})`,
-      topKMatch[2],
-      `topK_${topKMatch[1]}_${getAlias(topKMatch[2])}`,
-    ];
   }
 
   return internal;

@@ -7,7 +7,7 @@ from symbolic import SymbolicError, ObjectLookup, LineInfo, parse_addr
 
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
-from sentry.models import EventError, ProjectDSymFile
+from sentry.models import EventError, ProjectDebugFile
 from sentry.lang.native.utils import image_name, rebase_addr
 from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
@@ -116,15 +116,15 @@ class Symbolizer(object):
     """
 
     def __init__(self, project, object_lookup, referenced_images,
-                 on_dsym_file_referenced=None):
+                 on_dif_referenced=None):
         if not isinstance(object_lookup, ObjectLookup):
             object_lookup = ObjectLookup(object_lookup)
         self.object_lookup = object_lookup
 
         self.symcaches, self.symcaches_conversion_errors = \
-            ProjectDSymFile.dsymcache.get_symcaches(
+            ProjectDebugFile.difcache.get_symcaches(
                 project, referenced_images,
-                on_dsym_file_referenced=on_dsym_file_referenced,
+                on_dif_referenced=on_dif_referenced,
                 with_conversion_errors=True)
 
     def _process_frame(self, sym, obj, package=None, addr_off=0):
@@ -198,8 +198,8 @@ class Symbolizer(object):
         # Otherwise, yeah, let's just say it's in_app
         return True
 
-    def _is_optional_dsym(self, obj, sdk_info=None):
-        """Checks if this is a dsym that is optional."""
+    def _is_optional_dif(self, obj, sdk_info=None):
+        """Checks if this is an optional debug information file."""
         # Frames that are not in the app are not considered optional.  In
         # theory we should never reach this anyways.
         if not self.is_image_from_app_bundle(obj, sdk_info=sdk_info):
@@ -232,7 +232,7 @@ class Symbolizer(object):
                     type=EventError.NATIVE_BAD_DSYM,
                     obj=obj
                 )
-            if self._is_optional_dsym(obj, sdk_info=sdk_info):
+            if self._is_optional_dif(obj, sdk_info=sdk_info):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
             else:
                 type = EventError.NATIVE_MISSING_DSYM
@@ -248,7 +248,7 @@ class Symbolizer(object):
         if not rv:
             # For some frameworks we are willing to ignore missing symbol
             # errors.
-            if self._is_optional_dsym(obj, sdk_info=sdk_info):
+            if self._is_optional_dif(obj, sdk_info=sdk_info):
                 return []
             raise SymbolicationFailed(
                 type=EventError.NATIVE_MISSING_SYMBOL, obj=obj)

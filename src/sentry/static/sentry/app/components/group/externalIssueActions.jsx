@@ -3,14 +3,20 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 import queryString from 'query-string';
+import styled from 'react-emotion';
 
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
+import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Form from 'app/views/settings/components/forms/form';
+import NavTabs from 'app/components/navTabs';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
+import {debounce} from 'lodash';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
@@ -29,6 +35,8 @@ class ExternalIssueForm extends AsyncComponent {
     action: PropTypes.oneOf(['link', 'create']),
     onSubmitSuccess: PropTypes.func.isRequired,
   };
+
+  shouldRenderBadRequests = true;
 
   getEndpoints() {
     let {action, group, integration} = this.props;
@@ -90,7 +98,7 @@ class ExternalIssueForm extends AsyncComponent {
       this.setState(
         {
           dynamicFieldValues,
-          loading: true,
+          reloading: true,
           error: false,
           remainingRequests: 1,
         },
@@ -100,26 +108,38 @@ class ExternalIssueForm extends AsyncComponent {
   };
 
   getOptions = (field, input) => {
-    if (!input) return Promise.resolve([]);
-
-    let query = queryString.stringify({
-      ...this.state.dynamicFieldValues,
-      field: field.name,
-      query: input,
+    if (!input) {
+      const options = (field.choices || []).map(([value, label]) => ({value, label}));
+      return Promise.resolve({options});
+    }
+    return new Promise(resolve => {
+      this.debouncedOptionLoad(field, input, resolve);
     });
-
-    let url = field.url;
-    let separator = url.includes('?') ? '&' : '?';
-
-    let request = {
-      url: [url, separator, query].join(''),
-      method: 'GET',
-    };
-
-    // We can't use the API client here since the URL is not scapped under the
-    // API endpoints (which the client prefixes)
-    return $.ajax(request).then(data => ({options: data}));
   };
+
+  debouncedOptionLoad = debounce(
+    (field, input, resolve) => {
+      let query = queryString.stringify({
+        ...this.state.dynamicFieldValues,
+        field: field.name,
+        query: input,
+      });
+
+      let url = field.url;
+      let separator = url.includes('?') ? '&' : '?';
+
+      let request = {
+        url: [url, separator, query].join(''),
+        method: 'GET',
+      };
+
+      // We can't use the API client here since the URL is not scoped under the
+      // API endpoints (which the client prefixes)
+      $.ajax(request).then(data => resolve({options: data}));
+    },
+    200,
+    {trailing: true}
+  );
 
   getFieldProps = field =>
     field.url
@@ -130,7 +150,7 @@ class ExternalIssueForm extends AsyncComponent {
           onSelectResetsInput: false,
           onCloseResetsInput: false,
           onBlurResetsInput: false,
-          autoload: false,
+          autoload: true,
         }
       : {};
 
@@ -154,15 +174,17 @@ class ExternalIssueForm extends AsyncComponent {
         initialData={initialData}
         onFieldChange={this.onFieldChange}
         submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
+        submitDisabled={this.state.reloading}
         footerClass="modal-footer"
       >
         {config.map(field => (
           <FieldFromConfig
-            key={field.name}
+            key={field.default || field.name}
             field={field}
             inline={false}
             stacked
             flexibleControlStateSize
+            disabled={this.state.reloading}
             {...this.getFieldProps(field)}
           />
         ))}
@@ -239,7 +261,6 @@ class ExternalIssueActions extends AsyncComponent {
 
   renderBody() {
     let {action, selectedIntegration, issue} = this.state;
-
     return (
       <React.Fragment>
         <IssueSyncListElement
@@ -247,8 +268,23 @@ class ExternalIssueActions extends AsyncComponent {
           externalIssueLink={issue ? issue.url : null}
           externalIssueId={issue ? issue.id : null}
           externalIssueKey={issue ? issue.key : null}
+          externalIssueDisplayName={issue ? issue.displayName : null}
           onClose={this.deleteIssue.bind(this)}
           integrationType={selectedIntegration.provider.key}
+          integrationName={selectedIntegration.name}
+          hoverCardHeader={t('Linked %s Integration', selectedIntegration.provider.name)}
+          hoverCardBody={
+            issue && issue.title ? (
+              <div>
+                <IssueTitle>{issue.title}</IssueTitle>
+                {issue.description && (
+                  <IssueDescription>{issue.description}</IssueDescription>
+                )}
+              </div>
+            ) : (
+              <IntegrationItem integration={selectedIntegration} />
+            )
+          }
         />
         {selectedIntegration && (
           <Modal
@@ -256,21 +292,19 @@ class ExternalIssueActions extends AsyncComponent {
             onHide={this.closeModal}
             animation={false}
             enforceFocus={false}
+            backdrop="static"
           >
             <Modal.Header closeButton>
               <Modal.Title>{`${selectedIntegration.provider.name} Issue`}</Modal.Title>
             </Modal.Header>
-            <ul
-              className="nav nav-tabs"
-              style={{borderBottom: '1px solid rgb(221, 221, 221)'}}
-            >
+            <NavTabs underlined={true}>
               <li className={action === 'create' ? 'active' : ''}>
                 <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
               </li>
               <li className={action === 'link' ? 'active' : ''}>
                 <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
               </li>
-            </ul>
+            </NavTabs>
             <Modal.Body>
               {action && (
                 <ExternalIssueForm
@@ -290,5 +324,16 @@ class ExternalIssueActions extends AsyncComponent {
     );
   }
 }
+
+const IssueTitle = styled('div')`
+  font-size: 1.1em;
+  font-weight: 600;
+  ${overflowEllipsis};
+`;
+
+const IssueDescription = styled('div')`
+  margin-top: ${space(1)};
+  ${overflowEllipsis};
+`;
 
 export default ExternalIssueActions;

@@ -209,7 +209,15 @@ export function gettext(string, ...args) {
 }
 
 export function ngettext(singular, plural, ...args) {
-  return mark(format(i18n.ngettext(singular, plural, args[0] || 0), args));
+  let countArg;
+  if (args.length > 0) {
+    countArg = args[0] || 0;
+    args = [countArg.toLocaleString(), ...args.slice(1)];
+  } else {
+    countArg = 0;
+  }
+
+  return mark(format(i18n.ngettext(singular, plural, countArg), args));
 }
 
 /* special form of gettext where you can render nested react

@@ -2,8 +2,11 @@
 
 from __future__ import absolute_import
 
+import pytest
 import mock
 
+from datetime import datetime
+from django.utils import timezone
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
 from sentry.testutils import TestCase
@@ -55,7 +58,26 @@ class RedisBufferTest(TestCase):
 
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
     @mock.patch('sentry.buffer.base.Buffer.process')
-    def test_process_does_bubble_up(self, process):
+    def test_process_does_bubble_up_json(self, process):
+        client = self.buf.cluster.get_routing_client()
+        client.hmset(
+            'foo', {
+                'e+foo': '["s","bar"]',
+                'e+datetime': '["d","1493791566.000000"]',
+                'f': '{"pk": ["i","1"]}',
+                'i+times_seen': '2',
+                'm': 'sentry.models.Group',
+            }
+        )
+        columns = {'times_seen': 2}
+        filters = {'pk': 1}
+        extra = {'foo': 'bar', 'datetime': datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)}
+        self.buf.process('foo')
+        process.assert_called_once_with(Group, columns, filters, extra)
+
+    @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
+    @mock.patch('sentry.buffer.base.Buffer.process')
+    def test_process_does_bubble_up_pickle(self, process):
         client = self.buf.cluster.get_routing_client()
         client.hmset(
             'foo', {
@@ -71,29 +93,34 @@ class RedisBufferTest(TestCase):
         self.buf.process('foo')
         process.assert_called_once_with(Group, columns, filters, extra)
 
+    # this test should be passing once we no longer serialize using pickle
+    @pytest.mark.xfail
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
     @mock.patch('sentry.buffer.redis.process_incr', mock.Mock())
     def test_incr_saves_to_redis(self):
+        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
         client = self.buf.cluster.get_routing_client()
         model = mock.Mock()
         model.__name__ = 'Mock'
         columns = {'times_seen': 1}
-        filters = {'pk': 1}
-        self.buf.incr(model, columns, filters, extra={'foo': 'bar'})
+        filters = {'pk': 1, 'datetime': now}
+        self.buf.incr(model, columns, filters, extra={'foo': 'bar', 'datetime': now})
         result = client.hgetall('foo')
         assert result == {
-            'e+foo': "S'bar'\np1\n.",
-            'f': "(dp1\nS'pk'\np2\nI1\ns.",
+            'e+foo': '["s","bar"]',
+            'e+datetime': '["d","1493791566.000000"]',
+            'f': '{"pk":["i","1"],"datetime":["d","1493791566.000000"]}',
             'i+times_seen': '1',
             'm': 'mock.mock.Mock',
         }
         pending = client.zrange('b:p', 0, -1)
         assert pending == ['foo']
-        self.buf.incr(model, columns, filters, extra={'foo': 'bar'})
+        self.buf.incr(model, columns, filters, extra={'foo': 'baz'})
         result = client.hgetall('foo')
         assert result == {
-            'e+foo': "S'bar'\np1\n.",
-            'f': "(dp1\nS'pk'\np2\nI1\ns.",
+            'e+foo': '["s","baz"]',
+            'e+datetime': '["d","1493791566.000000"]',
+            'f': '{"pk":["i","1"],"datetime":["d","1493791566.000000"]}',
             'i+times_seen': '2',
             'm': 'mock.mock.Mock',
         }

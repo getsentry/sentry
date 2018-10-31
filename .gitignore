@@ -22,7 +22,6 @@ sentry-package.json
 /tmp
 /node_modules/
 /docs-ui/node_modules/
-/docs/_build
 example/db.sqlite
 /src/sentry/assets.json
 /src/sentry/static/version
@@ -32,14 +31,15 @@ example/db.sqlite
 /src/sentry/static/sentry/debug_toolbar/
 /src/sentry/static/sentry/rest_framework/
 /src/sentry/integration-docs
+/src/sentry/loader/_registry.json
 /wheelhouse
 /test_cli/
 Gemfile.lock
 .idea/
+*.iml
 .pytest_cache/
 .vscode/tags
 coverage.xml
 junit.xml
 *.codestyle.xml
-.pytest_cache/
 package-lock.json

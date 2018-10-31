@@ -10,14 +10,7 @@ body {
   color: @gray-darker;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  padding-left: @sidebar-width;
   min-height: 100vh;
-
-  // Fake sidebar rendering until actual sidebar is loaded
-
-  background-image: linear-gradient(@header-bg-color, @header-bg-color);
-  background-size: @sidebar-width;
-  background-repeat: repeat-y;
 
   &.new-settings {
     overflow-y: scroll;
@@ -52,10 +45,24 @@ body {
       }
     }
   }
+
+  /* Discover has a 100% height based layout with no footer */
+  &.body-discover {
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+    footer {
+      display: none;
+    }
+  }
 }
 
 #blk_router {
   min-height: 100vh;
+}
+
+#login_as {
+  z-index: 1000000;
 }
 
 /**
@@ -213,7 +220,7 @@ body.auth {
   }
 
   .auth-provider-column {
-    width: 42%;
+    width: 46%;
     padding-left: 30px;
     margin-left: 30px;
     border-left: 1px solid @trim;
@@ -446,6 +453,12 @@ footer {
   border-top: 1px solid @trim;
   margin-top: 20px;
   padding: 28px 0;
+
+  .container {
+    // Ensure dropdowns inside application views
+    // don't stack under footer content.
+    position: static;
+  }
 
   .pull-right {
     a {

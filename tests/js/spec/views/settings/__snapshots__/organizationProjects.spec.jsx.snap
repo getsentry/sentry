@@ -75,7 +75,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                         >
                           <Component
                             aria-label="Create Project"
-                            className="css-zvpqlo-StyledButton-getColors e17811v30"
+                            className="css-zvpqlo-StyledButton-getColors eqrebog0"
                             disabled={false}
                             onClick={[Function]}
                             priority="primary"
@@ -85,7 +85,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                           >
                             <Link
                               aria-label="Create Project"
-                              className="css-zvpqlo-StyledButton-getColors e17811v30"
+                              className="css-zvpqlo-StyledButton-getColors eqrebog0"
                               disabled={false}
                               onClick={[Function]}
                               onlyActiveOnIndex={false}
@@ -97,7 +97,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                             >
                               <a
                                 aria-label="Create Project"
-                                className="css-zvpqlo-StyledButton-getColors e17811v30"
+                                className="css-zvpqlo-StyledButton-getColors eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 priority="primary"
@@ -106,87 +106,64 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                 style={Object {}}
                               >
                                 <ButtonLabel
+                                  priority="primary"
                                   size="small"
                                 >
                                   <Component
-                                    className="css-19bmqb3-ButtonLabel e17811v31"
+                                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                                    priority="primary"
                                     size="small"
                                   >
-                                    <Flex
-                                      align="center"
-                                      className="css-19bmqb3-ButtonLabel e17811v31"
-                                      size="small"
+                                    <span
+                                      className="css-7ui8bl-ButtonLabel eqrebog1"
                                     >
-                                      <Base
-                                        align="center"
-                                        className="e17811v31 css-1eblpyp-ButtonLabel"
+                                      <Icon
+                                        hasChildren={true}
                                         size="small"
                                       >
-                                        <div
-                                          className="e17811v31 css-1eblpyp-ButtonLabel"
-                                          is={null}
+                                        <Component
+                                          className="css-1vdnsie-Icon eqrebog2"
+                                          hasChildren={true}
                                           size="small"
                                         >
-                                          <Icon
-                                            hasChildren={true}
+                                          <span
+                                            className="css-1vdnsie-Icon eqrebog2"
                                             size="small"
                                           >
-                                            <Component
-                                              className="css-1vdnsie-Icon e17811v32"
-                                              hasChildren={true}
-                                              size="small"
+                                            <StyledInlineSvg
+                                              size="12px"
+                                              src="icon-circle-add"
                                             >
-                                              <Box
-                                                className="css-1vdnsie-Icon e17811v32"
-                                                size="small"
+                                              <InlineSvg
+                                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                size="12px"
+                                                src="icon-circle-add"
                                               >
-                                                <Base
-                                                  className="e17811v32 css-nk081r-Icon"
-                                                  size="small"
+                                                <StyledSvg
+                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                  height="12px"
+                                                  viewBox={Object {}}
+                                                  width="12px"
                                                 >
-                                                  <div
-                                                    className="e17811v32 css-nk081r-Icon"
-                                                    is={null}
-                                                    size="small"
+                                                  <svg
+                                                    className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                    height="12px"
+                                                    viewBox={Object {}}
+                                                    width="12px"
                                                   >
-                                                    <StyledInlineSvg
-                                                      size="12px"
-                                                      src="icon-circle-add"
-                                                    >
-                                                      <InlineSvg
-                                                        className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                        size="12px"
-                                                        src="icon-circle-add"
-                                                      >
-                                                        <StyledSvg
-                                                          className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                          height="12px"
-                                                          viewBox={Object {}}
-                                                          width="12px"
-                                                        >
-                                                          <svg
-                                                            className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                            height="12px"
-                                                            viewBox={Object {}}
-                                                            width="12px"
-                                                          >
-                                                            <use
-                                                              href="#test"
-                                                              xlinkHref="#test"
-                                                            />
-                                                          </svg>
-                                                        </StyledSvg>
-                                                      </InlineSvg>
-                                                    </StyledInlineSvg>
-                                                  </div>
-                                                </Base>
-                                              </Box>
-                                            </Component>
-                                          </Icon>
-                                          Create Project
-                                        </div>
-                                      </Base>
-                                    </Flex>
+                                                    <use
+                                                      href="#test"
+                                                      xlinkHref="#test"
+                                                    />
+                                                  </svg>
+                                                </StyledSvg>
+                                              </InlineSvg>
+                                            </StyledInlineSvg>
+                                          </span>
+                                        </Component>
+                                      </Icon>
+                                      Create Project
+                                    </span>
                                   </Component>
                                 </ButtonLabel>
                               </a>
@@ -203,10 +180,10 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
         </SettingsPageHeading>
         <Panel>
           <Component
-            className="css-10qfvek-Panel e1laxa7d0"
+            className="css-yahxlu-Panel e1laxa7d0"
           >
             <div
-              className="css-10qfvek-Panel e1laxa7d0"
+              className="css-yahxlu-Panel e1laxa7d0"
             >
               <PanelHeader
                 hasButtons={true}
@@ -230,34 +207,97 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                         is={null}
                       >
                         Projects
-                        <AsyncComponentSearchInput
+                        <withRouter(AsyncComponentSearchInput)
                           api={Client {}}
                           className="search"
                           onError={[Function]}
-                          onSearchSubmit={[Function]}
                           onSuccess={[Function]}
                           placeholder="Search Projects"
                           stateKey="projectList"
+                          updateRoute={true}
                           url="/organizations/org-slug/projects/"
                         >
-                          <form
-                            onSubmit={[Function]}
+                          <AsyncComponentSearchInput
+                            api={Client {}}
+                            className="search"
+                            location={
+                              Object {
+                                "query": Object {},
+                              }
+                            }
+                            onError={[Function]}
+                            onSuccess={[Function]}
+                            placeholder="Search Projects"
+                            router={
+                              Object {
+                                "createHref": [MockFunction] {
+                                  "calls": Array [
+                                    Array [
+                                      "/organizations/org-slug/projects/new/",
+                                    ],
+                                    Array [
+                                      "/org-slug/project-slug/",
+                                    ],
+                                    Array [
+                                      "/settings/org-slug/project-slug/",
+                                    ],
+                                  ],
+                                  "results": Array [
+                                    Object {
+                                      "isThrow": false,
+                                      "value": undefined,
+                                    },
+                                    Object {
+                                      "isThrow": false,
+                                      "value": undefined,
+                                    },
+                                    Object {
+                                      "isThrow": false,
+                                      "value": undefined,
+                                    },
+                                  ],
+                                },
+                                "go": [MockFunction],
+                                "goBack": [MockFunction],
+                                "goForward": [MockFunction],
+                                "isActive": [MockFunction],
+                                "listen": [MockFunction],
+                                "location": Object {
+                                  "query": Object {},
+                                },
+                                "push": [MockFunction],
+                                "replace": [MockFunction],
+                                "setRouteLeaveHook": [MockFunction],
+                              }
+                            }
+                            stateKey="projectList"
+                            updateRoute={true}
+                            url="/organizations/org-slug/projects/"
                           >
-                            <Input
-                              className="search"
-                              onChange={[Function]}
-                              placeholder="Search Projects"
-                              value=""
+                            <Form
+                              onSubmit={[Function]}
                             >
-                              <input
-                                className="search css-1m7xmcf-Input-inputStyles e1xej46s0"
-                                onChange={[Function]}
-                                placeholder="Search Projects"
-                                value=""
-                              />
-                            </Input>
-                          </form>
-                        </AsyncComponentSearchInput>
+                              <form
+                                className="css-vfrmj7-Form et3a3ng1"
+                                onSubmit={[Function]}
+                              >
+                                <Input
+                                  className="search"
+                                  onChange={[Function]}
+                                  placeholder="Search Projects"
+                                  value=""
+                                >
+                                  <input
+                                    className="search css-ybupf9-Input-inputStyles e1xej46s0"
+                                    onChange={[Function]}
+                                    placeholder="Search Projects"
+                                    value=""
+                                  />
+                                </Input>
+                              </form>
+                            </Form>
+                          </AsyncComponentSearchInput>
+                        </withRouter(AsyncComponentSearchInput)>
                       </div>
                     </Base>
                   </Flex>
@@ -270,7 +310,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                 flex={false}
               >
                 <div
-                  className="css-8atqhb"
+                  className="css-o3jmd1-textStyles"
                 >
                   <PanelItem
                     align="center"
@@ -363,12 +403,12 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                     </InlineButton>
                                   </Tooltip>
                                   <Link
-                                    to="/settings/org-slug/project-slug/"
+                                    to="/org-slug/project-slug/"
                                   >
                                     <Link
                                       onlyActiveOnIndex={false}
                                       style={Object {}}
-                                      to="/settings/org-slug/project-slug/"
+                                      to="/org-slug/project-slug/"
                                     >
                                       <a
                                         onClick={[Function]}
@@ -463,40 +503,41 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                             >
                               <Button
                                 disabled={false}
+                                icon="icon-settings"
                                 size="small"
-                                to="/org-slug/project-slug/"
+                                to="/settings/org-slug/project-slug/"
                               >
                                 <StyledButton
-                                  aria-label="View Issues"
+                                  aria-label="Settings"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="small"
-                                  to="/org-slug/project-slug/"
+                                  to="/settings/org-slug/project-slug/"
                                 >
                                   <Component
-                                    aria-label="View Issues"
-                                    className="css-dkprmi-StyledButton-getColors e17811v30"
+                                    aria-label="Settings"
+                                    className="css-dkprmi-StyledButton-getColors eqrebog0"
                                     disabled={false}
                                     onClick={[Function]}
                                     role="button"
                                     size="small"
-                                    to="/org-slug/project-slug/"
+                                    to="/settings/org-slug/project-slug/"
                                   >
                                     <Link
-                                      aria-label="View Issues"
-                                      className="css-dkprmi-StyledButton-getColors e17811v30"
+                                      aria-label="Settings"
+                                      className="css-dkprmi-StyledButton-getColors eqrebog0"
                                       disabled={false}
                                       onClick={[Function]}
                                       onlyActiveOnIndex={false}
                                       role="button"
                                       size="small"
                                       style={Object {}}
-                                      to="/org-slug/project-slug/"
+                                      to="/settings/org-slug/project-slug/"
                                     >
                                       <a
-                                        aria-label="View Issues"
-                                        className="css-dkprmi-StyledButton-getColors e17811v30"
+                                        aria-label="Settings"
+                                        className="css-dkprmi-StyledButton-getColors eqrebog0"
                                         disabled={false}
                                         onClick={[Function]}
                                         role="button"
@@ -507,28 +548,59 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                                           size="small"
                                         >
                                           <Component
-                                            className="css-19bmqb3-ButtonLabel e17811v31"
+                                            className="css-7ui8bl-ButtonLabel eqrebog1"
                                             size="small"
                                           >
-                                            <Flex
-                                              align="center"
-                                              className="css-19bmqb3-ButtonLabel e17811v31"
-                                              size="small"
+                                            <span
+                                              className="css-7ui8bl-ButtonLabel eqrebog1"
                                             >
-                                              <Base
-                                                align="center"
-                                                className="e17811v31 css-1eblpyp-ButtonLabel"
+                                              <Icon
+                                                hasChildren={true}
                                                 size="small"
                                               >
-                                                <div
-                                                  className="e17811v31 css-1eblpyp-ButtonLabel"
-                                                  is={null}
+                                                <Component
+                                                  className="css-1vdnsie-Icon eqrebog2"
+                                                  hasChildren={true}
                                                   size="small"
                                                 >
-                                                  View Issues
-                                                </div>
-                                              </Base>
-                                            </Flex>
+                                                  <span
+                                                    className="css-1vdnsie-Icon eqrebog2"
+                                                    size="small"
+                                                  >
+                                                    <StyledInlineSvg
+                                                      size="12px"
+                                                      src="icon-settings"
+                                                    >
+                                                      <InlineSvg
+                                                        className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                        size="12px"
+                                                        src="icon-settings"
+                                                      >
+                                                        <StyledSvg
+                                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                          height="12px"
+                                                          viewBox={Object {}}
+                                                          width="12px"
+                                                        >
+                                                          <svg
+                                                            className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                            height="12px"
+                                                            viewBox={Object {}}
+                                                            width="12px"
+                                                          >
+                                                            <use
+                                                              href="#test"
+                                                              xlinkHref="#test"
+                                                            />
+                                                          </svg>
+                                                        </StyledSvg>
+                                                      </InlineSvg>
+                                                    </StyledInlineSvg>
+                                                  </span>
+                                                </Component>
+                                              </Icon>
+                                              Settings
+                                            </span>
                                           </Component>
                                         </ButtonLabel>
                                       </a>

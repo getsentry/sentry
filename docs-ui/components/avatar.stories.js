@@ -11,7 +11,7 @@ const USER = {
 };
 
 // eslint-disable-next-line
-storiesOf('Avatar', module)
+storiesOf('UI|Avatar', module)
   .add(
     'Letters',
     withInfo('This is the default avatar')(() => {

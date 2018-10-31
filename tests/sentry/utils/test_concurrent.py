@@ -19,7 +19,7 @@ def test_execute():
 
 
 def test_future_set_callback_success():
-    future_set = FutureSet([Future() for i in xrange(3)])
+    future_set = FutureSet([Future() for i in range(3)])
 
     callback = mock.Mock()
     future_set.add_done_callback(callback)
@@ -39,7 +39,7 @@ def test_future_set_callback_success():
 
 
 def test_future_set_callback_error():
-    future_set = FutureSet([Future() for i in xrange(3)])
+    future_set = FutureSet([Future() for i in range(3)])
 
     callback = mock.Mock()
     future_set.add_done_callback(callback)

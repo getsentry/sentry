@@ -26,7 +26,6 @@ from sentry.db.models import (BaseManager, BoundedPositiveIntegerField, Model, s
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.models import Authenticator
 
 
 class OrganizationStatus(IntEnum):
@@ -197,7 +196,7 @@ class Organization(Model):
             'slug': self.slug,
             'name': self.name,
             'status': int(self.status),
-            'flags': self.flags,
+            'flags': int(self.flags),
             'default_role': self.default_role,
         }
 
@@ -363,27 +362,19 @@ class Organization(Model):
         "Returns ``True`` if ``flag`` has changed since initialization."
         return getattr(self.old_value('flags'), flag_name, None) != getattr(self.flags, flag_name)
 
-    def send_setup_2fa_emails(self):
-        from sentry import options
-        from sentry.utils.email import MessageBuilder
-        from sentry.models import User
+    def handle_2fa_required(self, request):
+        from sentry.models import ApiKey
+        from sentry.tasks.auth import remove_2fa_non_compliant_members
 
-        for user in User.objects.filter(
-            is_active=True,
-            sentry_orgmember_set__organization=self,
-        ):
-            if not Authenticator.objects.user_has_2fa(user):
-                context = {
-                    'user': user,
-                    'url': absolute_uri(reverse('sentry-account-settings-security')),
-                    'organization': self
-                }
-                message = MessageBuilder(
-                    subject='%s %s Mandatory: Enable Two-Factor Authentication' % (
-                        options.get('mail.subject-prefix'), self.name),
-                    template='sentry/emails/setup_2fa.txt',
-                    html_template='sentry/emails/setup_2fa.html',
-                    type='user.setup_2fa',
-                    context=context,
-                )
-                message.send_async([user.email])
+        actor_id = request.user.id if request.user and request.user.is_authenticated() else None
+        api_key_id = request.auth.id if hasattr(
+            request, 'auth') and isinstance(
+            request.auth, ApiKey) else None
+        ip_address = request.META['REMOTE_ADDR']
+
+        remove_2fa_non_compliant_members.delay(
+            self.id,
+            actor_id=actor_id,
+            actor_key_id=api_key_id,
+            ip_address=ip_address
+        )

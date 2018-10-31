@@ -8,7 +8,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
         from sentry.models import (
             OrganizationMember, Commit, CommitAuthor, CommitFileChange, Environment, Release,
             ReleaseCommit, ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit,
-            Repository, Team, Project
+            Repository, Team, Project, PullRequest, DiscoverSavedQuery, ExternalIssue
         )
 
         # Team must come first
@@ -17,9 +17,22 @@ class OrganizationDeletionTask(ModelDeletionTask):
         ]
 
         model_list = (
-            OrganizationMember, CommitFileChange, Commit, CommitAuthor, Environment, Repository,
-            Release, ReleaseCommit, ReleaseEnvironment, ReleaseFile, Distribution,
-            ReleaseHeadCommit, Project,
+            OrganizationMember,
+            CommitFileChange,
+            Commit,
+            PullRequest,
+            CommitAuthor,
+            Environment,
+            Repository,
+            Project,
+            Release,  # Depends on Group deletions, a child of Project
+            ReleaseCommit,
+            ReleaseEnvironment,
+            ReleaseFile,
+            Distribution,
+            ReleaseHeadCommit,
+            DiscoverSavedQuery,
+            ExternalIssue,
         )
         relations.extend([ModelRelation(m, {'organization_id': instance.id}) for m in model_list])
 

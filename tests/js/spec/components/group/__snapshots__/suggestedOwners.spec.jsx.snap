@@ -106,10 +106,12 @@ exports[`SuggestedOwners render() should not show owners committers without feat
                   >
                     <StyledBaseAvatar
                       className="avatar tip"
+                      loaded={true}
+                      round={true}
                       style={Object {}}
                     >
                       <span
-                        className="avatar tip css-15umz1j-StyledBaseAvatar e1z0ohzl0"
+                        className="avatar tip css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
                         style={Object {}}
                       >
                         <LetterAvatar
@@ -315,10 +317,12 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
                   >
                     <StyledBaseAvatar
                       className="avatar tip"
+                      loaded={true}
+                      round={true}
                       style={Object {}}
                     >
                       <span
-                        className="avatar tip css-15umz1j-StyledBaseAvatar e1z0ohzl0"
+                        className="avatar tip css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
                         style={Object {}}
                       >
                         <LetterAvatar

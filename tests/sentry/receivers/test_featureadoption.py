@@ -627,21 +627,31 @@ class FeatureAdoptionTest(TestCase):
         member = self.create_member(
             organization=self.organization, teams=[self.team], user=self.create_user()
         )
-        member_joined.send(member=member, sender=type(self.project))
+        member_joined.send(member=member, organization=self.organization, sender=type(self.project))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="invite_team"
         )
         assert feature_complete
 
     def test_assignment(self):
-        issue_assigned.send(project=self.project, group=self.group, sender=type(self.project))
+        issue_assigned.send(
+            project=self.project,
+            group=self.group,
+            user=self.user,
+            sender='something')
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="assignment"
         )
         assert feature_complete
 
     def test_resolved_in_release(self):
-        issue_resolved_in_release.send(project=self.project, sender=type(self.project))
+        issue_resolved_in_release.send(
+            project=self.project,
+            group=self.group,
+            user=self.user,
+            resolution_type='now',
+            sender=type(
+                self.project))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="resolved_in_release"
         )
@@ -655,7 +665,7 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete
 
     def test_save_search(self):
-        save_search_created.send(project=self.project, sender=type(self.project))
+        save_search_created.send(project=self.project, user=self.user, sender=type(self.project))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="saved_search"
         )
@@ -673,7 +683,12 @@ class FeatureAdoptionTest(TestCase):
             project=self.project, label="Trivially modified rule", data=DEFAULT_RULE_DATA
         )
 
-        alert_rule_created.send(project=self.project, rule=rule, sender=type(self.project))
+        alert_rule_created.send(
+            user=self.owner,
+            project=self.project,
+            rule=rule,
+            sender=type(
+                self.project))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="alert_rules"
         )
@@ -704,7 +719,12 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete
 
     def test_sso(self):
-        sso_enabled.send(organization=self.organization, sender=type(self.organization))
+        sso_enabled.send(
+            organization=self.organization,
+            user=self.user,
+            provider='google',
+            sender=type(
+                self.organization))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="sso"
         )

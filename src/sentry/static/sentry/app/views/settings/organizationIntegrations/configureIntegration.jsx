@@ -1,16 +1,18 @@
 import React from 'react';
 
+import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import BreadcrumbTitle from 'app/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import Form from 'app/views/settings/components/forms/form';
+import IntegrationAlertRules from 'app/views/organizationIntegrations/integrationAlertRules';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
-import IntegrationProjects from 'app/views/organizationIntegrations/integrationProjects';
 import IntegrationRepos from 'app/views/organizationIntegrations/integrationRepos';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import withOrganization from 'app/utils/withOrganization';
 
-export default class ConfigureIntegration extends AsyncView {
+class ConfigureIntegration extends AsyncView {
   getEndpoints() {
     const {orgId, integrationId} = this.props.params;
 
@@ -20,8 +22,20 @@ export default class ConfigureIntegration extends AsyncView {
     ];
   }
 
+  onRequestSuccess({stateKey, data}) {
+    if (stateKey !== 'integration') {
+      return;
+    }
+    analytics('integrations.details_viewed', {
+      org_id: parseInt(this.props.organization.id, 10),
+      integration: data.provider.key,
+    });
+  }
+
   getTitle() {
-    return this.state.integration ? this.state.integration.name : 'Configure Integration';
+    return this.state.integration
+      ? this.state.integration.provider.name
+      : 'Configure Integration';
   }
 
   renderBody() {
@@ -35,7 +49,7 @@ export default class ConfigureIntegration extends AsyncView {
 
     return (
       <React.Fragment>
-        <BreadcrumbTitle routes={this.props.routes} title={integration.name} />
+        <BreadcrumbTitle routes={this.props.routes} title={integration.provider.name} />
         <SettingsPageHeader noTitleStyles title={title} />
 
         {integration.configOrganization.length > 0 && (
@@ -54,12 +68,16 @@ export default class ConfigureIntegration extends AsyncView {
           </Form>
         )}
 
-        {provider.canAddProject && <IntegrationProjects integrationId={integration.id} />}
+        {provider.features.includes('alert-rule') && (
+          <IntegrationAlertRules integration={integration} />
+        )}
 
         {provider.features.includes('commits') && (
-          <IntegrationRepos integration={integration} />
+          <IntegrationRepos {...this.props} integration={integration} />
         )}
       </React.Fragment>
     );
   }
 }
+
+export default withOrganization(ConfigureIntegration);

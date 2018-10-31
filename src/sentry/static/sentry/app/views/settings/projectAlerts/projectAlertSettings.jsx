@@ -5,10 +5,11 @@ import {fields} from 'app/data/forms/projectAlerts';
 import {t} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import ListLink from 'app/components/listLink';
+import NavTabs from 'app/components/navTabs';
 import PluginList from 'app/components/pluginList';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -89,12 +90,12 @@ export default class ProjectAlertSettings extends AsyncView {
             </Tooltip>
           }
           tabs={
-            <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
+            <NavTabs underlined={true}>
               <ListLink to={recreateRoute('', this.props)} index={true}>
                 {t('Settings')}
               </ListLink>
               <ListLink to={recreateRoute('rules/', this.props)}>{t('Rules')}</ListLink>
-            </ul>
+            </NavTabs>
           }
         />
         <AlertLink to={'/settings/account/notifications/'} icon="icon-mail">

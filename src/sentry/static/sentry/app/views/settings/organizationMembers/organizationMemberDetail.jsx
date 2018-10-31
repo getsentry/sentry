@@ -4,7 +4,7 @@ import React from 'react';
 import {resendMemberInvite, updateMember} from 'app/actionCreators/members';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NotFound from 'app/components/errors/notFound';
@@ -118,6 +118,30 @@ class OrganizationMemberDetail extends AsyncView {
     });
   };
 
+  allSelected = () => {
+    let {member} = this.state;
+    let {teams} = this.getOrganization();
+    return teams.length === member.teams.length;
+  };
+
+  handleSelectAll = () => {
+    let {member, selectedTeams} = this.state;
+    let {teams} = this.getOrganization();
+
+    if (this.allSelected()) {
+      selectedTeams.clear();
+    } else {
+      selectedTeams = new Set(teams.map(({slug}) => slug));
+    }
+
+    this.setState({
+      member: {
+        ...member,
+        teams: Array.from(selectedTeams.values()),
+      },
+    });
+  };
+
   renderBody() {
     let {error, member} = this.state;
     let {teams, access} = this.getOrganization();
@@ -127,6 +151,7 @@ class OrganizationMemberDetail extends AsyncView {
     let email = member.email;
     let inviteLink = member.invite_link;
     let canEdit = access.includes('org:write');
+    let canResend = !member.expired;
 
     return (
       <div>
@@ -162,8 +187,14 @@ class OrganizationMemberDetail extends AsyncView {
                 <div className="col-md-3">
                   <div className="control-group">
                     <label>{t('Status')}</label>
-                    <div className="controls">
-                      {member.pending ? <em>Invitation Pending</em> : 'Active'}
+                    <div className="controls" data-test-id="member-status">
+                      {member.expired ? (
+                        <em>Invitation Expired</em>
+                      ) : member.pending ? (
+                        <em>Invitation Pending</em>
+                      ) : (
+                        'Active'
+                      )}
                     </div>
                   </div>
                 </div>
@@ -200,9 +231,14 @@ class OrganizationMemberDetail extends AsyncView {
                     >
                       {t('Generate New Invite')}
                     </Button>
-                    <Button onClick={() => this.handleInvite(false)}>
-                      {t('Resend Invite')}
-                    </Button>
+                    {canResend && (
+                      <Button
+                        data-test-id="resend-invite"
+                        onClick={() => this.handleInvite(false)}
+                      >
+                        {t('Resend Invite')}
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
@@ -223,6 +259,8 @@ class OrganizationMemberDetail extends AsyncView {
           selectedTeams={new Set(member.teams)}
           toggleTeam={this.handleToggleTeam}
           disabled={!canEdit}
+          onSelectAll={this.handleSelectAll}
+          allSelected={this.allSelected}
         />
 
         <Button

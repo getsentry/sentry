@@ -15,6 +15,10 @@ from .testutils import (
 
 
 class VisualStudioRepositoryProviderTest(TestCase):
+    def setUp(self):
+        self.base_url = 'https://visualstudio.com/'
+        self.vsts_external_id = '654321'
+
     @fixture
     def provider(self):
         return VstsRepositoryProvider('integrations:vsts')
@@ -24,18 +28,21 @@ class VisualStudioRepositoryProviderTest(TestCase):
 
         responses.add(
             responses.POST,
-            'https://visualstudio.com/DefaultCollection/_apis/git/repositories/None/commitsBatch',
+            'https://visualstudio.com/_apis/git/repositories/None/commitsBatch',
             body=COMPARE_COMMITS_EXAMPLE,
         )
         responses.add(
             responses.GET,
-            'https://visualstudio.com/DefaultCollection/_apis/git/repositories/None/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff/changes',
+            'https://visualstudio.com/_apis/git/repositories/None/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff/changes',
             body=FILE_CHANGES_EXAMPLE,
         )
         integration = Integration.objects.create(
             provider='vsts',
-            external_id='vsts_external_id',
+            external_id=self.vsts_external_id,
             name='Hello world',
+            metadata={
+                'domain_name': self.base_url,
+            }
         )
         default_auth = Identity.objects.create(
             idp=IdentityProvider.objects.create(
@@ -51,13 +58,13 @@ class VisualStudioRepositoryProviderTest(TestCase):
                 'token_type': 'jwt-bearer',
             },
         )
-        integration.add_organization(self.organization.id, default_auth.id)
+        integration.add_organization(self.organization, self.user, default_auth.id)
         repo = Repository.objects.create(
             provider='visualstudio',
             name='example',
             organization_id=self.organization.id,
             config={
-                'instance': 'visualstudio.com',
+                'instance': self.base_url,
                 'project': 'project-name',
                 'name': 'example',
             },
@@ -77,32 +84,35 @@ class VisualStudioRepositoryProviderTest(TestCase):
         }]
 
     @responses.activate
-    def test_create_repository(self):
+    def test_build_repository_config(self):
         organization = self.create_organization()
         integration = Integration.objects.create(
             provider='vsts',
-            external_id='vsts_external_id',
+            external_id=self.vsts_external_id,
             name='Hello world',
+            metadata={
+                'domain_name': self.base_url,
+            }
         )
         data = {
             'name': 'MyFirstProject',
             'external_id': '654321',
             'url': 'https://mbittker.visualstudio.com/_git/MyFirstProject/',
-            'instance': 'https://visualstudio.com',
+            'instance': self.base_url,
             'project': 'MyFirstProject',
             'installation': integration.id,
         }
-        data = self.provider.create_repository(organization, data)
+        data = self.provider.build_repository_config(organization, data)
 
         assert data == {
             'name': 'MyFirstProject',
-            'external_id': '654321',
+            'external_id': self.vsts_external_id,
             'url': 'https://mbittker.visualstudio.com/_git/MyFirstProject/',
 
             'config': {
                 'project': 'MyFirstProject',
                 'name': 'MyFirstProject',
-                'instance': 'https://visualstudio.com'
+                'instance': self.base_url
 
             },
             'integration_id': integration.id,

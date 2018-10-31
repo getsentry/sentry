@@ -26,8 +26,8 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.list_hooks_path = '/settings/{}/{}/hooks/'.format(self.org.slug, self.project.slug)
-        self.new_hook_path = '/settings/{}/{}/hooks/new/'.format(self.org.slug, self.project.slug)
+        self.list_hooks_path = u'/settings/{}/{}/hooks/'.format(self.org.slug, self.project.slug)
+        self.new_hook_path = u'/settings/{}/{}/hooks/new/'.format(self.org.slug, self.project.slug)
 
     def test_simple(self):
         with self.feature('projects:servicehooks'):
@@ -39,7 +39,7 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
             self.browser.click('[data-test-id="new-service-hook"]')
 
             self.browser.wait_until_not('.loading-indicator')
-            assert self.browser.current_url == '{}{}'.format(
+            assert self.browser.current_url == u'{}{}'.format(
                 self.browser.live_server_url,
                 self.new_hook_path,
             )
@@ -49,7 +49,7 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
             self.browser.click('.ref-project-create-service-hook [data-test-id="form-submit"]')
 
             self.browser.wait_until_not('.loading-indicator')
-            assert self.browser.current_url == '{}{}'.format(
+            assert self.browser.current_url == u'{}{}'.format(
                 self.browser.live_server_url,
                 self.list_hooks_path,
             )
@@ -62,8 +62,8 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
             # hopefully click the first service hook
             self.browser.click('.ref-project-service-hooks label a')
             self.browser.wait_until_not('.loading-indicator')
-            assert self.browser.current_url == '{}{}'.format(
+            assert self.browser.current_url == u'{}{}'.format(
                 self.browser.live_server_url,
-                '/settings/{}/{}/hooks/{}/'.format(self.org.slug, self.project.slug, hook.guid),
+                u'/settings/{}/{}/hooks/{}/'.format(self.org.slug, self.project.slug, hook.guid),
             )
             self.browser.snapshot('project settings - service hooks - details')

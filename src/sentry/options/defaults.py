@@ -16,7 +16,7 @@ from sentry.options import (
     FLAG_ALLOW_EMPTY,
     register,
 )
-from sentry.utils.types import Bool, Dict, String, Sequence
+from sentry.utils.types import Bool, Dict, String, Sequence, Int
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -72,6 +72,7 @@ register('mail.list-namespace', type=String, default='localhost', flags=FLAG_NOS
 register('mail.enable-replies', default=False, flags=FLAG_PRIORITIZE_DISK)
 register('mail.reply-hostname', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('mail.mailgun-api-key', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('mail.timeout', default=10, type=Int, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
 # SMS
 register('sms.twilio-account', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
@@ -93,7 +94,6 @@ register(
 register('api.rate-limit.org-create', default=5, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
 # Beacon
-
 register('beacon.anonymous', type=Bool, flags=FLAG_REQUIRED)
 
 # Filestore
@@ -133,3 +133,14 @@ register('github-app.client-secret', flags=FLAG_PRIORITIZE_DISK)
 # VSTS Integration
 register('vsts.client-id', flags=FLAG_PRIORITIZE_DISK)
 register('vsts.client-secret', flags=FLAG_PRIORITIZE_DISK)
+
+# Snuba
+register('snuba.use_group_id_column', default=False)
+register('snuba.search.max-pre-snuba-candidates', default=500)
+register('snuba.search.chunk-growth-rate', default=1.5)
+register('snuba.search.max-chunk-size', default=2000)
+register('snuba.search.max-total-chunk-time-seconds', default=30.0)
+
+# Kafka Publisher
+register('kafka-publisher.raw-event-sample-rate', default=0.0)
+register('kafka-publisher.max-event-size', default=100000)

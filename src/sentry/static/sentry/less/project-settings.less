@@ -15,45 +15,57 @@
 .filtered-stats-barchart {
   height: 100px;
 
-  a {
-    > span {
+  a,
+  g {
+    > span,
+    > rect,
+    &:hover > rect {
       left: 2px;
       right: 2px;
 
       &.ip-address {
         background: @red-light;
+        fill: @red-light;
       }
 
       &.release-version {
         background: @purple-light;
+        fill: @purple-light;
       }
 
       &.error-message {
         background: @purple;
+        fill: @purple;
       }
 
       &.browser-extensions {
         background: @gray;
+        fill: @gray;
       }
 
       &.legacy-browsers {
         background: @gray-light;
+        fill: @gray-light;
       }
 
       &.localhost {
         background: @blue;
+        fill: @blue;
       }
 
       &.web-crawlers {
         background: @red;
+        fill: @red;
       }
 
       &.invalid-csp {
         background: @blue-light;
+        fill: @blue-light;
       }
 
       &.cors {
         background: @orange;
+        fill: @orange;
       }
     }
   }
@@ -174,22 +186,6 @@
  * Install
  * ============================================================================
  */
-
-.install {
-  margin-top: 10px;
-  margin-bottom: 20px;
-
-  .install-content {
-    padding-left: 30px;
-  }
-}
-
-.getting-started {
-  .install .install-content {
-    padding-left: 15px;
-    margin-top: -10px;
-  }
-}
 
 .install-language-nav {
   background-color: @white;

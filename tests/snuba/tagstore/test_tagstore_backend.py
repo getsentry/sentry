@@ -42,6 +42,7 @@ class TagStorageTest(SnubaTestCase):
         data = json.dumps([{
             'event_id': six.text_type(r) * 32,
             'primary_hash': hash1,
+            'group_id': int(hash1[:16], 16),
             'project_id': self.proj1.id,
             'message': 'message 1',
             'platform': 'python',
@@ -53,16 +54,17 @@ class TagStorageTest(SnubaTestCase):
                     'baz': 'quux',
                     'environment': self.proj1env1.name,
                     'sentry:release': 100 * r,
-                    'sentry:user': "id:user{}".format(r),
+                    'sentry:user': u"id:user{}".format(r),
                 },
                 'sentry.interfaces.User': {
-                    'id': "user{}".format(r),
-                    'email': "user{}@sentry.io".format(r)
+                    'id': u"user{}".format(r),
+                    'email': u"user{}@sentry.io".format(r)
                 }
             },
         } for r in [1, 2]] + [{
             'event_id': '3' * 32,
             'primary_hash': hash2,
+            'group_id': int(hash2[:16], 16),
             'project_id': self.proj1.id,
             'message': 'message 2',
             'platform': 'python',
@@ -83,28 +85,47 @@ class TagStorageTest(SnubaTestCase):
         assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
 
     def test_get_group_tag_keys_and_top_values(self):
-        # TODO: `release` should be `sentry:release`
         result = self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
         )
-        tags = [r['key'] for r in result]
-        assert set(tags) == set(['foo', 'baz', 'environment', 'release', 'user'])
+        tags = [r.key for r in result]
+        assert set(tags) == set(['foo', 'baz', 'environment', 'sentry:release', 'sentry:user'])
 
-        result.sort(key=lambda r: r['key'])
-        assert result[0]['key'] == 'baz'
-        assert result[0]['uniqueValues'] == 1
-        assert result[0]['totalValues'] == 2
-        assert result[0]['topValues'][0]['value'] == 'quux'
+        result.sort(key=lambda r: r.key)
+        assert result[0].key == 'baz'
+        assert result[0].top_values[0].value == 'quux'
+        # assert result[0].values_seen == 1
+        # assert result[0].count == 2
 
-        assert result[3]['key'] == 'release'
-        assert result[3]['uniqueValues'] == 2
-        assert result[3]['totalValues'] == 2
-        top_release_values = result[3]['topValues']
+        assert result[3].key == 'sentry:release'
+        # assert result[3].values_seen == 2
+        # assert result[3].count == 2
+        top_release_values = result[3].top_values
         assert len(top_release_values) == 2
-        assert set(v['value'] for v in top_release_values) == set(['100', '200'])
-        assert all(v['count'] == 1 for v in top_release_values)
+        assert set(v.value for v in top_release_values) == set(['100', '200'])
+        assert all(v.times_seen == 1 for v in top_release_values)
+
+        # Now with only a specific set of keys,
+        result = self.ts.get_group_tag_keys_and_top_values(
+            self.proj1.id,
+            self.proj1group1.id,
+            self.proj1env1.id,
+            keys=['environment', 'sentry:release'],
+        )
+        tags = [r.key for r in result]
+        assert set(tags) == set(['environment', 'sentry:release'])
+
+        result.sort(key=lambda r: r.key)
+        assert result[0].key == 'environment'
+        assert result[0].top_values[0].value == 'test'
+
+        assert result[1].key == 'sentry:release'
+        top_release_values = result[1].top_values
+        assert len(top_release_values) == 2
+        assert set(v.value for v in top_release_values) == set(['100', '200'])
+        assert all(v.times_seen == 1 for v in top_release_values)
 
     def test_get_top_group_tag_values(self):
         resp = self.ts.get_top_group_tag_values(
@@ -154,7 +175,7 @@ class TagStorageTest(SnubaTestCase):
         assert set(keys) == set(['baz', 'environment', 'foo', 'sentry:release', 'sentry:user'])
         for k in keys.values():
             if k.key not in set(['sentry:release', 'sentry:user']):
-                assert k.values_seen == 1, 'expected {!r} to have 1 unique value'.format(k.key)
+                assert k.values_seen == 1, u'expected {!r} to have 1 unique value'.format(k.key)
             else:
                 assert k.values_seen == 2
 
@@ -304,10 +325,10 @@ class TagStorageTest(SnubaTestCase):
             self.proj1group1.id,
             self.proj1env1.id,
             {
-                'foo': 'bar',  # OR
-                'release': '200'
+                'foo': 'bar',  # AND
+                'sentry:release': '200'
             }
-        ) == {'event_id__in': set(["1" * 32, "2" * 32])}
+        ) == {'event_id__in': set(["2" * 32])}
 
         assert self.ts.get_group_event_filter(
             self.proj1.id,

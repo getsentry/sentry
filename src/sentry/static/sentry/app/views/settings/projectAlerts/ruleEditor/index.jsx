@@ -15,7 +15,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import EnvironmentStore from 'app/stores/environmentStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import RuleNodeList from 'app/views/settings/projectAlerts/ruleEditor/ruleNodeList';
@@ -336,5 +336,5 @@ const ActionBar = styled('div')`
   justify-content: flex-end;
   padding: ${space(2)};
   border-top: 1px solid ${p => p.theme.borderLight};
-  margin: 0 -20px -20px;
+  margin: 0 -${space(2)} -${space(2)};
 `;

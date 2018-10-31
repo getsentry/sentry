@@ -2,7 +2,6 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
-{% load sentry_auth %}
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
@@ -48,14 +47,22 @@
             </div>
           </form>
         </div>
-        {% if github_login_template or vsts_login_template %}
+        {% if github_login_link or vsts_login_link %}
           <div class="auth-provider-column">
-            {% if github_login_template %}
-              {% include github_login_template %}
+            {% if github_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="display: block">
+                  <span class="provider-logo github"></span> Sign in with GitHub
+                </a>
+              </p>
             {% endif %}
 
-            {% if vsts_login_template %}
-              {% include vsts_login_template %}
+            {% if vsts_login_link %}
+              <p>
+                <a class="btn btn-default btn-login-vsts" href="{{ vsts_login_link }}" style="display: block">
+                  <span class="provider-logo vsts"></span> Sign in with Azure DevOps
+                </a>
+              </p>
             {% endif %}
           </div>
         {% endif %}

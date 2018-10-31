@@ -101,10 +101,14 @@ def configure(ctx, py, yaml, skip_service_validation=False):
     # which aren't common in default system registries
     import mimetypes
     for type, ext in (
-        ('application/json', 'map'), ('application/font-woff', 'woff'),
-        ('application/font-woff2', 'woff2'), ('application/vnd.ms-fontobject', 'eot'),
-        ('application/x-font-ttf', 'ttf'), ('application/x-font-ttf',
-                                            'ttc'), ('font/opentype', 'otf'),
+        ('application/json', 'map'),
+        ('application/font-woff', 'woff'),
+        ('application/font-woff2', 'woff2'),
+        ('application/vnd.ms-fontobject', 'eot'),
+        ('application/x-font-ttf', 'ttf'),
+        ('application/x-font-ttf', 'ttc'),
+        ('font/opentype', 'otf'),
+        ('image/svg+xml', 'svg'),
     ):
         mimetypes.add_type(type, '.' + ext)
 

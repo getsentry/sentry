@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 
 import six
+from mock import patch
 
 from sentry.models import (
     Commit, CommitAuthor, Environment, Group, GroupRelease, GroupResolution, GroupLink, GroupStatus,
-    Release, ReleaseCommit, ReleaseEnvironment, ReleaseHeadCommit, ReleaseProject, ReleaseProjectEnvironment,
-    Repository
+    ExternalIssue, Integration, OrganizationIntegration, Release, ReleaseCommit, ReleaseEnvironment,
+    ReleaseHeadCommit, ReleaseProject, ReleaseProjectEnvironment, Repository
 )
 
 from sentry.testutils import TestCase
@@ -448,6 +449,85 @@ class SetCommitsTestCase(TestCase):
             'id': commit.key,
             'repository': repo.name,
         }])
+
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id).exists()
+
+        resolution = GroupResolution.objects.get(
+            group=group,
+        )
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.actor_id is None
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+
+    @patch('sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound')
+    def test_resolution_support_with_integration(self, mock_sync_status_outbound):
+        org = self.create_organization()
+        integration = Integration.objects.create(
+            provider='example',
+            name='Example',
+        )
+        integration.add_organization(org, self.user)
+
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=org.id,
+        ).update(
+            config={
+                'sync_comments': True,
+                'sync_status_outbound': True,
+                'sync_status_inbound': True,
+                'sync_assignee_outbound': True,
+                'sync_assignee_inbound': True,
+            }
+        )
+        project = self.create_project(organization=org, name='foo')
+        group = self.create_group(project=project)
+
+        external_issue = ExternalIssue.objects.get_or_create(
+            organization_id=org.id,
+            integration_id=integration.id,
+            key='APP-%s' % group.id,
+        )[0]
+
+        GroupLink.objects.get_or_create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )[0]
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='test/repo',
+        )
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message='fixes %s' % (group.qualified_short_id),
+            key='alksdflskdfjsldkfajsflkslk',
+        )
+
+        release = self.create_release(project=project, version='abcdabc')
+
+        with self.tasks():
+            with self.feature({
+                'organizations:integrations-issue-sync': True,
+            }):
+                release.set_commits([{
+                    'id': commit.key,
+                    'repository': repo.name,
+                }])
+
+        mock_sync_status_outbound.assert_called_once_with(
+            external_issue, True, group.project_id
+        )
 
         assert GroupLink.objects.filter(
             group_id=group.id,

@@ -2,9 +2,9 @@ import Reflux from 'reflux';
 import _ from 'lodash';
 
 let validHookNames = new Set([
-  'assistant:support-button',
   'component:org-members-view',
   'component:org-auth-view',
+  'component:sample-event',
   'footer',
   'settings:organization-navigation',
   'settings:organization-navigation-config',
@@ -18,12 +18,20 @@ let validHookNames = new Set([
   'project:custom-inbound-filters:disabled',
   'project:discard-groups:disabled',
   'issue:secondary-column',
-  'analytics:onboarding-complete',
+  'amplitude:event',
   'analytics:event',
   'analytics:log-experiment',
   'sidebar:organization-dropdown-menu',
+  'sidebar:help-menu',
+  'integrations:feature-gates',
 ]);
 
+/**
+ * HookStore is used to allow extensability into Sentry's frontend via
+ * registration of 'hook functions'.
+ *
+ * This functionality is primarly used by the SASS sentry.io product.
+ */
 const HookStore = Reflux.createStore({
   init() {
     this.hooks = {};

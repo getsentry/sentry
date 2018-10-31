@@ -4,9 +4,9 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {defined} from 'app/utils';
-import {pulse, fadeOut} from 'app/styles/animations';
+import {pulse, fadeOut, slideInUp} from 'app/styles/animations';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Field from 'app/views/settings/components/forms/field';
 import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
 import FormState from 'app/components/forms/state';
@@ -19,6 +19,8 @@ import space from 'app/styles/space';
 const FormFieldErrorReason = styled.div`
   color: ${p => p.theme.redDark};
   position: absolute;
+  right: 2px;
+  margin-top: 6px;
   background: #fff;
   padding: 6px 8px;
   font-weight: 600;
@@ -26,6 +28,23 @@ const FormFieldErrorReason = styled.div`
   border-radius: 3px;
   box-shadow: 0 0 0 1px rgba(64, 11, 54, 0.15), 0 4px 20px 0 rgba(64, 11, 54, 0.36);
   z-index: 10000;
+  animation: ${slideInUp} 200ms ease-in-out forwards;
+
+  &:before,
+  &:after {
+    content: '';
+    border: 7px solid transparent;
+    border-bottom-color: #fff;
+    position: absolute;
+    top: -14px;
+    right: 9px;
+  }
+
+  &:before {
+    margin-top: -1px;
+    border-bottom-color: rgba(64, 11, 54, 0.15);
+    filter: drop-shadow(0 -2px 5px rgba(64, 11, 54, 1));
+  }
 `;
 
 const FormFieldError = styled.div`
@@ -345,7 +364,14 @@ class FormField extends React.Component {
 
     const makeField = extraProps => (
       <React.Fragment>
-        <Field id={id} name={name} className={className} {...props} {...extraProps}>
+        <Field
+          id={id}
+          name={name}
+          className={className}
+          flexibleControlStateSize={flexibleControlStateSize}
+          {...props}
+          {...extraProps}
+        >
           {({alignRight, inline, disabled, disabledReason}) => (
             <FieldControl
               disabled={disabled}
@@ -373,23 +399,21 @@ class FormField extends React.Component {
 
                   return (
                     <React.Fragment>
-                      <this.props.children
-                        innerRef={this.handleInputMount}
-                        {...{
-                          ...props,
-                          name,
-                          id,
-                          onKeyDown: this.handleKeyDown,
-                          onChange: this.handleChange,
-                          onBlur: this.handleBlur,
-                          // Fixes react warnings about input switching from controlled to uncontrolled
-                          // So force to empty string for null values
-                          value: value === null ? '' : value,
-                          error,
-                          disabled,
-                        }}
-                        initialData={model.initialData}
-                      />
+                      {this.props.children({
+                        innerRef: this.handleInputMount,
+                        ...props,
+                        name,
+                        id,
+                        onKeyDown: this.handleKeyDown,
+                        onChange: this.handleChange,
+                        onBlur: this.handleBlur,
+                        // Fixes react warnings about input switching from controlled to uncontrolled
+                        // So force to empty string for null values
+                        value: value === null ? '' : value,
+                        error,
+                        disabled,
+                        initialData: model.initialData,
+                      })}
                       {showReturnButton && <ReturnButtonStyled />}
                     </React.Fragment>
                   );

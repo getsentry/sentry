@@ -9,7 +9,8 @@ import ProjectSelector from 'app/components/projectHeader/projectSelector';
 import BookmarkToggle from 'app/components/projects/bookmarkToggle';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
+import NavTabs from 'app/components/navTabs';
 
 import {t} from 'app/locale';
 
@@ -17,8 +18,6 @@ import {
   setActiveEnvironment,
   clearActiveEnvironment,
 } from 'app/actionCreators/environments';
-
-import BackfillNotice from './backfillNotice';
 
 class ProjectHeader extends React.Component {
   static propTypes = {
@@ -39,11 +38,8 @@ class ProjectHeader extends React.Component {
     let org = this.props.organization;
     let features = new Set(project.features);
     let access = new Set(org.access);
-    let orgFeatures = new Set(org.features);
     let allEnvironmentsLabel = t('All environments');
 
-    // TODO: remove when feature is released
-    let hasEnvironmentsFeature = orgFeatures.has('environments');
     let pagesWithEnvironments = new Set([
       'stream',
       'releases',
@@ -51,8 +47,7 @@ class ProjectHeader extends React.Component {
       'events',
       'user-feedback',
     ]);
-    let pageHasEnvironments = pagesWithEnvironments.has(navSection);
-    let showEnvironmentsToggle = hasEnvironmentsFeature && pageHasEnvironments;
+    let showEnvironmentsToggle = pagesWithEnvironments.has(navSection);
 
     let activeEnvironmentTitle = activeEnvironment
       ? activeEnvironment.displayName
@@ -67,7 +62,7 @@ class ProjectHeader extends React.Component {
               <BookmarkToggle />
             </div>
 
-            <ul className="nav nav-tabs">
+            <NavTabs>
               <li className={navSection == 'stream' ? 'active' : ''}>
                 <ProjectLink to={`/${org.slug}/${project.slug}/`}>
                   {t('Issues')}
@@ -97,22 +92,15 @@ class ProjectHeader extends React.Component {
               </li>
               {access.has('project:write') && (
                 <li className={navSection == 'settings' ? 'active' : ''}>
-                  <Link
-                    to={
-                      orgFeatures.has('new-settings')
-                        ? `/settings/${org.slug}/${project.slug}/`
-                        : `/${org.slug}/${project.slug}/settings/`
-                    }
-                  >
+                  <Link to={`/settings/${org.slug}/${project.slug}/`}>
                     {t('Settings')}
                   </Link>
                 </li>
               )}
-            </ul>
+            </NavTabs>
           </div>
           {showEnvironmentsToggle && (
             <EnvironmentsToggle>
-              <BackfillNotice project={project} />
               <div className="project-header-toggle">
                 <label>{t('Environment')}</label>
                 <DropdownLink
@@ -144,11 +132,7 @@ class ProjectHeader extends React.Component {
                   <MenuItem divider={true} />
                   <div style={{textAlign: 'center', padding: '5px 0px'}}>
                     <Button
-                      to={
-                        orgFeatures.has('new-settings')
-                          ? `/settings/${org.slug}/${project.slug}/environments/`
-                          : `/${org.slug}/${project.slug}/settings/`
-                      }
+                      to={`/settings/${org.slug}/${project.slug}/environments/`}
                       size="small"
                     >
                       {t('Manage environments')}

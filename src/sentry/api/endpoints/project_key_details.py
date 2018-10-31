@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db.models import F
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -10,6 +11,10 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.loader.browsersdkversion import (
+    DEFAULT_VERSION,
+    get_browser_sdk_version_choices
+)
 
 
 @scenario('DeleteClientKey')
@@ -42,6 +47,9 @@ class KeySerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=False)
     isActive = serializers.BooleanField(required=False)
     rateLimit = RateLimitSerializer(required=False)
+    browserSdkVersion = serializers.ChoiceField(
+        choices=get_browser_sdk_version_choices(), required=False
+    )
 
 
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):
@@ -52,7 +60,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             key = ProjectKey.objects.get(
                 project=project,
                 public_key=key_id,
-                roles=ProjectKey.roles.store,
+                roles=F('roles').bitor(ProjectKey.roles.store),
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
@@ -78,7 +86,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             key = ProjectKey.objects.get(
                 project=project,
                 public_key=key_id,
-                roles=ProjectKey.roles.store,
+                roles=F('roles').bitor(ProjectKey.roles.store),
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
@@ -90,6 +98,11 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
             if result.get('name'):
                 key.label = result['name']
+
+            if result.get('browserSdkVersion') == '':
+                key.data = {'browserSdkVersion': DEFAULT_VERSION}
+            else:
+                key.data = {'browserSdkVersion': result.get('browserSdkVersion', DEFAULT_VERSION)}
 
             if result.get('isActive') is True:
                 key.status = ProjectKeyStatus.ACTIVE
@@ -136,7 +149,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             key = ProjectKey.objects.get(
                 project=project,
                 public_key=key_id,
-                roles=ProjectKey.roles.store,
+                roles=F('roles').bitor(ProjectKey.roles.store),
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist

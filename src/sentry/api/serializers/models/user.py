@@ -75,6 +75,7 @@ class UserSerializer(Serializer):
             'lastLogin': obj.last_login,
             'has2fa': attrs['has2fa'],
             'lastActive': obj.last_active,
+            'isSuperuser': obj.is_superuser,
         }
 
         if obj == user:
@@ -169,7 +170,7 @@ class DetailedUserSerializer(UserSerializer):
             {
                 'id': six.text_type(a.id),
                 'type': a.interface.interface_id,
-                'name': a.interface.name,
+                'name': six.text_type(a.interface.name),
                 'dateCreated': a.created_at,
                 'dateUsed': a.last_used_at,
             } for a in attrs['authenticators']

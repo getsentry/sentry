@@ -77,10 +77,10 @@ class Release(Model):
     owner = FlexibleForeignKey('sentry.User', null=True, blank=True)
 
     # materialized stats
-    commit_count = BoundedPositiveIntegerField(null=True)
+    commit_count = BoundedPositiveIntegerField(null=True, default=0)
     last_commit_id = BoundedPositiveIntegerField(null=True)
     authors = ArrayField(null=True)
-    total_deploys = BoundedPositiveIntegerField(null=True)
+    total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
 
     class Meta:
@@ -101,7 +101,7 @@ class Release(Model):
 
     @classmethod
     def get_lock_key(cls, organization_id, release_id):
-        return 'releasecommits:{}:{}'.format(organization_id, release_id)
+        return u'releasecommits:{}:{}'.format(organization_id, release_id)
 
     @classmethod
     def get(cls, project, version):
@@ -338,6 +338,7 @@ class Release(Model):
             ReleaseCommit, ReleaseHeadCommit, Repository, PullRequest
         )
         from sentry.plugins.providers.repository import RepositoryProvider
+        from sentry.tasks.integrations import kick_off_status_syncs
         # todo(meredith): implement for IntegrationRepositoryProvider
         commit_list = [
             c for c in commit_list
@@ -360,7 +361,7 @@ class Release(Model):
                 latest_commit = None
                 for idx, data in enumerate(commit_list):
                     repo_name = data.get('repository'
-                                         ) or 'organization-{}'.format(self.organization_id)
+                                         ) or u'organization-{}'.format(self.organization_id)
                     if repo_name not in repos:
                         repos[repo_name] = repo = Repository.objects.get_or_create(
                             organization_id=self.organization_id,
@@ -423,6 +424,8 @@ class Release(Model):
                             update_kwargs['message'] = defaults['message']
                         if commit.author_id is None and defaults['author'] is not None:
                             update_kwargs['author'] = defaults['author']
+                        if defaults.get('date_added') is not None:
+                            update_kwargs['date_added'] = defaults['date_added']
                         if update_kwargs:
                             commit.update(**update_kwargs)
 
@@ -502,7 +505,15 @@ class Release(Model):
 
         user_by_author = {None: None}
 
-        for group_id, author in itertools.chain(commit_group_authors, pull_request_group_authors):
+        commits_and_prs = list(
+            itertools.chain(commit_group_authors, pull_request_group_authors),
+        )
+
+        group_project_lookup = dict(Group.objects.filter(
+            id__in=[group_id for group_id, _ in commits_and_prs],
+        ).values_list('id', 'project_id'))
+
+        for group_id, author in commits_and_prs:
             if author not in user_by_author:
                 try:
                     user_by_author[author] = author.find_users()[0]
@@ -523,3 +534,8 @@ class Release(Model):
                 Group.objects.filter(
                     id=group_id,
                 ).update(status=GroupStatus.RESOLVED)
+
+            kick_off_status_syncs.apply_async(kwargs={
+                'project_id': group_project_lookup[group_id],
+                'group_id': group_id,
+            })

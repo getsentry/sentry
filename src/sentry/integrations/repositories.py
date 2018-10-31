@@ -5,8 +5,11 @@ from sentry.models import Repository
 
 
 class RepositoryMixin(object):
+    # whether or not integration has the ability to search through Repositories
+    # dynamically given a search query
+    repo_search = False
 
-    def get_repositories(self):
+    def get_repositories(self, query=None):
         """
         Get a list of availble repositories for an installation
 
@@ -20,6 +23,9 @@ class RepositoryMixin(object):
         """
         raise NotImplementedError
 
+    def get_unmigratable_repositories(self):
+        return []
+
     def reinstall_repositories(self):
         """
         reinstalls repositories associated with the integration
@@ -30,3 +36,6 @@ class RepositoryMixin(object):
             provider='integrations:%s' % self.model.provider,
             integration_id=self.model.id,
         ).update(status=ObjectStatus.VISIBLE)
+
+    def has_repo_access(self, repo):
+        raise NotImplementedError

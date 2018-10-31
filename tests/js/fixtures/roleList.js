@@ -1,4 +1,4 @@
-export default function RoleList(params = [], fullAccess = false) {
+export function RoleList(params = [], fullAccess = false) {
   return [
     {
       scopes: [
@@ -29,7 +29,7 @@ export default function RoleList(params = [], fullAccess = false) {
         'event:admin',
         'member:read',
         'project:write',
-        'project:integrationsteam:read',
+        'team:read',
         'project:admin',
         'team:write',
         'org:integrations',
@@ -51,7 +51,6 @@ export default function RoleList(params = [], fullAccess = false) {
         'org:write',
         'event:admin',
         'project:write',
-        'project:integrations',
         'project:admin',
         'team:read',
         'org:integrations',

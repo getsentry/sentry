@@ -10,7 +10,7 @@ from sentry.testutils import TestCase
 class GroupEventJsonTest(TestCase):
     @fixture
     def path(self):
-        return '/{}/{}/issues/{}/events/{}/json/'.format(
+        return u'/{}/{}/issues/{}/events/{}/json/'.format(
             self.organization.slug,
             self.project.slug,
             self.group.id,

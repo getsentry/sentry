@@ -1,19 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import _ from 'lodash';
 import classNames from 'classnames';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import ClippedBox from 'app/components/clippedBox';
-import Tooltip from 'app/components/tooltip';
-import StrictClick from 'app/components/strictClick';
-import Truncate from 'app/components/truncate';
-import {t} from 'app/locale';
 import {defined, objectIsEmpty, isUrl} from 'app/utils';
-
+import {t} from 'app/locale';
+import ClippedBox from 'app/components/clippedBox';
 import ContextLine from 'app/components/events/interfaces/contextLine';
-import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
+import FrameVariables from 'app/components/events/interfaces/frameVariables';
+import StrictClick from 'app/components/strictClick';
+import Tooltip from 'app/components/tooltip';
+import Truncate from 'app/components/truncate';
+import space from 'app/styles/space';
 
 export function trimPackage(pkg) {
   let pieces = pkg.split(/^[a-z]:\\/i.test(pkg) ? '\\' : '/');
@@ -225,8 +226,6 @@ const Frame = createReactClass({
       );
     }
 
-    title.push(this.renderExpander());
-
     return title;
   },
 
@@ -319,6 +318,9 @@ const Frame = createReactClass({
     if (this.isInlineFrame()) {
       return t('Inlined frame');
     }
+    if (this.props.data.trust === 'scan') {
+      return t('Found by stack scanning');
+    }
     if (this.getPlatform() == 'cocoa') {
       let func = this.props.data.function || '<unknown>';
       if (func.match(/^@objc\s/)) {
@@ -344,13 +346,14 @@ const Frame = createReactClass({
     let timesRepeated = this.props.timesRepeated;
     if (timesRepeated > 0) {
       return (
-        <span
-          className="repeated-frames"
+        <RepeatedFrames
           title={`Frame repeated ${timesRepeated} time${timesRepeated === 1 ? '' : 's'}`}
         >
-          <span className="icon-refresh" />
-          <span>{timesRepeated}</span>
-        </span>
+          <RepeatedContent>
+            <span className="icon-refresh" />
+            <span>{timesRepeated}</span>
+          </RepeatedContent>
+        </RepeatedFrames>
       );
     } else return null;
   },
@@ -358,11 +361,16 @@ const Frame = createReactClass({
   renderDefaultLine() {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
-        <div className="title">
-          {this.renderLeadHint()}
-          {this.renderDefaultTitle()}
-          {this.renderRepeats()}
-        </div>
+        <DefaultLine className="title">
+          <VertCenterWrapper>
+            <div>
+              {this.renderLeadHint()}
+              {this.renderDefaultTitle()}
+            </div>
+            {this.renderRepeats()}
+          </VertCenterWrapper>
+          {this.renderExpander()}
+        </DefaultLine>
       </StrictClick>
     );
   },
@@ -391,10 +399,11 @@ const Frame = createReactClass({
               </span>
             )}
             {hint !== null ? (
-              <a key="inline" className="tip" data-title={_.escape(hint)}>
-                {' '}
-                <span className="icon-question" />
-              </a>
+              <Tooltip title={_.escape(hint)}>
+                <a key="inline">
+                  <span className="icon-question" />
+                </a>
+              </Tooltip>
             ) : null}
             {this.renderExpander()}
           </span>
@@ -440,5 +449,31 @@ const Frame = createReactClass({
     );
   },
 });
+
+const RepeatedFrames = styled('div')`
+  display: inline-block;
+  border-radius: 50px;
+  padding: 1px 3px;
+  margin-left: ${space(1)};
+  border-width: thin;
+  border-style: solid;
+  border-color: ${p => p.theme.yellowOrangeDark};
+  color: ${p => p.theme.yellowOrangeDark};
+  background-color: ${p => p.theme.whiteDark};
+  white-space: nowrap;
+`;
+
+const VertCenterWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const RepeatedContent = styled(VertCenterWrapper)`
+  justify-content: center;
+`;
+
+const DefaultLine = styled(VertCenterWrapper)`
+  justify-content: space-between;
+`;
 
 export default Frame;

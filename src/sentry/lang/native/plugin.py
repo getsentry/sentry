@@ -8,13 +8,12 @@ from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
     ObjectLookup
 
 from sentry import options
-from django.db import transaction, IntegrityError
-from sentry.models import VersionDSymFile, DSymPlatform, DSymApp
 from sentry.plugins import Plugin2
+from sentry.lang.native.cfi import reprocess_minidump_with_cfi
+from sentry.lang.native.minidump import is_minidump_event
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
-from sentry.lang.native.utils import \
-    get_sdk_from_event, cpu_name_from_data, \
-    rebase_addr, version_build_from_data
+from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
+    rebase_addr
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.utils import metrics
 from sentry.stacktraces import StacktraceProcessor
@@ -34,7 +33,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         debug_meta = self.data.get('debug_meta')
         self.arch = cpu_name_from_data(self.data)
         self.sym = None
-        self.dsyms_referenced = set()
+        self.difs_referenced = set()
         if debug_meta:
             self.available = True
             self.debug_meta = debug_meta
@@ -47,10 +46,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
     def close(self):
         StacktraceProcessor.close(self)
-        if self.dsyms_referenced:
+        if self.difs_referenced:
             metrics.incr(
                 'dsyms.processed',
-                amount=len(self.dsyms_referenced),
+                amount=len(self.difs_referenced),
                 skip_internal=True,
                 tags={
                     'project_id': self.project.id,
@@ -109,7 +108,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         processable_frame.data = {
             'instruction_addr': instr_addr,
             'obj': obj,
-            'obj_uuid': obj.id if obj is not None else None,
+            'debug_id': obj.id if obj is not None else None,
             'symbolserver_match': None,
         }
 
@@ -132,42 +131,14 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             return False
 
         referenced_images = set(
-            pf.data['obj_uuid'] for pf in processing_task.iter_processable_frames(self)
-            if pf.cache_value is None and pf.data['obj_uuid'] is not None
+            pf.data['debug_id'] for pf in processing_task.iter_processable_frames(self)
+            if pf.cache_value is None and pf.data['debug_id'] is not None
         )
-
-        app_info = version_build_from_data(self.data)
-        if app_info is not None:
-            def on_referenced(dsym_file):
-                dsym_app = DSymApp.objects.create_or_update_app(
-                    sync_id=None,
-                    app_id=app_info.id,
-                    project=self.project,
-                    data={'name': app_info.name},
-                    platform=DSymPlatform.APPLE,
-                    no_fetch=True
-                )
-                try:
-                    with transaction.atomic():
-                        version_dsym_file, created = VersionDSymFile.objects.get_or_create(
-                            dsym_file=dsym_file,
-                            version=app_info.version,
-                            build=app_info.build,
-                            defaults=dict(dsym_app=dsym_app),
-                        )
-                except IntegrityError:
-                    # XXX: this can currently happen because we only
-                    # support one app per dsym file.  Since this can
-                    # happen in some cases anyways we ignore it.
-                    pass
-        else:
-            on_referenced = None
 
         self.sym = Symbolizer(
             self.project,
             self.object_lookup,
             referenced_images=referenced_images,
-            on_dsym_file_referenced=on_referenced
         )
 
         if options.get('symbolserver.enabled'):
@@ -230,9 +201,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             if raw_frame.get('in_app') is None:
                 raw_frame['in_app'] = in_app
 
-            obj_uuid = processable_frame.data['obj_uuid']
-            if obj_uuid is not None:
-                self.dsyms_referenced.add(obj_uuid)
+            debug_id = processable_frame.data['debug_id']
+            if debug_id is not None:
+                self.difs_referenced.add(debug_id)
 
             try:
                 symbolicated_frames = self.sym.symbolize_frame(
@@ -261,7 +232,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 # we will not have any user facing event or error showing
                 # up at all.  We want to keep this here though in case we
                 # do not want to report some processing issues (eg:
-                # optional dsyms)
+                # optional difs)
                 errors = []
                 if e.is_user_fixable or e.is_sdk_failure:
                     errors.append(e.get_data())
@@ -304,6 +275,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
 class NativePlugin(Plugin2):
     can_disable = False
+
+    def get_event_enhancers(self, data):
+        if is_minidump_event(data):
+            return [reprocess_minidump_with_cfi]
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if any(platform in NativeStacktraceProcessor.supported_platforms for platform in platforms):

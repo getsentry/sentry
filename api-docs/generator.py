@@ -16,7 +16,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 SENTRY_CONFIG = os.environ['SENTRY_CONF'] = os.path.join(HERE, 'sentry.conf.py')
 os.environ['SENTRY_SKIP_BACKEND_VALIDATION'] = '1'
 
-# No sentry or django imports before that point
+# No sentry or django imports before this point
 from sentry.runner import configure
 configure()
 from django.conf import settings
@@ -24,8 +24,11 @@ from django.conf import settings
 # Fair game from here
 from django.core.management import call_command
 
-from sentry.utils.apidocs import Runner, MockUtils, iter_scenarios, \
+from sentry.utils.apidocs import (
+    Runner, MockUtils, iter_scenarios,
     iter_endpoints, get_sections
+)
+from sentry.web.helpers import render_to_string
 
 
 OUTPUT_PATH = os.path.join(HERE, 'cache')
@@ -89,7 +92,7 @@ def management_connection():
 
 def init_db():
     drop_db()
-    report('db', 'Migrating database (this can time some time)')
+    report('db', 'Migrating database (this can take some time)')
     call_command('syncdb', migrate=True, interactive=False,
                  traceback=True, verbosity=0)
 
@@ -127,27 +130,17 @@ class SentryBox(object):
         drop_db()
 
 
-def dump_json(path, data):
-    path = os.path.join(OUTPUT_PATH, path)
-    try:
-        os.makedirs(os.path.dirname(path))
-    except OSError:
-        pass
-    with open(path, 'w') as f:
-        for line in json.dumps(data, indent=2, sort_keys=True).splitlines():
-            f.write(line.rstrip() + '\n')
-
-
 def run_scenario(vars, scenario_ident, func):
     runner = Runner(scenario_ident, func, **vars)
     report('scenario', 'Running scenario "%s"' % scenario_ident)
     func(runner)
-    dump_json('scenarios/%s.json' % scenario_ident, runner.to_json())
+    return runner.to_json()
 
 
 @click.command()
 @click.option('--output-path', type=click.Path())
-def cli(output_path):
+@click.option('--output-format', type=click.Choice(['json', 'markdown', 'both']), default='both')
+def cli(output_path, output_format):
     """API docs dummy generator."""
     global OUTPUT_PATH
     if output_path is not None:
@@ -158,11 +151,13 @@ def cli(output_path):
         user = utils.create_user('john@interstellar.invalid')
         org = utils.create_org('The Interstellar Jurisdiction',
                                owner=user)
-        api_key = utils.create_api_key(org)
+        report('auth', 'Creating api token')
+        api_token = utils.create_api_token(user)
 
         report('org', 'Creating team')
         team = utils.create_team('Powerful Abolitionist',
                                  org=org)
+        utils.join_team(team, user)
 
         projects = []
         for project_name in 'Pump Station', 'Prime Mover':
@@ -184,34 +179,183 @@ def cli(output_path):
         vars = {
             'org': org,
             'me': user,
-            'api_key': api_key,
+            'api_token': api_token,
             'teams': [{
                 'team': team,
                 'projects': projects,
             }],
         }
 
+        scenario_map = {}
+        report('docs', 'Collecting scenarios')
         for scenario_ident, func in iter_scenarios():
-            run_scenario(vars, scenario_ident, func)
+            scenario = run_scenario(vars, scenario_ident, func)
+            scenario_map[scenario_ident] = scenario
 
         section_mapping = {}
-
-        report('docs', 'Exporting endpoint documentation')
+        report('docs', 'Collecting endpoint documentation')
         for endpoint in iter_endpoints():
-            report('endpoint', 'Exporting docs for "%s"' %
+            report('endpoint', 'Collecting docs for "%s"' %
                    endpoint['endpoint_name'])
-            section_mapping.setdefault(endpoint['section'], []) \
-                .append((endpoint['endpoint_name'],
-                         endpoint['title']))
-            dump_json('endpoints/%s.json' % endpoint['endpoint_name'], endpoint)
 
-        report('docs', 'Exporting sections')
-        dump_json('sections.json', {
-            'sections': dict((section, {
-                'title': title,
-                'entries': dict(section_mapping.get(section, ())),
-            }) for section, title in six.iteritems(get_sections()))
-        })
+            section_mapping \
+                .setdefault(endpoint['section'], []) \
+                .append(endpoint)
+        sections = get_sections()
+
+        if output_format in ('json', 'both'):
+            output_json(sections, scenario_map, section_mapping)
+        if output_format in ('markdown', 'both'):
+            output_markdown(sections, scenario_map, section_mapping)
+
+
+def output_json(sections, scenarios, section_mapping):
+    report('docs', 'Generating JSON documents')
+
+    for id, scenario in scenarios.items():
+        dump_json('scenarios/%s.json' % id, scenario)
+
+    section_listings = {}
+    for section, title in sections.items():
+        entries = {}
+        for endpoint in section_mapping.get(section, []):
+            entries[endpoint['endpoint_name']] = endpoint['title']
+            dump_json('endpoints/%s.json' % endpoint['endpoint_name'],
+                      endpoint)
+
+        section_listings[section] = {
+            'title': title,
+            'entries': entries
+        }
+    dump_json('sections.json', {'sections': section_listings})
+
+
+def output_markdown(sections, scenarios, section_mapping):
+    report('docs', 'Generating markdown documents')
+    for section, title in sections.items():
+        i = 0
+        links = []
+        for endpoint in section_mapping.get(section, []):
+            i += 1
+            path = u"{}/{}.md".format(section, endpoint['endpoint_name'])
+            auth = ''
+            if len(endpoint['params'].get('auth', [])):
+                auth = endpoint['params']['auth'][0]['description']
+            payload = dict(
+                title=endpoint['title'],
+                sidebar_order=i,
+                description='\n'.join(endpoint['text']).strip(),
+                warning=endpoint['warning'],
+                method=endpoint['method'],
+                api_path=endpoint['path'],
+                query_parameters=endpoint['params'].get('query'),
+                path_parameters=endpoint['params'].get('path'),
+                parameters=endpoint['params'].get('param'),
+                authentication=auth,
+                example_request=format_request(endpoint, scenarios),
+                example_response=format_response(endpoint, scenarios)
+            )
+            dump_markdown(path, payload)
+
+            links.append({'title': endpoint['title'], 'path': path})
+        dump_index_markdown(section, title, links)
+
+
+def dump_json(path, data):
+    path = os.path.join(OUTPUT_PATH, 'json', path)
+    try:
+        os.makedirs(os.path.dirname(path))
+    except OSError:
+        pass
+    with open(path, 'w') as f:
+        for line in json.dumps(data, indent=2, sort_keys=True).splitlines():
+            f.write(line.rstrip() + '\n')
+
+
+def dump_index_markdown(section, title, links):
+    path = os.path.join(OUTPUT_PATH, 'markdown', section, 'index.md')
+    try:
+        os.makedirs(os.path.dirname(path))
+    except OSError:
+        pass
+    with open(path, 'w') as f:
+        contents = render_to_string(
+            'sentry/apidocs/index.md',
+            dict(title=title, links=links))
+        f.write(contents)
+
+
+def dump_markdown(path, data):
+    path = os.path.join(OUTPUT_PATH, 'markdown', path)
+    try:
+        os.makedirs(os.path.dirname(path))
+    except OSError:
+        pass
+    with open(path, 'w') as f:
+        template = u"""---
+# This file is automatically generated from the API using `api-docs/generate.py`
+# Do not manually this file.
+{}
+---
+"""
+        contents = template.format(json.dumps(data, sort_keys=True, indent=2))
+        f.write(contents)
+
+
+def find_first_scenario(endpoint, scenario_map):
+    for scene in endpoint['scenarios']:
+        if scene not in scenario_map:
+            continue
+        try:
+            return scenario_map[scene]['requests'][0]
+        except IndexError:
+            return None
+    return None
+
+
+def format_request(endpoint, scenario_map):
+    scene = find_first_scenario(endpoint, scenario_map)
+    if not scene:
+        return ''
+    request = scene['request']
+    lines = [
+        u"{} {} HTTP/1.1".format(request['method'], request['path']),
+        'Host: sentry.io',
+        'Authorization: Bearer {base64-encoded-key-here}',
+    ]
+    lines.extend(format_headers(request['headers']))
+    if request['data']:
+        lines.append('')
+        lines.append(json.dumps(request['data'],
+                                sort_keys=True,
+                                indent=2))
+    return "\n".join(lines)
+
+
+def format_response(endpoint, scenario_map):
+    scene = find_first_scenario(endpoint, scenario_map)
+    if not scene:
+        return ''
+    response = scene['response']
+    lines = [
+        u"HTTP/1.1 {} {}".format(response['status'], response['reason']),
+    ]
+    lines.extend(format_headers(response['headers']))
+    if response['data']:
+        lines.append('')
+        lines.append(json.dumps(response['data'],
+                                sort_keys=True,
+                                indent=2))
+    return "\n".join(lines)
+
+
+def format_headers(headers):
+    """Format headers into a list."""
+    return [
+        u'{}: {}'.format(key, value)
+        for key, value
+        in headers.items()
+    ]
 
 
 if __name__ == '__main__':

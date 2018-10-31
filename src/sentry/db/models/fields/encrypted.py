@@ -26,7 +26,7 @@ class EncryptedCharField(CharField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            '{!r} lookup type for {!r} is not supported'.format(
+            u'{!r} lookup type for {!r} is not supported'.format(
                 lookup_type,
                 self,
             )
@@ -45,7 +45,7 @@ class EncryptedJsonField(JSONField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            '{!r} lookup type for {!r} is not supported'.format(
+            u'{!r} lookup type for {!r} is not supported'.format(
                 lookup_type,
                 self,
             )
@@ -66,7 +66,7 @@ class EncryptedPickledObjectField(PickledObjectField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            '{!r} lookup type for {!r} is not supported'.format(
+            u'{!r} lookup type for {!r} is not supported'.format(
                 lookup_type,
                 self,
             )
@@ -85,7 +85,7 @@ class EncryptedTextField(TextField):
 
     def get_prep_lookup(self, lookup_type, value):
         raise NotImplementedError(
-            '{!r} lookup type for {!r} is not supported'.format(
+            u'{!r} lookup type for {!r} is not supported'.format(
                 lookup_type,
                 self,
             )

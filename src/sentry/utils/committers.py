@@ -20,7 +20,9 @@ PATH_SEPERATORS = frozenset(['/', '\\'])
 def tokenize_path(path):
     for sep in PATH_SEPERATORS:
         if sep in path:
-            return reversed(path.split(sep))
+            # Exclude empty path segments as some repository integrations
+            # start their paths with `/` which we want to ignore.
+            return reversed(filter(lambda x: x != '', path.split(sep)))
     else:
         return iter([path])
 

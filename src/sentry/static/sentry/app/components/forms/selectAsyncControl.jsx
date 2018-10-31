@@ -14,6 +14,7 @@ import SelectControl from './selectControl';
  */
 class SelectAsyncControl extends React.Component {
   static propTypes = {
+    forwardedRef: PropTypes.any,
     /**
      * API endpoint URL
      */
@@ -103,6 +104,7 @@ class SelectAsyncControl extends React.Component {
 
     return (
       <SelectControl
+        ref={this.props.forwardedRef}
         value={value}
         defaultOptions
         loadOptions={this.handleLoadOptions}
@@ -116,13 +118,7 @@ class SelectAsyncControl extends React.Component {
   }
 }
 
-export default SelectAsyncControl;
+const forwardRef = (p, ref) => <SelectAsyncControl {...p} forwardedRef={ref} />;
+forwardRef.displayName = 'SelectAsyncControl';
 
-// TODO: This needs an enzyme update or else it breaks tests
-
-// function forwardRef(props, ref) {
-// return <SelectAsyncControl {...props} forwardedRef={ref} />;
-// }
-// forwardRef.displayName = 'forwardRef(SelectAsyncField)';
-
-// export default React.forwardRef(forwardRef);
+export default React.forwardRef(forwardRef);

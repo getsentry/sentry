@@ -5,12 +5,16 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import http, options
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.github import get_user_info
-from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import (
+    IntegrationInstallation, IntegrationFeatures, IntegrationProvider,
+    IntegrationMetadata, FeatureDescription,
+)
 from sentry.integrations.exceptions import ApiError
 from sentry.integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.models import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
+from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 
 from .client import GitHubAppsClient
@@ -24,15 +28,27 @@ Connect your Sentry organization into your GitHub organization or user account.
 Take a step towards augmenting your sentry issues with commits from your
 repositories ([using releases](https://docs.sentry.io/learn/releases/)) and
 linking up your GitHub issues and pull requests directly to issues in Sentry.
-
- * Create and link Sentry issue groups directly to a GitHub issue or pull
-   request in any of your repositories, providing a quick way to jump from
-   Sentry bug to tracked issue or PR!
-
- * Authorize repositories to be added to your Sentry organization to augmenting
-   sentry issues with commit data with [deployment
-   tracking](https://docs.sentry.io/learn/releases/).
 """
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a GitHub issue or pull
+        request in any of your repositories, providing a quick way to jump from
+        Sentry bug to tracked issue or PR!
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Authorize repositories to be added to your Sentry organization to augmenting
+        sentry issues with commit data with [deployment
+        tracking](https://docs.sentry.io/learn/releases/).
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+]
+
 disable_dialog = {
     'actionText': 'Visit GitHub',
     'body': 'Before deleting this integration, you must uninstall this'
@@ -50,6 +66,7 @@ removal_dialog = {
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
+    features=FEATURES,
     author='The Sentry Team',
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=GitHub%20Integration:%20&labels=Component%3A%20Integrations',
@@ -68,16 +85,29 @@ API_ERRORS = {
 }
 
 
-class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
+class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
+    repo_search = True
 
     def get_client(self):
         return GitHubAppsClient(integration=self.model)
 
-    def get_repositories(self):
-        data = []
-        for repo in self.get_client().get_repositories():
-            data.append({'name': repo['name'], 'identifier': repo['full_name']})
-        return data
+    def get_repositories(self, query=None):
+        if not query:
+            return [{
+                'name': i['name'],
+                'identifier': i['full_name']
+            } for i in self.get_client().get_repositories()]
+
+        account_type = 'user' if self.model.metadata['account_type'] == 'User' else 'org'
+        full_query = (u'%s:%s %s' % (account_type, self.model.name, query)).encode('utf-8')
+        response = self.get_client().search_repositories(full_query)
+        return [{
+            'name': i['name'],
+            'identifier': i['full_name']
+        } for i in response.get('items', [])]
+
+    def search_issues(self, query):
+        return self.get_client().search_issues(query)
 
     def get_unmigratable_repositories(self):
         accessible_repos = self.get_repositories()
@@ -110,6 +140,18 @@ class GitHubIntegration(Integration, GitHubIssueBasic, RepositoryMixin):
         else:
             return ERR_INTERNAL
 
+    def has_repo_access(self, repo):
+        client = self.get_client()
+        try:
+            # make sure installation has access to this specific repo
+            # use hooks endpoint since we explicity ask for those permissions
+            # when installing the app (commits can be accessed for public repos)
+            # https://developer.github.com/v3/repos/hooks/#list-hooks
+            client.repo_hooks(repo.config['name'])
+        except ApiError:
+            return False
+        return True
+
 
 class GitHubIntegrationProvider(IntegrationProvider):
     key = 'github'
@@ -129,17 +171,18 @@ class GitHubIntegrationProvider(IntegrationProvider):
     }
 
     def post_install(self, integration, organization):
-        repos = Repository.objects.filter(
+        repo_ids = Repository.objects.filter(
             organization_id=organization.id,
-            provider='github',
-        )
+            provider__in=['github', 'integrations:github'],
+            integration_id__isnull=True,
+        ).values_list('id', flat=True)
 
-        unmigratable_repos = self \
-            .get_installation(integration, organization.id) \
-            .get_unmigratable_repositories()
-
-        for repo in filter(lambda r: r not in unmigratable_repos, repos):
-            repo.update(integration_id=integration.id)
+        for repo_id in repo_ids:
+            migrate_repo.apply_async(kwargs={
+                'repo_id': repo_id,
+                'integration_id': integration.id,
+                'organization_id': organization.id,
+            })
 
     def get_pipeline_views(self):
         identity_pipeline_config = {

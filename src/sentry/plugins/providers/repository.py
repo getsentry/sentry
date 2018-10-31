@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from logging import getLogger
+
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
@@ -8,11 +10,21 @@ from sentry.api.serializers import serialize
 from sentry.exceptions import PluginError
 from sentry.models import Repository
 from sentry.plugins.config import ConfigValidator
+from sentry.signals import repo_linked
 
 from .base import ProviderMixin
 
 
+logger = getLogger('sentry.integrations')
+
+
 class RepositoryProvider(ProviderMixin):
+    """
+    Plugin Repository Provider
+    Includes all plugins such as those in sentry-plugins repo
+    as well as any outside plugin respoitories (i.e. Trello, Youtrack).
+    Does not include the integrations in the sentry repository.
+    """
     name = None
 
     def __init__(self, id):
@@ -58,6 +70,7 @@ class RepositoryProvider(ProviderMixin):
                 actor=request.user,
             )
         except PluginError as e:
+            logger.exception('repo.create-error')
             return Response(
                 {
                     'errors': {
@@ -94,6 +107,8 @@ class RepositoryProvider(ProviderMixin):
                 {'errors': {'__all__': 'A repository with that name already exists'}},
                 status=400,
             )
+        else:
+            repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
 
         return Response(serialize(repo, request.user), status=201)
 

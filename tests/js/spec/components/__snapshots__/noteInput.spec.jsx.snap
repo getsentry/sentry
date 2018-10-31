@@ -9,9 +9,7 @@ exports[`NoteInput renders 1`] = `
   <div
     className="activity-notes"
   >
-    <ul
-      className="nav nav-tabs"
-    >
+    <NavTabs>
       <li
         className="active"
       >
@@ -42,7 +40,7 @@ exports[`NoteInput renders 1`] = `
           Markdown supported
         </span>
       </li>
-    </ul>
+    </NavTabs>
     <withDefaultStyle(MentionsInput)
       autoFocus={true}
       displayTransform={[Function]}
@@ -56,7 +54,7 @@ Tag users with @, or teams with #"
         Object {
           "&multiLine": Object {
             "control": Object {
-              "fontFamily": "Lato, Avenir Next, Helvetica Neue, sans-serif",
+              "fontFamily": "Rubik, Avenir Next, Helvetica Neue, sans-serif",
             },
             "highlighter": Object {
               "padding": 20,

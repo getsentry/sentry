@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import Badge from 'app/components/badge';
 
-storiesOf('Badge', module).add(
+storiesOf('UI|Badge', module).add(
   'default',
   withInfo('Used to display numbers in a "badge"')(() => (
     <div>
@@ -13,7 +13,7 @@ storiesOf('Badge', module).add(
         Normal <Badge text="0" />
       </div>
       <div>
-        New <Badge text="50" isNew />
+        New <Badge text="50" priority="new" />
       </div>
     </div>
   ))

@@ -21,9 +21,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
   location={Object {}}
   params={
     Object {
-      "groupId": "groupId",
-      "orgId": "orgId",
-      "projectId": "projectId",
+      "groupId": "group-id",
+      "orgId": "org-slug",
+      "projectId": "project-slug",
     }
   }
 >
@@ -224,7 +224,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
           },
         ]
       }
-      groupId="groupId"
+      groupId="group-id"
       items={
         Array [
           Object {
@@ -280,8 +280,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
         ]
       }
       onMerge={[Function]}
-      orgId="orgId"
-      projectId="projectId"
+      orgId="org-slug"
+      projectId="project-slug"
     >
       <div
         className="similar-list-container"
@@ -320,33 +320,57 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 </div>
               </QueryCount>
             </h2>
-            <SimilarSpectrum>
-              <div
-                className="similar-spectrum"
+            <StyledSimilarSpectrum>
+              <SimilarSpectrum
+                className="css-j2x47e-StyledSimilarSpectrum e1hn3xkk0"
               >
-                <span>
-                  Similar
-                </span>
-                <span
-                  className="similar-spectrum-box high"
-                />
-                <span
-                  className="similar-spectrum-box med-high"
-                />
-                <span
-                  className="similar-spectrum-box med"
-                />
-                <span
-                  className="similar-spectrum-box low-med"
-                />
-                <span
-                  className="similar-spectrum-box low"
-                />
-                <span>
-                  Not Similar
-                </span>
-              </div>
-            </SimilarSpectrum>
+                <div
+                  className="css-j2x47e-StyledSimilarSpectrum e1hn3xkk0"
+                >
+                  <span>
+                    Similar
+                  </span>
+                  <SpectrumItem
+                    colorIndex={4}
+                  >
+                    <span
+                      className="css-1m9e7bp-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={3}
+                  >
+                    <span
+                      className="css-1tn9u0a-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={2}
+                  >
+                    <span
+                      className="css-zgizhk-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={1}
+                  >
+                    <span
+                      className="css-1p9s53a-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={0}
+                  >
+                    <span
+                      className="css-pvajr0-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <span>
+                    Not Similar
+                  </span>
+                </div>
+              </SimilarSpectrum>
+            </StyledSimilarSpectrum>
           </div>
         </SpreadLayout>
         <SimilarToolbar
@@ -392,6 +416,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           >
                             <LinkWithConfirmation
                               className="btn btn-sm btn-default"
+                              data-test-id="merge"
                               disabled={true}
                               message="Are you sure you want to merge these issues?"
                               onConfirm={[Function]}
@@ -400,6 +425,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Confirm"
+                                data-test-id="merge"
                                 disableConfirmButton={false}
                                 disabled={true}
                                 message="Are you sure you want to merge these issues?"
@@ -521,7 +547,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 "exception": 0.875,
               }
             }
-            groupId="groupId"
+            groupId="group-id"
             isBelowThreshold={false}
             issue={
               Object {
@@ -559,8 +585,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
               }
             }
             key="271"
-            orgId="orgId"
-            projectId="projectId"
+            orgId="org-slug"
+            projectId="project-slug"
             score={
               Object {
                 "exception:stacktrace:pairs": 0.875,
@@ -580,11 +606,13 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             <SpreadLayout
               center={true}
               className="group similar-issue isResolved"
+              data-test-id="similar-item-row"
               onClick={[Function]}
               responsive={true}
             >
               <div
                 className="spread-layout group similar-issue isResolved center allow-responsive"
+                data-test-id="similar-item-row"
                 onClick={[Function]}
               >
                 <FlowLayout
@@ -605,12 +633,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           <Checkbox
                             checked={false}
                             id="271"
+                            onChange={[Function]}
                             value="271"
                           >
                             <input
                               checked={false}
                               className="chk-select"
                               id="271"
+                              onChange={[Function]}
                               type="checkbox"
                               value="271"
                             />
@@ -661,8 +691,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               }
                             }
                             includeLink={true}
-                            orgId="orgId"
-                            projectId="projectId"
+                            orgId="org-slug"
+                            projectId="project-slug"
                           >
                             <div
                               className="event-issue-header"
@@ -679,7 +709,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     }
                                     to={
                                       Object {
-                                        "pathname": "/orgId/projectId/issues/271/",
+                                        "pathname": "/org-slug/project-slug/issues/271/",
                                         "search": "",
                                       }
                                     }
@@ -693,7 +723,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       }
                                       to={
                                         Object {
-                                          "pathname": "/orgId/projectId/issues/271/",
+                                          "pathname": "/org-slug/project-slug/issues/271/",
                                           "search": "",
                                         }
                                       }
@@ -757,8 +787,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             }
                                           }
                                           includeLink={true}
-                                          orgId="orgId"
-                                          projectId="projectId"
+                                          orgId="org-slug"
+                                          projectId="project-slug"
                                           style={
                                             Object {
                                               "fontWeight": 600,
@@ -826,7 +856,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               }
                             }
                             numComments={0}
-                            orgId="orgId"
+                            orgId="org-slug"
                             permalink="http://localhost:8000/sentry/internal/issues/271/"
                             project={
                               Object {
@@ -834,7 +864,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                 "slug": "internal",
                               }
                             }
-                            projectId="projectId"
+                            projectId="project-slug"
                             shareId="312e323731"
                             shortId="INTERNAL-4G"
                             showAssignee={true}
@@ -889,7 +919,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                     className="auto-select-text"
                                                     onClick={[Function]}
                                                   >
-                                                    INTERNAL-4G
+                                                    <span>
+                                                      INTERNAL-4G
+                                                    </span>
                                                   </div>
                                                 </AutoSelectText>
                                               </div>
@@ -953,7 +985,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 style={Object {}}
                                                 to={
                                                   Object {
-                                                    "pathname": "/orgId/projectId/",
+                                                    "pathname": "/org-slug/project-slug/",
                                                     "query": Object {
                                                       "query": "logger:javascript",
                                                     },
@@ -1030,75 +1062,96 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
-                        <ScoreBar
-                          palette={Array []}
-                          paletteClassNames={
-                            Array [
-                              "low",
-                              "low-med",
-                              "med",
-                              "med-high",
-                              "high",
-                            ]
-                          }
+                        <StyledScoreBar
                           score={4}
                           vertical={true}
                         >
-                          <div
-                            className="score-bar vertical"
+                          <ScoreBar
+                            className="css-omtyju-StyledScoreBar eecxaw40"
+                            palette={
+                              Array [
+                                "#ec5e44",
+                                "#f38259",
+                                "#f9a66d",
+                                "#98b480",
+                                "#57be8c",
+                              ]
+                            }
+                            score={4}
+                            size={40}
+                            thickness={4}
+                            vertical={true}
                           >
                             <div
-                              className="score-bar-bar med-high"
-                              key="0"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar med-high"
-                              key="1"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar med-high"
-                              key="2"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar med-high"
-                              key="3"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-0"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                          </div>
-                        </ScoreBar>
+                              className="css-omtyju-StyledScoreBar eecxaw40"
+                            >
+                              <Bar
+                                color="#98b480"
+                                key="0"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                color="#98b480"
+                                key="1"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                color="#98b480"
+                                key="2"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                color="#98b480"
+                                key="3"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                empty={true}
+                                key="empty-0"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-15vxee-Bar eecxaw41"
+                                  size={40}
+                                />
+                              </Bar>
+                            </div>
+                          </ScoreBar>
+                        </StyledScoreBar>
                       </span>
                     </Hovercard>
                   </div>
@@ -1115,75 +1168,92 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
-                        <ScoreBar
-                          palette={Array []}
-                          paletteClassNames={
-                            Array [
-                              "low",
-                              "low-med",
-                              "med",
-                              "med-high",
-                              "high",
-                            ]
-                          }
+                        <StyledScoreBar
                           score={0}
                           vertical={true}
                         >
-                          <div
-                            className="score-bar vertical"
+                          <ScoreBar
+                            className="css-omtyju-StyledScoreBar eecxaw40"
+                            palette={
+                              Array [
+                                "#ec5e44",
+                                "#f38259",
+                                "#f9a66d",
+                                "#98b480",
+                                "#57be8c",
+                              ]
+                            }
+                            score={0}
+                            size={40}
+                            thickness={4}
+                            vertical={true}
                           >
                             <div
-                              className="score-bar-bar empty"
-                              key="empty-0"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-1"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-2"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-3"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-4"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                          </div>
-                        </ScoreBar>
+                              className="css-omtyju-StyledScoreBar eecxaw40"
+                            >
+                              <Bar
+                                empty={true}
+                                key="empty-0"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-15vxee-Bar eecxaw41"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                empty={true}
+                                key="empty-1"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-15vxee-Bar eecxaw41"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                empty={true}
+                                key="empty-2"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-15vxee-Bar eecxaw41"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                empty={true}
+                                key="empty-3"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-15vxee-Bar eecxaw41"
+                                  size={40}
+                                />
+                              </Bar>
+                              <Bar
+                                empty={true}
+                                key="empty-4"
+                                size={40}
+                                thickness={4}
+                                vertical={true}
+                              >
+                                <div
+                                  className="css-15vxee-Bar eecxaw41"
+                                  size={40}
+                                />
+                              </Bar>
+                            </div>
+                          </ScoreBar>
+                        </StyledScoreBar>
                       </span>
                     </Hovercard>
                   </div>

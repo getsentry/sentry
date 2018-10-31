@@ -18,13 +18,8 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -42,19 +37,14 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -72,7 +62,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
@@ -105,71 +95,70 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className="active"
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className=""
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
@@ -206,13 +195,22 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="css-1ykemxy-Wrapper eh488yo0"
+                    className="css-ev9qm0-Wrapper eh488yo0"
                   >
-                    <div
-                      className="ref-message"
+                    <Description
+                      noMargin={true}
                     >
-                      You don't have any environments yet.
-                    </div>
+                      <Component
+                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        noMargin={true}
+                      >
+                        <div
+                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        >
+                          You don't have any environments yet.
+                        </div>
+                      </Component>
+                    </Description>
                   </div>
                 </Wrapper>
               </EmptyMessage>
@@ -243,13 +241,8 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -267,19 +260,14 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -297,7 +285,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
@@ -330,71 +318,70 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className="active"
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className=""
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
@@ -493,7 +480,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             >
                               <Component
                                 aria-label="Set as default"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton e17811v30"
+                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -501,7 +488,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               >
                                 <button
                                   aria-label="Set as default"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton e17811v30"
+                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -511,28 +498,14 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     size="xsmall"
                                   >
                                     <Component
-                                      className="css-6q5v1w-ButtonLabel e17811v31"
+                                      className="css-uthd1f-ButtonLabel eqrebog1"
                                       size="xsmall"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-6q5v1w-ButtonLabel e17811v31"
-                                        size="xsmall"
+                                      <span
+                                        className="css-uthd1f-ButtonLabel eqrebog1"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="e17811v31 css-dqr4rq-ButtonLabel"
-                                          size="xsmall"
-                                        >
-                                          <div
-                                            className="e17811v31 css-dqr4rq-ButtonLabel"
-                                            is={null}
-                                            size="xsmall"
-                                          >
-                                            Set as default
-                                          </div>
-                                        </Base>
-                                      </Flex>
+                                        Set as default
+                                      </span>
                                     </Component>
                                   </ButtonLabel>
                                 </button>
@@ -615,7 +588,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             >
                               <Component
                                 aria-label="Set as default"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton e17811v30"
+                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -623,7 +596,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               >
                                 <button
                                   aria-label="Set as default"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton e17811v30"
+                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -633,28 +606,14 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     size="xsmall"
                                   >
                                     <Component
-                                      className="css-6q5v1w-ButtonLabel e17811v31"
+                                      className="css-uthd1f-ButtonLabel eqrebog1"
                                       size="xsmall"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-6q5v1w-ButtonLabel e17811v31"
-                                        size="xsmall"
+                                      <span
+                                        className="css-uthd1f-ButtonLabel eqrebog1"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="e17811v31 css-dqr4rq-ButtonLabel"
-                                          size="xsmall"
-                                        >
-                                          <div
-                                            className="e17811v31 css-dqr4rq-ButtonLabel"
-                                            is={null}
-                                            size="xsmall"
-                                          >
-                                            Set as default
-                                          </div>
-                                        </Base>
-                                      </Flex>
+                                        Set as default
+                                      </span>
                                     </Component>
                                   </ButtonLabel>
                                 </button>
@@ -682,7 +641,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             >
                               <Component
                                 aria-label="Hide"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton e17811v30"
+                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -690,7 +649,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               >
                                 <button
                                   aria-label="Hide"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton e17811v30"
+                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -700,28 +659,14 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     size="xsmall"
                                   >
                                     <Component
-                                      className="css-6q5v1w-ButtonLabel e17811v31"
+                                      className="css-uthd1f-ButtonLabel eqrebog1"
                                       size="xsmall"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-6q5v1w-ButtonLabel e17811v31"
-                                        size="xsmall"
+                                      <span
+                                        className="css-uthd1f-ButtonLabel eqrebog1"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="e17811v31 css-dqr4rq-ButtonLabel"
-                                          size="xsmall"
-                                        >
-                                          <div
-                                            className="e17811v31 css-dqr4rq-ButtonLabel"
-                                            is={null}
-                                            size="xsmall"
-                                          >
-                                            Hide
-                                          </div>
-                                        </Base>
-                                      </Flex>
+                                        Hide
+                                      </span>
                                     </Component>
                                   </ButtonLabel>
                                 </button>
@@ -836,7 +781,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                             >
                               <Component
                                 aria-label="Hide"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton e17811v30"
+                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -844,7 +789,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                               >
                                 <button
                                   aria-label="Hide"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton e17811v30"
+                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -854,28 +799,14 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                     size="xsmall"
                                   >
                                     <Component
-                                      className="css-6q5v1w-ButtonLabel e17811v31"
+                                      className="css-uthd1f-ButtonLabel eqrebog1"
                                       size="xsmall"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-6q5v1w-ButtonLabel e17811v31"
-                                        size="xsmall"
+                                      <span
+                                        className="css-uthd1f-ButtonLabel eqrebog1"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="e17811v31 css-dqr4rq-ButtonLabel"
-                                          size="xsmall"
-                                        >
-                                          <div
-                                            className="e17811v31 css-dqr4rq-ButtonLabel"
-                                            is={null}
-                                            size="xsmall"
-                                          >
-                                            Hide
-                                          </div>
-                                        </Base>
-                                      </Flex>
+                                        Hide
+                                      </span>
                                     </Component>
                                   </ButtonLabel>
                                 </button>
@@ -915,13 +846,8 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -939,19 +865,14 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -969,7 +890,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
@@ -1002,71 +923,70 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className=""
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className="active"
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
@@ -1103,13 +1023,22 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="css-1ykemxy-Wrapper eh488yo0"
+                    className="css-ev9qm0-Wrapper eh488yo0"
                   >
-                    <div
-                      className="ref-message"
+                    <Description
+                      noMargin={true}
                     >
-                      You don't have any hidden environments.
-                    </div>
+                      <Component
+                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        noMargin={true}
+                      >
+                        <div
+                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        >
+                          You don't have any hidden environments.
+                        </div>
+                      </Component>
+                    </Description>
                   </div>
                 </Wrapper>
               </EmptyMessage>
@@ -1140,13 +1069,8 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -1164,19 +1088,14 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -1194,7 +1113,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
@@ -1227,71 +1146,70 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className=""
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className="active"
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
@@ -1395,7 +1313,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                             >
                               <Component
                                 aria-label="Show"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton e17811v30"
+                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                 disabled={false}
                                 onClick={[Function]}
                                 role="button"
@@ -1403,7 +1321,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                               >
                                 <button
                                   aria-label="Show"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton e17811v30"
+                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
@@ -1413,28 +1331,14 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                                     size="xsmall"
                                   >
                                     <Component
-                                      className="css-6q5v1w-ButtonLabel e17811v31"
+                                      className="css-uthd1f-ButtonLabel eqrebog1"
                                       size="xsmall"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-6q5v1w-ButtonLabel e17811v31"
-                                        size="xsmall"
+                                      <span
+                                        className="css-uthd1f-ButtonLabel eqrebog1"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="e17811v31 css-dqr4rq-ButtonLabel"
-                                          size="xsmall"
-                                        >
-                                          <div
-                                            className="e17811v31 css-dqr4rq-ButtonLabel"
-                                            is={null}
-                                            size="xsmall"
-                                          >
-                                            Show
-                                          </div>
-                                        </Base>
-                                      </Flex>
+                                        Show
+                                      </span>
                                     </Component>
                                   </ButtonLabel>
                                 </button>

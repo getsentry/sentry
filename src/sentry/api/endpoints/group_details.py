@@ -8,7 +8,7 @@ from uuid import uuid4
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import tsdb, tagstore
+from sentry import eventstream, tsdb, tagstore
 from sentry.api import client
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
@@ -30,6 +30,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.plugins import IssueTrackingPlugin2, plugins
+from sentry.signals import issue_deleted
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -333,7 +334,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         # endpoint
         try:
             response = client.put(
-                path='/projects/{}/{}/issues/'.format(
+                path=u'/projects/{}/{}/issues/'.format(
                     group.project.organization.slug,
                     group.project.slug,
                 ),
@@ -380,7 +381,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to delete.
         :auth: required
         """
-        from sentry.tasks.deletion import delete_group
+        from sentry.tasks.deletion import delete_groups
 
         updated = Group.objects.filter(
             id=group.id,
@@ -390,6 +391,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         ]).update(status=GroupStatus.PENDING_DELETION)
         if updated:
             project = group.project
+
+            eventstream_state = eventstream.start_delete_groups(group.project_id, [group.id])
+
             GroupHashTombstone.tombstone_groups(
                 project_id=project.id,
                 group_ids=[group.id],
@@ -397,10 +401,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
             transaction_id = uuid4().hex
 
-            delete_group.apply_async(
+            delete_groups.apply_async(
                 kwargs={
-                    'object_id': group.id,
+                    'object_ids': [group.id],
                     'transaction_id': transaction_id,
+                    'eventstream_state': eventstream_state,
                 },
                 countdown=3600,
             )
@@ -420,5 +425,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     'model': type(group).__name__,
                 }
             )
+
+            issue_deleted.send_robust(
+                group=group,
+                user=request.user,
+                delete_type='delete',
+                sender=self.__class__)
 
         return Response(status=202)

@@ -3,36 +3,23 @@ from __future__ import absolute_import, print_function
 __all__ = ['IntegrationPipeline']
 
 from django.db import IntegrityError
-from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.pipeline import Pipeline
-from sentry.utils import json
-from sentry.integrations.exceptions import IntegrationError
+from sentry.web.helpers import render_to_response
 from . import default_manager
-
-DIALOG_RESPONSE = """
-<!doctype html>
-<html>
-<body>
-<script>
-window.opener.postMessage({json}, document.origin);
-window.close();
-</script>
-<noscript>Please wait...</noscript>
-</body>
-</html>
-"""
 
 
 def ensure_integration(key, data):
     defaults = {
         'metadata': data.get('metadata', {}),
         'name': data.get('name', data['external_id']),
+        'status': ObjectStatus.VISIBLE,
     }
     integration, created = Integration.objects.get_or_create(
         provider=key,
@@ -63,7 +50,7 @@ class IntegrationPipeline(Pipeline):
     def _finish_pipeline(self, data):
         if 'reinstall_id' in data:
             self.integration = Integration.objects.get(
-                provider=self.provider.key,
+                provider=self.provider.integration_key,
                 id=data['reinstall_id'],
             )
             self.integration.update(external_id=data['external_id'], status=ObjectStatus.VISIBLE)
@@ -71,11 +58,14 @@ class IntegrationPipeline(Pipeline):
 
         elif 'expect_exists' in data:
             self.integration = Integration.objects.get(
-                provider=self.provider.key,
+                provider=self.provider.integration_key,
                 external_id=data['external_id'],
             )
         else:
-            self.integration = ensure_integration(self.provider.key, data)
+            self.integration = ensure_integration(
+                self.provider.integration_key,
+                data,
+            )
 
         # Does this integration provide a user identity for the user setting up
         # the integration?
@@ -120,7 +110,7 @@ class IntegrationPipeline(Pipeline):
                 # identities and recreate it, except in the case of Github
                 # where we need to be more careful because users may be using
                 # those identities to log in.
-                if idp.type == 'github':
+                if idp.type in ('github', 'vsts'):
                     try:
                         other_identity = Identity.objects.get(
                             idp=idp,
@@ -134,35 +124,36 @@ class IntegrationPipeline(Pipeline):
                         # The external_id is linked to a different user. If that user doesn't
                         # have a password, we don't delete the link as it may lock them out.
                         if not other_identity.user.has_usable_password():
+                            proper_name = 'GitHub' if idp.type == 'github' else 'Azure DevOps'
                             return self._dialog_response({
                                 'error': _(
-                                    'The provided Github account is linked to a different user. '
-                                    'Please try again with a different Github account.'
-                                )},
+                                    'The provided %s account is linked to a different user. '
+                                    'Please try again with a different %s account.'
+                                ) % (proper_name, proper_name)},
                                 False,
                             )
                 identity_model = Identity.reattach(
                     idp, identity['external_id'], self.request.user, identity_data)
 
-        org_integration_args = {}
-
+        default_auth_id = None
         if self.provider.needs_default_identity:
             if not (identity and identity_model):
                 raise NotImplementedError('Integration requires an identity')
-            org_integration_args = {'default_auth_id': identity_model.id}
+            default_auth_id = identity_model.id
 
         org_integration = self.integration.add_organization(
-            self.organization.id, **org_integration_args)
+            self.organization, self.request.user, default_auth_id=default_auth_id)
 
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
     def _dialog_response(self, data, success):
-        return HttpResponse(
-            DIALOG_RESPONSE.format(
-                json=json.dumps({
-                    'success': success,
-                    'data': data,
-                })
-            ),
-            content_type='text/html',
-        )
+        context = {
+            'payload': {
+                'success': success,
+                'data': data
+            }
+        }
+        return render_to_response(
+            'sentry/integrations/dialog-complete.html',
+            context,
+            self.request)

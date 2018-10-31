@@ -1,14 +1,19 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalIssueActions from 'app/components/group/externalIssueActions';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
+import AlertLink from 'app/components/alertLink';
 import SentryTypes from 'app/sentryTypes';
 import PluginActions from 'app/components/group/pluginActions';
+import {Box} from 'grid-emotion';
+import {t} from 'app/locale';
 
 class ExternalIssueList extends AsyncComponent {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
+    orgId: PropTypes.string,
   };
 
   getEndpoints() {
@@ -16,23 +21,22 @@ class ExternalIssueList extends AsyncComponent {
     return [['integrations', `/groups/${group.id}/integrations/`]];
   }
 
-  renderIntegrationIssues(integrations) {
+  renderIntegrationIssues(integrations = []) {
     const {group} = this.props;
-    const externalIssues = [];
 
-    if (!integrations || !integrations.length) return null;
+    const activeIntegrations = integrations.filter(
+      integration => integration.status === 'active'
+    );
 
-    integrations.forEach(integration => {
-      externalIssues.push(
-        <ExternalIssueActions
-          key={integration.id}
-          integration={integration}
-          group={group}
-        />
-      );
-    });
-
-    return externalIssues;
+    return activeIntegrations.length
+      ? activeIntegrations.map(integration => (
+          <ExternalIssueActions
+            key={integration.id}
+            integration={integration}
+            group={group}
+          />
+        ))
+      : null;
   }
 
   renderPluginIssues() {
@@ -48,7 +52,7 @@ class ExternalIssueList extends AsyncComponent {
   renderPluginActions() {
     const {group} = this.props;
 
-    return group.pluginActions
+    return group.pluginActions && group.pluginActions.length
       ? group.pluginActions.map((plugin, i) => {
           return (
             <IssueSyncListElement externalIssueLink={plugin[1]} key={i}>
@@ -60,15 +64,36 @@ class ExternalIssueList extends AsyncComponent {
   }
 
   renderBody() {
+    const integrationIssues = this.renderIntegrationIssues(this.state.integrations);
+    const pluginIssues = this.renderPluginIssues();
+    const pluginActions = this.renderPluginActions();
+
+    if (!integrationIssues && !pluginIssues && !pluginActions)
+      return (
+        <React.Fragment>
+          <h6>
+            <span>Linked Issues</span>
+          </h6>
+          <AlertLink
+            icon="icon-generic-box"
+            priority="default"
+            size="small"
+            to={`/settings/${this.props.orgId}/integrations`}
+          >
+            {t('Set up Issue Tracking')}
+          </AlertLink>
+        </React.Fragment>
+      );
+
     return (
-      <div className="m-b-2">
+      <React.Fragment>
         <h6>
           <span>Linked Issues</span>
         </h6>
-        {this.renderIntegrationIssues(this.state.integrations)}
-        {this.renderPluginIssues()}
-        {this.renderPluginActions()}
-      </div>
+        {integrationIssues && <Box mb={2}>{integrationIssues}</Box>}
+        {pluginIssues && <Box mb={2}>{pluginIssues}</Box>}
+        {pluginActions && <Box mb={2}>{pluginActions}</Box>}
+      </React.Fragment>
     );
   }
 }

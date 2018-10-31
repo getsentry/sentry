@@ -1,10 +1,16 @@
 from __future__ import absolute_import
 
+import copy
+import mock
+
 from sentry.models import (
-    Commit, File, OrganizationMember, OrganizationMemberTeam, OrganizationOption, Project, Release, ReleaseCommit, ReleaseEnvironment, ReleaseFile, Team, TotpInterface
+    ApiKey, AuditLogEntry, AuditLogEntryEvent, Commit, File, OrganizationMember,
+    OrganizationMemberTeam, OrganizationOption, Project, Release, ReleaseCommit,
+    ReleaseEnvironment, ReleaseFile, Team, TotpInterface, User,
 )
 from sentry.testutils import TestCase
 from django.core import mail
+from uuid import uuid4
 
 
 class OrganizationTest(TestCase):
@@ -136,40 +142,6 @@ class OrganizationTest(TestCase):
         assert org.flag_has_changed('allow_joinleave') is False
         assert org.flag_has_changed('require_2fa') is True
 
-    def test_send_setup_2fa_emails(self):
-        owner = self.create_user('foo@example.com')
-        TotpInterface().enroll(owner)
-        org = self.create_organization(owner=owner)
-        non_compliant_members = []
-        for num in range(0, 10):
-            user = self.create_user('foo_%s@example.com' % num)
-            self.create_member(organization=org, user=user)
-            if num % 2:
-                TotpInterface().enroll(user)
-            else:
-                non_compliant_members.append(user.email)
-
-        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
-            org.send_setup_2fa_emails()
-
-        assert len(mail.outbox) == len(non_compliant_members)
-        assert sorted([email.to[0] for email in mail.outbox]) == sorted(non_compliant_members)
-
-    def test_send_setup_2fa_emails_no_non_compliant_members(self):
-        owner = self.create_user('foo@example.com')
-        TotpInterface().enroll(owner)
-        org = self.create_organization(owner=owner)
-
-        for num in range(0, 10):
-            user = self.create_user('foo_%s@example.com' % num)
-            self.create_member(organization=org, user=user)
-            TotpInterface().enroll(user)
-
-        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
-            org.send_setup_2fa_emails()
-
-        assert len(mail.outbox) == 0
-
     def test_has_changed(self):
         org = self.create_organization()
 
@@ -230,3 +202,237 @@ class OrganizationTest(TestCase):
             key='sentry:safe_fields')
         f.value = ['email']
         assert f.has_changed('value') is False
+
+        OrganizationOption.objects.create(
+            organization=org,
+            key='sentry:store_crash_reports',
+            value=False
+        )
+        p = OrganizationOption.objects.get(
+            organization=org,
+            key='sentry:store_crash_reports')
+        p.value = True
+        assert p.has_changed('value') is True
+
+
+class Require2fa(TestCase):
+
+    def setUp(self):
+        self.owner = self.create_user('foo@example.com')
+        TotpInterface().enroll(self.owner)
+        self.org = self.create_organization(owner=self.owner)
+        self.request = self.make_request(user=self.owner)
+
+    def _create_user(self, has_email=True):
+        if not has_email:
+            return self.create_user('')
+        return self.create_user()
+
+    def _create_user_and_member(self, has_2fa=False, has_user_email=True, has_member_email=False):
+        user = self._create_user(has_email=has_user_email)
+        if has_2fa:
+            TotpInterface().enroll(user)
+        if has_member_email:
+            email = uuid4().hex
+            member = self.create_member(organization=self.org, user=user, email=email)
+        else:
+            member = self.create_member(organization=self.org, user=user)
+        return user, member
+
+    def is_organization_member(self, user_id, member_id):
+        member = OrganizationMember.objects.get(id=member_id)
+        user = User.objects.get(id=user_id)
+        assert not member.is_pending
+        assert not member.email
+        assert member.user == user
+
+    def is_pending_organization_member(self, user_id, member_id, was_booted=True):
+        member = OrganizationMember.objects.get(id=member_id)
+        assert User.objects.filter(id=user_id).exists()
+        assert member.is_pending
+        assert member.email
+        if was_booted:
+            assert member.token
+            assert member.token_expires_at
+        else:
+            assert member.token is None
+            assert member.token_expires_at is None
+
+    @mock.patch('sentry.utils.email.logger')
+    def test_handle_2fa_required__compliant_and_non_compliant_members(self, email_log):
+        compliant_user, compliant_member = self._create_user_and_member(has_2fa=True)
+        non_compliant_user, non_compliant_member = self._create_user_and_member()
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.org.handle_2fa_required(self.request)
+
+        self.is_organization_member(compliant_user.id, compliant_member.id)
+        self.is_pending_organization_member(non_compliant_user.id, non_compliant_member.id)
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to == [non_compliant_user.email]
+        assert email_log.info.call_count == 2  # mail.queued, mail.sent
+
+        audit_logs = AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.MEMBER_PENDING,
+            organization=self.org,
+            actor=self.owner
+        )
+        assert audit_logs.count() == 1
+        assert audit_logs[0].data['email'] == non_compliant_user.email
+        assert audit_logs[0].target_user_id == non_compliant_user.id
+
+    @mock.patch('sentry.utils.email.logger')
+    def test_handle_2fa_required__compliant_members(self, email_log):
+        compliant = []
+        for num in range(0, 4):
+            user, member = self._create_user_and_member(has_2fa=True)
+            compliant.append((user, member))
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.org.handle_2fa_required(self.request)
+
+        for user, member in compliant:
+            self.is_organization_member(user.id, member.id)
+
+        assert len(mail.outbox) == email_log.info.call_count == 0
+        assert not AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.MEMBER_PENDING,
+            organization=self.org,
+            actor=self.owner
+        ).exists()
+
+    @mock.patch('sentry.utils.email.logger')
+    def test_handle_2fa_required__non_compliant_members(self, email_log):
+        non_compliant = []
+        for num in range(0, 4):
+            user, member = self._create_user_and_member()
+            non_compliant.append((user, member))
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.org.handle_2fa_required(self.request)
+
+        for user, member in non_compliant:
+            self.is_pending_organization_member(user.id, member.id)
+
+        assert len(mail.outbox) == len(non_compliant)
+        assert email_log.info.call_count == len(non_compliant) * 2  # mail.queued, mail.sent
+        assert AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.MEMBER_PENDING,
+            organization=self.org,
+            actor=self.owner
+        ).count() == len(non_compliant)
+
+    @mock.patch('sentry.utils.email.logger')
+    def test_handle_2fa_required__pending_member__ok(self, email_log):
+        user, member = self._create_user_and_member(has_member_email=True)
+        member.user = None
+        member.save()
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.org.handle_2fa_required(self.request)
+        self.is_pending_organization_member(user.id, member.id, was_booted=False)
+
+        assert len(mail.outbox) == email_log.info.call_count == 0
+        assert not AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.MEMBER_PENDING,
+            organization=self.org,
+            actor=self.owner
+        ).exists()
+
+    @mock.patch('sentry.tasks.auth.logger')
+    @mock.patch('sentry.utils.email.logger')
+    def test_handle_2fa_required__no_user_email__ok(self, email_log, auth_log):
+        user, member = self._create_user_and_member(has_user_email=False, has_member_email=True)
+        assert not user.email
+        assert member.email
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.org.handle_2fa_required(self.request)
+
+        self.is_pending_organization_member(user.id, member.id)
+
+        assert email_log.info.call_count == 2  # mail.queued, mail.sent
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to == [member.email]
+
+        assert not auth_log.warning.called
+        auth_log.info.assert_called_with(
+            '2FA noncompliant user removed from org',
+            extra={
+                'organization_id': self.org.id,
+                'user_id': user.id,
+                'member_id': member.id
+            }
+        )
+
+    @mock.patch('sentry.tasks.auth.logger')
+    @mock.patch('sentry.utils.email.logger')
+    def test_handle_2fa_required__no_email__warning(self, email_log, auth_log):
+        user, member = self._create_user_and_member(has_user_email=False)
+        assert not user.email
+        assert not member.email
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.org.handle_2fa_required(self.request)
+        self.is_organization_member(user.id, member.id)
+
+        auth_log.warning.assert_called_with(
+            'Could not remove 2FA noncompliant user from org',
+            extra={
+                'organization_id': self.org.id,
+                'user_id': user.id,
+                'member_id': member.id
+            }
+        )
+
+    @mock.patch('sentry.tasks.auth.logger')
+    @mock.patch('sentry.utils.email.logger')
+    def test_handle_2fa_required__no_actor_and_api_key__ok(self, email_log, auth_log):
+        user, member = self._create_user_and_member()
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            api_key = ApiKey.objects.create(
+                organization=self.org,
+                scope_list=['org:read', 'org:write', 'member:read', 'member:write']
+            )
+            request = copy.deepcopy(self.request)
+            request.user = None
+            request.auth = api_key
+            self.org.handle_2fa_required(request)
+        self.is_pending_organization_member(user.id, member.id)
+
+        assert len(mail.outbox) == 1
+        assert email_log.info.call_count == 2  # mail.queued, mail.sent
+        assert AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.MEMBER_PENDING,
+            organization=self.org,
+            actor=None,
+            actor_key=api_key
+        ).count() == 1
+
+    @mock.patch('sentry.tasks.auth.logger')
+    @mock.patch('sentry.utils.email.logger')
+    def test_handle_2fa_required__no_ip_address__ok(self, email_log, auth_log):
+        user, member = self._create_user_and_member()
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            request = copy.deepcopy(self.request)
+            request.META['REMOTE_ADDR'] = None
+            self.org.handle_2fa_required(request)
+        self.is_pending_organization_member(user.id, member.id)
+
+        assert len(mail.outbox) == 1
+        assert email_log.info.call_count == 2  # mail.queued, mail.sent
+        assert AuditLogEntry.objects.filter(
+            event=AuditLogEntryEvent.MEMBER_PENDING,
+            organization=self.org,
+            actor=self.owner,
+            actor_key=None,
+            ip_address=None,
+        ).count() == 1
+
+    def test_get_audit_log_data(self):
+        org = self.create_organization()
+        result = org.get_audit_log_data()
+        assert result['flags'] == int(org.flags)

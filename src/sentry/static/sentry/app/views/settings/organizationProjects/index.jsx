@@ -6,7 +6,7 @@ import idx from 'idx';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {sortProjects} from 'app/utils';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import AsyncView from 'app/views/asyncView';
 import Pagination from 'app/components/pagination';
@@ -69,29 +69,12 @@ export default class OrganizationProjects extends AsyncView {
     return `${org.name} Projects`;
   }
 
-  /**
-   * This is called when "Enter" (more specifically a "submit" event) is pressed.
-   * Update the URL to reflect search term.
-   */
-  handleSearch = (query, e) => {
-    let {router} = this.context;
-    let {location} = this.props;
-    e.preventDefault();
-    router.push({
-      pathname: location.pathname,
-      query: {
-        query,
-      },
-    });
-  };
-
   renderBody() {
     let {projectList, projectListPageLinks, projectStats} = this.state;
     let {organization} = this.context;
     let canCreateProjects = getOrganizationState(this.context.organization)
       .getAccess()
       .has('project:admin');
-    let [stateKey, url] = this.getEndpoints()[0];
 
     let action = (
       <Button
@@ -118,11 +101,9 @@ export default class OrganizationProjects extends AsyncView {
             {t('Projects')}
 
             {this.renderSearchInput({
-              onSearchSubmit: this.handleSearch,
+              updateRoute: true,
               placeholder: t('Search Projects'),
               className: 'search',
-              url,
-              stateKey,
             })}
           </PanelHeader>
           <PanelBody css={{width: '100%'}}>
@@ -142,8 +123,12 @@ export default class OrganizationProjects extends AsyncView {
                   />
                 </Box>
                 <Box p={2} align="right">
-                  <Button size="small" to={`/${organization.slug}/${project.slug}/`}>
-                    {t('View Issues')}
+                  <Button
+                    icon="icon-settings"
+                    size="small"
+                    to={`/settings/${organization.slug}/${project.slug}/`}
+                  >
+                    {t('Settings')}
                   </Button>
                 </Box>
               </PanelItem>

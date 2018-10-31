@@ -5,7 +5,6 @@ exports[`FormField + model renders with Form 1`] = `
   allowUndo={false}
   cancelLabel="Cancel"
   className="form-stacked"
-  footerClass="form-actions align-right"
   model={
     FormModel {
       "api": Client {},
@@ -72,6 +71,7 @@ exports[`FormField + model renders with Form 1`] = `
               alignRight={false}
               disabled={false}
               field={[Function]}
+              flexibleControlStateSize={false}
               id="fieldName"
               inline={true}
               name="fieldName"
@@ -84,18 +84,16 @@ exports[`FormField + model renders with Form 1`] = `
                 inline={true}
               >
                 <Component
-                  className="css-e5jskw-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
-                  hasControlState={true}
-                  inline={true}
+                  className="css-gf4a1r-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
                 >
                   <Flex
-                    className="css-e5jskw-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
+                    className="css-gf4a1r-FieldWrapper-getPadding-borderStyle-inlineStyle etqqcs20"
                   >
                     <Base
-                      className="etqqcs20 css-11jhx2k-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                      className="etqqcs20 css-12j1xki-FieldWrapper-getPadding-borderStyle-inlineStyle"
                     >
                       <div
-                        className="etqqcs20 css-11jhx2k-FieldWrapper-getPadding-borderStyle-inlineStyle"
+                        className="etqqcs20 css-12j1xki-FieldWrapper-getPadding-borderStyle-inlineStyle"
                         is={null}
                       >
                         <FieldControl
@@ -197,7 +195,7 @@ exports[`FormField + model renders with Form 1`] = `
                                                         is={null}
                                                       >
                                                         <Observer>
-                                                          <Component
+                                                          <Input
                                                             disabled={false}
                                                             error={false}
                                                             field={[Function]}
@@ -211,33 +209,18 @@ exports[`FormField + model renders with Form 1`] = `
                                                             type="text"
                                                             value=""
                                                           >
-                                                            <Input
+                                                            <input
+                                                              className="css-ybupf9-Input-inputStyles e1xej46s0"
                                                               disabled={false}
-                                                              error={false}
-                                                              field={[Function]}
                                                               id="fieldName"
-                                                              initialData={Object {}}
-                                                              innerRef={[Function]}
                                                               name="fieldName"
                                                               onBlur={[Function]}
                                                               onChange={[Function]}
                                                               onKeyDown={[Function]}
                                                               type="text"
                                                               value=""
-                                                            >
-                                                              <input
-                                                                className="css-1m7xmcf-Input-inputStyles e1xej46s0"
-                                                                disabled={false}
-                                                                id="fieldName"
-                                                                name="fieldName"
-                                                                onBlur={[Function]}
-                                                                onChange={[Function]}
-                                                                onKeyDown={[Function]}
-                                                                type="text"
-                                                                value=""
-                                                              />
-                                                            </Input>
-                                                          </Component>
+                                                            />
+                                                          </Input>
                                                         </Observer>
                                                       </div>
                                                     </Base>
@@ -328,33 +311,19 @@ exports[`FormField + model renders with Form 1`] = `
         </InputField>
       </TextField>
     </div>
-    <div
-      className="form-actions align-right"
-      style={
-        Object {
-          "marginTop": 25,
-        }
-      }
-    >
-      <Observer>
-        <Button
-          data-test-id="form-submit"
-          disabled={false}
-          priority="primary"
-          type="submit"
-        >
-          <StyledButton
-            aria-label="Save Changes"
+    <StyledFooter>
+      <div
+        className="css-1nstjwf-StyledFooter e1jxgbzp0"
+      >
+        <Observer>
+          <Button
             data-test-id="form-submit"
             disabled={false}
-            onClick={[Function]}
             priority="primary"
-            role="button"
             type="submit"
           >
-            <Component
+            <StyledButton
               aria-label="Save Changes"
-              className="css-1msljz8-StyledButton-getColors e17811v30"
               data-test-id="form-submit"
               disabled={false}
               onClick={[Function]}
@@ -362,9 +331,9 @@ exports[`FormField + model renders with Form 1`] = `
               role="button"
               type="submit"
             >
-              <button
+              <Component
                 aria-label="Save Changes"
-                className="css-1msljz8-StyledButton-getColors e17811v30"
+                className="css-1msljz8-StyledButton-getColors eqrebog0"
                 data-test-id="form-submit"
                 disabled={false}
                 onClick={[Function]}
@@ -372,34 +341,37 @@ exports[`FormField + model renders with Form 1`] = `
                 role="button"
                 type="submit"
               >
-                <ButtonLabel>
-                  <Component
-                    className="css-1dxlw1i-ButtonLabel e17811v31"
+                <button
+                  aria-label="Save Changes"
+                  className="css-1msljz8-StyledButton-getColors eqrebog0"
+                  data-test-id="form-submit"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
+                  type="submit"
+                >
+                  <ButtonLabel
+                    priority="primary"
                   >
-                    <Flex
-                      align="center"
-                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                    <Component
+                      className="css-ga4b18-ButtonLabel eqrebog1"
+                      priority="primary"
                     >
-                      <Base
-                        align="center"
-                        className="e17811v31 css-mvnt76-ButtonLabel"
+                      <span
+                        className="css-ga4b18-ButtonLabel eqrebog1"
                       >
-                        <div
-                          className="e17811v31 css-mvnt76-ButtonLabel"
-                          is={null}
-                        >
-                          Save Changes
-                        </div>
-                      </Base>
-                    </Flex>
-                  </Component>
-                </ButtonLabel>
-              </button>
-            </Component>
-          </StyledButton>
-        </Button>
-      </Observer>
-    </div>
+                        Save Changes
+                      </span>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledButton>
+          </Button>
+        </Observer>
+      </div>
+    </StyledFooter>
   </form>
 </Form>
 `;

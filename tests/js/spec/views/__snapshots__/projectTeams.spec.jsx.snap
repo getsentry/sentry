@@ -62,7 +62,9 @@ exports[`ProjectTeams renders 1`] = `
               </StyledTeamsLabel>
             }
             onSelect={[Function]}
-          />
+          >
+            <Component />
+          </DropdownAutoComplete>
         </div>
       </PanelHeader>
       <PanelBody
@@ -92,6 +94,7 @@ exports[`ProjectTeams renders 1`] = `
             Object {
               "id": "1",
               "isMember": true,
+              "memberCount": 0,
               "name": "Team Name",
               "slug": "team-slug",
             }

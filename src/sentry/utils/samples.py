@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 import six
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
-from sentry.coreapi import ClientApiHelper
 from sentry.event_manager import EventManager
 from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
@@ -81,7 +80,7 @@ def name_for_username(username):
 def generate_user(username=None, email=None, ip_address=None, id=None):
     if username is None and email is None:
         username = random_username()
-        email = '{}@example.com'.format(username)
+        email = u'{}@example.com'.format(username)
     return UserInterface.to_python(
         {
             'id': id,
@@ -212,7 +211,6 @@ def create_sample_event(project, platform=None, default=None,
 
     data.update(kwargs)
 
-    data = ClientApiHelper().validate_data(data)
     manager = EventManager(data)
     manager.normalize()
     return manager.save(project.id, raw=raw)

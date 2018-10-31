@@ -6,6 +6,7 @@ import six
 from django.core.urlresolvers import reverse
 
 from sentry.exceptions import InvalidIdentity, PluginError
+from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Deploy, LatestRelease, Release, ReleaseHeadCommit, Repository, User
 from sentry.plugins import bindings
 from sentry.tasks.base import instrumented_task, retry
@@ -92,7 +93,8 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             )
             continue
 
-        binding_key = 'integration-repository.provider' if is_integration_provider(repo.provider) else 'repository.provider'
+        binding_key = 'integration-repository.provider' if is_integration_provider(
+            repo.provider) else 'repository.provider'
         try:
             provider_cls = bindings.get(binding_key).get(repo.provider)
         except KeyError:
@@ -126,9 +128,8 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
         except NotImplementedError:
             pass
         except Exception as exc:
-            logger.exception(
+            logger.info(
                 'fetch_commits.error',
-                exc_info=True,
                 extra={
                     'organization_id': repo.organization_id,
                     'user_id': user_id,
@@ -139,7 +140,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             )
             if isinstance(exc, InvalidIdentity) and getattr(exc, 'identity', None):
                 handle_invalid_identity(identity=exc.identity, commit_failure=True)
-            elif isinstance(exc, (PluginError, InvalidIdentity)):
+            elif isinstance(exc, (PluginError, InvalidIdentity, IntegrationError)):
                 msg = generate_fetch_commits_error_email(release, exc.message)
                 msg.send_async(to=[user.email])
             else:

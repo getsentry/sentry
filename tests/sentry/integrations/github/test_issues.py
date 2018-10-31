@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import responses
+import six
 
 from mock import patch
 from exam import fixture
@@ -25,7 +26,7 @@ class GitHubIssueBasicTest(TestCase):
             external_id='github_external_id',
             name='getsentry',
         )
-        self.model.add_organization(self.organization.id)
+        self.model.add_organization(self.organization, self.user)
         self.integration = GitHubIntegration(self.model, self.organization.id)
 
     @responses.activate
@@ -67,7 +68,8 @@ class GitHubIssueBasicTest(TestCase):
         responses.add(
             responses.POST,
             'https://api.github.com/repos/getsentry/sentry/issues',
-            json={'number': 321, 'title': 'hello', 'body': 'This is the description', 'html_url': 'https://github.com/getsentry/sentry/issues/231'}
+            json={'number': 321, 'title': 'hello', 'body': 'This is the description',
+                  'html_url': 'https://github.com/getsentry/sentry/issues/231'}
         )
 
         form_data = {
@@ -127,7 +129,8 @@ class GitHubIssueBasicTest(TestCase):
         responses.add(
             responses.GET,
             'https://api.github.com/repos/getsentry/sentry/issues/321',
-            json={'number': issue_id, 'title': 'hello', 'body': 'This is the description', 'html_url': 'https://github.com/getsentry/sentry/issues/231'}
+            json={'number': issue_id, 'title': 'hello', 'body': 'This is the description',
+                  'html_url': 'https://github.com/getsentry/sentry/issues/231'}
         )
 
         data = {
@@ -148,6 +151,50 @@ class GitHubIssueBasicTest(TestCase):
 
         request = responses.calls[1].request
         assert request.headers['Authorization'] == 'token token_1'
+
+    @responses.activate
+    @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
+    def test_repo_dropdown_choices(self, mock_get_jwt):
+        group = self.create_group()
+        self.create_event(group)
+
+        responses.add(
+            responses.POST,
+            'https://api.github.com/installations/github_external_id/access_tokens',
+            json={'token': 'token_1', 'expires_at': '2018-10-11T22:14:10Z'}
+        )
+
+        responses.add(
+            responses.GET,
+            'https://api.github.com/repos/getsentry/sentry/assignees',
+            json=[{'login': 'MeredithAnya'}]
+        )
+
+        responses.add(
+            responses.GET,
+            'https://api.github.com/installation/repositories',
+            json={'repositories': [{'full_name': 'getsentry/sentry', 'name': 'sentry'}]}
+        )
+
+        resp = self.integration.get_create_issue_config(group=self.group)
+        assert resp[0]['choices'] == [(u'getsentry/sentry', u'sentry')]
+
+        responses.add(
+            responses.GET,
+            'https://api.github.com/repos/getsentry/hello/assignees',
+            json=[{'login': 'MeredithAnya'}]
+        )
+
+        # create an issue
+        data = {'params': {'repo': 'getsentry/hello'}}
+        resp = self.integration.get_create_issue_config(group=self.group, **data)
+        assert resp[0]['choices'] == [(u'getsentry/hello', u'hello'),
+                                      (u'getsentry/sentry', u'sentry')]
+        # link an issue
+        data = {'params': {'repo': 'getsentry/hello'}}
+        resp = self.integration.get_link_issue_config(group=self.group, **data)
+        assert resp[0]['choices'] == [(u'getsentry/hello', u'hello'),
+                                      (u'getsentry/sentry', u'sentry')]
 
     @responses.activate
     @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
@@ -180,3 +227,69 @@ class GitHubIssueBasicTest(TestCase):
         assert request.headers['Authorization'] == 'token token_1'
         payload = json.loads(request.body)
         assert payload == {'body': 'hello'}
+
+    @responses.activate
+    @patch('sentry.integrations.github.client.GitHubClientMixin.get_token', return_value='jwt_token_1')
+    def test_default_repo_link_fields(self, mock_get_jwt):
+        responses.add(
+            responses.GET,
+            'https://api.github.com/installation/repositories',
+            json={
+                'repositories': [
+                    {'name': 'sentry', 'full_name': 'getsentry/sentry'}
+                ]
+            },
+        )
+        group = self.create_group()
+        self.create_event(group=group)
+        org_integration = self.integration.org_integration
+        org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'repo': 'getsentry/sentry'}
+            }
+        }
+        org_integration.save()
+        fields = self.integration.get_link_issue_config(group)
+        for field in fields:
+            if field['name'] == 'repo':
+                repo_field = field
+                break
+        assert repo_field['default'] == 'getsentry/sentry'
+
+    @responses.activate
+    @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
+    def test_default_repo_create_fields(self, mock_get_jwt):
+        responses.add(
+            responses.GET,
+            'https://api.github.com/installation/repositories',
+            json={
+                'repositories': [
+                    {'name': 'sentry', 'full_name': 'getsentry/sentry'}
+                ]
+            },
+        )
+        responses.add(
+            responses.GET,
+            'https://api.github.com/repos/getsentry/sentry/assignees',
+            json=[{'login': 'MeredithAnya'}]
+        )
+        responses.add(
+            responses.POST,
+            'https://api.github.com/installations/github_external_id/access_tokens',
+            json={'token': 'token_1', 'expires_at': '2018-10-11T22:14:10Z'}
+        )
+        group = self.create_group()
+        self.create_event(group=group)
+        org_integration = self.integration.org_integration
+        org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'repo': 'getsentry/sentry'}
+            }
+        }
+        org_integration.save()
+        fields = self.integration.get_create_issue_config(group)
+        for field in fields:
+            if field['name'] == 'repo':
+                repo_field = field
+                break
+        assert repo_field['default'] == 'getsentry/sentry'

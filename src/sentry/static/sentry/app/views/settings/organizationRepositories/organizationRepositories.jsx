@@ -4,16 +4,14 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import AlertLink from 'app/components/alertLink';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
-import DropdownLink from 'app/components/dropdownLink';
-import MenuItem from 'app/components/menuItem';
+import HeroIcon from 'app/components/heroIcon';
 import SpreadLayout from 'app/components/spreadLayout';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-
-import AddRepositoryLink from './addRepositoryLink';
 
 const RepoRow = styled(SpreadLayout)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
@@ -26,8 +24,6 @@ const RepoRow = styled(SpreadLayout)`
 export default class OrganizationRepositories extends React.Component {
   static propTypes = {
     itemList: PropTypes.array,
-    repoConfig: PropTypes.object,
-    onAddRepo: PropTypes.func,
     onCancelDelete: PropTypes.func,
     onDeleteRepo: PropTypes.func,
   };
@@ -48,44 +44,18 @@ export default class OrganizationRepositories extends React.Component {
   }
 
   render() {
-    let {
-      params,
-      itemList,
-      repoConfig,
-      onAddRepo,
-      onCancelDelete,
-      onDeleteRepo,
-    } = this.props;
+    let {params, itemList, onCancelDelete, onDeleteRepo} = this.props;
     let {orgId} = params;
     let hasItemList = itemList && itemList.length > 0;
 
     return (
       <div>
-        <SettingsPageHeader
-          title={t('Repositories')}
-          action={
-            <DropdownLink
-              anchorRight
-              className="btn btn-primary btn-sm"
-              title={t('Add Repository')}
-            >
-              {repoConfig &&
-                repoConfig.providers &&
-                repoConfig.providers.map(provider => {
-                  return (
-                    <MenuItem noAnchor={true} key={provider.id}>
-                      <AddRepositoryLink
-                        provider={provider}
-                        orgId={orgId}
-                        onSuccess={onAddRepo}
-                      />
-                    </MenuItem>
-                  );
-                })}
-            </DropdownLink>
-          }
-        />
-
+        <SettingsPageHeader title={t('Repositories')} />
+        <AlertLink to={`/settings/${orgId}/integrations/`}>
+          {t(
+            'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
+          )}
+        </AlertLink>
         {!hasItemList && (
           <div className="m-b-2">
             <TextBlock>
@@ -163,22 +133,21 @@ export default class OrganizationRepositories extends React.Component {
             </PanelBody>
           </Panel>
         ) : (
-          <Panel className="blankslate align-center p-x-2 p-y-1">
-            <div className="icon icon-lg icon-git-commit" />
+          <Panel className="align-center p-x-2 p-y-1">
+            <Box mb={1}>
+              <HeroIcon src="icon-commit" />
+            </Box>
             <h3>{t('Sentry is better with commit data')}</h3>
             <TextBlock>
               {t(
                 'Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.'
               )}
             </TextBlock>
-            <p className="m-b-1">
-              <a
-                className="btn btn-default"
-                href="https://docs.sentry.io/learn/releases/"
-              >
-                Learn more
-              </a>
-            </p>
+            <Box mb={1}>
+              <Button href="https://docs.sentry.io/learn/releases/">
+                {t('Learn more')}
+              </Button>
+            </Box>
           </Panel>
         )}
       </div>

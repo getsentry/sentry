@@ -26,15 +26,15 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
                 self.organization.slug])
 
     def test_teamless_admin_cannot_load(self):
-        with self.feature('organizations:sso'):
+        with self.feature('organizations:sso-basic'):
             self.assert_teamless_admin_cannot_access(self.path)
 
     def test_team_admin_cannot_load(self):
-        with self.feature('organizations:sso'):
+        with self.feature('organizations:sso-basic'):
             self.assert_team_admin_cannot_access(self.path)
 
     def test_manager_cannot_load(self):
-        with self.feature('organizations:sso'):
+        with self.feature('organizations:sso-basic'):
             self.assert_role_cannot_access(self.path, 'manager')
 
     def test_owner_can_load(self):
@@ -58,7 +58,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
         om.save()
 
         self.login_as(user, organization_id=self.organization.id)
-        with self.feature('organizations:sso'):
+        with self.feature('organizations:sso-basic'):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
 
@@ -71,7 +71,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         self.login_as(self.user)
 
-        with self.feature('organizations:sso'):
+        with self.feature('organizations:sso-basic'):
             resp = self.client.post(path, {'provider': 'dummy', 'init': True})
 
         assert resp.status_code == 200
@@ -88,7 +88,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         self.login_as(user)
 
-        with self.feature('organizations:sso'):
+        with self.feature('organizations:sso-basic'):
             resp = self.client.post(configure_path, {'provider': 'dummy', 'init': True})
 
             assert resp.status_code == 200
@@ -99,7 +99,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             resp = self.client.post(path, {'email': user.email})
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver{}'.format(configure_path)
+        assert resp['Location'] == u'http://testserver{}'.format(configure_path)
 
         auth_provider = AuthProvider.objects.get(
             organization=organization,
@@ -147,7 +147,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         self.login_as(self.user, organization_id=organization.id)
 
-        with self.feature('organizations:sso'):
+        with self.feature('organizations:sso-basic'):
             resp = self.client.post(path, {'op': 'disable'})
 
         assert resp.status_code == 302

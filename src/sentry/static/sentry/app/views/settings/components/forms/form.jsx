@@ -1,10 +1,12 @@
 import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import FormModel from 'app/views/settings/components/forms/model';
+import Panel from 'app/components/panels/panel';
 
 export default class Form extends React.Component {
   static propTypes = {
@@ -42,7 +44,6 @@ export default class Form extends React.Component {
     submitLabel: t('Save Changes'),
     submitDisabled: false,
     submitPriority: 'primary',
-    footerClass: 'form-actions align-right',
     className: 'form-stacked',
     requireChanges: false,
     allowUndo: false,
@@ -126,7 +127,6 @@ export default class Form extends React.Component {
   };
 
   render() {
-    let {isSaving} = this.model;
     let {
       className,
       children,
@@ -153,7 +153,7 @@ export default class Form extends React.Component {
         <div>{children}</div>
 
         {shouldShowFooter && (
-          <div className={footerClass} style={{marginTop: 25, ...footerStyle}}>
+          <StyledFooter className={footerClass} style={footerStyle}>
             <Observer>
               {() => (
                 <Button
@@ -161,7 +161,7 @@ export default class Form extends React.Component {
                   priority={submitPriority}
                   disabled={
                     this.model.isError ||
-                    isSaving ||
+                    this.model.isSaving ||
                     submitDisabled ||
                     (requireChanges ? !this.model.formChanged : false)
                   }
@@ -173,14 +173,50 @@ export default class Form extends React.Component {
             </Observer>
 
             {onCancel && (
-              <Button disabled={isSaving} onClick={onCancel} style={{marginLeft: 5}}>
-                {cancelLabel}
-              </Button>
+              <Observer>
+                {() => (
+                  <Button
+                    disabled={this.model.isSaving}
+                    onClick={onCancel}
+                    style={{marginLeft: 5}}
+                  >
+                    {cancelLabel}
+                  </Button>
+                )}
+              </Observer>
             )}
             {extraButton}
-          </div>
+          </StyledFooter>
         )}
       </form>
     );
   }
 }
+
+const StyledFooter = styled('div')`
+  text-align: right;
+  margin-top: 25px;
+  border-top: 1px solid #e9ebec;
+  background: none;
+  padding: 16px 0 0;
+  margin-bottom: 16px;
+
+  ${p =>
+    !p.saveOnBlur &&
+    `
+  ${Panel} & {
+    margin-top: 0;
+    padding-right: 36px;
+  }
+
+  /* Better padding with form inside of a modal */
+  .modal-content & {
+    padding-right: 30px;
+    margin-left: -30px;
+    margin-right: -30px;
+    margin-bottom: -30px;
+    margin-top: 16px;
+    padding-bottom: 16px;
+  }
+  `};
+`;

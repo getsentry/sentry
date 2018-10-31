@@ -5,25 +5,28 @@ import {withInfo} from '@storybook/addon-info';
 
 import PieChart from 'app/components/charts/pieChart';
 
-// eslint-disable-next-line
-storiesOf('Charts/PieChart', module).add(
-  'default',
+storiesOf('Charts|PieChart', module).add(
+  'PieChart',
   withInfo('PieChart')(() => (
     <PieChart
       startDate={new Date()}
-      name="Browsers"
-      data={[
+      series={[
         {
-          name: 'Chrome',
-          value: 3500,
-        },
-        {
-          name: 'Firefox',
-          value: 650,
-        },
-        {
-          name: 'Safari',
-          value: 250,
+          seriesName: 'Browsers',
+          data: [
+            {
+              name: 'Chrome',
+              value: 3500,
+            },
+            {
+              name: 'Firefox',
+              value: 650,
+            },
+            {
+              name: 'Safari',
+              value: 250,
+            },
+          ],
         },
       ]}
     />

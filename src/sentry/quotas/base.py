@@ -92,7 +92,7 @@ class Quota(Service):
 
         if max_quota_share != 100 and org_quota:
             quota = self.translate_quota(
-                '{}%'.format(max_quota_share),
+                u'{}%'.format(max_quota_share),
                 org_quota,
             )
         else:

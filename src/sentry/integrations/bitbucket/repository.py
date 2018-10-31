@@ -27,7 +27,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return integration_model.get_installation(organization_id)
 
-    def validate_config(self, organization, config):
+    def get_repository_data(self, organization, config):
         installation = self.get_installation(config['installation'], organization.id)
         client = installation.get_client()
         try:
@@ -41,7 +41,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def get_webhook_secret(self, organization):
         # TODO(LB): Revisit whether Integrations V3 should be using OrganizationOption for storage
-        lock = locks.get('bitbucket:webhook-secret:{}'.format(organization.id), duration=60)
+        lock = locks.get(u'bitbucket:webhook-secret:{}'.format(organization.id), duration=60)
         with lock.acquire():
             secret = OrganizationOption.objects.get_value(
                 organization=organization,
@@ -56,7 +56,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 )
         return secret
 
-    def create_repository(self, organization, data):
+    def build_repository_config(self, organization, data):
         installation = self.get_installation(data['installation'], organization.id)
         client = installation.get_client()
         try:
@@ -64,10 +64,10 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 data['identifier'], {
                     'description': 'sentry-bitbucket-repo-hook',
                     'url': absolute_uri(
-                        '/extensions/bitbucket/organizations/{}/webhook/'.format(organization.id)
+                        u'/extensions/bitbucket/organizations/{}/webhook/'.format(organization.id)
                     ),
                     'active': True,
-                    'events': ['repo:push'],
+                    'events': ['repo:push', 'pullrequest:fulfilled'],
                 }
             )
         except Exception as e:
@@ -76,7 +76,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             return {
                 'name': data['identifier'],
                 'external_id': data['external_id'],
-                'url': 'https://bitbucket.org/{}'.format(data['name']),
+                'url': u'https://bitbucket.org/{}'.format(data['name']),
                 'config': {
                     'name': data['name'],
                     'webhook_id': resp['uuid'],
@@ -84,7 +84,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'integration_id': data['installation'],
             }
 
-    def delete_repository(self, repo):
+    def on_delete_repository(self, repo):
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
 

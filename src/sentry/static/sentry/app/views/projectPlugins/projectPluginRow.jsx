@@ -7,7 +7,7 @@ import styled, {css} from 'react-emotion';
 import {t} from 'app/locale';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import ExternalLink from 'app/components/externalLink';
-import Feature from 'app/components/feature';
+import Access from 'app/components/acl/access';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import Switch from 'app/components/switch';
@@ -29,11 +29,20 @@ class ProjectPluginRow extends React.PureComponent {
   };
 
   render() {
-    let {id, name, slug, version, author, hasConfiguration, enabled} = this.props;
+    let {
+      id,
+      name,
+      slug,
+      version,
+      author,
+      hasConfiguration,
+      enabled,
+      canDisable,
+    } = this.props;
 
     let configureUrl = recreateRoute(id, this.props);
     return (
-      <Feature access={['project:write']}>
+      <Access access={['project:write']}>
         {({hasAccess}) => {
           const LinkOrSpan = hasAccess ? Link : 'span';
 
@@ -71,14 +80,14 @@ class ProjectPluginRow extends React.PureComponent {
               </PluginInfo>
               <Switch
                 size="lg"
-                isDisabled={!hasAccess}
+                isDisabled={!hasAccess || !canDisable}
                 isActive={enabled}
                 toggle={this.handleChange}
               />
             </Flex>
           );
         }}
-      </Feature>
+      </Access>
     );
   }
 }

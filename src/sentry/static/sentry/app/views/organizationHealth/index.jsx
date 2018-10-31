@@ -1,8 +1,10 @@
 import {Flex} from 'grid-emotion';
+import {withRouter} from 'react-router';
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Feature from 'app/components/feature';
+import Feature from 'app/components/acl/feature';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
@@ -17,26 +19,49 @@ import HealthNavigationMenu from './healthNavigationMenu';
 class OrganizationHealth extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
+    router: PropTypes.object,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      params: {
-        projects: [],
-        environments: [],
-        period: '7d',
-      },
+  static getDerivedStateFromProps(props, state) {
+    const {query} = props.router.location;
+
+    return {
+      projects: query.projects || [],
+      environments: query.environments || [],
+      specifiers:
+        typeof query.specifiers === 'string'
+          ? [query.specifiers]
+          : Array.isArray(query.specifiers) ? query.specifiers : [],
+      period: query.period || '7d',
     };
   }
 
+  constructor(props) {
+    super(props);
+
+    this.actions = {
+      updateParams: this.updateParams,
+      setSpecifier: this.setSpecifier,
+    };
+
+    this.state = {};
+  }
+
   updateParams = obj => {
-    this.setState(state => ({
-      ...state,
-      params: {
-        ...state.params,
+    const {router} = this.props;
+    router.push({
+      pathname: router.location.pathname,
+      query: {
+        ...router.location.query,
         ...obj,
       },
+    });
+  };
+
+  setSpecifier = (tag, value) => {
+    this.setState(state => ({
+      ...state,
+      specifiers: [`${tag}:${value}`],
     }));
   };
 
@@ -56,31 +81,33 @@ class OrganizationHealth extends React.Component {
     let {organization, children} = this.props;
 
     // TODO(billy): Is this what we want, only projects user is member of?
-    let projects = organization.projects.filter(({isMember}) => isMember);
+    let projects =
+      organization.projects && organization.projects.filter(({isMember}) => isMember);
 
     return (
-      <Feature feature={['health']} renderNoFeatureMessage>
-        <HealthContext.Provider value={this.state.params}>
+      <Feature features={['health']} renderDisabled>
+        <HealthContext.Provider value={{actions: this.actions, ...this.state}}>
           <HealthWrapper>
             <HealthNavigationMenu />
             <Content>
               <Header>
                 <MultipleProjectSelector
+                  anchorRight
                   projects={projects}
-                  value={this.state.params.projects}
+                  value={this.state.projects}
                   onChange={this.handleChangeProjects}
                 />
                 <HeaderSeparator />
                 <MultipleEnvironmentSelector
                   organization={organization}
-                  value={this.state.params.environments}
+                  value={this.state.environments}
                   onChange={this.handleChangeEnvironments}
                 />
                 <HeaderSeparator />
                 <TimeRangeSelector
-                  absolute={false}
-                  relative
-                  value={this.state.params.period}
+                  showAbsolute={false}
+                  showRelative
+                  relative={this.state.period}
                   onChange={this.handleChangeTime}
                 />
               </Header>
@@ -93,7 +120,7 @@ class OrganizationHealth extends React.Component {
   }
 }
 
-export default withLatestContext(OrganizationHealth);
+export default withRouter(withLatestContext(OrganizationHealth));
 export {OrganizationHealth};
 
 const HealthWrapper = styled(Flex)`
@@ -109,6 +136,7 @@ const Content = styled(Flex)`
 const Header = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
   font-size: 18px;
+  padding: ${space(1)} ${space(4)};
 `;
 
 const Body = styled('div')`

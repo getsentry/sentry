@@ -42,12 +42,15 @@ class AutoComplete extends React.Component {
     onSelect: PropTypes.func,
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
+    onMenuOpen: PropTypes.func,
+    closeOnSelect: PropTypes.bool,
   };
 
   static defaultProps = {
     itemToString: i => i,
     inputIsActor: true,
     disabled: false,
+    closeOnSelect: true,
   };
 
   constructor(props) {
@@ -143,7 +146,7 @@ class AutoComplete extends React.Component {
       e.key === 'Enter' && this.items.size && this.items.has(this.state.highlightedIndex);
 
     if (shouldSelectWithEnter) {
-      this.handleSelect(this.items.get(this.state.highlightedIndex));
+      this.handleSelect(this.items.get(this.state.highlightedIndex), e);
       e.preventDefault();
     }
 
@@ -179,16 +182,21 @@ class AutoComplete extends React.Component {
   /**
    * When an item is selected via clicking or using the keyboard (e.g. pressing "Enter")
    */
-  handleSelect = item => {
-    let {onSelect, itemToString} = this.props;
+  handleSelect = (item, e) => {
+    let {onSelect, itemToString, closeOnSelect} = this.props;
 
-    callIfFunction(onSelect, item, this.state);
+    callIfFunction(onSelect, item, this.state, e);
 
-    this.closeMenu();
-    this.setState({
+    let newState = {
       selectedItem: item,
-      inputValue: itemToString(item),
-    });
+    };
+
+    if (closeOnSelect) {
+      this.closeMenu();
+      newState.inputValue = itemToString(item);
+    }
+
+    this.setState(newState);
   };
 
   moveHighlightedIndex = (step, e) => {
@@ -271,11 +279,15 @@ class AutoComplete extends React.Component {
   });
 
   render() {
-    let {children} = this.props;
+    let {children, onMenuOpen} = this.props;
     let isOpen = this.getOpenState();
 
     return (
-      <DropdownMenu isOpen={isOpen} onClickOutside={this.handleClickOutside}>
+      <DropdownMenu
+        isOpen={isOpen}
+        onClickOutside={this.handleClickOutside}
+        onOpen={onMenuOpen}
+      >
         {dropdownMenuProps =>
           children({
             ...dropdownMenuProps,

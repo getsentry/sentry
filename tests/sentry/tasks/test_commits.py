@@ -5,7 +5,9 @@ from mock import patch
 from social_auth.models import UserSocialAuth
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import Commit, Deploy, LatestRelease, Release, ReleaseHeadCommit, Repository
+from sentry.models import (
+    Commit, Deploy, Integration, LatestRelease, Release, ReleaseHeadCommit, Repository
+)
 from sentry.tasks.commits import fetch_commits, handle_invalid_identity
 from sentry.testutils import TestCase
 
@@ -264,6 +266,63 @@ class FetchCommitsTest(TestCase):
         assert msg.subject == 'Unable to Fetch Commits'
         assert msg.to == [self.user.email]
         assert 'You can read me' in msg.body
+
+    def test_fetch_error_random_exception_integration(self):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name='baz')
+
+        integration = Integration.objects.create(
+            provider='example',
+            name='Example',
+        )
+        integration.add_organization(org)
+
+        repo = Repository.objects.create(
+            name='example',
+            provider='integrations:example',
+            organization_id=org.id,
+            integration_id=integration.id,
+        )
+        release = Release.objects.create(
+            organization_id=org.id,
+            version='abcabcabc',
+        )
+
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            key='a' * 40,
+        )
+
+        ReleaseHeadCommit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            release=release,
+            commit=commit,
+        )
+
+        refs = [{
+            'repository': repo.name,
+            'commit': 'b' * 40,
+        }]
+
+        release2 = Release.objects.create(
+            organization_id=org.id,
+            version='12345678',
+        )
+
+        with self.tasks():
+            fetch_commits(
+                release_id=release2.id,
+                user_id=self.user.id,
+                refs=refs,
+                previous_release_id=release.id,
+            )
+
+        msg = mail.outbox[-1]
+        assert msg.subject == 'Unable to Fetch Commits'
+        assert msg.to == [self.user.email]
+        assert 'Repository not found' in msg.body
 
 
 class HandleInvalidIdentityTest(TestCase):

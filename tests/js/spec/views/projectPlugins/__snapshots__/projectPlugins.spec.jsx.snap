@@ -16,11 +16,17 @@ exports[`ProjectPlugins renders 1`] = `
     flex={false}
   >
     <PanelAlert
-      m={0}
-      mb={0}
       type="warning"
     >
-      Legacy Integrations must be configured per-project. It's recommended to prefer organization-integrations over the legacy project integrations when available, as features will be more robust and flexible.
+      <AccessContainer
+        access={
+          Array [
+            "org:integrations",
+          ]
+        }
+      >
+        <Component />
+      </AccessContainer>
     </PanelAlert>
     <PanelItem
       key="amazon-sqs"
@@ -63,6 +69,7 @@ exports[`ProjectPlugins renders 1`] = `
         }
         canDisable={false}
         enabled={true}
+        hasConfiguration={false}
         id="github"
         name="GitHub"
         params={

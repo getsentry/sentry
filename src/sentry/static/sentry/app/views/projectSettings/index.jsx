@@ -83,12 +83,8 @@ const ProjectSettings = createReactClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let access = this.getAccess();
-    let features = this.getFeatures();
     let {orgId, projectId} = this.props.params;
-    let hasNewSettings = features.has('new-settings');
-    let pathPrefix = hasNewSettings
-      ? `/settings/${orgId}/${projectId}`
-      : `/${orgId}/${projectId}/settings`;
+    let pathPrefix = `/settings/${orgId}/${projectId}`;
     let settingsUrlRoot = pathPrefix;
     let project = this.state.project;
     let rootInstallPath = `${pathPrefix}/install/`;
@@ -116,9 +112,6 @@ const ProjectSettings = createReactClass({
               {t('Environments')}
             </ListLink>
             <ListLink to={`${pathPrefix}/tags/`}>{t('Tags')}</ListLink>
-            <ListLink to={`${pathPrefix}/issue-tracking/`}>
-              {t('Issue Tracking')}
-            </ListLink>
             {access.has('project:write') && (
               <ListLink
                 to={`${pathPrefix}/release-tracking/`}
@@ -164,9 +157,9 @@ const ProjectSettings = createReactClass({
             <ListLink to={`${pathPrefix}/filters/`}>{t('Inbound Filters')}</ListLink>
             <ListLink to={`${pathPrefix}/keys/`}>{t('Client Keys')} (DSN)</ListLink>
           </ul>
-          <h6 className="nav-header">{t('Integrations')}</h6>
+          <h6 className="nav-header">{t('Legacy Integrations')}</h6>
           <ul className="nav nav-stacked">
-            <ListLink to={`${pathPrefix}/plugins/`}>{t('All Integrations')}</ListLink>
+            <ListLink to={`${pathPrefix}/plugins/`}>{t('Legacy Integrations')}</ListLink>
             <PluginNavigation urlRoot={settingsUrlRoot} />
           </ul>
         </div>

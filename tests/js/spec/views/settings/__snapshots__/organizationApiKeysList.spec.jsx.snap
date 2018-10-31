@@ -100,7 +100,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                     >
                       <Component
                         aria-label="New API Key"
-                        className="css-zvpqlo-StyledButton-getColors e17811v30"
+                        className="css-zvpqlo-StyledButton-getColors eqrebog0"
                         disabled={false}
                         onClick={[Function]}
                         priority="primary"
@@ -109,7 +109,7 @@ exports[`OrganizationApiKeysList renders 1`] = `
                       >
                         <button
                           aria-label="New API Key"
-                          className="css-zvpqlo-StyledButton-getColors e17811v30"
+                          className="css-zvpqlo-StyledButton-getColors eqrebog0"
                           disabled={false}
                           onClick={[Function]}
                           priority="primary"
@@ -117,87 +117,64 @@ exports[`OrganizationApiKeysList renders 1`] = `
                           size="small"
                         >
                           <ButtonLabel
+                            priority="primary"
                             size="small"
                           >
                             <Component
-                              className="css-19bmqb3-ButtonLabel e17811v31"
+                              className="css-7ui8bl-ButtonLabel eqrebog1"
+                              priority="primary"
                               size="small"
                             >
-                              <Flex
-                                align="center"
-                                className="css-19bmqb3-ButtonLabel e17811v31"
-                                size="small"
+                              <span
+                                className="css-7ui8bl-ButtonLabel eqrebog1"
                               >
-                                <Base
-                                  align="center"
-                                  className="e17811v31 css-1eblpyp-ButtonLabel"
+                                <Icon
+                                  hasChildren={true}
                                   size="small"
                                 >
-                                  <div
-                                    className="e17811v31 css-1eblpyp-ButtonLabel"
-                                    is={null}
+                                  <Component
+                                    className="css-1vdnsie-Icon eqrebog2"
+                                    hasChildren={true}
                                     size="small"
                                   >
-                                    <Icon
-                                      hasChildren={true}
+                                    <span
+                                      className="css-1vdnsie-Icon eqrebog2"
                                       size="small"
                                     >
-                                      <Component
-                                        className="css-1vdnsie-Icon e17811v32"
-                                        hasChildren={true}
-                                        size="small"
+                                      <StyledInlineSvg
+                                        size="12px"
+                                        src="icon-circle-add"
                                       >
-                                        <Box
-                                          className="css-1vdnsie-Icon e17811v32"
-                                          size="small"
+                                        <InlineSvg
+                                          className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                          size="12px"
+                                          src="icon-circle-add"
                                         >
-                                          <Base
-                                            className="e17811v32 css-nk081r-Icon"
-                                            size="small"
+                                          <StyledSvg
+                                            className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                            height="12px"
+                                            viewBox={Object {}}
+                                            width="12px"
                                           >
-                                            <div
-                                              className="e17811v32 css-nk081r-Icon"
-                                              is={null}
-                                              size="small"
+                                            <svg
+                                              className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                              height="12px"
+                                              viewBox={Object {}}
+                                              width="12px"
                                             >
-                                              <StyledInlineSvg
-                                                size="12px"
-                                                src="icon-circle-add"
-                                              >
-                                                <InlineSvg
-                                                  className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                  size="12px"
-                                                  src="icon-circle-add"
-                                                >
-                                                  <StyledSvg
-                                                    className="css-1ov3rcq-StyledInlineSvg e17811v33"
-                                                    height="12px"
-                                                    viewBox={Object {}}
-                                                    width="12px"
-                                                  >
-                                                    <svg
-                                                      className="e17811v33 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                      height="12px"
-                                                      viewBox={Object {}}
-                                                      width="12px"
-                                                    >
-                                                      <use
-                                                        href="#test"
-                                                        xlinkHref="#test"
-                                                      />
-                                                    </svg>
-                                                  </StyledSvg>
-                                                </InlineSvg>
-                                              </StyledInlineSvg>
-                                            </div>
-                                          </Base>
-                                        </Box>
-                                      </Component>
-                                    </Icon>
-                                    New API Key
-                                  </div>
-                                </Base>
-                              </Flex>
+                                              <use
+                                                href="#test"
+                                                xlinkHref="#test"
+                                              />
+                                            </svg>
+                                          </StyledSvg>
+                                        </InlineSvg>
+                                      </StyledInlineSvg>
+                                    </span>
+                                  </Component>
+                                </Icon>
+                                New API Key
+                              </span>
                             </Component>
                           </ButtonLabel>
                         </button>
@@ -296,10 +273,10 @@ exports[`OrganizationApiKeysList renders 1`] = `
     </div>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader
             align="center"

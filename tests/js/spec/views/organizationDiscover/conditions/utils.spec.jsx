@@ -20,12 +20,12 @@ const conditionList = [
     external: ['message', 'IS NOT NULL', null],
   },
   {
-    internal: 'retention_days = 3',
-    external: ['retention_days', '=', 3],
+    internal: 'device_battery_level = 3',
+    external: ['device_battery_level', '=', 3],
   },
   {
-    internal: 'retention_days >= 0',
-    external: ['retention_days', '>=', 0],
+    internal: 'device_battery_level >= 0',
+    external: ['device_battery_level', '>=', 0],
   },
   {
     internal: 'message NOT LIKE something%',
@@ -35,6 +35,14 @@ const conditionList = [
     internal: 'message LIKE',
     external: ['message', 'LIKE', null],
   },
+  {
+    internal: 'exception_frames.in_app = true',
+    external: ['exception_frames.in_app', '=', true],
+  },
+  {
+    internal: 'exception_frames.in_app = false',
+    external: ['exception_frames.in_app', '=', false],
+  },
 ];
 
 describe('Conditions', function() {
@@ -42,6 +50,10 @@ describe('Conditions', function() {
     conditionList.forEach(({internal, external}) => {
       expect(getExternal(internal, COLUMNS)).toEqual(external);
     });
+
+    // datetime fields are expanded
+    const expected = ['received', '=', '2018-05-05T00:00:00Z'];
+    expect(getExternal('received = 2018-05-05', COLUMNS)).toEqual(expected);
   });
 
   it('getInternal()', function() {

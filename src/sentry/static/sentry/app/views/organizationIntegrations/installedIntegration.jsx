@@ -1,22 +1,17 @@
 import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
 
-const CONFIGURABLE_FEATURES = ['commits'];
-
-const removeButton = (
-  <Button borderless size="xsmall" icon="icon-trash">
-    Remove
-  </Button>
-);
+const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
 export default class InstalledIntegration extends React.Component {
   static propTypes = {
@@ -33,7 +28,6 @@ export default class InstalledIntegration extends React.Component {
    * met:
    *
    * - The Integration has organization-specific configuration options.
-   * - The Integration can be enabled for projects.
    * - The Integration has configurable features
    */
   hasConfiguration() {
@@ -41,7 +35,6 @@ export default class InstalledIntegration extends React.Component {
 
     return (
       integration.configOrganization.length > 0 ||
-      provider.canAddProject ||
       provider.features.filter(f => CONFIGURABLE_FEATURES.includes(f)).length > 0
     );
   }
@@ -52,6 +45,14 @@ export default class InstalledIntegration extends React.Component {
     });
     this.props.onReinstallIntegration(activeIntegration);
   };
+
+  get removeButton() {
+    return (
+      <StyledButton borderless icon="icon-trash">
+        Remove
+      </StyledButton>
+    );
+  }
 
   renderDisableIntegration(integration) {
     const {body, actionText} = integration.provider.aspects.disable_dialog;
@@ -71,7 +72,7 @@ export default class InstalledIntegration extends React.Component {
         priority="danger"
         onConfirm={() => this.props.onDisable(integration)}
       >
-        {removeButton}
+        {this.removeButton}
       </Confirm>
     );
   }
@@ -110,7 +111,7 @@ export default class InstalledIntegration extends React.Component {
         priority="danger"
         onConfirm={() => this.props.onRemove(integration)}
       >
-        {removeButton}
+        {this.removeButton}
       </Confirm>
     );
   }
@@ -123,11 +124,11 @@ export default class InstalledIntegration extends React.Component {
         <Box flex={1}>
           <IntegrationItem compact integration={integration} />
         </Box>
-        <Box mr={1}>
+        <Box>
           {integration.status === 'disabled' && (
             <AddIntegrationButton
               size="xsmall"
-              priority="danger"
+              priority="success"
               provider={provider}
               integration={integration}
               onAddIntegration={this.reinstallIntegration}
@@ -141,15 +142,14 @@ export default class InstalledIntegration extends React.Component {
               title="Integration not configurable"
             >
               <span>
-                <Button
+                <StyledButton
                   borderless
-                  size="xsmall"
                   icon="icon-settings"
                   disabled={!this.hasConfiguration()}
                   to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
                 >
                   Configure
-                </Button>
+                </StyledButton>
               </span>
             </Tooltip>
           )}
@@ -163,3 +163,7 @@ export default class InstalledIntegration extends React.Component {
     );
   }
 }
+
+const StyledButton = styled(Button)`
+  color: ${p => p.theme.gray2};
+`;

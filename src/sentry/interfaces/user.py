@@ -114,9 +114,20 @@ class User(Interface):
             'id': self.id,
             'email': self.email,
             'username': self.username,
-            'ipAddress': self.ip_address,
+            'ip_address': self.ip_address,
             'name': self.name,
             'data': self.data,
+        }
+
+    def get_api_meta(self, meta, is_public=False):
+        return {
+            '': meta.get(''),
+            'id': meta.get('id'),
+            'email': meta.get('email'),
+            'username': meta.get('username'),
+            'ip_address': meta.get('ip_address'),
+            'name': meta.get('name'),
+            'data': meta.get('data'),
         }
 
     def get_path(self):

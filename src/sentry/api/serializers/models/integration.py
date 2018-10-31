@@ -5,10 +5,7 @@ from collections import defaultdict
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import (
-    ExternalIssue, GroupLink, Integration, OrganizationIntegration,
-    ProjectIntegration,
-)
+from sentry.models import ExternalIssue, GroupLink, Integration, OrganizationIntegration
 
 
 @register(Integration)
@@ -26,7 +23,6 @@ class IntegrationSerializer(Serializer):
                 'key': provider.key,
                 'name': provider.name,
                 'canAdd': provider.can_add,
-                'canAddProject': provider.can_add_project,
                 'canDisable': provider.can_disable,
                 'features': [f.value for f in provider.features],
                 'aspects': provider.metadata.aspects,
@@ -35,16 +31,14 @@ class IntegrationSerializer(Serializer):
 
 
 class IntegrationConfigSerializer(IntegrationSerializer):
-    def __init__(self, organization_id=None, project_id=None):
+    def __init__(self, organization_id=None):
         self.organization_id = organization_id
-        self.project_id = project_id
 
     def serialize(self, obj, attrs, user):
         data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
 
         data.update({
             'configOrganization': [],
-            'configProject': [],
         })
 
         try:
@@ -58,7 +52,6 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         else:
             data.update({
                 'configOrganization': install.get_organization_config(),
-                'configProject': install.get_project_config(),
             })
 
         return data
@@ -66,25 +59,6 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
 @register(OrganizationIntegration)
 class OrganizationIntegrationSerializer(Serializer):
-    def get_attrs(self, item_list, user, *args, **kwargs):
-        # Lookup related project integrations
-        project_integrations = ProjectIntegration.objects \
-            .select_related('project') \
-            .filter(
-                integration_id__in=[i.integration_id for i in item_list],
-                project__organization_id__in=[i.organization_id for i in item_list],
-            )
-
-        projects_by_integrations = defaultdict(list)
-        for pi in project_integrations:
-            projects_by_integrations[pi.integration_id].append(pi.project.slug)
-
-        return {
-            i: {
-                'projects': projects_by_integrations.get(i.integration_id, [])
-            } for i in item_list
-        }
-
     def serialize(self, obj, attrs, user):
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
@@ -107,25 +81,6 @@ class OrganizationIntegrationSerializer(Serializer):
 
         integration.update({
             'configData': config_data,
-            'projects': attrs['projects'],
-        })
-
-        return integration
-
-
-@register(ProjectIntegration)
-class ProjectIntegrationSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        integration = serialize(
-            objects=obj.integration,
-            user=user,
-            serializer=IntegrationConfigSerializer(
-                project_id=obj.project.id,
-                organization_id=obj.project.organization.id,
-            ),
-        )
-        integration.update({
-            'configData': obj.config,
         })
 
         return integration
@@ -141,11 +96,10 @@ class IntegrationProviderSerializer(Serializer):
             'name': obj.name,
             'metadata': metadata,
             'canAdd': obj.can_add,
-            'canAddProject': obj.can_add_project,
             'canDisable': obj.can_disable,
             'features': [f.value for f in obj.features],
             'setupDialog': dict(
-                url='/organizations/{}/integrations/{}/setup/'.format(
+                url=u'/organizations/{}/integrations/{}/setup/'.format(
                     organization.slug,
                     obj.key,
                 ),
@@ -165,16 +119,18 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
         installation = obj.get_installation(organization_id)
 
         if self.action == 'link':
-            data['linkIssueConfig'] = installation.get_link_issue_config(
+            config = installation.get_link_issue_config(
                 self.group,
                 params=self.params,
             )
+            data['linkIssueConfig'] = config
 
         if self.action == 'create':
-            data['createIssueConfig'] = installation.get_create_issue_config(
+            config = installation.get_create_issue_config(
                 self.group,
                 params=self.params,
             )
+            data['createIssueConfig'] = config
 
         return data
 
@@ -198,12 +154,15 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         ints_by_id = {i.id: i for i in item_list}
         for ei in external_issues:
             # TODO(jess): move into an external issue serializer?
+            installation = ints_by_id[ei.integration_id].get_installation(
+                self.group.organization.id)
             issues_by_integration[ei.integration_id].append({
                 'id': six.text_type(ei.id),
                 'key': ei.key,
-                'url': ints_by_id[ei.integration_id].get_installation(self.group.organization.id).get_issue_url(ei.key),
+                'url': installation.get_issue_url(ei.key),
                 'title': ei.title,
                 'description': ei.description,
+                'displayName': installation.get_issue_display_name(ei),
             })
 
         return {

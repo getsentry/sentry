@@ -2,9 +2,6 @@ from __future__ import absolute_import
 
 import six
 
-import mock
-
-from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import (
     Activity, GroupLink, GroupSubscription, GroupSubscriptionReason,
     ExternalIssue, Integration, OrganizationIntegration
@@ -26,7 +23,7 @@ class GroupNoteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -39,7 +36,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
 
         response = self.client.post(url, format='json')
         assert response.status_code == 400
@@ -90,7 +87,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
 
         # mentioning a member that does not exist returns 400
         response = self.client.post(
@@ -148,7 +145,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
 
         # mentioning a team that does not exist returns 400
         response = self.client.post(
@@ -174,15 +171,14 @@ class GroupNoteCreateTest(APITestCase):
                 group=group,
                 reason=GroupSubscriptionReason.team_mentioned)) == 1
 
-    @mock.patch.object(ExampleIntegration, 'create_comment')
-    def test_with_group_link(self, mock_create_comment):
+    def test_with_group_link(self):
         group = self.group
 
         integration = Integration.objects.create(
             provider='example',
             external_id='123456',
         )
-        integration.add_organization(group.organization.id)
+        integration.add_organization(group.organization, self.user)
 
         OrganizationIntegration.objects.filter(
             integration_id=integration.id,
@@ -211,15 +207,20 @@ class GroupNoteCreateTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )
 
+        self.user.name = 'Sentry Admin'
+        self.user.save()
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
 
-        with self.feature('organizations:internal-catchall'):
+        with self.feature({
+            'organizations:integrations-issue-sync': True,
+        }):
             with self.tasks():
+                comment = 'hello world'
                 response = self.client.post(
                     url, format='json', data={
-                        'text': 'hello world',
+                        'text': comment,
                     }
                 )
                 assert response.status_code == 201, response.content
@@ -227,5 +228,4 @@ class GroupNoteCreateTest(APITestCase):
                 activity = Activity.objects.get(id=response.data['id'])
                 assert activity.user == self.user
                 assert activity.group == group
-                assert activity.data == {'text': 'hello world'}
-                mock_create_comment.assert_called_with('APP-123', 'hello world')
+                assert activity.data == {'text': comment}

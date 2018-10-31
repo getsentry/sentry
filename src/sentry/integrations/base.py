@@ -1,6 +1,12 @@
 from __future__ import absolute_import
 
-__all__ = ['Integration', 'IntegrationFeatures', 'IntegrationProvider', 'IntegrationMetadata']
+__all__ = [
+    'IntegrationInstallation',
+    'IntegrationFeatures',
+    'IntegrationProvider',
+    'IntegrationMetadata',
+    'FeatureDescription',
+]
 
 import logging
 import six
@@ -13,13 +19,22 @@ from sentry.exceptions import InvalidIdentity
 from sentry.pipeline import PipelineProvider
 
 from .exceptions import (
-    ApiHostError, ApiError, ApiUnauthorized, IntegrationError, UnsupportedResponseType
+    ApiHostError, ApiError, ApiUnauthorized, IntegrationError,
+    IntegrationFormError, UnsupportedResponseType
 )
 from .constants import ERR_UNAUTHORIZED, ERR_INTERNAL, ERR_UNSUPPORTED_RESPONSE_TYPE
 from sentry.models import Identity, OrganizationIntegration
 
+
+FeatureDescription = namedtuple('FeatureDescription', [
+    'description',  # A markdown description of the feature
+    'featureGate',  # A IntegrationFeature that gates this feature
+])
+
+
 IntegrationMetadata = namedtuple('IntegrationMetadata', [
     'description',  # A markdown description of the integration
+    'features',     # A list of FeatureDescriptions
     'author',       # The integration author's name
     'noun',         # The noun used to identify the integration
     'issue_url',    # URL where issues should be opened
@@ -28,12 +43,44 @@ IntegrationMetadata = namedtuple('IntegrationMetadata', [
 ])
 
 
+class IntegrationMetadata(IntegrationMetadata):
+    @staticmethod
+    def feature_flag_name(f):
+        """
+        FeatureDescriptions are set using the IntegrationFeatures constants,
+        however we expose them here as mappings to organization feature flags, thus
+        we prefix them with `integration`.
+        """
+        if f is not None:
+            return u'integrations-{}'.format(f)
+
+    def _asdict(self):
+        metadata = super(IntegrationMetadata, self)._asdict()
+        metadata['features'] = [
+            {
+                'description': f.description.strip(),
+                'featureGate': self.feature_flag_name(f.featureGate.value)
+            }
+            for f in metadata['features']
+        ]
+        return metadata
+
+
 class IntegrationFeatures(Enum):
-    NOTIFICATION = 'notification'
-    ISSUE_BASIC = 'issue_basic'
-    ISSUE_SYNC = 'issue_sync'
+    """
+    IntegrationFeatures are used for marking supported features on an
+    integration. Features are marked on the IntegrationProvider itself, as well
+    as used within the FeatureDescription.
+
+    NOTE: Features in this list that are gated by an organization feature flag
+    *must* match the suffix of the organization feature flag name.
+    """
+    ACTION_NOTIFICATION = 'actionable-notification'
+    ISSUE_BASIC = 'issue-basic'
+    ISSUE_SYNC = 'issue-sync'
     COMMITS = 'commits'
-    CHAT_UNFURL = 'chat_unfurl'
+    CHAT_UNFURL = 'chat-unfurl'
+    ALERT_RULE = 'alert-rule'
 
 
 class IntegrationProvider(PipelineProvider):
@@ -50,8 +97,19 @@ class IntegrationProvider(PipelineProvider):
     it provides (such as extensions provided).
     """
 
-    # a unique identifier (e.g. 'slack')
+    # a unique identifier (e.g. 'slack').
+    # Used to lookup sibling classes and the ``key`` used when creating
+    # Integration objects.
     key = None
+
+    # a unique identifier to use when creating the ``Integration`` object.
+    # Only needed when you want to create the above object with something other
+    # than ``key``. See: VstsExtensionIntegrationProvider.
+    _integration_key = None
+
+    # Whether this integration should show up in the list on the Organization
+    # Integrations page.
+    visible = True
 
     # a human readable name (e.g. 'Slack')
     name = None
@@ -72,9 +130,6 @@ class IntegrationProvider(PipelineProvider):
     # whether or not the integration installation be initiated from Sentry
     can_add = True
 
-    # can the integration be enabled specifically for projects?
-    can_add_project = False
-
     # can the integration be disabled ?
     can_disable = False
 
@@ -91,6 +146,10 @@ class IntegrationProvider(PipelineProvider):
             raise NotImplementedError
 
         return cls.integration_cls(model, organization_id, **kwargs)
+
+    @property
+    def integration_key(self):
+        return self._integration_key or self.key
 
     def get_logger(self):
         return logging.getLogger('sentry.integration.%s' % (self.key, ))
@@ -155,9 +214,9 @@ class IntegrationProvider(PipelineProvider):
         return feature in self.features
 
 
-class Integration(object):
+class IntegrationInstallation(object):
     """
-    An integration represents an installed integration and manages the
+    An IntegrationInstallation represents an installed integration and manages the
     core functionality of the integration.
     """
 
@@ -187,9 +246,6 @@ class Integration(object):
         """
         return []
 
-    def get_config_data(self):
-        return self.org_integration.config
-
     def update_organization_config(self, data):
         """
         Update the configuration field for an organization integration.
@@ -198,12 +254,8 @@ class Integration(object):
         config.update(data)
         self.org_integration.update(config=config)
 
-    def get_project_config(self):
-        """
-        Provides configuration for the integration on a per-project
-        level. See ``get_config_organization``.
-        """
-        return []
+    def get_config_data(self):
+        return self.org_integration.config
 
     def get_client(self):
         # Return the api client for a given provider
@@ -219,6 +271,16 @@ class Integration(object):
 
     def error_message_from_json(self, data):
         return data.get('message', 'unknown error')
+
+    def error_fields_from_json(self, data):
+        """
+        If we can determine error fields from the response JSON this should
+        format and return them, allowing an IntegrationFormError to be raised.
+        Return None if no form errors are present.
+
+        Error fields should be in the format: {field: [message]}
+        """
+        return None
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiUnauthorized):
@@ -252,6 +314,15 @@ class Integration(object):
                 sys.exc_info()[2]
             )
         elif isinstance(exc, ApiError):
+            if exc.json:
+                error_fields = self.error_fields_from_json(exc.json)
+                if error_fields is not None:
+                    six.reraise(
+                        IntegrationFormError,
+                        IntegrationFormError(error_fields),
+                        sys.exc_info()[2]
+                    )
+
             six.reraise(
                 IntegrationError,
                 IntegrationError(self.message_from_error(exc)),

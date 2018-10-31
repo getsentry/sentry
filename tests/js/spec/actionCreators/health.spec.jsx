@@ -7,7 +7,37 @@ describe('Health ActionCreator', function() {
   const project = TestStubs.Project();
   let mock;
 
-  it('requests timeseries', function() {
+  it('requests timeseries w/o tag', function() {
+    mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/health/graph/',
+    });
+    doHealthRequest(api, {
+      timeseries: true,
+      organization,
+      projects: [project.id],
+      environments: [],
+      topk: 5,
+      includePrevious: false,
+      period: '7d',
+    });
+
+    expect(mock).toHaveBeenCalled();
+
+    expect(mock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/health/graph/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          project: [project.id],
+          environment: [],
+          topk: 5,
+          includePrevious: false,
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('requests timeseries w/ tag', function() {
     mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/health/graph/',
     });
@@ -18,7 +48,7 @@ describe('Health ActionCreator', function() {
       environments: [],
       tag: 'release',
       topk: 5,
-      includePrevious: true,
+      includePrevious: false,
       period: '7d',
     });
 
@@ -32,7 +62,7 @@ describe('Health ActionCreator', function() {
           environment: [],
           tag: 'release',
           topk: 5,
-          includePrevious: true,
+          includePrevious: false,
           statsPeriod: '7d',
         }),
       })
@@ -62,6 +92,60 @@ describe('Health ActionCreator', function() {
           environment: [],
           tag: 'release',
           includePrevious: false,
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('requests timeseries w/ tag and previous period', function() {
+    mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/health/graph/',
+    });
+    doHealthRequest(api, {
+      timeseries: true,
+      organization,
+      projects: [project.id],
+      environments: [],
+      tag: 'release',
+      topk: 5,
+      includePrevious: true,
+      period: '7d',
+    });
+
+    expect(mock).toHaveBeenCalled();
+
+    expect(mock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/health/graph/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '14d',
+        }),
+      })
+    );
+  });
+
+  it('requests non-timeseries and previous period', function() {
+    mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/health/top/',
+    });
+    doHealthRequest(api, {
+      timeseries: false,
+      organization,
+      projects: [project.id],
+      environments: [],
+      tag: 'release',
+      topk: 5,
+      includePrevious: true,
+      period: '7d',
+    });
+
+    expect(mock).toHaveBeenCalled();
+
+    expect(mock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/health/top/',
+      expect.objectContaining({
+        query: expect.objectContaining({
           statsPeriod: '7d',
         }),
       })

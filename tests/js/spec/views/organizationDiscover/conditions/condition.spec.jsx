@@ -27,7 +27,12 @@ describe('Condition', function() {
   describe('filterOptions()', function() {
     let wrapper;
     beforeEach(function() {
-      const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
+      const columns = [
+        {name: 'col1', type: 'string'},
+        {name: 'col2', type: 'number'},
+        {name: 'col3', type: 'datetime'},
+        {name: 'exception_stacks.type', type: 'string'},
+      ];
       wrapper = mount(
         <Condition value={[null, null, null]} onChange={jest.fn()} columns={columns} />
       );
@@ -49,6 +54,26 @@ describe('Condition', function() {
       const options = wrapper.instance().filterOptions([], 'col2');
       expect(options).toHaveLength(8);
       expect(options[0]).toEqual({value: 'col2 >', label: 'col2 >'});
+    });
+
+    it('renders operator options for datetime column', function() {
+      const options = wrapper.instance().filterOptions([], 'col3');
+      expect(options).toHaveLength(8);
+      expect(options[0]).toEqual({value: 'col3 >', label: 'col3 >'});
+      expect(options[1]).toEqual({value: 'col3 <', label: 'col3 <'});
+      expect(options[2]).toEqual({value: 'col3 >=', label: 'col3 >='});
+      expect(options[3]).toEqual({value: 'col3 <=', label: 'col3 <='});
+      expect(options[4]).toEqual({value: 'col3 =', label: 'col3 ='});
+      expect(options[5]).toEqual({value: 'col3 !=', label: 'col3 !='});
+      expect(options[6]).toEqual({value: 'col3 IS NULL', label: 'col3 IS NULL'});
+      expect(options[7]).toEqual({value: 'col3 IS NOT NULL', label: 'col3 IS NOT NULL'});
+    });
+
+    it('limits operators to = and != for array fields', function() {
+      const options = wrapper.instance().filterOptions([], 'exception_stacks.type');
+      expect(options).toHaveLength(2);
+      expect(options[0].value).toEqual('exception_stacks.type =');
+      expect(options[1].value).toEqual('exception_stacks.type !=');
     });
   });
 

@@ -6,7 +6,7 @@ import createReactClass from 'create-react-class';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Field from 'app/views/settings/components/forms/field';
 import IndicatorStore from 'app/stores/indicatorStore';
@@ -122,7 +122,7 @@ export default class ProjectServiceHooks extends AsyncView {
       <React.Fragment>
         <PanelHeader key={'header'}>{t('Service Hook')}</PanelHeader>
         <PanelBody key={'body'}>
-          <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
+          <PanelAlert type="info" icon="icon-circle-exclamation">
             Service Hooks are an early adopter preview feature and will change in the
             future.
           </PanelAlert>

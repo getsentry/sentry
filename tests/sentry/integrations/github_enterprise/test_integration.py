@@ -21,7 +21,8 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         'client_id': 'client_id',
         'client_secret': 'client_secret',
         'webhook_secret': 'webhook_secret',
-        'private_key': 'private_key'
+        'private_key': 'private_key',
+        'verify_ssl': True,
     }
 
     @patch('sentry.integrations.github_enterprise.integration.get_jwt', return_value='jwt_token_1')
@@ -39,7 +40,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert redirect.path == '/github-apps/test-app'
 
         # App installation ID is provided, mveo thr
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({'installation_id': installation_id})
         ))
@@ -67,7 +68,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         )
 
         responses.add(
-            responses.POST, 'https://35.232.149.196/api/v3/installations/{}/access_tokens'.format(
+            responses.POST, u'https://35.232.149.196/api/v3/installations/{}/access_tokens'.format(
                 installation_id,
             ),
             json={
@@ -103,7 +104,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             }
         )
 
-        resp = self.client.get('{}?{}'.format(
+        resp = self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({
                 'code': 'oauth-code',
@@ -150,6 +151,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 u'private_key': u'private_key',
                 u'url': u'35.232.149.196',
                 u'webhook_secret': u'webhook_secret',
+                u'verify_ssl': True,
             }
         }
         oi = OrganizationIntegration.objects.get(

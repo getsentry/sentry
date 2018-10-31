@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classnames from 'classnames';
 
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import PlatformPicker from 'app/views/onboarding/project/platformpicker';
 import PlatformiconTile from 'app/views/onboarding/project/platformiconTile';
 import SelectField from 'app/components/forms/selectField';
@@ -49,7 +49,6 @@ class OnboardingProject extends React.Component {
 
   renderTeamPicker = () => {
     let {team, teams, setTeam} = this.props;
-    if (teams.length < 2) return null;
     return (
       <div className="new-project-team">
         <h4>{t('Team') + ':'}</h4>

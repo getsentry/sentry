@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 import {CONDITION_OPERATORS} from '../data';
 
 const specialConditions = new Set(['IS NULL', 'IS NOT NULL']);
@@ -18,9 +20,12 @@ export function isValidCondition(condition, cols) {
   const isColValid = columns.has(condition[0]);
   const isOperatorValid = allOperators.has(condition[1]);
 
+  const colType = (cols.find(col => col.name === condition[0]) || {}).type;
+
   const isValueValid =
     specialConditions.has(condition[1]) ||
-    typeof condition[2] === (cols.find(col => col.name === condition[0]) || {}).type;
+    (colType === 'datetime' && condition[2] !== null) ||
+    colType === typeof condition[2];
 
   return isColValid && isOperatorValid && isValueValid;
 }
@@ -83,6 +88,20 @@ export function getExternal(internal, columns) {
     if (type === 'number') {
       const num = parseInt(external[2], 10);
       external[2] = !isNaN(num) ? num : null;
+    }
+
+    if (type === 'boolean') {
+      if (external[2] === 'true') {
+        external[2] = true;
+      }
+      if (external[2] === 'false') {
+        external[2] = false;
+      }
+    }
+
+    if (type === 'datetime') {
+      const date = moment.utc(external[2]);
+      external[2] = date.isValid() ? date.format() : null;
     }
   }
 

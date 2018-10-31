@@ -23,5 +23,5 @@ class ServiceHookValidator(serializers.Serializer):
         if value:
             for event in value:
                 if event not in SERVICE_HOOK_EVENTS:
-                    raise serializers.ValidationError('Invalid event name: {}'.format(event))
+                    raise serializers.ValidationError(u'Invalid event name: {}'.format(event))
         return attrs

@@ -11,7 +11,7 @@ from bitfield import Bit, BitField, BitHandler
 from bitfield.compat import bitand, bitor
 
 from .forms import BitFieldTestModelForm
-from .models import BitFieldTestModel, CompositeBitFieldTestModel
+from .models import BitFieldTestModel
 
 
 class BitHandlerTest(TestCase):
@@ -328,42 +328,6 @@ class BitFieldSerializationTest(TestCase):
         data = pickle.dumps(bf)
         inst = pickle.loads(data)
         self.assertTrue('FLAG_3' in inst.flags.keys())
-
-
-class CompositeBitFieldTest(TestCase):
-    def test_get_flag(self):
-        inst = CompositeBitFieldTestModel()
-        self.assertEqual(inst.flags.FLAG_0, inst.flags_1.FLAG_0)
-        self.assertEqual(inst.flags.FLAG_4, inst.flags_2.FLAG_4)
-        self.assertRaises(AttributeError, lambda: inst.flags.flag_NA)
-
-    def test_set_flag(self):
-        inst = CompositeBitFieldTestModel()
-
-        flag_0_original = bool(inst.flags.FLAG_0)
-        self.assertEqual(bool(inst.flags_1.FLAG_0), flag_0_original)
-        flag_4_original = bool(inst.flags.FLAG_4)
-        self.assertEqual(bool(inst.flags_2.FLAG_4), flag_4_original)
-
-        # flip flags' bits
-        inst.flags.FLAG_0 = not flag_0_original
-        inst.flags.FLAG_4 = not flag_4_original
-
-        # check to make sure the bit flips took effect
-        self.assertNotEqual(bool(inst.flags.FLAG_0), flag_0_original)
-        self.assertNotEqual(bool(inst.flags_1.FLAG_0), flag_0_original)
-        self.assertNotEqual(bool(inst.flags.FLAG_4), flag_4_original)
-        self.assertNotEqual(bool(inst.flags_2.FLAG_4), flag_4_original)
-
-        def set_flag():
-            inst.flags.flag_NA = False
-
-        self.assertRaises(AttributeError, set_flag)
-
-    def test_hasattr(self):
-        inst = CompositeBitFieldTestModel()
-        self.assertEqual(hasattr(inst.flags, 'flag_0'), hasattr(inst.flags_1, 'flag_0'))
-        self.assertEqual(hasattr(inst.flags, 'flag_4'), hasattr(inst.flags_2, 'flag_4'))
 
 
 class BitFormFieldTest(TestCase):

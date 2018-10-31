@@ -30,7 +30,7 @@ const PanelChart = styled(
         <Panel className={className}>
           {(title || showLegend) && (
             <PanelHeader>
-              {title && <span>{title}</span>}
+              {title && <Title>{title}</Title>}
               {showLegend && <Legend {...props} />}
             </PanelHeader>
           )}
@@ -52,4 +52,9 @@ export default PanelChart;
 
 const ChartWrapper = styled('div')`
   overflow: hidden; /* This is required to have flex containers resize */
+`;
+
+const Title = styled('span')`
+  white-space: nowrap;
+  flex-shrink: 0;
 `;

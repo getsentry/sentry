@@ -7,7 +7,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import Aggregation from './aggregation';
-import {PlaceholderText, SelectListItem, AddText} from '../styles';
+import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
 
 export default class Aggregations extends React.Component {
   static propTypes = {
@@ -40,7 +40,7 @@ export default class Aggregations extends React.Component {
     return (
       <div>
         <div>
-          <strong>{t('Aggregation')}</strong>
+          <SidebarLabel>{t('Aggregation')}</SidebarLabel>
           <AddText>
             (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
           </AddText>
@@ -49,7 +49,7 @@ export default class Aggregations extends React.Component {
           <PlaceholderText>{t('None, showing raw event data')}</PlaceholderText>
         )}
         {value.map((aggregation, idx) => (
-          <SelectListItem key={idx}>
+          <SelectListItem key={`${idx}_${aggregation[2]}`}>
             <Aggregation
               value={aggregation}
               onChange={val => this.handleChange(val, idx)}

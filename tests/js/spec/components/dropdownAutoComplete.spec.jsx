@@ -4,6 +4,8 @@ import {mount} from 'enzyme';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 
 describe('DropdownAutoComplete', function() {
+  const routerContext = TestStubs.routerContext();
+
   it('has actor wrapper', function() {
     const wrapper = mount(
       <DropdownAutoComplete
@@ -23,10 +25,11 @@ describe('DropdownAutoComplete', function() {
         ]}
       >
         {() => 'Click Me!'}
-      </DropdownAutoComplete>
+      </DropdownAutoComplete>,
+      routerContext
     );
-    expect(wrapper.find('[role="button"]')).toHaveLength(1);
-    expect(wrapper.find('[role="button"]').text()).toBe('Click Me!');
+    expect(wrapper.find('div[role="button"]')).toHaveLength(1);
+    expect(wrapper.find('div[role="button"]').text()).toBe('Click Me!');
   });
 
   it('opens dropdown menu when actor is clicked', function() {
@@ -48,9 +51,10 @@ describe('DropdownAutoComplete', function() {
         ]}
       >
         {() => 'Click Me!'}
-      </DropdownAutoComplete>
+      </DropdownAutoComplete>,
+      routerContext
     );
-    wrapper.find('[role="button"]').simulate('click');
+    wrapper.find('Actor[role="button"]').simulate('click');
     expect(wrapper.find('StyledMenu')).toHaveLength(1);
   });
 });

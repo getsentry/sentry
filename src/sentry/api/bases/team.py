@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.app import raven
 from sentry.models import Team, TeamStatus
+from sentry.utils.sdk import configure_scope
 
 from .organization import OrganizationPermission
 
@@ -47,9 +47,8 @@ class TeamEndpoint(Endpoint):
 
         self.check_object_permissions(request, team)
 
-        raven.tags_context({
-            'organization': team.organization_id,
-        })
+        with configure_scope() as scope:
+            scope.set_tag("organization", team.organization_id)
 
         request._request.organization = team.organization
 

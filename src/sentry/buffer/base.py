@@ -57,9 +57,21 @@ class Buffer(Service):
         return []
 
     def process(self, model, columns, filters, extra=None):
+        from sentry.models import Group
+        from sentry.event_manager import ScoreClause
+
         update_kwargs = dict((c, F(c) + v) for c, v in six.iteritems(columns))
         if extra:
             update_kwargs.update(extra)
+
+        # HACK(dcramer): this is gross, but we dont have a good hook to compute this property today
+        # XXX(dcramer): remove once we can replace 'priority' with something reasonable via Snuba
+        if model is Group and 'last_seen' in update_kwargs and 'times_seen' in update_kwargs:
+            update_kwargs['score'] = ScoreClause(
+                group=None,
+                times_seen=update_kwargs['times_seen'],
+                last_seen=update_kwargs['last_seen'],
+            )
 
         _, created = model.objects.create_or_update(values=update_kwargs, **filters)
 

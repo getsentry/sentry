@@ -74,7 +74,7 @@ class BroadcastIndexEndpoint(Endpoint):
                         else:
                             queryset = queryset.none()
                     if filters:
-                        queryset = queryset.filter(reduce(or_, filters))
+                        queryset = queryset.filter(six.moves.reduce(or_, filters))
                 else:
                     queryset = queryset.none()
 

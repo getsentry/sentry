@@ -1,6 +1,7 @@
 from __future__ import absolute_import
+from django.core.urlresolvers import reverse
 from sentry.integrations.issues import IssueBasicMixin
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.integrations.exceptions import ApiError, IntegrationFormError
 
 
 ISSUE_TYPES = (
@@ -12,44 +13,34 @@ PRIORITIES = (
     ('blocker', 'Blocker'),
 )
 
-ERR_404 = (
-    'Bitbucket returned a 404. Please make sure that '
-    'the repo exists, you have access to it, and it has '
-    'issue tracking enabled.'
-)
-
 
 class BitbucketIssueBasicMixin(IssueBasicMixin):
 
     def get_issue_url(self, key):
         repo, issue_id = key.split('#')
-        return 'https://bitbucket.org/{}/issues/{}'.format(repo, issue_id)
+        return u'https://bitbucket.org/{}/issues/{}'.format(repo, issue_id)
 
-    def get_repo_choices(self, **kwargs):
-
-        try:
-            repos = self.get_repositories()
-        except ApiError:
-            repo_choices = []
-        else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
-
-        params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
-        issues = self.get_repo_issues(default_repo)
-        return repo_choices, default_repo, issues
+    def get_persisted_default_config_fields(self):
+        return ['repo']
 
     def get_create_issue_config(self, group, **kwargs):
         fields = super(BitbucketIssueBasicMixin, self).get_create_issue_config(group, **kwargs)
-        repo_choices, default_repo, issues = self.get_repo_choices(**kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-bitbucket-search', args=[org.slug, self.model.id],
+        )
+
         return [
             {
                 'name': 'repo',
-                'label': 'Bitbucket Repository',
-                'type': 'select',
-                'default': default_repo,
-                'choices': repo_choices,
                 'required': True,
+                'type': 'select',
+                'url': autocomplete_url,
+                'choices': repo_choices,
+                'defaultValue': default_repo,
+                'label': 'Bitbucket Repository',
             }
         ] + fields + [
             {
@@ -68,23 +59,28 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         ]
 
     def get_link_issue_config(self, group, **kwargs):
-        repo_choices, default_repo, issues = self.get_repo_choices(**kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-bitbucket-search', args=[org.slug, self.model.id],
+        )
 
         return [{
             'name': 'repo',
-            'label': 'Bitbucket Repository',
-            'type': 'select',
-            'default': default_repo,
-            'choices': repo_choices,
             'required': True,
-            'updatesForm': True,
+            'type': 'select',
+            'url': autocomplete_url,
+            'choices': repo_choices,
+            'defaultValue': default_repo,
+            'label': 'Bitbucket Repository',
         }, {
             'name': 'externalIssue',
             'label': 'Issue',
             'default': '',
             'type': 'select',
-            'choices': issues,
-
+            'required': True,
+            'url': autocomplete_url,
         }, {
             'name': 'comment',
             'label': 'Comment',
@@ -97,7 +93,14 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
 
     def create_issue(self, data, **kwargs):
         client = self.get_client()
-        issue = client.create_issue(data.get('repo'), data)
+        if not data.get('repo'):
+            raise IntegrationFormError({'repo': ['Repository is required']})
+
+        try:
+            issue = client.create_issue(data.get('repo'), data)
+        except ApiError as e:
+            self.raise_error(e)
+
         return {
             'key': issue['id'],
             'title': issue['title'],
@@ -116,25 +119,8 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
             'repo': repo,
         }
 
-    def message_from_error(self, exc):
-        if isinstance(exc, ApiError) and exc.code == 404:
-            return ERR_404
-        return super(BitbucketIssueBasicMixin, self).message_from_error(exc)
-
-    def get_repo_issues(self, repo):
-        client = self.get_client()
-
-        try:
-            response = client.get_issues(repo)['values']
-        except Exception as e:
-            self.raise_error(e)
-
-        issues = tuple((i['id'], '#{} {}'.format(i['id'], i['title'])) for i in response)
-
-        return issues
-
     def make_external_key(self, data):
-        return '{}#{}'.format(data['repo'], data['key'])
+        return u'{}#{}'.format(data['repo'], data['key'])
 
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs['data']
@@ -143,10 +129,9 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         repo, issue_num = external_issue.key.split('#')
 
         if not repo:
-            raise IntegrationError('repo must be provided')
-
+            raise IntegrationFormError({'repo': 'Repository is required'})
         if not issue_num:
-            raise IntegrationError('issue number must be provided')
+            raise IntegrationFormError({'externalIssue': 'Issue ID is required'})
 
         comment = data.get('comment')
         if comment:
@@ -157,4 +142,4 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
                     data={'content': {'raw': comment}}
                 )
             except ApiError as e:
-                raise IntegrationError(self.message_from_error(e))
+                self.raise_error(e)

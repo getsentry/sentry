@@ -8,9 +8,14 @@ from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Repository
+from sentry.signals import repo_linked
 
 
 class IntegrationRepositoryProvider(object):
+    """
+    Repository Provider for Integrations in the Sentry Repository.
+    Does not include plugins.
+    """
     name = None
     logger = None
     repo_provider = None
@@ -20,12 +25,12 @@ class IntegrationRepositoryProvider(object):
 
     def dispatch(self, request, organization, **kwargs):
         try:
-            config = self.validate_config(organization, request.DATA)
+            config = self.get_repository_data(organization, request.DATA)
         except Exception as e:
             return self.handle_api_error(e)
 
         try:
-            result = self.create_repository(
+            result = self.build_repository_config(
                 organization=organization,
                 data=config,
             )
@@ -61,13 +66,15 @@ class IntegrationRepositoryProvider(object):
                     provider=self.id,
                     integration_id=result.get('integration_id'),
                 )
-                self.delete_repository(repo)
+                self.on_delete_repository(repo)
             except IntegrationError:
                 pass
             return Response(
                 {'errors': {'__all__': 'A repository with that name already exists'}},
                 status=400,
             )
+        else:
+            repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
 
         analytics.record(
             'integration.repo.added',
@@ -99,13 +106,29 @@ class IntegrationRepositoryProvider(object):
     def get_config(self, organization):
         raise NotImplementedError
 
-    def validate_config(self, organization, config):
+    def get_repository_data(self, organization, config):
+        """
+        Gets the necessary repository data through the integration's API
+        """
         return config
 
-    def create_repository(self, organization, data):
+    def build_repository_config(self, organization, data):
+        """
+        Builds final dict containing all necessary data to create the repository
+
+            >>> {
+            >>>    'name': data['name'],
+            >>>    'external_id': data['external_id'],
+            >>>    'url': data['url'],
+            >>>    'config': {
+            >>>        # Any additional data
+            >>>    },
+            >>>    'integration_id': data['installation'],
+            >>> }
+        """
         raise NotImplementedError
 
-    def delete_repository(self, repo):
+    def on_delete_repository(self, repo):
         pass
 
     def compare_commits(self, repo, start_sha, end_sha):

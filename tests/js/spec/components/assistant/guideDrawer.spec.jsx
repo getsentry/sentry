@@ -1,35 +1,85 @@
 import React from 'react';
+
+import {GuideDrawer} from 'app/components/assistant/guideDrawer';
 import {shallow} from 'enzyme';
-import {Client} from 'app/api';
-import GuideDrawer from 'app/components/assistant/guideDrawer';
 
 describe('GuideDrawer', function() {
-  let data = {
-    cue: 'Click here for a tour of the issue page',
-    id: 1,
-    page: 'issue',
-    required_targets: ['target 1'],
-    steps: [
-      {message: 'Message 1 ${orgSlug}', target: 'target 1', title: '1. Title 1'},
-      {message: 'Message 2', target: 'target 2', title: '2. Title 2'},
-    ],
-  };
+  let guides = [
+    {
+      cue: 'Click here for a tour of the issue page',
+      id: 1,
+      required_targets: ['target 1'],
+      steps: [
+        {message: 'Message 1 ${orgSlug}', target: 'target 1', title: '1. Title 1'},
+        {message: 'Message 2', target: 'target 2', title: '2. Title 2'},
+      ],
+    },
+    {
+      id: 2,
+      guide_type: 'tip',
+      cta_text: 'cta_text',
+      cta_link: '/cta/link/${orgSlug}/${projectSlug}/',
+      required_targets: ['target 3'],
+      steps: [
+        {message: 'Message 1 ${numEvents}', target: 'target 3', title: '1. Title 1'},
+      ],
+    },
+  ];
+  let wrapper, component, closeMock, pushMock;
 
   beforeEach(function() {
     MockApiClient.addMockResponse({
       url: '/assistant/',
+      body: guides,
     });
-    MockApiClient.addMockResponse({
+    closeMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: '/assistant/',
     });
+    pushMock = jest.fn();
+    wrapper = shallow(
+      <GuideDrawer
+        router={{
+          push: pushMock,
+        }}
+      />,
+      {
+        context: {
+          router: TestStubs.router(),
+          organization: {
+            id: '100',
+          },
+        },
+      }
+    );
+    component = wrapper.instance();
+  });
+
+  afterEach(function() {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('renders tip', async function() {
+    component.onGuideStateChange({
+      currentGuide: guides[1],
+      currentStep: 1,
+      project: {id: '10', slug: 'testproj'},
+      projectStats: new Map([[10, 56]]),
+      org: {slug: 'testorg'},
+    });
+    wrapper.update();
+    expect(wrapper).toMatchSnapshot();
+    // Click on the CTA.
+    wrapper
+      .find('Button')
+      .first()
+      .simulate('click');
+    expect(pushMock).toHaveBeenCalledWith('/cta/link/testorg/testproj/');
   });
 
   it('renders drawer', function() {
-    const wrapper = shallow(<GuideDrawer />);
-    const component = wrapper.instance();
     component.onGuideStateChange({
-      currentGuide: data,
+      currentGuide: guides[0],
       currentStep: 0,
     });
     wrapper.update();
@@ -41,20 +91,14 @@ describe('GuideDrawer', function() {
   });
 
   it('gets dismissed', function() {
-    let wrapper = shallow(<GuideDrawer />);
-    const component = wrapper.instance();
     component.onGuideStateChange({
-      currentGuide: data,
+      currentGuide: guides[0],
       currentStep: 1,
-      currentOrg: {slug: 'testorg'},
+      org: {slug: 'testorg'},
     });
     wrapper.update();
     expect(wrapper).toMatchSnapshot();
 
-    let closeMock = Client.addMockResponse({
-      url: '/assistant/',
-      method: 'PUT',
-    });
     wrapper
       .find('.close-button')
       .last()
@@ -72,26 +116,20 @@ describe('GuideDrawer', function() {
   });
 
   it('renders next step', function() {
-    let wrapper = shallow(<GuideDrawer />);
-    const component = wrapper.instance();
     component.onGuideStateChange({
-      currentGuide: data,
+      currentGuide: guides[0],
       currentStep: 2,
-      currentOrg: {slug: 'testorg'},
+      org: {slug: 'testorg'},
     });
     wrapper.update();
     expect(wrapper).toMatchSnapshot();
 
     // Mark as useful.
-    let usefulMock = Client.addMockResponse({
-      url: '/assistant/',
-      method: 'PUT',
-    });
     wrapper
       .find('Button')
       .first()
       .simulate('click');
-    expect(usefulMock).toHaveBeenCalledWith(
+    expect(closeMock).toHaveBeenCalledWith(
       '/assistant/',
       expect.objectContaining({
         method: 'PUT',

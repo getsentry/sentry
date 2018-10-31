@@ -1,7 +1,9 @@
 import React from 'react';
+
 import {extractMultilineFields} from 'app/utils';
 import {t, tct, tn} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
+import slugify from 'app/utils/slugify';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/:projectId/';
@@ -58,6 +60,7 @@ export const fields = {
     label: t('Name'),
     placeholder: t('my-service-name'),
     help: t('A unique ID used to identify this project'),
+    transformInput: slugify,
 
     saveOnBlur: false,
     saveMessageAlertType: 'info',
@@ -87,9 +90,9 @@ export const fields = {
       } else if (val > 23 && val % 24 === 0) {
         // Based on allowed values, val % 24 should always be true
         val = val / 24;
-        return tn('%d day', '%d days', val);
+        return tn('%s day', '%s days', val);
       }
-      return tn('%d hour', '%d hours', val);
+      return tn('%s hour', '%s hours', val);
     },
     saveOnBlur: false,
     saveMessage: tct(
@@ -173,6 +176,41 @@ export const fields = {
     ),
     getValue: val => extractMultilineFields(val),
     setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+  },
+  storeCrashReports: {
+    name: 'storeCrashReports',
+    type: 'boolean',
+    label: t('Store Native Crash Reports'),
+    help: t(
+      'Store native crash reports such as Minidumps for improved processing and download in issue details'
+    ),
+    visible: ({features}) => features.has('event-attachments'),
+  },
+  relayPiiConfig: {
+    name: 'relayPiiConfig',
+    type: 'string',
+    label: t('Custom Relay PII Config'),
+    placeholder: t(
+      'Paste a relay JSON PII config here. Leave empty to generate a default based on the above settings.'
+    ),
+    multiline: true,
+    autosize: true,
+    maxRows: 10,
+    help: tct(
+      'If you put a custom JSON relay PII config here it overrides the default generated config.  This is pushed to all trusted relays.  [learn_more:Learn more]',
+      {
+        learn_more: <a href="https://docs.sentry.io/relay/pii-config/" />,
+      }
+    ),
+    visible: ({features}) => features.has('relay'),
+    validate: ({id, form}) => {
+      try {
+        JSON.parse(form[id]);
+      } catch (e) {
+        return [[id, e.toString().replace(/^SyntaxError: JSON.parse: /, '')]];
+      }
+      return [];
+    },
   },
 
   allowedDomains: {

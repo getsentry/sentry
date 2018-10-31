@@ -17,6 +17,10 @@ export function openMenu(wrapper, options = {}) {
   return wrapper;
 }
 
+export function clearValue(wrapper) {
+  wrapper.find('.Select-clear-zone').simulate('mouseDown', {button: 0});
+}
+
 export function findOption(wrapper, {value, label} = {}, options) {
   let selector = getSelector(options);
   let valueSelector = !!value ? 'value' : 'label';

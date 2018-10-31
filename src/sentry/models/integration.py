@@ -3,11 +3,11 @@ from __future__ import absolute_import
 from django.db import models, IntegrityError, transaction
 from django.utils import timezone
 
-from sentry import analytics
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField, EncryptedJsonField, FlexibleForeignKey, Model
 )
+from sentry.signals import integration_added
 
 
 class IntegrationExternalProject(Model):
@@ -31,10 +31,14 @@ class OrganizationIntegration(Model):
 
     organization = FlexibleForeignKey('sentry.Organization')
     integration = FlexibleForeignKey('sentry.Integration')
-    config = EncryptedJsonField(default=lambda: {})
+    config = EncryptedJsonField(default=dict)
 
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now, null=True)
+    status = BoundedPositiveIntegerField(
+        default=ObjectStatus.VISIBLE,
+        choices=ObjectStatus.as_choices(),
+    )
 
     class Meta:
         app_label = 'sentry'
@@ -42,12 +46,14 @@ class OrganizationIntegration(Model):
         unique_together = (('organization', 'integration'),)
 
 
+# TODO(epurkhiser): This is deprecated and will be removed soon. Do not use
+# Project Integrations.
 class ProjectIntegration(Model):
     __core__ = False
 
     project = FlexibleForeignKey('sentry.Project')
     integration = FlexibleForeignKey('sentry.Integration')
-    config = EncryptedJsonField(default=lambda: {})
+    config = EncryptedJsonField(default=dict)
 
     class Meta:
         app_label = 'sentry'
@@ -70,7 +76,7 @@ class Integration(Model):
     # metadata might be used to store things like credentials, but it should NOT
     # be used to store organization-specific information, as the Integration
     # instance is shared among multiple organizations
-    metadata = EncryptedJsonField(default=lambda: {})
+    metadata = EncryptedJsonField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE,
         choices=ObjectStatus.as_choices(),
@@ -93,7 +99,7 @@ class Integration(Model):
     def has_feature(self, feature):
         return feature in self.get_provider().features
 
-    def add_organization(self, organization_id, default_auth_id=None, config=None):
+    def add_organization(self, organization, user=None, default_auth_id=None):
         """
         Add an organization to this integration.
 
@@ -101,47 +107,20 @@ class Integration(Model):
         """
         try:
             with transaction.atomic():
-                return OrganizationIntegration.objects.create(
-                    organization_id=organization_id,
+                integration = OrganizationIntegration.objects.create(
+                    organization_id=organization.id,
                     integration_id=self.id,
                     default_auth_id=default_auth_id,
-                    config=config or {},
+                    config={},
                 )
         except IntegrityError:
             return False
         else:
-            analytics.record(
-                'integration.added',
-                provider=self.provider,
-                id=self.id,
-                organization_id=organization_id,
+            integration_added.send_robust(
+                integration=self,
+                organization=organization,
+                user=user,
+                sender=self.__class__,
             )
 
-    def add_project(self, project_id, config=None):
-        """
-        Add a project to this integration. Requires that a
-        OrganizationIntegration must exist before the project can be added.
-
-        Returns False iff the ProjectIntegration was not created
-        """
-        from sentry.models import Project
-        org_id_queryset = Project.objects \
-            .filter(id=project_id) \
-            .values_list('organization_id', flat=True)
-        org_integration = OrganizationIntegration.objects.filter(
-            organization_id=org_id_queryset,
-            integration=self,
-        )
-
-        if not org_integration.exists():
-            return False
-
-        try:
-            with transaction.atomic():
-                return ProjectIntegration.objects.create(
-                    project_id=project_id,
-                    integration_id=self.id,
-                    config=config or {},
-                )
-        except IntegrityError:
-            return False
+        return integration

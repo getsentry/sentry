@@ -11,7 +11,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import PermissionDenied from 'app/views/permissionDenied';
 import RouteError from 'app/views/routeError';
 
-class AsyncComponent extends React.Component {
+export default class AsyncComponent extends React.Component {
   static propTypes = {
     location: PropTypes.object,
   };
@@ -19,6 +19,22 @@ class AsyncComponent extends React.Component {
   static contextTypes = {
     router: PropTypes.object,
   };
+
+  static errorHandler(component, fn) {
+    return (...args) => {
+      try {
+        return fn(...args);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error);
+        setTimeout(() => {
+          throw error;
+        });
+        component.setState({error});
+        return null;
+      }
+    };
+  }
 
   // Override this flag to have the component reload it's state when the window
   // becomes visible again. This will set the loading and reloading state, but
@@ -33,6 +49,9 @@ class AsyncComponent extends React.Component {
   //
   // eslint-disable-next-line react/sort-comp
   shouldReloadOnVisible = false;
+
+  // should `renderError` render the `detail` attribute of a 400 error
+  shouldRenderBadRequests = false;
 
   constructor(props, context) {
     super(props, context);
@@ -126,6 +145,8 @@ class AsyncComponent extends React.Component {
 
     endpoints.forEach(([stateKey, endpoint, params, options]) => {
       options = options || {};
+      // If you're using nested async components/views make sure to pass the
+      // props through so that the child component has access to props.location
       let locationQuery = (this.props.location && this.props.location.query) || {};
       let query = (params && params.query) || {};
       // If paginate option then pass entire `query` object to API call
@@ -143,10 +164,10 @@ class AsyncComponent extends React.Component {
         },
         error: error => {
           // Allow endpoints to fail
+          // allowError can have side effects to handle the error
           if (options.allowError && options.allowError(error)) {
             error = null;
           }
-
           this.handleError(error, [stateKey, endpoint, params, options]);
         },
       });
@@ -229,14 +250,19 @@ class AsyncComponent extends React.Component {
     return [['data', endpoint, this.getEndpointParams()]];
   }
 
-  renderSearchInput({onSearchSubmit, stateKey, ...other}) {
+  renderSearchInput({onSearchSubmit, stateKey, url, updateRoute, ...other}) {
+    const [firstEndpoint] = this.getEndpoints() || [];
+    const stateKeyOrDefault = stateKey || (firstEndpoint && firstEndpoint[0]);
+    const urlOrDefault = url || (firstEndpoint && firstEndpoint[1]);
     return (
       <AsyncComponentSearchInput
+        updateRoute={updateRoute}
         onSearchSubmit={onSearchSubmit}
-        stateKey={stateKey}
+        stateKey={stateKeyOrDefault}
+        url={urlOrDefault}
         api={this.api}
         onSuccess={(data, jqXHR) => {
-          this.handleRequestSuccess({stateKey, data, jqXHR});
+          this.handleRequestSuccess({stateKey: stateKeyOrDefault, data, jqXHR});
         }}
         onError={() => {
           this.renderError(new Error('Error with AsyncComponentSearchInput'));
@@ -250,18 +276,22 @@ class AsyncComponent extends React.Component {
     return <LoadingIndicator />;
   }
 
-  renderError(error) {
-    let unauthorizedErrors = Object.keys(this.state.errors).find(endpointName => {
-      let result = this.state.errors[endpointName];
-      // 401s are captured by SudaModal, but may be passed back to AsyncComponent if they close the modal without identifying
-      return result && result.status === 401;
-    });
+  renderError(error, disableLog = false) {
+    // 401s are captured by SudaModal, but may be passed back to AsyncComponent if they close the modal without identifying
+    let unauthorizedErrors = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 401
+    );
 
     // Look through endpoint results to see if we had any 403s, means their role can not access resource
-    let permissionErrors = Object.keys(this.state.errors).find(endpointName => {
-      let result = this.state.errors[endpointName];
-      return result && result.status === 403;
-    });
+    let permissionErrors = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 403
+    );
+
+    // If all error responses have status code === 0, then show error message but don't
+    // log it to sentry
+    let shouldLogSentry =
+      !!Object.values(this.state.errors).find(resp => resp && resp.status !== 0) ||
+      disableLog;
 
     if (unauthorizedErrors) {
       return (
@@ -273,7 +303,27 @@ class AsyncComponent extends React.Component {
       return <PermissionDenied />;
     }
 
-    return <RouteError error={error} component={this} onRetry={this.remountComponent} />;
+    if (this.shouldRenderBadRequests) {
+      let badRequests = Object.values(this.state.errors)
+        .filter(
+          resp =>
+            resp && resp.status === 400 && resp.responseJSON && resp.responseJSON.detail
+        )
+        .map(resp => resp.responseJSON.detail);
+
+      if (badRequests.length) {
+        return <LoadingError message={badRequests.join('\n')} />;
+      }
+    }
+
+    return (
+      <RouteError
+        error={error}
+        component={this}
+        disableLogSentry={!shouldLogSentry}
+        onRetry={this.remountComponent}
+      />
+    );
   }
 
   renderComponent() {
@@ -288,23 +338,3 @@ class AsyncComponent extends React.Component {
     return this.renderComponent();
   }
 }
-
-AsyncComponent.errorHandler = (component, fn) => {
-  return function(...args) {
-    try {
-      return fn(...args);
-    } catch (err) {
-      /*eslint no-console:0*/
-      console.error(err);
-      setTimeout(() => {
-        throw err;
-      });
-      component.setState({
-        error: err,
-      });
-      return null;
-    }
-  };
-};
-
-export default AsyncComponent;

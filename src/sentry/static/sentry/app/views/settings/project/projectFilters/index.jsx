@@ -3,6 +3,7 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import GroupTombstones from 'app/views/settings/project/projectFilters/groupTombstones';
+import NavTabs from 'app/components/navTabs';
 import ProjectFiltersChart from 'app/views/settings/project/projectFilters/projectFiltersChart';
 import ProjectFiltersSettings from 'app/views/settings/project/projectFilters/projectFiltersSettings';
 import SentryTypes from 'app/sentryTypes';
@@ -36,10 +37,7 @@ class ProjectFilters extends React.Component {
           <ProjectFiltersChart params={this.props.params} />
 
           {features.has('discard-groups') && (
-            <ul
-              className="nav nav-tabs"
-              style={{borderBottom: '1px solid #ddd', paddingTop: '30px'}}
-            >
+            <NavTabs underlined style={{paddingTop: '30px'}}>
               <li className={filterType === 'data-filters' ? 'active' : ''}>
                 <Link to={recreateRoute('data-filters/', {...this.props, stepBack: -1})}>
                   {t('Data Filters')}
@@ -52,7 +50,7 @@ class ProjectFilters extends React.Component {
                   {t('Discarded Issues')}
                 </Link>
               </li>
-            </ul>
+            </NavTabs>
           )}
 
           {filterType == 'discarded-groups' ? (

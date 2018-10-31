@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from sentry.api.base import Endpoint, logger
 from sentry.api.exceptions import ResourceDoesNotExist, SsoRequired, TwoFactorRequired
 from sentry.api.permissions import ScopedPermission
-from sentry.app import raven
+from sentry.utils.sdk import configure_scope
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -129,6 +129,16 @@ class OrganizationAuthProviderPermission(OrganizationPermission):
     }
 
 
+class OrganizationDiscoverSavedQueryPermission(OrganizationPermission):
+    # Relaxed permissions for saved queries in Discover
+    scope_map = {
+        'GET': ['org:read', 'org:write', 'org:admin'],
+        'POST': ['org:read', 'org:write', 'org:admin'],
+        'PUT': ['org:read', 'org:write', 'org:admin'],
+        'DELETE': ['org:read', 'org:write', 'org:admin'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission, )
 
@@ -142,11 +152,15 @@ class OrganizationEndpoint(Endpoint):
 
         self.check_object_permissions(request, organization)
 
-        raven.tags_context({
-            'organization': organization.id,
-        })
+        with configure_scope() as scope:
+            scope.set_tag("organization", organization.id)
 
         request._request.organization = organization
+
+        # Track the 'active' organization when the request came from
+        # a cookie based agent (react app)
+        if request.auth is None and request.user:
+            request.session['activeorg'] = organization.slug
 
         kwargs['organization'] = organization
         return (args, kwargs)

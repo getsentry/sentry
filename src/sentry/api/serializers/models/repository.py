@@ -9,6 +9,9 @@ from sentry.models import Repository
 @register(Repository)
 class RepositorySerializer(Serializer):
     def serialize(self, obj, attrs, user):
+        integration_id = None
+        if obj.integration_id:
+            integration_id = six.text_type(obj.integration_id)
         if obj.provider:
             provider = {
                 'id': obj.provider,
@@ -26,4 +29,5 @@ class RepositorySerializer(Serializer):
             'provider': provider,
             'status': obj.get_status_display(),
             'dateCreated': obj.date_added,
+            'integrationId': integration_id,
         }

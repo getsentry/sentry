@@ -50,7 +50,7 @@ describe('TeamSettings', function() {
 
     wrapper
       .find('input[name="slug"]')
-      .simulate('change', {target: {value: 'new-slug'}})
+      .simulate('change', {target: {value: 'NEW SLUG'}})
       .simulate('blur');
 
     wrapper.find('SaveButton').simulate('click');

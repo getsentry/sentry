@@ -228,21 +228,7 @@ class FormModel {
   }
 
   isValidField(id) {
-    let validate = this.getDescriptor(id, 'validate');
-    let errors = [];
-
-    if (typeof validate === 'function') {
-      // Returns "tuples" of [id, error string]
-      errors = validate({model: this, id, form: this.getData()}) || [];
-    }
-
-    errors
-      .filter(([, errorMessage]) => !!errorMessage)
-      .forEach(([field, errorMessage]) => {
-        this.setError(field, errorMessage);
-      });
-
-    return !errors.length && this.isValidRequiredField(id);
+    return (this.getError(id) || []).length === 0;
   }
 
   doApiRequest({apiEndpoint, apiMethod, data}) {
@@ -261,25 +247,44 @@ class FormModel {
 
   @action
   setValue(id, value) {
-    this.fields.set(id, value);
+    let fieldDescriptor = this.fieldDescriptor.get(id);
+    let finalValue = value;
 
-    if (this.options.onFieldChange) {
-      this.options.onFieldChange(id, value);
+    if (fieldDescriptor && typeof fieldDescriptor.transformInput === 'function') {
+      finalValue = fieldDescriptor.transformInput(value);
     }
 
-    this.updateErrorState(id);
-    this.updateShowSaveState(id, value);
-    this.updateShowReturnButtonState(id, value);
-  }
-  @action
-  updateErrorState(id) {
-    let fieldIsRequiredMessage = t('Field is required');
-    let isValid = this.isValidRequiredField(id);
-    // specifically check for empty string, 0 should be allowed
-    if (isValid && !this.errors.get(id)) return;
-    if (!isValid && this.errors.get(id) === fieldIsRequiredMessage) return;
+    this.fields.set(id, finalValue);
 
-    this.setError(id, isValid ? false : fieldIsRequiredMessage);
+    if (this.options.onFieldChange) {
+      this.options.onFieldChange(id, finalValue);
+    }
+
+    this.validateField(id);
+    this.updateShowSaveState(id, finalValue);
+    this.updateShowReturnButtonState(id, finalValue);
+  }
+
+  @action
+  validateField(id) {
+    let validate = this.getDescriptor(id, 'validate');
+    let errors = [];
+
+    if (typeof validate === 'function') {
+      // Returns "tuples" of [id, error string]
+      errors = validate({model: this, id, form: this.getData()}) || [];
+    }
+
+    let fieldIsRequiredMessage = t('Field is required');
+
+    if (!this.isValidRequiredField(id)) {
+      errors.push([id, fieldIsRequiredMessage]);
+    }
+
+    // If we have no errors, ensure we clear the field
+    errors = errors.length === 0 ? [[id, null]] : errors;
+
+    errors.forEach(([field, errorMessage]) => this.setError(field, errorMessage));
   }
 
   @action
@@ -325,24 +330,17 @@ class FormModel {
    */
   @action
   saveForm() {
-    // Represents state of current form
-    let form = this.getData();
+    this.validateForm();
 
-    let errors = [
-      // This only validates fields with values
-      ...(Object.keys(form).filter(id => !this.isValidField(id)) || []),
-      // Validate required fields
-      ...(Array.from(this.fieldDescriptor.keys()).filter(id => !this.isValidField(id)) ||
-        []),
-    ];
-
-    if (errors.length > 0) return null;
+    if (this.isError) return null;
 
     let saveSnapshot = this.createSnapshot();
 
     let request = this.doApiRequest({
       data: this.getTransformedData(),
     });
+
+    this.formState = FormState.SAVING;
 
     request
       .then(resp => {
@@ -374,6 +372,7 @@ class FormModel {
   /**
    * Attempts to save field and show undo message if necessary.
    * Calls submit handlers.
+   * TODO(billy): This should return a promise that resolves (instead of null)
    */
   @action
   saveField(id, currentValue) {
@@ -425,6 +424,7 @@ class FormModel {
       return null;
 
     // Check for error first
+    this.validateField(id);
     if (!this.isValidField(id)) return null;
 
     // shallow clone fields
@@ -526,7 +526,11 @@ class FormModel {
    */
   @action
   handleSaveField(id, currentValue) {
-    return this.saveField(id, currentValue).then(() => {
+    const savePromise = this.saveField(id, currentValue);
+
+    if (!savePromise) return null;
+
+    return savePromise.then(() => {
       this.setFieldState(id, 'showSave', false);
     });
   }
@@ -579,9 +583,10 @@ class FormModel {
     this.setFieldState(id, FormState.SAVING, false);
   }
 
-  // TODO: More validations
   @action
-  validate() {}
+  validateForm() {
+    Array.from(this.fieldDescriptor.keys()).forEach(id => !this.validateField(id));
+  }
 
   @action
   handleErrorResponse({responseJSON: resp} = {}) {
