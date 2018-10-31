@@ -225,6 +225,7 @@ export const QueryPanelContainer = styled('div')`
   top: ${HEADER_HEIGHT}px;
   border-right: 1px solid ${p => p.theme.borderLight};
   animation: ${slidein} 0.6s ease-in;
+  overflow-y: scroll;
 `;
 
 export const QueryPanelTitle = styled(Flex)`
