@@ -76,6 +76,24 @@ export function getChartDataByDay(rawData, query) {
   });
 }
 
+/**
+ * Returns the page ranges of paginated tables, i.e. Results 1-100
+ * @param {Object} baseQuery data
+ * @returns {String}
+ */
+export function getRowsPageRange(baseQuery) {
+  const dataLength = baseQuery.data.data.length;
+
+  if (!dataLength) {
+    return '0 rows';
+  } else if (baseQuery.query.aggregations.length) {
+    return `${dataLength} ${dataLength === 1 ? 'row' : 'rows'}`;
+  } else {
+    const startRange = parseInt(baseQuery.current.split(':')[1], 10);
+    return `rows ${startRange + 1} - ${startRange + dataLength}`;
+  }
+}
+
 // Return placeholder empty series object with all series and dates listed and
 // all values set to null
 function getEmptySeriesHash(seriesSet, dates) {

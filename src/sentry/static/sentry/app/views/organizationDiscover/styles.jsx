@@ -153,6 +153,10 @@ export const ResultSummary = styled(Box)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
+export const ResultSummaryAndButtons = styled(Flex)`
+  justify-content: space-between;
+`;
+
 export const ResultContainer = styled('div')`
   display: flex;
   flex: 1;
