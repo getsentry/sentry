@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.event_search import get_snuba_query_args
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SnubaEvent
@@ -56,12 +57,6 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
         return list(project_ids)
 
     def get(self, request, organization):
-        query = request.GET.get('query')
-        conditions = []
-        if query:
-            conditions.append(
-                [['positionCaseInsensitive', ['message', "'%s'" % (query,)]], '!=', 0])
-
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as exc:
@@ -75,13 +70,14 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
         data_fn = partial(
             # extract 'data' from raw_query result
             lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            start=start,
-            end=end,
-            conditions=conditions,
-            filter_keys={'project_id': project_ids},
             selected_columns=SnubaEvent.selected_columns,
             orderby='-timestamp',
             referrer='api.organization-events',
+            **get_snuba_query_args(query=request.GET.get('query'), params={
+                'start': start,
+                'end': end,
+                'project_id': project_ids,
+            })
         )
 
         return self.paginate(

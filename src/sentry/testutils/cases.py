@@ -849,6 +849,10 @@ class SnubaTestCase(TestCase):
                 group_id=event.group_id,
             )
 
+        if 'user' in tags:
+            user = tags.pop('user')
+            data['user'] = user
+
         hashes = get_hashes_from_fingerprint(
             event,
             data.get('fingerprint', ['{{ default }}']),
