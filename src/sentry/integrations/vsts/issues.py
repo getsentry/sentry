@@ -20,31 +20,59 @@ class VstsIssueSync(IssueSyncMixin):
     issue_fields = frozenset(['id', 'title', 'url'])
     done_categories = frozenset(['Resolved', 'Completed'])
 
-    def get_create_issue_config(self, group, **kwargs):
-        fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
+    def get_persisted_default_config_fields(self):
+        return ['project']
+
+    def create_default_repo_choice(self, default_repo):
+        # default_repo should be the project_id
+        project = self.get_client().get_project(self.instance, default_repo)
+        return (project['id'], project['name'])
+
+    def get_project_choices(self, group, **kwargs):
         client = self.get_client()
         try:
             projects = client.get_projects(self.instance)['value']
-        except Exception as e:
+        except (ApiError, ApiUnauthorized, KeyError) as e:
             self.raise_error(e)
 
-        project_choices = []
-        initial_project = ('', '')
-        for project in projects:
-            project_id_and_name = '%s#%s' % (project['id'], project['name'])
-            project_choices.append((project_id_and_name, project['name']))
-            # TODO(lb): Properly handle default project after it has been implemented.
-            if project_id_and_name == self.default_project:
-                initial_project = project['name']
+        project_choices = [(project['id'], project['name']) for project in projects]
+
+        params = kwargs.get('params', {})
+        defaults = self.get_project_defaults(group.project_id)
+        try:
+            default_project = params.get(
+                'project', defaults.get('project') or project_choices[0][0])
+        except IndexError:
+            return None, project_choices
+
+        # If a project has been selected outside of the default list of
+        # projects, stick it onto the front of the list so that it can be
+        # selected.
+        try:
+            next(True for r in project_choices if r[0] == default_project)
+        except StopIteration:
+            try:
+                project_choices.insert(0, self.create_default_repo_choice(default_project))
+            except (ApiError, ApiUnauthorized):
+                return None, project_choices
+
+        return default_project, project_choices
+
+    def get_create_issue_config(self, group, **kwargs):
+        fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
+        # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
+        # Workitems (issues) are associated with the project not the repository.
+        default_project, project_choices = self.get_project_choices(group, **kwargs)
+
         return [
             {
                 'name': 'project',
                 'required': True,
                 'type': 'choice',
                 'choices': project_choices,
-                'defaultValue': initial_project,
+                'defaultValue': default_project,
                 'label': _('Project'),
-                'placeholder': initial_project or _('MyProject'),
+                'placeholder': default_project or _('MyProject'),
             }
         ] + fields
 
@@ -67,10 +95,10 @@ class VstsIssueSync(IssueSyncMixin):
         """
         Creates the issue on the remote service and returns an issue ID.
         """
-        project = data.get('project') or self.default_project
-        if project is None:
-            raise ValueError('VSTS expects project')
-        project_id, project_name = project.split('#')
+        project_id = data.get('project')
+        if project_id is None:
+            raise ValueError('Azure DevOps expects project')
+
         client = self.get_client()
 
         title = data['title']
@@ -88,6 +116,7 @@ class VstsIssueSync(IssueSyncMixin):
         except Exception as e:
             self.raise_error(e)
 
+        project_name = created_item['fields']['System.AreaPath']
         return {
             'key': six.text_type(created_item['id']),
             'title': title,
