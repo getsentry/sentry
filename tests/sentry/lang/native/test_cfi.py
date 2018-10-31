@@ -154,10 +154,10 @@ class CfiReprocessingTest(TestCase):
     @mock.patch('sentry.utils.cache.cache.get', return_value=None)
     def test_cfi_reprocessing_cached(self, mock_cache_get, mock_attachment_get):
         mock_cache_get.return_value = [
-            (None, 0x7f5140cdc000, 'scan'),
-            (None, 0x7fff5aef1000, 'scan'),
-            ('451a38b5-0679-79d2-0738-22a5ceb24c4b', 0x20830, 'cfi'),
-            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', 0x1d72, 'context'),
+            (None, '0x7f5140cdc000', 'scan'),
+            (None, '0x7fff5aef1000', 'scan'),
+            ('451a38b5-0679-79d2-0738-22a5ceb24c4b', '0x20830', 'cfi'),
+            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1d72', 'context'),
         ]
 
         data = self.get_mock_event(reprocessed=False)
@@ -176,6 +176,24 @@ class CfiReprocessingTest(TestCase):
         result = reprocess_minidump_with_cfi(data)
 
         mock_cache_get.assert_called_once_with('st:80d8fdd07a3fb9639403afa33b0e930e')
+        assert mock_attachment_get.call_count == 0
+        assert result is None
+
+    @mock.patch('sentry.attachments.base.BaseAttachmentCache.get', return_value=None)
+    @mock.patch('sentry.utils.cache.cache.get', return_value=None)
+    def test_cfi_missing_stacktrace(self, mock_cache_get, mock_attachment_get):
+        data = {
+            'exception': {
+                'values': [
+                    {
+                        'stacktrace': None,
+                    }
+                ]
+            },
+        }
+        result = reprocess_minidump_with_cfi(data)
+
+        assert mock_cache_get.call_count == 0
         assert mock_attachment_get.call_count == 0
         assert result is None
 
