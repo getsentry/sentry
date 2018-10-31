@@ -167,18 +167,21 @@ const OrganizationContext = createReactClass({
   },
 
   renderError() {
+    let errorComponent;
+
     switch (this.state.errorType) {
       case ERROR_TYPES.ORG_NOT_FOUND:
-        return (
-          <OrganizationNotFound>
-            <Alert type="error">
-              {t('The organization you were looking for was not found.')}
-            </Alert>
-          </OrganizationNotFound>
+        errorComponent = (
+          <Alert type="error">
+            {t('The organization you were looking for was not found.')}
+          </Alert>
         );
+        break;
       default:
-        return <LoadingError onRetry={this.remountComponent} />;
+        errorComponent = <LoadingError onRetry={this.remountComponent} />;
     }
+
+    return <ErrorWrapper>{errorComponent}</ErrorWrapper>;
   },
 
   render() {
@@ -215,6 +218,6 @@ const OrganizationContext = createReactClass({
 
 export default OrganizationContext;
 
-const OrganizationNotFound = styled('div')`
-  margin: ${space(3)};
+const ErrorWrapper = styled('div')`
+  padding: ${space(3)};
 `;
