@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 from collections import namedtuple
+
+from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry.search.utils import parse_datetime_string, InvalidQuery
@@ -173,7 +175,12 @@ def get_snuba_query_args(query=None, params=None):
     # NOTE: this function assumes project permisions check already happened
     parsed_filters = []
     if query is not None:
-        parsed_filters = parse_search_query(query)
+        try:
+            parsed_filters = parse_search_query(query)
+        except ParseError as e:
+            raise InvalidSearchQuery(
+                u'Parse error: %r (column %d)' % (e.expr.name, e.column())
+            )
 
     # Keys included as url params take precedent if same key is included in search
     if params is not None:

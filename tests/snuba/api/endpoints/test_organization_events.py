@@ -116,6 +116,29 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
         assert response.data[0]['eventID'] == event_2.event_id
         assert response.data[0]['message'] == 'Delet the Data'
 
+    def test_invalid_search_terms(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
+
+        url = reverse(
+            'sentry-api-0-organization-events',
+            kwargs={
+                'organization_slug': project.organization.slug,
+            }
+        )
+        response = self.client.get(url, {'query': 'fruit:banana'}, format='json')
+
+        assert response.status_code == 400, response.content
+        assert response.data['detail'] == 'Unsupported search term: fruit'
+
+        response = self.client.get(url, {'query': 'hi \n there'}, format='json')
+
+        assert response.status_code == 400, response.content
+        assert response.data['detail'] == "Parse error: 'search' (column 1)"
+
     def test_project_filtering(self):
         user = self.create_user()
         org = self.create_organization()
