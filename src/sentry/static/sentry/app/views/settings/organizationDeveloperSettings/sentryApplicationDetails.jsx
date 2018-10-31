@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
@@ -9,15 +10,24 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from 'react-emotion';
 >>>>>>> feat(app-platform): Add UI for adding sentry apps
+=======
+import {Box} from 'grid-emotion';
+import PropTypes from 'prop-types';
+import React from 'react';
+import {browserHistory} from 'react-router';
+>>>>>>> fix js tests
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import ConfigStore from 'app/stores/configStore';
 >>>>>>> feat(app-platform): Add UI for adding sentry apps
+=======
+>>>>>>> fix js tests
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -29,8 +39,11 @@ import getDynamicText from 'app/utils/getDynamicText';
 =======
 import sentryApplication from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
+<<<<<<< HEAD
 import Switch from 'app/components/switch';
 >>>>>>> feat(app-platform): Add UI for adding sentry apps
+=======
+>>>>>>> fix js tests
 import ApplicationScopes from './applicationScopes';
 
 class SentryApplicationDetails extends AsyncView {
@@ -62,6 +75,7 @@ class SentryApplicationDetails extends AsyncView {
       return [['app', `/sentry-apps/${appSlug}/`]];
     }
 <<<<<<< HEAD
+<<<<<<< HEAD
     return [];
   }
 
@@ -72,6 +86,9 @@ class SentryApplicationDetails extends AsyncView {
 =======
     return []
 >>>>>>> use org sentry app endpoint & styling
+=======
+    return [];
+>>>>>>> fix js tests
   }
 
   getTitle() {
@@ -82,6 +99,7 @@ class SentryApplicationDetails extends AsyncView {
   handleScopeChange = (onChange, onBlur, scope, scopes, e) => {
     onChange(scopes, e);
     onBlur(scopes, e);
+<<<<<<< HEAD
 <<<<<<< HEAD
   };
 
@@ -97,11 +115,14 @@ class SentryApplicationDetails extends AsyncView {
     let endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 =======
   }
+=======
+  };
+>>>>>>> fix js tests
 
-  onSubmitSuccess = (data) => {
+  onSubmitSuccess = data => {
     const {orgId} = this.props.params;
     browserHistory.push(`/settings/${orgId}/developer-settings/`);
-  }
+  };
 
   renderBody() {
 <<<<<<< HEAD
@@ -110,9 +131,14 @@ class SentryApplicationDetails extends AsyncView {
 =======
     const {orgId} = this.props.params;
     const {app} = this.state;
+<<<<<<< HEAD
     let method = app ? "PUT" : "POST";
     let endpoint = app ? `/sentry-apps/${app.slug}/` : `/sentry-apps/`;
 >>>>>>> use org sentry app endpoint & styling
+=======
+    let method = app ? 'PUT' : 'POST';
+    let endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
+>>>>>>> fix js tests
     return (
       <div>
         <SettingsPageHeader title={this.getTitle()} />
@@ -182,20 +208,17 @@ class SentryApplicationDetails extends AsyncView {
                   inline={false}
                   getData={data => ({scopes: data})}
                   required
-                  >
-                    {({onChange, onBlur}) => (
-                      <ApplicationScopes
-                        onToggle={this.handleScopeChange.bind(
-                          this,
-                          onChange,
-                          onBlur
-                        )}
-                        scopes={app && app.scopes ? app.scopes : []}
-                      />
-                    )}
-                  </FormField>
+                >
+                  {({onChange, onBlur}) => (
+                    <ApplicationScopes
+                      onToggle={this.handleScopeChange.bind(this, onChange, onBlur)}
+                      scopes={app && app.scopes ? app.scopes : []}
+                    />
+                  )}
+                </FormField>
               </PanelBody>
             </Panel>
+<<<<<<< HEAD
 <<<<<<< HEAD
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
@@ -238,6 +261,9 @@ class SentryApplicationDetails extends AsyncView {
 =======
 =======
             {app &&
+=======
+            {app && (
+>>>>>>> fix js tests
               <Panel>
                 <PanelHeader>{t('Credentials')}</PanelHeader>
                 <PanelBody>
@@ -258,6 +284,7 @@ class SentryApplicationDetails extends AsyncView {
                     label="Client Secret"
                     help={t(`Your secret is only available briefly after application creation. Make
                       sure to save this value!`)}
+<<<<<<< HEAD
                       >
                         {({value}) => {
                           return value ? (
@@ -273,6 +300,22 @@ class SentryApplicationDetails extends AsyncView {
                   </Panel>
               }
 >>>>>>> use org sentry app endpoint & styling
+=======
+                  >
+                    {({value}) => {
+                      return value ? (
+                        <TextCopyInput>
+                          {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                        </TextCopyInput>
+                      ) : (
+                        <em>hidden</em>
+                      );
+                    }}
+                  </FormField>
+                </PanelBody>
+              </Panel>
+            )}
+>>>>>>> fix js tests
           </Box>
 >>>>>>> feat(app-platform): Add UI for adding sentry apps
         </Form>

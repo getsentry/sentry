@@ -1,6 +1,3 @@
-import {extractMultilineFields} from 'app/utils';
-import getDynamicText from 'app/utils/getDynamicText';
-
 const forms = [
   {
     // Form "section"/"panel"

@@ -4,9 +4,12 @@ import React from 'react';
 import styled from 'react-emotion';
 import Switch from 'app/components/switch';
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import {t} from 'app/locale';
 >>>>>>> feat(app-platform): Add UI for adding sentry apps
+=======
+>>>>>>> fix js tests
 
 import {API_SCOPES} from 'app/constants';
 
@@ -78,9 +81,12 @@ class ApplicationScopes extends React.Component {
 
   render() {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     let {scopes} = this.props;
 >>>>>>> feat(app-platform): Add UI for adding sentry apps
+=======
+>>>>>>> fix js tests
     return (
       <ScopesGrid>
         {API_SCOPES.map(scope => {
