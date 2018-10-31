@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import _ from 'lodash';
 import classNames from 'classnames';
+import styled from 'react-emotion';
 
 import ClippedBox from 'app/components/clippedBox';
 import Tooltip from 'app/components/tooltip';
@@ -225,9 +226,12 @@ const Frame = createReactClass({
       );
     }
 
-    title.push(this.renderExpander());
-
-    return title;
+    return (
+      <TracebackTitle>
+        <div>{title}</div>
+        {this.renderExpander()}
+      </TracebackTitle>
+    );
   },
 
   renderContext() {
@@ -446,3 +450,9 @@ const Frame = createReactClass({
 });
 
 export default Frame;
+
+const TracebackTitle = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
