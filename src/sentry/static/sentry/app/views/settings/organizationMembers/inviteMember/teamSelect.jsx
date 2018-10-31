@@ -15,25 +15,34 @@ class TeamSelect extends React.Component {
     teams: PropTypes.array,
     toggleTeam: PropTypes.func,
     onSelectAll: PropTypes.func,
+    allSelected: PropTypes.func,
   };
 
   render() {
-    let {disabled, teams, selectedTeams, toggleTeam, onSelectAll} = this.props;
+    let {
+      disabled,
+      teams,
+      selectedTeams,
+      toggleTeam,
+      onSelectAll,
+      allSelected,
+    } = this.props;
     //no need to select a team when there's only one option
     if (teams.length < 2) return null;
+    let hasSelectAll = !!onSelectAll && !!allSelected;
 
     return (
       <Panel className="new-invite-team">
-        <PanelHeader hasButtons>
+        <PanelHeader hasButtons={hasSelectAll}>
           {t('Team')}
-          {onSelectAll && (
+          {hasSelectAll && (
             <Button
               data-test-id="select-all"
               size="small"
               disabled={disabled}
               onClick={onSelectAll}
             >
-              <SelectAll>{t('Select All')}</SelectAll>
+              <SelectAll>{allSelected() ? t('Deselect') : t('Select All')}</SelectAll>
             </Button>
           )}
         </PanelHeader>

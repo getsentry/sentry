@@ -118,13 +118,17 @@ class OrganizationMemberDetail extends AsyncView {
     });
   };
 
-  handleSelectAll = () => {
+  allSelected = () => {
     let {member} = this.state;
     let {teams} = this.getOrganization();
-    let selectedTeams = new Set(member.teams);
-    let allSelected = teams.length === selectedTeams.size;
+    return teams.length === member.teams.length;
+  };
 
-    if (allSelected) {
+  handleSelectAll = () => {
+    let {member, selectedTeams} = this.state;
+    let {teams} = this.getOrganization();
+
+    if (this.allSelected()) {
       selectedTeams.clear();
     } else {
       selectedTeams = new Set(teams.map(({slug}) => slug));
@@ -256,6 +260,7 @@ class OrganizationMemberDetail extends AsyncView {
           toggleTeam={this.handleToggleTeam}
           disabled={!canEdit}
           onSelectAll={this.handleSelectAll}
+          allSelected={this.allSelected}
         />
 
         <Button

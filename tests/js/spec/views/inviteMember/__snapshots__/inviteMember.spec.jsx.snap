@@ -338,6 +338,7 @@ exports[`CreateProject should render roles when available and allowed, and handl
         </Panel>
       </RoleSelect>
       <TeamSelect
+        allSelected={[Function]}
         onSelectAll={[Function]}
         selectedTeams={
           Set {
