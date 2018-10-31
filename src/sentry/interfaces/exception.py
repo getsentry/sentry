@@ -1009,7 +1009,7 @@ class Exception(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if 'values' not in data and ('type' in data or 'value' in data):
+        if data and 'values' not in data and 'exc_omitted' not in data:
             data = {"values": [data]}
         values = data.get('values', [])
         if not isinstance(values, list):
