@@ -127,7 +127,8 @@ class InstallationForm(forms.Form):
                     'and request GitLab to verify SSL when it delivers '
                     'webhooks to Sentry.'),
         widget=forms.CheckboxInput(),
-        required=False
+        required=False,
+        initial=True
     )
     client_id = forms.CharField(
         label=_('GitLab Application ID'),
@@ -143,9 +144,9 @@ class InstallationForm(forms.Form):
         )
     )
 
-    def __init__(self, *args, **kwargs):
-        super(InstallationForm, self).__init__(*args, **kwargs)
-        self.fields['verify_ssl'].initial = True
+    def clean_url(self):
+        """Strip off trailing / as they cause invalid URLs downstream"""
+        return self.cleaned_data['url'].rstrip('/')
 
 
 class InstallationConfigView(PipelineView):
