@@ -115,6 +115,7 @@ describe('Discover', function() {
           organization={organization}
           params={{}}
           updateSavedQueryData={() => {}}
+          toggleEditMode={jest.fn()}
         />,
         TestStubs.routerContext()
       );
