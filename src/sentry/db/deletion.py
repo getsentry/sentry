@@ -203,7 +203,7 @@ class BulkDeleteQuery(object):
                     if i < batch_size:
                         completed = True
 
-                    conn.commit()
+                conn.commit()
 
             if chunk:
                 yield tuple(chunk)
