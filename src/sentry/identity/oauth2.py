@@ -6,6 +6,7 @@ from six.moves.urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 from time import time
 from django.views.decorators.csrf import csrf_exempt
+from requests.exceptions import SSLError
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
@@ -248,11 +249,18 @@ class OAuth2CallbackView(PipelineView):
             redirect_uri=absolute_uri(pipeline.redirect_url()),
         )
         verify_ssl = pipeline.config.get('verify_ssl', True)
-        req = safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
-        body = safe_urlread(req)
-        if req.headers.get('Content-Type', '').startswith('application/x-www-form-urlencoded'):
-            return dict(parse_qsl(body))
-        return json.loads(body)
+        try:
+            req = safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
+            body = safe_urlread(req)
+            if req.headers.get('Content-Type', '').startswith('application/x-www-form-urlencoded'):
+                return dict(parse_qsl(body))
+            return json.loads(body)
+        except SSLError:
+            url = self.access_token_url
+            return {
+                'error': 'Could not verify SSL certificate',
+                'error_description': u'Ensure that {} has a valid SSL certificate'.format(url)
+            }
 
     def dispatch(self, request, pipeline):
         error = request.GET.get('error')
