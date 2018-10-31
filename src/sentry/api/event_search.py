@@ -54,7 +54,19 @@ FIELD_LOOKUP = {
     'timestamp': {
         'snuba_name': 'timestamp',
         'type': 'timestamp',
-    }
+    },
+    'start': {
+        'snuba_name': 'start',
+        'type': 'timestamp',
+    },
+    'end': {
+        'snuba_name': 'end',
+        'type': 'timestamp',
+    },
+    'project_id': {
+        'snuba_name': 'project_id',
+        'type': 'list',
+    },
 }
 
 
@@ -147,21 +159,49 @@ def parse_search_query(query):
     return SearchVisitor().visit(tree)
 
 
-def get_snuba_query_args(query):
-    parsed_filters = parse_search_query(query)
-    conditions = []
+def convert_endpoint_params(params):
+    return [
+        SearchFilter(
+            SearchKey(key),
+            '=',
+            SearchValue(params[key], FIELD_LOOKUP[key]['type']),
+        ) for key in params
+    ]
+
+
+def get_snuba_query_args(query=None, params=None):
+    # NOTE: this function assumes project permisions check already happened
+    parsed_filters = []
+    if query is not None:
+        parsed_filters = parse_search_query(query)
+
+    # Keys included as url params take precedent if same key is included in search
+    if params is not None:
+        parsed_filters.extend(convert_endpoint_params(params))
+
+    kwargs = {
+        'conditions': [],
+        'filter_keys': {},
+    }
     for _filter in parsed_filters:
-        if _filter.key.snuba_name == 'message':
+        if _filter.key.snuba_name in ('start', 'end'):
+            kwargs[_filter.key.snuba_name] = _filter.value.raw_value
+
+        elif _filter.key.snuba_name == 'project_id':
+            kwargs['filter_keys'][_filter.key.snuba_name] = _filter.value.raw_value
+
+        elif _filter.key.snuba_name == 'message':
             # make message search case insensitive
-            conditions.append(
+            kwargs['conditions'].append(
                 [['positionCaseInsensitive', ['message', "'%s'" %
                                               (_filter.value.raw_value,)]], '!=', 0]
             )
+
         else:
-            conditions.append([
+            kwargs['conditions'].append([
                 _filter.key.snuba_name,
                 _filter.operator,
                 _filter.value.raw_value,
             ])
 
-    return {'conditions': conditions}
+    return kwargs
