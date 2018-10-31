@@ -132,6 +132,8 @@ class BulkDeleteQuery(object):
         cutoff = timezone.now() - timedelta(days=self.days)
 
         with dbc.get_new_connection(dbc.get_connection_params()) as conn:
+            conn.autocommit = False
+
             chunk = []
 
             completed = False
@@ -200,6 +202,8 @@ class BulkDeleteQuery(object):
                     # loop.
                     if i < batch_size:
                         completed = True
+
+                conn.commit()
 
             if chunk:
                 yield tuple(chunk)
