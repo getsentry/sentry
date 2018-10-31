@@ -256,14 +256,29 @@ const Slider = styled.input`
   &[disabled] {
     &::-webkit-slider-thumb {
       background: ${p => p.theme.gray6};
+      cursor: default;
     }
 
     &::-moz-range-thumb {
       background: ${p => p.theme.gray6};
+      cursor: default;
     }
 
     &::-ms-thumb {
       background: ${p => p.theme.gray6};
+      cursor: default;
+    }
+
+    &::-webkit-slider-runnable-track {
+      cursor: default;
+    }
+
+    &::-moz-range-track {
+      cursor: default;
+    }
+
+    &::-ms-track {
+      cursor: default;
     }
   }
 `;
