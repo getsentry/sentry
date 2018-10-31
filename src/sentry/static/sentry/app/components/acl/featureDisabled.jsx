@@ -31,12 +31,13 @@ class FeatureDisabled extends React.Component {
      */
     featureName: PropTypes.string,
     /**
-     * Render the disabled message within a warning Alert.
+     * Render the disabled message within a warning Alert. A custom Alert
+     * component may be provided.
      *
-     * Attaches additional styles to the FeatureDisabeld component to make it
-     * look nice within the Alert.
+     * Attaches additional styles to the FeatureDisabled component to make it
+     * look consistent within the Alert.
      */
-    alert: PropTypes.bool,
+    alert: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
     /**
      * Do not show the help toggle.
      */
@@ -94,12 +95,14 @@ class FeatureDisabled extends React.Component {
       </React.Fragment>
     );
 
+    const AlertComponent = alert === true ? Alert : alert;
+
     return !alert ? (
       featureDisabled
     ) : (
-      <StyledAlert type="warning" icon="icon-labs">
-        {featureDisabled}
-      </StyledAlert>
+      <AlertComponent type="warning" icon="icon-labs">
+        <AlertWrapper>{featureDisabled}</AlertWrapper>
+      </AlertComponent>
     );
   }
 }
@@ -121,7 +124,7 @@ const HelpDescription = styled(Box)`
   }
 `;
 
-const StyledAlert = styled(Alert)`
+const AlertWrapper = styled('div')`
   /* stylelint-disable-next-line no-duplicate-selectors */
   ${HelpButton} {
     color: #6d6319;

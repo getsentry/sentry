@@ -1,7 +1,8 @@
 import React from 'react';
 
-import FeatureDisabled from 'app/components/acl/featureDisabled';
+import {PanelAlert} from 'app/components/panels';
 import {mount} from 'enzyme';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 
 describe('FeatureDisabled', function() {
   const routerContext = TestStubs.routerContext();
@@ -34,6 +35,19 @@ describe('FeatureDisabled', function() {
     );
 
     expect(wrapper.exists('Alert')).toBe(true);
+  });
+
+  it('renders with custom alert component', function() {
+    const wrapper = mount(
+      <FeatureDisabled
+        alert={PanelAlert}
+        feature={'organization:my-feature'}
+        featureName="Some Feature"
+      />,
+      routerContext
+    );
+
+    expect(wrapper.exists('PanelAlert')).toBe(true);
   });
 
   it('displays instructions when help is clicked', function() {
