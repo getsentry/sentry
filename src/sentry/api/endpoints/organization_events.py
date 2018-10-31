@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.event_search import get_snuba_query_args
+from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SnubaEvent
@@ -67,17 +67,22 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
         except ValueError:
             return Response({'detail': 'Invalid project ids'}, status=400)
 
+        try:
+            snuba_args = get_snuba_query_args(query=request.GET.get('query'), params={
+                'start': start,
+                'end': end,
+                'project_id': project_ids,
+            })
+        except InvalidSearchQuery as exc:
+            return Response({'detail': exc.message}, status=400)
+
         data_fn = partial(
             # extract 'data' from raw_query result
             lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
             selected_columns=SnubaEvent.selected_columns,
             orderby='-timestamp',
             referrer='api.organization-events',
-            **get_snuba_query_args(query=request.GET.get('query'), params={
-                'start': start,
-                'end': end,
-                'project_id': project_ids,
-            })
+            **snuba_args
         )
 
         return self.paginate(
