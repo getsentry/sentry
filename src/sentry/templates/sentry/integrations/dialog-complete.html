@@ -9,7 +9,9 @@
 
 {% block main %}
 <script>
-  window.opener.postMessage({{ payload|to_json }}, document.origin);
+  if (window.opener) {
+    window.opener.postMessage({{ payload|to_json }}, document.origin);
+  }
   window.close();
 </script>
 
