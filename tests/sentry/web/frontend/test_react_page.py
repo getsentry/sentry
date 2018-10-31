@@ -54,3 +54,18 @@ class ReactPageViewTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/bases/react.html')
         assert resp.context['request']
+
+    def test_inactive_superuser_bypasses_server_auth(self):
+        owner = self.create_user('bar@example.com')
+        org = self.create_organization(owner=owner)
+        non_member = self.create_user('foo@example.com', is_superuser=True)
+
+        path = reverse('sentry-organization-home', args=[org.slug])
+
+        self.login_as(non_member)
+
+        resp = self.client.get(path)
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/bases/react.html')
+        assert resp.context['request']
