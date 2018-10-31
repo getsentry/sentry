@@ -20,6 +20,7 @@ class TestAuthorizer(TestCase):
         self.install, self.grant = Creator.run(
             organization=self.org,
             slug='nulldb',
+            user=self.user,
         )
 
         self.authorizer = Authorizer(

@@ -29,11 +29,13 @@ class SentryAppInstallationsTest(APITestCase):
         self.installation, _ = Creator.run(
             slug=self.published_app.slug,
             organization=self.super_org,
+            user=self.superuser,
         )
 
         self.installation2, _ = Creator.run(
             slug=self.unpublished_app.slug,
             organization=self.org,
+            user=self.user,
         )
 
         self.url = reverse(
@@ -50,8 +52,13 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 
         assert response.status_code == 200
         assert response.data == [{
-            'app': self.unpublished_app.slug,
-            'organization': self.org.slug,
+            'app': {
+                'slug': self.unpublished_app.slug,
+                'uuid': self.unpublished_app.uuid,
+            },
+            'organization': {
+                'slug': self.org.slug,
+            },
             'uuid': self.installation2.uuid,
         }]
 
@@ -64,8 +71,13 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 
         assert response.status_code == 200
         assert response.data == [{
-            'app': self.published_app.slug,
-            'organization': self.super_org.slug,
+            'app': {
+                'slug': self.published_app.slug,
+                'uuid': self.published_app.uuid,
+            },
+            'organization': {
+                'slug': self.super_org.slug,
+            },
             'uuid': self.installation.uuid,
         }]
 
@@ -76,8 +88,13 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 
         assert response.status_code == 200
         assert response.data == [{
-            'app': self.unpublished_app.slug,
-            'organization': self.org.slug,
+            'app': {
+                'slug': self.unpublished_app.slug,
+                'uuid': self.unpublished_app.uuid,
+            },
+            'organization': {
+                'slug': self.org.slug,
+            },
             'uuid': self.installation2.uuid,
         }]
 
@@ -111,8 +128,13 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
             format='json',
         )
         expected = {
-            'app': app.slug,
-            'organization': self.org.slug,
+            'app': {
+                'slug': app.slug,
+                'uuid': app.uuid,
+            },
+            'organization': {
+                'slug': self.org.slug,
+            },
         }
 
         assert response.status_code == 200, response.content
@@ -132,8 +154,13 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
             format='json',
         )
         expected = {
-            'app': app.slug,
-            'organization': self.org.slug,
+            'app': {
+                'slug': app.slug,
+                'uuid': app.uuid,
+            },
+            'organization': {
+                'slug': self.org.slug,
+            },
         }
 
         assert response.status_code == 200, response.content

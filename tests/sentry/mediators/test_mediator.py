@@ -56,6 +56,10 @@ class TestMediator(TestCase):
     def test_param_default_access(self):
         assert self.mediator.name == 'Example'
 
+    def test_missing_params(self):
+        with self.assertRaises(AttributeError):
+            MockMediator.run(name='Pete', age=30)
+
     def test_log(self):
         with patch.object(self.logger, 'info') as mock:
             self.mediator.log(at='test')

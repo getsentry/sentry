@@ -23,6 +23,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
         self.installation, _ = Creator.run(
             slug=self.published_app.slug,
             organization=self.super_org,
+            user=self.superuser,
         )
 
         self.unpublished_app = self.create_sentry_app(
@@ -33,6 +34,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
         self.installation2, _ = Creator.run(
             slug=self.unpublished_app.slug,
             organization=self.org,
+            user=self.user,
         )
 
         self.url = reverse(
@@ -49,8 +51,13 @@ class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            'app': self.unpublished_app.slug,
-            'organization': self.org.slug,
+            'app': {
+                'uuid': self.unpublished_app.uuid,
+                'slug': self.unpublished_app.slug,
+            },
+            'organization': {
+                'slug': self.org.slug,
+            },
             'uuid': self.installation2.uuid,
         }
 

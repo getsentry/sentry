@@ -21,6 +21,7 @@ class TestDestroyer(TestCase):
         self.install, self.grant = Creator.run(
             organization=self.org,
             slug='nulldb',
+            user=self.user,
         )
 
         self.destroyer = Destroyer(install=self.install)
