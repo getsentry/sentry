@@ -85,12 +85,12 @@ export function getResultsPageRange(baseQuery) {
   const dataLength = baseQuery.data.data.length;
 
   if (!dataLength) {
-    return '0 results';
+    return '0 rows';
   } else if (baseQuery.query.aggregations.length) {
     return `${dataLength} ${dataLength === 1 ? 'row' : 'rows'}`;
   } else {
     const startRange = parseInt(baseQuery.current.split(':')[1], 10);
-    return `results ${startRange + 1} - ${startRange + dataLength}`;
+    return `rows ${startRange + 1} - ${startRange + dataLength}`;
   }
 }
 

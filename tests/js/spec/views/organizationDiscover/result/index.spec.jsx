@@ -89,7 +89,7 @@ describe('Result', function() {
             .find('ResultSummary')
             .render()
             .text()
-        ).toEqual('query time: 15 ms, results 1 - 10');
+        ).toEqual('query time: 15 ms, rows 1 - 10');
       });
 
       it('shows correct number of results shown when going to next page (next page function mocked on click)', async function() {
@@ -124,7 +124,7 @@ describe('Result', function() {
             .find('ResultSummary')
             .render()
             .text()
-        ).toBe('query time: 15 ms, results 11 - 20');
+        ).toBe('query time: 15 ms, rows 11 - 20');
       });
 
       it('shows 0 Results with no data', async function() {
@@ -154,7 +154,7 @@ describe('Result', function() {
             .find('ResultSummary')
             .render()
             .text()
-        ).toBe('query time: 15 ms, 0 results');
+        ).toBe('query time: 15 ms, 0 rows');
       });
     });
   });
