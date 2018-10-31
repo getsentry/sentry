@@ -8,7 +8,9 @@ import {Client} from 'app/api';
 import OrganizationContext from 'app/views/organizationContext';
 import NarrowLayout from 'app/components/narrowLayout';
 import Footer from 'app/components/footer';
+import Hook from 'app/components/hook';
 import {t, tct} from 'app/locale';
+
 
 class DeletionInProgress extends Component {
   static propTypes = {
@@ -145,7 +147,10 @@ export default class OrganizationDetails extends Component {
   render() {
     return (
       <OrganizationContext includeSidebar {...this.props}>
-        <OrganizationDetailsBody>{this.props.children}</OrganizationDetailsBody>
+        <OrganizationDetailsBody>
+          <Hook name='component:sample-event-banner' />
+          {this.props.children}
+        </OrganizationDetailsBody>
       </OrganizationContext>
     );
   }
