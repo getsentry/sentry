@@ -26,13 +26,20 @@ class GitlabIntegrationTest(IntegrationTestCase):
     }
     default_group_id = 4
 
+    def setUp(self):
+        super(GitlabIntegrationTest, self).setUp()
+        self.init_path_without_guide = '%s%s' % (self.init_path, '?completed_installation_guide')
+
     def assert_setup_flow(self, user_id='user_id_1', group_id=None):
         if group_id is None:
             group_id = self.default_group_id
 
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
-        resp = self.client.post(self.init_path, data=self.config)
+        self.assertContains(resp, 'you will need to create a Sentry app in your GitLab instance')
+        resp = self.client.get(self.init_path_without_guide)
+        assert resp.status_code == 200
+        resp = self.client.post(self.init_path_without_guide, data=self.config)
         assert resp.status_code == 302
         redirect = urlparse(resp['Location'])
         assert redirect.scheme == 'https'
@@ -142,10 +149,10 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_setup_missing_group(self):
-        resp = self.client.get(self.init_path)
+        resp = self.client.get(self.init_path_without_guide)
         assert resp.status_code == 200
 
-        resp = self.client.post(self.init_path, data=self.config)
+        resp = self.client.post(self.init_path_without_guide, data=self.config)
         assert resp.status_code == 302
 
         redirect = urlparse(resp['Location'])
