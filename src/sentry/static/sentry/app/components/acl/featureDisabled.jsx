@@ -42,6 +42,14 @@ class FeatureDisabled extends React.Component {
      * Do not show the help toggle.
      */
     hideHelpToggle: PropTypes.bool,
+    /**
+     * A custom message to display. Defaults to a generic disabled message.
+     */
+    message: PropTypes.string,
+  };
+
+  static defaultProps = {
+    message: t('This feature is not enabled on your Sentry installation.'),
   };
 
   state = {
@@ -55,12 +63,12 @@ class FeatureDisabled extends React.Component {
 
   render() {
     const {showHelp} = this.state;
-    const {feature, featureName, hideHelpToggle, alert} = this.props;
+    const {message, feature, featureName, hideHelpToggle, alert} = this.props;
 
     const featureDisabled = (
       <React.Fragment>
         <Flex justify="space-between">
-          {t('This feature is not enabled on your Sentry installation.')}
+          {message}
           {!hideHelpToggle && (
             <HelpButton
               icon={showHelp ? 'icon-chevron-down' : 'icon-circle-info'}

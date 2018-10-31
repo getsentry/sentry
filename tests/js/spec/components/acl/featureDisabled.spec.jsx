@@ -24,6 +24,25 @@ describe('FeatureDisabled', function() {
     expect(wrapper.exists('HelpButton')).toBe(true);
   });
 
+  it('renders with custom message', function() {
+    const customMessage = 'custom message';
+    const wrapper = mount(
+      <FeatureDisabled
+        message={customMessage}
+        feature={'organization:my-feature'}
+        featureName="Some Feature"
+      />,
+      routerContext
+    );
+
+    expect(
+      wrapper
+        .find('Flex')
+        .first()
+        .text()
+    ).toEqual(expect.stringContaining(customMessage));
+  });
+
   it('renders as an Alert', function() {
     const wrapper = mount(
       <FeatureDisabled
