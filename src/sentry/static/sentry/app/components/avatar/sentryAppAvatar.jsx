@@ -1,5 +1,6 @@
 import React from 'react';
 
+import PropTypes from 'prop-types';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
 
 class SentryAppAvatar extends React.Component {

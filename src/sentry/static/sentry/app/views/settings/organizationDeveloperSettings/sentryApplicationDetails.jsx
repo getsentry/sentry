@@ -1,14 +1,12 @@
-import {Flex, Box} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
-import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import ConfigStore from 'app/stores/configStore';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -16,7 +14,6 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import sentryApplication from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
-import Switch from 'app/components/switch';
 import ApplicationScopes from './applicationScopes';
 
 class SentryApplicationDetails extends AsyncView {
@@ -38,7 +35,7 @@ class SentryApplicationDetails extends AsyncView {
     if (appSlug) {
       return [['app', `/sentry-apps/${appSlug}/`]];
     }
-    return []
+    return [];
   }
 
   getTitle() {
@@ -48,18 +45,18 @@ class SentryApplicationDetails extends AsyncView {
   handleScopeChange = (onChange, onBlur, scope, scopes, e) => {
     onChange(scopes, e);
     onBlur(scopes, e);
-  }
+  };
 
-  onSubmitSuccess = (data) => {
+  onSubmitSuccess = data => {
     const {orgId} = this.props.params;
     browserHistory.push(`/settings/${orgId}/developer-settings/`);
-  }
+  };
 
   renderBody() {
     const {orgId} = this.props.params;
     const {app} = this.state;
-    let method = app ? "PUT" : "POST";
-    let endpoint = app ? `/sentry-apps/${app.slug}/` : `/sentry-apps/`;
+    let method = app ? 'PUT' : 'POST';
+    let endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
     return (
       <div>
         <SettingsPageHeader title={this.getTitle()} />
@@ -81,21 +78,17 @@ class SentryApplicationDetails extends AsyncView {
                   inline={false}
                   getData={data => ({scopes: data})}
                   required
-                  >
-                    {({onChange, onBlur}) => (
-                      <ApplicationScopes
-                        onToggle={this.handleScopeChange.bind(
-                          this,
-                          onChange,
-                          onBlur
-                        )}
-                        scopes={app && app.scopes ? app.scopes : []}
-                      />
-                    )}
-                  </FormField>
+                >
+                  {({onChange, onBlur}) => (
+                    <ApplicationScopes
+                      onToggle={this.handleScopeChange.bind(this, onChange, onBlur)}
+                      scopes={app && app.scopes ? app.scopes : []}
+                    />
+                  )}
+                </FormField>
               </PanelBody>
             </Panel>
-            {app &&
+            {app && (
               <Panel>
                 <PanelHeader>{t('Credentials')}</PanelHeader>
                 <PanelBody>
@@ -116,20 +109,20 @@ class SentryApplicationDetails extends AsyncView {
                     label="Client Secret"
                     help={t(`Your secret is only available briefly after application creation. Make
                       sure to save this value!`)}
-                      >
-                        {({value}) => {
-                          return value ? (
-                            <TextCopyInput>
-                              {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
-                            </TextCopyInput>
-                          ) : (
-                            <em>hidden</em>
-                          );
-                        }}
-                      </FormField>
-                    </PanelBody>
-                  </Panel>
-              }
+                  >
+                    {({value}) => {
+                      return value ? (
+                        <TextCopyInput>
+                          {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                        </TextCopyInput>
+                      ) : (
+                        <em>hidden</em>
+                      );
+                    }}
+                  </FormField>
+                </PanelBody>
+              </Panel>
+            )}
           </Box>
         </Form>
       </div>

@@ -1,6 +1,3 @@
-import {extractMultilineFields} from 'app/utils';
-import getDynamicText from 'app/utils/getDynamicText';
-
 const forms = [
   {
     // Form "section"/"panel"
@@ -35,7 +32,7 @@ const forms = [
         type: 'textarea',
         label: 'Overview',
         placeholder: 'Put whatever you want here...',
-        help: 'Description of your application and it\'s functionality.',
+        help: "Description of your application and it's functionality.",
       },
     ],
   },
