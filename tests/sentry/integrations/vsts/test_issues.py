@@ -270,7 +270,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             'old_state': None,
             'new_state': 'New',
         })
-        assert should_unresolve is False
+        assert should_unresolve is True
 
 
 class VstsIssueFormTest(VstsIssueBase):
