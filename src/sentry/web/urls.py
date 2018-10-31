@@ -503,8 +503,7 @@ urlpatterns += patterns(
     url(r'favicon\.ico$', lambda r: HttpResponse(status=404)),
 
     # crossdomain.xml
-    url(r'^crossdomain\.xml$', api.crossdomain_xml_index,
-        name='sentry-api-crossdomain-xml-index'),
+    url(r'^crossdomain\.xml$', lambda r: HttpResponse(status=404)),
 
     # plugins
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
