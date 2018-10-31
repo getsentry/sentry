@@ -14,9 +14,9 @@ from sentry.models import (
     IdentityProvider,
     Integration,
     Repository,
-    CommitFileChange
 )
 from sentry.testutils import PluginTestCase
+from sentry.testutils.asserts import assert_commit_shape
 from sentry.utils import json
 
 from .testutils import (
@@ -24,8 +24,6 @@ from .testutils import (
     COMMIT_LIST_RESPONSE,
     COMMIT_DIFF_RESPONSE
 )
-
-commit_file_type_choices = {c[0] for c in CommitFileChange._meta.get_field('type').choices}
 
 
 class GitLabRepositoryProviderTest(PluginTestCase):
@@ -299,17 +297,3 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         repo = Repository.objects.get(pk=response.data['id'])
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(repo, None, 'abc')
-
-
-def assert_commit_shape(commit):
-    assert commit['id']
-    assert commit['repository']
-    assert commit['author_email']
-    assert commit['author_name']
-    assert commit['message']
-    assert commit['timestamp']
-    assert commit['patch_set']
-    patches = commit['patch_set']
-    for patch in patches:
-        assert patch['type'] in commit_file_type_choices
-        assert patch['path']
