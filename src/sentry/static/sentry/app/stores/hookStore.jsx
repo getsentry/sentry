@@ -21,6 +21,7 @@ const validHookNames = new Set([
   'component:org-members-view',
   'component:releases-tab',
   'component:sample-event',
+  'component:sample-event-banner',
 
   // Additional settings
   'settings:organization-navigation',

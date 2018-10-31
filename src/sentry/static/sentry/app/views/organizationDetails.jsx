@@ -11,7 +11,6 @@ import Footer from 'app/components/footer';
 import Hook from 'app/components/hook';
 import {t, tct} from 'app/locale';
 
-
 class DeletionInProgress extends Component {
   static propTypes = {
     organization: PropTypes.object.isRequired,
@@ -136,6 +135,7 @@ class OrganizationDetailsBody extends Component {
       }
     return (
       <React.Fragment>
+        <Hook name="component:sample-event-banner" params={organization} />
         <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
       </React.Fragment>
@@ -147,10 +147,7 @@ export default class OrganizationDetails extends Component {
   render() {
     return (
       <OrganizationContext includeSidebar {...this.props}>
-        <OrganizationDetailsBody>
-          <Hook name='component:sample-event-banner' />
-          {this.props.children}
-        </OrganizationDetailsBody>
+        <OrganizationDetailsBody>{this.props.children}</OrganizationDetailsBody>
       </OrganizationContext>
     );
   }
