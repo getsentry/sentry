@@ -63,10 +63,10 @@ class ThreadRef(object):
         # was missing, the stored offset was absolute as well. Otherwise, we
         # have no choice but to assume an absolute address. In practice, the
         # latter hopefully never happens.
-        addr = module.addr + offset if module else offset
+        addr = module.addr + parse_addr(offset) if module else parse_addr(offset)
 
         return module, {
-            'instruction_addr': '0x%x' % parse_addr(addr),
+            'instruction_addr': '0x%x' % addr,
             'function': '<unknown>',  # Required by interface
             'module': module.name if module else None,
             'trust': trust,
