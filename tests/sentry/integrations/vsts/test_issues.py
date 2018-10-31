@@ -61,7 +61,7 @@ class VstsIssueBase(TestCase):
         self.issue_id = '309'
 
 
-class VstsIssueSycnTest(VstsIssueBase):
+class VstsIssueSyncTest(VstsIssueBase):
 
     @responses.activate
     def test_create_issue(self):
