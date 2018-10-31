@@ -565,6 +565,8 @@ class SnubaSearchTest(SnubaTestCase):
             }
         )
 
+        self.group1.update(last_seen=self.group1.last_seen + timedelta(days=1))
+
         results = self.backend.query(
             self.project,
             environment=self.environments['production'],
@@ -575,9 +577,19 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             self.project,
+            date_to=self.group1.last_seen + timedelta(days=1),
             environment=self.environments['development'],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=False,
+        )
+        assert set(results) == set()
+
+        results = self.backend.query(
+            self.project,
+            date_to=self.group1.last_seen + timedelta(days=1),
+            environment=self.environments['development'],
+            last_seen_from=self.group1.last_seen,
+            last_seen_from_inclusive=True,
         )
         assert set(results) == set([self.group1])
 
@@ -796,10 +808,10 @@ class SnubaSearchTest(SnubaTestCase):
             'end': Any(datetime),
             'filter_keys': {
                 'project_id': [self.project.id],
-                'primary_hash': [u'513772ee53011ad9f4dc374b2d34d0e9']
+                'issue': [1]
             },
             'referrer': 'search',
-            'groupby': ['primary_hash'],
+            'groupby': ['issue'],
             'conditions': [],
             'limit': limit,
             'offset': 0,
