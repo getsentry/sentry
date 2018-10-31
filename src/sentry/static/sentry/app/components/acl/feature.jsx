@@ -28,7 +28,7 @@ class Feature extends React.Component {
      * On the backend end, feature tags have a scope prefix string that is stripped out on the
      * frontend (since feature tags are attached to a context object).
      *
-     * Use `organization:` or `project:` prefix strings to specify a feature with context.
+     * Use `organizations:` or `projects:` prefix strings to specify a feature with context.
      */
     features: PropTypes.arrayOf(PropTypes.string).isRequired,
 
@@ -102,11 +102,17 @@ class Feature extends React.Component {
   }
 
   hasFeature(feature, features) {
-    let shouldMatchOnlyProject = feature.match(/^project:(\w+)/);
-    let shouldMatchOnlyOrg = feature.match(/^organization:(\w+)/);
+    let shouldMatchOnlyProject = feature.match(/^projects:(.+)/);
+    let shouldMatchOnlyOrg = feature.match(/^organizations:(.+)/);
 
     // Array of feature strings
     let {configFeatures, organization, project} = features;
+
+    // Check config store first as this overrides features scoped to org or
+    // project contexts.
+    if (configFeatures.includes(feature)) {
+      return true;
+    }
 
     if (shouldMatchOnlyProject) {
       return project.includes(shouldMatchOnlyProject[1]);
@@ -117,11 +123,7 @@ class Feature extends React.Component {
     }
 
     // default, check all feature arrays
-    return (
-      configFeatures.includes(feature) ||
-      organization.includes(feature) ||
-      project.includes(feature)
-    );
+    return organization.includes(feature) || project.includes(feature);
   }
 
   render() {

@@ -146,13 +146,7 @@ describe('Feature', function() {
 
     it('handles features prefixed with org/project', function() {
       mount(
-        <Feature
-          organization={organization}
-          project={project}
-          features={['organization:bar']}
-        >
-          {childrenMock}
-        </Feature>,
+        <Feature features={['organizations:org-bar']}>{childrenMock}</Feature>,
         routerContext
       );
 
@@ -161,22 +155,17 @@ describe('Feature', function() {
         renderDisabled: false,
         organization,
         project,
-        features: ['organization:bar'],
+        features: ['organizations:org-bar'],
       });
 
-      mount(
-        <Feature organization={organization} project={project} features={['project:bar']}>
-          {childrenMock}
-        </Feature>,
-        routerContext
-      );
+      mount(<Feature features={['projects:bar']}>{childrenMock}</Feature>, routerContext);
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: false,
         renderDisabled: false,
         organization,
         project,
-        features: ['project:bar'],
+        features: ['projects:bar'],
       });
     });
 

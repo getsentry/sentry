@@ -238,8 +238,8 @@ describe('utils.projectDisplayCompare', function() {
 
 describe('utils.descopeFeatureName', function() {
   [
-    ['organization:feature', 'feature'],
-    ['project:feature', 'feature'],
+    ['organizations:feature', 'feature'],
+    ['projects:feature', 'feature'],
     ['unknown-scope:feature', 'unknown-scope:feature'],
     ['', ''],
   ].map(([input, expected]) => expect(descopeFeatureName(input)).toEqual(expected));
