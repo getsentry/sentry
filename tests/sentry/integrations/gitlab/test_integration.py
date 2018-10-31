@@ -199,7 +199,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         installation = integration.get_installation(self.organization.id)
         assert self.default_group_id == installation.get_group_id()
 
-    @response.activate
+    @responses.activate
     def test_refresh_token(self):
         integration = Integration.objects.create(
             provider=self.provider.key,
