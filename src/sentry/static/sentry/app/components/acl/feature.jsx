@@ -108,7 +108,7 @@ class Feature extends React.Component {
     // Array of feature strings
     let {configFeatures, organization, project} = features;
 
-    // Check config store first as this ovverides features scopped to org or
+    // Check config store first as this overrides features scoped to org or
     // project contexts.
     if (configFeatures.includes(feature)) {
       return true;
