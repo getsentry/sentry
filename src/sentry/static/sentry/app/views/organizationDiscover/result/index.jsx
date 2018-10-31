@@ -11,7 +11,7 @@ import LineChart from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import InlineSvg from 'app/components/inlineSvg';
 
-import {getChartData, getChartDataByDay, downloadAsCsv} from './utils';
+import {getChartData, getChartDataByDay, downloadAsCsv, getRowsPageRange} from './utils';
 import Table from './table';
 import Pagination from './pagination';
 import {
@@ -22,6 +22,7 @@ import {
   ChartWrapper,
   ChartNote,
   SavedQueryAction,
+  ResultSummaryAndButtons,
 } from '../styles';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
@@ -115,11 +116,11 @@ export default class Result extends React.Component {
       ? baseQuery.data
       : byDayQuery.data;
 
-    return (
-      <ResultSummary>
-        query time: {summaryData.timing.duration_ms} ms, {summaryData.data.length} rows
-      </ResultSummary>
-    );
+    const summary = [`query time: ${summaryData.timing.duration_ms} ms`];
+    if (this.state.view === 'table') {
+      summary.push(getRowsPageRange(baseQuery));
+    }
+    return <ResultSummary>{summary.join(', ')}</ResultSummary>;
   }
 
   renderNote() {
@@ -176,21 +177,11 @@ export default class Result extends React.Component {
         </Flex>
         <ResultInnerContainer innerRef={ref => (this.container = ref)}>
           {view === 'table' && (
-            <React.Fragment>
-              <Table
-                data={baseQuery.data}
-                query={baseQuery.query}
-                height={this.container && this.container.clientHeight}
-              />
-              {!baseQuery.query.aggregations.length && (
-                <Pagination
-                  previous={baseQuery.previous}
-                  next={baseQuery.next}
-                  getNextPage={() => onFetchPage('next')}
-                  getPreviousPage={() => onFetchPage('previous')}
-                />
-              )}
-            </React.Fragment>
+            <Table
+              data={baseQuery.data}
+              query={baseQuery.query}
+              height={this.container && this.container.clientHeight}
+            />
           )}
           {view === 'line' && (
             <ChartWrapper>
@@ -239,7 +230,17 @@ export default class Result extends React.Component {
               {this.renderNote()}
             </ChartWrapper>
           )}
-          {this.renderSummary()}
+          <ResultSummaryAndButtons>
+            {this.renderSummary()}
+            {!baseQuery.query.aggregations.length && (
+              <Pagination
+                previous={baseQuery.previous}
+                next={baseQuery.next}
+                getNextPage={() => onFetchPage('next')}
+                getPreviousPage={() => onFetchPage('previous')}
+              />
+            )}
+          </ResultSummaryAndButtons>
         </ResultInnerContainer>
       </ResultContainer>
     );
