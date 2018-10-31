@@ -42,9 +42,7 @@ class VstsIssueSync(IssueSyncMixin):
         try:
             default_project = params.get(
                 'project', defaults.get('project') or project_choices[0][0])
-        except KeyError:
-            # TODO(lb): Actually should we surface an error to the user?
-            # Is there a way to do that already if so?
+        except IndexError:
             return None, project_choices
 
         # If a project has been selected outside of the default list of
@@ -99,7 +97,7 @@ class VstsIssueSync(IssueSyncMixin):
         """
         project_id = data.get('project')
         if project_id is None:
-            raise ValueError('VSTS expects project')
+            raise ValueError('Azure DevOps expects project')
 
         client = self.get_client()
 

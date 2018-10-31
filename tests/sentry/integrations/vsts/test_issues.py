@@ -219,13 +219,12 @@ class VstsIssueFormTest(VstsIssueBase):
         responses.add(
             responses.GET,
             'https://fabrikam-fiber-inc.visualstudio.com/_apis/projects',
-            body=b"""{
-                "value": [
-                    {"id": "1", "name": "project_1"},
-                    {"id": "2", "name": "project_2"}
+            json={
+                'value': [
+                    {'id': 'project-1-id', 'name': 'project_1'},
+                    {'id': 'project-2-id', 'name': 'project_2'}
                 ]
-            }""",
-            content_type='application/json',
+            },
         )
         self.group = self.create_group()
         self.create_event(group=self.group)
@@ -248,37 +247,39 @@ class VstsIssueFormTest(VstsIssueBase):
 
     @responses.activate
     def test_default_project(self):
-        self.update_issue_defaults({'project': '2'})
+        self.update_issue_defaults({'project': 'project-2-id'})
         fields = self.integration.get_create_issue_config(self.group)
 
-        self.assert_project_field(fields, '2', [('1', 'project_1'), ('2', 'project_2')])
+        self.assert_project_field(fields, 'project-2-id',
+                                  [('project-1-id', 'project_1'), ('project-2-id', 'project_2')])
 
     @responses.activate
     def test_default_project_default_missing_in_choices(self):
         responses.add(
             responses.GET,
-            'https://fabrikam-fiber-inc.visualstudio.com/_apis/projects/3',
-            body=b"""{"id": "3", "name": "project_3"}""",
-            content_type='application/json',
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/projects/project-3-id',
+            json={'id': 'project-3-id', 'name': 'project_3'},
         )
-        self.update_issue_defaults({'project': '3'})
+        self.update_issue_defaults({'project': 'project-3-id'})
         fields = self.integration.get_create_issue_config(self.group)
 
         self.assert_project_field(
-            fields, '3', [
-                ('3', 'project_3'), ('1', 'project_1'), ('2', 'project_2')])
+            fields, 'project-3-id', [
+                ('project-3-id', 'project_3'), ('project-1-id', 'project_1'), ('project-2-id', 'project_2')])
 
     @responses.activate
     def test_default_project_error_on_default_project(self):
         responses.add(
             responses.GET,
-            'https://fabrikam-fiber-inc.visualstudio.com/_apis/projects/3',
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/projects/project-3-id',
             status=404
         )
-        self.update_issue_defaults({'project': '3'})
+        self.update_issue_defaults({'project': 'project-3-id'})
         fields = self.integration.get_create_issue_config(self.group)
 
-        self.assert_project_field(fields, None, [('1', 'project_1'), ('2', 'project_2')])
+        self.assert_project_field(
+            fields, None, [
+                ('project-1-id', 'project_1'), ('project-2-id', 'project_2')])
 
     @responses.activate
     def test_get_create_issue_config_error_on_get_projects(self):
