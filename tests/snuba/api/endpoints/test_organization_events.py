@@ -63,7 +63,7 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 2
         self.assert_events_in_response(response, [event_1.event_id, event_2.event_id])
 
-    def test_message_search(self):
+    def test_message_search_raw_text(self):
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -73,7 +73,8 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
             'y' * 32,
             group=group,
             message="Delet the Data",
-            datetime=self.min_ago)
+            datetime=self.min_ago,
+        )
 
         url = reverse(
             'sentry-api-0-organization-events',
@@ -82,6 +83,33 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
             }
         )
         response = self.client.get(url, {'query': 'delet'}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]['eventID'] == event_2.event_id
+        assert response.data[0]['message'] == 'Delet the Data'
+
+    def test_message_search_tags(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
+        event_2 = self.create_event(
+            'y' * 32,
+            group=group,
+            message="Delet the Data",
+            datetime=self.min_ago,
+            tags={'user': {'email': 'foo@example.com'}},
+        )
+
+        url = reverse(
+            'sentry-api-0-organization-events',
+            kwargs={
+                'organization_slug': project.organization.slug,
+            }
+        )
+        response = self.client.get(url, {'query': 'user.email:foo@example.com'}, format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
