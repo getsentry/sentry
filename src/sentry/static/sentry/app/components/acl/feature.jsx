@@ -75,11 +75,7 @@ class Feature extends React.Component {
      *     project,
      *     features: [],
      *     hasFeature: bool,
-     *     renderDisabled: function,
      *   }
-     *
-     * Remember that the renderDisabled function may have been set by the
-     * hookstore.
      *
      * The other interface is more simple, only show `children` if org/project has
      * all the required feature.
@@ -160,7 +156,6 @@ class Feature extends React.Component {
       project,
       features,
       hasFeature,
-      renderDisabled: customDisabledRender,
     };
 
     if (!hasFeature && renderDisabled !== false) {
