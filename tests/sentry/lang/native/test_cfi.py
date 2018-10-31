@@ -154,10 +154,10 @@ class CfiReprocessingTest(TestCase):
     @mock.patch('sentry.utils.cache.cache.get', return_value=None)
     def test_cfi_reprocessing_cached(self, mock_cache_get, mock_attachment_get):
         mock_cache_get.return_value = [
-            (None, 0x7f5140cdc000, 'scan'),
-            (None, 0x7fff5aef1000, 'scan'),
-            ('451a38b5-0679-79d2-0738-22a5ceb24c4b', 0x20830, 'cfi'),
-            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', 0x1d72, 'context'),
+            (None, '0x7f5140cdc000', 'scan'),
+            (None, '0x7fff5aef1000', 'scan'),
+            ('451a38b5-0679-79d2-0738-22a5ceb24c4b', '0x20830', 'cfi'),
+            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1d72', 'context'),
         ]
 
         data = self.get_mock_event(reprocessed=False)
