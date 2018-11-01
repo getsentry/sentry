@@ -19,7 +19,11 @@ describe('Sentry Application Details', function() {
     );
 
     describe('renders()', () => {
+<<<<<<< HEAD
       it('it shows empty scopes and no credentials', function() {
+=======
+      it('Empty scopes and no credentials shown', function() {
+>>>>>>> more js tests - application details
         expect(wrapper).toMatchSnapshot();
         // new app starts off with no scopes selected
         expect(wrapper.find('ApplicationScopes').prop('scopes')).toEqual([]);
@@ -35,7 +39,11 @@ describe('Sentry Application Details', function() {
     });
 
     describe('saving new app', () => {
+<<<<<<< HEAD
       it('it changes the data', async function() {
+=======
+      it('changes to data', async function() {
+>>>>>>> more js tests - application details
         let response = Client.addMockResponse({
           url: '/sentry-apps/',
           method: 'POST',
@@ -61,8 +69,13 @@ describe('Sentry Application Details', function() {
         let data = {
           name: 'Test App',
           organization: org.slug,
+<<<<<<< HEAD
           redirectUrl: 'https://webhook.com/setup',
           webhookUrl: 'https://webhook.com',
+=======
+          redirect_url: 'https://webhook.com/setup',
+          webhook_url: 'https://webhook.com',
+>>>>>>> more js tests - application details
           scopes: new Set(['project:read']),
         };
         expect(response).toHaveBeenCalledWith(
@@ -82,7 +95,11 @@ describe('Sentry Application Details', function() {
     const sentryApp = TestStubs.SentryApp();
 
     describe('renders()', () => {
+<<<<<<< HEAD
       it('it shows application data and credentials', function() {
+=======
+      it('Application data and credentials shown', function() {
+>>>>>>> more js tests - application details
         Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           body: sentryApp,
@@ -118,7 +135,11 @@ describe('Sentry Application Details', function() {
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId: org.slug}} />,
         routerContext
       );
+<<<<<<< HEAD
       it('it updates app with correct data', function() {
+=======
+      it('updates app with correct data', function() {
+>>>>>>> more js tests - application details
         let response = Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           method: 'PUT',
@@ -132,7 +153,11 @@ describe('Sentry Application Details', function() {
         expect(response).toHaveBeenCalledWith(
           `/sentry-apps/${sentryApp.slug}/`,
           expect.objectContaining({
+<<<<<<< HEAD
             data: expect.objectContaining({redirectUrl: 'https://hello.com/'}),
+=======
+            data: expect.objectContaining({redirect_url: 'https://hello.com/'}),
+>>>>>>> more js tests - application details
             method: 'PUT',
           })
         );
