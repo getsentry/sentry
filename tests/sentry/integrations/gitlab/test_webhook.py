@@ -3,7 +3,8 @@ from __future__ import absolute_import
 from sentry.models import (
     Commit,
     CommitAuthor,
-    PullRequest
+    PullRequest,
+    GroupLink
 )
 from .testutils import (
     GitLabTestCase,
@@ -13,8 +14,6 @@ from .testutils import (
     PUSH_EVENT,
     PUSH_EVENT_IGNORED_COMMIT
 )
-
-import pytest
 
 
 class WebhookTest(GitLabTestCase):
@@ -186,10 +185,6 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 204
         assert 2 == CommitAuthor.objects.count(), 'No dupes made'
 
-    @pytest.mark.incomplete
-    def test_push_event_create_commits_more_than_20(self):
-        pass
-
     def test_merge_event_missing_repo(self):
         response = self.client.post(
             self.url,
@@ -203,6 +198,10 @@ class WebhookTest(GitLabTestCase):
 
     def test_merge_event_create_pull_request(self):
         self.create_repo('getsentry/sentry')
+        group = self.create_group(
+            project=self.project,
+            short_id=9
+        )
         response = self.client.post(
             self.url,
             data=MERGE_REQUEST_OPENED_EVENT,
@@ -212,14 +211,59 @@ class WebhookTest(GitLabTestCase):
         )
         assert response.status_code == 204
         author = CommitAuthor.objects.all().first()
+        self.assert_commit_author(author)
+
+        pull = PullRequest.objects.all().first()
+        self.assert_pull_request(pull, author)
+        self.assert_group_link(group, pull)
+
+    def test_merge_event_update_pull_request(self):
+        repo = self.create_repo('getsentry/sentry')
+        group = self.create_group(
+            project=self.project,
+            short_id=9
+        )
+        PullRequest.objects.create(
+            organization_id=self.organization.id,
+            repository_id=repo.id,
+            key=1,
+            title='Old title',
+            message='Old message'
+        )
+
+        response = self.client.post(
+            self.url,
+            data=MERGE_REQUEST_OPENED_EVENT,
+            content_type='application/json',
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT='Merge Request Hook'
+        )
+        assert response.status_code == 204
+        author = CommitAuthor.objects.all().first()
+        self.assert_commit_author(author)
+
+        pull = PullRequest.objects.all().first()
+        assert pull.title != 'Old title'
+        assert pull.message != 'Old message'
+
+        self.assert_pull_request(pull, author)
+        self.assert_group_link(group, pull)
+
+    def assert_commit_author(self, author):
         assert author.email
         assert author.name
         assert author.organization_id == self.organization.id
 
-        pull = PullRequest.objects.all().first()
+    def assert_pull_request(self, pull, author):
         assert pull.title
         assert pull.message
         assert pull.date_added
         assert pull.author == author
         assert pull.merge_commit_sha is None
         assert pull.organization_id == self.organization.id
+
+    def assert_group_link(self, group, pull):
+        link = GroupLink.objects.all().first()
+        assert link.group_id == group.id
+        assert link.linked_type == GroupLink.LinkedType.pull_request
+        assert link.linked_id == pull.id
