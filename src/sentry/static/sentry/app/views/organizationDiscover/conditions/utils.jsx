@@ -101,7 +101,7 @@ export function getExternal(internal, columns) {
 
     if (type === 'datetime') {
       const date = moment.utc(external[2]);
-      external[2] = date.isValid() ? date.format() : null;
+      external[2] = date.isValid() ? date.format('YYYY-MM-DDTHH:mm:ss') : null;
     }
   }
 
