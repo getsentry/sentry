@@ -176,7 +176,7 @@ class ProjectSelector extends React.Component {
         alignMenu="left"
         closeOnSelect={!multiOnly}
         blendCorner={false}
-        filterPlaceholder={t('Filter projects')}
+        searchPlaceholder={t('Filter projects')}
         onSelect={this.handleSelect}
         onClose={onClose}
         maxHeight={500}
