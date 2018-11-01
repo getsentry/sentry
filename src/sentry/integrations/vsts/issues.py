@@ -232,7 +232,7 @@ class VstsIssueSync(IssueSyncMixin):
 
     def should_unresolve(self, data):
         done_states = self.get_done_states(data['project'])
-        return data['old_state'] in done_states and not data['new_state'] in done_states
+        return data['old_state'] in done_states or data['old_state'] is None and not data['new_state'] in done_states
 
     def should_resolve(self, data):
         done_states = self.get_done_states(data['project'])

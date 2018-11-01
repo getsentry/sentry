@@ -61,6 +61,9 @@ class VstsWebhookWorkItemTest(APITestCase):
 
         self.user_to_assign = self.create_user('sentryuseremail@email.com')
 
+    def tearDown(self):
+        responses.reset()
+
     def create_linked_group(self, external_issue, project, status):
         group = self.create_group(project=project, status=status)
         GroupLink.objects.create(
@@ -71,6 +74,18 @@ class VstsWebhookWorkItemTest(APITestCase):
             data={}
         )
         return group
+
+    def set_workitem_state(self, old_value, new_value):
+        work_item = dict(WORK_ITEM_UPDATED_STATUS)
+        state = work_item['resource']['fields']['System.State']
+
+        if old_value is None:
+            del state['oldValue']
+        else:
+            state['oldValue'] = old_value
+        state['newValue'] = new_value
+
+        return work_item
 
     @responses.activate
     def test_workitem_change_assignee(self):
@@ -143,10 +158,13 @@ class VstsWebhookWorkItemTest(APITestCase):
                 self.project,
                 GroupStatus.UNRESOLVED) for _ in range(num_groups)]
 
+        # Change so that state is changing from unresolved to resolved
+        work_item = self.set_workitem_state('Active', 'Resolved')
+
         with self.feature('organizations:integrations-issue-sync'):
             resp = self.client.post(
                 absolute_uri('/extensions/vsts/issue-updated/'),
-                data=WORK_ITEM_UPDATED_STATUS,
+                data=work_item,
                 HTTP_SHARED_SECRET=self.shared_secret,
             )
             assert resp.status_code == 200
@@ -178,14 +196,12 @@ class VstsWebhookWorkItemTest(APITestCase):
                 GroupStatus.RESOLVED) for _ in range(num_groups)]
 
         # Change so that state is changing from resolved to unresolved
-        state = WORK_ITEM_UPDATED_STATUS['resource']['fields']['System.State']
-        state['oldValue'] = 'Resolved'
-        state['newValue'] = 'Active'
+        work_item = self.set_workitem_state('Resolved', 'Active')
 
         with self.feature('organizations:integrations-issue-sync'):
             resp = self.client.post(
                 absolute_uri('/extensions/vsts/issue-updated/'),
-                data=WORK_ITEM_UPDATED_STATUS,
+                data=work_item,
                 HTTP_SHARED_SECRET=self.shared_secret,
             )
             assert resp.status_code == 200
@@ -195,3 +211,37 @@ class VstsWebhookWorkItemTest(APITestCase):
                     id__in=group_ids,
                     status=GroupStatus.UNRESOLVED)) == num_groups
             assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
+
+    @responses.activate
+    def test_inbound_status_sync_new_workitem(self):
+        responses.add(
+            responses.GET,
+            'https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states',
+            json=WORK_ITEM_STATES,
+        )
+        work_item_id = 33
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.model.id,
+            key=work_item_id,
+        )
+
+        group = self.create_linked_group(
+            external_issue,
+            self.project,
+            GroupStatus.UNRESOLVED)
+
+        # Change so that it is a new workitem
+        work_item = self.set_workitem_state(None, 'New')
+        assert 'oldValue' not in work_item['resource']['fields']['System.State']
+
+        with self.feature('organizations:integrations-issue-sync'):
+            resp = self.client.post(
+                absolute_uri('/extensions/vsts/issue-updated/'),
+                data=work_item,
+                HTTP_SHARED_SECRET=self.shared_secret,
+            )
+            assert resp.status_code == 200
+            assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
+            # no change happened. no activity should be created here
+            assert len(Activity.objects.filter(group_id=group.id)) == 0
