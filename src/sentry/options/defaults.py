@@ -135,7 +135,7 @@ register('vsts.client-id', flags=FLAG_PRIORITIZE_DISK)
 register('vsts.client-secret', flags=FLAG_PRIORITIZE_DISK)
 
 # Snuba
-register('snuba.use_group_id_column', default=True)  # TODO: Set back!
+register('snuba.use_group_id_column', default=True)
 register('snuba.search.max-pre-snuba-candidates', default=500)
 register('snuba.search.chunk-growth-rate', default=1.5)
 register('snuba.search.max-chunk-size', default=2000)

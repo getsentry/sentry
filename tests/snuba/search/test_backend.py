@@ -808,7 +808,7 @@ class SnubaSearchTest(SnubaTestCase):
             'end': Any(datetime),
             'filter_keys': {
                 'project_id': [self.project.id],
-                'issue': [1]
+                'issue': [self.group1.id]
             },
             'referrer': 'search',
             'groupby': ['issue'],
