@@ -14,9 +14,11 @@ from sentry.models import (
 from sentry.testutils import APITestCase
 from uuid import uuid4
 
-from sentry.integrations.github.testutils import (
-    PUSH_EVENT_EXAMPLE_INSTALLATION, PULL_REQUEST_OPENED_EVENT_EXAMPLE,
-    PULL_REQUEST_EDITED_EVENT_EXAMPLE, PULL_REQUEST_CLOSED_EVENT_EXAMPLE
+from .testutils import (
+    PUSH_EVENT_EXAMPLE_INSTALLATION,
+    PULL_REQUEST_OPENED_EVENT_EXAMPLE,
+    PULL_REQUEST_EDITED_EVENT_EXAMPLE,
+    PULL_REQUEST_CLOSED_EVENT_EXAMPLE
 )
 
 from mock import patch
