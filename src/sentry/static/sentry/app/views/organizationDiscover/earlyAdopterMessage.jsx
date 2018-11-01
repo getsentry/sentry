@@ -26,6 +26,7 @@ const StyledAlert = styled(Alert)`
   padding: ${p => p.theme.grid}px ${p => p.theme.grid * 2}px;
   margin: 0;
   align-items: center;
+  min-width: 450px;
 `;
 
 const StyledAlertText = styled(Flex)`

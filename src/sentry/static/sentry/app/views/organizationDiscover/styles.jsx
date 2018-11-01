@@ -48,8 +48,10 @@ export const Sidebar = styled(props => (
 `;
 
 export const Body = styled(Flex)`
+  min-width: 450px;
   flex: 1;
   flex-direction: column;
+  overflow: scroll;
 `;
 
 export const BodyContent = styled(Flex)`
