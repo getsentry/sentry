@@ -13,7 +13,7 @@ from sentry.utils import json
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.github.repository import GitHubRepositoryProvider
-from sentry.integrations.github.testutils import (
+from .testutils import (
     COMPARE_COMMITS_EXAMPLE,
     GET_LAST_COMMITS_EXAMPLE,
     GET_COMMIT_EXAMPLE

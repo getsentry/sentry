@@ -102,7 +102,7 @@ MERGE_REQUEST_OPENED_EVENT = b"""{
     "merge_status": "unchecked",
     "target_project_id": 14,
     "iid": 1,
-    "description": "Create a viewport for things",
+    "description": "Create a viewport for things Fixes BAR-9",
     "updated_by_id": 1,
     "merge_error": null,
     "merge_params": {
