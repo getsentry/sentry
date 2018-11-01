@@ -32,10 +32,6 @@ class ProjectSelector extends React.Component {
     // Disable selecting a single project, every action should trigger multi select
     multiOnly: PropTypes.bool,
 
-    // Initial selected projects, only used for first rendered
-    // Used for uncontrolled components
-    initialSelectedProjects: PropTypes.arrayOf(SentryTypes.Project),
-
     // Use this if the component should be a controlled component
     selectedProjects: PropTypes.arrayOf(SentryTypes.Project),
 
@@ -55,7 +51,6 @@ class ProjectSelector extends React.Component {
     projectId: null,
     multi: false,
     onSelect: () => {},
-    initialSelectedProjects: [],
   };
 
   constructor(props) {
@@ -63,7 +58,7 @@ class ProjectSelector extends React.Component {
 
     this.state = {
       activeProject: this.getActiveProject(),
-      selectedProjects: new Map(props.initialSelectedProjects.map(({slug}) => slug)),
+      selectedProjects: new Map(),
     };
   }
 
