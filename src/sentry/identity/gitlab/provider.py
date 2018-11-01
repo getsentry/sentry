@@ -2,16 +2,12 @@ from __future__ import absolute_import
 
 from sentry import http
 from sentry.identity.oauth2 import OAuth2Provider
-from sentry.integrations.gitlab.client import GitLabApiClientPath
 
 
 def get_user_info(access_token, installation_data):
     session = http.build_session()
     resp = session.get(
-        GitLabApiClientPath.build_api_url(
-            base_url=installation_data['url'],
-            path=GitLabApiClientPath.user,
-        ),
+        u'{}/api/v4/user'.format(installation_data['url']),
         headers={
             'Accept': 'application/json',
             'Authorization': 'Bearer %s' % access_token,
