@@ -20,8 +20,9 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 
-# Beware! Changing this, or the message format/fields themselves requires
-# consideration of all downstream consumers.
+# Beware! Changing this protocol (introducing a new version, or the message
+# format/fields themselves) requires consideration of all downstream consumers.
+# This includes the post-processing relay code!
 EVENT_PROTOCOL_VERSION = 2
 
 # Version 1 format: (1, TYPE, [...REST...])

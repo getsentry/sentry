@@ -15,8 +15,11 @@ class UnexpectedOperation(Exception):
     pass
 
 
-def handle_version_1_message(operation, event_data, task_state=None):
-    if operation == 'insert':
+def basic_protocol_handler(unsupported_operations):
+    # The insert message formats for Version 1 and 2 are essentially unchanged,
+    # so this function builds a handler function that can deal with both.
+
+    def get_task_kwargs_for_insert(operation, event_data, task_state=None):
         event_data['datetime'] = datetime.strptime(
             event_data['datetime'],
             "%Y-%m-%dT%H:%M:%S.%fZ",
@@ -41,15 +44,34 @@ def handle_version_1_message(operation, event_data, task_state=None):
             kwargs[name] = task_state[name]
 
         return kwargs
-    elif operation == 'delete':
-        logger.debug('Skipping unsupported operation: %s', operation)
-        return None
-    else:
-        raise UnexpectedOperation('Received unexpected operation type: {!r}'.format(operation))
+
+    def handle_message(operation, *data):
+        if operation == 'insert':
+            return get_task_kwargs_for_insert(operation, *data)
+        elif operation in unsupported_operations:
+            logger.debug('Skipping unsupported operation: %s', operation)
+            return None
+        else:
+            raise UnexpectedOperation(u'Received unexpected operation type: {!r}'.format(operation))
+
+    return handle_message
 
 
 version_handlers = {
-    1: handle_version_1_message,
+    1: basic_protocol_handler(unsupported_operations=frozenset([
+        'delete',
+        'delete_groups',
+        'merge',
+        'unmerge',
+    ])),
+    2: basic_protocol_handler(unsupported_operations=frozenset([
+        'start_delete_groups',
+        'end_delete_groups',
+        'start_merge',
+        'end_merge',
+        'start_unmerge',
+        'end_unmerge',
+    ])),
 }
 
 
