@@ -70,12 +70,17 @@ describe('Sentry Application Details', function() {
           name: 'Test App',
           organization: org.slug,
 <<<<<<< HEAD
+<<<<<<< HEAD
           redirectUrl: 'https://webhook.com/setup',
           webhookUrl: 'https://webhook.com',
 =======
           redirect_url: 'https://webhook.com/setup',
           webhook_url: 'https://webhook.com',
 >>>>>>> more js tests - application details
+=======
+          redirectUrl: 'https://webhook.com/setup',
+          webhookUrl: 'https://webhook.com',
+>>>>>>> camel case webhook url and redirect url
           scopes: new Set(['project:read']),
         };
         expect(response).toHaveBeenCalledWith(
@@ -154,10 +159,14 @@ describe('Sentry Application Details', function() {
           `/sentry-apps/${sentryApp.slug}/`,
           expect.objectContaining({
 <<<<<<< HEAD
+<<<<<<< HEAD
             data: expect.objectContaining({redirectUrl: 'https://hello.com/'}),
 =======
             data: expect.objectContaining({redirect_url: 'https://hello.com/'}),
 >>>>>>> more js tests - application details
+=======
+            data: expect.objectContaining({redirectUrl: 'https://hello.com/'}),
+>>>>>>> camel case webhook url and redirect url
             method: 'PUT',
           })
         );

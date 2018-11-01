@@ -26,12 +26,17 @@ class SentryAppAvatar extends React.Component {
         {...props}
         type={'letter_avatar'}
 <<<<<<< HEAD
+<<<<<<< HEAD
         uploadPath="avatar"
         uploadId={''}
 =======
         uploadPath="sentry-app-avatar"
         uploadId={false}
 >>>>>>> add redirect_url and overview to ui and letter avatar
+=======
+        uploadPath="avatar"
+        uploadId={''}
+>>>>>>> camel case webhook url and redirect url
         letterId={sentryApp.uuid}
         tooltip={sentryApp.name}
         title={sentryApp.name}

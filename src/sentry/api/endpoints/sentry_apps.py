@@ -34,12 +34,17 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             organization=self._get_user_org(request),
             scopes=request.json_body.get('scopes'),
 <<<<<<< HEAD
+<<<<<<< HEAD
             webhook_url=request.json_body.get('webhookUrl'),
             redirect_url=request.json_body.get('redirectUrl'),
 =======
             webhook_url=request.json_body.get('webhook_url'),
             redirect_url=request.json_body.get('redirect_url'),
 >>>>>>> add redirect_url and overview to ui and letter avatar
+=======
+            webhook_url=request.json_body.get('webhookUrl'),
+            redirect_url=request.json_body.get('redirectUrl'),
+>>>>>>> camel case webhook url and redirect url
             overview=request.json_body.get('overview'),
         )
 

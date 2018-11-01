@@ -63,6 +63,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'status': self.published_app.get_status_display(),
             'uuid': self.published_app.uuid,
 <<<<<<< HEAD
+<<<<<<< HEAD
             'webhookUrl': self.published_app.webhook_url,
             'redirectUrl': self.published_app.redirect_url,
             'clientId': self.published_app.application.client_id,
@@ -103,6 +104,10 @@ class GetSentryAppsTest(SentryAppsTest):
 =======
             'webhook_url': self.published_app.webhook_url,
             'redirect_url': self.published_app.redirect_url,
+=======
+            'webhookUrl': self.published_app.webhook_url,
+            'redirectUrl': self.published_app.redirect_url,
+>>>>>>> camel case webhook url and redirect url
             'clientID': self.published_app.application.client_id,
             'clientSecret': self.published_app.application.client_secret,
             'overview': self.published_app.overview,

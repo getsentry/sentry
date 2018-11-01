@@ -546,13 +546,13 @@ exports[`Organization Developer Settings renders developer settings Lists sentry
                         "clientSecret": "client-secret",
                         "name": "Sample App",
                         "overview": "This is an app.",
-                        "redirect_url": "https://example/com/setup",
+                        "redirectUrl": "https://example/com/setup",
                         "scopes": Array [
                           "project:read",
                         ],
                         "slug": "sample-app",
                         "uuid": "123456123456123456123456",
-                        "webhook_url": "https://example.com/webhook",
+                        "webhookUrl": "https://example.com/webhook",
                       }
                     }
                     key="123456123456123456123456"
@@ -590,13 +590,13 @@ exports[`Organization Developer Settings renders developer settings Lists sentry
                                       "clientSecret": "client-secret",
                                       "name": "Sample App",
                                       "overview": "This is an app.",
-                                      "redirect_url": "https://example/com/setup",
+                                      "redirectUrl": "https://example/com/setup",
                                       "scopes": Array [
                                         "project:read",
                                       ],
                                       "slug": "sample-app",
                                       "uuid": "123456123456123456123456",
-                                      "webhook_url": "https://example.com/webhook",
+                                      "webhookUrl": "https://example.com/webhook",
                                     }
                                   }
                                   size={36}
@@ -609,8 +609,8 @@ exports[`Organization Developer Settings renders developer settings Lists sentry
                                     title="Sample App"
                                     tooltip="Sample App"
                                     type="letter_avatar"
-                                    uploadId={false}
-                                    uploadPath="sentry-app-avatar"
+                                    uploadId=""
+                                    uploadPath="avatar"
                                   >
                                     <Tooltip
                                       disabled={true}

@@ -14,6 +14,7 @@ class SentryAppSerializer(Serializer):
             'status': obj.get_status_display(),
             'uuid': obj.uuid,
 <<<<<<< HEAD
+<<<<<<< HEAD
             'webhookUrl': obj.webhook_url,
             'redirectUrl': obj.redirect_url,
             'clientId': obj.application.client_id,
@@ -22,6 +23,10 @@ class SentryAppSerializer(Serializer):
 =======
             'webhook_url': obj.webhook_url,
             'redirect_url': obj.redirect_url,
+=======
+            'webhookUrl': obj.webhook_url,
+            'redirectUrl': obj.redirect_url,
+>>>>>>> camel case webhook url and redirect url
             'clientID': obj.application.client_id,
             'clientSecret': obj.application.client_secret,
 <<<<<<< HEAD
