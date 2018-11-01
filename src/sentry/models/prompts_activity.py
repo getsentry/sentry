@@ -14,7 +14,7 @@ class PromptsActivity(Model):
 
     organization = FlexibleForeignKey('sentry.Organization', null=True)
     # Not a Foreign Key because it's no longer safe to take out lock on Project table in Prod
-    project_id = BoundedPositiveIntegerField(null=True)
+    project_id = BoundedPositiveIntegerField(db_index=True, null=True)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=False)
     feature = models.CharField(max_length=64, null=False)
     # typically will include a dismissed/snoozed timestamp or something similar
