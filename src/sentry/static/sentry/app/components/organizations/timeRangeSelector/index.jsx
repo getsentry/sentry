@@ -182,7 +182,6 @@ const SelectorItem = styled(
       onClick: PropTypes.func.isRequired,
       value: PropTypes.string,
       label: PropTypes.node,
-      selected: PropTypes.bool,
     };
 
     handleClick = e => {
@@ -190,7 +189,7 @@ const SelectorItem = styled(
       onClick(value, e);
     };
     render() {
-      let {className, label, selected} = this.props;
+      let {className, label} = this.props;
       return (
         <Flex className={className} onClick={this.handleClick}>
           <Label>{label}</Label>
@@ -204,9 +203,9 @@ const SelectorItem = styled(
   padding: ${space(1)};
   align-items: center;
   flex: 1;
-  background-color: ${p => p.selected ? p.theme.offWhite : 'transpatent'};
-  font-weight: ${p => p.selected ? 'bold' : 'normal'};
-  border-bottom: 1px solid ${p => p.last ? 'transparent' : p.theme.borderLight};
+  background-color: ${p => (p.selected ? p.theme.offWhite : 'transpatent')};
+  font-weight: ${p => (p.selected ? 'bold' : 'normal')};
+  border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.borderLight)};
 
   &:hover {
     background: ${p => p.theme.offWhite};
@@ -243,7 +242,7 @@ const RelativeSelectorList = styled(Flex)`
   flex: 1;
   flex-direction: column;
   flex-shrink: 0;
-  width: ${p => p.isAbsoluteSelected ? '160px' : '220px'};
+  width: ${p => (p.isAbsoluteSelected ? '160px' : '220px')};
   min-height: 305px;
 `;
 

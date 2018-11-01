@@ -2,8 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled, {cx} from 'react-emotion';
 
-import space from 'app/styles/space';
-
 const TimePicker = styled(
   class TimePicker extends React.Component {
     static propTypes = {

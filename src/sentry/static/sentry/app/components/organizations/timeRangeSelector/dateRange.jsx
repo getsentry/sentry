@@ -5,7 +5,7 @@ import {DateRangePicker} from 'react-date-range';
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
-import styled, {css} from 'react-emotion';
+import styled from 'react-emotion';
 import Checkbox from 'app/components/checkbox';
 
 import {
@@ -39,6 +39,11 @@ const DateRange = styled(
        * Use UTC
        */
       useUtc: PropTypes.bool,
+
+      /**
+       * handle UTC checkbox change
+       */
+      handleUseUtc: PropTypes.func,
 
       /**
        * Callback when value changes
@@ -171,7 +176,7 @@ const DateRange = styled(
                   onChange={handleUseUtc}
                   checked={useUtc}
                   style={{
-                    margin: "0 0 0 0.5em"
+                    margin: '0 0 0 0.5em',
                   }}
                 />
               </UtcPicker>
@@ -190,13 +195,16 @@ const DateRange = styled(
 const StyledDateRangePicker = styled(DateRangePicker)`
   padding: ${p => space(2)};
 
-  .rdrDefinedRangesWrapper, .rdrDateDisplayWrapper, .rdrWeekDays {
+  .rdrDefinedRangesWrapper,
+  .rdrDateDisplayWrapper,
+  .rdrWeekDays {
     display: none;
   }
 
   .rdrMonth {
     width: 300px;
     font-size: 1.2em;
+    padding: 0;
   }
 
   .rdrStartEdge {
@@ -209,20 +217,30 @@ const StyledDateRangePicker = styled(DateRangePicker)`
     border-bottom-right-radius: 1.14em;
   }
 
-  .rdrDayStartPreview, .rdrDayEndPreview, .rdrDayInPreview {
+  .rdrDayStartPreview,
+  .rdrDayEndPreview,
+  .rdrDayInPreview {
     border: 0;
     background: rgba(200, 200, 200, 0.3);
   }
 
-  .rdrDayStartOfMonth, .rdrDayStartOfMonth, .rdrDayStartOfWeek, .rdrDayStartOfWeek {
-    .rdrInRange, .rdrEndEdge {
+  .rdrDayStartOfMonth,
+  .rdrDayStartOfMonth,
+  .rdrDayStartOfWeek,
+  .rdrDayStartOfWeek {
+    .rdrInRange,
+    .rdrEndEdge {
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
     }
   }
 
-  .rdrDayEndOfMonth, .rdrDayEndOfMonth, .rdrDayEndOfWeek, .rdrDayEndOfWeek {
-    .rdrInRange, .rdrEndEdge {
+  .rdrDayEndOfMonth,
+  .rdrDayEndOfMonth,
+  .rdrDayEndOfWeek,
+  .rdrDayEndOfWeek {
+    .rdrInRange,
+    .rdrEndEdge {
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
     }
@@ -242,11 +260,8 @@ const StyledDateRangePicker = styled(DateRangePicker)`
     height: 2.5em;
   }
 
-  .rdrMonth {
-    padding: 0;
-  }
-
-  .rdrMonthPicker select, .rdrYearPicker select {
+  .rdrMonthPicker select,
+  .rdrYearPicker select {
     background: none;
     font-weight: normal;
     font-size: 16px;
@@ -285,10 +300,6 @@ const TimeAndUtcPicker = styled('div')`
   align-items: center;
   padding: ${p => space(2)};
   border-top: 1px solid ${p => p.theme.borderLight};
-`;
-
-const utcCheckboxStyles = css`
-  margin: 0 0 0 0.5em;
 `;
 
 const UtcPicker = styled('div')`
