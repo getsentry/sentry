@@ -6,11 +6,19 @@ from django.utils import timezone
 from rest_framework import serializers
 from uuid import uuid4
 
+from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, ProjectUserReportSerializer
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import (Environment, Event, EventUser, Group, GroupStatus, UserReport)
+from sentry.models import (
+    Environment,
+    Event,
+    EventUser,
+    Group,
+    GroupStatus,
+    ProjectKey,
+    UserReport)
 from sentry.signals import user_feedback_received
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -37,6 +45,7 @@ class UserReportSerializer(serializers.ModelSerializer):
 
 
 class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
+    authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
     doc_section = DocSection.PROJECTS
 
     def get(self, request, project):
@@ -50,6 +59,10 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         :pparam string project_slug: the slug of the project.
         :auth: required
         """
+        # we dont allow read permission with DSNs
+        if isinstance(request.auth, ProjectKey):
+            return self.respond(status=401)
+
         try:
             environment = self._get_environment_from_request(
                 request,
@@ -101,6 +114,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         If feedback is rejected due to a mutability threshold, a 409 status code will be returned.
 
+        Note: Feedback may be submitted with DSN authentication (see auth documentation).
+
         :pparam string organization_slug: the slug of the organization.
         :pparam string project_slug: the slug of the project.
         :auth: required
@@ -109,6 +124,9 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         :param string email: user's email address
         :param string comments: comments supplied by user
         """
+        if hasattr(request.auth, 'project_id') and project.id != request.auth.project_id:
+            return self.respond(status=400)
+
         serializer = UserReportSerializer(data=request.DATA)
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)

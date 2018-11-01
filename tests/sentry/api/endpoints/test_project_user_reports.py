@@ -4,6 +4,7 @@ import six
 from datetime import timedelta
 from django.utils import timezone
 from exam import fixture
+from uuid import uuid4
 
 from sentry.testutils import APITestCase, UserReportEnvironmentTestCase
 from sentry.models import EventUser, Environment, GroupStatus, UserReport
@@ -59,6 +60,22 @@ class ProjectUserReportListTest(APITestCase):
                 six.text_type(report_1.id),
             ]
         )
+
+    def test_cannot_access_with_dsn_auth(self):
+        project = self.create_project()
+        project_key = self.create_project_key(project=project)
+
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.get(
+            url,
+            HTTP_AUTHORIZATION=u'DSN {}'.format(project_key.dsn_public),
+        )
+
+        assert response.status_code == 401, response.content
 
     def test_all_reports(self):
         self.login_as(user=self.user)
@@ -137,6 +154,58 @@ class CreateProjectUserReportTest(APITestCase):
         assert report.email == 'foo@example.com'
         assert report.name == 'Foo Bar'
         assert report.comments == 'It broke!'
+
+    def test_with_dsn_auth(self):
+        project = self.create_project()
+        project_key = self.create_project_key(project=project)
+        group = self.create_group(project=project)
+        environment = self.make_environment(project)
+        event = self.create_event(
+            group=group,
+            tags={'environment': environment.name},
+            datetime=timezone.now(),
+        )
+
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.post(
+            url,
+            HTTP_AUTHORIZATION=u'DSN {}'.format(project_key.dsn_public),
+            data={
+                'event_id': event.event_id,
+                'email': 'foo@example.com',
+                'name': 'Foo Bar',
+                'comments': 'It broke!',
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+    def test_with_dsn_auth_invalid_project(self):
+        project = self.create_project()
+        project2 = self.create_project()
+        project_key = self.create_project_key(project=project)
+
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
+            project2.organization.slug,
+            project2.slug,
+        )
+
+        response = self.client.post(
+            url,
+            HTTP_AUTHORIZATION=u'DSN {}'.format(project_key.dsn_public),
+            data={
+                'event_id': uuid4().hex,
+                'email': 'foo@example.com',
+                'name': 'Foo Bar',
+                'comments': 'It broke!',
+            }
+        )
+
+        assert response.status_code == 400, response.content
 
     def test_already_present(self):
         self.login_as(user=self.user)
