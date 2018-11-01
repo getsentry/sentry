@@ -20,7 +20,9 @@ basic_filter    = search_key sep search_value
 time_filter     = "timestamp" operator date_formats
 
 search_key      = ~r"[a-z]*\.?[a-z]*"
-search_value    = ~r"\S*"
+search_value    = quoted_value / value
+value           = ~r"\S*"
+quoted_value    = ~r"\"(.+?)\""
 
 date_formats    = date_time_micro / date_time / date
 date            = ~r"\d{4}-\d{2}-\d{2}"
@@ -185,7 +187,13 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_search_value(self, node, children):
+        return children[0]
+
+    def visit_value(self, node, children):
         return node.text
+
+    def visit_quoted_value(self, node, children):
+        return node.match.groups()[0]
 
     def generic_visit(self, node, children):
         return children or node

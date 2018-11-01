@@ -97,6 +97,15 @@ class EventSearchTest(TestCase):
             ),
         ]
 
+    def test_parse_search_query_quoted_val(self):
+        assert parse_search_query('release:"a release"') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a release', type='string'),
+            ),
+        ]
+
     def test_parse_search_query_invalid(self):
         with self.assertRaises(InvalidSearchQuery):
             parse_search_query('fruit:apple release:1.2.1')
