@@ -162,7 +162,8 @@ class WorkItemWebhook(Endpoint):
             installation = integration.get_installation(organization_id)
             data = {
                 'new_state': status_change['newValue'],
-                'old_state': status_change['oldValue'],
+                # old_state is None when the issue is New
+                'old_state': status_change.get('oldValue'),
                 'project': project,
             }
 

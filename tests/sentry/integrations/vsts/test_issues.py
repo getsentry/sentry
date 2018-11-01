@@ -18,7 +18,7 @@ from sentry.models import (
 from sentry.testutils import TestCase
 from sentry.utils import json
 
-from .testutils import WORK_ITEM_RESPONSE, GET_PROJECTS_RESPONSE, GET_USERS_RESPONSE
+from .testutils import WORK_ITEM_RESPONSE, WORK_ITEM_STATES, GET_PROJECTS_RESPONSE, GET_USERS_RESPONSE
 
 
 class VstsIssueBase(TestCase):
@@ -59,6 +59,12 @@ class VstsIssueBase(TestCase):
         }
         self.integration = VstsIntegration(model, self.organization.id)
         self.issue_id = '309'
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states',
+            json=WORK_ITEM_STATES,
+        )
+        self.project_id_with_states = 'c0bf429a-c03c-4a99-9336-d45be74db5a6'
 
 
 class VstsIssueSyncTest(VstsIssueBase):
@@ -211,6 +217,60 @@ class VstsIssueSyncTest(VstsIssueBase):
         work_id = 345
         url = self.integration.get_issue_url(work_id)
         assert url == 'https://fabrikam-fiber-inc.visualstudio.com/_workitems/edit/345'
+
+    @responses.activate
+    def test_should_resolve_active_to_resolved(self):
+        should_resolve = self.integration.should_resolve({
+            'project': self.project_id_with_states,
+            'old_state': 'Active',
+            'new_state': 'Resolved',
+        })
+        assert should_resolve is True
+
+    @responses.activate
+    def test_should_resolve_resolved_to_active(self):
+        should_resolve = self.integration.should_resolve({
+            'project': self.project_id_with_states,
+            'old_state': 'Resolved',
+            'new_state': 'Active',
+        })
+        assert should_resolve is False
+
+    @responses.activate
+    def test_should_resolve_new(self):
+        should_resolve = self.integration.should_resolve({
+            'project': self.project_id_with_states,
+            'old_state': None,
+            'new_state': 'New',
+        })
+        assert should_resolve is False
+
+    @responses.activate
+    def test_should_unresolve_active_to_resolved(self):
+        should_unresolve = self.integration.should_unresolve({
+            'project': self.project_id_with_states,
+            'old_state': 'Active',
+            'new_state': 'Resolved',
+        })
+        assert should_unresolve is False
+
+    @responses.activate
+    def test_should_unresolve_resolved_to_active(self):
+        should_unresolve = self.integration.should_unresolve({
+            'project': self.project_id_with_states,
+            'old_state': 'Resolved',
+            'new_state': 'Active',
+        })
+        assert should_unresolve is True
+
+    @responses.activate
+    def test_should_unresolve_new(self):
+        should_unresolve = self.integration.should_unresolve({
+            'project': self.project_id_with_states,
+            'old_state': None,
+            'new_state': 'New',
+        })
+        assert should_unresolve is True
 
 
 class VstsIssueFormTest(VstsIssueBase):
