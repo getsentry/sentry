@@ -37,17 +37,19 @@ def create_topic(partitions=1, replication_factor=1):
         ])
 
 
-def requires_kafka_client(function):
+def requires_kafka(function):
     @functools.wraps(function)
     def wrapper(*args, **kwargs):
         if not has_kafka_client:
             return pytest.xfail('test requires confluent_kafka which is not installed')
+        if 'SENTRY_KAFKA_HOSTS' not in os.environ:
+            return pytest.xfail('test requires SENTRY_KAFKA_HOSTS environment variable which is not set')
         return function(*args, **kwargs)
 
     return wrapper
 
 
-@requires_kafka_client
+@requires_kafka
 def test_consumer_start_from_partition_start():
     synchronize_commit_group = 'consumer-{}'.format(uuid.uuid1().hex)
 
@@ -136,7 +138,7 @@ def test_consumer_start_from_partition_start():
         assert consumer.poll(1) is None
 
 
-@requires_kafka_client
+@requires_kafka
 def test_consumer_start_from_committed_offset():
     consumer_group = 'consumer-{}'.format(uuid.uuid1().hex)
     synchronize_commit_group = 'consumer-{}'.format(uuid.uuid1().hex)
@@ -248,7 +250,7 @@ def test_consumer_start_from_committed_offset():
         assert consumer.poll(1) is None
 
 
-@requires_kafka_client
+@requires_kafka
 def test_consumer_rebalance_from_partition_start():
     consumer_group = 'consumer-{}'.format(uuid.uuid1().hex)
     synchronize_commit_group = 'consumer-{}'.format(uuid.uuid1().hex)
@@ -368,7 +370,7 @@ def test_consumer_rebalance_from_partition_start():
             assert consumer.poll(1) is None
 
 
-@requires_kafka_client
+@requires_kafka
 def test_consumer_rebalance_from_committed_offset():
     consumer_group = 'consumer-{}'.format(uuid.uuid1().hex)
     synchronize_commit_group = 'consumer-{}'.format(uuid.uuid1().hex)
@@ -531,7 +533,7 @@ def collect_messages_recieved(count):
     return messages_recieved_constraint
 
 
-@requires_kafka_client
+@requires_kafka
 def test_consumer_rebalance_from_uncommitted_offset():
     consumer_group = 'consumer-{}'.format(uuid.uuid1().hex)
     synchronize_commit_group = 'consumer-{}'.format(uuid.uuid1().hex)
