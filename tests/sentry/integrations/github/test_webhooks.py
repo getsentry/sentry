@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry.models import (
     Commit,
     CommitAuthor,
+    GroupLink,
     Integration,
     PullRequest,
     Repository)
@@ -15,8 +16,10 @@ from sentry.testutils import APITestCase
 from uuid import uuid4
 
 from .testutils import (
-    PUSH_EVENT_EXAMPLE_INSTALLATION, PULL_REQUEST_OPENED_EVENT_EXAMPLE,
-    PULL_REQUEST_EDITED_EVENT_EXAMPLE, PULL_REQUEST_CLOSED_EVENT_EXAMPLE
+    PUSH_EVENT_EXAMPLE_INSTALLATION,
+    PULL_REQUEST_OPENED_EVENT_EXAMPLE,
+    PULL_REQUEST_EDITED_EVENT_EXAMPLE,
+    PULL_REQUEST_CLOSED_EVENT_EXAMPLE
 )
 from sentry import options
 
@@ -280,9 +283,8 @@ class PushEventWebhookTest(APITestCase):
 class PullRequestEventWebhook(APITestCase):
     def test_opened(self):
         project = self.project  # force creation
-
+        group = self.create_group(project=project, short_id=7)
         url = '/extensions/github/webhook/'
-
         secret = 'b3002c3e321d4b7880360d397db2ccfd'
         options.set('github-app.webhook-secret', secret)
 
@@ -307,7 +309,7 @@ class PullRequestEventWebhook(APITestCase):
             data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
             content_type='application/json',
             HTTP_X_GITHUB_EVENT='pull_request',
-            HTTP_X_HUB_SIGNATURE='sha1=5b82806b2c96eb546b2898f0dca98cc326d7d9ae',
+            HTTP_X_HUB_SIGNATURE='sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3',
             HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
         )
 
@@ -323,17 +325,18 @@ class PullRequestEventWebhook(APITestCase):
         pr = prs[0]
 
         assert pr.key == '1'
-        assert pr.message == u'This is a pretty simple change that we need to pull into master.'
+        assert pr.message == u'This is a pretty simple change that we need to pull into master. Fixes BAR-7'
         assert pr.title == u'Update the README with new information'
         assert pr.author.name == u'baxterthehacker'
 
+        self.assert_group_link(group, pr)
+
     def test_edited(self):
         project = self.project  # force creation
+        group = self.create_group(project=project, short_id=7)
 
         url = '/extensions/github/webhook/'
-
         secret = 'b3002c3e321d4b7880360d397db2ccfd'
-
         options.set('github-app.webhook-secret', secret)
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -363,7 +366,7 @@ class PullRequestEventWebhook(APITestCase):
             data=PULL_REQUEST_EDITED_EVENT_EXAMPLE,
             content_type='application/json',
             HTTP_X_GITHUB_EVENT='pull_request',
-            HTTP_X_HUB_SIGNATURE='sha1=42e0d5cf6bd7521fcc7576f7e41c31621c88091e',
+            HTTP_X_HUB_SIGNATURE='sha1=83100642f0cf5d7f6145cf8d04da5d00a09f890f',
             HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
         )
 
@@ -372,9 +375,11 @@ class PullRequestEventWebhook(APITestCase):
         pr = PullRequest.objects.get(id=pr.id)
 
         assert pr.key == '1'
-        assert pr.message == u'new edited body'
+        assert pr.message == u'new edited body. Fixes BAR-7'
         assert pr.title == u'new edited title'
         assert pr.author.name == u'baxterthehacker'
+
+        self.assert_group_link(group, pr)
 
     def test_closed(self):
         project = self.project  # force creation
@@ -426,3 +431,10 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.title == u'new closed title'
         assert pr.author.name == u'baxterthehacker'
         assert pr.merge_commit_sha == '0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c'
+
+    def assert_group_link(self, group, pr):
+        link = GroupLink.objects.all().first()
+        assert link
+        assert link.group_id == group.id
+        assert link.linked_id == pr.id
+        assert link.linked_type == GroupLink.LinkedType.pull_request
