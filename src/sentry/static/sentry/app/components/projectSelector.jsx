@@ -30,6 +30,7 @@ class ProjectSelector extends React.Component {
     multi: PropTypes.bool,
 
     // Disable selecting a single project, every action should trigger multi select
+    // XXX(billy): This is unused as of 11/1/2018, could be due for a cleanup
     multiOnly: PropTypes.bool,
 
     // Use this if the component should be a controlled component

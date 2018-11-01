@@ -97,7 +97,6 @@ export default class MultipleProjectSelector extends React.Component {
       <StyledProjectSelector
         {...this.props}
         multi
-        showUpdate
         selectedProjects={selected}
         projects={projects}
         onSelect={this.handleQuickSelect}
