@@ -28,13 +28,40 @@ class MultipleEnvironmentSelector extends React.Component {
     value: PropTypes.array,
   };
 
-  static defaultProps = {};
+  constructor() {
+    super();
+    this.state = {
+      isOpen: false,
+    };
+  }
 
-  handleUpdate = e => {
-    let {onUpdate} = this.props;
+  handleUpdate = actions => {
+    let {value, onUpdate} = this.props;
+    this.setState(
+      {
+        isOpen: false,
+      },
+      () => {
+        if (typeof onUpdate === 'function') {
+          onUpdate(value);
+        }
+      }
+    );
+  };
 
-    if (typeof onUpdate !== 'function') return;
-    onUpdate(this.props.value);
+  handleClear = () => {
+    let {onChange, onUpdate} = this.props;
+    this.setState(
+      {
+        isOpen: false,
+      },
+      () => {
+        onChange([]);
+        if (typeof onUpdate === 'function') {
+          onUpdate([]);
+        }
+      }
+    );
   };
 
   render() {
@@ -42,12 +69,19 @@ class MultipleEnvironmentSelector extends React.Component {
     const summary = value && value.length ? `${value.join(', ')}` : t('All Environments');
 
     return (
-      <DropdownMenu keepMenuOpen={true} alwaysRenderMenu={false}>
-        {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
+      <DropdownMenu
+        isOpen={this.state.isOpen}
+        onOpen={() => this.setState({isOpen: true})}
+        onClose={() => this.setState({isOpen: false})}
+        keepMenuOpen={true}
+      >
+        {({isOpen, getRootProps, getActorProps, getMenuProps, actions}) => (
           <div {...getRootProps()} style={{position: 'relative'}}>
             <StyledHeaderItem
               icon={<StyledInlineSvg src="icon-window" />}
               isOpen={isOpen}
+              hasSelected={value && !!value.length}
+              onClear={this.handleClear}
               {...getActorProps({isStyled: true})}
             >
               {summary}
@@ -68,7 +102,10 @@ class MultipleEnvironmentSelector extends React.Component {
                           />
                         </React.Fragment>
                       )}
-                      <Button data-test-id="update-envs" onClick={this.handleUpdate}>
+                      <Button
+                        data-test-id="update-envs"
+                        onClick={() => this.handleUpdate(actions)}
+                      >
                         {t('Update')}
                       </Button>
                     </React.Fragment>
@@ -113,9 +150,7 @@ const FetchOrganizationEnvironments = withApi(
   }
 );
 
-const StyledHeaderItem = styled(
-  React.forwardRef((props, ref) => <HeaderItem {...props} innerRef={ref} />)
-)`
+const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
   width: 250px;
 `;

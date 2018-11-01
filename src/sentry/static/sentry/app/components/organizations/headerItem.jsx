@@ -7,12 +7,17 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 
 class HeaderItem extends React.Component {
   static propTypes = {
+    allowClear: PropTypes.bool,
     icon: PropTypes.element,
     onClear: PropTypes.func,
     onSubmit: PropTypes.func,
     hasChanges: PropTypes.bool,
     hasSelected: PropTypes.bool,
     isOpen: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    allowClear: true,
   };
 
   handleClear = e => {
@@ -36,6 +41,7 @@ class HeaderItem extends React.Component {
       isOpen,
       hasSelected,
       hasChanges,
+      allowClear,
       icon,
       onClear, // eslint-disable-line no-unused-vars
       onSubmit, // eslint-disable-line no-unused-vars
@@ -51,7 +57,8 @@ class HeaderItem extends React.Component {
       >
         <IconContainer hasSelected={hasSelected}>{icon}</IconContainer>
         <Content>{children}</Content>
-        {hasSelected && <StyledClose src="icon-close" onClick={this.handleClear} />}
+        {hasSelected &&
+          allowClear && <StyledClose src="icon-close" onClick={this.handleClear} />}
         <StyledChevron
           isOpen={isOpen}
           hasChanges={hasChanges}
@@ -113,4 +120,4 @@ const StyledChevron = styled('div')`
       : ''};
 `;
 
-export default HeaderItem;
+export default React.forwardRef((props, ref) => <HeaderItem {...props} innerRef={ref} />);

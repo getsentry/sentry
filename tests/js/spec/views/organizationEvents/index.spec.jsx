@@ -70,6 +70,9 @@ describe('OrganizationEvents', function() {
     );
 
     // Select a second environment, "staging"
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    await tick();
+    wrapper.update();
     selectByLabel(wrapper, 'staging', {control: true, name: 'environments'});
     expect(wrapper.state('environment')).toEqual(['production', 'staging']);
 
@@ -86,6 +89,9 @@ describe('OrganizationEvents', function() {
     );
 
     // Can clear
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    await tick();
+    wrapper.update();
     clearValue(wrapper);
     expect(wrapper.state('environment')).toEqual([]);
     wrapper.find('Button[data-test-id="update-envs"]').simulate('click');

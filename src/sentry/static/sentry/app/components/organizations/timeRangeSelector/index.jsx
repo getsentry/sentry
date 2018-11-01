@@ -107,9 +107,11 @@ class TimeRangeSelector extends React.Component {
             <StyledHeaderItem
               icon={<StyledInlineSvg src="icon-calendar" />}
               isOpen={isOpen}
+              hasSelected={true}
+              allowClear={false}
               {...getActorProps({isStyled: true})}
             >
-              {getDynamicText({value: summary, fixed: 'from date to date'})}
+              {getDynamicText({value: summary, fixed: 'start to end'})}
             </StyledHeaderItem>
             <Menu
               {...getMenuProps({isStyled: true})}
@@ -145,9 +147,7 @@ class TimeRangeSelector extends React.Component {
   }
 }
 
-const StyledHeaderItem = styled(
-  React.forwardRef((props, ref) => <HeaderItem {...props} innerRef={ref} />)
-)`
+const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
   width: 230px;
 `;
