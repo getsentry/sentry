@@ -102,4 +102,27 @@ describe('SearchBar', function() {
       expect(mock).not.toHaveBeenCalled();
     });
   });
+
+  it('can select additional autocomplete terms when last query term is finished and has trailing space', function() {
+    let query = 'timesSeen:1 ';
+    let props = {
+      orgId: '123',
+      projectId: '456',
+      query,
+    };
+    let wrapper = mount(<SearchBar {...props} />, options);
+
+    wrapper
+      .find('input')
+      .getDOMNode()
+      .setSelectionRange(query.length, query.length);
+    wrapper.instance().updateAutoCompleteItems();
+    wrapper.find('input').simulate('focus');
+    wrapper
+      .find('.search-autocomplete-item')
+      .first()
+      .simulate('click');
+
+    expect(wrapper.find('input').prop('value')).toBe('timesSeen:1 browser:');
+  });
 });
