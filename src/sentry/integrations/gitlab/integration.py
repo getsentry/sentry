@@ -188,8 +188,8 @@ class InstallationGuideView(PipelineView):
                 'next_url': '%s%s' % (absolute_uri('extensions/gitlab/setup/'), '?completed_installation_guide'),
                 'setup_values': [
                     {'label': 'Name', 'value': 'Sentry'},
-                    {'label': 'Redirect URI', 'value': 'https://sentry.io/extensions/gitlab/setup/'},
-                    {'label': 'Scopes', 'value': 'API'}
+                    {'label': 'Redirect URI', 'value': absolute_uri('/extensions/gitlab/setup/')},
+                    {'label': 'Scopes', 'value': 'api'}
                 ]
             },
             request=request,

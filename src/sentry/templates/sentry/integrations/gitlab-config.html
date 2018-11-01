@@ -9,20 +9,14 @@
     ol li {
       padding:10px 0px;
     }
-    ul {
+    .code-list {
       padding: 10px;
       background-color: #f7f8f9;
       margin-top: 10px;
       border-radius: 3px;
     }
-    ul li {
-      list-style-type: none;
+    .code-list li {
       font-size: 90%;
-      font-family: Monaco, Consolas, 'Courier New', monospace;
-      padding:0;
-    }
-    a.btn.btn-primary{
-      margin-bottom: 30px;
     }
   </style>
 {% endblock %}
@@ -57,15 +51,17 @@
     <li>Navigate to the User Settings section of your GitLab instance.</li>
     <li>In the sidebar, select 'Applications'.</li>
     <li>In the resulting form, enter the following information:
-      <ul>
+      <ul class="list-unstyled code-list">
         {% for val in setup_values %}
-          <li>{{ val.label }}: {{ val.value }}</li>
+          <li class="p-a-0">{{ val.label }}: {{ val.value }}</li>
         {% endfor %}
       </ul>
     </li>
     <li>Click Save Application.</li>
     <li>In the resulting page, you'll see the Application ID and Secret. You'll need those for the next phase of setup.</li>
   </ol>
-  <a class="btn btn-primary" href="{{ next_url }}">{% trans "Next" %}</a>
-{% endif %}
+  <div class="p-y-2 b-t-1">
+    <a class="btn btn-primary" href="{{ next_url }}">{% trans "Next" %}</a>
+  </div>
+  {% endif %}
 {% endblock %}
