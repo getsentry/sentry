@@ -11,6 +11,7 @@ import Highlight from 'app/components/highlight';
 import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 class ProjectSelector extends React.Component {
   static propTypes = {
@@ -176,7 +177,7 @@ class ProjectSelector extends React.Component {
         onSelect={this.handleSelect}
         onClose={onClose}
         maxHeight={500}
-        zIndex={1001}
+        zIndex={theme.zIndex.dropdown}
         css={{marginTop: 6}}
         inputProps={{style: {padding: 8, paddingLeft: 14}}}
         rootClassName={rootClassName}
