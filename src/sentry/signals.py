@@ -95,7 +95,7 @@ release_created = BetterSignal(providing_args=["release"])
 deploy_created = BetterSignal(providing_args=["deploy"])
 resolved_with_commit = BetterSignal(providing_args=["organization_id", "user", "group"])
 ownership_rule_created = BetterSignal(providing_args=["project"])
-issue_ignored = BetterSignal(providing_args=["project"])
+issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
 
 terms_accepted = BetterSignal(providing_args=["organization", "user", "ip_address"])
 team_created = BetterSignal(providing_args=["organization", "user", "team"])
