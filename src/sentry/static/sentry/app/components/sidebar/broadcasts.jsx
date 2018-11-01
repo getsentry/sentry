@@ -10,7 +10,7 @@ import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
-import * as broadcastActions from 'app/actionCreators/broadcasts';
+import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
@@ -64,8 +64,7 @@ const Broadcasts = createReactClass({
       this.stopPoll();
     }
 
-    return broadcastActions
-      .getAll(this.api)
+    return getAllBroadcasts(this.api)
       .then(data => {
         this.setState({
           broadcasts: data || [],
@@ -124,12 +123,13 @@ const Broadcasts = createReactClass({
     let unseenBroadcastIds = this.getUnseenIds();
     if (unseenBroadcastIds.length === 0) return;
 
-    broadcastActions.markAsSeen(this.api, unseenBroadcastIds).then(data => {
-      this.setState({
-        broadcasts: this.state.broadcasts.map(item => {
+    markBroadcastsAsSeen(this.api, unseenBroadcastIds).then(data => {
+      this.setState(state => {
+        let broadcasts = state.broadcasts.map(item => {
           item.hasSeen = true;
           return item;
-        }),
+        });
+        return {broadcasts};
       });
     });
   },

@@ -1,8 +1,8 @@
-export function getAll(api) {
+export function getAllBroadcasts(api) {
   return api.requestPromise('/broadcasts/', {method: 'GET'});
 }
 
-export function markAsSeen(api, idList) {
+export function markBroadcastsAsSeen(api, idList) {
   return api.requestPromise('/broadcasts/', {
     method: 'PUT',
     query: {id: idList},
