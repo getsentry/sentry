@@ -114,7 +114,7 @@ class TimeRangeSelector extends React.PureComponent {
   };
 
   render() {
-    const {className, start, end, relative, showAbsolute, showRelative} = this.props;
+    const {start, end, relative, showAbsolute, showRelative} = this.props;
 
     const shouldShowAbsolute = showAbsolute;
     const shouldShowRelative = showRelative;
@@ -123,7 +123,7 @@ class TimeRangeSelector extends React.PureComponent {
     const summary = relative
       ? `${ALLOWED_RELATIVE_DATES[relative]}`
       : `${this.formatDate(start)} to ${this.formatDate(end)}`;
-    // TODO: DropdownMenuCss
+
     return (
       <DropdownMenu
         isOpen={this.state.isOpen}
@@ -162,14 +162,9 @@ class TimeRangeSelector extends React.PureComponent {
                     value="absolute"
                     label={t('Absolute Date')}
                     selected={isAbsoluteSelected}
+                    last={true}
                   />
                 )}
-                <SelectorItem
-                  onClick={this.handleUseUtc}
-                  value="utc"
-                  label={t('Use UTC')}
-                  selected={this.state.useUtc}
-                />
               </RelativeSelectorList>
               {isAbsoluteSelected && (
                 <DateRangePicker
@@ -178,6 +173,7 @@ class TimeRangeSelector extends React.PureComponent {
                   start={start}
                   end={end}
                   onChange={this.handleSelectDateRange}
+                  handleUseUtc={this.handleUseUtc}
                 />
               )}
             </Menu>
@@ -218,7 +214,6 @@ const SelectorItem = styled(
       onClick: PropTypes.func.isRequired,
       value: PropTypes.string,
       label: PropTypes.node,
-      selected: PropTypes.bool,
     };
 
     handleClick = e => {
@@ -226,12 +221,10 @@ const SelectorItem = styled(
       onClick(value, e);
     };
     render() {
-      let {className, label, selected} = this.props;
+      let {className, label} = this.props;
       return (
         <Flex className={className} onClick={this.handleClick}>
           <Label>{label}</Label>
-
-          {selected && <input style={{margin: 0}} type="checkbox" checked disabled />}
         </Flex>
       );
     }
@@ -239,9 +232,16 @@ const SelectorItem = styled(
 )`
   cursor: pointer;
   white-space: nowrap;
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(1)};
   align-items: center;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  flex: 1;
+  background-color: ${p => (p.selected ? p.theme.offWhite : 'transpatent')};
+  font-weight: ${p => (p.selected ? 'bold' : 'normal')};
+  border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.borderLight)};
+
+  &:hover {
+    background: ${p => p.theme.offWhite};
+  }
 `;
 
 const Label = styled('span')`
@@ -264,6 +264,7 @@ const RelativeSelector = ({onClick, selected}) => {
     </React.Fragment>
   );
 };
+
 RelativeSelector.propTypes = {
   onClick: PropTypes.func,
   selected: PropTypes.string,
@@ -273,7 +274,8 @@ const RelativeSelectorList = styled(Flex)`
   flex: 1;
   flex-direction: column;
   flex-shrink: 0;
-  width: 160px;
+  width: ${p => (p.isAbsoluteSelected ? '160px' : '220px')};
+  min-height: 305px;
 `;
 
 export default TimeRangeSelector;
