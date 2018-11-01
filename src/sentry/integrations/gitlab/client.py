@@ -86,7 +86,7 @@ class GitLabApiClient(ApiClient):
     def metadata(self):
         return self.installation.model.metadata
 
-    def request(self, method, path, data=None, params=None, api_preview=False):
+    def request(self, method, path, data=None, params=None):
         access_token = self.identity.data['access_token']
         headers = {
             'Authorization': u'Bearer {}'.format(access_token)
