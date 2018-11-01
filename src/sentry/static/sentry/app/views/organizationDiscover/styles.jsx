@@ -76,16 +76,6 @@ export const SidebarTabs = styled(props => <NavTabs {...props} underlined={true}
   margin: 0;
 `;
 
-export const SavedQueryTitle = styled(Flex)`
-  justify-content: space-between;
-  align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  padding: ${space(1.5)} ${space(4)};
-  color: ${p => p.theme.gray4};
-  font-weight: 600;
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-`;
-
 export const PlaceholderText = styled.div`
   color: ${p => p.theme.gray6};
   font-size: 15px;
