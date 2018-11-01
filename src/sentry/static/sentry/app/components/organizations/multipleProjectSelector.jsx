@@ -8,6 +8,10 @@ import InlineSvg from 'app/components/inlineSvg';
 
 import HeaderItem from 'app/components/organizations/headerItem';
 
+const rootContainerStyles = css`
+  display: flex;
+`;
+
 export default class MultipleProjectSelector extends React.Component {
   static propTypes = {
     anchorRight: PropTypes.bool,
@@ -28,29 +32,58 @@ export default class MultipleProjectSelector extends React.Component {
     };
   }
 
+  // Reset "hasChanges" state and call `onUpdate` callback
+  doUpdate = () => {
+    this.setState({hasChanges: false}, this.props.onUpdate);
+  };
+
+  /**
+   * Handler for when an explicit update call should be made.
+   * e.g. an "Update" button
+   *
+   * Should perform an "update" callback
+   */
   handleUpdate = actions => {
-    this.props.onUpdate();
     actions.close();
-    this.setState({hasChanges: false});
+    this.doUpdate();
   };
 
+  /**
+   * Handler for when a dropdown item was selected directly (and not via multi select)
+   *
+   * Should perform an "update" callback
+   */
   handleQuickSelect = (selected, checked, e) => {
-    const {onUpdate, onChange} = this.props;
-    onChange([parseInt(selected.id, 10)]);
-    onUpdate();
+    this.props.onChange([parseInt(selected.id, 10)]);
+    this.doUpdate();
   };
 
+  /**
+   * Handler for when dropdown menu closes
+   *
+   * Should perform an "update" callback
+   */
   handleClose = props => {
+    // Only update if there are changes
     if (!this.state.hasChanges) return;
-    this.props.onUpdate();
-    this.setState({hasChanges: false});
+    this.doUpdate();
   };
 
+  /**
+   * Handler for clearing the current value
+   *
+   * Should perform an "update" callback
+   */
   handleClear = () => {
     this.props.onChange([]);
-    this.setState({hasChanges: false});
+
+    // Update on clear
+    this.doUpdate();
   };
 
+  /**
+   * Handler for selecting multiple items, should NOT call update
+   */
   handleMultiSelect = (selected, checked, e) => {
     const {onChange} = this.props;
     onChange(selected.map(({id}) => parseInt(id, 10)));
@@ -64,10 +97,6 @@ export default class MultipleProjectSelector extends React.Component {
     const selected = projects.filter(project =>
       selectedProjectIds.has(parseInt(project.id, 10))
     );
-
-    const rootContainerStyles = css`
-      display: flex;
-    `;
 
     return (
       <StyledProjectSelector
