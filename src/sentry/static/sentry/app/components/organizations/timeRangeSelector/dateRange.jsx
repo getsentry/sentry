@@ -5,7 +5,8 @@ import {DateRangePicker} from 'react-date-range';
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
+import Checkbox from 'app/components/checkbox';
 
 import {
   getFormattedDate,
@@ -127,7 +128,7 @@ const DateRange = styled(
     };
 
     render() {
-      const {className, start, end, useUtc, allowTimePicker} = this.props;
+      const {className, start, end, useUtc, allowTimePicker, handleUseUtc} = this.props;
 
       const startTime = DateRange.getTimeStringFromDate(new Date(start), useUtc);
       const endTime = DateRange.getTimeStringFromDate(new Date(end), useUtc);
@@ -156,13 +157,25 @@ const DateRange = styled(
             onChange={this.handleSelectDateRange}
           />
           {allowTimePicker && (
-            <TimePicker
-              disabled={!start && !end}
-              start={startTime}
-              end={endTime}
-              onChangeStart={this.handleChangeStart}
-              onChangeEnd={this.handleChangeEnd}
-            />
+            <TimeAndUtcPicker>
+              <StyledTimePicker
+                disabled={!start && !end}
+                start={startTime}
+                end={endTime}
+                onChangeStart={this.handleChangeStart}
+                onChangeEnd={this.handleChangeEnd}
+              />
+              <UtcPicker>
+                Use UTC
+                <Checkbox
+                  onChange={handleUseUtc}
+                  checked={useUtc}
+                  style={{
+                    margin: "0 0 0 0.5em"
+                  }}
+                />
+              </UtcPicker>
+            </TimeAndUtcPicker>
           )}
         </div>
       );
@@ -175,21 +188,115 @@ const DateRange = styled(
 `;
 
 const StyledDateRangePicker = styled(DateRangePicker)`
-  .rdrMonthAndYearWrapper {
-    padding-top: ${space(1)};
+  padding: ${p => space(2)};
+
+  .rdrDefinedRangesWrapper, .rdrDateDisplayWrapper, .rdrWeekDays {
+    display: none;
   }
+
+  .rdrMonth {
+    width: 300px;
+    font-size: 1.2em;
+  }
+
+  .rdrStartEdge {
+    border-top-left-radius: 1.14em;
+    border-bottom-left-radius: 1.14em;
+  }
+
+  .rdrEndEdge {
+    border-top-right-radius: 1.14em;
+    border-bottom-right-radius: 1.14em;
+  }
+
+  .rdrDayStartPreview, .rdrDayEndPreview, .rdrDayInPreview {
+    border: 0;
+    background: rgba(200, 200, 200, 0.3);
+  }
+
+  .rdrDayStartOfMonth, .rdrDayStartOfMonth, .rdrDayStartOfWeek, .rdrDayStartOfWeek {
+    .rdrInRange, .rdrEndEdge {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+  }
+
+  .rdrDayEndOfMonth, .rdrDayEndOfMonth, .rdrDayEndOfWeek, .rdrDayEndOfWeek {
+    .rdrInRange, .rdrEndEdge {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+  }
+
+  .rdrStartEdge.rdrEndEdge {
+    border-radius: 1.14em;
+  }
+
+  .rdrMonthAndYearWrapper {
+    padding-bottom: ${space(1)};
+    padding-top: 0;
+    height: 32px;
+  }
+
+  .rdrDay {
+    height: 2.5em;
+  }
+
   .rdrMonth {
     padding: 0;
   }
-  .rdrDefinedRangesWrapper {
-    display: none;
+
+  .rdrMonthPicker select, .rdrYearPicker select {
+    background: none;
+    font-weight: normal;
+    font-size: 16px;
+    padding: 0;
   }
+
   .rdrMonthsVertical {
     align-items: center;
   }
+
   .rdrCalendarWrapper {
     flex: 1;
   }
+
+  .rdrNextPrevButton {
+    background-color: ${p => p.theme.offWhite2};
+  }
+
+  .rdrPprevButton i {
+    border-right-color: ${p => p.theme.gray4};
+  }
+
+  .rdrNextButton i {
+    border-left-color: ${p => p.theme.gray4};
+  }
+`;
+
+const StyledTimePicker = styled(TimePicker)`
+  width: 70%;
+  padding: 0;
+  background: transparent;
+`;
+
+const TimeAndUtcPicker = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: ${p => space(2)};
+  border-top: 1px solid ${p => p.theme.borderLight};
+`;
+
+const utcCheckboxStyles = css`
+  margin: 0 0 0 0.5em;
+`;
+
+const UtcPicker = styled('div')`
+  color: ${p => p.theme.gray2};
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
 `;
 
 export default DateRange;

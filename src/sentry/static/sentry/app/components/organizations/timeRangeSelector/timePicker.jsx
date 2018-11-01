@@ -23,7 +23,7 @@ const TimePicker = styled(
       const {className, start, end, disabled, onChangeStart, onChangeEnd} = this.props;
       return (
         <div className={cx(className, 'rdrDateDisplay')}>
-          <TimeBox>
+          <div>
             <Input
               type="time"
               className="rdrDateDisplayItem"
@@ -32,9 +32,9 @@ const TimePicker = styled(
               value={start}
               onChange={onChangeStart}
             />
-          </TimeBox>
+          </div>
 
-          <TimeBox>
+          <div>
             <Input
               type="time"
               className="rdrDateDisplayItem"
@@ -43,27 +43,27 @@ const TimePicker = styled(
               value={end}
               onChange={onChangeEnd}
             />
-          </TimeBox>
+          </div>
         </div>
       );
     }
   }
 )`
-  display: flex;
-  color: ${p => p.theme.purple};
+  display: grid;
+  grid-template-columns: 48% 48%;
+  grid-column-gap: 4%;
+  align-items: center;
+  font-size: 0.875em;
+  color: ${p => p.theme.gray3};
 `;
-const TimeBox = styled('div')`
-  flex: 1;
 
-  &:first-child {
-    padding-right: 0.833em;
-  }
-`;
 const Input = styled('input')`
-  padding-left: ${space(
-    4
-  )}; /* this is to center input on Chrome, have not checked browser consistency yet */
   width: 100%;
+  padding-left: 5%;
+  background: ${p => p.theme.offWhite};
+  border: 1px solid ${p => p.theme.borderLight};
+  color: ${p => p.theme.gray2};
+  box-shadow: none;
 `;
 
 export default TimePicker;
