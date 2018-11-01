@@ -52,7 +52,7 @@ describe('Conditions', function() {
     });
 
     // datetime fields are expanded
-    const expected = ['received', '=', '2018-05-05T00:00:00Z'];
+    const expected = ['received', '=', '2018-05-05T00:00:00'];
     expect(getExternal('received = 2018-05-05', COLUMNS)).toEqual(expected);
   });
 
