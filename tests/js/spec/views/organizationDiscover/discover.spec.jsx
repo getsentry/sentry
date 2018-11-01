@@ -33,7 +33,6 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          params={{}}
           savedQuery={TestStubs.DiscoverSavedQuery()}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
@@ -52,7 +51,6 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
         />,
@@ -70,7 +68,6 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          params={{}}
           updateSavedQueryData={jest.fn()}
           location={{search: ''}}
           toggleEditMode={jest.fn()}
@@ -114,7 +111,7 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           params={{}}
-          updateSavedQueryData={() => {}}
+          updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
         />,
         TestStubs.routerContext()
@@ -172,7 +169,6 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
         />,
@@ -238,7 +234,6 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
         />,
@@ -281,7 +276,6 @@ describe('Discover', function() {
             queryBuilder={queryBuilder}
             organization={organization}
             location={{location: '?fields=something'}}
-            params={{}}
             updateSavedQueryData={jest.fn()}
             toggleEditMode={jest.fn()}
           />,
@@ -348,7 +342,6 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          params={{}}
           savedQuery={TestStubs.DiscoverSavedQuery()}
           updateSavedQueryData={jest.fn()}
           view="saved"
@@ -432,7 +425,6 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           location={{location: '?fields=something'}}
-          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
         />,
@@ -474,7 +466,6 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           location={{location: ''}}
-          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
         />,
