@@ -37,7 +37,7 @@ class ScopedPermission(permissions.BasePermission):
 
     def has_permission(self, request, view):
         # session-based auth has all scopes for a logged in user
-        if not request.auth:
+        if not getattr(request, 'auth', None):
             return request.user.is_authenticated()
 
         allowed_scopes = set(self.scope_map.get(request.method, []))

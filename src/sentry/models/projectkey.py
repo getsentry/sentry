@@ -158,6 +158,14 @@ class ProjectKey(Model):
         )
 
     @property
+    def organization_id(self):
+        return self.project.organization_id
+
+    @property
+    def organization(self):
+        return self.project.organization
+
+    @property
     def dsn_private(self):
         return self.get_dsn(public=False)
 
