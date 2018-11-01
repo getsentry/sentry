@@ -18,7 +18,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.EventUser, models.GroupAssignee, models.GroupBookmark, models.GroupEmailThread,
             models.GroupHash, models.GroupHashTombstone, models.GroupRelease, models.GroupRuleStatus,
             models.GroupSeen, models.GroupShare, models.GroupSubscription, models.ProjectBookmark,
-            models.ProjectKey, models.ProjectTeam, models.SavedSearchUserDefault, models.SavedSearch,
+            models.ProjectKey, models.ProjectTeam, models.PromptsActivity, models.SavedSearchUserDefault, models.SavedSearch,
             models.ServiceHook, models.UserReport, models.DiscoverSavedQueryProject,
         )
 
