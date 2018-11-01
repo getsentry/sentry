@@ -17,8 +17,8 @@ class SentryAppAvatar extends React.Component {
       <BaseAvatar
         {...props}
         type={'letter_avatar'}
-        uploadPath="sentry-app-avatar"
-        uploadId={false}
+        uploadPath="avatar"
+        uploadId={''}
         letterId={sentryApp.uuid}
         tooltip={sentryApp.name}
         title={sentryApp.name}

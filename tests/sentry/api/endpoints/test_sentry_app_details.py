@@ -105,13 +105,13 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             self.url,
             data={
                 'name': 'NewName',
-                'webhook_url': 'https://newurl.com',
+                'webhookUrl': 'https://newurl.com',
             },
             format='json',
         )
         assert response.data['name'] == 'NewName'
         assert response.data['uuid'] == self.published_app.uuid
-        assert response.data['webhook_url'] == 'https://newurl.com'
+        assert response.data['webhookUrl'] == 'https://newurl.com'
 
     @with_feature('organizations:internal-catchall')
     def test_update_unpublished_app(self):
@@ -122,7 +122,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             url,
             data={
                 'name': 'NewName',
-                'webhook_url': 'https://newurl.com',
+                'webhookUrl': 'https://newurl.com',
                 'scopes': ('project:read',)
             },
             format='json',
@@ -132,7 +132,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.data['name'] == 'NewName'
         assert response.data['scopes'] == ['project:read']
         assert response.data['uuid'] == self.unpublished_app.uuid
-        assert response.data['webhook_url'] == 'https://newurl.com'
+        assert response.data['webhookUrl'] == 'https://newurl.com'
 
     @with_feature('organizations:internal-catchall')
     def test_cannot_update_scopes_published_app(self):
@@ -142,7 +142,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             self.url,
             data={
                 'name': 'NewName',
-                'webhook_url': 'https://newurl.com',
+                'webhookUrl': 'https://newurl.com',
                 'scopes': ('project:read',)
             },
             format='json',
@@ -161,7 +161,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             url,
             data={
                 'name': 'NewName',
-                'webhook_url': 'https://newurl.com',
+                'webhookUrl': 'https://newurl.com',
             },
             format='json',
         )

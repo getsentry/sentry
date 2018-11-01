@@ -13,7 +13,7 @@ const forms = [
         help: 'Human readable name of your application.',
       },
       {
-        name: 'webhook_url',
+        name: 'webhookUrl',
         type: 'string',
         required: true,
         label: 'Webhook URL',
@@ -21,7 +21,7 @@ const forms = [
         help: 'The URL Sentry will make requests to on installation changes.',
       },
       {
-        name: 'redirect_url',
+        name: 'redirectUrl',
         type: 'string',
         label: 'Redirect URL',
         placeholder: 'e.g. https://example.com/sentry/setup/',

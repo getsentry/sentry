@@ -62,8 +62,8 @@ class GetSentryAppsTest(SentryAppsTest):
             'scopes': [],
             'status': self.published_app.get_status_display(),
             'uuid': self.published_app.uuid,
-            'webhook_url': self.published_app.webhook_url,
-            'redirect_url': self.published_app.redirect_url,
+            'webhookUrl': self.published_app.webhook_url,
+            'redirectUrl': self.published_app.redirect_url,
             'clientID': self.published_app.application.client_id,
             'clientSecret': self.published_app.application.client_secret,
             'overview': self.published_app.overview,
@@ -85,7 +85,7 @@ class PostSentryAppsTest(SentryAppsTest):
         expected = {
             'name': 'MyApp',
             'scopes': ['project:read', 'project:write'],
-            'webhook_url': 'https://example.com',
+            'webhookUrl': 'https://example.com',
         }
 
         assert response.status_code == 201, response.content
@@ -118,17 +118,17 @@ class PostSentryAppsTest(SentryAppsTest):
     @with_feature('organizations:internal-catchall')
     def test_missing_webhook_url(self):
         self.login_as(self.user)
-        response = self._post(webhook_url=None)
+        response = self._post(webhookUrl=None)
 
         assert response.status_code == 422, response.content
-        assert 'webhook_url' in response.data['errors']
+        assert 'webhookUrl' in response.data['errors']
 
     def _post(self, **kwargs):
         body = {
             'name': 'MyApp',
             'organization': self.org.slug,
             'scopes': ('project:read', 'project:write'),
-            'webhook_url': 'https://example.com',
+            'webhookUrl': 'https://example.com',
         }
 
         body.update(**kwargs)

@@ -61,8 +61,8 @@ describe('Sentry Application Details', function() {
         let data = {
           name: 'Test App',
           organization: org.slug,
-          redirect_url: 'https://webhook.com/setup',
-          webhook_url: 'https://webhook.com',
+          redirectUrl: 'https://webhook.com/setup',
+          webhookUrl: 'https://webhook.com',
           scopes: new Set(['project:read']),
         };
         expect(response).toHaveBeenCalledWith(
@@ -132,7 +132,7 @@ describe('Sentry Application Details', function() {
         expect(response).toHaveBeenCalledWith(
           `/sentry-apps/${sentryApp.slug}/`,
           expect.objectContaining({
-            data: expect.objectContaining({redirect_url: 'https://hello.com/'}),
+            data: expect.objectContaining({redirectUrl: 'https://hello.com/'}),
             method: 'PUT',
           })
         );

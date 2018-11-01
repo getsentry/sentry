@@ -33,8 +33,8 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             name=request.json_body.get('name'),
             organization=self._get_user_org(request),
             scopes=request.json_body.get('scopes'),
-            webhook_url=request.json_body.get('webhook_url'),
-            redirect_url=request.json_body.get('redirect_url'),
+            webhook_url=request.json_body.get('webhookUrl'),
+            redirect_url=request.json_body.get('redirectUrl'),
             overview=request.json_body.get('overview'),
         )
 
