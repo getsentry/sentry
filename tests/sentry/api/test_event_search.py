@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import datetime
 
 from django.utils import timezone
+from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
     convert_endpoint_params, get_snuba_query_args, parse_search_query,
@@ -103,6 +104,82 @@ class EventSearchTest(TestCase):
                 key=SearchKey(name='release'),
                 operator='=',
                 value=SearchValue(raw_value='a release', type='string'),
+            ),
+        ]
+
+    def test_parse_search_query_weird_values(self):
+        # quotes within quotes
+        assert parse_search_query('release:"a"thing""') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a"thing"', type='string'),
+            ),
+        ]
+
+        # newline within quote
+        assert parse_search_query('release:"a\nrelease"') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a\nrelease', type='string')
+            ),
+        ]
+        # newline outside quote
+        with self.assertRaises(IncompleteParseError):
+            parse_search_query('release:a\nrelease')
+
+        # tab within quote
+        assert parse_search_query('release:"a\trelease"') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a\trelease', type='string')
+            ),
+        ]
+        # tab outside quote
+        assert parse_search_query('release:a\trelease') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a', type='string'),
+            ),
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='\trelease', type='string')
+            ),
+        ]
+
+        # escaped quotes
+        assert parse_search_query('release:"a\"thing\""') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a"thing"', type='string')
+            ),
+        ]
+        assert parse_search_query('release:"a\"\"release"') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a""release', type='string')
+            ),
+        ]
+
+        # poorly escaped quotes
+        assert parse_search_query('release:"a release\"') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a release', type='string')
+            ),
+        ]
+        assert parse_search_query('release:\"a release "') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a release ', type='string')
             ),
         ]
 

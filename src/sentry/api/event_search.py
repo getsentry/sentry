@@ -22,7 +22,7 @@ time_filter     = "timestamp" operator date_formats
 search_key      = ~r"[a-z]*\.?[a-z]*"
 search_value    = quoted_value / value
 value           = ~r"\S*"
-quoted_value    = ~r"\"(.+?)\""
+quoted_value    = ~r"\"(.*)\""s
 
 date_formats    = date_time_micro / date_time / date
 date            = ~r"\d{4}-\d{2}-\d{2}"
@@ -34,7 +34,7 @@ date_time_micro = ~r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{1,6}"
 # even if the operator is <=
 operator        = ">=" / "<=" / ">" / "<" / "=" / "!="
 sep             = ":"
-space           = ~r"\s"
+space           = ~r" "
 """)
 
 FIELD_LOOKUP = {
