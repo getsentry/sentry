@@ -124,13 +124,12 @@ const Broadcasts = createReactClass({
     if (unseenBroadcastIds.length === 0) return;
 
     markBroadcastsAsSeen(this.api, unseenBroadcastIds).then(data => {
-      this.setState(state => {
-        let broadcasts = state.broadcasts.map(item => {
+      this.setState(state => ({
+        broadcasts: state.broadcasts.map(item => {
           item.hasSeen = true;
           return item;
-        });
-        return {broadcasts};
-      });
+        }),
+      }));
     });
   },
 
