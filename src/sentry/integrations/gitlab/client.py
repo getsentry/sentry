@@ -12,6 +12,7 @@ API_VERSION = u'/api/v4'
 
 
 class GitLabApiClientPath(object):
+    oauth_token = u'/oauth/token'
     commit = u'/projects/{project}/repository/commits/{sha}'
     commits = u'/projects/{project}/repository/commits'
     compare = u'/projects/{project}/repository/compare'
@@ -76,6 +77,7 @@ class GitLabApiClient(ApiClient):
     def __init__(self, installation):
         self.installation = installation
         verify_ssl = self.metadata['verify_ssl']
+        self.is_trying_api_call = False
         super(GitLabApiClient, self).__init__(verify_ssl)
 
     @property
@@ -101,18 +103,30 @@ class GitLabApiClient(ApiClient):
                 url,
                 headers=headers, data=data, params=params
             )
-        except ApiUnauthorized:
-            self.update_auth()
-            return self._request(
+        except ApiUnauthorized as e:
+            if self.is_trying_api_call:
+                raise e
+            self.is_trying_api_call = True
+            self.refresh_auth()
+            resp = self._request(
                 method,
                 url,
                 headers=headers, data=data, params=params
             )
+            self.is_trying_api_call = False
+            return resp
 
-    def update_auth(self):
-        # TODO(lb): This is hard to find.
-        # The docs for whatever reason do not cover refresh!
-        pass
+    def refresh_auth(self):
+        """
+        Modeled after Doorkeeper's docs
+        where Doorkeeper is a dependency for GitLab that handles OAuth
+
+        https://github.com/doorkeeper-gem/doorkeeper/wiki/Enable-Refresh-Token-Credentials#testing-with-oauth2-gem
+        """
+        self.identity.get_provider().refresh_identity(
+            self.identity,
+            refresh_token_url='%s%s' % (self.metadata['base_url'], GitLabApiClientPath.oauth_token),
+        )
 
     def get_user(self):
         """Get a user

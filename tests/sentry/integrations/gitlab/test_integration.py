@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import responses
 import six
-from time import time
+
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 from mock import patch, Mock
 
@@ -198,31 +198,3 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         installation = integration.get_installation(self.organization.id)
         assert self.default_group_id == installation.get_group_id()
-
-    @responses.activate
-    def test_refresh_token(self):
-        integration = Integration.objects.create(
-            provider=self.provider.key,
-            external_id='1234567890',
-            name='1234567890',
-        )
-        identity = Identity(
-            idp=IdentityProvider.objects.get(provider='gitlab'),
-            user=self.user,
-            external_id='1234567890',
-            data={
-                'expires': time() - 3600
-            }
-        )
-        OrganizationIntegration.objects.create(
-            organization=self.organization,
-            integration=integration,
-            default_auth_id=identity
-        )
-        installation = integration.get_installation(self.organization.id)
-
-        # Triggers the check_auth method
-        resp = installation.get_client().get_user()
-        assert resp.status_code == 200
-        data = Identity.objects.get(id=identity.id).data
-        assert data['expires'] > time()
