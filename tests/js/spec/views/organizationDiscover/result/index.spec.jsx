@@ -178,7 +178,6 @@ describe('Result', function() {
       };
       wrapper = mount(
         <Result
-          queryBuilder={queryBuilder}
           data={data}
           organization={organization}
           savedQuery={TestStubs.DiscoverSavedQuery()}
