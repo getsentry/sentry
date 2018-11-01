@@ -389,7 +389,7 @@ const Stream = createReactClass({
                 environment: matchingEventEnvironment,
               })}`;
             }
-            return void browserHistory.push(redirect);
+            return void browserHistory.replace(redirect);
           }
         }
 
