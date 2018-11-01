@@ -137,7 +137,7 @@ class SynchronizedConsumer(object):
 
         self.__partition_state_manager = SynchronizedPartitionStateManager(
             self.__on_partition_state_change)
-        self.__commit_log_consumer, self__commit_log_consumer_stop_request = self.__start_commit_log_consumer()
+        self.__commit_log_consumer, self.__commit_log_consumer_stop_request = self.__start_commit_log_consumer()
 
         self.__positions = {}
 
@@ -205,7 +205,7 @@ class SynchronizedConsumer(object):
             # consumer has received its assignment.)
             return
 
-        # TODO: This wil be called from the commit log consumer thread, so need
+        # TODO: This will be called from the commit log consumer thread, so need
         # to verify that calling the ``consumer.{pause,resume}`` methods is
         # thread safe!
         if current_state in (SynchronizedPartitionState.UNKNOWN, SynchronizedPartitionState.SYNCHRONIZED,
