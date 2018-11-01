@@ -7,7 +7,7 @@ import BarChart from 'app/components/charts/barChart';
 
 storiesOf('Charts|BarChart', module).add(
   'BarChart',
-  withInfo('Stacked Bar')(() => {
+  withInfo('Stacked & Unstacked Bar Charts')(() => {
     return (
       <div>
         <h2 style={{paddingLeft: '60px'}}>Stacked Bar Charts:</h2>
