@@ -33,8 +33,7 @@ date_time_micro = ~r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{1,6}"
 operator        = ">=" / "<=" / ">" / "<" / "=" / "!="
 sep             = ":"
 space           = ~r"\s"
-"""
-)
+""")
 
 FIELD_LOOKUP = {
     'user.id': {
@@ -43,6 +42,14 @@ FIELD_LOOKUP = {
     },
     'user.email': {
         'snuba_name': 'email',
+        'type': 'string',
+    },
+    'user.username': {
+        'snuba_name': 'username',
+        'type': 'string',
+    },
+    'user.ip': {
+        'snuba_name': 'ip_address',
         'type': 'string',
     },
     'release': {
@@ -68,6 +75,34 @@ FIELD_LOOKUP = {
     'project_id': {
         'snuba_name': 'project_id',
         'type': 'list',
+    },
+    'type': {
+        'snuba_name': 'type',
+        'type': 'string',
+    },
+    'environment': {
+        'snuba_name': 'environment',
+        'type': 'string',
+    },
+    'platform': {
+        'snuba_name': 'platform',
+        'type': 'string',
+    },
+    'stack.filename': {
+        'snuba_name': 'exception_frames.filename',
+        'type': 'string',
+    },
+    'stack.module': {
+        'snuba_name': 'exception_frames.module',
+        'type': 'string',
+    },
+    'http.url': {
+        'snuba_name': 'url',
+        'type': 'string',
+    },
+    'http.method': {
+        'snuba_name': 'http_method',
+        'type': 'string',
     },
 }
 
