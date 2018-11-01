@@ -14,15 +14,10 @@ const rootContainerStyles = css`
 
 export default class MultipleProjectSelector extends React.Component {
   static propTypes = {
-    anchorRight: PropTypes.bool,
     value: PropTypes.array,
     projects: PropTypes.array,
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
-  };
-
-  static defaultProps = {
-    anchorRight: true,
   };
 
   constructor() {

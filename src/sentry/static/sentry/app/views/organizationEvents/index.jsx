@@ -137,7 +137,6 @@ class OrganizationEventsContainer extends React.Component {
             <Header>
               <MultipleProjectSelector
                 organization={organization}
-                anchorRight
                 projects={projects}
                 value={this.state.project}
                 onChange={this.handleChangeProjects}
