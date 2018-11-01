@@ -29,6 +29,28 @@ describe('ReleaseProgress', function() {
       method: 'PUT',
       url: '/promptsactivity/',
     });
+  });
+
+  it('does not render if steps complete', async function() {
+    Client.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/completion/',
+      body: [
+        {step: 'tag', complete: true},
+        {step: 'repo', complete: true},
+        {step: 'commit', complete: true},
+        {step: 'deploy', complete: true},
+      ],
+    });
+    wrapper = mount(
+      <ReleaseProgress orgId={organization.id} projectId={project.id} />,
+      routerContext
+    );
+    expect(wrapper.state('remainingSteps')).toHaveLength(0);
+    expect(wrapper.find('ReleaseProgress')).toHaveLength(1);
+    expect(wrapper.find('PanelItem')).toHaveLength(0);
+  });
+
+  it('renders with three steps', async function() {
     Client.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/completion/',
       body: [
@@ -38,9 +60,6 @@ describe('ReleaseProgress', function() {
         {step: 'deploy', complete: false},
       ],
     });
-  });
-
-  it('renders with three steps', async function() {
     wrapper = mount(
       <ReleaseProgress orgId={organization.id} projectId={project.id} />,
       routerContext
@@ -50,6 +69,15 @@ describe('ReleaseProgress', function() {
   });
 
   it('hides when snoozed', async function() {
+    Client.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/completion/',
+      body: [
+        {step: 'tag', complete: true},
+        {step: 'repo', complete: false},
+        {step: 'commit', complete: false},
+        {step: 'deploy', complete: false},
+      ],
+    });
     wrapper = mount(
       <ReleaseProgress orgId={organization.id} projectId={project.id} />,
       routerContext
