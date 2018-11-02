@@ -14,6 +14,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
 import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
 import getDynamicText from 'app/utils/getDynamicText';
+import space from 'app/styles/space';
 
 // Get date 2 weeks ago at midnight
 const getTwoWeeksAgo = () =>
@@ -81,10 +82,6 @@ class TimeRangeSelector extends React.PureComponent {
     };
   }
 
-  formatDate(date) {
-    return getFormattedDate(date, 'MMMM D HH:mm', {local: !this.state.useUtc});
-  }
-
   handleUpdate = () => {
     const {onUpdate} = this.props;
 
@@ -149,9 +146,15 @@ class TimeRangeSelector extends React.PureComponent {
     const shouldShowRelative = showRelative;
     const isAbsoluteSelected = this.state.selected === 'absolute';
 
-    const summary = relative
-      ? `${DEFAULT_RELATIVE_PERIODS[relative]}`
-      : `${this.formatDate(start)} to ${this.formatDate(end)}`;
+    const summary = relative ? (
+      `${DEFAULT_RELATIVE_PERIODS[relative]}`
+    ) : (
+      <Flex align="center">
+        <DateSummary useUtc={this.state.useUtc} date={start} />
+        <DateRangeDivider>{t('to')}</DateRangeDivider>
+        <DateSummary useUtc={this.state.useUtc} date={end} />
+      </Flex>
+    );
 
     return (
       <DropdownMenu
@@ -173,7 +176,10 @@ class TimeRangeSelector extends React.PureComponent {
             </StyledHeaderItem>
 
             {isOpen && (
-              <Menu {...getMenuProps({isStyled: true})}>
+              <Menu
+                {...getMenuProps({isStyled: true})}
+                isAbsoluteSelected={isAbsoluteSelected}
+              >
                 <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
                   {shouldShowRelative && (
                     <RelativeSelector
@@ -210,9 +216,55 @@ class TimeRangeSelector extends React.PureComponent {
   }
 }
 
+const DateSummary = styled(
+  class DateSummary extends React.Component {
+    static propTypes = {
+      date: PropTypes.instanceOf(Date),
+      useUtc: PropTypes.bool,
+    };
+
+    formatDate(date) {
+      return getFormattedDate(date, 'll', {local: !this.props.useUtc});
+    }
+
+    formatTime(date) {
+      return getFormattedDate(date, 'HH:mm', {local: !this.props.useUtc});
+    }
+
+    render() {
+      const {className, date} = this.props;
+      return (
+        <div className={className}>
+          <Date>{this.formatDate(date)}</Date>
+          <Time>{this.formatTime(date)}</Time>
+        </div>
+      );
+    }
+  }
+)`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+`;
+
+const Date = styled('span')`
+  margin-top: 10px;
+`;
+
+const Time = styled('span')`
+  font-size: 0.8em;
+  line-height: 0.8em;
+  opacity: 0.5;
+`;
+
+const DateRangeDivider = styled('span')`
+  margin: 0 ${space(1)};
+`;
+
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
-  width: 230px;
+  min-width: 230px;
+  max-width: 320px;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
@@ -222,12 +274,14 @@ const StyledInlineSvg = styled(InlineSvg)`
 `;
 
 const Menu = styled('div')`
+  ${p => !p.isAbsoluteSelected && 'left: -1px'};
+  ${p => p.isAbsoluteSelected && 'right: -1px'};
+
   display: flex;
   background: #fff;
   border: 1px solid ${p => p.theme.borderLight};
   position: absolute;
   top: 100%;
-  left: -1px;
   min-width: 120%;
   z-index: ${p => p.theme.zIndex.dropdown};
   box-shadow: ${p => p.theme.dropShadowLight};

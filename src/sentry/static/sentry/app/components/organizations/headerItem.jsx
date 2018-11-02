@@ -83,6 +83,7 @@ const StyledHeaderItem = styled('div')`
 
 const Content = styled('div')`
   flex: 1;
+  margin-right: ${space(1.5)};
   ${overflowEllipsis};
 `;
 
