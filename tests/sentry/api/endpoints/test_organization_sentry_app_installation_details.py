@@ -14,19 +14,18 @@ class SentryAppInstallationDetailsTest(APITestCase):
         self.org = self.create_organization(owner=self.user)
         self.super_org = self.create_organization(owner=self.superuser)
 
-        self.published_app = SentryAppCreator.run(
+        self.published_app = self.create_sentry_app(
             name='Test',
             organization=self.super_org,
             published=True,
         )
-        self.published_app.update(status=SentryAppStatus.PUBLISHED)
 
         self.installation, _ = Creator.run(
             slug=self.published_app.slug,
             organization=self.super_org,
         )
 
-        self.unpublished_app = SentryAppCreator.run(
+        self.unpublished_app = self.create_sentry_app(
             name='Testin',
             organization=self.org,
         )
