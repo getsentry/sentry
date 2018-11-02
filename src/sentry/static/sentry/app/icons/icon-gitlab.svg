@@ -1,0 +1,15 @@
+<svg id="Layer_1" data-name="Layer 1"
+xmlns="http://www.w3.org/2000/svg" viewBox="30 20 500 420">
+  <defs>
+    <style>
+    .cls-2{opacity: 0.4}.cls-3{opacity: 0.65}
+    </style>
+  </defs>
+  <path fill="currentColor" class="cls-1" d="M311,436.09h0l79.12-243.47H231.88L311,436.09h0Z" />
+  <path fill="currentColor" class="cls-3" d="M311,436.09L231.88,192.62H121L311,436.09h0Z" />
+  <path fill="currentColor" class="cls-2" d="M121,192.62h0l-24,74a16.37,16.37,0,0,0,6,18.31L311,436.09,121,192.62h0Z" />
+  <path fill="currentColor" class="cls-1" d="M121,192.62H231.88L184.22,46a8.19,8.19,0,0,0-15.58,0L121,192.62h0Z" />
+  <path fill="currentColor" class="cls-3" d="M311,436.09l79.12-243.47H501L311,436.09h0Z" />
+  <path fill="currentColor" class="cls-2" d="M501,192.62h0l24,74a16.37,16.37,0,0,1-6,18.31L311,436.09,501,192.62h0Z" />
+  <path fill="currentColor" class="cls-1" d="M501,192.62H390.12L437.78,46a8.19,8.19,0,0,1,15.58,0L501,192.62h0Z" />
+</svg>
