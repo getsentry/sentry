@@ -77,7 +77,7 @@ class GitLabApiClient(ApiClient):
     def __init__(self, installation):
         self.installation = installation
         verify_ssl = self.metadata['verify_ssl']
-        self.is_trying_api_call = False
+        self.is_refreshing_token = False
         super(GitLabApiClient, self).__init__(verify_ssl)
 
     @property
@@ -104,16 +104,16 @@ class GitLabApiClient(ApiClient):
                 headers=headers, data=data, params=params
             )
         except ApiUnauthorized as e:
-            if self.is_trying_api_call:
+            if self.is_refreshing_token:
                 raise e
-            self.is_trying_api_call = True
+            self.is_refreshing_token = True
             self.refresh_auth()
             resp = self._request(
                 method,
                 url,
                 headers=headers, data=data, params=params
             )
-            self.is_trying_api_call = False
+            self.is_refreshing_token = False
             return resp
 
     def refresh_auth(self):
