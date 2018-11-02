@@ -8,11 +8,14 @@ from rest_framework.response import Response
 from sentry import roles
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.event_search import get_snuba_query_args, InvalidSearchQuery
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SnubaEvent
 from sentry.api.utils import get_date_range_from_params, InvalidParams
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Project, ProjectStatus
+from sentry.models import (
+    Environment, OrganizationMember, OrganizationMemberTeam, Project, ProjectStatus
+)
 from sentry.utils.snuba import raw_query
 
 
@@ -56,6 +59,25 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
 
         return list(project_ids)
 
+    def get_environments(self, request, organization):
+        requested_environments = set(request.GET.getlist('environment'))
+
+        if not requested_environments:
+            return []
+
+        environments = dict(
+            Environment.objects.filter(
+                organization_id=organization.id,
+                name__in=requested_environments,
+            ).values_list('name', 'id'),
+        )
+
+        if requested_environments != set(environments.keys()):
+            raise ResourceDoesNotExist
+
+        # snuba requires ids for filter keys
+        return environments.values()
+
     def get(self, request, organization):
         try:
             start, end = get_date_range_from_params(request.GET)
@@ -67,12 +89,17 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
         except ValueError:
             return Response({'detail': 'Invalid project ids'}, status=400)
 
+        environments = self.get_environments(request, organization)
+        params = {
+            'start': start,
+            'end': end,
+            'project_id': project_ids,
+        }
+        if environments:
+            params['environment'] = environments
+
         try:
-            snuba_args = get_snuba_query_args(query=request.GET.get('query'), params={
-                'start': start,
-                'end': end,
-                'project_id': project_ids,
-            })
+            snuba_args = get_snuba_query_args(query=request.GET.get('query'), params=params)
         except InvalidSearchQuery as exc:
             return Response({'detail': exc.message}, status=400)
 
