@@ -31,7 +31,6 @@ const forms = [
         name: 'overview',
         type: 'textarea',
         label: 'Overview',
-        placeholder: 'Put whatever you want here...',
         help: 'Description of your application and its functionality.',
       },
     ],

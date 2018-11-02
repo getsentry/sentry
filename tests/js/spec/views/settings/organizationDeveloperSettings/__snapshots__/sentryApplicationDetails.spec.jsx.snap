@@ -128,7 +128,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                 "help": "Description of your application and its functionality.",
                                 "label": "Overview",
                                 "name": "overview",
-                                "placeholder": "Put whatever you want here...",
                                 "type": "textarea",
                               },
                             ],
@@ -176,7 +175,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                     "help": "Description of your application and its functionality.",
                                     "label": "Overview",
                                     "name": "overview",
-                                    "placeholder": "Put whatever you want here...",
                                     "type": "textarea",
                                   },
                                 ]
@@ -411,7 +409,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                           "highlighted": false,
                                                                           "label": "Overview",
                                                                           "name": "overview",
-                                                                          "placeholder": "Put whatever you want here...",
                                                                           "type": "textarea",
                                                                         },
                                                                         "scopes" => Object {
@@ -698,7 +695,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                                                       "highlighted": false,
                                                                                                       "label": "Overview",
                                                                                                       "name": "overview",
-                                                                                                      "placeholder": "Put whatever you want here...",
                                                                                                       "type": "textarea",
                                                                                                     },
                                                                                                     "scopes" => Object {
@@ -1002,7 +998,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                           "highlighted": false,
                                                                           "label": "Overview",
                                                                           "name": "overview",
-                                                                          "placeholder": "Put whatever you want here...",
                                                                           "type": "textarea",
                                                                         },
                                                                         "scopes" => Object {
@@ -1289,7 +1284,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                                                       "highlighted": false,
                                                                                                       "label": "Overview",
                                                                                                       "name": "overview",
-                                                                                                      "placeholder": "Put whatever you want here...",
                                                                                                       "type": "textarea",
                                                                                                     },
                                                                                                     "scopes" => Object {
@@ -1584,7 +1578,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                           "highlighted": false,
                                                                           "label": "Overview",
                                                                           "name": "overview",
-                                                                          "placeholder": "Put whatever you want here...",
                                                                           "type": "textarea",
                                                                         },
                                                                         "scopes" => Object {
@@ -1869,7 +1862,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                                                       "highlighted": false,
                                                                                                       "label": "Overview",
                                                                                                       "name": "overview",
-                                                                                                      "placeholder": "Put whatever you want here...",
                                                                                                       "type": "textarea",
                                                                                                     },
                                                                                                     "scopes" => Object {
@@ -1996,7 +1988,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                               "help": "Description of your application and its functionality.",
                                               "label": "Overview",
                                               "name": "overview",
-                                              "placeholder": "Put whatever you want here...",
                                               "type": "textarea",
                                             }
                                           }
@@ -2008,7 +1999,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                             highlighted={false}
                                             label="Overview"
                                             name="overview"
-                                            placeholder="Put whatever you want here..."
                                             type="textarea"
                                           >
                                             <InputField
@@ -2017,7 +2007,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                               highlighted={false}
                                               label="Overview"
                                               name="overview"
-                                              placeholder="Put whatever you want here..."
                                               type="textarea"
                                             >
                                               <FormField
@@ -2028,7 +2017,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                 highlighted={false}
                                                 label="Overview"
                                                 name="overview"
-                                                placeholder="Put whatever you want here..."
                                                 type="textarea"
                                               >
                                                 <Field
@@ -2042,7 +2030,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                   inline={true}
                                                   label="Overview"
                                                   name="overview"
-                                                  placeholder="Put whatever you want here..."
                                                   required={false}
                                                   type="textarea"
                                                   visible={true}
@@ -2164,7 +2151,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                           "highlighted": false,
                                                                           "label": "Overview",
                                                                           "name": "overview",
-                                                                          "placeholder": "Put whatever you want here...",
                                                                           "type": "textarea",
                                                                         },
                                                                         "scopes" => Object {
@@ -2342,7 +2328,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                                                 name="overview"
                                                                                                 onBlur={[Function]}
                                                                                                 onChange={[Function]}
-                                                                                                placeholder="Put whatever you want here..."
                                                                                                 type="textarea"
                                                                                                 value="This is an app."
                                                                                               >
@@ -2354,7 +2339,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                                                   name="overview"
                                                                                                   onBlur={[Function]}
                                                                                                   onChange={[Function]}
-                                                                                                  placeholder="Put whatever you want here..."
                                                                                                   type="textarea"
                                                                                                   value="This is an app."
                                                                                                 >
@@ -2366,7 +2350,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                                                     name="overview"
                                                                                                     onBlur={[Function]}
                                                                                                     onChange={[Function]}
-                                                                                                    placeholder="Put whatever you want here..."
                                                                                                     type="textarea"
                                                                                                     value="This is an app."
                                                                                                   />
@@ -2460,7 +2443,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                                                       "highlighted": false,
                                                                                                       "label": "Overview",
                                                                                                       "name": "overview",
-                                                                                                      "placeholder": "Put whatever you want here...",
                                                                                                       "type": "textarea",
                                                                                                     },
                                                                                                     "scopes" => Object {
@@ -2734,7 +2716,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                           "highlighted": false,
                                                           "label": "Overview",
                                                           "name": "overview",
-                                                          "placeholder": "Put whatever you want here...",
                                                           "type": "textarea",
                                                         },
                                                         "scopes" => Object {
@@ -3771,7 +3752,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                                       "highlighted": false,
                                                                                       "label": "Overview",
                                                                                       "name": "overview",
-                                                                                      "placeholder": "Put whatever you want here...",
                                                                                       "type": "textarea",
                                                                                     },
                                                                                     "scopes" => Object {
@@ -4061,7 +4041,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                           "highlighted": false,
                                                           "label": "Overview",
                                                           "name": "overview",
-                                                          "placeholder": "Put whatever you want here...",
                                                           "type": "textarea",
                                                         },
                                                         "scopes" => Object {
@@ -4349,7 +4328,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                                       "highlighted": false,
                                                                                       "label": "Overview",
                                                                                       "name": "overview",
-                                                                                      "placeholder": "Put whatever you want here...",
                                                                                       "type": "textarea",
                                                                                     },
                                                                                     "scopes" => Object {
@@ -4607,7 +4585,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                           "highlighted": false,
                                                           "label": "Overview",
                                                           "name": "overview",
-                                                          "placeholder": "Put whatever you want here...",
                                                           "type": "textarea",
                                                         },
                                                         "scopes" => Object {
@@ -4893,7 +4870,6 @@ exports[`Sentry Application Details edit existing application renders() Applicat
                                                                                       "highlighted": false,
                                                                                       "label": "Overview",
                                                                                       "name": "overview",
-                                                                                      "placeholder": "Put whatever you want here...",
                                                                                       "type": "textarea",
                                                                                     },
                                                                                     "scopes" => Object {
@@ -5205,7 +5181,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                 "help": "Description of your application and its functionality.",
                                 "label": "Overview",
                                 "name": "overview",
-                                "placeholder": "Put whatever you want here...",
                                 "type": "textarea",
                               },
                             ],
@@ -5253,7 +5228,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                     "help": "Description of your application and its functionality.",
                                     "label": "Overview",
                                     "name": "overview",
-                                    "placeholder": "Put whatever you want here...",
                                     "type": "textarea",
                                   },
                                 ]
@@ -5488,7 +5462,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                                           "highlighted": false,
                                                                           "label": "Overview",
                                                                           "name": "overview",
-                                                                          "placeholder": "Put whatever you want here...",
                                                                           "type": "textarea",
                                                                         },
                                                                         "scopes" => Object {
@@ -5713,7 +5686,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                                                                       "highlighted": false,
                                                                                                       "label": "Overview",
                                                                                                       "name": "overview",
-                                                                                                      "placeholder": "Put whatever you want here...",
                                                                                                       "type": "textarea",
                                                                                                     },
                                                                                                     "scopes" => Object {
@@ -5966,7 +5938,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                                           "highlighted": false,
                                                                           "label": "Overview",
                                                                           "name": "overview",
-                                                                          "placeholder": "Put whatever you want here...",
                                                                           "type": "textarea",
                                                                         },
                                                                         "scopes" => Object {
@@ -6191,7 +6162,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                                                                       "highlighted": false,
                                                                                                       "label": "Overview",
                                                                                                       "name": "overview",
-                                                                                                      "placeholder": "Put whatever you want here...",
                                                                                                       "type": "textarea",
                                                                                                     },
                                                                                                     "scopes" => Object {
@@ -6435,7 +6405,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                                           "highlighted": false,
                                                                           "label": "Overview",
                                                                           "name": "overview",
-                                                                          "placeholder": "Put whatever you want here...",
                                                                           "type": "textarea",
                                                                         },
                                                                         "scopes" => Object {
@@ -6658,7 +6627,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                                                                       "highlighted": false,
                                                                                                       "label": "Overview",
                                                                                                       "name": "overview",
-                                                                                                      "placeholder": "Put whatever you want here...",
                                                                                                       "type": "textarea",
                                                                                                     },
                                                                                                     "scopes" => Object {
@@ -6734,7 +6702,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                               "help": "Description of your application and its functionality.",
                                               "label": "Overview",
                                               "name": "overview",
-                                              "placeholder": "Put whatever you want here...",
                                               "type": "textarea",
                                             }
                                           }
@@ -6746,7 +6713,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                             highlighted={false}
                                             label="Overview"
                                             name="overview"
-                                            placeholder="Put whatever you want here..."
                                             type="textarea"
                                           >
                                             <InputField
@@ -6755,7 +6721,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                               highlighted={false}
                                               label="Overview"
                                               name="overview"
-                                              placeholder="Put whatever you want here..."
                                               type="textarea"
                                             >
                                               <FormField
@@ -6766,7 +6731,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                 highlighted={false}
                                                 label="Overview"
                                                 name="overview"
-                                                placeholder="Put whatever you want here..."
                                                 type="textarea"
                                               >
                                                 <Field
@@ -6780,7 +6744,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                   inline={true}
                                                   label="Overview"
                                                   name="overview"
-                                                  placeholder="Put whatever you want here..."
                                                   required={false}
                                                   type="textarea"
                                                   visible={true}
@@ -6902,7 +6865,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                                           "highlighted": false,
                                                                           "label": "Overview",
                                                                           "name": "overview",
-                                                                          "placeholder": "Put whatever you want here...",
                                                                           "type": "textarea",
                                                                         },
                                                                         "scopes" => Object {
@@ -7018,7 +6980,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                                                                 name="overview"
                                                                                                 onBlur={[Function]}
                                                                                                 onChange={[Function]}
-                                                                                                placeholder="Put whatever you want here..."
                                                                                                 type="textarea"
                                                                                                 value=""
                                                                                               >
@@ -7030,7 +6991,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                                                                   name="overview"
                                                                                                   onBlur={[Function]}
                                                                                                   onChange={[Function]}
-                                                                                                  placeholder="Put whatever you want here..."
                                                                                                   type="textarea"
                                                                                                   value=""
                                                                                                 >
@@ -7042,7 +7002,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                                                                     name="overview"
                                                                                                     onBlur={[Function]}
                                                                                                     onChange={[Function]}
-                                                                                                    placeholder="Put whatever you want here..."
                                                                                                     type="textarea"
                                                                                                     value=""
                                                                                                   />
@@ -7136,7 +7095,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                                                                       "highlighted": false,
                                                                                                       "label": "Overview",
                                                                                                       "name": "overview",
-                                                                                                      "placeholder": "Put whatever you want here...",
                                                                                                       "type": "textarea",
                                                                                                     },
                                                                                                     "scopes" => Object {
@@ -7359,7 +7317,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                           "highlighted": false,
                                                           "label": "Overview",
                                                           "name": "overview",
-                                                          "placeholder": "Put whatever you want here...",
                                                           "type": "textarea",
                                                         },
                                                         "scopes" => Object {
@@ -8341,7 +8298,6 @@ exports[`Sentry Application Details new sentry application renders() Empty scope
                                                                                       "highlighted": false,
                                                                                       "label": "Overview",
                                                                                       "name": "overview",
-                                                                                      "placeholder": "Put whatever you want here...",
                                                                                       "type": "textarea",
                                                                                     },
                                                                                     "scopes" => Object {
