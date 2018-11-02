@@ -1,10 +1,12 @@
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
 
-import moment from 'moment-timezone';
 import {uniq} from 'lodash';
+import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
+
 import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
 
@@ -13,7 +15,7 @@ const DEFAULTS = {
   fields: [],
   conditions: [],
   aggregations: [],
-  range: '14d',
+  range: DEFAULT_STATS_PERIOD,
   orderby: '-timestamp',
   limit: 1000,
 };
