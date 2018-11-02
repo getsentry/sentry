@@ -42,13 +42,13 @@ describe('OrganizationEvents', function() {
   });
 
   it('renders', function() {
-    expect(wrapper.find('Content')).toHaveLength(1);
+    expect(wrapper.find('OrganizationEventsContent')).toHaveLength(1);
   });
 
   it('updates router when changing environments', async function() {
     expect(wrapper.state('environment')).toEqual([]);
 
-    wrapper.find('MultipleEnvironmentSelector .dropdown-actor').simulate('click');
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
     wrapper.update();
 
@@ -70,6 +70,9 @@ describe('OrganizationEvents', function() {
     );
 
     // Select a second environment, "staging"
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    await tick();
+    wrapper.update();
     selectByLabel(wrapper, 'staging', {control: true, name: 'environments'});
     expect(wrapper.state('environment')).toEqual(['production', 'staging']);
 
@@ -86,6 +89,9 @@ describe('OrganizationEvents', function() {
     );
 
     // Can clear
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    await tick();
+    wrapper.update();
     clearValue(wrapper);
     expect(wrapper.state('environment')).toEqual([]);
     wrapper.find('Button[data-test-id="update-envs"]').simulate('click');

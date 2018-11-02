@@ -5,7 +5,7 @@ import BaseBadge from 'app/components/idBadge/baseBadge';
 import SentryTypes from 'app/sentryTypes';
 import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
 
-export default class ProjectBadge extends React.Component {
+export default class ProjectBadge extends React.PureComponent {
   static propTypes = {
     ...BaseBadge.propTypes,
     project: SentryTypes.Project.isRequired,

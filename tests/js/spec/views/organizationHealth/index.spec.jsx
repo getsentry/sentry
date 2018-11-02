@@ -46,7 +46,7 @@ describe('OrganizationHealth', function() {
   });
 
   it('updates router when changing environments', async function() {
-    wrapper.find('MultipleEnvironmentSelector .dropdown-actor').simulate('click');
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
     wrapper.update();
 
