@@ -42,7 +42,7 @@ class TagStorageTest(SnubaTestCase):
         data = json.dumps([{
             'event_id': six.text_type(r) * 32,
             'primary_hash': hash1,
-            'group_id': int(hash1[:16], 16),
+            'group_id': self.proj1group1.id,
             'project_id': self.proj1.id,
             'message': 'message 1',
             'platform': 'python',
@@ -64,7 +64,7 @@ class TagStorageTest(SnubaTestCase):
         } for r in [1, 2]] + [{
             'event_id': '3' * 32,
             'primary_hash': hash2,
-            'group_id': int(hash2[:16], 16),
+            'group_id': self.proj1group2.id,
             'project_id': self.proj1.id,
             'message': 'message 2',
             'platform': 'python',

@@ -5,6 +5,7 @@ import pytest
 import time
 import uuid
 
+from sentry import options
 from sentry.models import GroupHash, GroupHashTombstone
 from sentry.testutils import SnubaTestCase
 from sentry.utils import snuba
@@ -86,6 +87,12 @@ class SnubaTest(SnubaTestCase):
         })
 
     def test_project_issues_with_tombstones(self):
+        # Nothing to be done if we're using `group_id`.
+        # When this option is the default we can remove
+        # this test.
+        if options.get('snuba.use_group_id_column'):
+            return
+
         base_time = datetime.utcnow()
         hash = 'a' * 32
 
