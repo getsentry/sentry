@@ -76,7 +76,7 @@ class EventsChart extends React.Component {
           includeTimeseries
           interval="1d"
           showLoading
-          getCategory={() => t('Event')}
+          getCategory={() => t('Events')}
         >
           {({timeseriesData, previousTimeseriesData}) => (
             <AreaChart

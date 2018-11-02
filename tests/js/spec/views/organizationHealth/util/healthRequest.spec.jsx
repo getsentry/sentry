@@ -401,6 +401,49 @@ describe('HealthRequest', function() {
       );
     });
 
+    it('aggregates all counts per timestamp when category name identical', async function() {
+      doHealthRequest.mockImplementation(() =>
+        Promise.resolve({
+          data: [[new Date(), [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
+        })
+      );
+
+      wrapper = mount(
+        <HealthRequestWithParams
+          {...DEFAULTS}
+          includeTimeseries={true}
+          getCategory={() => 'static-category'}
+        >
+          {mock}
+        </HealthRequestWithParams>
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          timeAggregatedData: null,
+        })
+      );
+
+      wrapper.setProps({
+        includeTimeAggregation: true,
+        timeAggregationSeriesName: 'aggregated series',
+      });
+      await tick();
+      wrapper.update();
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          timeAggregatedData: {
+            seriesName: 'aggregated series',
+            data: [{name: expect.anything(), value: 223}],
+          },
+        })
+      );
+    });
+
     it('transparently queries for top tags and then queries for timeseries data using only those top tags', async function() {
       doHealthRequest.mockClear();
       doHealthRequest.mockImplementation((api, props) => {

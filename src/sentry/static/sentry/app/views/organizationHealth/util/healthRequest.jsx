@@ -300,8 +300,17 @@ class HealthRequestWithParams extends React.Component {
       resultsForTimestamp &&
         !!resultsForTimestamp.length &&
         resultsForTimestamp.forEach(({count, [tag]: tagObject}) => {
-          categorySet.add(this.getCategory(tagObject));
-          timestampMap.set(`${timestamp}-${this.getCategory(tagObject)}`, count);
+          const category = this.getCategory(tagObject);
+          const timestampKey = `${timestamp}-${this.getCategory(tagObject)}`;
+          categorySet.add(category);
+
+          // aggregate if exists
+          timestampMap.set(
+            timestampKey,
+            timestampMap.has(timestampKey)
+              ? timestampMap.get(timestampKey) + count
+              : count
+          );
         });
     });
 
