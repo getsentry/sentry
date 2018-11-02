@@ -339,6 +339,7 @@ export default class OrganizationDiscover extends React.Component {
             <TimeRangeSelector
               showAbsolute={true}
               showRelative={true}
+              useUtc={true}
               start={currentQuery.start}
               end={currentQuery.end}
               relative={currentQuery.range}
