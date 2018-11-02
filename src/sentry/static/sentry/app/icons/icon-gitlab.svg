@@ -1,15 +1,12 @@
-<svg id="Layer_1" data-name="Layer 1"
-xmlns="http://www.w3.org/2000/svg" viewBox="30 20 500 420">
-  <defs>
-    <style>
-    .cls-2{opacity: 0.4}.cls-3{opacity: 0.65}
-    </style>
-  </defs>
-  <path fill="currentColor" class="cls-1" d="M311,436.09h0l79.12-243.47H231.88L311,436.09h0Z" />
-  <path fill="currentColor" class="cls-3" d="M311,436.09L231.88,192.62H121L311,436.09h0Z" />
-  <path fill="currentColor" class="cls-2" d="M121,192.62h0l-24,74a16.37,16.37,0,0,0,6,18.31L311,436.09,121,192.62h0Z" />
-  <path fill="currentColor" class="cls-1" d="M121,192.62H231.88L184.22,46a8.19,8.19,0,0,0-15.58,0L121,192.62h0Z" />
-  <path fill="currentColor" class="cls-3" d="M311,436.09l79.12-243.47H501L311,436.09h0Z" />
-  <path fill="currentColor" class="cls-2" d="M501,192.62h0l24,74a16.37,16.37,0,0,1-6,18.31L311,436.09,501,192.62h0Z" />
-  <path fill="currentColor" class="cls-1" d="M501,192.62H390.12L437.78,46a8.19,8.19,0,0,1,15.58,0L501,192.62h0Z" />
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="430px" height="396px" viewBox="0 0 430 396" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g id="icon-gitlab" fill="currentColor">
+        <polygon id="Path" points="215 396.09 215 396.09 294.12 152.62 135.88 152.62"></polygon>
+        <polygon id="Path" opacity="0.65" points="215 396.09 135.88 152.62 25 152.62"></polygon>
+        <path d="M25,152.62 L1,226.62 C-1.18407767,233.378681 1.23951269,240.774671 7,244.93 L215,396.09 L25,152.62 Z" id="Path" opacity="0.4"></path>
+        <path d="M25,152.62 L135.88,152.62 L88.22,6 C87.1243878,2.62420598 83.9791339,0.338240495 80.43,0.338240495 C76.8808661,0.338240495 73.7356122,2.62420598 72.64,6 L25,152.62 Z" id="Path"></path>
+        <polygon id="Path" opacity="0.65" points="215 396.09 294.12 152.62 405 152.62"></polygon>
+        <path d="M405,152.62 L429,226.62 C431.184078,233.378681 428.760487,240.774671 423,244.93 L215,396.09 L405,152.62 Z" id="Path" opacity="0.4"></path>
+        <path d="M405,152.62 L294.12,152.62 L341.78,6 C342.875612,2.62420598 346.020866,0.338240495 349.57,0.338240495 C353.119134,0.338240495 356.264388,2.62420598 357.36,6 L405,152.62 Z" id="Path"></path>
+    </g>
 </svg>
