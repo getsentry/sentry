@@ -22,32 +22,39 @@ import theme from 'app/utils/theme';
 class DateRange extends React.Component {
   static propTypes = {
     /**
-       * Start date value for absolute date selector
-       */
-    start: PropTypes.instanceOf(Date),
-    /**
-       * End date value for absolute date selector
-       */
-    end: PropTypes.instanceOf(Date),
+     * Start date value for absolute date selector
+     * Accepts a JS Date or a moment object
+     *
+     * React does not support `instanceOf` with null values
+     */
+    start: PropTypes.object,
 
     /**
-       * Should we have a time selector?
-       */
+     * End date value for absolute date selector
+     * Accepts a JS Date or a moment object
+     *
+     * React does not support `instanceOf` with null values
+     */
+    end: PropTypes.object,
+
+    /**
+     * Should we have a time selector?
+     */
     allowTimePicker: PropTypes.bool,
 
     /**
-       * Use UTC
-       */
+     * Use UTC
+     */
     useUtc: PropTypes.bool,
 
     /**
-       * handle UTC checkbox change
-       */
+     * handle UTC checkbox change
+     */
     onChangeUtc: PropTypes.func,
 
     /**
-       * Callback when value changes
-       */
+     * Callback when value changes
+     */
     onChange: PropTypes.func,
   };
 

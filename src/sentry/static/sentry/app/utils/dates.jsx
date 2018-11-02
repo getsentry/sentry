@@ -65,3 +65,22 @@ export function getLocalToUtc(dateObj) {
 
   return moment.utc(localDate.format(format), format).toDate();
 }
+
+export function isSameDay(start, end) {
+  return (
+    moment(start)
+      .add(1, 'day')
+      .subtract(1, 'second') === moment(end)
+  );
+}
+
+// Get tomorrow at midnight so that default endtime
+// is inclusive of today
+export function getEndOfDay(date) {
+  return moment(date)
+    .add(1, 'day')
+    .hour(0)
+    .minute(0)
+    .subtract(1, 'second')
+    .toDate();
+}

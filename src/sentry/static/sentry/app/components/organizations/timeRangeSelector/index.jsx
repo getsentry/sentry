@@ -5,32 +5,24 @@ import moment from 'moment';
 import styled from 'react-emotion';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {getFormattedDate} from 'app/utils/dates';
+import {getEndOfDay} from 'app/utils/dates';
 import {t} from 'app/locale';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
+import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
 import DropdownMenu from 'app/components/dropdownMenu';
 import HeaderItem from 'app/components/organizations/headerItem';
 import InlineSvg from 'app/components/inlineSvg';
 import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
 import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
 import getDynamicText from 'app/utils/getDynamicText';
-import space from 'app/styles/space';
 
 // Get date 2 weeks ago at midnight
 const getTwoWeeksAgo = () =>
   moment()
     .subtract(2, 'weeks')
     .hour(0)
-    .minute(0);
-
-// Get tomorrow at midnight so that default endtime
-// is inclusive of today
-const getEndOfToday = () =>
-  moment()
-    .add(1, 'day')
-    .hour(0)
     .minute(0)
-    .subtract(1, 'second');
+    .toDate();
 
 class TimeRangeSelector extends React.PureComponent {
   static propTypes = {
@@ -45,12 +37,19 @@ class TimeRangeSelector extends React.PureComponent {
 
     /**
      * Start date value for absolute date selector
+     * Accepts a JS Date or a moment object
+     *
+     * React does not support `instanceOf` with null values
      */
-    start: PropTypes.instanceOf(Date),
+    start: PropTypes.object,
+
     /**
      * End date value for absolute date selector
+     * Accepts a JS Date or a moment object
+     *
+     * React does not support `instanceOf` with null values
      */
-    end: PropTypes.instanceOf(Date),
+    end: PropTypes.object,
 
     /**
      * Relative date value
@@ -82,6 +81,10 @@ class TimeRangeSelector extends React.PureComponent {
     };
   }
 
+  handleCloseMenu = () => {
+    this.handleUpdate();
+  };
+
   handleUpdate = () => {
     const {onUpdate} = this.props;
 
@@ -105,7 +108,7 @@ class TimeRangeSelector extends React.PureComponent {
     this.props.onChange({
       relative: null,
       start: getTwoWeeksAgo(),
-      end: getEndOfToday(),
+      end: getEndOfDay(),
     });
   };
 
@@ -124,12 +127,14 @@ class TimeRangeSelector extends React.PureComponent {
 
   handleSelectDateRange = ({start, end}) => {
     const {onChange} = this.props;
+
     onChange({
       relative: null,
       start,
       end: moment(end)
         .add(1, 'day')
-        .subtract(1, 'second'),
+        .subtract(1, 'second')
+        .toDate(),
     });
   };
 
@@ -149,18 +154,14 @@ class TimeRangeSelector extends React.PureComponent {
     const summary = relative ? (
       `${DEFAULT_RELATIVE_PERIODS[relative]}`
     ) : (
-      <Flex align="center">
-        <DateSummary useUtc={this.state.useUtc} date={start} />
-        <DateRangeDivider>{t('to')}</DateRangeDivider>
-        <DateSummary useUtc={this.state.useUtc} date={end} />
-      </Flex>
+      <DateSummary useUtc={this.state.useUtc} start={start} end={end} />
     );
 
     return (
       <DropdownMenu
         isOpen={this.state.isOpen}
         onOpen={() => this.setState({isOpen: true})}
-        onClose={() => this.setState({isOpen: false})}
+        onClose={this.handleCloseMenu}
         keepMenuOpen={true}
       >
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
@@ -201,8 +202,8 @@ class TimeRangeSelector extends React.PureComponent {
                   <DateRange
                     allowTimePicker
                     useUtc={this.state.useUtc}
-                    start={start}
-                    end={end}
+                    start={moment(start)}
+                    end={moment(end)}
                     onChange={this.handleSelectDateRange}
                     onChangeUtc={this.handleUseUtc}
                   />
@@ -216,55 +217,10 @@ class TimeRangeSelector extends React.PureComponent {
   }
 }
 
-const DateSummary = styled(
-  class DateSummary extends React.Component {
-    static propTypes = {
-      date: PropTypes.instanceOf(Date),
-      useUtc: PropTypes.bool,
-    };
-
-    formatDate(date) {
-      return getFormattedDate(date, 'll', {local: !this.props.useUtc});
-    }
-
-    formatTime(date) {
-      return getFormattedDate(date, 'HH:mm', {local: !this.props.useUtc});
-    }
-
-    render() {
-      const {className, date} = this.props;
-      return (
-        <div className={className}>
-          <Date>{this.formatDate(date)}</Date>
-          <Time>{this.formatTime(date)}</Time>
-        </div>
-      );
-    }
-  }
-)`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-`;
-
-const Date = styled('span')`
-  margin-top: 10px;
-`;
-
-const Time = styled('span')`
-  font-size: 0.8em;
-  line-height: 0.8em;
-  opacity: 0.5;
-`;
-
-const DateRangeDivider = styled('span')`
-  margin: 0 ${space(1)};
-`;
-
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
   min-width: 230px;
-  max-width: 320px;
+  max-width: 360px;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`

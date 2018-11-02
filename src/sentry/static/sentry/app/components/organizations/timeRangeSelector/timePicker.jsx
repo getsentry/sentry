@@ -56,12 +56,14 @@ const TimePicker = styled(
 `;
 
 const Input = styled('input')`
-  width: 100%;
-  padding-left: 5%;
-  background: ${p => p.theme.offWhite};
-  border: 1px solid ${p => p.theme.borderLight};
-  color: ${p => p.theme.gray2};
-  box-shadow: none;
+  &.rdrDateDisplayItem {
+    width: 100%;
+    padding-left: 5%;
+    background: ${p => p.theme.offWhite};
+    border: 1px solid ${p => p.theme.borderLight};
+    color: ${p => p.theme.gray2};
+    box-shadow: none;
+  }
 `;
 
 export default TimePicker;
