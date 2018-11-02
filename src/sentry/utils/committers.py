@@ -58,10 +58,16 @@ def _get_commits(releases):
 
 
 def _get_commit_file_changes(commits, path_name_set):
+    # Get distinct file names and bail if there are no files.
+    filenames = {next(tokenize_path(path), None) for path in path_name_set}
+    filenames = {path for path in filenames if path is not None}
+    if not len(filenames):
+        return []
+
     # build a single query to get all of the commit file that might match the first n frames
     path_query = reduce(
         operator.or_,
-        (Q(filename__endswith=next(tokenize_path(path))) for path in path_name_set)
+        (Q(filename__endswith=path) for path in filenames)
     )
 
     commit_file_change_matches = CommitFileChange.objects.filter(
