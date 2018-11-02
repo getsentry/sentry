@@ -94,8 +94,6 @@ export default class Intro extends React.Component {
 const IntroContainer = styled(Flex)`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray5};
-  min-width: 450px;
-  overflow: scroll;
 `;
 
 const TextBlock = styled('div')`
