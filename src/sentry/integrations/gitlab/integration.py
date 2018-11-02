@@ -6,7 +6,7 @@ from django import forms
 
 from sentry.web.helpers import render_to_response
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.gitlab import get_user_info
+from sentry.identity.gitlab import get_user_info, get_oauth_data
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
 from sentry.integrations import (
     FeatureDescription,
@@ -235,25 +235,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
             config=identity_pipeline_config,
         )
 
-    def get_oauth_data(self, payload):
-        data = {'access_token': payload['access_token']}
-
-        # https://docs.gitlab.com/ee/api/oauth2.html#2-requesting-access-token
-        # doesn't seem to be correct, format we actually get:
-        # {
-        #   "access_token": "123432sfh29uhs29347",
-        #   "token_type": "bearer",
-        #   "refresh_token": "29f43sdfsk22fsj929",
-        #   "created_at": 1536798907,
-        #   "scope": "api"
-        # }
-        if 'refresh_token' in payload:
-            data['refresh_token'] = payload['refresh_token']
-        if 'token_type' in payload:
-            data['token_type'] = payload['token_type']
-
-        return data
-
     def get_group_info(self, access_token, installation_data):
         client = GitLabSetupClient(
             installation_data['url'],
@@ -272,7 +253,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state):
         data = state['identity']['data']
-        oauth_data = self.get_oauth_data(data)
+        oauth_data = get_oauth_data(data)
         user = get_user_info(data['access_token'], state['installation_data'])
         group = self.get_group_info(data['access_token'], state['installation_data'])
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
