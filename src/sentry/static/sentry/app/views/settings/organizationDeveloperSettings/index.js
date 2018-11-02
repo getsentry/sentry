@@ -15,7 +15,7 @@ import styled from 'react-emotion';
 import space from 'app/styles/space';
 import {withTheme} from 'emotion-theming';
 
-class SentryApplicationRow extends React.Component {
+class SentryApplicationRow extends React.PureComponent {
   static propTypes = {
     app: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
@@ -74,7 +74,7 @@ export default class OrganizationDeveloperSettings extends AsyncView {
     let isEmpty = this.state.applications.length === 0;
     return (
       <div>
-        <SettingsPageHeader title="Developer Settings" action={action} />
+        <SettingsPageHeader title={t('Developer Settings')} action={action} />
         <Panel>
           <PanelHeader disablePadding>
             <Flex align="center">
