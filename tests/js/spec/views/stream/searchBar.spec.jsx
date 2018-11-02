@@ -103,26 +103,50 @@ describe('SearchBar', function() {
     });
   });
 
-  it('can select additional autocomplete terms when last query term is finished and has trailing space', function() {
-    let query = 'timesSeen:1 ';
+  describe('onAutoComplete', function() {
+    let wrapper;
     let props = {
       orgId: '123',
       projectId: '456',
-      query,
     };
-    let wrapper = mount(<SearchBar {...props} />, options);
+    const setQuery = (el, query) => {
+      el.setProps({query});
+      el.update();
 
-    wrapper
-      .find('input')
-      .getDOMNode()
-      .setSelectionRange(query.length, query.length);
-    wrapper.instance().updateAutoCompleteItems();
-    wrapper.find('input').simulate('focus');
-    wrapper
-      .find('.search-autocomplete-item')
-      .first()
-      .simulate('click');
+      el
+        .find('input')
+        .getDOMNode()
+        .setSelectionRange(query.length, query.length);
+      el.instance().updateAutoCompleteItems();
+      el.find('input').simulate('focus');
+      el
+        .find('.search-autocomplete-item')
+        .first()
+        .simulate('click');
+    };
 
-    expect(wrapper.find('input').prop('value')).toBe('timesSeen:1 browser:');
+    beforeEach(function() {
+      wrapper = mount(<SearchBar {...props} />, options);
+    });
+
+    it('adds additional autocomplete terms when last query term is a single character and has trailing space', function() {
+      setQuery(wrapper, 'timesSeen:1 ');
+      expect(wrapper.find('input').prop('value')).toBe('timesSeen:1 browser:');
+    });
+
+    it('adds additional autocomplete terms when last query term is multiple characters and has trailing space', function() {
+      setQuery(wrapper, 'timesSeen:1234 ');
+      expect(wrapper.find('input').prop('value')).toBe('timesSeen:1234 browser:');
+    });
+
+    it('does not modify query if previous tag value begins with a quote and has trailing space', function() {
+      setQuery(wrapper, 'tag:"Chrome ');
+      expect(wrapper.find('input').prop('value')).toBe('tag:"Chrome ');
+    });
+
+    it('adds autocomplete terms if previous value is a valid quoted value', function() {
+      setQuery(wrapper, 'tag:"Chrome 70" ');
+      expect(wrapper.find('input').prop('value')).toBe('tag:"Chrome 70" browser:');
+    });
   });
 });
