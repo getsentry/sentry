@@ -177,40 +177,39 @@ class TimeRangeSelector extends React.PureComponent {
               {getDynamicText({value: summary, fixed: 'start to end'})}
             </StyledHeaderItem>
 
-            <Menu
-              {...getMenuProps({isStyled: true})}
-              style={{display: isOpen ? 'block' : 'none'}}
-            >
-              <RelativeSelectorList>
-                {shouldShowRelative && (
-                  <RelativeSelector
-                    choices={Object.entries(ALLOWED_RELATIVE_DATES)}
-                    onClick={this.handleSelectRelative}
-                    value={relative}
-                    selected={this.state.selected}
+            {isOpen && (
+              <Menu {...getMenuProps({isStyled: true})}>
+                <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
+                  {shouldShowRelative && (
+                    <RelativeSelector
+                      choices={Object.entries(ALLOWED_RELATIVE_DATES)}
+                      onClick={this.handleSelectRelative}
+                      value={relative}
+                      selected={this.state.selected}
+                    />
+                  )}
+                  {shouldShowAbsolute && (
+                    <SelectorItem
+                      onClick={this.handleAbsoluteClick}
+                      value="absolute"
+                      label={t('Absolute Date')}
+                      selected={isAbsoluteSelected}
+                      last={true}
+                    />
+                  )}
+                </SelectorList>
+                {isAbsoluteSelected && (
+                  <DateRange
+                    allowTimePicker
+                    useUtc={this.state.useUtc}
+                    start={start}
+                    end={end}
+                    onChange={this.handleSelectDateRange}
+                    onChangeUtc={this.handleUseUtc}
                   />
                 )}
-                {shouldShowAbsolute && (
-                  <SelectorItem
-                    onClick={this.handleAbsoluteClick}
-                    value="absolute"
-                    label={t('Absolute Date')}
-                    selected={isAbsoluteSelected}
-                    last={true}
-                  />
-                )}
-              </RelativeSelectorList>
-              {isAbsoluteSelected && (
-                <DateRange
-                  allowTimePicker
-                  useUtc={this.state.useUtc}
-                  start={start}
-                  end={end}
-                  onChange={this.handleSelectDateRange}
-                  onChangeUtc={this.handleUseUtc}
-                />
-              )}
-            </Menu>
+              </Menu>
+            )}
           </div>
         )}
       </DropdownMenu>
@@ -230,6 +229,7 @@ const StyledInlineSvg = styled(InlineSvg)`
 `;
 
 const Menu = styled('div')`
+  display: flex;
   background: #fff;
   border: 1px solid ${p => p.theme.borderLight};
   position: absolute;
@@ -238,8 +238,8 @@ const Menu = styled('div')`
   min-width: 120%;
   z-index: ${p => p.theme.zIndex.dropdown};
   box-shadow: ${p => p.theme.dropShadowLight};
-  padding: ${space(2)};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  font-size: 0.8em;
 `;
 
 const SelectorItem = styled(
@@ -304,9 +304,7 @@ RelativeSelector.propTypes = {
   selected: PropTypes.string,
 };
 
-const RelativeSelectorList = styled(({isAbsoluteSelected, ...props}) => (
-  <Flex {...props} />
-))`
+const SelectorList = styled(({isAbsoluteSelected, ...props}) => <Flex {...props} />)`
   flex: 1;
   flex-direction: column;
   flex-shrink: 0;
