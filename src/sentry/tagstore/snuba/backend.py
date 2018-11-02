@@ -314,7 +314,7 @@ class SnubaTagStorage(TagStorage):
             key_ctor = functools.partial(GroupTagKey, group_id=group_id)
             value_ctor = functools.partial(GroupTagValue, group_id=group_id)
 
-        return [
+        return set([
             key_ctor(
 
                 # TODO we don't know these from the current query, but in the
@@ -336,7 +336,7 @@ class SnubaTagStorage(TagStorage):
                     ) for value, data in six.iteritems(values)
                 ]
             ) for key, values in six.iteritems(result)
-        ]
+        ])
 
     def __get_release(self, project_id, group_id, first=True):
         start, end = self.get_time_range()
