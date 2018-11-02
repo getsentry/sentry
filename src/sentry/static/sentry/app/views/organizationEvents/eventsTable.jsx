@@ -3,13 +3,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {PanelBody} from 'app/components/panels';
+import {t} from 'app/locale';
+import {PanelBody, Panel, PanelHeader} from 'app/components/panels';
 import DateTime from 'app/components/dateTime';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventsContext from 'app/views/organizationEvents/eventsContext';
 import IdBadge from 'app/components/idBadge';
 import SentryTypes from 'app/sentryTypes';
-import Tooltip from 'app/components/tooltip';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 
 class EventsTable extends React.PureComponent {
   static propTypes = {
@@ -45,42 +47,50 @@ class EventsTable extends React.PureComponent {
     const hasEvents = events && !!events.length;
 
     return (
-      <React.Fragment>
+      <Panel>
+        <PanelHeader>
+          <TableLayout>
+            <div>{t('Event')}</div>
+            <div>{t('Project')}</div>
+            <div>{t('User')}</div>
+            <div>{t('Time')}</div>
+          </TableLayout>
+        </PanelHeader>
         {!hasEvents && <EmptyStateWarning>No events</EmptyStateWarning>}
         {hasEvents && (
-          <Wrapper>
-            <Table>
-              <tbody>
-                {events.map((event, eventIdx) => {
-                  const project = this.projectsMap.get(event.projectID);
-                  return (
-                    <tr key={`${project.slug}-${event.eventID}`}>
-                      <Td>
-                        <Link to={`/${organization.slug}/${project.slug}/`}>
-                          <Tooltip title={project.slug}>
-                            <IdBadge project={project} hideName />
-                          </Tooltip>
-                        </Link>
-                      </Td>
+          <StyledPanelBody>
+            {events.map((event, eventIdx) => {
+              const project = this.projectsMap.get(event.projectID);
+              return (
+                <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx == 0}>
+                  <TableData>
+                    <EventTitle>{this.getEventTitle(event)}</EventTitle>
+                  </TableData>
 
-                      <Td>
-                        <EventTitle>{this.getEventTitle(event)}</EventTitle>
-                      </Td>
+                  <TableData>
+                    <Project to={`/${organization.slug}/${project.slug}/`}>
+                      <IdBadge
+                        project={project}
+                        avatarSize={16}
+                        displayName={<span>{project.name}</span>}
+                        avatarProps={{consistentWidth: true}}
+                      />
+                    </Project>
+                  </TableData>
 
-                      <Td>
-                        <IdBadge user={event.user} hideEmail />
-                        <DateRow>
-                          <DateTime date={new Date(event.dateCreated)} />
-                        </DateRow>
-                      </Td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </Table>
-          </Wrapper>
+                  <TableData>
+                    <IdBadge user={event.user} hideEmail avatarSize={16} />
+                  </TableData>
+
+                  <TableData>
+                    <StyledDateTime date={new Date(event.dateCreated)} />
+                  </TableData>
+                </TableRow>
+              );
+            })}
+          </StyledPanelBody>
         )}
-      </React.Fragment>
+      </Panel>
     );
   }
 }
@@ -97,30 +107,41 @@ class EventsTableContainer extends React.Component {
 export default withRouter(EventsTableContainer);
 export {EventsTable};
 
-const Wrapper = styled(PanelBody)`
+const StyledPanelBody = styled(PanelBody)`
   overflow-x: auto;
   padding: 0;
 `;
-const Table = styled('table')`
-  border: 0;
+
+const TableLayout = styled('div')`
+  display: grid;
+  grid-template-columns: 0.8fr 0.15fr 0.25fr 200px;
+  grid-column-gap: ${space(1.5)};
   width: 100%;
-  max-width: 100%;
-  margin: 0;
 `;
 
-const Td = styled('td')`
-  padding: 10px 15px;
-  white-space: nowrap;
-  border-top: 1px solid ${p => p.theme.borderLight};
-  vertical-align: middle;
+const TableRow = styled(TableLayout)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  border-top: 1px solid ${p => (p.first ? 'transparent' : p.theme.borderLight)};
+  align-items: center;
+  padding: ${space(1)} ${space(2)};
 `;
 
-const DateRow = styled('div')`
-  font-size: 0.85em;
-  opacity: 0.8;
+const TableData = styled('div')`
+  overflow: hidden; /* enables overflow-ellipsis on child container */
 `;
 
-const EventTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: 600;
+const EventTitle = styled(TableData)`
+  padding-right: ${space(2)};
+  ${overflowEllipsis};
+`;
+
+const Project = styled(Link)`
+  display: flex;
+  color: ${p => p.theme.gray4};
+  ${overflowEllipsis};
+`;
+
+const StyledDateTime = styled(DateTime)`
+  color: ${p => p.theme.gray2};
+  ${overflowEllipsis};
 `;
