@@ -107,7 +107,7 @@ def build_assigned_text(group, identity, assignee):
         return
 
     if actor.type == Team:
-        assignee_text = assigned_actor.slug
+        assignee_text = u'#{}'.format(assigned_actor.slug)
     elif actor.type == User:
         try:
             assignee_ident = Identity.objects.get(
