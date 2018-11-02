@@ -50,7 +50,7 @@ describe('ReleaseProgress', function() {
     expect(wrapper.find('PanelItem')).toHaveLength(0);
   });
 
-  it('renders with three steps', async function() {
+  it('renders with next step suggestion', async function() {
     Client.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/completion/',
       body: [
@@ -64,8 +64,14 @@ describe('ReleaseProgress', function() {
       <ReleaseProgress orgId={organization.id} projectId={project.id} />,
       routerContext
     );
+
+    expect(
+      wrapper
+        .find('span')
+        .first()
+        .text()
+    ).toBe('Next step:Link to a repo ');
     expect(getPromptsMock).toHaveBeenCalled();
-    expect(wrapper.find('li')).toHaveLength(3);
   });
 
   it('hides when snoozed', async function() {
@@ -82,7 +88,12 @@ describe('ReleaseProgress', function() {
       <ReleaseProgress orgId={organization.id} projectId={project.id} />,
       routerContext
     );
-    expect(wrapper.find('li')).toHaveLength(3);
+    expect(
+      wrapper
+        .find('span')
+        .first()
+        .text()
+    ).toBe('Next step:Link to a repo ');
     expect(wrapper.find('PanelItem')).toHaveLength(1);
 
     //Snooze the bar

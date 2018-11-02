@@ -7,6 +7,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {PanelItem} from 'app/components/panels';
 import {promptsUpdate} from 'app/actionCreators/prompts';
+import ProgressBarTest from 'app/views/projectReleases/progressBar';
 
 const STEPS = {
   tag: t('Tag an error'),
@@ -86,30 +87,47 @@ class ReleaseProgress extends AsyncComponent {
     promptsUpdate(this.api, params).then(this.setState({showBar: false}));
   }
 
+  getWidth() {
+    let {remainingSteps} = this.state;
+    let width =
+      100 *
+      (Object.keys(STEPS).length - remainingSteps.length) /
+      Object.keys(STEPS).length;
+
+    return width === 0 ? 25 : width;
+  }
+
   renderBody() {
     let {remainingSteps, showBar} = this.state;
     if (!remainingSteps || remainingSteps.length === 0 || !showBar) {
       return null;
     }
+
+    let nextStep = remainingSteps[0];
+
     return (
       <PanelItem>
-        <div className="col-sm-6">
+        <div className="col-sm-8">
           <div>
-            <h4 className="text-light"> {t("Releases aren't 100% set up")}</h4>
-            <StyledBar>
-              <StyledSlider />
-            </StyledBar>
-            <a href="https://docs.sentry.io/learn/releases/">{t('Next steps:')}</a>
-
-            <ul>
-              {this.state.remainingSteps.map((step, i) => {
-                return <li key={i}>{step}</li>;
-              })}
-            </ul>
+            <div className="row">
+              <span className="pull-right">
+                {t('Next step:')}
+                <a href="https://docs.sentry.io/learn/releases/">{`${nextStep}`}</a>{' '}
+              </span>
+              <h4 className="text-light"> {t("Releases aren't 100% set up")}</h4>
+            </div>
+            <div className="row">
+              <ProgressBarTest width={this.getWidth()} />
+              <p>
+                {t(
+                  'Saves you time by surfacing when issues are first introduced, suggesting responsible commits and more!'
+                )}{' '}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="col-sm-6">
+        <div className="col-sm-4">
           <div className="pull-right">
             <StyledButton
               className="text-light"
@@ -138,26 +156,4 @@ const StyledButton = styled(Button)`
   margin: 5px;
 `;
 
-const StyledBar = styled.div`
-  background: #767676;
-  width: 100%;
-  height: 15px;
-  float: right;
-  margin-right: 0px;
-  margin-bottom: 10px;
-  border-radius: 20px;
-  position: relative;
-`;
-
-const StyledSlider = styled.div`
-  height: 100%;
-  width: 50%;
-  background: #7ccca5;
-  padding-right: 0;
-  border-radius: inherit;
-  box-shadow: 0 2px 1px rgba(0, 0, 0, 0.08);
-  position: absolute;
-  bottom: 0;
-  left: 0;
-`;
 export default ReleaseProgress;
