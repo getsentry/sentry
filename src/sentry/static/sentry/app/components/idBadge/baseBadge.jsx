@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import SentryTypes from 'app/sentryTypes';
 
-class BaseBadge extends React.Component {
+class BaseBadge extends React.PureComponent {
   static propTypes = {
     team: SentryTypes.Team,
     organization: SentryTypes.Organization,

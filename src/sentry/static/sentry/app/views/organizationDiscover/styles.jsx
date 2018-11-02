@@ -8,6 +8,7 @@ import space from 'app/styles/space';
 import {Panel, PanelItem} from 'app/components/panels';
 import NavTabs from 'app/components/navTabs';
 import Link from 'app/components/link';
+import HeaderSeparator from 'app/components/organizations/headerSeparator';
 
 const HEADER_HEIGHT = 60;
 
@@ -65,8 +66,11 @@ export const LoadingContainer = styled(Flex)`
   height: 100%;
 `;
 
+export const StyledHeaderSeparator = styled(HeaderSeparator)`
+  margin: ${space(1.5)} 0;
+`;
+
 export const TopBar = styled(Flex)`
-  padding: 0 ${space(4)};
   border-bottom: 1px solid ${p => p.theme.borderLight};
   height: ${HEADER_HEIGHT}px;
 `;
