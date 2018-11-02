@@ -42,7 +42,8 @@ class GitLabTestCase(APITestCase):
             external_id='gitlab123',
             data={
                 'access_token': '123456789',
-                'expires': time() + 1234567,
+                'created_at': time(),
+                'refresh_token': '0987654321',
             }
         )
         self.integration.add_organization(self.organization, self.user, identity.id)
