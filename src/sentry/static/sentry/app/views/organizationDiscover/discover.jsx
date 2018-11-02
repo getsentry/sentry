@@ -8,6 +8,7 @@ import {
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
+import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
@@ -39,7 +40,6 @@ import {
   SidebarTabs,
   PageTitle,
   SavedQueryWrapper,
-  StyledHeaderSeparator,
 } from './styles';
 
 import {trackQuery} from './analytics';
@@ -335,7 +335,7 @@ export default class OrganizationDiscover extends React.Component {
               onChange={val => this.updateField('projects', val)}
               onUpdate={this.runQuery}
             />
-            <StyledHeaderSeparator />
+            <HeaderSeparator />
             <TimeRangeSelector
               showAbsolute={true}
               showRelative={true}
@@ -345,7 +345,7 @@ export default class OrganizationDiscover extends React.Component {
               onChange={this.handleUpdateTime}
               onUpdate={this.runQuery}
             />
-            <StyledHeaderSeparator />
+            <HeaderSeparator />
           </TopBar>
           <BodyContent>
             {shouldDisplayResult && (

@@ -193,6 +193,7 @@ class OrganizationEventsContainer extends React.Component {
                 onChange={this.handleChangeTime}
                 onUpdate={this.handleUpdatePeriod}
               />
+              <HeaderSeparator />
             </Header>
             <Body>{children}</Body>
           </OrganizationEventsContent>
