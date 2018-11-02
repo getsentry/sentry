@@ -1,18 +1,19 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 import moment from 'moment';
-import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
-import Button from 'app/components/button';
-import HeaderItem from 'app/components/organizations/headerItem';
-import DropdownLink from 'app/components/dropdownLink';
-import DynamicWrapper from 'app/components/dynamicWrapper';
 import {t} from 'app/locale';
+import Button from 'app/components/button';
+import DropdownMenu from 'app/components/dropdownMenu';
+import HeaderItem from 'app/components/organizations/headerItem';
+import InlineSvg from 'app/components/inlineSvg';
+import getDynamicText from 'app/utils/getDynamicText';
+import space from 'app/styles/space';
 
 import AbsoluteSelector from './absoluteSelector';
-import RelativeSelector from './relativeSelector';
 import CombinedSelector from './combinedSelector';
+import RelativeSelector from './relativeSelector';
 
 const ALLOWED_RELATIVE_DATES = {
   '24h': t('Last 24 hours'),
@@ -84,15 +85,7 @@ class TimeRangeSelector extends React.Component {
   };
 
   render() {
-    const {
-      className,
-      start,
-      end,
-      relative,
-      showAbsolute,
-      showRelative,
-      onChange,
-    } = this.props;
+    const {start, end, relative, showAbsolute, showRelative, onChange} = this.props;
 
     const shouldShowAbsolute = showAbsolute && !showRelative;
     const shouldShowRelative = !showAbsolute && showRelative;
@@ -103,47 +96,79 @@ class TimeRangeSelector extends React.Component {
       : `${this.formatDate(start)} to ${this.formatDate(end)}`;
 
     return (
-      <HeaderItem className={className} label={t('Time frame')}>
-        <DropdownLink
-          title={<DynamicWrapper value={<Title>{summary}</Title>} fixed="start to end" />}
-          anchorRight={true}
-          keepMenuOpen={true}
-          isOpen={this.state.isOpen}
-          onOpen={() => this.setState({isOpen: true})}
-          onClose={() => this.setState({isOpen: false})}
-        >
-          <Flex direction="column" p={2}>
-            {shouldShowAbsolute && (
-              <AbsoluteSelector onChange={onChange} start={start} end={end} />
-            )}
-            {shouldShowRelative && (
-              <RelativeSelector
-                choices={Object.entries(ALLOWED_RELATIVE_DATES)}
-                onChange={onChange}
-                value={relative}
-              />
-            )}
-            {shouldShowBoth && (
-              <CombinedSelector
-                choices={Object.entries(ALLOWED_RELATIVE_DATES)}
-                onChange={onChange}
-                relative={relative}
-                start={start}
-                end={end}
-              />
-            )}
-            <div>
-              <Button onClick={this.handleUpdate}>{t('Update')}</Button>
-            </div>
-          </Flex>
-        </DropdownLink>
-      </HeaderItem>
+      <DropdownMenu
+        isOpen={this.state.isOpen}
+        onOpen={() => this.setState({isOpen: true})}
+        onClose={() => this.setState({isOpen: false})}
+        keepMenuOpen={true}
+      >
+        {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
+          <div {...getRootProps()} style={{position: 'relative'}}>
+            <StyledHeaderItem
+              icon={<StyledInlineSvg src="icon-calendar" />}
+              isOpen={isOpen}
+              hasSelected={true}
+              allowClear={false}
+              {...getActorProps({isStyled: true})}
+            >
+              {getDynamicText({value: summary, fixed: 'start to end'})}
+            </StyledHeaderItem>
+            <Menu
+              {...getMenuProps({isStyled: true})}
+              style={{display: isOpen ? 'block' : 'none'}}
+            >
+              {shouldShowAbsolute && (
+                <AbsoluteSelector onChange={onChange} start={start} end={end} />
+              )}
+              {shouldShowRelative && (
+                <RelativeSelector
+                  choices={Object.entries(ALLOWED_RELATIVE_DATES)}
+                  onChange={onChange}
+                  value={relative}
+                />
+              )}
+              {shouldShowBoth && (
+                <CombinedSelector
+                  choices={Object.entries(ALLOWED_RELATIVE_DATES)}
+                  onChange={onChange}
+                  relative={relative}
+                  start={start}
+                  end={end}
+                />
+              )}
+              <div>
+                <Button onClick={this.handleUpdate}>{t('Update')}</Button>
+              </div>
+            </Menu>
+          </div>
+        )}
+      </DropdownMenu>
     );
   }
 }
 
-const Title = styled.span`
-  padding-right: 40px;
+const StyledHeaderItem = styled(HeaderItem)`
+  height: 100%;
+  width: 230px;
+`;
+
+const StyledInlineSvg = styled(InlineSvg)`
+  transform: translateY(-2px);
+  height: 17px;
+  width: 17px;
+`;
+
+const Menu = styled('div')`
+  background: #fff;
+  border: 1px solid ${p => p.theme.borderLight};
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  min-width: 120%;
+  z-index: ${p => p.theme.zIndex.dropdown};
+  box-shadow: ${p => p.theme.dropShadowLight};
+  padding: ${space(2)};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
 `;
 
 export default TimeRangeSelector;

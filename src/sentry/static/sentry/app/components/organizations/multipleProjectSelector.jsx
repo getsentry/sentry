@@ -1,94 +1,154 @@
-import React from 'react';
 import PropTypes from 'prop-types';
-import moment from 'moment';
-import {Box} from 'grid-emotion';
-import styled from 'react-emotion';
+import React from 'react';
+import styled, {css} from 'react-emotion';
 
-import DropdownLink from 'app/components/dropdownLink';
-import Button from 'app/components/button';
-import MultiSelectField from 'app/components/forms/multiSelectField';
 import {t} from 'app/locale';
+import ProjectSelector from 'app/components/projectSelector';
+import InlineSvg from 'app/components/inlineSvg';
 
-import HeaderItem from './headerItem';
+import HeaderItem from 'app/components/organizations/headerItem';
+
+const rootContainerStyles = css`
+  display: flex;
+`;
 
 export default class MultipleProjectSelector extends React.Component {
   static propTypes = {
-    anchorRight: PropTypes.bool,
     value: PropTypes.array,
     projects: PropTypes.array,
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
   };
 
-  static defaultProps = {
-    anchorRight: true,
-  };
-
   constructor() {
     super();
     this.state = {
-      isOpen: false,
+      hasChanges: false,
     };
   }
 
-  formatDate(date) {
-    return moment(date).format('MMMM D, h:mm a');
-  }
+  // Reset "hasChanges" state and call `onUpdate` callback
+  doUpdate = () => {
+    this.setState({hasChanges: false}, this.props.onUpdate);
+  };
 
-  onUpdate = () => {
-    this.props.onUpdate();
-    this.setState({
-      isOpen: false,
-    });
+  /**
+   * Handler for when an explicit update call should be made.
+   * e.g. an "Update" button
+   *
+   * Should perform an "update" callback
+   */
+  handleUpdate = actions => {
+    actions.close();
+    this.doUpdate();
+  };
+
+  /**
+   * Handler for when a dropdown item was selected directly (and not via multi select)
+   *
+   * Should perform an "update" callback
+   */
+  handleQuickSelect = (selected, checked, e) => {
+    this.props.onChange([parseInt(selected.id, 10)]);
+    this.doUpdate();
+  };
+
+  /**
+   * Handler for when dropdown menu closes
+   *
+   * Should perform an "update" callback
+   */
+  handleClose = props => {
+    // Only update if there are changes
+    if (!this.state.hasChanges) return;
+    this.doUpdate();
+  };
+
+  /**
+   * Handler for clearing the current value
+   *
+   * Should perform an "update" callback
+   */
+  handleClear = () => {
+    this.props.onChange([]);
+
+    // Update on clear
+    this.doUpdate();
+  };
+
+  /**
+   * Handler for selecting multiple items, should NOT call update
+   */
+  handleMultiSelect = (selected, checked, e) => {
+    const {onChange} = this.props;
+    onChange(selected.map(({id}) => parseInt(id, 10)));
+    this.setState({hasChanges: true});
   };
 
   render() {
-    const {className, anchorRight, value, projects, onChange} = this.props;
+    const {value, projects} = this.props;
     const selectedProjectIds = new Set(value);
 
-    const projectList = projects
-      .filter(project => selectedProjectIds.has(parseInt(project.id, 10)))
-      .map(project => project.slug);
-
-    const summary = projectList.length
-      ? `${projectList.join(', ')}`
-      : t('None selected, using all');
-
-    const options = projects.map(project => {
-      return {
-        value: parseInt(project.id, 10),
-        label: project.slug,
-      };
-    });
+    const selected = projects.filter(project =>
+      selectedProjectIds.has(parseInt(project.id, 10))
+    );
 
     return (
-      <HeaderItem className={className} label={t('Project(s)')}>
-        <DropdownLink
-          title={<Title>{summary}</Title>}
-          anchorRight={anchorRight}
-          isOpen={this.state.isOpen}
-          keepMenuOpen={true}
-          onOpen={() => this.setState({isOpen: true})}
-          onClose={() => this.setState({isOpen: false})}
-        >
-          <Box p={2}>
-            <Box mb={1}>
-              <Box mb={1}>{t('Searched project list')}</Box>
-              <MultiSelectField
-                name="projects"
-                value={value}
-                options={options}
-                onChange={onChange}
-              />
-            </Box>
-            <Button onClick={this.onUpdate}>{t('Update')}</Button>
-          </Box>
-        </DropdownLink>
-      </HeaderItem>
+      <StyledProjectSelector
+        {...this.props}
+        multi
+        selectedProjects={selected}
+        projects={projects}
+        onSelect={this.handleQuickSelect}
+        onClose={this.handleClose}
+        onMultiSelect={this.handleMultiSelect}
+        rootClassName={rootContainerStyles}
+      >
+        {({
+          getActorProps,
+          selectedItem,
+          activeProject,
+          selectedProjects,
+          isOpen,
+          actions,
+          onBlur,
+        }) => {
+          const hasSelected = !!selectedProjects.length;
+          const title = hasSelected
+            ? selectedProjects.map(({slug}) => slug).join(', ')
+            : t('All Projects');
+          return (
+            <StyledHeaderItem
+              active={hasSelected || isOpen}
+              icon={<StyledInlineSvg src="icon-stack" />}
+              hasSelected={hasSelected}
+              hasChanges={this.state.hasChanges}
+              isOpen={isOpen}
+              onSubmit={() => this.handleUpdate(actions)}
+              onClear={this.handleClear}
+              {...getActorProps()}
+            >
+              {title}
+            </StyledHeaderItem>
+          );
+        }}
+      </StyledProjectSelector>
     );
   }
 }
 
-const Title = styled.span`
-  padding-right: 40px;
+const StyledProjectSelector = styled(ProjectSelector)`
+  margin: 1px 0 0 -1px;
+  border-radius: 0 0 4px 4px;
+  width: 110%;
+`;
+
+const StyledHeaderItem = styled(HeaderItem)`
+  height: 100%;
+  width: 300px;
+`;
+
+const StyledInlineSvg = styled(InlineSvg)`
+  height: 18px;
+  width: 18px;
 `;
