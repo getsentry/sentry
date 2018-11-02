@@ -712,6 +712,8 @@ class EventManager(object):
         date = date.replace(tzinfo=timezone.utc)
         time_spent = data.get('time_spent')
 
+        data['node_id'] = '{}:{}'.format(project_id, event_id)[:40]
+
         return Event(
             project_id=project_id or self._project.id,
             event_id=event_id,

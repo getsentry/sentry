@@ -119,7 +119,6 @@ class EventNodeStoreTest(TestCase):
         event = Event.objects.get(id=event_id)
         assert type(event.data) == NodeData
         assert event.data == data
-        assert event.data.id is None
 
         event.save()
 
