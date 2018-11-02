@@ -226,24 +226,27 @@ def get_snuba_query_args(query=None, params=None):
         'filter_keys': {},
     }
     for _filter in parsed_filters:
-        if _filter.key.snuba_name in ('start', 'end'):
-            kwargs[_filter.key.snuba_name] = _filter.value.raw_value
+        snuba_name = _filter.key.snuba_name
+        value = _filter.value.raw_value
 
-        elif _filter.key.snuba_name == 'project_id':
-            kwargs['filter_keys'][_filter.key.snuba_name] = _filter.value.raw_value
+        if snuba_name in ('start', 'end'):
+            kwargs[snuba_name] = value
 
-        elif _filter.key.snuba_name == 'message':
+        # environment can also be passed as a condition
+        elif snuba_name in ('project_id', 'environment') and isinstance(value, (list, tuple)):
+            kwargs['filter_keys'][snuba_name] = value
+
+        elif snuba_name == 'message':
             # make message search case insensitive
             kwargs['conditions'].append(
-                [['positionCaseInsensitive', ['message', "'%s'" %
-                                              (_filter.value.raw_value,)]], '!=', 0]
+                [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], '!=', 0]
             )
 
         else:
             kwargs['conditions'].append([
-                _filter.key.snuba_name,
+                snuba_name,
                 _filter.operator,
-                _filter.value.raw_value,
+                value,
             ])
 
     return kwargs
