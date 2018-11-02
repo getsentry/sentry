@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
-from sentry.integrations.exceptions import ApiError
+from sentry.integrations.client import ApiClient
+from sentry.integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
 from six.moves.urllib.parse import quote
 
@@ -12,6 +12,7 @@ API_VERSION = u'/api/v4'
 
 
 class GitLabApiClientPath(object):
+    oauth_token = u'/oauth/token'
     commit = u'/projects/{project}/repository/commits/{sha}'
     commits = u'/projects/{project}/repository/commits'
     compare = u'/projects/{project}/repository/compare'
@@ -71,11 +72,12 @@ class GitLabSetupClient(ApiClient):
         )
 
 
-class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
+class GitLabApiClient(ApiClient):
 
     def __init__(self, installation):
         self.installation = installation
         verify_ssl = self.metadata['verify_ssl']
+        self.is_refreshing_token = False
         super(GitLabApiClient, self).__init__(verify_ssl)
 
     @property
@@ -87,19 +89,43 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         return self.installation.model.metadata
 
     def request(self, method, path, data=None, params=None):
-        # TODO(lb): Refresh auth
-        # self.check_auth(redirect_url=self.oauth_redirect_url)
         access_token = self.identity.data['access_token']
         headers = {
             'Authorization': u'Bearer {}'.format(access_token)
         }
-        return self._request(
-            method,
-            GitLabApiClientPath.build_api_url(
-                self.metadata['base_url'],
-                path
-            ),
-            headers=headers, data=data, params=params
+        url = GitLabApiClientPath.build_api_url(
+            self.metadata['base_url'],
+            path
+        )
+        try:
+            return self._request(
+                method,
+                url,
+                headers=headers, data=data, params=params
+            )
+        except ApiUnauthorized as e:
+            if self.is_refreshing_token:
+                raise e
+            self.is_refreshing_token = True
+            self.refresh_auth()
+            resp = self._request(
+                method,
+                url,
+                headers=headers, data=data, params=params
+            )
+            self.is_refreshing_token = False
+            return resp
+
+    def refresh_auth(self):
+        """
+        Modeled after Doorkeeper's docs
+        where Doorkeeper is a dependency for GitLab that handles OAuth
+
+        https://github.com/doorkeeper-gem/doorkeeper/wiki/Enable-Refresh-Token-Credentials#testing-with-oauth2-gem
+        """
+        self.identity.get_provider().refresh_identity(
+            self.identity,
+            refresh_token_url='%s%s' % (self.metadata['base_url'], GitLabApiClientPath.oauth_token),
         )
 
     def get_user(self):
