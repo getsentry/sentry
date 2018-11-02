@@ -15,7 +15,7 @@ describe('FeatureDisabled', function() {
 
     expect(
       wrapper
-        .find('Flex')
+        .find('[data-test-id="feature-message"]')
         .first()
         .text()
     ).toEqual(
@@ -37,7 +37,7 @@ describe('FeatureDisabled', function() {
 
     expect(
       wrapper
-        .find('Flex')
+        .find('[data-test-id="feature-message"]')
         .first()
         .text()
     ).toEqual(expect.stringContaining(customMessage));

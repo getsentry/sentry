@@ -67,7 +67,7 @@ class FeatureDisabled extends React.Component {
 
     const featureDisabled = (
       <React.Fragment>
-        <Flex justify="space-between">
+        <Flex justify="space-between" data-test-id="feature-message">
           {message}
           {!hideHelpToggle && (
             <HelpButton
