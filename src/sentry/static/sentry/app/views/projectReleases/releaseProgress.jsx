@@ -88,7 +88,7 @@ class ReleaseProgress extends AsyncComponent {
 
   renderBody() {
     let {remainingSteps, showBar} = this.state;
-    if (!remainingSteps || !showBar) {
+    if (!remainingSteps || remainingSteps.length === 0 || !showBar) {
       return null;
     }
     return (
