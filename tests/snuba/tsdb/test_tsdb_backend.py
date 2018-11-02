@@ -109,7 +109,7 @@ class SnubaTSDBTest(TestCase):
         data = json.dumps([{
             'event_id': (six.text_type(r) * 32)[:32],
             'primary_hash': [hash1, hash2][(r // 600) % 2],  # Switch every 10 mins
-            'group_id': int([hash1, hash2][(r // 600) % 2][:16], 16),
+            'group_id': [self.proj1group1.id, self.proj1group2.id][(r // 600) % 2],
             'project_id': self.proj1.id,
             'message': 'message 1',
             'platform': 'python',
