@@ -69,3 +69,6 @@ export const DEFAULT_RELATIVE_PERIODS = {
   '14d': t('Last 14 days'),
   '30d': t('Last 30 days'),
 };
+
+// max retention for customers (in days)
+export const RETENTION_DAYS = 90;

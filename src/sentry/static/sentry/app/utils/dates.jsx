@@ -1,12 +1,14 @@
 import moment from 'moment';
 
+import {RETENTION_DAYS} from 'app/constants';
+
 function getParser(local = false) {
   return local ? moment : moment.utc;
 }
 
 export function getEarliestRetentionDate() {
   return moment()
-    .subtract(90, 'days')
+    .subtract(RETENTION_DAYS, 'days')
     .toDate();
 }
 
