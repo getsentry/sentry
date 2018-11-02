@@ -12,6 +12,7 @@ from sentry.models import (
 )
 
 from sentry.integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.integrations.repositories import generate_secret
 from sentry.tasks.base import instrumented_task, retry
 
 logger = logging.getLogger('sentry.tasks.integrations')
@@ -265,9 +266,30 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
 
     # https://docs.microsoft.com/en-us/rest/api/vsts/hooks/subscriptions/replace%20subscription?view=vsts-rest-4.1#subscriptionstatus
     if subscription['status'] == 'disabledBySystem':
-        client.update_subscription(
-            instance=installation.instance,
-            subscription_id=subscription_id,
-        )
+        # Update subscription does not work for disabled subscriptions
+        # We instead will try to delete and then create a new one.
+
+        try:
+            client.delete_subscription(
+                instance=installation.instance,
+                subscription_id=subscription_id,
+            )
+        except (ApiError, ApiUnauthorized):
+            pass
+
+        try:
+            # TODO(lb): Move this to a common area in integrations and make it a function
+            secret = generate_secret()
+            subscription = client.create_subscription(
+                instance=installation.instance,
+                # TODO(lb): external_id should be removed
+                shared_secret=secret,
+            )
+        except (ApiError, ApiUnauthorized):
+            pass
+        else:
+            integration.metadata['subscription']['id'] = subscription['id']
+            integration.metadata['subscription']['secret'] = secret
+
         integration.metadata['subscription']['check'] = time()
         integration.save()
