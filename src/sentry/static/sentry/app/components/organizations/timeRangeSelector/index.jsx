@@ -41,7 +41,7 @@ class TimeRangeSelector extends React.PureComponent {
      *
      * React does not support `instanceOf` with null values
      */
-    start: PropTypes.object,
+    start: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 
     /**
      * End date value for absolute date selector
@@ -49,12 +49,17 @@ class TimeRangeSelector extends React.PureComponent {
      *
      * React does not support `instanceOf` with null values
      */
-    end: PropTypes.object,
+    end: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 
     /**
      * Relative date value
      */
     relative: PropTypes.string,
+
+    /**
+     * Default initial value for using UTC
+     */
+    useUtc: PropTypes.bool,
 
     /**
      * Callback when value changes
@@ -75,7 +80,7 @@ class TimeRangeSelector extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      useUtc: false,
+      useUtc: props.useUtc,
       isOpen: false,
       selected: !!props.start && !!props.end ? 'absolute' : props.relative,
     };
@@ -128,13 +133,12 @@ class TimeRangeSelector extends React.PureComponent {
   handleSelectDateRange = ({start, end}) => {
     const {onChange} = this.props;
 
+    // TODO: Figure out best behavior when selecting a date range
+    // i.e. currently the ending date is exclusive (time is midnight)
     onChange({
       relative: null,
       start,
-      end: moment(end)
-        .add(1, 'day')
-        .subtract(1, 'second')
-        .toDate(),
+      end,
     });
   };
 
@@ -200,10 +204,10 @@ class TimeRangeSelector extends React.PureComponent {
                 </SelectorList>
                 {isAbsoluteSelected && (
                   <DateRange
-                    allowTimePicker
+                    showTimePicker
                     useUtc={this.state.useUtc}
-                    start={moment(start)}
-                    end={moment(end)}
+                    start={start}
+                    end={end}
                     onChange={this.handleSelectDateRange}
                     onChangeUtc={this.handleUseUtc}
                   />

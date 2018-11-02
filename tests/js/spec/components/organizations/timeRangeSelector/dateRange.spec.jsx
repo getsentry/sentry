@@ -44,7 +44,7 @@ describe('DateRange', function() {
         <DateRange
           start={start}
           end={end}
-          allowTimePicker
+          showTimePicker
           onChange={onChange}
           onChangeUtc={jest.fn()}
         />,
@@ -74,68 +74,6 @@ describe('DateRange', function() {
       expect(onChange).toHaveBeenLastCalledWith({
         start: new Date('2017-10-01T04:00:00.000Z'),
         end: new Date('2017-10-01T04:00:00.000Z'),
-      });
-    });
-
-    it('adds a start time before selecting a date', function() {
-      wrapper = mount(
-        <DateRange
-          start={null}
-          end={null}
-          allowTimePicker
-          onChange={onChange}
-          onChangeUtc={jest.fn()}
-        />,
-        routerContext
-      );
-
-      wrapper
-        .find('input[data-test-id="startTime"]')
-        .simulate('change', {target: {value: '11:00'}});
-
-      expect(onChange).not.toHaveBeenCalled();
-
-      wrapper
-        .find('DayCell')
-        .at(0)
-        .simulate('mouseUp');
-
-      expect(onChange).toHaveBeenLastCalledWith({
-        start: new Date('2017-10-01T15:00:00.000Z'),
-        end: new Date('2017-10-01T15:00:00.000Z'),
-      });
-    });
-
-    it('adds start and end time before selecting a date', function() {
-      wrapper = mount(
-        <DateRange
-          start={null}
-          end={null}
-          allowTimePicker
-          onChange={onChange}
-          onChangeUtc={jest.fn()}
-        />,
-        routerContext
-      );
-
-      wrapper
-        .find('input[data-test-id="startTime"]')
-        .simulate('change', {target: {value: '11:00'}});
-
-      wrapper
-        .find('input[data-test-id="endTime"]')
-        .simulate('change', {target: {value: '12:00'}});
-
-      expect(onChange).not.toHaveBeenCalled();
-
-      wrapper
-        .find('DayCell')
-        .at(0)
-        .simulate('mouseUp');
-
-      expect(onChange).toHaveBeenLastCalledWith({
-        start: new Date('2017-10-01T15:00:00.000Z'),
-        end: new Date('2017-10-01T16:00:00.000Z'),
       });
     });
 
@@ -169,7 +107,7 @@ describe('DateRange', function() {
         <DateRange
           start={start}
           end={end}
-          allowTimePicker
+          showTimePicker
           useUtc
           onChange={onChange}
           onChangeUtc={jest.fn()}

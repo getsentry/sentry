@@ -15,7 +15,7 @@ class DateSummary extends React.Component {
      *
      * React does not support `instanceOf` with null values
      */
-    start: PropTypes.object,
+    start: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 
     /**
      * End date value for absolute date selector
@@ -23,7 +23,8 @@ class DateSummary extends React.Component {
      *
      * React does not support `instanceOf` with null values
      */
-    end: PropTypes.object,
+    end: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+
     useUtc: PropTypes.bool,
   };
 

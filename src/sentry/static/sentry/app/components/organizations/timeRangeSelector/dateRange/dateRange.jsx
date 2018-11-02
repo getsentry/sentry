@@ -27,7 +27,7 @@ class DateRange extends React.Component {
      *
      * React does not support `instanceOf` with null values
      */
-    start: PropTypes.object,
+    start: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 
     /**
      * End date value for absolute date selector
@@ -35,12 +35,12 @@ class DateRange extends React.Component {
      *
      * React does not support `instanceOf` with null values
      */
-    end: PropTypes.object,
+    end: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 
     /**
      * Should we have a time selector?
      */
-    allowTimePicker: PropTypes.bool,
+    showTimePicker: PropTypes.bool,
 
     /**
      * Use UTC
@@ -67,35 +67,27 @@ class DateRange extends React.Component {
     return getFormattedDate(date, 'HH:mm', {local: !useUtc});
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {};
-  }
-
-  handleChangeTime = () => {};
-
   updateTime = (dateObj, timeStr) => {
     return setDateToTime(dateObj, timeStr || '00:00', {local: !this.props.useUtc});
   };
 
   handleSelectDateRange = ({selection}) => {
-    const {onChange} = this.props;
-    const {startTime, endTime} = this.state;
+    const {useUtc, onChange} = this.props;
     const {startDate, endDate} = selection;
 
     let start = startDate;
     let end = endDate;
 
     if (start) {
-      start = setDateToTime(start, startTime || '00:00', {local: !this.props.useUtc});
+      start = setDateToTime(start, '00:00', {local: !useUtc});
     }
+
     if (end) {
-      end = setDateToTime(end, endTime || startTime || '00:00', {
-        local: !this.props.useUtc,
+      end = setDateToTime(end, '00:00', {
+        local: !useUtc,
       });
     }
 
-    // overwrite selection dates's times with times in state
     onChange({
       start,
       end,
@@ -110,13 +102,6 @@ class DateRange extends React.Component {
     const {start, end, onChange} = this.props;
     const startTime = e.target.value;
 
-    if (!start) {
-      this.setState({
-        startTime,
-      });
-      return;
-    }
-
     onChange({
       start: setDateToTime(start, startTime, {local: !this.props.useUtc}),
       end,
@@ -126,12 +111,6 @@ class DateRange extends React.Component {
   handleChangeEnd = e => {
     const {start, end, onChange} = this.props;
     const endTime = e.target.value;
-    if (!end) {
-      this.setState({
-        endTime,
-      });
-      return;
-    }
 
     onChange({
       start,
@@ -140,7 +119,7 @@ class DateRange extends React.Component {
   };
 
   render() {
-    const {className, useUtc, start, end, allowTimePicker, onChangeUtc} = this.props;
+    const {className, useUtc, start, end, showTimePicker, onChangeUtc} = this.props;
 
     const startTime = DateRange.getTimeStringFromDate(new Date(start), useUtc);
     const endTime = DateRange.getTimeStringFromDate(new Date(end), useUtc);
@@ -169,10 +148,9 @@ class DateRange extends React.Component {
           maxDate={maxDate}
           onChange={this.handleSelectDateRange}
         />
-        {allowTimePicker && (
+        {showTimePicker && (
           <TimeAndUtcPicker>
-            <StyledTimePicker
-              disabled={!start && !end}
+            <TimePicker
               start={startTime}
               end={endTime}
               onChangeStart={this.handleChangeStart}
@@ -296,12 +274,6 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   .rdrNextButton i {
     border-left-color: ${p => p.theme.gray4};
   }
-`;
-
-const StyledTimePicker = styled(TimePicker)`
-  width: 70%;
-  padding: 0;
-  background: transparent;
 `;
 
 const TimeAndUtcPicker = styled('div')`

@@ -48,11 +48,14 @@ const TimePicker = styled(
   }
 )`
   display: grid;
+  background: transparent;
   grid-template-columns: 48% 48%;
   grid-column-gap: 4%;
   align-items: center;
   font-size: 0.875em;
   color: ${p => p.theme.gray3};
+  width: 70%;
+  padding: 0;
 `;
 
 const Input = styled('input')`
