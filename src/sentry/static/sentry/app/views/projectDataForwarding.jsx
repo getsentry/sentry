@@ -40,7 +40,7 @@ class DataForwardingStats extends AsyncComponent {
       <Panel>
         <PanelHeader>{t('Forwarded events in the last 30 days (by day)')}</PanelHeader>
         <PanelBody>
-          {stats.lenght > 0 && stats[0][0] ? (
+          {stats.length > 0 && stats[0][0] ? (
             <StackedBarChart
               style={{
                 border: 'none',
