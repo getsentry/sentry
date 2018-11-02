@@ -4,6 +4,12 @@ function getParser(local = false) {
   return local ? moment : moment.utc;
 }
 
+export function getEarliestRetentionDate() {
+  return moment()
+    .subtract(90, 'days')
+    .toDate();
+}
+
 /**
  * Return a date object in local time, when given a UTC timestamp
  */

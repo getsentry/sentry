@@ -1,11 +1,12 @@
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import moment from 'moment';
 import styled from 'react-emotion';
 
 import {getFormattedDate} from 'app/utils/dates';
 import {t} from 'app/locale';
-import DateRangePicker from 'app/components/organizations/timeRangeSelector/dateRange';
+import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import DropdownMenu from 'app/components/dropdownMenu';
 import HeaderItem from 'app/components/organizations/headerItem';
 import InlineSvg from 'app/components/inlineSvg';
@@ -18,6 +19,22 @@ const ALLOWED_RELATIVE_DATES = {
   '14d': t('Last 14 days'),
   '30d': t('Last 30 days'),
 };
+
+// Get date 2 weeks ago at midnight
+const getTwoWeeksAgo = () =>
+  moment()
+    .subtract(2, 'weeks')
+    .hour(0)
+    .minute(0);
+
+// Get tomorrow at midnight so that default endtime
+// is inclusive of today
+const getEndOfToday = () =>
+  moment()
+    .add(1, 'day')
+    .hour(0)
+    .minute(0)
+    .subtract(1, 'second');
 
 class TimeRangeSelector extends React.PureComponent {
   static propTypes = {
@@ -75,12 +92,17 @@ class TimeRangeSelector extends React.PureComponent {
 
   handleUpdate = () => {
     const {onUpdate} = this.props;
-    this.setState({
-      isOpen: false,
-    });
-    if (typeof onUpdate === 'function') {
-      onUpdate();
-    }
+
+    this.setState(
+      {
+        isOpen: false,
+      },
+      () => {
+        if (typeof onUpdate === 'function') {
+          onUpdate();
+        }
+      }
+    );
   };
 
   handleAbsoluteClick = () => {
@@ -88,11 +110,20 @@ class TimeRangeSelector extends React.PureComponent {
     this.setState(state => ({
       selected: 'absolute',
     }));
+    this.props.onChange({
+      relative: null,
+      start: getTwoWeeksAgo(),
+      end: getEndOfToday(),
+    });
   };
 
   handleSelectRelative = value => {
     const {onChange} = this.props;
-    onChange({relative: value});
+    onChange({
+      relative: value,
+      start: null,
+      end: null,
+    });
     this.setState({
       selected: value,
     });
@@ -102,8 +133,11 @@ class TimeRangeSelector extends React.PureComponent {
   handleSelectDateRange = ({start, end}) => {
     const {onChange} = this.props;
     onChange({
+      relative: null,
       start,
-      end,
+      end: moment(end)
+        .add(1, 'day')
+        .subtract(1, 'second'),
     });
   };
 
@@ -167,13 +201,13 @@ class TimeRangeSelector extends React.PureComponent {
                 )}
               </RelativeSelectorList>
               {isAbsoluteSelected && (
-                <DateRangePicker
+                <DateRange
                   allowTimePicker
                   useUtc={this.state.useUtc}
                   start={start}
                   end={end}
                   onChange={this.handleSelectDateRange}
-                  handleUseUtc={this.handleUseUtc}
+                  onChangeUtc={this.handleUseUtc}
                 />
               )}
             </Menu>
@@ -270,7 +304,9 @@ RelativeSelector.propTypes = {
   selected: PropTypes.string,
 };
 
-const RelativeSelectorList = styled(Flex)`
+const RelativeSelectorList = styled(({isAbsoluteSelected, ...props}) => (
+  <Flex {...props} />
+))`
   flex: 1;
   flex-direction: column;
   flex-shrink: 0;

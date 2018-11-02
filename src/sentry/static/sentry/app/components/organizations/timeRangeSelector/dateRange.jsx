@@ -4,16 +4,17 @@ import 'react-date-range/dist/theme/default.css';
 import {DateRangePicker} from 'react-date-range';
 import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment';
 import styled from 'react-emotion';
-import Checkbox from 'app/components/checkbox';
 
 import {
+  getEarliestRetentionDate,
   getFormattedDate,
   getLocalDateObject,
   getUtcInLocal,
   setDateToTime,
 } from 'app/utils/dates';
+import {t} from 'app/locale';
+import Checkbox from 'app/components/checkbox';
 import TimePicker from 'app/components/organizations/timeRangeSelector/timePicker';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -43,7 +44,7 @@ const DateRange = styled(
       /**
        * handle UTC checkbox change
        */
-      handleUseUtc: PropTypes.func,
+      onChangeUtc: PropTypes.func,
 
       /**
        * Callback when value changes
@@ -133,13 +134,14 @@ const DateRange = styled(
     };
 
     render() {
-      const {className, start, end, useUtc, allowTimePicker, handleUseUtc} = this.props;
+      const {className, useUtc, start, end, allowTimePicker, onChangeUtc} = this.props;
 
       const startTime = DateRange.getTimeStringFromDate(new Date(start), useUtc);
       const endTime = DateRange.getTimeStringFromDate(new Date(end), useUtc);
-      const minDate = moment()
-        .subtract(90, 'days')
-        .toDate();
+
+      // Restraints on the time range that you can select
+      // Can't select dates in the future b/c we're not fortune tellers (yet)
+      const minDate = getEarliestRetentionDate();
       const maxDate = new Date();
 
       return (
@@ -171,9 +173,9 @@ const DateRange = styled(
                 onChangeEnd={this.handleChangeEnd}
               />
               <UtcPicker>
-                Use UTC
+                {t('Use UTC')}
                 <Checkbox
-                  onChange={handleUseUtc}
+                  onChange={onChangeUtc}
                   checked={useUtc}
                   style={{
                     margin: '0 0 0 0.5em',

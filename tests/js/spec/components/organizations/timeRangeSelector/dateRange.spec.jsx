@@ -41,7 +41,13 @@ describe('DateRange', function() {
     });
     beforeEach(function() {
       wrapper = mount(
-        <DateRange start={start} end={end} allowTimePicker onChange={onChange} />,
+        <DateRange
+          start={start}
+          end={end}
+          allowTimePicker
+          onChange={onChange}
+          onChangeUtc={jest.fn()}
+        />,
         routerContext
       );
     });
@@ -73,7 +79,13 @@ describe('DateRange', function() {
 
     it('adds a start time before selecting a date', function() {
       wrapper = mount(
-        <DateRange start={null} end={null} allowTimePicker onChange={onChange} />,
+        <DateRange
+          start={null}
+          end={null}
+          allowTimePicker
+          onChange={onChange}
+          onChangeUtc={jest.fn()}
+        />,
         routerContext
       );
 
@@ -96,7 +108,13 @@ describe('DateRange', function() {
 
     it('adds start and end time before selecting a date', function() {
       wrapper = mount(
-        <DateRange start={null} end={null} allowTimePicker onChange={onChange} />,
+        <DateRange
+          start={null}
+          end={null}
+          allowTimePicker
+          onChange={onChange}
+          onChangeUtc={jest.fn()}
+        />,
         routerContext
       );
 
@@ -148,7 +166,14 @@ describe('DateRange', function() {
     beforeEach(function() {
       onChange.mockReset();
       wrapper = mount(
-        <DateRange start={start} end={end} allowTimePicker useUtc onChange={onChange} />,
+        <DateRange
+          start={start}
+          end={end}
+          allowTimePicker
+          useUtc
+          onChange={onChange}
+          onChangeUtc={jest.fn()}
+        />,
         routerContext
       );
     });
