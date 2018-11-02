@@ -19,23 +19,12 @@ describe('IntegrationRepos', function() {
       let addRepo = Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',
-        body: {
-          id: 9,
-          integrationId: '1',
-          name: 'getsentry/sentry',
-          url: 'https://github.com/getsentry/sentry',
-          provider: {
-            name: 'GitHub',
-            id: 'integrations:github',
-            status: 'active',
-            url: 'github.com/getsentry',
-          },
-        },
+        body: TestStubs.Repository({integrationId: '1'}),
       });
       Client.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
         body: {
-          repos: [{identifier: 'getsentry/sentry', name: 'sentry'}],
+          repos: [{identifier: 'repo-name', name: 'repo-name'}],
         },
       });
       Client.addMockResponse({
@@ -58,12 +47,12 @@ describe('IntegrationRepos', function() {
           data: {
             installation: '1',
             provider: 'integrations:github',
-            identifier: 'getsentry/sentry',
+            identifier: 'repo-name',
           },
         })
       );
       let repoRow = wrapper.find('RepoOption').first();
-      expect(repoRow.find('strong').text()).toEqual('getsentry/sentry');
+      expect(repoRow.find('strong').text()).toEqual('repo-name');
     });
 
     describe('save failure', async function() {
