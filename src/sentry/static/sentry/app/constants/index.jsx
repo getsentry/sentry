@@ -2,6 +2,8 @@
  * Common constants here
  */
 
+import {t} from 'app/locale';
+
 export const API_SCOPES = [
   'project:read',
   'project:write',
@@ -60,3 +62,10 @@ export const AVATAR_URL_MAP = {
 export const MENU_CLOSE_DELAY = 200;
 
 export const DEFAULT_STATS_PERIOD = '14d';
+
+export const DEFAULT_RELATIVE_PERIODS = {
+  '24h': t('Last 24 hours'),
+  '7d': t('Last 7 days'),
+  '14d': t('Last 14 days'),
+  '30d': t('Last 30 days'),
+};

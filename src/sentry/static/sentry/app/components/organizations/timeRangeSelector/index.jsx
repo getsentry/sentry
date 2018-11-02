@@ -4,21 +4,16 @@ import React from 'react';
 import moment from 'moment';
 import styled from 'react-emotion';
 
+import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {getFormattedDate} from 'app/utils/dates';
 import {t} from 'app/locale';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import DropdownMenu from 'app/components/dropdownMenu';
 import HeaderItem from 'app/components/organizations/headerItem';
 import InlineSvg from 'app/components/inlineSvg';
+import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
+import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
 import getDynamicText from 'app/utils/getDynamicText';
-import space from 'app/styles/space';
-
-const ALLOWED_RELATIVE_DATES = {
-  '24h': t('Last 24 hours'),
-  '7d': t('Last 7 days'),
-  '14d': t('Last 14 days'),
-  '30d': t('Last 30 days'),
-};
 
 // Get date 2 weeks ago at midnight
 const getTwoWeeksAgo = () =>
@@ -155,7 +150,7 @@ class TimeRangeSelector extends React.PureComponent {
     const isAbsoluteSelected = this.state.selected === 'absolute';
 
     const summary = relative
-      ? `${ALLOWED_RELATIVE_DATES[relative]}`
+      ? `${DEFAULT_RELATIVE_PERIODS[relative]}`
       : `${this.formatDate(start)} to ${this.formatDate(end)}`;
 
     return (
@@ -182,9 +177,7 @@ class TimeRangeSelector extends React.PureComponent {
                 <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
                   {shouldShowRelative && (
                     <RelativeSelector
-                      choices={Object.entries(ALLOWED_RELATIVE_DATES)}
                       onClick={this.handleSelectRelative}
-                      value={relative}
                       selected={this.state.selected}
                     />
                   )}
@@ -241,68 +234,6 @@ const Menu = styled('div')`
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   font-size: 0.8em;
 `;
-
-const SelectorItem = styled(
-  class SelectorItem extends React.PureComponent {
-    static propTypes = {
-      onClick: PropTypes.func.isRequired,
-      value: PropTypes.string,
-      label: PropTypes.node,
-    };
-
-    handleClick = e => {
-      let {onClick, value} = this.props;
-      onClick(value, e);
-    };
-    render() {
-      let {className, label} = this.props;
-      return (
-        <Flex className={className} onClick={this.handleClick}>
-          <Label>{label}</Label>
-        </Flex>
-      );
-    }
-  }
-)`
-  cursor: pointer;
-  white-space: nowrap;
-  padding: ${space(1)};
-  align-items: center;
-  flex: 1;
-  background-color: ${p => (p.selected ? p.theme.offWhite : 'transpatent')};
-  font-weight: ${p => (p.selected ? 'bold' : 'normal')};
-  border-bottom: 1px solid ${p => (p.last ? 'transparent' : p.theme.borderLight)};
-
-  &:hover {
-    background: ${p => p.theme.offWhite};
-  }
-`;
-
-const Label = styled('span')`
-  flex: 1;
-  margin-right: ${space(1)};
-`;
-
-const RelativeSelector = ({onClick, selected}) => {
-  return (
-    <React.Fragment>
-      {Object.entries(ALLOWED_RELATIVE_DATES).map(([value, label]) => (
-        <SelectorItem
-          key={value}
-          onClick={onClick}
-          value={value}
-          label={label}
-          selected={selected === value}
-        />
-      ))}
-    </React.Fragment>
-  );
-};
-
-RelativeSelector.propTypes = {
-  onClick: PropTypes.func,
-  selected: PropTypes.string,
-};
 
 const SelectorList = styled(({isAbsoluteSelected, ...props}) => <Flex {...props} />)`
   flex: 1;
