@@ -3,6 +3,7 @@ import React from 'react';
 import {t} from 'app/locale';
 import styled from 'react-emotion';
 
+import {analytics} from 'app/utils/analytics';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {PanelItem} from 'app/components/panels';
@@ -44,6 +45,11 @@ class ReleaseProgress extends AsyncComponent {
     } else if (stateKey === 'setupStatus') {
       this.getRemainingSteps(data);
     }
+    let {organization, project} = this.context;
+    analytics('releases.progress_bar_viewed', {
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(project.id, 10),
+    });
   }
 
   getRemainingSteps(setupStatus) {
@@ -121,7 +127,7 @@ class ReleaseProgress extends AsyncComponent {
               <p>
                 {t(
                   'Saves you time by surfacing when issues are first introduced, suggesting responsible commits and more!'
-                )}{' '}
+                )}
               </p>
             </div>
           </div>
