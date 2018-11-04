@@ -225,6 +225,25 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
 
 class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
 
+    def get_environments(self, request, organization):
+        requested_environments = set(request.GET.getlist('environment'))
+
+        if not requested_environments:
+            return []
+
+        environments = dict(
+            Environment.objects.filter(
+                organization_id=organization.id,
+                name__in=requested_environments,
+            ).values_list('name', 'id'),
+        )
+
+        if requested_environments != set(environments.keys()):
+            raise ResourceDoesNotExist
+
+        # snuba requires ids for filter keys
+        return environments.values()
+
     def get(self, request, organization):
         """
         Returns a time series view over statsPeriod over interval.
@@ -250,10 +269,14 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
         if not project_ids:
             return self.empty()
 
-        environment = self.get_environment(request, organization)
+        environments = self.get_environments(request, organization)
         query_condition = self.get_query_condition(request, organization)
 
         rollup = int(interval.total_seconds())
+
+        filter_keys = {'project_id': project_ids}
+        if environments:
+            filter_keys['environment'] = environments
 
         data = query(
             end=end,
@@ -263,10 +286,8 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
             aggregations=[
                 ('count()', '', 'count'),
             ],
-            filter_keys={
-                'project_id': project_ids,
-            },
-            conditions=lookup.conditions + query_condition + environment,
+            filter_keys=filter_keys,
+            conditions=lookup.conditions + query_condition,
             groupby=['time'] + lookup.columns,
             orderby='time',
         )
