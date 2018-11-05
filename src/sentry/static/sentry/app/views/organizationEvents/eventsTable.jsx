@@ -72,7 +72,7 @@ class EventsTable extends React.PureComponent {
                       <IdBadge
                         project={project}
                         avatarSize={16}
-                        displayName={<span>{project.name}</span>}
+                        displayName={<span>{project.slug}</span>}
                         avatarProps={{consistentWidth: true}}
                       />
                     </Project>
