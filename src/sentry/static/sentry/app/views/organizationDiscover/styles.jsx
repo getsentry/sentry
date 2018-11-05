@@ -50,6 +50,7 @@ export const Sidebar = styled(props => (
 export const Body = styled(Flex)`
   flex: 1;
   flex-direction: column;
+  overflow: hidden;
 `;
 
 export const BodyContent = styled(Flex)`
