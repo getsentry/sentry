@@ -705,12 +705,33 @@ class EventManager(object):
     def get_data(self):
         return self._data
 
+    def _get_event_model(self, project_id=None):
+        data = self._data
+        event_id = data.pop('event_id')
+        platform = data.pop('platform', None)
+
+        recorded_timestamp = data.pop('timestamp')
+        date = datetime.fromtimestamp(recorded_timestamp)
+        date = date.replace(tzinfo=timezone.utc)
+
+        # unused
+        time_spent = data.pop('time_spent', None)
+
+        return Event(
+            project_id=project_id or self._project.id,
+            event_id=event_id,
+            data=data,
+            time_spent=time_spent,
+            datetime=date,
+            platform=platform
+        )
+
     def save(self, project_id, raw=False):
         from sentry.tasks.post_process import index_event_tags
 
-        data = self._data
-
         project = Project.objects.get_from_cache(id=project_id)
+
+        data = self._data
 
         # Check to make sure we're not about to do a bunch of work that's
         # already been done if we've processed an event with this ID. (This
@@ -736,8 +757,7 @@ class EventManager(object):
             )
             return event
 
-        # First we pull out our top-level (non-data attr) kwargs
-        event_id = data.pop('event_id')
+        # pull out our top-level (non-data attr) kwargs
         level = data.pop('level')
         transaction_name = data.pop('transaction', None)
         culprit = data.pop('culprit', None)
@@ -746,14 +766,21 @@ class EventManager(object):
         site = data.pop('site', None)
         checksum = data.pop('checksum', None)
         fingerprint = data.pop('fingerprint', None)
-        platform = data.pop('platform', None)
         release = data.pop('release', None)
         dist = data.pop('dist', None)
         environment = data.pop('environment', None)
+        recorded_timestamp = data.get("timestamp")
 
         # unused
-        time_spent = data.pop('time_spent', None)
         message = data.pop('message', '')
+
+        event = self._get_event_model(project_id=project_id)
+        event._project_cache = project
+
+        date = event.datetime
+        platform = event.platform
+        event_id = event.event_id
+        data = event.data.data
 
         if not culprit:
             if transaction_name:
@@ -764,25 +791,6 @@ class EventManager(object):
         culprit = force_text(culprit)
         if transaction_name:
             transaction_name = force_text(transaction_name)
-
-        recorded_timestamp = data.pop('timestamp')
-        date = datetime.fromtimestamp(recorded_timestamp)
-        date = date.replace(tzinfo=timezone.utc)
-
-        kwargs = {
-            'platform': platform,
-        }
-
-        event = Event(
-            project_id=project.id,
-            event_id=event_id,
-            data=data,
-            time_spent=time_spent,
-            datetime=date,
-            **kwargs
-        )
-        event._project_cache = project
-        data = event.data.data
 
         # convert this to a dict to ensure we're only storing one value per key
         # as most parts of Sentry dont currently play well with multiple values
@@ -898,11 +906,13 @@ class EventManager(object):
         message = trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
         event.message = message
-        kwargs['message'] = message
+        kwargs = {
+            'platform': platform,
+            'message': message
+        }
 
         received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
-        group_kwargs = kwargs.copy()
-        group_kwargs.update(
+        kwargs.update(
             {
                 'culprit': culprit,
                 'logger': logger_name,
@@ -923,11 +933,11 @@ class EventManager(object):
         )
 
         if release:
-            group_kwargs['first_release'] = release
+            kwargs['first_release'] = release
 
         try:
             group, is_new, is_regression, is_sample = self._save_aggregate(
-                event=event, hashes=hashes, release=release, **group_kwargs
+                event=event, hashes=hashes, release=release, **kwargs
             )
         except HashDiscarded:
             event_discarded.send_robust(
