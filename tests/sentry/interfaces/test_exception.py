@@ -52,27 +52,6 @@ class ExceptionTest(TestCase):
         assert Exception.to_python({'values': [None]}).to_json() == {
             "exc_omitted": None, "values": [None]}
 
-    def test_exception_without_type_or_value(self):
-        input = {
-            "mechanism": {
-                "handled": True, "type": "generic"
-            }
-        }
-        assert Exception.to_python(input).to_json() == {
-            "exc_omitted": None,
-            "values": [
-                {
-                    "mechanism": {"handled": True, "type": "generic"},
-                    "module": None,
-                    "raw_stacktrace": None,
-                    "stacktrace": None,
-                    "thread_id": None,
-                    "type": None,
-                    "value": None
-                }
-            ]
-        }
-
     def test_does_not_wrap_if_exception_omitted_present(self):
         input = {
             "exc_omitted": None,

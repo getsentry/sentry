@@ -833,6 +833,9 @@ class SingleException(Interface):
         if not is_valid:
             raise InterfaceValidationError("Invalid exception")
 
+        if not (data.get('type') or data.get('value')):
+            raise InterfaceValidationError("No 'type' or 'value' present")
+
         if data.get('stacktrace') and data['stacktrace'].get('frames'):
             stacktrace = Stacktrace.to_python(
                 data['stacktrace'],
