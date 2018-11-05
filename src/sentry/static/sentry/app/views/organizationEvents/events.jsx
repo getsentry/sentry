@@ -1,6 +1,8 @@
 import React from 'react';
+import styled from 'react-emotion';
+import {Flex} from 'grid-emotion';
 
-import {Panel, PanelHeader} from 'app/components/panels';
+import {Panel} from 'app/components/panels';
 import {getParams} from 'app/views/organizationEvents/utils';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -50,22 +52,26 @@ class OrganizationEvents extends AsyncView {
 
     return (
       <React.Fragment>
+        <Flex align="center" justify="space-between" mb={2}>
+          <HeaderTitle>{t('Events')}</HeaderTitle>
+          {this.renderSearchInput({})}
+        </Flex>
+
         <Panel>
-          <PanelHeader hasButtons>
-            {t('Events')}
-            {this.renderSearchInput({})}
-          </PanelHeader>
-
           <EventsChart organization={organization} />
-
-          <EventsTable loading={loading} events={events} organization={organization} />
         </Panel>
+
+        <EventsTable loading={loading} events={events} organization={organization} />
 
         <Pagination pageLinks={eventsPageLinks} />
       </React.Fragment>
     );
   }
 }
+
+const HeaderTitle = styled('h4')`
+  margin: 0;
+`;
 
 export default withOrganization(OrganizationEvents);
 export {OrganizationEvents};
