@@ -45,14 +45,10 @@ class ReleaseProgress extends AsyncComponent {
     } else if (stateKey === 'setupStatus') {
       this.getRemainingSteps(data);
     }
-    let {organization, project} = this.context;
-    analytics('releases.progress_bar_viewed', {
-      org_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
-    });
   }
 
   getRemainingSteps(setupStatus) {
+    let {organization, project} = this.context;
     let remainingSteps;
     if (setupStatus) {
       remainingSteps = setupStatus
@@ -61,6 +57,12 @@ class ReleaseProgress extends AsyncComponent {
 
       this.setState({
         remainingSteps,
+      });
+
+      analytics('releases.progress_bar_viewed', {
+        org_id: parseInt(organization.id, 10),
+        project_id: parseInt(project.id, 10),
+        steps: setupStatus,
       });
     }
   }
