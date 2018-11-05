@@ -331,11 +331,11 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
       type="warning"
     >
       <Base
-        className="ref-warning css-s8q8dm-AlertWrapper e1xb5l7j1"
+        className="ref-warning css-qx534z-AlertWrapper e1xb5l7j1"
         type="warning"
       >
         <div
-          className="ref-warning css-s8q8dm-AlertWrapper e1xb5l7j1"
+          className="ref-warning css-qx534z-AlertWrapper e1xb5l7j1"
           is={null}
           type="warning"
         >
