@@ -38,12 +38,17 @@ export function getFormattedDate(dateObj, format, {local} = {}) {
  * @param {String} timeStr Time in 24hr format (HH:mm)
  */
 export function setDateToTime(dateObj, timeStr, {local} = {}) {
-  const [hours, minutes] = timeStr.split(':');
+  const [hours, minutes, seconds] = timeStr.split(':');
 
-  return getParser(local)(dateObj)
+  const date = getParser(local)(dateObj)
     .set('hours', hours)
-    .set('minutes', minutes)
-    .toDate();
+    .set('minutes', minutes);
+
+  if (typeof seconds !== 'undefined') {
+    date.set('seconds', seconds);
+  }
+
+  return date.toDate();
 }
 
 /**
