@@ -61,7 +61,11 @@ export default class OrganizationDeveloperSettings extends AsyncView {
       <Button
         priority="primary"
         size="small"
+<<<<<<< HEAD
         to={`/settings/${orgId}/developer-settings/new/`}
+=======
+        to={`/settings/${orgId}/developer-settings/new`}
+>>>>>>> delete unncessary things and edit test descriptions
         icon="icon-circle-add"
       >
         {t('Create New Application')}

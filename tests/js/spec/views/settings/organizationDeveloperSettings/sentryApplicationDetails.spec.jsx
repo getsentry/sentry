@@ -20,10 +20,14 @@ describe('Sentry Application Details', function() {
 
     describe('renders()', () => {
 <<<<<<< HEAD
+<<<<<<< HEAD
       it('it shows empty scopes and no credentials', function() {
 =======
       it('Empty scopes and no credentials shown', function() {
 >>>>>>> more js tests - application details
+=======
+      it('it shows empty scopes and no credentials', function() {
+>>>>>>> delete unncessary things and edit test descriptions
         expect(wrapper).toMatchSnapshot();
         // new app starts off with no scopes selected
         expect(wrapper.find('ApplicationScopes').prop('scopes')).toEqual([]);
@@ -40,10 +44,14 @@ describe('Sentry Application Details', function() {
 
     describe('saving new app', () => {
 <<<<<<< HEAD
+<<<<<<< HEAD
       it('it changes the data', async function() {
 =======
       it('changes to data', async function() {
 >>>>>>> more js tests - application details
+=======
+      it('it changes the data', async function() {
+>>>>>>> delete unncessary things and edit test descriptions
         let response = Client.addMockResponse({
           url: '/sentry-apps/',
           method: 'POST',
@@ -101,10 +109,14 @@ describe('Sentry Application Details', function() {
 
     describe('renders()', () => {
 <<<<<<< HEAD
+<<<<<<< HEAD
       it('it shows application data and credentials', function() {
 =======
       it('Application data and credentials shown', function() {
 >>>>>>> more js tests - application details
+=======
+      it('it shows application data and credentials', function() {
+>>>>>>> delete unncessary things and edit test descriptions
         Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           body: sentryApp,
@@ -141,10 +153,14 @@ describe('Sentry Application Details', function() {
         routerContext
       );
 <<<<<<< HEAD
+<<<<<<< HEAD
       it('it updates app with correct data', function() {
 =======
       it('updates app with correct data', function() {
 >>>>>>> more js tests - application details
+=======
+      it('it updates app with correct data', function() {
+>>>>>>> delete unncessary things and edit test descriptions
         let response = Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           method: 'PUT',

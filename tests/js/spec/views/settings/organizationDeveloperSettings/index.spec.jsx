@@ -15,10 +15,14 @@ describe('Organization Developer Settings', function() {
     const sentryApp = TestStubs.SentryApp();
     const routerContext = TestStubs.routerContext();
 <<<<<<< HEAD
+<<<<<<< HEAD
     it('it shows empty state', function() {
 =======
     it('Empty state', function() {
 >>>>>>> add some js tests
+=======
+    it('it shows empty state', function() {
+>>>>>>> delete unncessary things and edit test descriptions
       Client.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
@@ -32,10 +36,14 @@ describe('Organization Developer Settings', function() {
     });
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     it('it lists sentry apps for an organization', function() {
 =======
     it('Lists sentry apps for an organization', function() {
 >>>>>>> add some js tests
+=======
+    it('it lists sentry apps for an organization', function() {
+>>>>>>> delete unncessary things and edit test descriptions
       Client.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [sentryApp],
