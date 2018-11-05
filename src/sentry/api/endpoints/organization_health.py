@@ -243,6 +243,7 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
 
         conditions = []
 
+        # the "no environment" environment is null in snuba
         if '' in environments:
             environments.remove('')
             conditions.append(['tags[environment]', 'IS NULL', None])
@@ -250,11 +251,7 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
         if environments:
             conditions.append(['tags[environment]', 'IN', list(environments)])
 
-        # OR clauses are nested
-        if len(conditions) == 2:
-            return [conditions]
-
-        return conditions
+        return [conditions]
 
     def get(self, request, organization):
         """
