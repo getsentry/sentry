@@ -135,7 +135,7 @@ class OrganizationDetailsBody extends Component {
       }
     return (
       <React.Fragment>
-        <Hook name="component:sample-event-banner" params={organization} />
+        <Hook name="component:sample-event-banner" params={{organization}} />
         <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
       </React.Fragment>
