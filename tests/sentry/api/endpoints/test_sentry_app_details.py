@@ -61,10 +61,7 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
 
         response = self.client.get(self.url, format='json')
         assert response.status_code == 200
-<<<<<<< HEAD
-=======
         assert response.data['uuid'] == self.published_app.uuid
->>>>>>> fix python tests
 
     @with_feature('organizations:internal-catchall')
     def test_users_see_unpublished_apps_owned_by_their_org(self):
