@@ -15,6 +15,81 @@ describe('IntegrationRepos', function() {
     const integration = TestStubs.GitHubIntegration();
     const routerContext = TestStubs.routerContext();
 
+    describe('successful save', async function() {
+      let addRepo = Client.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'POST',
+        body: TestStubs.Repository({integrationId: '1'}),
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/integrations/1/repos/`,
+        body: {
+          repos: [{identifier: 'repo-name', name: 'repo-name'}],
+        },
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'GET',
+        body: [],
+      });
+
+      const wrapper = mount(
+        <IntegrationRepos integration={integration} />,
+        routerContext
+      );
+      wrapper.find('DropdownButton').simulate('click');
+      wrapper.find('StyledListElement').simulate('click');
+      await wrapper.update();
+
+      expect(addRepo).toHaveBeenCalledWith(
+        `/organizations/${org.slug}/repos/`,
+        expect.objectContaining({
+          data: {
+            installation: '1',
+            provider: 'integrations:github',
+            identifier: 'repo-name',
+          },
+        })
+      );
+      let repoRow = wrapper.find('RepoOption').first();
+      expect(repoRow.find('strong').text()).toEqual('repo-name');
+    });
+
+    describe('save failure', async function() {
+      let addRepo = Client.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'POST',
+        statusCode: 400,
+        body: {
+          errors: {
+            __all__: 'Repository already exists.',
+          },
+        },
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/integrations/1/repos/`,
+        body: {
+          repos: [{identifier: 'getsentry/sentry', name: 'sentry'}],
+        },
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'GET',
+        body: [],
+      });
+
+      const wrapper = mount(
+        <IntegrationRepos integration={integration} />,
+        routerContext
+      );
+      wrapper.find('DropdownButton').simulate('click');
+      wrapper.find('StyledListElement').simulate('click');
+      await wrapper.update();
+
+      expect(addRepo).toHaveBeenCalled();
+      expect(wrapper.find('RepoOption')).toHaveLength(0);
+    });
+
     describe('migratable repo', function() {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
