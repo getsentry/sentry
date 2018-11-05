@@ -38,11 +38,11 @@ exports[`ConfirmDelete renders 1`] = `
               type="error"
             >
               <Base
-                className="ref-error css-1segpdr-AlertWrapper e1xb5l7j1"
+                className="ref-error css-15weuz8-AlertWrapper e1xb5l7j1"
                 type="error"
               >
                 <div
-                  className="ref-error css-1segpdr-AlertWrapper e1xb5l7j1"
+                  className="ref-error css-15weuz8-AlertWrapper e1xb5l7j1"
                   is={null}
                   type="error"
                 >
