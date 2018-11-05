@@ -1,11 +1,11 @@
 import React from 'react';
 
-import PropTypes from 'prop-types';
 import BaseAvatar from 'app/components/avatar/baseAvatar';
+import SentryTypes from 'app/sentryTypes';
 
 class SentryAppAvatar extends React.Component {
   static propTypes = {
-    sentryApp: PropTypes.object.isRequired,
+    sentryApp: SentryTypes.SentryApp.isRequired,
     ...BaseAvatar.propTypes,
   };
 
