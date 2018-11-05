@@ -126,7 +126,7 @@ export default class IntegrationRepos extends AsyncComponent {
       },
       error: errorData => {
         let text = errorData.responseJSON.errors
-          ? data.responseJSON.errors.__all__
+          ? errorData.responseJSON.errors.__all__
           : t('Unable to add repository.');
         IndicatorStore.addError(text);
       },
