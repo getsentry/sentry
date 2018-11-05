@@ -30,12 +30,17 @@ class EventsTable extends React.Component {
   }
 
   shouldComponentUpdate(nextProps) {
+    if (this.props.reloading !== nextProps.reloading) {
+      return true;
+    }
+
     if (
       this.props.organization === nextProps.organization &&
       isEqual(this.props.events, nextProps.events)
     ) {
       return false;
     }
+
     return true;
   }
 
@@ -134,7 +139,7 @@ const TableLayout = styled('div')`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  padding-top: 40vh;
+  padding-top: 10vh;
   z-index: 1;
   &.loading.overlay {
     align-items: flex-start;
