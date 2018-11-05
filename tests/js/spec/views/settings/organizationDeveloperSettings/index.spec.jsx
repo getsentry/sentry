@@ -14,7 +14,7 @@ describe('Organization Developer Settings', function() {
     const org = TestStubs.Organization();
     const sentryApp = TestStubs.SentryApp();
     const routerContext = TestStubs.routerContext();
-    it('Empty state', function() {
+    it('it shows empty state', function() {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
@@ -27,7 +27,7 @@ describe('Organization Developer Settings', function() {
       expect(wrapper.exists('EmptyMessage')).toBe(true);
     });
 
-    it('Lists sentry apps for an organization', function() {
+    it('it lists sentry apps for an organization', function() {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [sentryApp],

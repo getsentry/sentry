@@ -19,7 +19,7 @@ describe('Sentry Application Details', function() {
     );
 
     describe('renders()', () => {
-      it('Empty scopes and no credentials shown', function() {
+      it('it shows empty scopes and no credentials', function() {
         expect(wrapper).toMatchSnapshot();
         // new app starts off with no scopes selected
         expect(wrapper.find('ApplicationScopes').prop('scopes')).toEqual([]);
@@ -35,7 +35,7 @@ describe('Sentry Application Details', function() {
     });
 
     describe('saving new app', () => {
-      it('changes to data', async function() {
+      it('it changes the data', async function() {
         let response = Client.addMockResponse({
           url: '/sentry-apps/',
           method: 'POST',
@@ -82,7 +82,7 @@ describe('Sentry Application Details', function() {
     const sentryApp = TestStubs.SentryApp();
 
     describe('renders()', () => {
-      it('Application data and credentials shown', function() {
+      it('it shows application data and credentials', function() {
         Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           body: sentryApp,
@@ -118,7 +118,7 @@ describe('Sentry Application Details', function() {
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId: org.slug}} />,
         routerContext
       );
-      it('updates app with correct data', function() {
+      it('it updates app with correct data', function() {
         let response = Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           method: 'PUT',

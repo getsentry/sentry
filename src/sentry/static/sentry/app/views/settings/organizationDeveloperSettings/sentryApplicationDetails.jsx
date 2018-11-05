@@ -1,4 +1,3 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {browserHistory} from 'react-router';
@@ -23,10 +22,8 @@ class SentryApplicationDetails extends AsyncView {
 
   getDefaultState() {
     return {
-      loading: true,
-      error: false,
+      ...super.getDefaultState(),
       app: null,
-      errors: {},
     };
   }
 
@@ -66,65 +63,61 @@ class SentryApplicationDetails extends AsyncView {
           allowUndo
           initialData={{organization: orgId, ...app}}
           onSubmitSuccess={this.onSubmitSuccess}
-          onSubmitError={err => addErrorMessage('Unable to save change')}
+          onSubmitError={err => addErrorMessage(t('Unable to save change'))}
         >
-          <Box>
-            <JsonForm location={this.props.location} forms={sentryApplication} />
+          <JsonForm location={this.props.location} forms={sentryApplication} />
+          <Panel>
+            <PanelHeader>{t('API Scopes')}</PanelHeader>
+            <PanelBody>
+              <FormField
+                name="scopes"
+                inline={false}
+                flexibleControlStateSize={true}
+                getData={data => ({scopes: data})}
+                required
+              >
+                {({onChange, onBlur}) => (
+                  <ApplicationScopes
+                    onToggle={this.handleScopeChange.bind(this, onChange, onBlur)}
+                    scopes={app && app.scopes ? app.scopes : []}
+                  />
+                )}
+              </FormField>
+            </PanelBody>
+          </Panel>
+          {app && (
             <Panel>
-              <PanelHeader>{t('API Scopes')}</PanelHeader>
+              <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
+                <FormField name="clientID" label="Client ID" overflow>
+                  {({value}) => {
+                    return (
+                      <TextCopyInput>
+                        {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
+                      </TextCopyInput>
+                    );
+                  }}
+                </FormField>
                 <FormField
-                  name="scopes"
-                  inline={false}
-                  flexibleControlStateSize={true}
-                  getData={data => ({scopes: data})}
-                  required
+                  overflow
+                  name="clientSecret"
+                  label="Client Secret"
+                  help={t(`Your secret is only available briefly after application creation. Make
+                      sure to save this value!`)}
                 >
-                  {({onChange, onBlur}) => (
-                    <ApplicationScopes
-                      onToggle={this.handleScopeChange.bind(this, onChange, onBlur)}
-                      scopes={app && app.scopes ? app.scopes : []}
-                    />
-                  )}
+                  {({value}) => {
+                    return value ? (
+                      <TextCopyInput>
+                        {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
+                      </TextCopyInput>
+                    ) : (
+                      <em>hidden</em>
+                    );
+                  }}
                 </FormField>
               </PanelBody>
             </Panel>
-            {app && (
-              <Panel>
-                <PanelHeader>{t('Credentials')}</PanelHeader>
-                <PanelBody>
-                  <FormField name="clientID" label="Client ID" overflow>
-                    {({value}) => {
-                      return (
-                        <div>
-                          <TextCopyInput>
-                            {getDynamicText({value, fixed: 'PERCY_CLIENT_ID'})}
-                          </TextCopyInput>
-                        </div>
-                      );
-                    }}
-                  </FormField>
-                  <FormField
-                    overflow
-                    name="clientSecret"
-                    label="Client Secret"
-                    help={t(`Your secret is only available briefly after application creation. Make
-                      sure to save this value!`)}
-                  >
-                    {({value}) => {
-                      return value ? (
-                        <TextCopyInput>
-                          {getDynamicText({value, fixed: 'PERCY_CLIENT_SECRET'})}
-                        </TextCopyInput>
-                      ) : (
-                        <em>hidden</em>
-                      );
-                    }}
-                  </FormField>
-                </PanelBody>
-              </Panel>
-            )}
-          </Box>
+          )}
         </Form>
       </div>
     );

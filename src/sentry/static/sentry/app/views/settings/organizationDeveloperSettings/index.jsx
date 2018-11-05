@@ -61,7 +61,6 @@ export default class OrganizationDeveloperSettings extends AsyncView {
       <Button
         priority="primary"
         size="small"
-        className="ref-create-application"
         to={`/settings/${orgId}/developer-settings/new`}
         icon="icon-circle-add"
       >
