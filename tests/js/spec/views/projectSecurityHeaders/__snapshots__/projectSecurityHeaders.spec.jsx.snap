@@ -8,7 +8,9 @@ exports[`ProjectSecurityHeaders renders 1`] = `
     <SettingsPageHeading
       title="Security Header Reports"
     />
-    <PreviewFeature />
+    <PreviewFeature
+      type="info"
+    />
     <ReportUri
       keyList={Array []}
       params={

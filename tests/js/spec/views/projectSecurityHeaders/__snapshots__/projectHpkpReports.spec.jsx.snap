@@ -8,7 +8,9 @@ exports[`ProjectHpkpReports renders 1`] = `
     <SettingsPageHeading
       title="HTTP Public Key Pinning"
     />
-    <PreviewFeature />
+    <PreviewFeature
+      type="info"
+    />
     <ReportUri
       keyList={Array []}
       params={
