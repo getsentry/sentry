@@ -65,18 +65,17 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
         if not requested_environments:
             return []
 
-        environments = dict(
+        environments = set(
             Environment.objects.filter(
                 organization_id=organization.id,
                 name__in=requested_environments,
-            ).values_list('name', 'id'),
+            ).values_list('name', flat=True),
         )
 
-        if requested_environments != set(environments.keys()):
+        if requested_environments != environments:
             raise ResourceDoesNotExist
 
-        # snuba requires ids for filter keys
-        return environments.values()
+        return list(environments)
 
     def get(self, request, organization):
         try:
