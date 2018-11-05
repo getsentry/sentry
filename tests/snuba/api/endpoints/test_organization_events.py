@@ -261,6 +261,7 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
         project = self.create_project(organization=org, teams=[team])
         environment = self.create_environment(project=project, name="production")
         environment2 = self.create_environment(project=project)
+        null_env = self.create_environment(project=project, name='')
         group = self.create_group(project=project)
 
         event_1 = self.create_event(
@@ -269,8 +270,11 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
         event_2 = self.create_event(
             'b' * 32, group=group, datetime=self.min_ago, tags={'environment': environment.name}
         )
-        self.create_event(
+        event_3 = self.create_event(
             'c' * 32, group=group, datetime=self.min_ago, tags={'environment': environment2.name}
+        )
+        event_4 = self.create_event(
+            'd' * 32, group=group, datetime=self.min_ago, tags={'environment': None}
         )
 
         base_url = reverse(
@@ -288,6 +292,30 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 2
         self.assert_events_in_response(response, [event_1.event_id, event_2.event_id])
 
+        # test multiple as part of query param
+        url = '%s?%s' % (base_url, urlencode((
+            ('environment', environment.name),
+            ('environment', environment2.name),
+        )))
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        self.assert_events_in_response(
+            response, [event_1.event_id, event_2.event_id, event_3.event_id])
+
+        # test multiple as part of query param with no env
+        url = '%s?%s' % (base_url, urlencode((
+            ('environment', environment.name),
+            ('environment', null_env.name),
+        )))
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        self.assert_events_in_response(
+            response, [event_1.event_id, event_2.event_id, event_4.event_id])
+
         # test as part of search
         url = '%s?query=environment:%s' % (base_url, environment.name)
         response = self.client.get(url, format='json')
@@ -295,6 +323,14 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         self.assert_events_in_response(response, [event_1.event_id, event_2.event_id])
+
+        # test as part of search - no environment
+        url = '%s?query=environment:""' % (base_url, )
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        self.assert_events_in_response(response, [event_4.event_id])
 
         # test nonexistent environment
         url = '%s?environment=notanenvironment' % (base_url,)
