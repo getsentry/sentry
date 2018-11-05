@@ -50,6 +50,12 @@ export default class AsyncComponent extends React.Component {
   // eslint-disable-next-line react/sort-comp
   shouldReloadOnVisible = false;
 
+  // This affects how the component behaves when `remountComponent` is called
+  // By default, the component gets put back into a "loading" state when re-fetching data.
+  // If this is true, then when we fetch data, the original ready component remains mounted
+  // and it will need to handle any additional "reloading" states
+  shouldReload = false;
+
   // should `renderError` render the `detail` attribute of a 400 error
   shouldRenderBadRequests = false;
 
