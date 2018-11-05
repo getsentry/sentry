@@ -7,38 +7,41 @@ from sentry.testutils.helpers import with_feature
 from sentry.mediators.sentry_app_installations import Creator
 
 
-class OrganizationSentryAppInstallationDetailsTest(APITestCase):
+class SentryAppInstallationDetailsTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email='a@example.com', is_superuser=True)
         self.user = self.create_user(email='boop@example.com')
         self.org = self.create_organization(owner=self.user)
         self.super_org = self.create_organization(owner=self.superuser)
+
         self.published_app = self.create_sentry_app(
             name='Test',
             organization=self.super_org,
             published=True,
         )
+
         self.installation, _ = Creator.run(
             slug=self.published_app.slug,
             organization=self.super_org,
         )
+
         self.unpublished_app = self.create_sentry_app(
             name='Testin',
             organization=self.org,
         )
+
         self.installation2, _ = Creator.run(
             slug=self.unpublished_app.slug,
             organization=self.org,
         )
+
         self.url = reverse(
-            'sentry-api-0-organization-sentry-app-installations-details',
-            args=[
-                self.org.slug,
-                self.installation2.uuid,
-            ])
+            'sentry-api-0-sentry-app-installation-details',
+            args=[self.installation2.uuid],
+        )
 
 
-class GetOrganizationSentryAppInstallationDetailsTest(OrganizationSentryAppInstallationDetailsTest):
+class GetSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     @with_feature('organizations:internal-catchall')
     def test_access_within_installs_organization(self):
         self.login_as(user=self.user)
@@ -54,19 +57,14 @@ class GetOrganizationSentryAppInstallationDetailsTest(OrganizationSentryAppInsta
     @with_feature('organizations:internal-catchall')
     def test_no_access_outside_install_organization(self):
         self.login_as(user=self.user)
-        url = reverse(
-            'sentry-api-0-organization-sentry-app-installations-details',
-            args=[self.org.slug, self.installation.uuid],
-        )
-        response = self.client.get(url, format='json')
-        assert response.status_code == 404
 
         url = reverse(
-            'sentry-api-0-organization-sentry-app-installations-details',
-            args=[self.super_org.slug, self.installation2.uuid],
+            'sentry-api-0-sentry-app-installation-details',
+            args=[self.installation.uuid],
         )
+
         response = self.client.get(url, format='json')
-        assert response.status_code == 403
+        assert response.status_code == 404
 
     def test_no_access_without_internal_catchall(self):
         self.login_as(user=self.user)
@@ -75,8 +73,7 @@ class GetOrganizationSentryAppInstallationDetailsTest(OrganizationSentryAppInsta
         assert response.status_code == 404
 
 
-class DeleteOrganizationSentryAppInstallationDetailsTest(
-        OrganizationSentryAppInstallationDetailsTest):
+class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
     @with_feature('organizations:internal-catchall')
     def test_delete_install(self):
         self.login_as(user=self.user)

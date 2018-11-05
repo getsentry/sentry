@@ -3,7 +3,10 @@ from __future__ import absolute_import
 from rest_framework import permissions
 
 from sentry.api.exceptions import SuperuserRequired
+from sentry.api.exceptions import SsoRequired, TwoFactorRequired
+from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
+from sentry.utils import auth
 
 
 class RelayPermission(permissions.BasePermission):
@@ -55,3 +58,65 @@ class SuperuserPermission(permissions.BasePermission):
         if request.user.is_authenticated() and request.user.is_superuser:
             raise SuperuserRequired
         return False
+
+
+class SentryPermission(ScopedPermission):
+    def is_not_2fa_compliant(self, user, organization):
+        return False
+
+    def needs_sso(self, request, organization):
+        return False
+
+    def determine_access(self, request, organization):
+        from sentry.api.base import logger
+
+        if request.user and request.user.is_authenticated() and request.auth:
+            request.access = access.from_request(
+                request,
+                organization,
+                scopes=request.auth.get_scopes(),
+            )
+
+        elif request.auth:
+            if request.auth.organization_id == organization.id:
+                request.access = access.from_auth(request.auth)
+            else:
+                request.access = access.DEFAULT
+
+        else:
+            request.access = access.from_request(request, organization)
+
+            if auth.is_user_signed_request(request):
+                # if the user comes from a signed request
+                # we let them pass if sso is enabled
+                logger.info(
+                    'access.signed-sso-passthrough',
+                    extra={
+                        'organization_id': organization.id,
+                        'user_id': request.user.id,
+                    }
+                )
+            elif request.user.is_authenticated():
+                # session auth needs to confirm various permissions
+                if self.needs_sso(request, organization):
+
+                    logger.info(
+                        'access.must-sso',
+                        extra={
+                            'organization_id': organization.id,
+                            'user_id': request.user.id,
+                        }
+                    )
+
+                    raise SsoRequired(organization)
+
+                if self.is_not_2fa_compliant(
+                        request.user, organization):
+                    logger.info(
+                        'access.not-2fa-compliant',
+                        extra={
+                            'organization_id': organization.id,
+                            'user_id': request.user.id,
+                        }
+                    )
+                    raise TwoFactorRequired()
