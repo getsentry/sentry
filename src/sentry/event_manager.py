@@ -729,9 +729,9 @@ class EventManager(object):
     def save(self, project_id, raw=False):
         from sentry.tasks.post_process import index_event_tags
 
-        project = Project.objects.get_from_cache(id=project_id)
-
         data = self._data
+
+        project = Project.objects.get_from_cache(id=project_id)
 
         # Check to make sure we're not about to do a bunch of work that's
         # already been done if we've processed an event with this ID. (This
