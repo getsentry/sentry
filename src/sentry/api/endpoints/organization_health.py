@@ -225,6 +225,34 @@ class OrganizationHealthTopEndpoint(OrganizationHealthEndpointBase):
 
 class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
 
+    def get_environments(self, request, organization):
+        requested_environments = set(request.GET.getlist('environment'))
+
+        if not requested_environments:
+            return []
+
+        environments = set(
+            Environment.objects.filter(
+                organization_id=organization.id,
+                name__in=requested_environments,
+            ).values_list('name', flat=True),
+        )
+
+        if requested_environments != environments:
+            raise ResourceDoesNotExist
+
+        conditions = []
+
+        # the "no environment" environment is null in snuba
+        if '' in environments:
+            environments.remove('')
+            conditions.append(['tags[environment]', 'IS NULL', None])
+
+        if environments:
+            conditions.append(['tags[environment]', 'IN', list(environments)])
+
+        return [conditions]
+
     def get(self, request, organization):
         """
         Returns a time series view over statsPeriod over interval.
@@ -250,7 +278,7 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
         if not project_ids:
             return self.empty()
 
-        environment = self.get_environment(request, organization)
+        environment_conditions = self.get_environments(request, organization)
         query_condition = self.get_query_condition(request, organization)
 
         rollup = int(interval.total_seconds())
@@ -263,10 +291,8 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
             aggregations=[
                 ('count()', '', 'count'),
             ],
-            filter_keys={
-                'project_id': project_ids,
-            },
-            conditions=lookup.conditions + query_condition + environment,
+            filter_keys={'project_id': project_ids},
+            conditions=lookup.conditions + query_condition + environment_conditions,
             groupby=['time'] + lookup.columns,
             orderby='time',
         )
