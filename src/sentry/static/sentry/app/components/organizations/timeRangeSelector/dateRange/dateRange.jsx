@@ -66,7 +66,7 @@ class DateRange extends React.Component {
   };
 
   static getTimeStringFromDate = (date, useUtc) => {
-    return getFormattedDate(date, 'HH:mm:ss', {local: !useUtc});
+    return getFormattedDate(date, 'HH:mm', {local: !useUtc});
   };
 
   handleSelectDateRange = ({selection}) => {

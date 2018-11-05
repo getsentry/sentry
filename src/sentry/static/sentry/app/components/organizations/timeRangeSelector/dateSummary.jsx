@@ -59,15 +59,19 @@ class DateSummary extends React.Component {
     return (
       <Flex className={className} align="center">
         <DateGroup>
-          <Date hasTime={shouldShowTimes}>{this.formatDate(start)}</Date>
-          {shouldShowTimes && <Time>{this.formatTime(start)}</Time>}
+          <Date hasTime={shouldShowTimes}>
+            {this.formatDate(start)}
+            {shouldShowTimes && <Time>{this.formatTime(start)}</Time>}
+          </Date>
         </DateGroup>
         <React.Fragment>
           <DateRangeDivider>{t('to')}</DateRangeDivider>
 
           <DateGroup>
-            <Date hasTime={shouldShowTimes}>{this.formatDate(end)}</Date>
-            {shouldShowTimes && <Time>{this.formatTime(end)}</Time>}
+            <Date hasTime={shouldShowTimes}>
+              {this.formatDate(end)}
+              {shouldShowTimes && <Time>{this.formatTime(end)}</Time>}
+            </Date>
           </DateGroup>
         </React.Fragment>
       </Flex>
@@ -78,21 +82,25 @@ class DateSummary extends React.Component {
 const DateGroup = styled('div')`
   display: flex;
   flex-direction: column;
+  align-items: center;
+  min-width: 110px;
+`;
+
+const Date = styled('div')`
+  ${p => p.hasTime && 'margin-top: 10px'};
+  display: flex;
+  flex-direction: column;
   align-items: flex-end;
 `;
 
-const Date = styled('span')`
-  ${p => p.hasTime && 'margin-top: 12px'};
-`;
-
-const Time = styled('span')`
+const Time = styled('div')`
   font-size: 0.8em;
   line-height: 0.8em;
   opacity: 0.5;
 `;
 
 const DateRangeDivider = styled('span')`
-  margin: 0 ${space(1)};
+  margin: 0 ${space(0.5)};
 `;
 
 export default DateSummary;

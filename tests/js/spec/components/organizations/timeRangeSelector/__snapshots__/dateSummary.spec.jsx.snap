@@ -19,53 +19,53 @@ exports[`DateSummary renders 1`] = `
       >
         <DateGroup>
           <div
-            className="css-9gjle2-DateGroup eyxmd2r0"
+            className="css-8ah8mg-DateGroup eyxmd2r0"
           >
             <Date
               hasTime={true}
             >
-              <span
-                className="css-621ves-Date eyxmd2r1"
+              <div
+                className="css-1j322kv-Date eyxmd2r1"
               >
                 Oct 14, 2017
-              </span>
+                <Time>
+                  <div
+                    className="css-101687m-Time eyxmd2r2"
+                  >
+                    02:38
+                  </div>
+                </Time>
+              </div>
             </Date>
-            <Time>
-              <span
-                className="css-101687m-Time eyxmd2r2"
-              >
-                02:38
-              </span>
-            </Time>
           </div>
         </DateGroup>
         <DateRangeDivider>
           <span
-            className="css-1kge5d2-DateRangeDivider eyxmd2r3"
+            className="css-1qowu2b-DateRangeDivider eyxmd2r3"
           >
             to
           </span>
         </DateRangeDivider>
         <DateGroup>
           <div
-            className="css-9gjle2-DateGroup eyxmd2r0"
+            className="css-8ah8mg-DateGroup eyxmd2r0"
           >
             <Date
               hasTime={true}
             >
-              <span
-                className="css-621ves-Date eyxmd2r1"
+              <div
+                className="css-1j322kv-Date eyxmd2r1"
               >
                 Oct 17, 2017
-              </span>
+                <Time>
+                  <div
+                    className="css-101687m-Time eyxmd2r2"
+                  >
+                    02:38
+                  </div>
+                </Time>
+              </div>
             </Date>
-            <Time>
-              <span
-                className="css-101687m-Time eyxmd2r2"
-              >
-                02:38
-              </span>
-            </Time>
           </div>
         </DateGroup>
       </div>
