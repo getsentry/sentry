@@ -32,7 +32,6 @@ describe('Feature', function() {
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
-        renderDisabled: false,
         features,
         organization,
         project,
@@ -51,7 +50,6 @@ describe('Feature', function() {
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
-        renderDisabled: false,
         organization,
         project,
         features,
@@ -63,7 +61,6 @@ describe('Feature', function() {
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: false,
-        renderDisabled: false,
         organization,
         project,
         features: ['org-baz'],
@@ -83,7 +80,6 @@ describe('Feature', function() {
       expect(noFeatureRenderer).toHaveBeenCalledWith({
         hasFeature: false,
         children: childrenMock,
-        renderDisabled: noFeatureRenderer,
         organization,
         project,
         features: ['org-baz'],
@@ -101,7 +97,6 @@ describe('Feature', function() {
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
-        renderDisabled: false,
         organization: customOrg,
         project,
         features: ['org-bazar'],
@@ -119,7 +114,6 @@ describe('Feature', function() {
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
-        renderDisabled: false,
         organization,
         project: customProject,
         features: ['project-baz'],
@@ -137,7 +131,6 @@ describe('Feature', function() {
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: false,
-        renderDisabled: false,
         organization: null,
         project: null,
         features,
@@ -152,7 +145,6 @@ describe('Feature', function() {
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
-        renderDisabled: false,
         organization,
         project,
         features: ['organizations:org-bar'],
@@ -162,7 +154,6 @@ describe('Feature', function() {
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: false,
-        renderDisabled: false,
         organization,
         project,
         features: ['projects:bar'],
@@ -180,7 +171,6 @@ describe('Feature', function() {
 
       expect(childrenMock).toHaveBeenCalledWith({
         hasFeature: true,
-        renderDisabled: false,
         organization,
         project,
         features: ['organizations:create'],
@@ -236,7 +226,6 @@ describe('Feature', function() {
       expect(wrapper.find('Feature div')).toHaveLength(0);
       expect(noFeatureRenderer).toHaveBeenCalledWith({
         hasFeature: false,
-        renderDisabled: noFeatureRenderer,
         children,
         organization,
         project,
@@ -272,7 +261,6 @@ describe('Feature', function() {
 
       expect(hookFn).toHaveBeenCalledWith({
         hasFeature: false,
-        renderDisabled: hookFn,
         children,
         organization,
         project,
