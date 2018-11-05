@@ -705,7 +705,7 @@ class EventManager(object):
     def get_data(self):
         return self._data
 
-    def _get_event_model(self, project_id=None):
+    def _get_event_instance(self, project_id=None):
         data = self._data.copy()
         event_id = data.pop('event_id')
         platform = data.pop('platform', None)
@@ -774,7 +774,7 @@ class EventManager(object):
         # unused
         message = data.pop('message', '')
 
-        event = self._get_event_model(project_id=project_id)
+        event = self._get_event_instance(project_id=project_id)
         event._project_cache = project
 
         date = event.datetime
