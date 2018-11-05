@@ -173,10 +173,10 @@ class WorkItemWebhook(Endpoint):
         # TODO(lb): hmm... this looks brittle to me
         return EMAIL_PARSER.search(email).group(1)
 
-    def create_subscription(self, instance, identity_data, oauth_redirect_url, external_id):
+    def create_subscription(self, instance, identity_data, oauth_redirect_url):
         client = self.get_client(Identity(data=identity_data), oauth_redirect_url)
         shared_secret = self.create_webhook_secret()
-        return client.create_subscription(instance, external_id, shared_secret), shared_secret
+        return client.create_subscription(instance, shared_secret), shared_secret
 
     def create_webhook_secret(self):
         # following this example
