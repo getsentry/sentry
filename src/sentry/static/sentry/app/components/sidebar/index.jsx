@@ -1,4 +1,3 @@
-import {isEqual} from 'lodash';
 import {withRouter} from 'react-router';
 import {ThemeProvider} from 'emotion-theming';
 import $ from 'jquery';
@@ -39,8 +38,6 @@ class Sidebar extends React.Component {
     super(props);
     this.state = {
       horizontal: false,
-      currentPanel: '',
-      showPanel: false,
     };
 
     if (!window.matchMedia) return;
@@ -83,21 +80,6 @@ class Sidebar extends React.Component {
     if (collapsed === nextProps.collapsed) return;
 
     this.doCollapse(nextProps.collapsed);
-  }
-
-  // Sidebar doesn't use children, so don't use it to compare
-  // Also ignore location, will re-render when routes change (instead of query params)
-  shouldComponentUpdate({children, location, ...nextPropsToCompare}, nextState) {
-    const {
-      children: _children, // eslint-disable-line no-unused-vars
-      location: _location, // eslint-disable-line no-unused-vars
-      ...currentPropsToCompare
-    } = this.props;
-
-    return (
-      !isEqual(currentPropsToCompare, nextPropsToCompare) ||
-      !isEqual(this.state, nextState)
-    );
   }
 
   componentWillUnmount() {
