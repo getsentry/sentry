@@ -14,6 +14,7 @@ storiesOf('Other|IssueSyncListElement', module)
         <IssueSyncListElement integrationType="github" />
         <IssueSyncListElement integrationType="jira" />
         <IssueSyncListElement integrationType="vsts" />
+        <IssueSyncListElement integrationType="gitlab" />
       </StyledIssueSyncList>
     ))
   )
@@ -38,6 +39,13 @@ storiesOf('Other|IssueSyncListElement', module)
         <IssueSyncListElement
           integrationType="vsts"
           externalIssueLink="visualstudio.microsoft.com/issues/vsts-35"
+          externalIssueId="35"
+          onOpen={() => {}}
+          onClose={() => {}}
+        />
+        <IssueSyncListElement
+          integrationType="gitlab"
+          externalIssueLink="gitlab.com/issues/35"
           externalIssueId="35"
           onOpen={() => {}}
           onClose={() => {}}
