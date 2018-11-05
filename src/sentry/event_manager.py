@@ -706,7 +706,7 @@ class EventManager(object):
         return self._data
 
     def _get_event_model(self, project_id=None):
-        data = self._data
+        data = self._data.copy()
         event_id = data.pop('event_id')
         platform = data.pop('platform', None)
 
@@ -781,6 +781,7 @@ class EventManager(object):
         platform = event.platform
         event_id = event.event_id
         data = event.data.data
+        self._data = None
 
         if not culprit:
             if transaction_name:
