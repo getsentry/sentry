@@ -550,7 +550,7 @@ class CfiCacheTest(TestCase):
     def test_skip_cficache_without_feature(self):
         debug_id = '67e9247c-814e-392b-a027-dbde6748fcbf'
         self.create_dif_from_path(
-            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'crash.dSYM'),
+            path=os.path.join(os.path.dirname(__file__), 'fixtures', 'crash.dsym'),
             debug_id=debug_id,
             dif_type='macho',
         )
