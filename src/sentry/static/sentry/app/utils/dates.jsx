@@ -6,6 +6,9 @@ function getParser(local = false) {
   return local ? moment : moment.utc;
 }
 
+/**
+ * Returns date "RETENTION_DAYS" ago
+ */
 export function getEarliestRetentionDate() {
   return moment()
     .subtract(RETENTION_DAYS, 'days')
