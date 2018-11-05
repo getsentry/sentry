@@ -8,17 +8,16 @@ import {API_SCOPES} from 'app/constants';
 
 class ApplicationScopes extends React.Component {
   static propTypes = {
-    scopes: PropTypes.array,
+    scopes: PropTypes.arrayOf(PropTypes.string),
     onToggle: PropTypes.func,
   };
 
   constructor(props) {
     super(props);
-    let initialScopes = new Set(this.props.scopes);
     this.state = {
       loading: false,
       error: false,
-      scopes: initialScopes,
+      scopes: new Set(this.props.scopes),
     };
   }
 
@@ -31,8 +30,10 @@ class ApplicationScopes extends React.Component {
     }
 
     this.setState(
-      {
-        scopes: new Set(scopes),
+      state => {
+        return {
+          scopes: new Set(scopes),
+        };
       },
       () => {
         this.props.onToggle(this.props.scopes, scopes, e);
@@ -48,9 +49,7 @@ class ApplicationScopes extends React.Component {
             <ScopesGridItemWrapper key={scope}>
               <ScopesGridItem>
                 <Flex align="center" flex="1">
-                  <div>
-                    <ScopesTitle>{scope}</ScopesTitle>
-                  </div>
+                  <ScopesTitle>{scope}</ScopesTitle>
                 </Flex>
 
                 <Switch
@@ -70,12 +69,12 @@ class ApplicationScopes extends React.Component {
 
 export default ApplicationScopes;
 
-const ScopesGrid = styled.div`
+const ScopesGrid = styled('div')`
   display: flex;
   flex-wrap: wrap;
 `;
 
-const ScopesGridItem = styled.div`
+const ScopesGridItem = styled('div')`
   display: flex;
   align-items: center;
   background: ${p => p.theme.whiteDark};
@@ -85,12 +84,12 @@ const ScopesGridItem = styled.div`
   height: 100%;
 `;
 
-const ScopesGridItemWrapper = styled.div`
+const ScopesGridItemWrapper = styled('div')`
   padding: 12px;
   width: 33%;
 `;
 
-const ScopesTitle = styled.div`
+const ScopesTitle = styled('div')`
   font-size: 14px;
   font-weight: bold;
   line-height: 1;

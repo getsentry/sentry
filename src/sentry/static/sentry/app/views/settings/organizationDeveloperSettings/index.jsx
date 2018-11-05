@@ -26,27 +26,25 @@ class SentryApplicationRow extends React.PureComponent {
     let btnClassName = 'btn btn-default';
 
     return (
-      <PanelItem justify="space-between" px={2} py={2}>
+      <StyledSentryAppItem>
         <Flex>
           <SentryAppAvatar size={36} sentryApp={app} />
-          <Box pl={2} flex="1">
-            <div style={{marginBottom: 3}}>
+          <StyledSentryAppBox>
+            <StyledSentryAppName>
               <StyledLink to={`/settings/${orgId}/developer-settings/${app.slug}/`}>
                 {app.name}
               </StyledLink>
-            </div>
+            </StyledSentryAppName>
             <Status published={app.status === 'published'} />
-          </Box>
+          </StyledSentryAppBox>
         </Flex>
 
-        <Flex align="center">
-          <Box pl={2}>
-            <a onClick={() => {}} className={btnClassName}>
-              <span className="icon icon-trash" />
-            </a>
+        <Flex>
+          <Box>
+            <Button icon="icon-trash" onClick={() => {}} className={btnClassName} />
           </Box>
         </Flex>
-      </PanelItem>
+      </StyledSentryAppItem>
     );
   }
 }
@@ -76,13 +74,7 @@ export default class OrganizationDeveloperSettings extends AsyncView {
       <div>
         <SettingsPageHeader title={t('Developer Settings')} action={action} />
         <Panel>
-          <PanelHeader disablePadding>
-            <Flex align="center">
-              <Box px={2} flex="1">
-                {t('Applications')}
-              </Box>
-            </Flex>
-          </PanelHeader>
+          <PanelHeader>{t('Applications')}</PanelHeader>
           <PanelBody>
             {!isEmpty ? (
               this.state.applications.map(app => {
@@ -98,23 +90,38 @@ export default class OrganizationDeveloperSettings extends AsyncView {
   }
 }
 
+const StyledSentryAppItem = styled(PanelItem)`
+  justify-content: space-between;
+  padding: 15px;
+`;
+
+const StyledSentryAppBox = styled(Box)`
+  padding-left: 15px;
+  flex: 1;
+`;
+
+const StyledSentryAppName = styled('div')`
+  margin-bottom: 3px;
+`;
 const StyledLink = styled(Link)`
   font-size: 22px;
-  color: ${p => p.theme.textColor};
+  color: ${props => props.theme.textColor};
 `;
 
 const Status = styled(
-  withTheme(props => {
-    const {published, ...p} = props;
+  withTheme(({published, ...props}) => {
     return (
       <Flex align="center">
-        <CircleIndicator size={4} color={published ? p.theme.success : p.theme.gray2} />
-        <div {...p}>{published ? t('published') : t('unpublished')}</div>
+        <CircleIndicator
+          size={4}
+          color={published ? props.theme.success : props.theme.gray2}
+        />
+        <div {...props}>{published ? t('published') : t('unpublished')}</div>
       </Flex>
     );
   })
 )`
-  color: ${p => (p.published ? p.theme.success : p.theme.gray2)};
+  color: ${props => (props.published ? props.theme.success : props.theme.gray2)};
   margin-left: ${space(0.5)};
   font-weight: light;
   margin-right: ${space(0.75)};
