@@ -108,7 +108,7 @@ class FeatureDisabled extends React.Component {
     return !alert ? (
       featureDisabled
     ) : (
-      <AlertComponent type="warning" icon="icon-labs">
+      <AlertComponent type="warning" icon="icon-lock">
         <AlertWrapper>{featureDisabled}</AlertWrapper>
       </AlertComponent>
     );
