@@ -1,3 +1,4 @@
+import {isEqual} from 'lodash';
 import {withRouter, Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -25,6 +26,32 @@ class EventsTable extends React.Component {
     super(props);
     this.projectsMap = new Map(
       props.organization.projects.map(project => [project.id, project])
+    );
+  }
+
+  shouldComponentUpdate(nextProps) {
+    if (
+      this.props.organization === nextProps.organization &&
+      isEqual(this.props.events, nextProps.events)
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  getEventTitle(event) {
+    const {organization} = this.props;
+    const project = this.projectsMap.get(event.projectID);
+    const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
+
+    if (!project) {
+      return trimmedMessage;
+    }
+
+    return (
+      <Link to={`/${organization.slug}/${project.slug}/issues/?query=${event.eventID}`}>
+        {trimmedMessage}
+      </Link>
     );
   }
 
