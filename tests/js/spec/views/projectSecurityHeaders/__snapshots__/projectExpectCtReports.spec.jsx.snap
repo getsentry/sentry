@@ -9,7 +9,7 @@ exports[`ProjectExpectCtReports renders 1`] = `
       title="Certificate Transparency"
     />
     <PreviewFeature
-      type="warning"
+      type="info"
     />
     <ReportUri
       keyList={Array []}

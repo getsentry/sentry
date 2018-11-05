@@ -9,7 +9,7 @@ export default class PreviewFeature extends Component {
   };
 
   static defaultProps = {
-    type: 'warning',
+    type: 'info',
   };
 
   render() {
