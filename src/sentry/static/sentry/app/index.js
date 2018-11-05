@@ -151,6 +151,7 @@ export default {
     PanelHeader: require('app/components/panels/panelHeader').default,
     PanelBody: require('app/components/panels/panelBody').default,
     PanelItem: require('app/components/panels/panelItem').default,
+    PanelAlert: require('app/components/panels/panelAlert').default,
     EmptyMessage: require('app/views/settings/components/emptyMessage').default,
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
