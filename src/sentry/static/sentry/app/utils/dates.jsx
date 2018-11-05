@@ -28,7 +28,7 @@ export function getLocalDateObject(str) {
  * returns: "2018-10-09T07:00:00.000"
  */
 export function getUtcDateString(dateObj) {
-  return moment.utc(dateObj).format(moment.HTML5_FMT.DATETIME_LOCAL_MS);
+  return moment.utc(dateObj).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS);
 }
 
 export function getFormattedDate(dateObj, format, {local} = {}) {
