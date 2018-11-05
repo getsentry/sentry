@@ -733,6 +733,12 @@ class DIFCache(object):
             if o is None:
                 return None, None, None
 
+            # Check features from the actual object file, if this is a legacy
+            # DIF where features have not been extracted yet.
+            if (debug_file.data or {}).get('features') is None:
+                if o.features < set(cls.required_features):
+                    return None, None, None
+
             cache = cls.cache_cls.from_object(o)
         except SymbolicError as e:
             if not isinstance(e, cls.ignored_errors):
