@@ -181,6 +181,7 @@ export default {
       errorHandler: require('app/utils/errorHandler').default,
       ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
       logging: require('app/utils/logging'),
+      descopeFeatureName: require('app/utils').descopeFeatureName,
     },
   },
 };
