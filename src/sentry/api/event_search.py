@@ -83,7 +83,7 @@ FIELD_LOOKUP = {
         'type': 'string',
     },
     'environment': {
-        'snuba_name': 'environment',
+        'snuba_name': 'tags[environment]',
         'type': 'string',
     },
     'platform': {
@@ -240,8 +240,20 @@ def get_snuba_query_args(query=None, params=None):
         if snuba_name in ('start', 'end'):
             kwargs[snuba_name] = value
 
-        # environment can also be passed as a condition
-        elif snuba_name in ('project_id', 'environment') and isinstance(value, (list, tuple)):
+        elif snuba_name == 'tags[environment]':
+            env_conditions = []
+            _envs = set(value if isinstance(value, (list, tuple)) else [value])
+            # the "no environment" environment is null in snuba
+            if '' in _envs:
+                _envs.remove('')
+                env_conditions.append(['tags[environment]', 'IS NULL', None])
+
+            if _envs:
+                env_conditions.append(['tags[environment]', 'IN', list(_envs)])
+
+            kwargs['conditions'].append(env_conditions)
+
+        elif snuba_name == 'project_id':
             kwargs['filter_keys'][snuba_name] = value
 
         elif snuba_name == 'message':
