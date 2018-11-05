@@ -585,7 +585,7 @@ class Frame(Interface):
         # not necessarily be the same platform).
         if self.platform is not None:
             platform = self.platform
-        if platform in ('objc', 'cocoa'):
+        if platform in ('objc', 'cocoa', 'native'):
             return self.function or '?'
         fileloc = self.module or self.filename
         if not fileloc:
