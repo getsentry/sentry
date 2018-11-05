@@ -83,7 +83,7 @@ const StyledName = styled(
   ({useLink, hideEmail, to, ...props}) =>
     useLink ? <Link to={to} {...props} /> : <span {...props} />
 )`
-  font-weight: bold;
+  font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
   ${overflowEllipsis};
 `;
