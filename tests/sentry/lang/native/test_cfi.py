@@ -16,19 +16,19 @@ RAW_STACKTRACE = [
     {
         'function': '<unknown>',
         'instruction_addr': '0x7f51401e4800',
-        'module': u'/lib/x86_64-linux-gnu/libc-2.23.so',
+        'package': u'/lib/x86_64-linux-gnu/libc-2.23.so',
         'trust': 'scan',
     },
     {
         'function': '<unknown>',
         'instruction_addr': '0x7f514025002e',
-        'module': u'/lib/x86_64-linux-gnu/libc-2.23.so',
+        'package': u'/lib/x86_64-linux-gnu/libc-2.23.so',
         'trust': 'scan',
     },
     {
         'function': '<unknown>',
         'instruction_addr': '0x401d72',
-        'module': u'/work/linux/build/crash',
+        'package': u'/work/linux/build/crash',
         'trust': 'context',
     }
 ]
@@ -37,25 +37,25 @@ CFI_STACKTRACE = [
     {
         'function': "<unknown>",
         'instruction_addr': "0x7f5140cdc000",
-        'module': None,
+        'package': None,
         'trust': "scan",
     },
     {
         'function': "<unknown>",
         'instruction_addr': "0x7fff5aef1000",
-        'module': None,
+        'package': None,
         'trust': "scan",
     },
     {
         'function': "<unknown>",
         'instruction_addr': "0x7f514017d830",
-        'module': "/lib/x86_64-linux-gnu/libc-2.23.so",
+        'package': "/lib/x86_64-linux-gnu/libc-2.23.so",
         'trust': "cfi",
     },
     {
         'function': "<unknown>",
         'instruction_addr': "0x401d72",
-        'module': "/work/linux/build/crash",
+        'package': "/work/linux/build/crash",
         'trust': "context",
     },
 ]
