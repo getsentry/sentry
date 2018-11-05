@@ -123,14 +123,14 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return attrs
 
     def validate_conditions(self, attrs, source):
-        # Handle exception_stacks, exception_frames
+        # Handle error (exception_stacks), stack(exception_frames)
         if attrs.get(source):
             conditions = [self.get_condition(condition) for condition in attrs[source]]
             attrs[source] = conditions
         return attrs
 
     def get_array_field(self, field):
-        pattern = r"^(exception_stacks|exception_frames)\..+"
+        pattern = r"^(error|stack)\..+"
         return re.search(pattern, field)
 
     def get_condition(self, condition):
@@ -258,8 +258,9 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                 aggregation[1] = 'project_id'
 
         if not kwargs['aggregations']:
+
             data_fn = partial(
-                snuba.raw_query,
+                snuba.transform_aliases_and_query,
                 referrer='discover',
                 **kwargs
             )
@@ -270,7 +271,7 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                 max_per_page=1000
             )
         else:
-            snuba_results = snuba.raw_query(
+            snuba_results = snuba.transform_aliases_and_query(
                 referrer='discover',
                 **kwargs
             )

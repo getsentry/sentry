@@ -8,11 +8,11 @@ describe('Condition', function() {
     it('renders text', function() {
       const data = [
         {value: [null, null, null], expectedText: 'Add condition...'},
-        {value: ['device_name', '=', 'test'], expectedText: 'device_name = test'},
-        {value: ['device_name', 'IS NULL', null], expectedText: 'device_name IS NULL'},
+        {value: ['device.name', '=', 'test'], expectedText: 'device.name = test'},
+        {value: ['device.name', 'IS NULL', null], expectedText: 'device.name IS NULL'},
         {
-          value: ['device_battery_level', '>', 5],
-          expectedText: 'device_battery_level > 5',
+          value: ['device.battery_level', '>', 5],
+          expectedText: 'device.battery_level > 5',
         },
       ];
       data.forEach(function(condition) {
@@ -31,7 +31,7 @@ describe('Condition', function() {
         {name: 'col1', type: 'string'},
         {name: 'col2', type: 'number'},
         {name: 'col3', type: 'datetime'},
-        {name: 'exception_stacks.type', type: 'string'},
+        {name: 'error.type', type: 'string'},
       ];
       wrapper = mount(
         <Condition value={[null, null, null]} onChange={jest.fn()} columns={columns} />
@@ -70,10 +70,10 @@ describe('Condition', function() {
     });
 
     it('limits operators to = and != for array fields', function() {
-      const options = wrapper.instance().filterOptions([], 'exception_stacks.type');
+      const options = wrapper.instance().filterOptions([], 'error.type');
       expect(options).toHaveLength(2);
-      expect(options[0].value).toEqual('exception_stacks.type =');
-      expect(options[1].value).toEqual('exception_stacks.type !=');
+      expect(options[0].value).toEqual('error.type =');
+      expect(options[1].value).toEqual('error.type !=');
     });
   });
 

@@ -58,6 +58,122 @@ _snuba_pool = urllib3.connectionpool.connection_from_url(
 )
 
 
+def transform_aliases_and_query(**kwargs):
+    """
+    Convert aliases in selected_columns, groupby, aggregation, conditions,
+    orderby and arrayjoin fields to their internal Snuba format and post the
+    query to Snuba. Convert back translated aliases before returning snuba
+    results.
+    """
+    sentry_snuba_map = {
+        # user
+        'user.id': 'user_id',
+        'user.email': 'email',
+        'user.username': 'username',
+        'user.ip': 'ip_address',
+        # sdk
+        'sdk.name': 'sdk_name',
+        'sdk.version': 'sdk_version',
+        # http
+        'http.method': 'http_method',
+        'http.url': 'http_referer',
+        # os
+        'os.build': 'os_build',
+        'os.kernel_version': 'os_kernel_version',
+        # device
+        'device.name': 'device_name',
+        'device.brand': 'device_brand',
+        'device.locale': 'device_locale',
+        'device.uuid': 'device_uuid',
+        'device.model_id': 'device_model_id',
+        'device.arch': 'device_arch',
+        'device.battery_level': 'device_battery_level',
+        'device.orientation': 'device_orientation',
+        'device.simulator': 'device_orientation',
+        'device.online': 'device_online',
+        'device.charging': 'device_charging',
+
+        # error, stack
+        'error.type': 'exception_stacks.type',
+        'error.value': 'exception_stacks.value',
+        'error.mechanism_type': 'exception_stacks.mechanism_type',
+        'error.mechanism_handled': 'exception_stacks.mechanism_handled',
+        'stack.abs_path': 'exception_frames.abs_path',
+        'stack.filename': 'exception_frames.filename',
+        'stack.package': 'exception_frames.package',
+        'stack.module': 'exception_frames.module',
+        'stack.function': 'exception_frames.function',
+        'stack.in_app': 'exception_frames.in_app',
+        'stack.colno': 'exception_frames.colno',
+        'stack.lineno': 'exception_frames.lineno',
+        'stack.stack_level': 'exception_frames.stack_level',
+    }
+
+    arrayjoin_map = {
+        'error': 'exception_stacks',
+        'stack': 'exception_frames',
+    }
+
+    translated_columns = {}
+
+    selected_columns = kwargs['selected_columns']
+    groupby = kwargs['groupby']
+    aggregations = kwargs['aggregations']
+    conditions = kwargs['conditions'] or []
+
+    for (idx, col) in enumerate(selected_columns):
+        match = sentry_snuba_map.get(col)
+        if match:
+            selected_columns[idx] = match
+            translated_columns[match] = col
+
+    for (idx, col) in enumerate(groupby):
+        match = sentry_snuba_map.get(col)
+        if match:
+            groupby[idx] = match
+            translated_columns[match] = col
+
+    for aggregation in aggregations or []:
+        if len(aggregation) and sentry_snuba_map.get(aggregation[1]):
+            aggregation[1] = sentry_snuba_map[aggregation[1]]
+
+    def handle_condition(cond):
+        if isinstance(cond, (list, tuple)) and len(cond):
+            if (isinstance(cond[0], (list, tuple))):
+                cond[0] = handle_condition(cond[0])
+            elif len(cond) == 3:
+                # map column name
+                cond[0] = sentry_snuba_map.get(cond[0], cond[0])
+            elif len(cond) == 2:
+                # map function arguments
+                cond[1] = [sentry_snuba_map.get(arg, arg) for arg in cond[1]]
+        return cond
+
+    kwargs['conditions'] = [handle_condition(condition) for condition in conditions]
+
+    order_by_column = kwargs['orderby'].lstrip('-')
+    kwargs['orderby'] = u'{}{}'.format(
+        '-' if kwargs['orderby'].startswith('-') else '',
+        sentry_snuba_map.get(order_by_column, order_by_column)
+    ) or None
+
+    kwargs['arrayjoin'] = arrayjoin_map.get(kwargs['arrayjoin'], kwargs['arrayjoin'])
+
+    result = raw_query(**kwargs)
+
+    # Translate back columns that were converted to snuba format
+    for col in result['meta']:
+        col['name'] = translated_columns.get(col['name'], col['name'])
+
+    def get_row(row):
+        return {translated_columns.get(key, key): value for key, value in row.items()}
+
+    if len(translated_columns):
+        result['data'] = [get_row(row) for row in result['data']]
+
+    return result
+
+
 def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
               aggregations=None, rollup=None, arrayjoin=None, limit=None, offset=None,
               orderby=None, having=None, referrer=None, is_grouprelease=False,
