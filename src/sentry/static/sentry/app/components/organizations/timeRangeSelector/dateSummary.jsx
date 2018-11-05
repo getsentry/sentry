@@ -1,3 +1,7 @@
+/**
+ * Displays and formats absolute DateTime ranges
+ */
+
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -6,6 +10,8 @@ import styled from 'react-emotion';
 import {getFormattedDate, isSameDay} from 'app/utils/dates';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+
+const MIDNIGHT = '00:00';
 
 class DateSummary extends React.Component {
   static propTypes = {
@@ -41,10 +47,9 @@ class DateSummary extends React.Component {
     const startTimeFormatted = this.formatTime(start);
     const endTimeFormatted = this.formatTime(end);
 
-    // Show times if either start or end date contain a time that is not midnight or a minute before midnight
-    const shouldShowTimes = !!['00:00', '23:59'].find(
-      time => time === startTimeFormatted || time === endTimeFormatted
-    );
+    // Show times if either start or end date contain a time that is not midnight
+    const shouldShowTimes =
+      startTimeFormatted !== MIDNIGHT || endTimeFormatted !== MIDNIGHT;
 
     const shouldShowEndDateTime = !isSameDay(start, end);
 

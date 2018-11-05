@@ -1,0 +1,75 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DateSummary renders 1`] = `
+<DateSummary
+  end={2017-10-17T02:38:00.000Z}
+  start={2017-10-14T02:38:00.000Z}
+  useUtc={true}
+>
+  <Flex
+    align="center"
+  >
+    <Base
+      align="center"
+      className="css-5ipae5"
+    >
+      <div
+        className="css-5ipae5"
+        is={null}
+      >
+        <DateGroup>
+          <div
+            className="css-9gjle2-DateGroup eyxmd2r0"
+          >
+            <Date
+              hasTime={true}
+            >
+              <span
+                className="css-621ves-Date eyxmd2r1"
+              >
+                Oct 14, 2017
+              </span>
+            </Date>
+            <Time>
+              <span
+                className="css-101687m-Time eyxmd2r2"
+              >
+                02:38
+              </span>
+            </Time>
+          </div>
+        </DateGroup>
+        <DateRangeDivider>
+          <span
+            className="css-1kge5d2-DateRangeDivider eyxmd2r3"
+          >
+            to
+          </span>
+        </DateRangeDivider>
+        <DateGroup>
+          <div
+            className="css-9gjle2-DateGroup eyxmd2r0"
+          >
+            <Date
+              hasTime={true}
+            >
+              <span
+                className="css-621ves-Date eyxmd2r1"
+              >
+                Oct 17, 2017
+              </span>
+            </Date>
+            <Time>
+              <span
+                className="css-101687m-Time eyxmd2r2"
+              >
+                02:38
+              </span>
+            </Time>
+          </div>
+        </DateGroup>
+      </div>
+    </Base>
+  </Flex>
+</DateSummary>
+`;

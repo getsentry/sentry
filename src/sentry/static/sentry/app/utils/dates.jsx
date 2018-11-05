@@ -77,11 +77,9 @@ export function getLocalToUtc(dateObj) {
 }
 
 export function isSameDay(start, end) {
-  return (
-    moment(start)
-      .add(1, 'day')
-      .subtract(1, 'second') === moment(end)
-  );
+  return moment(start)
+    .add(1, 'day')
+    .isSame(moment(end));
 }
 
 // Get the beginning of day (e.g. midnight)
