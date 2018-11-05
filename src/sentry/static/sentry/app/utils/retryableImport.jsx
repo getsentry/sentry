@@ -7,7 +7,12 @@ export default async function retryableImport(fn) {
       const module = await fn();
       return module.default || module;
     } catch (err) {
-      if (retries < MAX_RETRIES) {
+      const isWebpackLoadingError =
+        err &&
+        typeof err.message === 'string' &&
+        err.message.toLowerCase().includes('loading chunk');
+
+      if (isWebpackLoadingError && retries < MAX_RETRIES) {
         retries++;
         return tryLoad();
       }
