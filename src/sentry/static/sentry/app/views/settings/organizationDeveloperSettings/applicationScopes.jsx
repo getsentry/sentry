@@ -52,9 +52,8 @@ class ApplicationScopes extends React.Component {
                   <ScopesTitle>{scope}</ScopesTitle>
                 </Flex>
 
-                <Switch
+                <StyledSwitch
                   isActive={this.state.scopes.has(scope)}
-                  css={{flexShrink: 0, marginLeft: 6}}
                   toggle={this.handleToggleScopes.bind(this, scope)}
                   size="lg"
                 />
@@ -68,6 +67,11 @@ class ApplicationScopes extends React.Component {
 }
 
 export default ApplicationScopes;
+
+const StyledSwitch = styled(Switch)`
+  margin-left: 6px;
+  flex-shrink: 0;
+`;
 
 const ScopesGrid = styled('div')`
   display: flex;

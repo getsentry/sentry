@@ -76,6 +76,7 @@ class SentryApplicationDetails extends AsyncView {
                 <FormField
                   name="scopes"
                   inline={false}
+                  flexibleControlStateSize={true}
                   getData={data => ({scopes: data})}
                   required
                 >
