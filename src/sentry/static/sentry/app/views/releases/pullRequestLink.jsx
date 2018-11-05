@@ -10,17 +10,34 @@ class PullRequestLink extends React.Component {
     inline: PropTypes.bool,
   };
 
-  getUrl = () => {
-    if (this.props.repository.provider.id === 'github') {
+  get providerId() {
+    if (!this.props.repository.provider) {
+      return null;
+    }
+
+    let id = this.props.repository.provider.id;
+    if (id.indexOf(':') > -1) {
+      return id.split(':').pop();
+    }
+    return id;
+  }
+
+  get url() {
+    let providerId = this.providerId;
+    if (providerId === 'github') {
       return this.props.repository.url + '/pull/' + this.props.pullRequest.id;
     }
+    if (providerId === 'gitlab') {
+      return this.props.repository.url + '/merge_requests/' + this.props.pullRequest.id;
+    }
     return undefined;
-  };
+  }
 
   render() {
-    let url = this.getUrl();
+    let url = this.url;
     let displayId = `${this.props.repository.name} #${this.props.pullRequest.id}: ${this
       .props.pullRequest.title}`;
+    let providerId = this.providerId;
 
     return url ? (
       <a
@@ -28,15 +45,18 @@ class PullRequestLink extends React.Component {
         href={url}
         target="_blank"
       >
-        {this.props.repository.provider.id == 'github' && (
+        {providerId == 'github' && (
           <InlineSvg src="icon-github" style={{verticalAlign: 'text-top'}} size="14px" />
         )}
-        {this.props.repository.provider.id == 'bitbucket' && (
+        {providerId == 'bitbucket' && (
           <InlineSvg
             src="icon-bitbucket"
             style={{verticalAlign: 'text-top'}}
             size="14px"
           />
+        )}
+        {providerId == 'gitlab' && (
+          <InlineSvg src="icon-gitlab" style={{verticalAlign: 'text-top'}} size="14px" />
         )}
         &nbsp;
         {this.props.inline ? '' : ' '}
