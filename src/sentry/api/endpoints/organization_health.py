@@ -231,18 +231,30 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
         if not requested_environments:
             return []
 
-        environments = dict(
+        environments = set(
             Environment.objects.filter(
                 organization_id=organization.id,
                 name__in=requested_environments,
-            ).values_list('name', 'id'),
+            ).values_list('name', flat=True),
         )
 
-        if requested_environments != set(environments.keys()):
+        if requested_environments != environments:
             raise ResourceDoesNotExist
 
-        # snuba requires ids for filter keys
-        return environments.values()
+        conditions = []
+
+        if '' in environments:
+            environments.remove('')
+            conditions.append(['tags[environment]', 'IS NULL', None])
+
+        if environments:
+            conditions.append(['tags[environment]', 'IN', list(environments)])
+
+        # OR clauses are nested
+        if len(conditions) == 2:
+            return [conditions]
+
+        return conditions
 
     def get(self, request, organization):
         """
@@ -269,14 +281,10 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
         if not project_ids:
             return self.empty()
 
-        environments = self.get_environments(request, organization)
+        environment_conditions = self.get_environments(request, organization)
         query_condition = self.get_query_condition(request, organization)
 
         rollup = int(interval.total_seconds())
-
-        filter_keys = {'project_id': project_ids}
-        if environments:
-            filter_keys['environment'] = environments
 
         data = query(
             end=end,
@@ -286,8 +294,8 @@ class OrganizationHealthGraphEndpoint(OrganizationHealthEndpointBase):
             aggregations=[
                 ('count()', '', 'count'),
             ],
-            filter_keys=filter_keys,
-            conditions=lookup.conditions + query_condition,
+            filter_keys={'project_id': project_ids},
+            conditions=lookup.conditions + query_condition + environment_conditions,
             groupby=['time'] + lookup.columns,
             orderby='time',
         )
