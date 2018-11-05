@@ -199,7 +199,7 @@ class InstallationGuideView(PipelineView):
 
 class GitlabIntegrationProvider(IntegrationProvider):
     key = 'gitlab'
-    name = 'Gitlab'
+    name = 'GitLab'
     metadata = metadata
     integration_cls = GitlabIntegration
 
