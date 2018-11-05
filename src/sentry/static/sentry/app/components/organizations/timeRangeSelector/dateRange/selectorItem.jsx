@@ -5,29 +5,29 @@ import styled from 'react-emotion';
 
 import space from 'app/styles/space';
 
-const SelectorItem = styled(
-  class SelectorItem extends React.PureComponent {
-    static propTypes = {
-      onClick: PropTypes.func.isRequired,
-      value: PropTypes.string,
-      label: PropTypes.node,
-    };
+class SelectorItem extends React.PureComponent {
+  static propTypes = {
+    onClick: PropTypes.func.isRequired,
+    value: PropTypes.string,
+    label: PropTypes.node,
+  };
 
-    handleClick = e => {
-      let {onClick, value} = this.props;
-      onClick(value, e);
-    };
+  handleClick = e => {
+    let {onClick, value} = this.props;
+    onClick(value, e);
+  };
 
-    render() {
-      let {className, label} = this.props;
-      return (
-        <Flex className={className} onClick={this.handleClick}>
-          <Label>{label}</Label>
-        </Flex>
-      );
-    }
+  render() {
+    let {className, label} = this.props;
+    return (
+      <Flex className={className} onClick={this.handleClick}>
+        <Label>{label}</Label>
+      </Flex>
+    );
   }
-)`
+}
+
+const StyledSelectorItem = styled(SelectorItem)`
   cursor: pointer;
   white-space: nowrap;
   padding: ${space(1)};
@@ -47,4 +47,4 @@ const Label = styled('span')`
   margin-right: ${space(1)};
 `;
 
-export default SelectorItem;
+export default StyledSelectorItem;

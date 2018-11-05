@@ -1,11 +1,11 @@
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment';
 import styled from 'react-emotion';
 
-import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {getEndOfDay} from 'app/utils/dates';
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {getHoursAgo, getStartOfDay} from 'app/utils/dates';
+import {parsePeriodToHours} from 'app/utils';
 import {t} from 'app/locale';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
@@ -15,14 +15,6 @@ import InlineSvg from 'app/components/inlineSvg';
 import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
 import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
 import getDynamicText from 'app/utils/getDynamicText';
-
-// Get date 2 weeks ago at midnight
-const getTwoWeeksAgo = () =>
-  moment()
-    .subtract(2, 'weeks')
-    .hour(0)
-    .minute(0)
-    .toDate();
 
 class TimeRangeSelector extends React.PureComponent {
   static propTypes = {
@@ -82,9 +74,13 @@ class TimeRangeSelector extends React.PureComponent {
     this.state = {
       useUtc: props.useUtc,
       isOpen: false,
-      selected: !!props.start && !!props.end ? 'absolute' : props.relative,
     };
   }
+
+  getSelectedStateFromProps = props => {
+    const {start, end, relative} = props || this.props;
+    return !!start && !!end ? 'absolute' : relative;
+  };
 
   handleCloseMenu = () => {
     this.handleUpdate();
@@ -106,14 +102,14 @@ class TimeRangeSelector extends React.PureComponent {
   };
 
   handleAbsoluteClick = () => {
-    // Don't allow toggle, its weird, they should select a different option
-    this.setState(state => ({
-      selected: 'absolute',
-    }));
-    this.props.onChange({
+    const {relative, onChange} = this.props;
+
+    // Set default range to equivalent of last relative period,
+    // or use default stats period
+    onChange({
       relative: null,
-      start: getTwoWeeksAgo(),
-      end: getEndOfDay(),
+      start: getHoursAgo(parsePeriodToHours(relative || DEFAULT_STATS_PERIOD)),
+      end: getStartOfDay(),
     });
   };
 
@@ -123,9 +119,6 @@ class TimeRangeSelector extends React.PureComponent {
       relative: value,
       start: null,
       end: null,
-    });
-    this.setState({
-      selected: value,
     });
     this.handleUpdate();
   };
@@ -153,7 +146,7 @@ class TimeRangeSelector extends React.PureComponent {
 
     const shouldShowAbsolute = showAbsolute;
     const shouldShowRelative = showRelative;
-    const isAbsoluteSelected = this.state.selected === 'absolute';
+    const isAbsoluteSelected = !!start && !!end;
 
     const summary = relative ? (
       `${DEFAULT_RELATIVE_PERIODS[relative]}`
@@ -189,7 +182,7 @@ class TimeRangeSelector extends React.PureComponent {
                   {shouldShowRelative && (
                     <RelativeSelector
                       onClick={this.handleSelectRelative}
-                      selected={this.state.selected}
+                      selected={relative}
                     />
                   )}
                   {shouldShowAbsolute && (

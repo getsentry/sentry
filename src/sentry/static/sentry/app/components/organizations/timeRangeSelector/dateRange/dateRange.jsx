@@ -130,7 +130,7 @@ class DateRange extends React.Component {
     const maxDate = new Date();
 
     return (
-      <div className={className}>
+      <div className={className} data-test-id="date-range">
         <StyledDateRangePicker
           rangeColors={[theme.purple]}
           ranges={[

@@ -84,6 +84,15 @@ export function isSameDay(start, end) {
   );
 }
 
+// Get the beginning of day (e.g. midnight)
+export function getStartOfDay(date) {
+  return moment(date)
+    .hour(0)
+    .minute(0)
+    .second(0)
+    .toDate();
+}
+
 // Get tomorrow at midnight so that default endtime
 // is inclusive of today
 export function getEndOfDay(date) {
@@ -91,6 +100,12 @@ export function getEndOfDay(date) {
     .add(1, 'day')
     .hour(0)
     .minute(0)
+    .second(0)
     .subtract(1, 'second')
     .toDate();
+}
+
+export function getHoursAgo(hours) {
+  // Get date "days" ago at midnight
+  return getStartOfDay(moment().subtract(hours, 'hours'));
 }
