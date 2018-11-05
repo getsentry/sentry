@@ -8,7 +8,9 @@ exports[`ProjectCspReports renders 1`] = `
     <SettingsPageHeading
       title="Content Security Policy"
     />
-    <PreviewFeature />
+    <PreviewFeature
+      type="warning"
+    />
     <ReportUri
       keyList={Array []}
       params={

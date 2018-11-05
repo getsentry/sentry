@@ -58,7 +58,7 @@ class OrganizationEvents extends AsyncView {
           {this.renderSearchInput({})}
         </Flex>
 
-        <PreviewFeature />
+        <PreviewFeature type="info" />
 
         <Panel>
           <EventsChart organization={organization} />

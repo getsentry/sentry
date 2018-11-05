@@ -8,7 +8,9 @@ exports[`ProjectExpectCtReports renders 1`] = `
     <SettingsPageHeading
       title="Certificate Transparency"
     />
-    <PreviewFeature />
+    <PreviewFeature
+      type="warning"
+    />
     <ReportUri
       keyList={Array []}
       params={
