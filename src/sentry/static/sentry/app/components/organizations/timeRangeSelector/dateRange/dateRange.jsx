@@ -7,6 +7,8 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {
+  DEFAULT_DAY_END_TIME,
+  DEFAULT_DAY_START_TIME,
   getEarliestRetentionDate,
   getFormattedDate,
   getLocalDateObject,
@@ -64,11 +66,7 @@ class DateRange extends React.Component {
   };
 
   static getTimeStringFromDate = (date, useUtc) => {
-    return getFormattedDate(date, 'HH:mm', {local: !useUtc});
-  };
-
-  updateTime = (dateObj, timeStr) => {
-    return setDateToTime(dateObj, timeStr || '00:00', {local: !this.props.useUtc});
+    return getFormattedDate(date, 'HH:mm:ss', {local: !useUtc});
   };
 
   handleSelectDateRange = ({selection}) => {
@@ -79,11 +77,11 @@ class DateRange extends React.Component {
     let end = endDate;
 
     if (start) {
-      start = setDateToTime(start, '00:00', {local: !useUtc});
+      start = setDateToTime(start, DEFAULT_DAY_START_TIME, {local: !useUtc});
     }
 
     if (end) {
-      end = setDateToTime(end, '00:00', {
+      end = setDateToTime(end, DEFAULT_DAY_END_TIME, {
         local: !useUtc,
       });
     }

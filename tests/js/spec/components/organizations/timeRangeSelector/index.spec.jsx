@@ -38,7 +38,26 @@ describe('TimeRangeSelector', function() {
     const newProps = {
       relative: null,
       start: new Date('2017-10-02T04:00:00.000Z'),
-      end: new Date('2017-10-16T04:00:00.000Z'),
+      end: new Date('2017-10-17T03:59:59.000Z'),
+    };
+    expect(onChange).toHaveBeenLastCalledWith(newProps);
+    wrapper.setProps(newProps);
+    wrapper.update();
+
+    expect(wrapper.find('[data-test-id="date-range"]')).toHaveLength(1);
+  });
+
+  it('selects absolute item with utc enabled', async function() {
+    wrapper = createWrapper({useUtc: true});
+    await wrapper.find('HeaderItem').simulate('click');
+
+    expect(wrapper.find('[data-test-id="date-range"]')).toHaveLength(0);
+    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+
+    const newProps = {
+      relative: null,
+      start: new Date('2017-10-03T00:00:00.000Z'),
+      end: new Date('2017-10-17T23:59:59.000Z'),
     };
     expect(onChange).toHaveBeenLastCalledWith(newProps);
     wrapper.setProps(newProps);
@@ -56,8 +75,8 @@ describe('TimeRangeSelector', function() {
     wrapper.find('SelectorItem[value="absolute"]').simulate('click');
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
-      start: new Date(1507521600000),
-      end: new Date(1508126400000),
+      start: new Date('2017-10-09T04:00:00.000Z'),
+      end: new Date('2017-10-17T03:59:59.000Z'),
     });
 
     wrapper.find('SelectorItem[value="14d"]').simulate('click');
@@ -72,8 +91,39 @@ describe('TimeRangeSelector', function() {
     wrapper.find('SelectorItem[value="absolute"]').simulate('click');
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
-      start: new Date(1506916800000),
-      end: new Date(1508126400000),
+      start: new Date('2017-10-02T04:00:00.000Z'), // local time = 2017-10-02T00:00:00
+      end: new Date('2017-10-17T03:59:59.000Z'), // local time = 2017-10-16T23:59:59
+    });
+  });
+
+  it('switches from relative to absolute while maintaining equivalent date range (in utc)', async function() {
+    wrapper = createWrapper({
+      relative: '7d',
+      useUtc: true,
+    });
+    await wrapper.find('HeaderItem').simulate('click');
+
+    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    expect(onChange).toHaveBeenCalledWith({
+      relative: null,
+      start: new Date('2017-10-10T00:00:00.000Z'),
+      end: new Date('2017-10-17T23:59:59.000Z'),
+    });
+
+    wrapper.find('SelectorItem[value="14d"]').simulate('click');
+    expect(onChange).toHaveBeenLastCalledWith({
+      relative: '14d',
+      start: null,
+      end: null,
+    });
+
+    wrapper.setProps({relative: '14d', start: null, end: null});
+    await wrapper.find('HeaderItem').simulate('click');
+    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    expect(onChange).toHaveBeenLastCalledWith({
+      relative: null,
+      start: new Date('2017-10-03T00:00:00.000Z'), // local time = 2017-10-02T00:00:00
+      end: new Date('2017-10-17T23:59:59.000Z'), // local time = 2017-10-16T23:59:59
     });
   });
 });

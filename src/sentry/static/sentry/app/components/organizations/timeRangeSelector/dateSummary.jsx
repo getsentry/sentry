@@ -7,11 +7,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {getFormattedDate, isSameDay} from 'app/utils/dates';
+import {
+  DEFAULT_DAY_END_TIME,
+  DEFAULT_DAY_START_TIME,
+  getFormattedDate,
+} from 'app/utils/dates';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-
-const MIDNIGHT = '00:00';
 
 class DateSummary extends React.Component {
   static propTypes = {
@@ -38,20 +40,21 @@ class DateSummary extends React.Component {
     return getFormattedDate(date, 'll', {local: !this.props.useUtc});
   }
 
-  formatTime(date) {
-    return getFormattedDate(date, 'HH:mm', {local: !this.props.useUtc});
+  formatTime(date, withSeconds = false) {
+    return getFormattedDate(date, `HH:mm${withSeconds ? ':ss' : ''}`, {
+      local: !this.props.useUtc,
+    });
   }
 
   render() {
     const {className, start, end} = this.props;
-    const startTimeFormatted = this.formatTime(start);
-    const endTimeFormatted = this.formatTime(end);
+    const startTimeFormatted = this.formatTime(start, true);
+    const endTimeFormatted = this.formatTime(end, true);
 
     // Show times if either start or end date contain a time that is not midnight
     const shouldShowTimes =
-      startTimeFormatted !== MIDNIGHT || endTimeFormatted !== MIDNIGHT;
-
-    const shouldShowEndDateTime = !isSameDay(start, end);
+      startTimeFormatted !== DEFAULT_DAY_START_TIME ||
+      endTimeFormatted !== DEFAULT_DAY_END_TIME;
 
     return (
       <Flex className={className} align="center">
@@ -59,16 +62,14 @@ class DateSummary extends React.Component {
           <Date hasTime={shouldShowTimes}>{this.formatDate(start)}</Date>
           {shouldShowTimes && <Time>{this.formatTime(start)}</Time>}
         </DateGroup>
-        {shouldShowEndDateTime && (
-          <React.Fragment>
-            <DateRangeDivider>{t('to')}</DateRangeDivider>
+        <React.Fragment>
+          <DateRangeDivider>{t('to')}</DateRangeDivider>
 
-            <DateGroup>
-              <Date hasTime={shouldShowTimes}>{this.formatDate(end)}</Date>
-              {shouldShowTimes && <Time>{this.formatTime(end)}</Time>}
-            </DateGroup>
-          </React.Fragment>
-        )}
+          <DateGroup>
+            <Date hasTime={shouldShowTimes}>{this.formatDate(end)}</Date>
+            {shouldShowTimes && <Time>{this.formatTime(end)}</Time>}
+          </DateGroup>
+        </React.Fragment>
       </Flex>
     );
   }

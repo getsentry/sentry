@@ -4,7 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
-import {getHoursAgo, getStartOfDay} from 'app/utils/dates';
+import {getEndOfDay, getHoursAgo} from 'app/utils/dates';
 import {parsePeriodToHours} from 'app/utils';
 import {t} from 'app/locale';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
@@ -103,13 +103,14 @@ class TimeRangeSelector extends React.PureComponent {
 
   handleAbsoluteClick = () => {
     const {relative, onChange} = this.props;
+    const options = {local: !this.state.useUtc};
 
     // Set default range to equivalent of last relative period,
     // or use default stats period
     onChange({
       relative: null,
-      start: getHoursAgo(parsePeriodToHours(relative || DEFAULT_STATS_PERIOD)),
-      end: getStartOfDay(),
+      start: getHoursAgo(parsePeriodToHours(relative || DEFAULT_STATS_PERIOD), options),
+      end: getEndOfDay(new Date(), options),
     });
   };
 

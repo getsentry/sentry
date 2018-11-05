@@ -73,7 +73,7 @@ describe('DateRange', function() {
       //
       expect(onChange).toHaveBeenLastCalledWith({
         start: new Date('2017-10-01T04:00:00.000Z'),
-        end: new Date('2017-10-01T04:00:00.000Z'),
+        end: new Date('2017-10-02T03:59:59.000Z'),
       });
     });
 
@@ -137,7 +137,7 @@ describe('DateRange', function() {
       //
       expect(onChange).toHaveBeenLastCalledWith({
         start: new Date('2017-10-01T00:00:00.000Z'),
-        end: new Date('2017-10-01T00:00:00.000Z'),
+        end: new Date('2017-10-01T23:59:59.000Z'),
       });
     });
 

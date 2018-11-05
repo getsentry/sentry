@@ -2,6 +2,9 @@ import moment from 'moment';
 
 import {RETENTION_DAYS} from 'app/constants';
 
+export const DEFAULT_DAY_START_TIME = '00:00:00';
+export const DEFAULT_DAY_END_TIME = '23:59:59';
+
 function getParser(local = false) {
   return local ? moment : moment.utc;
 }
@@ -76,15 +79,9 @@ export function getLocalToUtc(dateObj) {
   return moment.utc(localDate.format(format), format).toDate();
 }
 
-export function isSameDay(start, end) {
-  return moment(start)
-    .add(1, 'day')
-    .isSame(moment(end));
-}
-
 // Get the beginning of day (e.g. midnight)
-export function getStartOfDay(date) {
-  return moment(date)
+export function getStartOfDay(date, {local} = {}) {
+  return getParser(local)(date)
     .hour(0)
     .minute(0)
     .second(0)
@@ -93,8 +90,8 @@ export function getStartOfDay(date) {
 
 // Get tomorrow at midnight so that default endtime
 // is inclusive of today
-export function getEndOfDay(date) {
-  return moment(date)
+export function getEndOfDay(date, {local} = {}) {
+  return getParser(local)(date)
     .add(1, 'day')
     .hour(0)
     .minute(0)
@@ -103,7 +100,7 @@ export function getEndOfDay(date) {
     .toDate();
 }
 
-export function getHoursAgo(hours) {
+export function getHoursAgo(hours, options) {
   // Get date "days" ago at midnight
-  return getStartOfDay(moment().subtract(hours, 'hours'));
+  return getStartOfDay(moment().subtract(hours, 'hours'), options);
 }
