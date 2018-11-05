@@ -11,6 +11,7 @@ import EventsTable from 'app/views/organizationEvents/eventsTable';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
+import PreviewFeature from 'app/components/previewFeature';
 
 class OrganizationEvents extends AsyncView {
   static propTypes = {
@@ -56,6 +57,8 @@ class OrganizationEvents extends AsyncView {
           <HeaderTitle>{t('Events')}</HeaderTitle>
           {this.renderSearchInput({})}
         </Flex>
+
+        <PreviewFeature />
 
         <Panel>
           <EventsChart organization={organization} />
