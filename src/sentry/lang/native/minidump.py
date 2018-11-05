@@ -40,8 +40,6 @@ def merge_minidump_event(data, minidump, cfi=None):
 
     data['platform'] = 'native'
     data['level'] = 'fatal' if state.crashed else 'info'
-    data['message'] = 'Assertion Error: %s' % state.assertion if state.assertion \
-        else 'Fatal Error: %s' % state.crash_reason
 
     if state.timestamp:
         data['timestamp'] = float(state.timestamp)
@@ -76,8 +74,10 @@ def merge_minidump_event(data, minidump, cfi=None):
     crashed_thread['crashed'] = True
 
     # Extract the crash reason and infos
+    exc_value = 'Assertion Error: %s' % state.assertion if state.assertion \
+        else 'Fatal Error: %s' % state.crash_reason
     data['exception'] = {
-        'value': data['message'],
+        'value': exc_value,
         'thread_id': crashed_thread['id'],
         'type': state.crash_reason,
         # Move stacktrace here from crashed_thread (mutating!)
@@ -106,6 +106,6 @@ def frames_from_minidump_thread(thread):
     return [{
         'instruction_addr': '0x%x' % frame.return_address,
         'function': '<unknown>',  # Required by interface
-        'module': frame.module.name if frame.module else None,
+        'package': frame.module.name if frame.module else None,
         'trust': frame.trust,
     } for frame in reversed(list(thread.frames()))]
