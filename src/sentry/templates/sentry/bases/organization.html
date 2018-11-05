@@ -35,9 +35,9 @@
   </ul>
   <h6 class="nav-header with-divider">{% trans "Issues" %}</h6>
   <ul class="nav nav-stacked">
-    <li><a href="{% absolute_uri '/organizations/{}/issues/assigned/' organization.slug %}">{% trans "Assigned to Me" %}</li></a>
-    <li><a href="{% absolute_uri '/organizations/{}/issues/bookmarks/' organization.slug %}">{% trans "Bookmarks" %}</li></a>
-    <li><a href="{% absolute_uri '/organizations/{}/issues/history/' organization.slug %}">{% trans "History" %}</li></a>
+    <li><a href="{% absolute_uri '/organizations/{}/issues/assigned/' organization.slug %}">{% trans "Assigned to Me" %}</a></li>
+    <li><a href="{% absolute_uri '/organizations/{}/issues/bookmarks/' organization.slug %}">{% trans "Bookmarks" %}</a></li>
+    <li><a href="{% absolute_uri '/organizations/{}/issues/history/' organization.slug %}">{% trans "History" %}</a></li>
   </ul>
   <h6 class="nav-header with-divider">Manage</h6>
   <ul class="nav nav-stacked">
@@ -73,7 +73,7 @@
     {% endif %}
     {% if ACCESS.org_write %}
       <li><a href="{% absolute_uri '/organizations/{}/audit-log/' organization.slug %}">{% trans "Audit Log" %}</a></li>
-      <li><a href="{% absolute_uri '/organizations/{}/repos/' organization.slug %}">{% trans "Repositories" %}</li></a>
+      <li><a href="{% absolute_uri '/organizations/{}/repos/' organization.slug %}">{% trans "Repositories" %}</a></li>
       <li class="{% block org_settings_nav %}{% endblock %}">
         <a href="{% absolute_uri '/organizations/{}/settings/' organization.slug %}">
           {% trans "Settings" %}

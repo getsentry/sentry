@@ -41,10 +41,12 @@
         {% endblock %}
 
         {% if other_interfaces %}
-          <p>Other authentication methods:
+          <p>Other authentication methods:</p>
           <ul>
             {% for interface in other_interfaces %}
-              <li><a href="?interface={{ interface.interface_id }}">{{ interface.name }}</a>
+              <li>
+                <a href="?interface={{ interface.interface_id }}">{{ interface.name }}</a>
+              </li>
             {% endfor %}
           </ul>
         {% endif %}
