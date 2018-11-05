@@ -329,7 +329,11 @@ export const ProjectKey = PropTypes.shape({
   cdnSdkUrl: PropTypes.string,
 });
 
+<<<<<<< HEAD
 export const SentryApplication = PropTypes.shape({
+=======
+export const SentryApp = PropTypes.shape({
+>>>>>>> add SentryApp shape
   name: PropTypes.string,
   slug: PropTypes.string,
   uuid: PropTypes.string,
@@ -862,7 +866,11 @@ let SentryTypes = {
   Release,
   Repository,
   User,
+<<<<<<< HEAD
   SentryApplication,
+=======
+  SentryApp,
+>>>>>>> add SentryApp shape
 
   // echarts prop types
   EChartsSeries,
