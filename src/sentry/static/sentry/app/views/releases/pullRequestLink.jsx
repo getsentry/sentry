@@ -35,9 +35,21 @@ class PullRequestLink extends React.Component {
 
   render() {
     let url = this.url;
-    let displayId = `${this.props.repository.name} #${this.props.pullRequest.id}: ${this
-      .props.pullRequest.title}`;
     let providerId = this.providerId;
+
+    let {pullRequest, repository} = this.props;
+    let displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
+
+    let icon = '';
+    if (['github', 'gitlab', 'bitbucket'].indexOf(providerId) > -1) {
+      icon = (
+        <InlineSvg
+          src={`icon-${providerId}`}
+          style={{verticalAlign: 'text-top'}}
+          size="14px"
+        />
+      );
+    }
 
     return url ? (
       <a
@@ -45,21 +57,7 @@ class PullRequestLink extends React.Component {
         href={url}
         target="_blank"
       >
-        {providerId == 'github' && (
-          <InlineSvg src="icon-github" style={{verticalAlign: 'text-top'}} size="14px" />
-        )}
-        {providerId == 'bitbucket' && (
-          <InlineSvg
-            src="icon-bitbucket"
-            style={{verticalAlign: 'text-top'}}
-            size="14px"
-          />
-        )}
-        {providerId == 'gitlab' && (
-          <InlineSvg src="icon-gitlab" style={{verticalAlign: 'text-top'}} size="14px" />
-        )}
-        &nbsp;
-        {this.props.inline ? '' : ' '}
+        {icon}&nbsp; {this.props.inline ? '' : ' '}
         {displayId}
       </a>
     ) : (
