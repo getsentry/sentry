@@ -286,9 +286,9 @@ export default class IntegrationRepos extends AsyncComponent {
                       </Box>
                       <Box>
                         <small>
-                          <a href={repo.url}>
-                            {repo.url && repo.url.replace('https://', '')}
-                          </a>
+                          {repo.url && (
+                            <a href={repo.url}>{repo.url.replace('https://', '')}</a>
+                          )}
                         </small>
                       </Box>
                     </Flex>
