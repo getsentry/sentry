@@ -25,6 +25,11 @@ const SUPPORTED_PROVIDERS = [
     providerIds: ['visualstudio', 'integrations:vsts'],
     commitUrl: ({baseUrl, commitId}) => `${baseUrl}/commit/${commitId}`,
   },
+  {
+    icon: 'icon-gitlab',
+    providerIds: ['gitlab', 'integrations:gitlab'],
+    commitUrl: ({baseUrl, commitId}) => `${baseUrl}/commit/${commitId}`,
+  },
 ];
 
 function CommitLink({inline, commitId, repository}) {
