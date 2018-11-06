@@ -55,6 +55,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         install, _ = Creator.run(
             organization=organization,
             slug=serializer.object.get('slug'),
+            user=request.user,
         )
 
         return Response(serialize(install))

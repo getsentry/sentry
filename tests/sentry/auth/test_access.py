@@ -181,6 +181,7 @@ class FromSentryAppTest(TestCase):
         self.install = SentryAppInstallationCreator.run(
             organization=self.org,
             slug=self.sentry_app.slug,
+            user=self.user,
         )
 
     def test_has_access(self):
