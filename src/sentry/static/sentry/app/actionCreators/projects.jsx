@@ -233,3 +233,18 @@ export function removeTeamFromProject(api, orgSlug, projectSlug, teamSlug) {
 export function changeProjectSlug(prev, next) {
   ProjectActions.changeSlug(prev, next);
 }
+
+/**
+ * Send a sample event
+ *
+ * @param {Client} api API Client
+ * @param {String} orgSlug Organization Slug
+ * @param {String} projectSlug Project Slug
+ */
+export function sendSampleEvent(api, orgSlug, projectSlug) {
+  let endpoint = `/projects/${orgSlug}/${projectSlug}/create-sample/`;
+
+  return api.requestPromise(endpoint, {
+    method: 'POST',
+  });
+}
