@@ -55,7 +55,7 @@ class OrganizationEvents extends AsyncView {
       <React.Fragment>
         <Flex align="center" justify="space-between" mb={2}>
           <HeaderTitle>{t('Events')}</HeaderTitle>
-          {this.renderSearchInput({})}
+          {this.renderSearchInput({debounceWait: 1000})}
         </Flex>
 
         <PreviewFeature type="info" />
