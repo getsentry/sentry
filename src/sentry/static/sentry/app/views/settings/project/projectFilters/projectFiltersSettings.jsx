@@ -179,46 +179,44 @@ class ProjectFiltersSettings extends AsyncComponent {
     onBlur(subfilters, e);
   };
 
+  renderDisabledCustomFilters = p => (
+    <FeatureDisabled
+      feature={p.features[0]}
+      alert={PanelAlert}
+      name={t('Custom Inbound Filters')}
+      message={t(
+        'Release and Error Message filtering are not enabled on your Sentry installation'
+      )}
+    />
+  );
+
+  renderCustomFilters = () => (
+    <Feature
+      features={['projects:custom-inbound-filters']}
+      renderDisabled={({children, ...props}) =>
+        children({...props, renderDisabled: this.renderDisabledCustomFilters})}
+    >
+      {({hasFeature, renderDisabled, ...featureProps}) => (
+        <React.Fragment>
+          {!hasFeature &&
+            renderDisabled({organization: this.props.organization, ...featureProps})}
+
+          {customFilterFields.map(field => (
+            <FieldFromConfig key={field.name} field={{...field, disabled: !hasFeature}} />
+          ))}
+        </React.Fragment>
+      )}
+    </Feature>
+  );
+
   renderBody() {
-    let {organization, features, params} = this.props;
+    let {features, params} = this.props;
     let {orgId, projectId} = params;
     let {project} = this.state;
 
     if (!project) return null;
     let projectEndpoint = `/projects/${orgId}/${projectId}/`;
     let filtersEndpoint = `${projectEndpoint}filters/`;
-
-    let disabledAdvFilters = p => (
-      <FeatureDisabled
-        feature={p.features[0]}
-        alert={PanelAlert}
-        name={t('Custom Inbound Filters')}
-        message={t(
-          'Release and Error Message filtering are not enabled on your Sentry installation'
-        )}
-      />
-    );
-
-    let advCustomFilters = (
-      <Feature
-        features={['projects:custom-inbound-filters']}
-        renderDisabled={({children, ...props}) =>
-          children({...props, renderDisabled: disabledAdvFilters})}
-      >
-        {({hasFeature, renderDisabled, ...featureProps}) => (
-          <React.Fragment>
-            {!hasFeature && renderDisabled({organization, ...featureProps})}
-
-            {customFilterFields.map(field => (
-              <FieldFromConfig
-                key={field.name}
-                field={{...field, disabled: !hasFeature}}
-              />
-            ))}
-          </React.Fragment>
-        )}
-      </Feature>
-    );
 
     return (
       <React.Fragment>
@@ -288,7 +286,7 @@ class ProjectFiltersSettings extends AsyncComponent {
           <JsonForm
             features={features}
             forms={filterGroups}
-            renderFooter={() => advCustomFilters}
+            renderFooter={this.renderCustomFilters}
           />
         </Form>
       </React.Fragment>
