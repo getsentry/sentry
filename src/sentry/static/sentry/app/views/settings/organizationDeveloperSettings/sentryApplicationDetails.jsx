@@ -36,7 +36,7 @@ class SentryApplicationDetails extends AsyncView {
   }
 
   getTitle() {
-    return 'Sentry Application Details';
+    return t('Sentry Application Details');
   }
 
   handleScopeChange = (onChange, onBlur, scope, scopes, e) => {

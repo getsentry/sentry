@@ -5,7 +5,7 @@ import SentryTypes from 'app/sentryTypes';
 
 class SentryAppAvatar extends React.Component {
   static propTypes = {
-    sentryApp: SentryTypes.SentryApp.isRequired,
+    sentryApp: SentryTypes.SentryApplication.isRequired,
     ...BaseAvatar.propTypes,
   };
 

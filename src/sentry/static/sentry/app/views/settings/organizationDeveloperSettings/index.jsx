@@ -26,17 +26,17 @@ class SentryApplicationRow extends React.PureComponent {
     let btnClassName = 'btn btn-default';
 
     return (
-      <StyledSentryAppItem>
+      <SentryAppItem>
         <Flex>
           <SentryAppAvatar size={36} sentryApp={app} />
-          <StyledSentryAppBox>
-            <StyledSentryAppName>
+          <SentryAppBox>
+            <SentryAppName>
               <StyledLink to={`/settings/${orgId}/developer-settings/${app.slug}/`}>
                 {app.name}
               </StyledLink>
-            </StyledSentryAppName>
+            </SentryAppName>
             <Status published={app.status === 'published'} />
-          </StyledSentryAppBox>
+          </SentryAppBox>
         </Flex>
 
         <Flex>
@@ -44,7 +44,7 @@ class SentryApplicationRow extends React.PureComponent {
             <Button icon="icon-trash" onClick={() => {}} className={btnClassName} />
           </Box>
         </Flex>
-      </StyledSentryAppItem>
+      </SentryAppItem>
     );
   }
 }
@@ -89,17 +89,17 @@ export default class OrganizationDeveloperSettings extends AsyncView {
   }
 }
 
-const StyledSentryAppItem = styled(PanelItem)`
+const SentryAppItem = styled(PanelItem)`
   justify-content: space-between;
   padding: 15px;
 `;
 
-const StyledSentryAppBox = styled(Box)`
+const SentryAppBox = styled(Box)`
   padding-left: 15px;
   flex: 1;
 `;
 
-const StyledSentryAppName = styled('div')`
+const SentryAppName = styled('div')`
   margin-bottom: 3px;
 `;
 const StyledLink = styled(Link)`
