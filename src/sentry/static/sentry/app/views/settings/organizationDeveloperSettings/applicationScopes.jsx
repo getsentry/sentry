@@ -22,21 +22,20 @@ class ApplicationScopes extends React.Component {
   }
 
   handleToggleScopes = (scope, e) => {
-    let {scopes} = this.state;
-    if (scopes.has(scope)) {
-      scopes.delete(scope);
-    } else {
-      scopes.add(scope);
-    }
-
     this.setState(
       state => {
+        let {scopes} = this.state;
+        if (scopes.has(scope)) {
+          scopes.delete(scope);
+        } else {
+          scopes.add(scope);
+        }
         return {
           scopes: new Set(scopes),
         };
       },
       () => {
-        this.props.onToggle(this.props.scopes, scopes, e);
+        this.props.onToggle(this.props.scopes, this.state.scopes, e);
       }
     );
   };
