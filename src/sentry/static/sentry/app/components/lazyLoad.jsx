@@ -2,11 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import sdk from 'app/utils/sdk';
+import {isWebpackChunkLoadingError} from 'app/utils';
 import {t} from 'app/locale';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import retryableImport from 'app/utils/retryableImport';
+import sdk from 'app/utils/sdk';
 
 class LazyLoad extends React.Component {
   static propTypes = {
@@ -67,12 +68,7 @@ class LazyLoad extends React.Component {
   getComponentGetter = () => this.props.component || this.props.route.componentPromise;
 
   handleFetchError = error => {
-    const isWebpackLoadingError =
-      error &&
-      typeof error.message === 'string' &&
-      error.message.toLowerCase().includes('loading chunk');
-
-    let options = isWebpackLoadingError
+    let options = isWebpackChunkLoadingError(error)
       ? {fingerprint: ['webpack', 'error loading chunk']}
       : {};
 
