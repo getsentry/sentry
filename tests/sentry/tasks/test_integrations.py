@@ -45,16 +45,10 @@ class VstsSubscriptionCheckTest(TestCase):
             }
         )
 
-    def assert_subscription(self, subscription_data, subscription_id, check=True, secret=True):
+    def assert_subscription(self, subscription_data, subscription_id):
         assert subscription_data['id'] == subscription_id
-        if check:
-            assert subscription_data['check']
-        else:
-            assert 'check' not in subscription_data
-        if secret:
-            assert subscription_data['secret']
-        else:
-            assert 'secret' not in subscription_data
+        assert subscription_data['check']
+        assert subscription_data['secret']
 
     @responses.activate
     def test_kickoff_subscription(self):
