@@ -236,12 +236,12 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                     key="123456123456123456123456"
                     orgId="org-slug"
                   >
-                    <StyledSentryAppItem>
+                    <SentryAppItem>
                       <Base
-                        className="css-1u8h3ms-PanelItem-StyledSentryAppItem ew9bjim0"
+                        className="css-4rurrd-PanelItem-SentryAppItem ew9bjim0"
                       >
                         <div
-                          className="css-1u8h3ms-PanelItem-StyledSentryAppItem ew9bjim0"
+                          className="css-4rurrd-PanelItem-SentryAppItem ew9bjim0"
                           is={null}
                         >
                           <Flex>
@@ -346,17 +346,17 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                                     </Tooltip>
                                   </BaseAvatar>
                                 </SentryAppAvatar>
-                                <StyledSentryAppBox>
+                                <SentryAppBox>
                                   <Base
-                                    className="css-1w8n018-StyledSentryAppBox ew9bjim1"
+                                    className="css-1jd8uiq-SentryAppBox ew9bjim1"
                                   >
                                     <div
-                                      className="css-1w8n018-StyledSentryAppBox ew9bjim1"
+                                      className="css-1jd8uiq-SentryAppBox ew9bjim1"
                                       is={null}
                                     >
-                                      <StyledSentryAppName>
+                                      <SentryAppName>
                                         <div
-                                          className="css-1o7gf4t-StyledSentryAppName ew9bjim2"
+                                          className="css-677vhf-SentryAppName ew9bjim2"
                                         >
                                           <StyledLink
                                             to="/settings/org-slug/developer-settings/sample-app/"
@@ -377,7 +377,7 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                                             </Link>
                                           </StyledLink>
                                         </div>
-                                      </StyledSentryAppName>
+                                      </SentryAppName>
                                       <Status
                                         published={false}
                                       >
@@ -890,7 +890,7 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                                       </Status>
                                     </div>
                                   </Base>
-                                </StyledSentryAppBox>
+                                </SentryAppBox>
                               </div>
                             </Base>
                           </Flex>
@@ -998,7 +998,7 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                           </Flex>
                         </div>
                       </Base>
-                    </StyledSentryAppItem>
+                    </SentryAppItem>
                   </SentryApplicationRow>
                 </div>
               </PanelBody>
