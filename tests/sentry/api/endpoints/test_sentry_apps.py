@@ -64,7 +64,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'uuid': self.published_app.uuid,
             'webhookUrl': self.published_app.webhook_url,
             'redirectUrl': self.published_app.redirect_url,
-            'clientID': self.published_app.application.client_id,
+            'clientId': self.published_app.application.client_id,
             'clientSecret': self.published_app.application.client_secret,
             'overview': self.published_app.overview,
         } in response.data
@@ -84,7 +84,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'uuid': self.unpublished_app.uuid,
             'webhookUrl': self.unpublished_app.webhook_url,
             'redirectUrl': self.unpublished_app.redirect_url,
-            'clientID': self.unpublished_app.application.client_id,
+            'clientId': self.unpublished_app.application.client_id,
             'clientSecret': self.unpublished_app.application.client_secret,
             'overview': self.unpublished_app.overview,
         } in response.data

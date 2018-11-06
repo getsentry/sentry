@@ -89,7 +89,7 @@ class SentryApplicationDetails extends AsyncView {
             <Panel>
               <PanelHeader>{t('Credentials')}</PanelHeader>
               <PanelBody>
-                <FormField name="clientID" label="Client ID" overflow>
+                <FormField name="clientId" label="Client ID" overflow>
                   {({value}) => {
                     return (
                       <TextCopyInput>
