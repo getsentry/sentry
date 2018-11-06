@@ -322,6 +322,14 @@ export const ProjectKey = PropTypes.shape({
   cdnSdkUrl: PropTypes.string,
 });
 
+export const SentryApplication = PropTypes.shape({
+  name: PropTypes.string,
+  slug: PropTypes.string,
+  uuid: PropTypes.string,
+  scopes: PropTypes.arrayOf(PropTypes.string),
+  status: PropTypes.string,
+});
+
 export const EChartsData = PropTypes.arrayOf(
   PropTypes.oneOfType([
     // `PercentageBarChart` has a fixed dataset of 0, 25, 50, 100
@@ -846,6 +854,7 @@ let SentryTypes = {
   ProjectKey,
   Release,
   User,
+  SentryApplication,
 
   // echarts prop types
   EChartsSeries,
