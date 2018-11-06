@@ -1,6 +1,7 @@
 import React from 'react';
 import {Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
+import DocumentTitle from 'react-document-title';
 import jQuery from 'jquery';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
@@ -162,23 +163,25 @@ export default class OrganizationDiscoverContainer extends React.Component {
     if (!hasFeature) return this.renderComingSoon();
 
     return (
-      <DiscoverWrapper>
-        {isLoading ? (
-          this.renderLoading()
-        ) : (
-          <Discover
-            organization={organization}
-            queryBuilder={this.queryBuilder}
-            location={location}
-            params={params}
-            savedQuery={savedQuery}
-            isEditingSavedQuery={this.props.location.query.editing === 'true'}
-            updateSavedQueryData={this.updateSavedQuery}
-            view={view}
-            toggleEditMode={this.toggleEditMode}
-          />
-        )}
-      </DiscoverWrapper>
+      <DocumentTitle title={`${organization.slug} Discover - Sentry`}>
+        <DiscoverWrapper>
+          {isLoading ? (
+            this.renderLoading()
+          ) : (
+            <Discover
+              organization={organization}
+              queryBuilder={this.queryBuilder}
+              location={location}
+              params={params}
+              savedQuery={savedQuery}
+              isEditingSavedQuery={this.props.location.query.editing === 'true'}
+              updateSavedQueryData={this.updateSavedQuery}
+              view={view}
+              toggleEditMode={this.toggleEditMode}
+            />
+          )}
+        </DiscoverWrapper>
+      </DocumentTitle>
     );
   }
 }
