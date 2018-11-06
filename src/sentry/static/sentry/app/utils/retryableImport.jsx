@@ -1,3 +1,5 @@
+import {isWebpackChunkLoadingError} from 'app/utils';
+
 const MAX_RETRIES = 2;
 
 export default async function retryableImport(fn) {
@@ -7,7 +9,7 @@ export default async function retryableImport(fn) {
       const module = await fn();
       return module.default || module;
     } catch (err) {
-      if (retries < MAX_RETRIES) {
+      if (isWebpackChunkLoadingError(err) && retries < MAX_RETRIES) {
         retries++;
         return tryLoad();
       }
