@@ -321,7 +321,7 @@ def format_request(endpoint, scenario_map):
     lines = [
         u"{} {} HTTP/1.1".format(request['method'], request['path']),
         'Host: sentry.io',
-        'Authorization: Bearer {base64-encoded-key-here}',
+        'Authorization: Bearer <token>',
     ]
     lines.extend(format_headers(request['headers']))
     if request['data']:

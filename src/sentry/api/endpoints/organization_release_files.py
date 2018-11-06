@@ -23,8 +23,8 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
 
     def get(self, request, organization, version):
         """
-        List a Release's Files
-        ``````````````````````
+        List an Organization Release's Files
+        ````````````````````````````````````
 
         Retrieve a list of files for a given release.
 
