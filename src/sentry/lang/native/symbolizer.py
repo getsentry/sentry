@@ -277,6 +277,8 @@ class Symbolizer(object):
     def symbolize_frame(self, instruction_addr, sdk_info=None, symbolserver_match=None, trust=None):
         obj = self.object_lookup.find_object(instruction_addr)
         if obj is None:
+            if trust == 'scan':
+                return []
             raise SymbolicationFailed(type=EventError.NATIVE_UNKNOWN_IMAGE)
 
         # Try to always prefer the images from the application storage.
