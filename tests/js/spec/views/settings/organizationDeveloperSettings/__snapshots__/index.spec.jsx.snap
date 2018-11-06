@@ -22,7 +22,7 @@ exports[`Organization Developer Settings renders developer settings it lists sen
               icon="icon-circle-add"
               priority="primary"
               size="small"
-              to="/settings/org-slug/developer-settings/new"
+              to="/settings/org-slug/developer-settings/new/"
             >
               Create New Application
             </Button>
@@ -62,7 +62,7 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                         icon="icon-circle-add"
                         priority="primary"
                         size="small"
-                        to="/settings/org-slug/developer-settings/new"
+                        to="/settings/org-slug/developer-settings/new/"
                       >
                         <StyledButton
                           aria-label="Create New Application"
@@ -71,7 +71,7 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                           priority="primary"
                           role="button"
                           size="small"
-                          to="/settings/org-slug/developer-settings/new"
+                          to="/settings/org-slug/developer-settings/new/"
                         >
                           <Component
                             aria-label="Create New Application"
@@ -81,7 +81,7 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                             priority="primary"
                             role="button"
                             size="small"
-                            to="/settings/org-slug/developer-settings/new"
+                            to="/settings/org-slug/developer-settings/new/"
                           >
                             <Link
                               aria-label="Create New Application"
@@ -93,7 +93,7 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                               role="button"
                               size="small"
                               style={Object {}}
-                              to="/settings/org-slug/developer-settings/new"
+                              to="/settings/org-slug/developer-settings/new/"
                             >
                               <a
                                 aria-label="Create New Application"
@@ -1033,7 +1033,7 @@ exports[`Organization Developer Settings renders developer settings it shows emp
               icon="icon-circle-add"
               priority="primary"
               size="small"
-              to="/settings/org-slug/developer-settings/new"
+              to="/settings/org-slug/developer-settings/new/"
             >
               Create New Application
             </Button>
@@ -1073,7 +1073,7 @@ exports[`Organization Developer Settings renders developer settings it shows emp
                         icon="icon-circle-add"
                         priority="primary"
                         size="small"
-                        to="/settings/org-slug/developer-settings/new"
+                        to="/settings/org-slug/developer-settings/new/"
                       >
                         <StyledButton
                           aria-label="Create New Application"
@@ -1082,7 +1082,7 @@ exports[`Organization Developer Settings renders developer settings it shows emp
                           priority="primary"
                           role="button"
                           size="small"
-                          to="/settings/org-slug/developer-settings/new"
+                          to="/settings/org-slug/developer-settings/new/"
                         >
                           <Component
                             aria-label="Create New Application"
@@ -1092,7 +1092,7 @@ exports[`Organization Developer Settings renders developer settings it shows emp
                             priority="primary"
                             role="button"
                             size="small"
-                            to="/settings/org-slug/developer-settings/new"
+                            to="/settings/org-slug/developer-settings/new/"
                           >
                             <Link
                               aria-label="Create New Application"
@@ -1104,7 +1104,7 @@ exports[`Organization Developer Settings renders developer settings it shows emp
                               role="button"
                               size="small"
                               style={Object {}}
-                              to="/settings/org-slug/developer-settings/new"
+                              to="/settings/org-slug/developer-settings/new/"
                             >
                               <a
                                 aria-label="Create New Application"

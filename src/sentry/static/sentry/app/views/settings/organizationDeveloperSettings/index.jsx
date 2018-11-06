@@ -62,10 +62,14 @@ export default class OrganizationDeveloperSettings extends AsyncView {
         priority="primary"
         size="small"
 <<<<<<< HEAD
+<<<<<<< HEAD
         to={`/settings/${orgId}/developer-settings/new/`}
 =======
         to={`/settings/${orgId}/developer-settings/new`}
 >>>>>>> delete unncessary things and edit test descriptions
+=======
+        to={`/settings/${orgId}/developer-settings/new/`}
+>>>>>>> minor cleanup
         icon="icon-circle-add"
       >
         {t('Create New Application')}
