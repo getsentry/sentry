@@ -209,10 +209,14 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 symbolicated_frames = self.sym.symbolize_frame(
                     instruction_addr,
                     self.sdk_info,
-                    symbolserver_match=processable_frame.data['symbolserver_match']
+                    symbolserver_match=processable_frame.data['symbolserver_match'],
+                    trust=raw_frame.get('trust'),
                 )
                 if not symbolicated_frames:
-                    return None, [raw_frame], []
+                    if raw_frame.get('trust') == 'scan':
+                        return [], [raw_frame], []
+                    else:
+                        return None, [raw_frame], []
             except SymbolicationFailed as e:
                 # User fixable but fatal errors are reported as processing
                 # issues
