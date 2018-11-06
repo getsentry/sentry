@@ -796,6 +796,9 @@ SENTRY_FEATURES = {
     'organizations:internal-catchall': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
+    # Enable gitlab integration currently available to early adopters only.
+    'organizations:gitlab-integration': False,
+
     # DEPRECATED: pending removal.
     'organizations:js-loader': False,
     # DEPRECATED: pending removal.
@@ -1323,7 +1326,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 )
 
 SENTRY_INTERNAL_INTEGRATIONS = (
-    'gitlab',
     'vsts-extension',
 )
 
