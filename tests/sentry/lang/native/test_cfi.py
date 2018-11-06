@@ -35,29 +35,83 @@ RAW_STACKTRACE = [
 
 CFI_STACKTRACE = [
     {
-        'function': "<unknown>",
-        'instruction_addr': "0x7f5140cdc000",
+        'function': '<unknown>',
+        'instruction_addr': '0x401dc0',
+        'package': u'/work/linux/build/crash',
+        'trust': 'scan'
+    },
+    {
+        'function': '<unknown>',
+        'instruction_addr': '0x7f5140cdc000',
         'package': None,
-        'trust': "scan",
+        'trust': 'scan'
     },
     {
-        'function': "<unknown>",
-        'instruction_addr': "0x7fff5aef1000",
+        'function': '<unknown>',
+        'instruction_addr': '0x400040',
+        'package': u'/work/linux/build/crash',
+        'trust': 'scan'
+    },
+    {
+        'function': '<unknown>',
+        'instruction_addr': '0x7fff5aef1000',
         'package': None,
-        'trust': "scan",
+        'trust': 'scan'
     },
     {
-        'function': "<unknown>",
-        'instruction_addr': "0x7f514017d830",
-        'package': "/lib/x86_64-linux-gnu/libc-2.23.so",
-        'trust': "cfi",
+        'function': '<unknown>',
+        'instruction_addr': '0x7fff5ae4ac88',
+        'package': None,
+        'trust': 'cfi'
     },
     {
-        'function': "<unknown>",
-        'instruction_addr': "0x401d72",
-        'package': "/work/linux/build/crash",
-        'trust': "context",
+        'function': '<unknown>',
+        'instruction_addr': '0x401de9',
+        'package': u'/work/linux/build/crash',
+        'trust': 'scan'
     },
+    {
+        'function': '<unknown>',
+        'instruction_addr': '0x401dc0',
+        'package': u'/work/linux/build/crash',
+        'trust': 'scan'
+    },
+    {
+        'function': '<unknown>',
+        'instruction_addr': '0x414ca0',
+        'package': u'/work/linux/build/crash',
+        'trust': 'scan'
+    },
+    {
+        'function': '<unknown>',
+        'instruction_addr': '0x401c70',
+        'package': u'/work/linux/build/crash',
+        'trust': 'scan'
+    },
+    {
+        'function': '<unknown>',
+        'instruction_addr': '0x401dc0',
+        'package': u'/work/linux/build/crash',
+        'trust': 'scan'
+    },
+    {
+        'function': '<unknown>',
+        'instruction_addr': '0x401c70',
+        'package': u'/work/linux/build/crash',
+        'trust': 'scan'
+    },
+    {
+        'function': '<unknown>',
+        'instruction_addr': '0x7f514017d830',
+        'package': u'/lib/x86_64-linux-gnu/libc-2.23.so',
+        'trust': 'cfi'
+    },
+    {
+        'function': '<unknown>',
+        'instruction_addr': '0x401d72',
+        'package': u'/work/linux/build/crash',
+        'trust': 'context',
+    }
 ]
 
 
@@ -154,8 +208,17 @@ class CfiReprocessingTest(TestCase):
     @mock.patch('sentry.utils.cache.cache.get', return_value=None)
     def test_cfi_reprocessing_cached(self, mock_cache_get, mock_attachment_get):
         mock_cache_get.return_value = [
+            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1dc0', 'scan'),
             (None, '0x7f5140cdc000', 'scan'),
+            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x0040', 'scan'),
             (None, '0x7fff5aef1000', 'scan'),
+            (None, '0x7fff5ae4ac88', 'cfi'),
+            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1de9', 'scan'),
+            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1dc0', 'scan'),
+            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x14ca0', 'scan'),
+            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1c70', 'scan'),
+            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1dc0', 'scan'),
+            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1c70', 'scan'),
             ('451a38b5-0679-79d2-0738-22a5ceb24c4b', '0x20830', 'cfi'),
             ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1d72', 'context'),
         ]
@@ -163,7 +226,7 @@ class CfiReprocessingTest(TestCase):
         data = self.get_mock_event(reprocessed=False)
         result = reprocess_minidump_with_cfi(data)
 
-        mock_cache_get.assert_called_once_with('st:80d8fdd07a3fb9639403afa33b0e930e')
+        mock_cache_get.assert_called_once_with('st:a996085d85a6793c0f4c377630965675')
         assert mock_attachment_get.call_count == 0
         assert result == self.get_mock_event(reprocessed=True)
 
@@ -175,7 +238,7 @@ class CfiReprocessingTest(TestCase):
         data = self.get_mock_event(reprocessed=False)
         result = reprocess_minidump_with_cfi(data)
 
-        mock_cache_get.assert_called_once_with('st:80d8fdd07a3fb9639403afa33b0e930e')
+        mock_cache_get.assert_called_once_with('st:a996085d85a6793c0f4c377630965675')
         assert mock_attachment_get.call_count == 0
         assert result is None
 

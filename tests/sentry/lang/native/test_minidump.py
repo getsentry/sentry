@@ -268,8 +268,8 @@ def test_minidump_linux():
                 }
             },
             'thread_id': 1304,
-            'type': u'SIGSEGV',
-            'value': u'Fatal Error: SIGSEGV'
+            'type': u'SIGSEGV /0x00000000',
+            'value': u'Fatal Error: SIGSEGV /0x00000000'
         },
         'level': 'fatal',
         'platform': 'native',

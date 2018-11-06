@@ -213,7 +213,7 @@ class BasicResolvingIntegrationTest(TestCase):
 
         assert len(event.interfaces['threads'].values) == 1
 
-    def sym_app_frame(self, instruction_addr, img, sdk_info=None):
+    def sym_app_frame(self, instruction_addr, img, sdk_info=None, trust=None):
         object_name = (
             "/var/containers/Bundle/Application/"
             "B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
@@ -569,7 +569,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
 
         assert len(event.interfaces['threads'].values) == 1
 
-    def sym_app_frame(self, instruction_addr, img, sdk_info=None):
+    def sym_app_frame(self, instruction_addr, img, sdk_info=None, trust=None):
         object_name = (
             "/var/containers/Bundle/Application/"
             "B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
@@ -900,7 +900,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         assert frames[5].in_app
         assert frames[6].in_app
 
-    def sym_mac_app_frame(self, instruction_addr, img, sdk_info=None):
+    def sym_mac_app_frame(self, instruction_addr, img, sdk_info=None, trust=None):
         object_name = (
             "/Users/haza/Library/Developer/Xcode/Archives/2017-06-19/"
             "CrashProbe 19-06-2017, 08.53.xcarchive/Products/Applications/"
