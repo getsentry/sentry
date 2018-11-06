@@ -69,10 +69,11 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         return [{
             'name': 'repo',
             'required': True,
+            'updatesForm': True,
             'type': 'select',
             'url': autocomplete_url,
             'choices': repo_choices,
-            'defaultValue': default_repo,
+            'default': default_repo,
             'label': 'Bitbucket Repository',
         }, {
             'name': 'externalIssue',
