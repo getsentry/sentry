@@ -85,10 +85,6 @@ class EventsChart extends React.Component {
                 left: '18px',
                 right: '18px',
               }}
-              onEvents={{
-                datazoom: this.handleDataZoom,
-                click: this.handleChartClick,
-              }}
             />
           )}
         </HealthRequestWithParams>
