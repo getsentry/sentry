@@ -4,6 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {analytics} from 'app/utils/analytics';
 import {getEndOfDay, getHoursAgo} from 'app/utils/dates';
 import {parsePeriodToHours} from 'app/utils';
 import {t} from 'app/locale';
@@ -127,8 +128,6 @@ class TimeRangeSelector extends React.PureComponent {
   handleSelectDateRange = ({start, end}) => {
     const {onChange} = this.props;
 
-    // TODO: Figure out best behavior when selecting a date range
-    // i.e. currently the ending date is exclusive (time is midnight)
     onChange({
       relative: null,
       start,
@@ -137,9 +136,15 @@ class TimeRangeSelector extends React.PureComponent {
   };
 
   handleUseUtc = () => {
-    this.setState(state => ({
-      useUtc: !state.useUtc,
-    }));
+    this.setState(state => {
+      analytics('dateselector.utc', {
+        useUtc: !state.useUtc,
+      });
+
+      return {
+        useUtc: !state.useUtc,
+      };
+    });
   };
 
   render() {

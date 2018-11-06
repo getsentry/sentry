@@ -14,6 +14,7 @@ import {
   getFormattedDate,
   setDateToTime,
 } from 'app/utils/dates';
+import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
 import Checkbox from 'app/components/checkbox';
 import TimePicker from 'app/components/organizations/timeRangeSelector/timePicker';
@@ -99,6 +100,10 @@ class DateRange extends React.Component {
     const {start, end, onChange} = this.props;
     const startTime = e.target.value;
 
+    analytics('dateselector.change_time', {
+      startTime,
+    });
+
     onChange({
       start: setDateToTime(start, startTime, {local: !this.props.useUtc}),
       end,
@@ -108,6 +113,10 @@ class DateRange extends React.Component {
   handleChangeEnd = e => {
     const {start, end, onChange} = this.props;
     const endTime = e.target.value;
+
+    analytics('dateselector.change_time', {
+      endTime,
+    });
 
     onChange({
       start,
