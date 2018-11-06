@@ -426,8 +426,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                   "clientSecret" => Object {
                                                                     "children": [Function],
                                                                     "flexibleControlStateSize": false,
-                                                                    "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                                     "hideErrorMessage": false,
                                                                     "label": "Client Secret",
                                                                     "name": "clientSecret",
@@ -713,8 +711,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                               "clientSecret" => Object {
                                                                                                 "children": [Function],
                                                                                                 "flexibleControlStateSize": false,
-                                                                                                "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                                                                 "hideErrorMessage": false,
                                                                                                 "label": "Client Secret",
                                                                                                 "name": "clientSecret",
@@ -1017,8 +1013,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                   "clientSecret" => Object {
                                                                     "children": [Function],
                                                                     "flexibleControlStateSize": false,
-                                                                    "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                                     "hideErrorMessage": false,
                                                                     "label": "Client Secret",
                                                                     "name": "clientSecret",
@@ -1304,8 +1298,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                               "clientSecret" => Object {
                                                                                                 "children": [Function],
                                                                                                 "flexibleControlStateSize": false,
-                                                                                                "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                                                                 "hideErrorMessage": false,
                                                                                                 "label": "Client Secret",
                                                                                                 "name": "clientSecret",
@@ -1599,8 +1591,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                   "clientSecret" => Object {
                                                                     "children": [Function],
                                                                     "flexibleControlStateSize": false,
-                                                                    "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                                     "hideErrorMessage": false,
                                                                     "label": "Client Secret",
                                                                     "name": "clientSecret",
@@ -1884,8 +1874,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                               "clientSecret" => Object {
                                                                                                 "children": [Function],
                                                                                                 "flexibleControlStateSize": false,
-                                                                                                "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                                                                 "hideErrorMessage": false,
                                                                                                 "label": "Client Secret",
                                                                                                 "name": "clientSecret",
@@ -2179,8 +2167,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                   "clientSecret" => Object {
                                                                     "children": [Function],
                                                                     "flexibleControlStateSize": false,
-                                                                    "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                                     "hideErrorMessage": false,
                                                                     "label": "Client Secret",
                                                                     "name": "clientSecret",
@@ -2491,8 +2477,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                               "clientSecret" => Object {
                                                                                                 "children": [Function],
                                                                                                 "flexibleControlStateSize": false,
-                                                                                                "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                                                                 "hideErrorMessage": false,
                                                                                                 "label": "Client Secret",
                                                                                                 "name": "clientSecret",
@@ -2765,8 +2749,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                   "clientSecret" => Object {
                                                     "children": [Function],
                                                     "flexibleControlStateSize": false,
-                                                    "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                     "hideErrorMessage": false,
                                                     "label": "Client Secret",
                                                     "name": "clientSecret",
@@ -3858,8 +3840,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                               "clientSecret" => Object {
                                                                                 "children": [Function],
                                                                                 "flexibleControlStateSize": false,
-                                                                                "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                                                 "hideErrorMessage": false,
                                                                                 "label": "Client Secret",
                                                                                 "name": "clientSecret",
@@ -4148,8 +4128,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                   "clientSecret" => Object {
                                                     "children": [Function],
                                                     "flexibleControlStateSize": false,
-                                                    "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                     "hideErrorMessage": false,
                                                     "label": "Client Secret",
                                                     "name": "clientSecret",
@@ -4434,8 +4412,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                               "clientSecret" => Object {
                                                                                 "children": [Function],
                                                                                 "flexibleControlStateSize": false,
-                                                                                "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                                                 "hideErrorMessage": false,
                                                                                 "label": "Client Secret",
                                                                                 "name": "clientSecret",
@@ -4531,8 +4507,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                         </FormField>
                         <FormField
                           flexibleControlStateSize={false}
-                          help="Your secret is only available briefly after application creation. Make
-                      sure to save this value!"
                           hideErrorMessage={false}
                           label="Client Secret"
                           name="clientSecret"
@@ -4542,8 +4516,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                             alignRight={false}
                             disabled={false}
                             flexibleControlStateSize={false}
-                            help="Your secret is only available briefly after application creation. Make
-                      sure to save this value!"
                             id="clientSecret"
                             inline={true}
                             label="Client Secret"
@@ -4590,14 +4562,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                  
                                               </div>
                                             </FieldLabel>
-                                            <FieldHelp>
-                                              <div
-                                                className="css-aqmwwj-FieldHelp e19g0xdp0"
-                                              >
-                                                Your secret is only available briefly after application creation. Make
-                      sure to save this value!
-                                              </div>
-                                            </FieldHelp>
                                           </label>
                                         </Component>
                                       </FieldDescription>
@@ -4692,8 +4656,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                   "clientSecret" => Object {
                                                     "children": [Function],
                                                     "flexibleControlStateSize": false,
-                                                    "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                     "hideErrorMessage": false,
                                                     "label": "Client Secret",
                                                     "name": "clientSecret",
@@ -4978,8 +4940,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                               "clientSecret" => Object {
                                                                                 "children": [Function],
                                                                                 "flexibleControlStateSize": false,
-                                                                                "help": "Your secret is only available briefly after application creation. Make
-                      sure to save this value!",
                                                                                 "hideErrorMessage": false,
                                                                                 "label": "Client Secret",
                                                                                 "name": "clientSecret",

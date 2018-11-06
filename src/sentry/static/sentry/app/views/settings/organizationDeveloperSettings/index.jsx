@@ -61,7 +61,7 @@ export default class OrganizationDeveloperSettings extends AsyncView {
       <Button
         priority="primary"
         size="small"
-        to={`/settings/${orgId}/developer-settings/new`}
+        to={`/settings/${orgId}/developer-settings/new/`}
         icon="icon-circle-add"
       >
         {t('Create New Application')}
@@ -102,6 +102,7 @@ const SentryAppBox = styled(Box)`
 const SentryAppName = styled('div')`
   margin-bottom: 3px;
 `;
+
 const StyledLink = styled(Link)`
   font-size: 22px;
   color: ${props => props.theme.textColor};

@@ -11,7 +11,7 @@ import FormField from 'app/views/settings/components/forms/formField';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import sentryApplication from 'app/data/forms/sentryApplication';
+import sentryApplicationForm from 'app/data/forms/sentryApplication';
 import getDynamicText from 'app/utils/getDynamicText';
 import ApplicationScopes from './applicationScopes';
 
@@ -65,7 +65,7 @@ class SentryApplicationDetails extends AsyncView {
           onSubmitSuccess={this.onSubmitSuccess}
           onSubmitError={err => addErrorMessage(t('Unable to save change'))}
         >
-          <JsonForm location={this.props.location} forms={sentryApplication} />
+          <JsonForm location={this.props.location} forms={sentryApplicationForm} />
           <Panel>
             <PanelHeader>{t('API Scopes')}</PanelHeader>
             <PanelBody>
@@ -98,13 +98,7 @@ class SentryApplicationDetails extends AsyncView {
                     );
                   }}
                 </FormField>
-                <FormField
-                  overflow
-                  name="clientSecret"
-                  label="Client Secret"
-                  help={t(`Your secret is only available briefly after application creation. Make
-                      sure to save this value!`)}
-                >
+                <FormField overflow name="clientSecret" label="Client Secret">
                   {({value}) => {
                     return value ? (
                       <TextCopyInput>
