@@ -17,19 +17,20 @@ class VstsSubscriptionCheckTest(TestCase):
             json={'status': 'disabledBySystem'}
         )
         responses.add(
-            responses.PUT,
+            responses.DELETE,
             'https://vsts1.visualstudio.com/_apis/hooks/subscriptions/subscription1',
             json={}
+        )
+        responses.add(
+            responses.POST,
+            'https://vsts1.visualstudio.com/_apis/hooks/subscriptions',
+            json={'id': 'subscription1_new_id'},
+
         )
         responses.add(
             responses.GET,
             'https://vsts1.visualstudio.com/_apis/hooks/subscriptions/subscription3',
             json={'status': 'enabled'}
-        )
-        responses.add(
-            responses.PUT,
-            'https://vsts1.visualstudio.com/_apis/hooks/subscriptions/subscription3',
-            json={}
         )
         self.identity = Identity.objects.create(
             idp=IdentityProvider.objects.create(
@@ -43,6 +44,17 @@ class VstsSubscriptionCheckTest(TestCase):
                 'expires': time() + 50000,
             }
         )
+
+    def assert_subscription(self, subscription_data, subscription_id, check=True, secret=True):
+        assert subscription_data['id'] == subscription_id
+        if check:
+            assert subscription_data['check']
+        else:
+            assert 'check' not in subscription_data
+        if secret:
+            assert subscription_data['secret']
+        else:
+            assert 'secret' not in subscription_data
 
     @responses.activate
     def test_kickoff_subscription(self):
@@ -74,6 +86,7 @@ class VstsSubscriptionCheckTest(TestCase):
                 'subscription': {
                     'id': 'subscription3',
                     'check': integration3_check_time,
+                    'secret': '1234567890'
                 }
             }
         )
@@ -82,12 +95,15 @@ class VstsSubscriptionCheckTest(TestCase):
         with self.tasks():
             kickoff_vsts_subscription_check()
 
-        assert 'check' in Integration.objects.get(
+        subscription1 = Integration.objects.get(
             provider='vsts',
             external_id='vsts1',
         ).metadata['subscription']
+        self.assert_subscription(subscription1, 'subscription1_new_id')
 
-        assert integration3_check_time == Integration.objects.get(
+        subscription3 = Integration.objects.get(
             provider='vsts',
             external_id='vsts3',
-        ).metadata['subscription']['check']
+        ).metadata['subscription']
+        self.assert_subscription(subscription3, 'subscription3')
+        assert integration3_check_time == subscription3['check']
