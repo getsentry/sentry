@@ -287,7 +287,6 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
             )
 
         try:
-            # TODO(lb): Move this to a common area in integrations and make it a function
             secret = generate_secret()
             subscription = client.create_subscription(
                 instance=installation.instance,
