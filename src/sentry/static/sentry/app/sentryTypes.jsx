@@ -230,6 +230,13 @@ export const Release = PropTypes.shape({
   owner: User,
 });
 
+export const Repository = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string,
+  url: PropTypes.string,
+  status: PropTypes.string,
+});
+
 export const NavigationObject = PropTypes.shape({
   name: PropTypes.string,
   items: PropTypes.arrayOf(
@@ -845,6 +852,7 @@ let SentryTypes = {
   PluginsStore,
   ProjectKey,
   Release,
+  Repository,
   User,
 
   // echarts prop types
