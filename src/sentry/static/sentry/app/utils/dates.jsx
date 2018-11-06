@@ -21,8 +21,8 @@ export function getEarliestRetentionDate() {
 /**
  * Return a date object in local time, when given a UTC timestamp
  */
-export function getLocalDateObject(str) {
-  return moment.utc(str).toDate();
+export function getLocalDateObject(date) {
+  return moment.utc(date).toDate();
 }
 
 /**
@@ -66,6 +66,18 @@ export function getUtcInLocal(dateObj) {
   const format = 'YYYY-MM-DD HH:mm:ss';
 
   return moment(utc.format(format), format).toDate();
+}
+
+/**
+ * Because our date picker library does not support display dates in UTC, we need
+ * to make a fake date object for date picker to use.
+ */
+export function getCoercedUtcOrLocalDate(date, {local} = {}) {
+  if (local) {
+    return getLocalDateObject(date);
+  }
+
+  return getUtcInLocal(date);
 }
 
 /**

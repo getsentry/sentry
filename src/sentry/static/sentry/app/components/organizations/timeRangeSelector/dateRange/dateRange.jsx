@@ -9,10 +9,9 @@ import styled from 'react-emotion';
 import {
   DEFAULT_DAY_END_TIME,
   DEFAULT_DAY_START_TIME,
+  getCoercedUtcOrLocalDate,
   getEarliestRetentionDate,
   getFormattedDate,
-  getLocalDateObject,
-  getUtcInLocal,
   setDateToTime,
 } from 'app/utils/dates';
 import {t} from 'app/locale';
@@ -124,8 +123,10 @@ class DateRange extends React.Component {
 
     // Restraints on the time range that you can select
     // Can't select dates in the future b/c we're not fortune tellers (yet)
-    const minDate = getEarliestRetentionDate();
-    const maxDate = new Date();
+    const minDate = getCoercedUtcOrLocalDate(getEarliestRetentionDate(), {
+      local: !useUtc,
+    });
+    const maxDate = getCoercedUtcOrLocalDate(new Date(), {local: !useUtc});
 
     return (
       <div className={className} data-test-id="date-range">
@@ -134,11 +135,9 @@ class DateRange extends React.Component {
           ranges={[
             {
               startDate: start
-                ? useUtc ? getUtcInLocal(start) : getLocalDateObject(start)
+                ? getCoercedUtcOrLocalDate(start, {local: !useUtc})
                 : start,
-              endDate: end
-                ? useUtc ? getUtcInLocal(end) : getLocalDateObject(end)
-                : end,
+              endDate: end ? getCoercedUtcOrLocalDate(end, {local: !useUtc}) : end,
               key: 'selection',
             },
           ]}

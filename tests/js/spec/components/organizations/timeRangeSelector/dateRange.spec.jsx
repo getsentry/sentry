@@ -1,5 +1,6 @@
 import React from 'react';
 import {mount} from 'enzyme';
+import MockDate from 'mockdate';
 
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 
@@ -35,6 +36,15 @@ describe('DateRange', function() {
   let onChange = jest.fn();
   let routerContext = TestStubs.routerContext();
 
+  beforeAll(function() {
+    MockDate.set(new Date('2017-10-16T23:41:20.000Z'));
+  });
+
+  afterAll(function() {
+    // reset mock date
+    MockDate.set(new Date(1508208080000));
+  });
+
   describe('Local time', function() {
     beforeEach(function() {
       onChange.mockReset();
@@ -49,6 +59,12 @@ describe('DateRange', function() {
           onChangeUtc={jest.fn()}
         />,
         routerContext
+      );
+    });
+
+    it('has the right max date', function() {
+      expect(wrapper.find('StyledDateRangePicker').prop('maxDate')).toEqual(
+        new Date('2017-10-16T23:41:20.000Z')
       );
     });
 
@@ -113,6 +129,12 @@ describe('DateRange', function() {
           onChangeUtc={jest.fn()}
         />,
         routerContext
+      );
+    });
+
+    it('has the right max date', function() {
+      expect(wrapper.find('StyledDateRangePicker').prop('maxDate')).toEqual(
+        new Date('2017-10-17T03:41:20.000Z')
       );
     });
 
