@@ -11,7 +11,7 @@ describe('Query Builder', function() {
 
       expect(external.projects).toEqual([2]);
       expect(external.fields).toEqual(expect.arrayContaining([expect.any(String)]));
-      expect(external.fields).toHaveLength(46);
+      expect(external.fields).toHaveLength(4);
       expect(external.conditions).toHaveLength(0);
       expect(external.aggregations).toHaveLength(0);
       expect(external.orderby).toBe('-timestamp');
@@ -150,6 +150,7 @@ describe('Query Builder', function() {
     });
 
     it('updates orderby if there is an aggregation and value is not a valid field', function() {
+      queryBuilder.updateField('fields', ['event_id']);
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
       const query = queryBuilder.getInternal();
@@ -157,6 +158,7 @@ describe('Query Builder', function() {
     });
 
     it('updates orderby if there is no aggregation and value is not a valid field', function() {
+      queryBuilder.updateField('fields', ['event_id']);
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
       expect(queryBuilder.getInternal().orderby).toBe('-count');
       queryBuilder.updateField('aggregations', []);
