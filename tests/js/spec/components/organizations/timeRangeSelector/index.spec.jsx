@@ -126,4 +126,28 @@ describe('TimeRangeSelector', function() {
       end: new Date('2017-10-17T23:59:59.000Z'), // local time = 2017-10-16T23:59:59
     });
   });
+
+  it('maintains time when switching UTC to local time', async function() {
+    wrapper = createWrapper({
+      relative: null,
+      start: new Date('2017-10-10T00:00:00.000Z'),
+      end: new Date('2017-10-17T23:59:59.000Z'),
+      useUtc: true,
+    });
+    wrapper.find('HeaderItem').simulate('click');
+
+    wrapper.find('UtcPicker Checkbox').simulate('change');
+    expect(onChange).toHaveBeenLastCalledWith({
+      relative: null,
+      start: new Date('2017-10-10T04:00:00.000Z'),
+      end: new Date('2017-10-18T03:59:59.000Z'),
+    });
+
+    wrapper.find('UtcPicker Checkbox').simulate('change');
+    expect(onChange).toHaveBeenLastCalledWith({
+      relative: null,
+      start: new Date('2017-10-10T00:00:00.000Z'),
+      end: new Date('2017-10-17T23:59:59.000Z'),
+    });
+  });
 });

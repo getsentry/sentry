@@ -110,7 +110,7 @@ class DateRange extends React.Component {
     const startTime = e.target.value;
 
     analytics('dateselector.change_time', {
-      startTime,
+      start: startTime,
     });
 
     onChange({
@@ -124,7 +124,7 @@ class DateRange extends React.Component {
     const endTime = e.target.value;
 
     analytics('dateselector.change_time', {
-      endTime,
+      end: endTime,
     });
 
     onChange({
