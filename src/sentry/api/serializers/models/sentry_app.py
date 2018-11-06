@@ -18,6 +18,7 @@ class SentryAppSerializer(Serializer):
             'webhookUrl': obj.webhook_url,
             'redirectUrl': obj.redirect_url,
             'clientId': obj.application.client_id,
+<<<<<<< HEAD
             'clientSecret': obj.application.client_secret,
             'overview': obj.overview,
 =======
@@ -28,6 +29,8 @@ class SentryAppSerializer(Serializer):
             'redirectUrl': obj.redirect_url,
 >>>>>>> camel case webhook url and redirect url
             'clientID': obj.application.client_id,
+=======
+>>>>>>> clientID -> clientId
             'clientSecret': obj.application.client_secret,
 <<<<<<< HEAD
 >>>>>>> use org sentry app endpoint & styling

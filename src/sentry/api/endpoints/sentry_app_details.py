@@ -28,18 +28,8 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             updated_app = Updater.run(
                 sentry_app=sentry_app,
                 name=result.get('name'),
-<<<<<<< HEAD
-<<<<<<< HEAD
                 webhook_url=result.get('webhookUrl'),
                 redirect_url=result.get('redirectUrl'),
-=======
-                webhook_url=result.get('webhook_url'),
-                redirect_url=result.get('redirect_url'),
->>>>>>> add redirect_url and overview to ui and letter avatar
-=======
-                webhook_url=result.get('webhookUrl'),
-                redirect_url=result.get('redirectUrl'),
->>>>>>> camel case webhook url and redirect url
                 scopes=result.get('scopes'),
                 overview=result.get('overview'),
             )
