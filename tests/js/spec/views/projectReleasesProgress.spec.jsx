@@ -45,7 +45,7 @@ describe('ReleaseProgress', function() {
       <ReleaseProgress orgId={organization.id} projectId={project.id} />,
       routerContext
     );
-    expect(wrapper.state('remainingSteps')).toHaveLength(0);
+    expect(wrapper.state('remainingSteps')).toBe(0);
     expect(wrapper.find('ReleaseProgress')).toHaveLength(1);
     expect(wrapper.find('PanelItem')).toHaveLength(0);
   });
@@ -70,7 +70,7 @@ describe('ReleaseProgress', function() {
         .find('span')
         .first()
         .text()
-    ).toBe('Next step:Link to a repo ');
+    ).toBe('Next step: Link to a repo');
     expect(getPromptsMock).toHaveBeenCalled();
   });
 
@@ -93,7 +93,7 @@ describe('ReleaseProgress', function() {
         .find('span')
         .first()
         .text()
-    ).toBe('Next step:Link to a repo ');
+    ).toBe('Next step: Link to a repo');
     expect(wrapper.find('PanelItem')).toHaveLength(1);
 
     //Snooze the bar

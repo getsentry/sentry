@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-class ProgressBarTest extends React.Component {
+class ProgressBar extends React.Component {
   static propTypes = {
     width: PropTypes.number,
   };
@@ -38,4 +38,4 @@ const StyledSlider = styled.div`
   bottom: 0;
   left: 0;
 `;
-export default ProgressBarTest;
+export default ProgressBar;
