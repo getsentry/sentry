@@ -1,22 +1,29 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
 import {fetchOrganizationEnvironments} from 'app/actionCreators/environments';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
-import Button from 'app/components/button';
-import DropdownMenu from 'app/components/dropdownMenu';
+import CheckboxFancy from 'app/components/checkboxFancy';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import HeaderItem from 'app/components/organizations/headerItem';
+import Highlight from 'app/components/highlight';
+import InlineSvg from 'app/components/inlineSvg';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import MultiSelectField from 'app/components/forms/multiSelectField';
 import SentryTypes from 'app/sentryTypes';
+import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-import HeaderItem from 'app/components/organizations/headerItem';
-import InlineSvg from 'app/components/inlineSvg';
+const rootClassName = css`
+  position: relative;
+  display: flex;
+  left: -1px;
+`;
 
 /**
  * Environment Selector
+ *
+ * Note we only fetch environments when this component is mounted
  */
 class MultipleEnvironmentSelector extends React.PureComponent {
   static propTypes = {
@@ -28,94 +35,174 @@ class MultipleEnvironmentSelector extends React.PureComponent {
     value: PropTypes.array,
   };
 
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = {
       isOpen: false,
+      selectedEnvs: new Set(props.value),
     };
   }
 
-  handleUpdate = actions => {
-    let {value, onUpdate} = this.props;
+  /**
+   * If value in state is different than value from props, propagate changes
+   */
+  doChange = (value, e) => {
+    const {onChange} = this.props;
+
+    if (typeof onChange === 'function') {
+      onChange(value, e);
+    }
+  };
+
+  /**
+   * Checks if "onUpdate" is callable. Only calls if there are changes
+   */
+  doUpdate = () => {
+    const {onUpdate} = this.props;
+
+    if (typeof onUpdate === 'function') {
+      onUpdate();
+    }
+  };
+
+  handleOpenMenu = () => {
+    this.setState({isOpen: true});
+  };
+
+  handleCloseMenu = () => {
+    this.handleUpdate();
+  };
+
+  /**
+   * Calls "onUpdate" callback and closes the dropdown menu
+   */
+  handleUpdate = () => {
     this.setState(
       {
         isOpen: false,
       },
+      this.doUpdate
+    );
+  };
+
+  /**
+   * Toggle selected state of an environment
+   */
+  toggleSelected(env, e) {
+    this.setState(state => {
+      const selectedEnvs = new Set(state.selectedEnvs);
+
+      if (selectedEnvs.has(env.name)) {
+        selectedEnvs.delete(env.name);
+      } else {
+        selectedEnvs.add(env.name);
+      }
+
+      this.doChange(Array.from(selectedEnvs.values()), e);
+
+      return {
+        selectedEnvs,
+      };
+    });
+  }
+
+  /**
+   * Clears all selected environments and updates
+   */
+  handleClear = () => {
+    this.setState(
+      {
+        selectedEnvs: new Set(),
+      },
       () => {
-        if (typeof onUpdate === 'function') {
-          onUpdate(value);
-        }
+        this.doChange([]);
+        this.handleCloseMenu();
       }
     );
   };
 
-  handleClear = () => {
-    let {onChange, onUpdate} = this.props;
-    this.setState(
-      {
-        isOpen: false,
-      },
-      () => {
-        onChange([]);
-        if (typeof onUpdate === 'function') {
-          onUpdate([]);
-        }
-      }
-    );
+  /**
+   * Selects an environment, should close menu and initiate an update
+   */
+  handleSelect = ({value: env}, e) => {
+    this.setState(state => {
+      this.doChange([env.name], e);
+
+      return {
+        selectedEnvs: new Set([env.name]),
+      };
+    }, this.handleCloseMenu);
+  };
+
+  /**
+   * Handler for when an environment is selected by the multiple select component
+   * Does not initiate an "update"
+   */
+  handleMultiSelect = (env, e) => {
+    this.toggleSelected(env, e);
   };
 
   render() {
-    const {value, onChange, organization} = this.props;
+    const {value, organization} = this.props;
     const summary = value && value.length ? `${value.join(', ')}` : t('All Environments');
 
     return (
-      <DropdownMenu
-        isOpen={this.state.isOpen}
-        onOpen={() => this.setState({isOpen: true})}
-        onClose={() => this.setState({isOpen: false})}
-        keepMenuOpen={true}
-      >
-        {({isOpen, getRootProps, getActorProps, getMenuProps, actions}) => (
-          <div {...getRootProps()} style={{position: 'relative'}}>
-            <StyledHeaderItem
-              icon={<StyledInlineSvg src="icon-window" />}
-              isOpen={isOpen}
-              hasSelected={value && !!value.length}
-              onClear={this.handleClear}
-              {...getActorProps({isStyled: true})}
-            >
-              {summary}
-            </StyledHeaderItem>
-            {isOpen && (
-              <Menu {...getMenuProps({isStyled: true})}>
-                <FetchOrganizationEnvironments organization={organization}>
-                  {({environments}) => (
-                    <React.Fragment>
-                      {environments === null && <LoadingIndicator />}
-                      {!!environments && (
-                        <React.Fragment>
-                          <MultiSelectField
-                            name="environments"
-                            value={value}
-                            choices={environments.map(env => [env.name, env.name])}
-                            onChange={onChange}
-                          />
-                        </React.Fragment>
-                      )}
-                      <Button
-                        data-test-id="update-envs"
-                        onClick={() => this.handleUpdate(actions)}
-                      >
-                        {t('Update')}
-                      </Button>
-                    </React.Fragment>
-                  )}
-                </FetchOrganizationEnvironments>
-              </Menu>
+      <FetchOrganizationEnvironments organization={organization}>
+        {({environments}) => (
+          <StyledDropdownAutoComplete
+            isOpen={this.state.isOpen}
+            alignMenu="left"
+            closeOnSelect={true}
+            blendCorner={false}
+            searchPlaceholder={t('Filter environments')}
+            onSelect={this.handleSelect}
+            onClose={this.handleCloseMenu}
+            maxHeight={500}
+            rootClassName={rootClassName}
+            zIndex={theme.zIndex.dropdown}
+            inputProps={{style: {padding: 8, paddingLeft: 14}}}
+            emptyMessage={
+              environments === null ? <LoadingIndicator /> : t('You have no environments')
+            }
+            noResultsMessage={t('No environments found')}
+            virtualizedHeight={40}
+            emptyHidesInput
+            menuProps={{style: {position: 'relative'}}}
+            items={
+              environments
+                ? environments.map(env => ({
+                    value: env,
+                    searchKey: env.name,
+                    label: ({inputValue}) => (
+                      <EnvironmentSelectorItem
+                        environment={env}
+                        multi={true}
+                        inputValue={inputValue}
+                        isChecked={this.state.selectedEnvs.has(env.name)}
+                        onMultiSelect={this.handleMultiSelect}
+                      />
+                    ),
+                  }))
+                : []
+            }
+          >
+            {({isOpen, getActorProps}) => (
+              <StyledHeaderItem
+                icon={<StyledInlineSvg src="icon-window" />}
+                isOpen={isOpen}
+                hasSelected={value && !!value.length}
+                onClear={this.handleClear}
+                {...getActorProps({
+                  isStyled: true,
+                  onClick: this.handleOpenMenu,
+                })}
+              >
+                {summary}
+              </StyledHeaderItem>
             )}
-          </div>
+          </StyledDropdownAutoComplete>
         )}
-      </DropdownMenu>
+      </FetchOrganizationEnvironments>
     );
   }
 }
@@ -161,15 +248,70 @@ const StyledInlineSvg = styled(InlineSvg)`
   width: 17px;
 `;
 
-const Menu = styled('div')`
+const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
   background: #fff;
   border: 1px solid ${p => p.theme.borderLight};
   position: absolute;
   top: 100%;
-  left: -1px;
-  min-width: 120%;
-  z-index: ${p => p.theme.zIndex.dropdown};
   box-shadow: ${p => p.theme.dropShadowLight};
-  padding: ${space(2)};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border-radius: 0;
+  margin-top: 0;
+  min-width: 120%;
+`;
+
+class EnvironmentSelectorItem extends React.PureComponent {
+  static propTypes = {
+    environment: SentryTypes.Environment,
+    inputValue: PropTypes.string,
+    isChecked: PropTypes.bool,
+    onMultiSelect: PropTypes.func,
+  };
+
+  handleMultiSelect = e => {
+    const {environment, onMultiSelect} = this.props;
+    onMultiSelect(environment, e);
+  };
+
+  handleClick = e => {
+    e.stopPropagation();
+    this.handleMultiSelect(e);
+  };
+
+  render() {
+    const {environment, inputValue, isChecked} = this.props;
+    return (
+      <EnvironmentRow>
+        <div>
+          <Highlight text={inputValue}>{environment.name}</Highlight>
+        </div>
+
+        <MultiSelectWrapper onClick={this.handleClick}>
+          <MultiSelect checked={isChecked} />
+        </MultiSelectWrapper>
+      </EnvironmentRow>
+    );
+  }
+}
+const FlexY = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const EnvironmentRow = styled(FlexY)`
+  font-size: 14px;
+  font-weight: 400;
+
+  /* thanks bootstrap? */
+  input[type='checkbox'] {
+    margin: 0;
+  }
+`;
+const MultiSelectWrapper = styled('div')`
+  margin: -8px;
+  padding: 8px;
+`;
+
+const MultiSelect = styled(CheckboxFancy)`
+  flex-shrink: 0;
 `;

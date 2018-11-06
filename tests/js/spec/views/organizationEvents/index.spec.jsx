@@ -4,8 +4,6 @@ import {OrganizationEventsContainer} from 'app/views/organizationEvents';
 import {mount} from 'enzyme';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 
-import {clearValue, selectByLabel} from '../../../helpers/select';
-
 describe('OrganizationEvents', function() {
   let wrapper;
   const router = TestStubs.router({
@@ -52,12 +50,13 @@ describe('OrganizationEvents', function() {
     await tick();
     wrapper.update();
 
-    selectByLabel(wrapper, 'production', {control: true, name: 'environments'});
+    wrapper
+      .find('EnvironmentSelectorItem')
+      .at(0)
+      .simulate('click');
     // This should update state, but not route or context
     expect(wrapper.state('environment')).toEqual(['production']);
 
-    // Click "Update"
-    wrapper.find('Button[data-test-id="update-envs"]').simulate('click');
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/events/',
       query: {
@@ -70,14 +69,23 @@ describe('OrganizationEvents', function() {
     );
 
     // Select a second environment, "staging"
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    await tick();
+    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     wrapper.update();
-    selectByLabel(wrapper, 'staging', {control: true, name: 'environments'});
+    wrapper
+      .find('EnvironmentSelectorItem')
+      .at(1)
+      .find('MultiSelect')
+      .simulate('click');
+    // selectByLabel(wrapper, 'staging', {control: true, name: 'environments'});
     expect(wrapper.state('environment')).toEqual(['production', 'staging']);
 
-    wrapper.find('Button[data-test-id="update-envs"]').simulate('click');
-    expect(router.push).toHaveBeenCalledWith({
+    // close dropdown
+    await wrapper
+      .find('MultipleEnvironmentSelector')
+      .instance()
+      .doUpdate();
+    wrapper.update();
+    expect(router.push).toHaveBeenLastCalledWith({
       pathname: '/organizations/org-slug/events/',
       query: {
         environment: ['production', 'staging'],
@@ -92,9 +100,9 @@ describe('OrganizationEvents', function() {
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
     wrapper.update();
-    clearValue(wrapper);
+    wrapper.find('MultipleEnvironmentSelector HeaderItem StyledClose').simulate('click');
     expect(wrapper.state('environment')).toEqual([]);
-    wrapper.find('Button[data-test-id="update-envs"]').simulate('click');
+
     expect(wrapper.state('queryValues')).toEqual(
       expect.objectContaining({environment: []})
     );
