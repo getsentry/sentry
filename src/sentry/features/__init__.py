@@ -74,6 +74,7 @@ default_manager.add('organizations:sso-rippling', OrganizationFeature)  # NOQA
 default_manager.add('organizations:sso-saml2', OrganizationFeature)  # NOQA
 default_manager.add('organizations:suggested-commits', OrganizationFeature)  # NOQA
 default_manager.add('organizations:unreleased-changes', OrganizationFeature)  # NOQA
+default_manager.add('organizations:gitlab-integration', OrganizationFeature)  # NOQA
 
 # Project scoped features
 default_manager.add('projects:similarity-view', ProjectFeature)  # NOQA
