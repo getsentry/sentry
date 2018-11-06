@@ -52,8 +52,11 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
     """
 
     BUFFER_SIZE = 4096
+    SOCKET_TIMEOUT = 10.0
 
     def handle(self):
+        self.server.socket.settimeout(self.SOCKET_TIMEOUT)
+
         chunks = []
 
         # Receive the data
@@ -84,9 +87,10 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
 
     # Here's where the normalization itself happens
     def process_event(self, data, meta):
-        from sentry.event_manager import EventManager
+        from sentry.event_manager import EventManager, get_hashes_for_event
+        from sentry.tasks.store import should_process
 
-        ev = EventManager(
+        event_manager = EventManager(
             data,
             client_ip=meta.get('REMOTE_ADDR'),
             user_agent=meta.get('HTTP_USER_AGENT'),
@@ -94,8 +98,18 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
             key=None,
             content_encoding=meta.get('HTTP_CONTENT_ENCODING')
         )
-        ev.normalize()
-        return dict(ev.get_data())
+
+        event = event_manager.get_data()
+        group_hash = None
+
+        if not should_process(event):
+            group_hash = get_hashes_for_event(event_manager._get_event_instance(project_id=1))
+
+        event_manager.normalize()
+        return {
+            "event": dict(event),
+            "group_hash": group_hash,
+        }
 
     def handle_data(self):
         result = None
