@@ -1,8 +1,5 @@
 {
-  "extends": [
-    "prettier",
-    "sentry-react"
-  ],
+  "extends": ["prettier", "sentry-react"],
   "parser": "babel-eslint",
   "parserOptions": {
     "ecmaVersion": 6,
@@ -27,11 +24,7 @@
     "tick": true,
     "jest": true
   },
-  "plugins": [
-    "react",
-    "import",
-    "getsentry"
-  ],
+  "plugins": ["react", "import", "getsentry"],
   "settings": {
     "import/resolver": "webpack",
     "import/extensions": [".js", ".jsx"]
