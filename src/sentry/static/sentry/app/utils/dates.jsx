@@ -1,21 +1,10 @@
 import moment from 'moment';
 
-import {RETENTION_DAYS} from 'app/constants';
-
 export const DEFAULT_DAY_START_TIME = '00:00:00';
 export const DEFAULT_DAY_END_TIME = '23:59:59';
 
 function getParser(local = false) {
   return local ? moment : moment.utc;
-}
-
-/**
- * Returns date "RETENTION_DAYS" ago
- */
-export function getEarliestRetentionDate() {
-  return moment()
-    .subtract(RETENTION_DAYS, 'days')
-    .toDate();
 }
 
 /**
@@ -112,7 +101,16 @@ export function getEndOfDay(date, {local} = {}) {
     .toDate();
 }
 
-export function getHoursAgo(hours, options) {
+function getStartOfPeriodAgo(period, unit, options) {
+  return getStartOfDay(moment().subtract(period, unit), options);
+}
+
+export function getDaysAgo(days, options) {
   // Get date "days" ago at midnight
-  return getStartOfDay(moment().subtract(hours, 'hours'), options);
+  return getStartOfPeriodAgo(days, 'days', options);
+}
+
+export function getHoursAgo(hours, options) {
+  // Get date "hours" ago at midnight
+  return getStartOfPeriodAgo(hours, 'hours', options);
 }

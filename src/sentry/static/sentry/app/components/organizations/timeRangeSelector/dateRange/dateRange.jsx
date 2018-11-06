@@ -10,7 +10,7 @@ import {
   DEFAULT_DAY_END_TIME,
   DEFAULT_DAY_START_TIME,
   getCoercedUtcOrLocalDate,
-  getEarliestRetentionDate,
+  getDaysAgo,
   getFormattedDate,
   setDateToTime,
 } from 'app/utils/dates';
@@ -20,6 +20,9 @@ import Checkbox from 'app/components/checkbox';
 import TimePicker from 'app/components/organizations/timeRangeSelector/timePicker';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
+
+// This is currently the max number of days back you can search
+const MAX_PICKABLE_DAYS = 90;
 
 class DateRange extends React.Component {
   static propTypes = {
@@ -45,6 +48,11 @@ class DateRange extends React.Component {
     showTimePicker: PropTypes.bool,
 
     /**
+     * The maximum number of days in the past you can pick
+     */
+    maxPickableDays: PropTypes.number,
+
+    /**
      * Use UTC
      */
     useUtc: PropTypes.bool,
@@ -63,6 +71,7 @@ class DateRange extends React.Component {
   static defaultProps = {
     showAbsolute: true,
     showRelative: false,
+    maxPickableDays: MAX_PICKABLE_DAYS,
   };
 
   static getTimeStringFromDate = (date, useUtc) => {
@@ -125,14 +134,22 @@ class DateRange extends React.Component {
   };
 
   render() {
-    const {className, useUtc, start, end, showTimePicker, onChangeUtc} = this.props;
+    const {
+      className,
+      maxPickableDays,
+      useUtc,
+      start,
+      end,
+      showTimePicker,
+      onChangeUtc,
+    } = this.props;
 
     const startTime = DateRange.getTimeStringFromDate(new Date(start), useUtc);
     const endTime = DateRange.getTimeStringFromDate(new Date(end), useUtc);
 
     // Restraints on the time range that you can select
     // Can't select dates in the future b/c we're not fortune tellers (yet)
-    const minDate = getCoercedUtcOrLocalDate(getEarliestRetentionDate(), {
+    const minDate = getCoercedUtcOrLocalDate(getDaysAgo(maxPickableDays), {
       local: !useUtc,
     });
     const maxDate = getCoercedUtcOrLocalDate(new Date(), {local: !useUtc});
