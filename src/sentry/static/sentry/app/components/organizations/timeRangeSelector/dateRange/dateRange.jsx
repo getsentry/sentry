@@ -177,7 +177,7 @@ const StyledDateRange = styled(DateRange)`
 `;
 
 const StyledDateRangePicker = styled(DateRangePicker)`
-  padding: ${p => space(2)};
+  padding: 21px; /* this is specifically so we can align borders */
 
   .rdrDefinedRangesWrapper,
   .rdrDateDisplayWrapper,
