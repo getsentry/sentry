@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from mock import patch
+
 from sentry.mediators.sentry_app_installations import Creator
 from sentry.models import ApiAuthorization
 from sentry.testutils import TestCase
@@ -16,7 +18,11 @@ class TestCreator(TestCase):
             scopes=('project:read',),
         )
 
-        self.creator = Creator(organization=self.org, slug='nulldb')
+        self.creator = Creator(
+            organization=self.org,
+            slug='nulldb',
+            user=self.user,
+        )
 
     def test_creates_api_authorization(self):
         install, grant = self.creator.call()
@@ -34,6 +40,11 @@ class TestCreator(TestCase):
     def test_creates_api_grant(self):
         install, grant = self.creator.call()
         assert grant.pk
+
+    @patch('sentry.tasks.app_platform.installation_webhook.delay')
+    def test_notifies_service(self, installation_webhook):
+        install, _ = self.creator.call()
+        installation_webhook.assert_called_once_with(install.id, self.user.id)
 
     def test_associations(self):
         install, grant = self.creator.call()

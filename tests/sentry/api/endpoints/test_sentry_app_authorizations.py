@@ -35,6 +35,7 @@ class TestSentryAppAuthorizations(APITestCase):
         self.install, self.grant = SentryAppInstallationCreator.run(
             organization=self.org,
             slug='nulldb',
+            user=self.user,
         )
 
         self.url = reverse(
@@ -86,6 +87,7 @@ class TestSentryAppAuthorizations(APITestCase):
         self.install, _ = SentryAppInstallationCreator.run(
             organization=self.org,
             slug='slowdb',
+            user=self.user,
         )
 
         # URL with this new Install's uuid in it

@@ -74,6 +74,7 @@ class SentryAppInstallationPermissionTest(TestCase):
         self.installation, _ = SentryAppInstallationCreator.run(
             slug=self.sentry_app.slug,
             organization=self.org,
+            user=self.user,
         )
 
         self.request = self.make_request(user=self.user, method='GET')
@@ -122,6 +123,7 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
         self.installation, _ = SentryAppInstallationCreator.run(
             slug=self.sentry_app.slug,
             organization=self.org,
+            user=self.user,
         )
 
     def test_retrieves_installation(self):
