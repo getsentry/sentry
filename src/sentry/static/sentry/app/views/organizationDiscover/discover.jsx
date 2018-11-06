@@ -7,6 +7,7 @@ import {
   clearIndicators,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
+import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
@@ -119,8 +120,8 @@ export default class OrganizationDiscover extends React.Component {
   handleUpdateTime = ({relative, start, end}) => {
     this.updateFields({
       range: relative,
-      start,
-      end,
+      start: (start && getUtcDateString(start)) || start,
+      end: (end && getUtcDateString(end)) || end,
     });
   };
 
