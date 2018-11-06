@@ -220,6 +220,7 @@ exports[`OrganizationProjects Should render the projects in the store 1`] = `
                           <AsyncComponentSearchInput
                             api={Client {}}
                             className="search"
+                            debounceWait={200}
                             location={
                               Object {
                                 "query": Object {},
