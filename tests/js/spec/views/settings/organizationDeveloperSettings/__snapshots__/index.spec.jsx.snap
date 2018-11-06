@@ -220,7 +220,7 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                   <SentryApplicationRow
                     app={
                       Object {
-                        "clientID": "client-id",
+                        "clientId": "client-id",
                         "clientSecret": "client-secret",
                         "name": "Sample App",
                         "overview": "This is an app.",
@@ -255,7 +255,7 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                                 <SentryAppAvatar
                                   sentryApp={
                                     Object {
-                                      "clientID": "client-id",
+                                      "clientId": "client-id",
                                       "clientSecret": "client-secret",
                                       "name": "Sample App",
                                       "overview": "This is an app.",

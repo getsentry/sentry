@@ -60,7 +60,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
           className="form-stacked"
           initialData={
             Object {
-              "clientID": "client-id",
+              "clientId": "client-id",
               "clientSecret": "client-secret",
               "name": "Sample App",
               "organization": "org-slug",
@@ -415,12 +415,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "name": "scopes",
                                                                     "required": true,
                                                                   },
-                                                                  "clientID" => Object {
+                                                                  "clientId" => Object {
                                                                     "children": [Function],
                                                                     "flexibleControlStateSize": false,
                                                                     "hideErrorMessage": false,
                                                                     "label": "Client ID",
-                                                                    "name": "clientID",
+                                                                    "name": "clientId",
                                                                     "overflow": true,
                                                                   },
                                                                   "clientSecret" => Object {
@@ -436,7 +436,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 },
                                                                 "fieldState": Object {},
                                                                 "fields": Object {
-                                                                  "clientID": "client-id",
+                                                                  "clientId": "client-id",
                                                                   "clientSecret": "client-secret",
                                                                   "name": "Sample App",
                                                                   "organization": "org-slug",
@@ -451,7 +451,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 },
                                                                 "formState": undefined,
                                                                 "initialData": Object {
-                                                                  "clientID": "client-id",
+                                                                  "clientId": "client-id",
                                                                   "clientSecret": "client-secret",
                                                                   "name": "Sample App",
                                                                   "organization": "org-slug",
@@ -485,7 +485,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
-                                                                    "clientID" => "client-id",
+                                                                    "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
                                                                   },
@@ -562,7 +562,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           id="name"
                                                                                           initialData={
                                                                                             Object {
-                                                                                              "clientID": "client-id",
+                                                                                              "clientId": "client-id",
                                                                                               "clientSecret": "client-secret",
                                                                                               "name": "Sample App",
                                                                                               "organization": "org-slug",
@@ -702,12 +702,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "name": "scopes",
                                                                                                 "required": true,
                                                                                               },
-                                                                                              "clientID" => Object {
+                                                                                              "clientId" => Object {
                                                                                                 "children": [Function],
                                                                                                 "flexibleControlStateSize": false,
                                                                                                 "hideErrorMessage": false,
                                                                                                 "label": "Client ID",
-                                                                                                "name": "clientID",
+                                                                                                "name": "clientId",
                                                                                                 "overflow": true,
                                                                                               },
                                                                                               "clientSecret" => Object {
@@ -723,7 +723,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             },
                                                                                             "fieldState": Object {},
                                                                                             "fields": Object {
-                                                                                              "clientID": "client-id",
+                                                                                              "clientId": "client-id",
                                                                                               "clientSecret": "client-secret",
                                                                                               "name": "Sample App",
                                                                                               "organization": "org-slug",
@@ -738,7 +738,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             },
                                                                                             "formState": undefined,
                                                                                             "initialData": Object {
-                                                                                              "clientID": "client-id",
+                                                                                              "clientId": "client-id",
                                                                                               "clientSecret": "client-secret",
                                                                                               "name": "Sample App",
                                                                                               "organization": "org-slug",
@@ -772,7 +772,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                                "clientID" => "client-id",
+                                                                                                "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
                                                                                               },
@@ -1006,12 +1006,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "name": "scopes",
                                                                     "required": true,
                                                                   },
-                                                                  "clientID" => Object {
+                                                                  "clientId" => Object {
                                                                     "children": [Function],
                                                                     "flexibleControlStateSize": false,
                                                                     "hideErrorMessage": false,
                                                                     "label": "Client ID",
-                                                                    "name": "clientID",
+                                                                    "name": "clientId",
                                                                     "overflow": true,
                                                                   },
                                                                   "clientSecret" => Object {
@@ -1027,7 +1027,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 },
                                                                 "fieldState": Object {},
                                                                 "fields": Object {
-                                                                  "clientID": "client-id",
+                                                                  "clientId": "client-id",
                                                                   "clientSecret": "client-secret",
                                                                   "name": "Sample App",
                                                                   "organization": "org-slug",
@@ -1042,7 +1042,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 },
                                                                 "formState": undefined,
                                                                 "initialData": Object {
-                                                                  "clientID": "client-id",
+                                                                  "clientId": "client-id",
                                                                   "clientSecret": "client-secret",
                                                                   "name": "Sample App",
                                                                   "organization": "org-slug",
@@ -1076,7 +1076,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
-                                                                    "clientID" => "client-id",
+                                                                    "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
                                                                   },
@@ -1153,7 +1153,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           id="webhookUrl"
                                                                                           initialData={
                                                                                             Object {
-                                                                                              "clientID": "client-id",
+                                                                                              "clientId": "client-id",
                                                                                               "clientSecret": "client-secret",
                                                                                               "name": "Sample App",
                                                                                               "organization": "org-slug",
@@ -1293,12 +1293,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "name": "scopes",
                                                                                                 "required": true,
                                                                                               },
-                                                                                              "clientID" => Object {
+                                                                                              "clientId" => Object {
                                                                                                 "children": [Function],
                                                                                                 "flexibleControlStateSize": false,
                                                                                                 "hideErrorMessage": false,
                                                                                                 "label": "Client ID",
-                                                                                                "name": "clientID",
+                                                                                                "name": "clientId",
                                                                                                 "overflow": true,
                                                                                               },
                                                                                               "clientSecret" => Object {
@@ -1314,7 +1314,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             },
                                                                                             "fieldState": Object {},
                                                                                             "fields": Object {
-                                                                                              "clientID": "client-id",
+                                                                                              "clientId": "client-id",
                                                                                               "clientSecret": "client-secret",
                                                                                               "name": "Sample App",
                                                                                               "organization": "org-slug",
@@ -1329,7 +1329,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             },
                                                                                             "formState": undefined,
                                                                                             "initialData": Object {
-                                                                                              "clientID": "client-id",
+                                                                                              "clientId": "client-id",
                                                                                               "clientSecret": "client-secret",
                                                                                               "name": "Sample App",
                                                                                               "organization": "org-slug",
@@ -1363,7 +1363,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                                "clientID" => "client-id",
+                                                                                                "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
                                                                                               },
@@ -1588,12 +1588,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "name": "scopes",
                                                                     "required": true,
                                                                   },
-                                                                  "clientID" => Object {
+                                                                  "clientId" => Object {
                                                                     "children": [Function],
                                                                     "flexibleControlStateSize": false,
                                                                     "hideErrorMessage": false,
                                                                     "label": "Client ID",
-                                                                    "name": "clientID",
+                                                                    "name": "clientId",
                                                                     "overflow": true,
                                                                   },
                                                                   "clientSecret" => Object {
@@ -1609,7 +1609,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 },
                                                                 "fieldState": Object {},
                                                                 "fields": Object {
-                                                                  "clientID": "client-id",
+                                                                  "clientId": "client-id",
                                                                   "clientSecret": "client-secret",
                                                                   "name": "Sample App",
                                                                   "organization": "org-slug",
@@ -1624,7 +1624,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 },
                                                                 "formState": undefined,
                                                                 "initialData": Object {
-                                                                  "clientID": "client-id",
+                                                                  "clientId": "client-id",
                                                                   "clientSecret": "client-secret",
                                                                   "name": "Sample App",
                                                                   "organization": "org-slug",
@@ -1658,7 +1658,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
-                                                                    "clientID" => "client-id",
+                                                                    "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
                                                                   },
@@ -1735,7 +1735,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           id="redirectUrl"
                                                                                           initialData={
                                                                                             Object {
-                                                                                              "clientID": "client-id",
+                                                                                              "clientId": "client-id",
                                                                                               "clientSecret": "client-secret",
                                                                                               "name": "Sample App",
                                                                                               "organization": "org-slug",
@@ -1873,12 +1873,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "name": "scopes",
                                                                                                 "required": true,
                                                                                               },
-                                                                                              "clientID" => Object {
+                                                                                              "clientId" => Object {
                                                                                                 "children": [Function],
                                                                                                 "flexibleControlStateSize": false,
                                                                                                 "hideErrorMessage": false,
                                                                                                 "label": "Client ID",
-                                                                                                "name": "clientID",
+                                                                                                "name": "clientId",
                                                                                                 "overflow": true,
                                                                                               },
                                                                                               "clientSecret" => Object {
@@ -1894,7 +1894,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             },
                                                                                             "fieldState": Object {},
                                                                                             "fields": Object {
-                                                                                              "clientID": "client-id",
+                                                                                              "clientId": "client-id",
                                                                                               "clientSecret": "client-secret",
                                                                                               "name": "Sample App",
                                                                                               "organization": "org-slug",
@@ -1909,7 +1909,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             },
                                                                                             "formState": undefined,
                                                                                             "initialData": Object {
-                                                                                              "clientID": "client-id",
+                                                                                              "clientId": "client-id",
                                                                                               "clientSecret": "client-secret",
                                                                                               "name": "Sample App",
                                                                                               "organization": "org-slug",
@@ -1943,7 +1943,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                                "clientID" => "client-id",
+                                                                                                "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
                                                                                               },
@@ -2168,12 +2168,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "name": "scopes",
                                                                     "required": true,
                                                                   },
-                                                                  "clientID" => Object {
+                                                                  "clientId" => Object {
                                                                     "children": [Function],
                                                                     "flexibleControlStateSize": false,
                                                                     "hideErrorMessage": false,
                                                                     "label": "Client ID",
-                                                                    "name": "clientID",
+                                                                    "name": "clientId",
                                                                     "overflow": true,
                                                                   },
                                                                   "clientSecret" => Object {
@@ -2189,7 +2189,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 },
                                                                 "fieldState": Object {},
                                                                 "fields": Object {
-                                                                  "clientID": "client-id",
+                                                                  "clientId": "client-id",
                                                                   "clientSecret": "client-secret",
                                                                   "name": "Sample App",
                                                                   "organization": "org-slug",
@@ -2204,7 +2204,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 },
                                                                 "formState": undefined,
                                                                 "initialData": Object {
-                                                                  "clientID": "client-id",
+                                                                  "clientId": "client-id",
                                                                   "clientSecret": "client-secret",
                                                                   "name": "Sample App",
                                                                   "organization": "org-slug",
@@ -2238,7 +2238,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
-                                                                    "clientID" => "client-id",
+                                                                    "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
                                                                   },
@@ -2316,7 +2316,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           id="overview"
                                                                                           initialData={
                                                                                             Object {
-                                                                                              "clientID": "client-id",
+                                                                                              "clientId": "client-id",
                                                                                               "clientSecret": "client-secret",
                                                                                               "name": "Sample App",
                                                                                               "organization": "org-slug",
@@ -2480,12 +2480,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "name": "scopes",
                                                                                                 "required": true,
                                                                                               },
-                                                                                              "clientID" => Object {
+                                                                                              "clientId" => Object {
                                                                                                 "children": [Function],
                                                                                                 "flexibleControlStateSize": false,
                                                                                                 "hideErrorMessage": false,
                                                                                                 "label": "Client ID",
-                                                                                                "name": "clientID",
+                                                                                                "name": "clientId",
                                                                                                 "overflow": true,
                                                                                               },
                                                                                               "clientSecret" => Object {
@@ -2501,7 +2501,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             },
                                                                                             "fieldState": Object {},
                                                                                             "fields": Object {
-                                                                                              "clientID": "client-id",
+                                                                                              "clientId": "client-id",
                                                                                               "clientSecret": "client-secret",
                                                                                               "name": "Sample App",
                                                                                               "organization": "org-slug",
@@ -2516,7 +2516,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             },
                                                                                             "formState": undefined,
                                                                                             "initialData": Object {
-                                                                                              "clientID": "client-id",
+                                                                                              "clientId": "client-id",
                                                                                               "clientSecret": "client-secret",
                                                                                               "name": "Sample App",
                                                                                               "organization": "org-slug",
@@ -2550,7 +2550,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                                "clientID" => "client-id",
+                                                                                                "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
                                                                                               },
@@ -2754,12 +2754,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "name": "scopes",
                                                     "required": true,
                                                   },
-                                                  "clientID" => Object {
+                                                  "clientId" => Object {
                                                     "children": [Function],
                                                     "flexibleControlStateSize": false,
                                                     "hideErrorMessage": false,
                                                     "label": "Client ID",
-                                                    "name": "clientID",
+                                                    "name": "clientId",
                                                     "overflow": true,
                                                   },
                                                   "clientSecret" => Object {
@@ -2775,7 +2775,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                 },
                                                 "fieldState": Object {},
                                                 "fields": Object {
-                                                  "clientID": "client-id",
+                                                  "clientId": "client-id",
                                                   "clientSecret": "client-secret",
                                                   "name": "Sample App",
                                                   "organization": "org-slug",
@@ -2790,7 +2790,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                 },
                                                 "formState": undefined,
                                                 "initialData": Object {
-                                                  "clientID": "client-id",
+                                                  "clientId": "client-id",
                                                   "clientSecret": "client-secret",
                                                   "name": "Sample App",
                                                   "organization": "org-slug",
@@ -2824,7 +2824,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "uuid" => "123456123456123456123456",
                                                     "webhookUrl" => "https://example.com/webhook",
                                                     "redirectUrl" => "https://example/com/setup",
-                                                    "clientID" => "client-id",
+                                                    "clientId" => "client-id",
                                                     "clientSecret" => "client-secret",
                                                     "overview" => "This is an app.",
                                                   },
@@ -3847,12 +3847,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "name": "scopes",
                                                                                 "required": true,
                                                                               },
-                                                                              "clientID" => Object {
+                                                                              "clientId" => Object {
                                                                                 "children": [Function],
                                                                                 "flexibleControlStateSize": false,
                                                                                 "hideErrorMessage": false,
                                                                                 "label": "Client ID",
-                                                                                "name": "clientID",
+                                                                                "name": "clientId",
                                                                                 "overflow": true,
                                                                               },
                                                                               "clientSecret" => Object {
@@ -3868,7 +3868,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                             },
                                                                             "fieldState": Object {},
                                                                             "fields": Object {
-                                                                              "clientID": "client-id",
+                                                                              "clientId": "client-id",
                                                                               "clientSecret": "client-secret",
                                                                               "name": "Sample App",
                                                                               "organization": "org-slug",
@@ -3883,7 +3883,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                             },
                                                                             "formState": undefined,
                                                                             "initialData": Object {
-                                                                              "clientID": "client-id",
+                                                                              "clientId": "client-id",
                                                                               "clientSecret": "client-secret",
                                                                               "name": "Sample App",
                                                                               "organization": "org-slug",
@@ -3917,7 +3917,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "uuid" => "123456123456123456123456",
                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                "clientID" => "client-id",
+                                                                                "clientId" => "client-id",
                                                                                 "clientSecret" => "client-secret",
                                                                                 "overview" => "This is an app.",
                                                                               },
@@ -4001,17 +4001,17 @@ exports[`Sentry Application Details edit existing application renders() it shows
                           flexibleControlStateSize={false}
                           hideErrorMessage={false}
                           label="Client ID"
-                          name="clientID"
+                          name="clientId"
                           overflow={true}
                         >
                           <Field
                             alignRight={false}
                             disabled={false}
                             flexibleControlStateSize={false}
-                            id="clientID"
+                            id="clientId"
                             inline={true}
                             label="Client ID"
-                            name="clientID"
+                            name="clientId"
                             overflow={true}
                             required={false}
                             visible={true}
@@ -4034,17 +4034,17 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                       is={null}
                                     >
                                       <FieldDescription
-                                        htmlFor="clientID"
+                                        htmlFor="clientId"
                                         inline={true}
                                       >
                                         <Component
                                           className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
-                                          htmlFor="clientID"
+                                          htmlFor="clientId"
                                           inline={true}
                                         >
                                           <label
                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
-                                            htmlFor="clientID"
+                                            htmlFor="clientId"
                                           >
                                             <FieldLabel>
                                               <div
@@ -4137,12 +4137,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "name": "scopes",
                                                     "required": true,
                                                   },
-                                                  "clientID" => Object {
+                                                  "clientId" => Object {
                                                     "children": [Function],
                                                     "flexibleControlStateSize": false,
                                                     "hideErrorMessage": false,
                                                     "label": "Client ID",
-                                                    "name": "clientID",
+                                                    "name": "clientId",
                                                     "overflow": true,
                                                   },
                                                   "clientSecret" => Object {
@@ -4158,7 +4158,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                 },
                                                 "fieldState": Object {},
                                                 "fields": Object {
-                                                  "clientID": "client-id",
+                                                  "clientId": "client-id",
                                                   "clientSecret": "client-secret",
                                                   "name": "Sample App",
                                                   "organization": "org-slug",
@@ -4173,7 +4173,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                 },
                                                 "formState": undefined,
                                                 "initialData": Object {
-                                                  "clientID": "client-id",
+                                                  "clientId": "client-id",
                                                   "clientSecret": "client-secret",
                                                   "name": "Sample App",
                                                   "organization": "org-slug",
@@ -4207,14 +4207,14 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "uuid" => "123456123456123456123456",
                                                     "webhookUrl" => "https://example.com/webhook",
                                                     "redirectUrl" => "https://example/com/setup",
-                                                    "clientID" => "client-id",
+                                                    "clientId" => "client-id",
                                                     "clientSecret" => "client-secret",
                                                     "overview" => "This is an app.",
                                                   },
                                                 ],
                                               }
                                             }
-                                            name="clientID"
+                                            name="clientId"
                                           />
                                         }
                                         disabled={false}
@@ -4423,12 +4423,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "name": "scopes",
                                                                                 "required": true,
                                                                               },
-                                                                              "clientID" => Object {
+                                                                              "clientId" => Object {
                                                                                 "children": [Function],
                                                                                 "flexibleControlStateSize": false,
                                                                                 "hideErrorMessage": false,
                                                                                 "label": "Client ID",
-                                                                                "name": "clientID",
+                                                                                "name": "clientId",
                                                                                 "overflow": true,
                                                                               },
                                                                               "clientSecret" => Object {
@@ -4444,7 +4444,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                             },
                                                                             "fieldState": Object {},
                                                                             "fields": Object {
-                                                                              "clientID": "client-id",
+                                                                              "clientId": "client-id",
                                                                               "clientSecret": "client-secret",
                                                                               "name": "Sample App",
                                                                               "organization": "org-slug",
@@ -4459,7 +4459,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                             },
                                                                             "formState": undefined,
                                                                             "initialData": Object {
-                                                                              "clientID": "client-id",
+                                                                              "clientId": "client-id",
                                                                               "clientSecret": "client-secret",
                                                                               "name": "Sample App",
                                                                               "organization": "org-slug",
@@ -4493,14 +4493,14 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "uuid" => "123456123456123456123456",
                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                "clientID" => "client-id",
+                                                                                "clientId" => "client-id",
                                                                                 "clientSecret" => "client-secret",
                                                                                 "overview" => "This is an app.",
                                                                               },
                                                                             ],
                                                                           }
                                                                         }
-                                                                        name="clientID"
+                                                                        name="clientId"
                                                                       >
                                                                         <Observer />
                                                                         <Observer />
@@ -4681,12 +4681,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "name": "scopes",
                                                     "required": true,
                                                   },
-                                                  "clientID" => Object {
+                                                  "clientId" => Object {
                                                     "children": [Function],
                                                     "flexibleControlStateSize": false,
                                                     "hideErrorMessage": false,
                                                     "label": "Client ID",
-                                                    "name": "clientID",
+                                                    "name": "clientId",
                                                     "overflow": true,
                                                   },
                                                   "clientSecret" => Object {
@@ -4702,7 +4702,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                 },
                                                 "fieldState": Object {},
                                                 "fields": Object {
-                                                  "clientID": "client-id",
+                                                  "clientId": "client-id",
                                                   "clientSecret": "client-secret",
                                                   "name": "Sample App",
                                                   "organization": "org-slug",
@@ -4717,7 +4717,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                 },
                                                 "formState": undefined,
                                                 "initialData": Object {
-                                                  "clientID": "client-id",
+                                                  "clientId": "client-id",
                                                   "clientSecret": "client-secret",
                                                   "name": "Sample App",
                                                   "organization": "org-slug",
@@ -4751,7 +4751,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "uuid" => "123456123456123456123456",
                                                     "webhookUrl" => "https://example.com/webhook",
                                                     "redirectUrl" => "https://example/com/setup",
-                                                    "clientID" => "client-id",
+                                                    "clientId" => "client-id",
                                                     "clientSecret" => "client-secret",
                                                     "overview" => "This is an app.",
                                                   },
@@ -4967,12 +4967,12 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "name": "scopes",
                                                                                 "required": true,
                                                                               },
-                                                                              "clientID" => Object {
+                                                                              "clientId" => Object {
                                                                                 "children": [Function],
                                                                                 "flexibleControlStateSize": false,
                                                                                 "hideErrorMessage": false,
                                                                                 "label": "Client ID",
-                                                                                "name": "clientID",
+                                                                                "name": "clientId",
                                                                                 "overflow": true,
                                                                               },
                                                                               "clientSecret" => Object {
@@ -4988,7 +4988,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                             },
                                                                             "fieldState": Object {},
                                                                             "fields": Object {
-                                                                              "clientID": "client-id",
+                                                                              "clientId": "client-id",
                                                                               "clientSecret": "client-secret",
                                                                               "name": "Sample App",
                                                                               "organization": "org-slug",
@@ -5003,7 +5003,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                             },
                                                                             "formState": undefined,
                                                                             "initialData": Object {
-                                                                              "clientID": "client-id",
+                                                                              "clientId": "client-id",
                                                                               "clientSecret": "client-secret",
                                                                               "name": "Sample App",
                                                                               "organization": "org-slug",
@@ -5037,7 +5037,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "uuid" => "123456123456123456123456",
                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                "clientID" => "client-id",
+                                                                                "clientId" => "client-id",
                                                                                 "clientSecret" => "client-secret",
                                                                                 "overview" => "This is an app.",
                                                                               },
