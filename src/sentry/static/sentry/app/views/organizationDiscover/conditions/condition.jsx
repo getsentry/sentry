@@ -4,7 +4,7 @@ import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
-import {getInternal, getExternal, isValidCondition} from './utils';
+import {getInternal, getExternal, isValidCondition, ignoreCaseInput} from './utils';
 import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
 import {PlaceholderText} from '../styles';
 
@@ -118,7 +118,13 @@ export default class Condition extends React.Component {
       });
     }
 
-    return optionList.filter(({label}) => label.includes(input));
+    // console.log('options: ', optionList);
+
+    console.log('input: ', input);
+    // console.log('optionsList filter', optionList.filter(({label}) => label.includes(ignoreCaseInput(input, external))));
+    // console.log('what actually happens', optionList.filter(({label}) => label.includes(input)));
+    // console.log( ops.filter(({label}) => label.includes(input)));
+    return optionList.filter(({label}) => label.includes(ignoreCaseInput(input, external)));
   };
 
   isValidNewOption = ({label}) => {

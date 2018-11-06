@@ -3,6 +3,72 @@ import moment from 'moment';
 import {CONDITION_OPERATORS} from '../data';
 
 const specialConditions = new Set(['IS NULL', 'IS NOT NULL']);
+const specialLikeConditions = new Set(['LIKE', 'NOT LIKE']);
+
+
+/*
+* event_id lik -> event_id LIK
+* event_id is nul -> event_id IS NUL
+*
+* */
+
+export function ignoreCaseInput(input, external){
+  let colName = input.split(' ')[0];
+
+  // let remaining = external && external[1]
+  //   ? [external[1], input.split(external[1])[1]].join(' ')
+  //   : input.split(' ').slice(1).join(' ').toUpperCase();
+  //
+
+  let remaining, result, excess;
+  if(external && external[1]) { //does not work because once external[1] is complete, doesn't hit here unless has another arg
+    let strStart = `${external[0]} ${external[1]}`;
+    console.log('strstart', strStart);
+    // remaining = input.split(external[1].toLowerCase())[1];
+    remaining = input.replace(strStart.toLowerCase().trim(), '');
+    result = [strStart, remaining].join(' ');
+    console.log('if EXTERNAL: ', 'INPUT: ', input, 'remaining: ', remaining, 'result: ', result);
+  } else {
+    remaining = input.split(' ').slice(1).join(' ').toUpperCase();
+    result =  remaining ? [colName, remaining].join(' ') : input;
+    console.log('else', 'remaining: ', remaining, 'result: ', result, 'external', external);
+  }
+  // remaining = input.replace(colName, '');
+  //
+  // if(colName){
+  //   CONDITION_OPERATORS.forEach(operator => {
+  //     if (remaining.startsWith(operator) || remaining.startsWith(operator.toUpperCase())) {
+  //       external[1] = operator;
+  //     }
+  //   })
+  //
+  //   specialLikeConditions.forEach(operator => {
+  //     if(remaining.toUpperCase().startsWith(operator)) {
+  //       remaining.replace(operator.toLowerCase(), operator);
+  //     }
+  //   });
+  //
+  //   CONDITION_OPERATORS.forEach(operator => {
+  //     if(remaining.toUpperCase().startsWith(operator)) {
+  //       remaining.replace(operator.toLowerCase(), operator);
+  //     }
+  //   });
+  //   result = [colName, remaining].join(' ');
+  //
+  // } else {
+  //   result = input;
+  // }
+
+
+
+  // console.log('remaining is...', remaining);
+  // remaining = input.split(' ').slice(1).join(' ').toUpperCase();
+  //   // : [external[1], input.split(external[1])[1]].join(' ');
+  // result = remaining ? [colName, remaining].join(' ') : input;
+  return result;
+  return input;
+}
+
 
 /**
  * Returns true if a condition is valid and false if not
@@ -18,7 +84,8 @@ export function isValidCondition(condition, cols) {
   const columns = new Set(cols.map(({name}) => name));
 
   const isColValid = columns.has(condition[0]);
-  const isOperatorValid = allOperators.has(condition[1]);
+
+  const isOperatorValid = condition[1] && allOperators.has(condition[1].toUpperCase());
 
   const colType = (cols.find(col => col.name === condition[0]) || {}).type;
 
@@ -59,26 +126,43 @@ export function getExternal(internal, columns) {
   }
 
   // Validate operator
-  const remaining = (external[0] !== null
+  let remaining = (external[0] !== null
     ? internal.replace(external[0], '')
     : internal
   ).trim();
+
+
+  // if(!specialLikeConditions.has(remaining) && specialLikeConditions.has(remaining.toUpperCase())) {
+  //   console.log('old internal', internal)
+  //   internal = ignoreCaseInput(internal, external);
+  //   console.log('new internal', internal)
+  // }
+
+  if (remaining.toUpperCase().startsWith('LIKE')) {
+    internal = internal.replace('like', 'like'.toUpperCase());
+    remaining = remaining.replace('like', 'like'.toUpperCase());
+  }
+
+  if (remaining.toUpperCase().startsWith('NOT LIKE')) {
+    internal = internal.replace('not like', 'not like'.toUpperCase());
+    remaining = remaining.replace('not like', 'not like'.toUpperCase());
+  }
 
   // Check IS NULL and IS NOT NULL first
   if (specialConditions.has(remaining)) {
     external[1] = remaining;
   } else {
     CONDITION_OPERATORS.forEach(operator => {
-      if (remaining.startsWith(operator)) {
+      if (remaining.startsWith(operator) || remaining.startsWith(operator.toUpperCase())) {
         external[1] = operator;
       }
     });
   }
-
   // Validate value and convert to correct type
   if (external[0] && external[1] && !specialConditions.has(external[1])) {
     const strStart = `${external[0]} ${external[1]} `;
 
+    // console.log("if internal starts with strstart ", internal.startsWith(strStart), 'strstart: ', strStart, ', internal: ', internal);
     if (internal.startsWith(strStart)) {
       external[2] = internal.replace(strStart, '');
     }
@@ -104,6 +188,6 @@ export function getExternal(internal, columns) {
       external[2] = date.isValid() ? date.format('YYYY-MM-DDTHH:mm:ss') : null;
     }
   }
-
+  console.log('EXTERNAL', external);
   return external;
 }
