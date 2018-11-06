@@ -25,8 +25,8 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
     @attach_scenarios([get_latest_group_sample_scenario])
     def get(self, request, group):
         """
-        Retrieve Latest Event
-        `````````````````````
+        Retrieve the Latest Event
+        `````````````````````````
 
         Retrieves the details of the latest event for an issue.
 

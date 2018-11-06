@@ -17,8 +17,8 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
 
     def get(self, request, project, hook_id):
         """
-        Retrieve a Service Hook
-        ```````````````````````
+        Retrieve a Project Service Hook
+        ```````````````````````````````
 
         Return a service hook bound to a project.
 
@@ -40,8 +40,8 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
 
     def put(self, request, project, hook_id):
         """
-        Update a Service Hook
-        `````````````````````
+        Update a Project Service Hook
+        `````````````````````````````
 
         :pparam string organization_slug: the slug of the organization the
                                           client keys belong to.
