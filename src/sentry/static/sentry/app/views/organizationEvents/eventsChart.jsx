@@ -5,10 +5,8 @@ import moment from 'moment';
 import {HealthRequestWithParams} from 'app/views/organizationHealth/util/healthRequest';
 import {t} from 'app/locale';
 import AreaChart from 'app/components/charts/areaChart';
-import DataZoom from 'app/components/charts/components/dataZoom';
 import EventsContext from 'app/views/organizationEvents/eventsContext';
 import SentryTypes from 'app/sentryTypes';
-import ToolBox from 'app/components/charts/components/toolBox';
 import withApi from 'app/utils/withApi';
 
 class EventsChart extends React.Component {
@@ -87,14 +85,6 @@ class EventsChart extends React.Component {
                 left: '18px',
                 right: '18px',
               }}
-              dataZoom={DataZoom()}
-              toolBox={ToolBox(
-                {},
-                {
-                  dataZoom: {},
-                  restore: {},
-                }
-              )}
               onEvents={{
                 datazoom: this.handleDataZoom,
                 click: this.handleChartClick,
