@@ -221,7 +221,7 @@ class Symbolizer(object):
     def _is_simulator_frame(self, frame, obj):
         return obj.name and _sim_platform_re.search(obj.name) is not None
 
-    def _symbolize_app_frame(self, instruction_addr, obj, sdk_info=None):
+    def _symbolize_app_frame(self, instruction_addr, obj, sdk_info=None, trust=None):
         symcache = self.symcaches.get(obj.id)
         if symcache is None:
             # In case we know what error happened on symcache conversion
@@ -247,8 +247,9 @@ class Symbolizer(object):
 
         if not rv:
             # For some frameworks we are willing to ignore missing symbol
-            # errors.
-            if self._is_optional_dif(obj, sdk_info=sdk_info):
+            # errors. Also, ignore scanned stack frames when symbols are
+            # available to complete breakpad's stack scanning heuristics.
+            if trust == 'scan' or self._is_optional_dif(obj, sdk_info=sdk_info):
                 return []
             raise SymbolicationFailed(
                 type=EventError.NATIVE_MISSING_SYMBOL, obj=obj)
@@ -273,16 +274,18 @@ class Symbolizer(object):
             ), obj, package=symbolserver_match['object_name'])
         ]
 
-    def symbolize_frame(self, instruction_addr, sdk_info=None, symbolserver_match=None):
+    def symbolize_frame(self, instruction_addr, sdk_info=None, symbolserver_match=None, trust=None):
         obj = self.object_lookup.find_object(instruction_addr)
         if obj is None:
+            if trust == 'scan':
+                return []
             raise SymbolicationFailed(type=EventError.NATIVE_UNKNOWN_IMAGE)
 
         # Try to always prefer the images from the application storage.
         # If the symbolication fails we keep the error for later
         app_err = None
         try:
-            match = self._symbolize_app_frame(instruction_addr, obj, sdk_info=sdk_info)
+            match = self._symbolize_app_frame(instruction_addr, obj, sdk_info=sdk_info, trust=trust)
             if match:
                 return match
         except SymbolicationFailed as err:
