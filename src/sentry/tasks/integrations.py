@@ -4,6 +4,7 @@ from time import time
 from datetime import timedelta
 
 import logging
+import six
 
 from sentry import analytics, features
 from sentry.models import (
@@ -274,22 +275,45 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
                 instance=installation.instance,
                 subscription_id=subscription_id,
             )
-        except (ApiError, ApiUnauthorized):
-            pass
+        except (ApiError, ApiUnauthorized) as e:
+            logger.info(
+                'vsts_subscription_check.failed_to_delete_subscription',
+                extra={
+                    'integration_id': integration_id,
+                    'organization_id': organization_id,
+                    'subscription_id': subscription_id,
+                    'error': six.text_type(e),
+                }
+            )
 
         try:
             # TODO(lb): Move this to a common area in integrations and make it a function
             secret = generate_secret()
             subscription = client.create_subscription(
                 instance=installation.instance,
-                # TODO(lb): external_id should be removed
                 shared_secret=secret,
             )
-        except (ApiError, ApiUnauthorized):
-            pass
+        except (ApiError, ApiUnauthorized) as e:
+            logger.info(
+                'vsts_subscription_check.failed_to_create_subscription',
+                extra={
+                    'integration_id': integration_id,
+                    'organization_id': organization_id,
+                    'error': six.text_type(e),
+                }
+            )
         else:
             integration.metadata['subscription']['id'] = subscription['id']
             integration.metadata['subscription']['secret'] = secret
+            logger.info(
+                'vsts_subscription_check.updated_diabled_subscription',
+                extra={
+                    'integration_id': integration_id,
+                    'organization_id': organization_id,
+                    'subscription_id': subscription_id,
+                    'error': six.text_type(e),
+                }
+            )
 
         integration.metadata['subscription']['check'] = time()
         integration.save()
