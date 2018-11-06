@@ -58,9 +58,15 @@ class GetSentryAppsTest(SentryAppsTest):
         assert response.status_code == 200
         assert {
             'name': self.published_app.name,
+            'slug': self.published_app.slug,
             'scopes': [],
+            'status': self.published_app.get_status_display(),
             'uuid': self.published_app.uuid,
-            'webhook_url': self.published_app.webhook_url,
+            'webhookUrl': self.published_app.webhook_url,
+            'redirectUrl': self.published_app.redirect_url,
+            'clientId': self.published_app.application.client_id,
+            'clientSecret': self.published_app.application.client_secret,
+            'overview': self.published_app.overview,
         } in response.data
 
     @with_feature('organizations:internal-catchall')
@@ -72,9 +78,15 @@ class GetSentryAppsTest(SentryAppsTest):
         assert response.status_code == 200
         assert {
             'name': self.unpublished_app.name,
+            'slug': self.unpublished_app.slug,
             'scopes': [],
+            'status': self.unpublished_app.get_status_display(),
             'uuid': self.unpublished_app.uuid,
-            'webhook_url': self.unpublished_app.webhook_url,
+            'webhookUrl': self.unpublished_app.webhook_url,
+            'redirectUrl': self.unpublished_app.redirect_url,
+            'clientId': self.unpublished_app.application.client_id,
+            'clientSecret': self.unpublished_app.application.client_secret,
+            'overview': self.unpublished_app.overview,
         } in response.data
 
     @with_feature('organizations:internal-catchall')
@@ -104,7 +116,7 @@ class PostSentryAppsTest(SentryAppsTest):
         expected = {
             'name': 'MyApp',
             'scopes': ['project:read', 'project:write'],
-            'webhook_url': 'https://example.com',
+            'webhookUrl': 'https://example.com',
         }
 
         assert response.status_code == 201, response.content
@@ -137,17 +149,17 @@ class PostSentryAppsTest(SentryAppsTest):
     @with_feature('organizations:internal-catchall')
     def test_missing_webhook_url(self):
         self.login_as(self.user)
-        response = self._post(webhook_url=None)
+        response = self._post(webhookUrl=None)
 
         assert response.status_code == 422, response.content
-        assert 'webhook_url' in response.data['errors']
+        assert 'webhookUrl' in response.data['errors']
 
     def _post(self, **kwargs):
         body = {
             'name': 'MyApp',
             'organization': self.org.slug,
             'scopes': ('project:read', 'project:write'),
-            'webhook_url': 'https://example.com',
+            'webhookUrl': 'https://example.com',
         }
 
         body.update(**kwargs)
