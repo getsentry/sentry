@@ -236,6 +236,14 @@ export function descopeFeatureName(feature) {
     : feature.match(/(?:^(?:projects|organizations):)?(.*)/).pop();
 }
 
+export function isWebpackChunkLoadingError(error) {
+  return (
+    error &&
+    typeof error.message === 'string' &&
+    error.message.toLowerCase().includes('loading chunk')
+  );
+}
+
 // re-export under utils
 export {parseLinkHeader, Collection, PendingChangeQueue, CursorPoller};
 
