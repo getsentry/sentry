@@ -2,9 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import styled from 'react-emotion';
 
-import AlertMessage from 'app/components/alertMessage';
+import Alert from 'app/components/alert';
 import ConfigStore from 'app/stores/configStore';
+import {t} from 'app/locale';
 
 const SampleEventBanner = createReactClass({
   displayName: 'sampleEventBanner',
@@ -70,20 +72,24 @@ const SampleEventBanner = createReactClass({
     return (
       <React.Fragment>
         {!hideBanner && (
-          <AlertMessage
-            alert={{
-              id: 'id',
-              message:
-                "You're almost there! Start capturing errors with a few lines of code",
-              type: 'warning',
-              url: this.getUrl(),
-            }}
-            system
-          />
+          <StyledAlert type="warning" icon="icon-circle-exclamation" system={true}>
+            <a href={this.getUrl()}>
+              {t(
+                "You're almost there! Start capturing errors with just a few lines of code"
+              )}
+            </a>
+          </StyledAlert>
         )}
       </React.Fragment>
     );
   },
 });
+
+const StyledAlert = styled(Alert)`
+  padding: ${p => p.theme.grid}px ${p => p.theme.grid * 2}px;
+  position: relative;
+  margin: 0;
+  padding-right: ${p => p.theme.grid * 4}px;
+`;
 
 export default SampleEventBanner;
