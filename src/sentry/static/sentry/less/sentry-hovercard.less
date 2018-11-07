@@ -30,25 +30,25 @@
   // Default align hovercard top-middle
   bottom: 28px;
   left: 50%;
-  margin-left: -@hovercard-width / 2;
   width: @hovercard-width;
   visibility: hidden;
+  transform: translateX(-50%);
 
   @keyframes hovercardSlideUp {
     from {
-      transform: translateY(12px);
+      transform: translate(-50%, 12px);
     }
     to {
-      transform: translateY(0);
+      transform: translate(-50%, 0);
     }
   }
 
   @keyframes hovercardSlideDown {
     from {
-      transform: translateY(-12px);
+      transform: translate(-50%, -12px);
     }
     to {
-      transform: translateY(0);
+      transform: translate(-50%, 0);
     }
   }
 
