@@ -51,7 +51,7 @@ describe('IntegrationRepos', function() {
           },
         })
       );
-      let repoRow = wrapper.find('RepoOption').first();
+      let repoRow = wrapper.find('RepositoryRow').first();
       expect(repoRow.find('strong').text()).toEqual('repo-name');
     });
 

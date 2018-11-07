@@ -5,15 +5,15 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   removeIndicator,
 } from 'app/actionCreators/indicator';
-import {getOrganizationState} from 'app/mixins/organizationState';
 import {t, tct} from 'app/locale';
-import getDynamicText from 'app/utils/getDynamicText';
+import Access from 'app/components/acl/access';
 import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
 import BooleanField from 'app/views/settings/components/forms/booleanField';
@@ -22,14 +22,14 @@ import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/externalLink';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
-import HookStore from 'app/stores/hookStore';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import SelectField from 'app/views/settings/components/forms/selectField';
@@ -38,6 +38,8 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/views/settings/components/forms/textField';
+import getDynamicText from 'app/utils/getDynamicText';
+
 import TextCopyInput from '../../components/forms/textCopyInput';
 
 const RATE_LIMIT_FORMAT_MAP = new Map([
@@ -169,8 +171,6 @@ class KeyRateLimitsForm extends React.Component {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
     data: SentryTypes.ProjectKey.isRequired,
-    enabled: PropTypes.bool,
-    hooksDisabled: PropTypes.arrayOf(PropTypes.func),
   };
 
   handleChangeWindow = (onChange, onBlur, currentValueObj, value, e) => {
@@ -192,57 +192,62 @@ class KeyRateLimitsForm extends React.Component {
   };
 
   render() {
-    let {enabled, data, project, organization, hooksDisabled} = this.props;
+    let {data, project, organization} = this.props;
     let {keyId, orgId, projectId} = this.props.params;
     let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
-    let showPanel = enabled || !!hooksDisabled.length;
 
-    if (!showPanel) return null;
+    let disabledAlert = ({features}) => (
+      <FeatureDisabled
+        alert={PanelAlert}
+        feature={features[0]}
+        featureName={t('Key Rate Limits')}
+      />
+    );
 
     return (
       <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
-        <Panel>
-          <PanelHeader>{t('Rate Limits')}</PanelHeader>
-          {!enabled ? (
-            <PanelBody disablePadding={false}>
-              {hooksDisabled
-                .map(hook => {
-                  return hook(organization, project, data);
-                })
-                .shift()}
-            </PanelBody>
-          ) : (
-            <PanelBody>
-              <PanelAlert type="info" icon="icon-circle-exclamation">
-                {t(
-                  'Rate limits provide a flexible way to manage your event volume. If you have a noisy project or environment you can configure a rate limit for this key to reduce the number of events processed.'
-                )}
-              </PanelAlert>
+        <Feature
+          features={['projects:rate-limits']}
+          renderDisabled={({children, ...props}) =>
+            children({...props, renderDisabled: disabledAlert})}
+        >
+          {({hasFeature, features, renderDisabled}) => (
+            <Panel>
+              <PanelHeader>{t('Rate Limits')}</PanelHeader>
 
-              <FormField
-                className="rate-limit-group"
-                name="rateLimit"
-                label={t('Rate Limit')}
-                validate={({id, form, model}) => {
-                  let isValid =
-                    form &&
-                    form.rateLimit &&
-                    typeof form.rateLimit.count !== 'undefined' &&
-                    typeof form.rateLimit.window !== 'undefined';
+              <PanelBody>
+                <PanelAlert type="info" icon="icon-circle-exclamation">
+                  {t(
+                    `Rate limits provide a flexible way to manage your event
+                      volume. If you have a noisy project or environment you
+                      can configure a rate limit for this key to reduce the
+                      number of events processed.`
+                  )}
+                </PanelAlert>
+                {!hasFeature && renderDisabled({organization, project, features})}
+                <FormField
+                  className="rate-limit-group"
+                  name="rateLimit"
+                  label={t('Rate Limit')}
+                  validate={({id, form, model}) => {
+                    let isValid =
+                      form &&
+                      form.rateLimit &&
+                      typeof form.rateLimit.count !== 'undefined' &&
+                      typeof form.rateLimit.window !== 'undefined';
 
-                  if (isValid) {
-                    return [];
-                  }
+                    if (isValid) {
+                      return [];
+                    }
 
-                  return [['rateLimit', t('Fill in both fields first')]];
-                }}
-                help={t(
-                  'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
-                )}
-                inline={false}
-              >
-                {({onChange, onBlur, value}) => {
-                  return (
+                    return [['rateLimit', t('Fill in both fields first')]];
+                  }}
+                  help={t(
+                    'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
+                  )}
+                  inline={false}
+                >
+                  {({onChange, onBlur, value}) => (
                     <Flex>
                       <Flex flex="2" align="center">
                         <InputControl
@@ -251,6 +256,7 @@ class KeyRateLimitsForm extends React.Component {
                           min={0}
                           value={value && value.count}
                           placeholder={t('Count')}
+                          disabled={!hasFeature}
                           onChange={this.handleChangeCount.bind(this, onChange, value)}
                           onBlur={this.handleChangeCount.bind(this, onBlur, value)}
                         />
@@ -265,6 +271,7 @@ class KeyRateLimitsForm extends React.Component {
                           value={value && value.window}
                           placeholder={t('Window')}
                           formatLabel={formatRateLimitWindow}
+                          disabled={!hasFeature}
                           onChange={this.handleChangeWindow.bind(
                             this,
                             onChange,
@@ -274,12 +281,12 @@ class KeyRateLimitsForm extends React.Component {
                         />
                       </Box>
                     </Flex>
-                  );
-                }}
-              </FormField>
-            </PanelBody>
+                  )}
+                </FormField>
+              </PanelBody>
+            </Panel>
           )}
-        </Panel>
+        </Feature>
       </Form>
     );
   }
@@ -291,19 +298,14 @@ const KeySettings = createReactClass({
   propTypes: {
     organization: PropTypes.object.isRequired,
     project: PropTypes.object.isRequired,
-    access: PropTypes.object.isRequired,
     data: SentryTypes.ProjectKey.isRequired,
     onRemove: PropTypes.func.isRequired,
-    rateLimitsEnabled: PropTypes.bool,
-    jsSdkLoaderEnabled: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
 
   getInitialState() {
-    return {
-      hooksDisabled: HookStore.get('project:rate-limits:disabled'),
-    };
+    return {loading: false};
   },
 
   handleRemove(e) {
@@ -331,14 +333,7 @@ const KeySettings = createReactClass({
 
   render() {
     let {keyId, orgId, projectId} = this.props.params;
-    let {
-      access,
-      data,
-      rateLimitsEnabled,
-      jsSdkLoaderEnabled,
-      organization,
-      project,
-    } = this.props;
+    let {data, organization, project} = this.props;
     let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
     const loaderLink = getDynamicText({
       value: data.dsn.cdn,
@@ -382,17 +377,10 @@ const KeySettings = createReactClass({
           data={data}
           organization={organization}
           project={project}
-          enabled={rateLimitsEnabled}
-          hooksDisabled={this.state.hooksDisabled}
         />
 
-        {jsSdkLoaderEnabled && (
-          <Form
-            saveOnBlur
-            apiEndpoint={apiEndpoint}
-            apiMethod="PUT"
-            initialData={data}
-          >
+        <Feature features={['organizations:js-loader']}>
+          <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
             <Panel>
               <PanelHeader>{t('CDN')}</PanelHeader>
               <PanelBody>
@@ -410,21 +398,20 @@ const KeySettings = createReactClass({
                   inline={false}
                   flexibleControlStateSize
                 >
-                  <TextCopyInput>{`<script src='${loaderLink}' crossorigin="anonymous"></script>`}</TextCopyInput>
+                  <TextCopyInput
+                  >{`<script src='${loaderLink}' crossorigin="anonymous"></script>`}</TextCopyInput>
                 </Field>
                 <SelectField
                   name="browserSdkVersion"
-                  choices={data.browserSdk.choices}
+                  choices={data.browserSdk ? data.browserSdk.choices : []}
                   placeholder={t('4.x')}
                   allowClear={false}
-                  help={t(
-                    'Select the version of the SDK that should be loaded'
-                  )}
+                  help={t('Select the version of the SDK that should be loaded')}
                 />
               </PanelBody>
             </Panel>
           </Form>
-        )}
+        </Feature>
 
         <Panel>
           <PanelHeader>{t('Credentials')}</PanelHeader>
@@ -445,7 +432,7 @@ const KeySettings = createReactClass({
           </PanelBody>
         </Panel>
 
-        {access.has('project:admin') && (
+        <Access access={['project:admin']}>
           <Panel>
             <PanelHeader>{t('Revoke Key')}</PanelHeader>
             <PanelBody>
@@ -470,7 +457,7 @@ const KeySettings = createReactClass({
               </Field>
             </PanelBody>
           </Panel>
-        )}
+        </Access>
       </React.Fragment>
     );
   },
@@ -500,11 +487,6 @@ export default class ProjectKeyDetails extends AsyncView {
     let {data} = this.state;
     let {params} = this.props;
     let {organization, project} = this.context;
-    let access = getOrganizationState(organization).getAccess();
-    let features = new Set(project.features);
-    let hasRateLimitsEnabled = features.has('rate-limits');
-    let orgFeatures = new Set(organization.features);
-    let hasjsSdkLoaderEnabled = orgFeatures.has('js-loader');
 
     return (
       <div className="ref-key-details">
@@ -515,10 +497,7 @@ export default class ProjectKeyDetails extends AsyncView {
         <KeySettings
           organization={organization}
           project={project}
-          access={access}
           params={params}
-          rateLimitsEnabled={hasRateLimitsEnabled}
-          jsSdkLoaderEnabled={hasjsSdkLoaderEnabled}
           data={data}
           onRemove={this.handleRemove}
         />
