@@ -27,12 +27,16 @@ const rootClassName = css`
  */
 class MultipleEnvironmentSelector extends React.PureComponent {
   static propTypes = {
-    onChange: PropTypes.func,
-    onUpdate: PropTypes.func,
+    // Handler whenever selector values are changed
+    onChange: PropTypes.func.isRequired,
+
     organization: SentryTypes.Organization,
 
     // This component must be controlled using a value array
     value: PropTypes.array,
+
+    // When menu is closed
+    onUpdate: PropTypes.func,
   };
 
   constructor(props) {
@@ -49,9 +53,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   doChange = (value, e) => {
     const {onChange} = this.props;
 
-    if (typeof onChange === 'function') {
-      onChange(value, e);
-    }
+    onChange(value, e);
   };
 
   /**
@@ -60,7 +62,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   doUpdate = () => {
     const {onUpdate} = this.props;
 
-    if (typeof onUpdate === 'function') {
+    if (onUpdate) {
       onUpdate();
     }
   };
