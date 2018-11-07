@@ -259,32 +259,45 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
     integration = Integration.objects.get(id=integration_id)
     installation = integration.get_installation(organization_id=organization_id)
     client = installation.get_client()
-    subscription_id = integration.metadata['subscription']['id']
-    subscription = client.get_subscription(
-        instance=installation.instance,
-        subscription_id=subscription_id,
-    )
+
+    try:
+        subscription_id = integration.metadata['subscription']['id']
+        subscription = client.get_subscription(
+            instance=installation.instance,
+            subscription_id=subscription_id,
+        )
+    except (KeyError, ApiError) as e:
+        logger.info(
+            'vsts_subscription_check.failed_to_get_subscription',
+            extra={
+                'integration_id': integration_id,
+                'organization_id': organization_id,
+                'error': six.text_type(e),
+            }
+        )
+        subscription = None
 
     # https://docs.microsoft.com/en-us/rest/api/vsts/hooks/subscriptions/replace%20subscription?view=vsts-rest-4.1#subscriptionstatus
-    if subscription['status'] == 'disabledBySystem':
+    if not subscription or subscription['status'] == 'disabledBySystem':
         # Update subscription does not work for disabled subscriptions
         # We instead will try to delete and then create a new one.
 
-        try:
-            client.delete_subscription(
-                instance=installation.instance,
-                subscription_id=subscription_id,
-            )
-        except (ApiError, ApiUnauthorized) as e:
-            logger.info(
-                'vsts_subscription_check.failed_to_delete_subscription',
-                extra={
-                    'integration_id': integration_id,
-                    'organization_id': organization_id,
-                    'subscription_id': subscription_id,
-                    'error': six.text_type(e),
-                }
-            )
+        if subscription:
+            try:
+                client.delete_subscription(
+                    instance=installation.instance,
+                    subscription_id=subscription_id,
+                )
+            except (ApiError, ApiUnauthorized) as e:
+                logger.info(
+                    'vsts_subscription_check.failed_to_delete_subscription',
+                    extra={
+                        'integration_id': integration_id,
+                        'organization_id': organization_id,
+                        'subscription_id': subscription_id,
+                        'error': six.text_type(e),
+                    }
+                )
 
         try:
             secret = generate_secret()
