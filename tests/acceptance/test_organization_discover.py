@@ -32,7 +32,7 @@ class OrganizationDiscoverTest(AcceptanceTestCase):
         with self.feature('organizations:discover'):
             self.browser.get(self.path)
             self.browser.wait_until_not('.loading')
-            self.browser.find_element_by_xpath("//button[contains(text(), 'Run')]").click()
+            self.browser.find_element_by_xpath("//button//span[contains(text(), 'Run')]").click()
             self.browser.wait_until_not('.loading')
             self.browser.snapshot('discover - query results')
 
@@ -40,7 +40,7 @@ class OrganizationDiscoverTest(AcceptanceTestCase):
         with self.feature('organizations:discover'):
             self.browser.get(self.path)
             self.browser.wait_until_not('.loading')
-            self.browser.find_element_by_xpath("//button[contains(text(), 'Save')]").click()
+            self.browser.find_element_by_xpath("//button//span[contains(text(), 'Save')]").click()
             self.browser.wait_until_not('.loading')
             self.browser.snapshot('discover - saved query')
 
@@ -48,7 +48,7 @@ class OrganizationDiscoverTest(AcceptanceTestCase):
         with self.feature('organizations:discover'):
             self.browser.get(self.path)
             self.browser.wait_until_not('.loading')
-            self.browser.find_element_by_xpath("//button[contains(text(), 'Save')]").click()
+            self.browser.find_element_by_xpath("//button//span[contains(text(), 'Save')]").click()
             self.browser.get(self.path + '?view=saved')
             self.browser.wait_until_not('.loading')
             self.browser.snapshot('discover - saved query list')
