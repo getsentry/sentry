@@ -7,8 +7,14 @@ class OrganizationDiscoverTest(AcceptanceTestCase):
     def setUp(self):
         super(OrganizationDiscoverTest, self).setUp()
         self.user = self.create_user('foo@example.com')
-        self.org = self.create_organization(owner=self.user, name='Rowdy Tiger')
+        self.org = self.create_organization(owner=None, name='Rowdy Tiger')
         self.team = self.create_team(organization=self.org, name='Mariachi Band')
+        self.create_member(
+            user=self.user,
+            organization=self.org,
+            role='owner',
+            teams=[self.team],
+        )
         self.project = self.create_project(
             organization=self.org,
             teams=[self.team],
