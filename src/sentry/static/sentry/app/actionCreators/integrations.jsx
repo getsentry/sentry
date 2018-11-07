@@ -56,7 +56,7 @@ export function addIntegrationToProject(orgId, projectId, integration) {
  *
  * @param {Object} client ApiClient
  * @param {String} orgId Organization Slug
- * @param {Number} repositoryId Repository ID
+ * @param {String} repositoryId Repository ID
  */
 export function deleteRepository(client, orgId, repositoryId) {
   addLoadingMessage();
@@ -75,7 +75,7 @@ export function deleteRepository(client, orgId, repositoryId) {
  *
  * @param {Object} client ApiClient
  * @param {String} orgId Organization Slug
- * @param {Number} repositoryId Repository ID
+ * @param {String} repositoryId Repository ID
  */
 export function cancelDeleteRepository(client, orgId, repositoryId) {
   addLoadingMessage();
@@ -113,7 +113,7 @@ function applyRepositoryAddComplete(promise) {
  *
  * @param {Object} client ApiClient
  * @param {String} orgId Organization Slug
- * @param {Number} repositoryId Repository ID
+ * @param {String} repositoryId Repository ID
  * @param {Object} integration Integration provider data.
  */
 export function migrateRepository(client, orgId, repositoryId, integration) {
