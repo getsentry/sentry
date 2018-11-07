@@ -3,11 +3,7 @@ import React from 'react';
 import moment from 'moment';
 import {browserHistory} from 'react-router';
 
-import {
-  addErrorMessage,
-  clearIndicators,
-  addSuccessMessage,
-} from 'app/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
@@ -152,8 +148,6 @@ export default class OrganizationDiscover extends React.Component {
     }
 
     this.setState({isFetchingQuery: true});
-
-    clearIndicators();
 
     resultManager
       .fetchAll()
