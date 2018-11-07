@@ -1015,8 +1015,12 @@ class Exception(Interface):
         if data and 'values' not in data and 'exc_omitted' not in data:
             data = {"values": [data]}
         values = data.get('values', [])
-        if not isinstance(values, list):
+
+        if values is None:
             values = []
+
+        if not isinstance(values, list):
+            raise InterfaceValidationError("Invalid value for 'values'")
 
         kwargs = {
             'values': [v and SingleException.to_python(
