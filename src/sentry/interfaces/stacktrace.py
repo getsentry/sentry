@@ -721,10 +721,9 @@ class Stacktrace(Interface):
 
         for f in frameiter:
             if f is None:
-                frame_list.append(None)
-            else:
-                # XXX(dcramer): handle PHP sending an empty array for a frame
-                frame_list.append(Frame.to_python(f or {}, raw=raw))
+                continue
+            # XXX(dcramer): handle PHP sending an empty array for a frame
+            frame_list.append(Frame.to_python(f or {}, raw=raw))
 
         kwargs = {
             'frames': frame_list,

@@ -61,7 +61,9 @@ class ThreadsTest(TestCase):
         assert Threads.to_python({}).to_json() == sink
         assert Threads.to_python({'values': []}).to_json() == sink
         assert Threads.to_python({'values': None}).to_json() == sink
-        assert Threads.to_python({"values": [None]}).to_json() == {"values": [None]}
+
+        # TODO(markus): Should eventually generate values: [None]
+        assert Threads.to_python({"values": [None]}).to_json() == sink
 
     def test_null_values_in_values(self):
         sink = {"values": [{

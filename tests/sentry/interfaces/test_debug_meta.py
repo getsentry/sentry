@@ -11,7 +11,8 @@ class DebugMetaTest(TestCase):
         assert DebugMeta.to_python({}).to_json() == {}
         assert DebugMeta.to_python({"images": None}).to_json() == {}
 
-        assert DebugMeta.to_python({"images": [None]}).to_json() == {"images": [None]}
+        # TODO(markus): Should eventually generate {"images": [None]}
+        assert DebugMeta.to_python({"images": [None]}).to_json() == {}
 
     def test_apple_behavior(self):
         image_name = (

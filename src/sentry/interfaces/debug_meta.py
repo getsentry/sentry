@@ -104,10 +104,9 @@ class DebugMeta(Interface):
 
         images = []
         for x in data.get('images', None) or ():
-            if x is not None:
-                images.append(cls.normalize_image(x))
-            else:
-                images.append(None)
+            if x is None:
+                continue
+            images.append(cls.normalize_image(x))
 
         return cls(
             images=images,
