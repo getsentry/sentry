@@ -48,7 +48,7 @@ class Sidebar extends React.Component {
   }
 
   componentDidMount() {
-    let {router} = this.props;
+    let {organization, router} = this.props;
     jQuery(document.body).addClass('body-sidebar');
     jQuery(document).on('click', this.documentClickHandler);
 
@@ -62,7 +62,10 @@ class Sidebar extends React.Component {
       router.listen(() => {
         $('.tooltip').tooltip('hide');
       });
-    this.doCollapse(this.props.collapsed);
+
+    // If there is no organization (i.e. no org in context, or error loading org)
+    // then sidebar should default to collapsed state
+    this.doCollapse(!!organization ? this.props.collapsed : true);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -197,16 +200,6 @@ class Sidebar extends React.Component {
                   to={`/${organization.slug}/`}
                 />
 
-                <Feature features={['discover']}>
-                  <SidebarItem
-                    {...sidebarItemProps}
-                    onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-discover" />}
-                    label={t('Discover')}
-                    to={`/organizations/${organization.slug}/discover/`}
-                  />
-                </Feature>
-
                 <Feature features={['events-stream']}>
                   <SidebarItem
                     {...sidebarItemProps}
@@ -214,6 +207,16 @@ class Sidebar extends React.Component {
                     icon={<InlineSvg src="icon-stack" />}
                     label={t('Events')}
                     to={`/organizations/${organization.slug}/events/`}
+                  />
+                </Feature>
+
+                <Feature features={['discover']}>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-discover" />}
+                    label={t('Discover')}
+                    to={`/organizations/${organization.slug}/discover/`}
                   />
                 </Feature>
               </SidebarSection>

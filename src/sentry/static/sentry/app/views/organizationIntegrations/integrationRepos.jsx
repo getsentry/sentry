@@ -126,7 +126,7 @@ export default class IntegrationRepos extends AsyncComponent {
       },
       error: errorData => {
         let text = errorData.responseJSON.errors
-          ? data.responseJSON.errors.__all__
+          ? errorData.responseJSON.errors.__all__
           : t('Unable to add repository.');
         IndicatorStore.addError(text);
       },
@@ -286,7 +286,9 @@ export default class IntegrationRepos extends AsyncComponent {
                       </Box>
                       <Box>
                         <small>
-                          <a href={repo.url}>{repo.url.replace('https://', '')}</a>
+                          {repo.url && (
+                            <a href={repo.url}>{repo.url.replace('https://', '')}</a>
+                          )}
                         </small>
                       </Box>
                     </Flex>

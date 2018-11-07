@@ -166,7 +166,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
                 # TODO(dcramer): proper error message
                 return Response({'detail': ERR_UNINVITABLE}, status=400)
 
-        if result.get('teams'):
+        if 'teams' in result:
             # dupe code from member_index
             # ensure listed teams are real teams
             teams = list(Team.objects.filter(

@@ -215,7 +215,6 @@ class GroupNoteCreateTest(APITestCase):
 
         with self.feature({
             'organizations:integrations-issue-sync': True,
-            'organizations:internal-catchall': True,
         }):
             with self.tasks():
                 comment = 'hello world'

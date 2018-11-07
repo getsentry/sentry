@@ -4,47 +4,47 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.constants import SentryAppStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 from sentry.mediators.sentry_app_installations import Creator
 
 
-class OrganizationSentryAppInstallationsTest(APITestCase):
+class SentryAppInstallationsTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email='a@example.com', is_superuser=True)
         self.user = self.create_user(email='boop@example.com')
         self.org = self.create_organization(owner=self.user)
         self.super_org = self.create_organization(owner=self.superuser)
-        self.published_app = SentryAppCreator.run(
+
+        self.published_app = self.create_sentry_app(
             name='Test',
             organization=self.super_org,
-            scopes=(),
-            webhook_url='https://example.com',
+            published=True,
         )
-        self.published_app.update(status=SentryAppStatus.PUBLISHED)
+        self.unpublished_app = self.create_sentry_app(
+            name='Testin',
+            organization=self.org,
+        )
+
         self.installation, _ = Creator.run(
             slug=self.published_app.slug,
             organization=self.super_org,
+            user=self.superuser,
         )
-        self.unpublished_app = SentryAppCreator.run(
-            name='Testin',
-            organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
-        )
+
         self.installation2, _ = Creator.run(
             slug=self.unpublished_app.slug,
             organization=self.org,
+            user=self.user,
         )
+
         self.url = reverse(
-            'sentry-api-0-organization-sentry-app-installations',
-            args=[
-                self.org.slug])
+            'sentry-api-0-sentry-app-installations',
+            args=[self.org.slug],
+        )
 
 
-class GetOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallationsTest):
+class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
     @with_feature('organizations:internal-catchall')
     def test_superuser_sees_all_installs(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -52,20 +52,32 @@ class GetOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallatio
 
         assert response.status_code == 200
         assert response.data == [{
-            'app': self.unpublished_app.slug,
-            'organization': self.org.slug,
+            'app': {
+                'slug': self.unpublished_app.slug,
+                'uuid': self.unpublished_app.uuid,
+            },
+            'organization': {
+                'slug': self.org.slug,
+            },
             'uuid': self.installation2.uuid,
         }]
 
         url = reverse(
-            'sentry-api-0-organization-sentry-app-installations',
+            'sentry-api-0-sentry-app-installations',
             args=[self.super_org.slug],
         )
+
         response = self.client.get(url, format='json')
+
         assert response.status_code == 200
         assert response.data == [{
-            'app': self.published_app.slug,
-            'organization': self.super_org.slug,
+            'app': {
+                'slug': self.published_app.slug,
+                'uuid': self.published_app.uuid,
+            },
+            'organization': {
+                'slug': self.super_org.slug,
+            },
             'uuid': self.installation.uuid,
         }]
 
@@ -76,17 +88,24 @@ class GetOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallatio
 
         assert response.status_code == 200
         assert response.data == [{
-            'app': self.unpublished_app.slug,
-            'organization': self.org.slug,
+            'app': {
+                'slug': self.unpublished_app.slug,
+                'uuid': self.unpublished_app.uuid,
+            },
+            'organization': {
+                'slug': self.org.slug,
+            },
             'uuid': self.installation2.uuid,
         }]
 
+        # Org the User is not a part of
         url = reverse(
-            'sentry-api-0-organization-sentry-app-installations',
+            'sentry-api-0-sentry-app-installations',
             args=[self.super_org.slug],
         )
+
         response = self.client.get(url, format='json')
-        assert response.status_code == 403
+        assert response.status_code == 404
 
     def test_no_access_without_internal_catchall(self):
         self.login_as(user=self.user)
@@ -95,15 +114,13 @@ class GetOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallatio
         assert response.status_code == 404
 
 
-class PostOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallationsTest):
+class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
     @with_feature('organizations:internal-catchall')
     def test_install_unpublished_app(self):
         self.login_as(user=self.user)
-        app = SentryAppCreator.run(
+        app = self.create_sentry_app(
             name='Sample',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
         response = self.client.post(
             self.url,
@@ -111,8 +128,13 @@ class PostOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallati
             format='json',
         )
         expected = {
-            'app': app.slug,
-            'organization': self.org.slug,
+            'app': {
+                'slug': app.slug,
+                'uuid': app.uuid,
+            },
+            'organization': {
+                'slug': self.org.slug,
+            },
         }
 
         assert response.status_code == 200, response.content
@@ -121,21 +143,24 @@ class PostOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallati
     @with_feature('organizations:internal-catchall')
     def test_install_published_app(self):
         self.login_as(user=self.user)
-        app = SentryAppCreator.run(
+        app = self.create_sentry_app(
             name='Sample',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
+            published=True,
         )
-        app.update(status=SentryAppStatus.PUBLISHED)
         response = self.client.post(
             self.url,
             data={'slug': app.slug},
             format='json',
         )
         expected = {
-            'app': app.slug,
-            'organization': self.org.slug,
+            'app': {
+                'slug': app.slug,
+                'uuid': app.uuid,
+            },
+            'organization': {
+                'slug': self.org.slug,
+            },
         }
 
         assert response.status_code == 200, response.content
@@ -150,13 +175,11 @@ class PostOrganizationSentryAppInstallationsTest(OrganizationSentryAppInstallati
             role='member',
         )
         self.login_as(user)
-        app = SentryAppCreator.run(
+        app = self.create_sentry_app(
             name='Sample',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
+            published=True,
         )
-        app.update(status=SentryAppStatus.PUBLISHED)
         response = self.client.post(
             self.url,
             data={'slug': app.slug},

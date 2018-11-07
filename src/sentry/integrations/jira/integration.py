@@ -397,6 +397,19 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 'Jira returned: Unauthorized. '
                 'Please check your configuration settings.'
             )
+        except ApiError as exc:
+            logger.info(
+                'error-fetching-issue-config',
+                extra={
+                    'integration_id': self.model.id,
+                    'organization': group.organization.id,
+                    'error': exc.message,
+                }
+            )
+            raise IntegrationError(
+                'There was an error communicating with the Jira API. '
+                'Please try again or contact support.'
+            )
 
         try:
             meta = resp['projects'][0]

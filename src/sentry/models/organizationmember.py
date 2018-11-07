@@ -119,6 +119,11 @@ class OrganizationMember(Model):
         self.token = None
         self.token_expires_at = None
 
+    def remove_user(self):
+        self.email = self.get_email()
+        self.user = None
+        self.token = self.generate_token()
+
     def regenerate_token(self):
         self.token = self.generate_token()
         self.refresh_expires_at()

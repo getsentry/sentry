@@ -24,7 +24,7 @@ describe('HealthRequest', function() {
   const mock = jest.fn(() => null);
   const DEFAULTS = {
     api: {},
-    projects: [project.id],
+    projects: [parseInt(project.id, 10)],
     environments: [],
     period: '24h',
     organization,
@@ -81,13 +81,13 @@ describe('HealthRequest', function() {
     it('makes a new request if projects prop changes', async function() {
       doHealthRequest.mockClear();
 
-      wrapper.setProps({projects: ['123']});
+      wrapper.setProps({projects: [123]});
       await tick();
       wrapper.update();
       expect(doHealthRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          projects: ['123'],
+          projects: [123],
         })
       );
     });
@@ -370,6 +370,49 @@ describe('HealthRequest', function() {
           {...DEFAULTS}
           includeTimeseries={true}
           getCategory={({slug} = {}) => slug}
+        >
+          {mock}
+        </HealthRequestWithParams>
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          timeAggregatedData: null,
+        })
+      );
+
+      wrapper.setProps({
+        includeTimeAggregation: true,
+        timeAggregationSeriesName: 'aggregated series',
+      });
+      await tick();
+      wrapper.update();
+
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          timeAggregatedData: {
+            seriesName: 'aggregated series',
+            data: [{name: expect.anything(), value: 223}],
+          },
+        })
+      );
+    });
+
+    it('aggregates all counts per timestamp when category name identical', async function() {
+      doHealthRequest.mockImplementation(() =>
+        Promise.resolve({
+          data: [[new Date(), [COUNT_OBJ, {...COUNT_OBJ, count: 100}]]],
+        })
+      );
+
+      wrapper = mount(
+        <HealthRequestWithParams
+          {...DEFAULTS}
+          includeTimeseries={true}
+          getCategory={() => 'static-category'}
         >
           {mock}
         </HealthRequestWithParams>

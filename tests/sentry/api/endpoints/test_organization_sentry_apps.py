@@ -2,10 +2,8 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.constants import SentryAppStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 
 
 class OrganizationSentryAppsTest(APITestCase):
@@ -14,18 +12,14 @@ class OrganizationSentryAppsTest(APITestCase):
         self.user = self.create_user(email='boop@example.com')
         self.org = self.create_organization(owner=self.user)
         self.super_org = self.create_organization(owner=self.superuser)
-        self.published_app = SentryAppCreator.run(
+        self.published_app = self.create_sentry_app(
             name='Test',
             organization=self.super_org,
-            scopes=(),
-            webhook_url='https://example.com',
+            published=True,
         )
-        self.published_app.update(status=SentryAppStatus.PUBLISHED)
-        self.unpublished_app = SentryAppCreator.run(
+        self.unpublished_app = self.create_sentry_app(
             name='Testin',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
         self.url = reverse('sentry-api-0-organization-sentry-apps', args=[self.org.slug])
 
@@ -39,9 +33,15 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
         assert response.status_code == 200
         assert response.data == [{
             'name': self.unpublished_app.name,
+            'slug': self.unpublished_app.slug,
             'scopes': [],
             'uuid': self.unpublished_app.uuid,
-            'webhook_url': self.unpublished_app.webhook_url,
+            'status': self.unpublished_app.get_status_display(),
+            'webhookUrl': self.unpublished_app.webhook_url,
+            'redirectUrl': self.unpublished_app.redirect_url,
+            'clientId': self.unpublished_app.application.client_id,
+            'clientSecret': self.unpublished_app.application.client_secret,
+            'overview': self.unpublished_app.overview,
         }]
 
     @with_feature('organizations:internal-catchall')

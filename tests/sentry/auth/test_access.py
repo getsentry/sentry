@@ -5,7 +5,6 @@ from mock import Mock
 
 from sentry.auth import access
 from sentry.models import AuthProvider, AuthIdentity, Organization
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 from sentry.mediators.sentry_app_installations import Creator as \
     SentryAppInstallationCreator
 from sentry.testutils import TestCase
@@ -172,11 +171,9 @@ class FromSentryAppTest(TestCase):
             organization=self.out_of_scope_org
         )
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = self.create_sentry_app(
             name='SlowDB',
             organization=self.org,
-            scopes=(),
-            webhook_url='http://example.com',
         )
 
         self.proxy_user = self.sentry_app.proxy_user
@@ -184,6 +181,7 @@ class FromSentryAppTest(TestCase):
         self.install = SentryAppInstallationCreator.run(
             organization=self.org,
             slug=self.sentry_app.slug,
+            user=self.user,
         )
 
     def test_has_access(self):

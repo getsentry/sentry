@@ -2,15 +2,17 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
-from sentry.integrations.exceptions import ApiError
+from sentry.integrations.client import ApiClient
+from sentry.integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
+from six.moves.urllib.parse import quote
 
 
 API_VERSION = u'/api/v4'
 
 
 class GitLabApiClientPath(object):
+    oauth_token = u'/oauth/token'
     commit = u'/projects/{project}/repository/commits/{sha}'
     commits = u'/projects/{project}/repository/commits'
     compare = u'/projects/{project}/repository/compare'
@@ -21,8 +23,6 @@ class GitLabApiClientPath(object):
     hooks = u'/hooks'
     issue = u'/projects/{project}/issues/{issue}'
     issues = u'/projects/{project}/issues'
-    members = u'/projects/{project}/members'
-    notes = u'/projects/{project}/issues/{issue}/notes'
     project = u'/projects/{project}'
     project_hooks = u'/projects/{project}/hooks'
     project_hook = u'/projects/{project}/hooks/{hook_id}'
@@ -50,6 +50,12 @@ class GitLabSetupClient(ApiClient):
         self.verify_ssl = verify_ssl
 
     def get_group(self, group):
+        """Get a group based on `path` which is a slug.
+
+        We need to URL quote because subgroups use `/` in their
+        `id` and GitLab requires slugs to be URL encoded.
+        """
+        group = quote(group, safe='')
         path = GitLabApiClientPath.group.format(group=group)
         return self.get(path)
 
@@ -66,11 +72,12 @@ class GitLabSetupClient(ApiClient):
         )
 
 
-class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
+class GitLabApiClient(ApiClient):
 
     def __init__(self, installation):
         self.installation = installation
         verify_ssl = self.metadata['verify_ssl']
+        self.is_refreshing_token = False
         super(GitLabApiClient, self).__init__(verify_ssl)
 
     @property
@@ -82,19 +89,43 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
         return self.installation.model.metadata
 
     def request(self, method, path, data=None, params=None):
-        # TODO(lb): Refresh auth
-        # self.check_auth(redirect_url=self.oauth_redirect_url)
         access_token = self.identity.data['access_token']
         headers = {
             'Authorization': u'Bearer {}'.format(access_token)
         }
-        return self._request(
-            method,
-            GitLabApiClientPath.build_api_url(
-                self.metadata['base_url'],
-                path
-            ),
-            headers=headers, data=data, params=params
+        url = GitLabApiClientPath.build_api_url(
+            self.metadata['base_url'],
+            path
+        )
+        try:
+            return self._request(
+                method,
+                url,
+                headers=headers, data=data, params=params
+            )
+        except ApiUnauthorized as e:
+            if self.is_refreshing_token:
+                raise e
+            self.is_refreshing_token = True
+            self.refresh_auth()
+            resp = self._request(
+                method,
+                url,
+                headers=headers, data=data, params=params
+            )
+            self.is_refreshing_token = False
+            return resp
+
+    def refresh_auth(self):
+        """
+        Modeled after Doorkeeper's docs
+        where Doorkeeper is a dependency for GitLab that handles OAuth
+
+        https://github.com/doorkeeper-gem/doorkeeper/wiki/Enable-Refresh-Token-Credentials#testing-with-oauth2-gem
+        """
+        self.identity.get_provider().refresh_identity(
+            self.identity,
+            refresh_token_url='%s%s' % (self.metadata['base_url'], GitLabApiClientPath.oauth_token),
         )
 
     def get_user(self):
@@ -163,25 +194,6 @@ class GitLabApiClient(ApiClient, OAuth2RefreshMixin):
             'scope': 'all',
             'search': query
         })
-
-    def create_note(self, project_id, issue_iid, data):
-        """Create an issue note
-
-        See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
-        """
-        return self.post(
-            GitLabApiClientPath.notes.format(project=project_id, issue=issue_iid),
-            data=data,
-        )
-
-    def list_project_members(self, project_id):
-        """Get project members
-
-        See https://docs.gitlab.com/ee/api/members.html#list-all-members-of-a-group-or-project
-        """
-        return self.get(
-            GitLabApiClientPath.members.format(project=project_id)
-        )
 
     def create_project_webhook(self, project_id):
         """Create a webhook on a project

@@ -8,12 +8,12 @@ import {
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
-import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
 import Result from './result';
+import ResultLoading from './result/loading';
 import Intro from './intro';
 import EarlyAdopterMessage from './earlyAdopterMessage';
 import NewQuery from './sidebar/newQuery';
@@ -39,6 +39,7 @@ import {
   SidebarTabs,
   PageTitle,
   SavedQueryWrapper,
+  StyledHeaderSeparator,
 } from './styles';
 
 import {trackQuery} from './analytics';
@@ -164,7 +165,10 @@ export default class OrganizationDiscover extends React.Component {
           });
         }
 
-        this.setState({data, isFetchingQuery: false});
+        this.setState({
+          data,
+          isFetchingQuery: false,
+        });
       })
       .catch(err => {
         const message = (err && err.message) || t('An error occurred');
@@ -326,11 +330,12 @@ export default class OrganizationDiscover extends React.Component {
           <TopBar>
             <MultipleProjectSelector
               value={currentQuery.projects}
+              organization={organization}
               projects={projects}
               onChange={val => this.updateField('projects', val)}
               onUpdate={this.runQuery}
             />
-            <HeaderSeparator />
+            <StyledHeaderSeparator />
             <TimeRangeSelector
               showAbsolute={true}
               showRelative={true}
@@ -340,6 +345,7 @@ export default class OrganizationDiscover extends React.Component {
               onChange={this.handleUpdateTime}
               onUpdate={this.runQuery}
             />
+            <StyledHeaderSeparator />
           </TopBar>
           <BodyContent>
             {shouldDisplayResult && (
@@ -351,6 +357,7 @@ export default class OrganizationDiscover extends React.Component {
               />
             )}
             {!shouldDisplayResult && <Intro updateQuery={this.updateFields} />}
+            {isFetchingQuery && <ResultLoading />}
             <EarlyAdopterMessage />
           </BodyContent>
         </Body>

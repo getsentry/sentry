@@ -1,59 +1,52 @@
 from __future__ import absolute_import
 
-from django.http import HttpRequest
+from django.http import Http404
 
 from sentry.testutils import TestCase
 from sentry.api.bases.sentryapps import (
-    SentryAppDetailsPermission,
-    SentryAppDetailsEndpoint,
-    SentryAppInstallationDetailsPermission,
-    SentryAppInstallationDetailsEndpoint,
+    SentryAppPermission,
+    SentryAppBaseEndpoint,
+    SentryAppInstallationPermission,
+    SentryAppInstallationBaseEndpoint,
 )
-from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 from sentry.mediators.sentry_app_installations import Creator as SentryAppInstallationCreator
 
 
-class SentryAppDetailsPermissionTest(TestCase):
+class SentryAppPermissionTest(TestCase):
     def setUp(self):
-        self.permission = SentryAppDetailsPermission()
+        self.permission = SentryAppPermission()
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = self.create_sentry_app(
             name='foo',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
 
-        self.request = HttpRequest()
-        self.request.user = self.user
+        self.request = self.make_request(user=self.user, method='GET')
 
     def test_request_user_is_app_owner_succeeds(self):
         assert self.permission.has_object_permission(self.request, None, self.sentry_app)
 
     def test_request_user_is_not_app_owner_fails(self):
         self.request.user = self.create_user()
-        assert not self.permission.has_object_permission(self.request, None, self.sentry_app)
+
+        with self.assertRaises(Http404):
+            self.permission.has_object_permission(self.request, None, self.sentry_app)
 
 
-class SentryAppDetailsEndpointTest(TestCase):
+class SentryAppBaseEndpointTest(TestCase):
     def setUp(self):
-        self.endpoint = SentryAppDetailsEndpoint()
+        self.endpoint = SentryAppBaseEndpoint()
 
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
 
-        self.request = HttpRequest()
-        self.request.user = self.user
-        self.request.successful_authenticator = True
+        self.request = self.make_request(user=self.user, method='GET')
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = self.create_sentry_app(
             name='foo',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
 
     def test_retrieves_sentry_app(self):
@@ -61,32 +54,30 @@ class SentryAppDetailsEndpointTest(TestCase):
         assert kwargs['sentry_app'] == self.sentry_app
 
     def test_raises_when_sentry_app_not_found(self):
-        with self.assertRaises(ResourceDoesNotExist):
+        with self.assertRaises(Http404):
             self.endpoint.convert_args(self.request, 'notanapp')
 
 
-class SentryAppInstallationDetailsPermissionTest(TestCase):
+class SentryAppInstallationPermissionTest(TestCase):
     def setUp(self):
-        self.permission = SentryAppInstallationDetailsPermission()
+        self.permission = SentryAppInstallationPermission()
 
         self.user = self.create_user()
         self.member = self.create_user()
         self.org = self.create_organization(owner=self.member)
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = self.create_sentry_app(
             name='foo',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
 
         self.installation, _ = SentryAppInstallationCreator.run(
             slug=self.sentry_app.slug,
             organization=self.org,
+            user=self.user,
         )
 
-        self.request = HttpRequest()
-        self.request.user = self.user
+        self.request = self.make_request(user=self.user, method='GET')
 
     def test_missing_request_user(self):
         self.request.user = None
@@ -98,7 +89,7 @@ class SentryAppInstallationDetailsPermissionTest(TestCase):
         )
 
     def test_request_user_in_organization(self):
-        self.request.user = self.member
+        self.request = self.make_request(user=self.member, method='GET')
 
         assert self.permission.has_object_permission(
             self.request,
@@ -107,40 +98,38 @@ class SentryAppInstallationDetailsPermissionTest(TestCase):
         )
 
     def test_request_user_not_in_organization(self):
-        assert not self.permission.has_object_permission(
-            self.request,
-            None,
-            self.installation,
-        )
+        with self.assertRaises(Http404):
+            self.permission.has_object_permission(
+                self.request,
+                None,
+                self.installation,
+            )
 
 
-class SentryAppInstallationDetailsEndpointTest(TestCase):
+class SentryAppInstallationBaseEndpointTest(TestCase):
     def setUp(self):
-        self.endpoint = SentryAppInstallationDetailsEndpoint()
+        self.endpoint = SentryAppInstallationBaseEndpoint()
 
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
 
-        self.request = HttpRequest()
-        self.request.user = self.user
-        self.request.successful_authenticator = True
+        self.request = self.make_request(user=self.user, method='GET')
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = self.create_sentry_app(
             name='foo',
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
 
         self.installation, _ = SentryAppInstallationCreator.run(
             slug=self.sentry_app.slug,
             organization=self.org,
+            user=self.user,
         )
 
     def test_retrieves_installation(self):
         args, kwargs = self.endpoint.convert_args(self.request, self.installation.uuid)
-        assert kwargs['install'] == self.installation
+        assert kwargs['installation'] == self.installation
 
     def test_raises_when_sentry_app_not_found(self):
-        with self.assertRaises(ResourceDoesNotExist):
+        with self.assertRaises(Http404):
             self.endpoint.convert_args(self.request, '1234')

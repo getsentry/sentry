@@ -15,7 +15,7 @@ from functools import wraps
 
 from sentry.celery import app
 from sentry.utils import metrics
-from sentry.utils.sdk import push_scope, capture_exception
+from sentry.utils.sdk import configure_scope, capture_exception
 
 
 def get_rss_usage():
@@ -45,13 +45,14 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
             else:
                 instance = name
 
-            with push_scope() as scope:
+            with configure_scope() as scope:
                 scope.set_tag('task_name', name)
                 scope.set_tag('transaction_id', transaction_id)
 
-                with metrics.timer(key, instance=instance), \
-                        track_memory_usage('jobs.memory_change', instance=instance):
-                    result = func(*args, **kwargs)
+            with metrics.timer(key, instance=instance), \
+                    track_memory_usage('jobs.memory_change', instance=instance):
+                result = func(*args, **kwargs)
+
             return result
 
         return app.task(name=name, **kwargs)(_wrapped)

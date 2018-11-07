@@ -16,6 +16,7 @@ import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
 import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
 import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
 import withApi from 'app/utils/withApi.jsx';
+import {logout} from 'app/actionCreators/account';
 
 import SwitchOrganization from './switchOrganization';
 import Divider from './divider.styled';
@@ -37,13 +38,7 @@ const SidebarDropdown = withApi(
     };
 
     handleLogout = (...args) => {
-      let {api} = this.props;
-      api.request('/auth/', {
-        method: 'DELETE',
-        success: res => {
-          window.location = '/auth/login';
-        },
-      });
+      logout(this.props.api).then(() => (window.location = '/auth/login'));
     };
 
     render() {

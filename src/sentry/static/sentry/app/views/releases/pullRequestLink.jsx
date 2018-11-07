@@ -10,17 +10,46 @@ class PullRequestLink extends React.Component {
     inline: PropTypes.bool,
   };
 
-  getUrl = () => {
-    if (this.props.repository.provider.id === 'github') {
+  get providerId() {
+    if (!this.props.repository.provider) {
+      return null;
+    }
+
+    let id = this.props.repository.provider.id;
+    if (id.indexOf(':') > -1) {
+      return id.split(':').pop();
+    }
+    return id;
+  }
+
+  get url() {
+    let providerId = this.providerId;
+    if (providerId === 'github') {
       return this.props.repository.url + '/pull/' + this.props.pullRequest.id;
     }
+    if (providerId === 'gitlab') {
+      return this.props.repository.url + '/merge_requests/' + this.props.pullRequest.id;
+    }
     return undefined;
-  };
+  }
 
   render() {
-    let url = this.getUrl();
-    let displayId = `${this.props.repository.name} #${this.props.pullRequest.id}: ${this
-      .props.pullRequest.title}`;
+    let url = this.url;
+    let providerId = this.providerId;
+
+    let {pullRequest, repository} = this.props;
+    let displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
+
+    let icon = '';
+    if (['github', 'gitlab', 'bitbucket'].indexOf(providerId) > -1) {
+      icon = (
+        <InlineSvg
+          src={`icon-${providerId}`}
+          style={{verticalAlign: 'text-top'}}
+          size="14px"
+        />
+      );
+    }
 
     return url ? (
       <a
@@ -28,18 +57,7 @@ class PullRequestLink extends React.Component {
         href={url}
         target="_blank"
       >
-        {this.props.repository.provider.id == 'github' && (
-          <InlineSvg src="icon-github" style={{verticalAlign: 'text-top'}} size="14px" />
-        )}
-        {this.props.repository.provider.id == 'bitbucket' && (
-          <InlineSvg
-            src="icon-bitbucket"
-            style={{verticalAlign: 'text-top'}}
-            size="14px"
-          />
-        )}
-        &nbsp;
-        {this.props.inline ? '' : ' '}
+        {icon}&nbsp; {this.props.inline ? '' : ' '}
         {displayId}
       </a>
     ) : (

@@ -26,7 +26,7 @@ SDK_INFO = {"sdk_name": "iOS", "version_major": 9,
             "version_minor": 3, "version_patchlevel": 0}
 
 
-def patched_symbolize_app_frame(self, instruction_addr, img, sdk_info=None):
+def patched_symbolize_app_frame(self, instruction_addr, img, sdk_info=None, trust=None):
     if instruction_addr != 4295123756:
         return []
     return [

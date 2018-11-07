@@ -23,10 +23,12 @@ class AsyncComponentSearchInput extends React.Component {
     router: PropTypes.object.isRequired,
     placeholder: PropTypes.string,
     onSearchSubmit: PropTypes.func,
+    debounceWait: PropTypes.number,
   };
 
   static defaultProps = {
     placeholder: 'Search...',
+    debounceWait: 200,
   };
 
   constructor(props) {
@@ -55,7 +57,7 @@ class AsyncComponentSearchInput extends React.Component {
         this.props.onError();
       },
     });
-  }, 200);
+  }, this.props.debounceWait);
 
   handleChange = evt => {
     let searchQuery = evt.target.value;

@@ -227,6 +227,23 @@ export function sortProjects(projects) {
 export const buildUserId = id => `user:${id}`;
 export const buildTeamId = id => `team:${id}`;
 
+/**
+ * Removes the organization / project scope prefix on feature names.
+ */
+export function descopeFeatureName(feature) {
+  return typeof feature.match !== 'function'
+    ? feature
+    : feature.match(/(?:^(?:projects|organizations):)?(.*)/).pop();
+}
+
+export function isWebpackChunkLoadingError(error) {
+  return (
+    error &&
+    typeof error.message === 'string' &&
+    error.message.toLowerCase().includes('loading chunk')
+  );
+}
+
 // re-export under utils
 export {parseLinkHeader, Collection, PendingChangeQueue, CursorPoller};
 
@@ -246,6 +263,7 @@ export default {
   parseLinkHeader,
   buildUserId,
   buildTeamId,
+  descopeFeatureName,
 
   // external imports
   objectToArray,

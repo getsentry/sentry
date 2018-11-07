@@ -104,6 +104,7 @@ class CanonicalKeyDict(collections.MutableMapping):
 
     def copy(self):
         rv = object.__new__(self.__class__)
+        rv._norm_func = self._norm_func
         rv.data = copy.copy(self.data)
         return rv
 

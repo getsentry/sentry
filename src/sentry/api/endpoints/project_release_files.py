@@ -56,8 +56,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
     @attach_scenarios([list_files_scenario])
     def get(self, request, project, version):
         """
-        List a Release's Files
-        ``````````````````````
+        List a Project Release's Files
+        ``````````````````````````````
 
         Retrieve a list of files for a given release.
 

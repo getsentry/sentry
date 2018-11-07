@@ -39,6 +39,8 @@ class IssueSyncElement extends React.Component {
 
   getIcon() {
     switch (this.props.integrationType) {
+      case 'gitlab':
+        return <IntegrationIcon src="icon-gitlab" />;
       case 'github':
         return <IntegrationIcon src="icon-github" />;
       case 'github_enterprise':
@@ -55,6 +57,8 @@ class IssueSyncElement extends React.Component {
   getPrettyName() {
     const type = this.props.integrationType;
     switch (type) {
+      case 'gitlab':
+        return 'GitLab';
       case 'github':
         return 'GitHub';
       case 'github_enterprise':

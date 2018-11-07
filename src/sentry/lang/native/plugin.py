@@ -9,6 +9,8 @@ from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
 
 from sentry import options
 from sentry.plugins import Plugin2
+from sentry.lang.native.cfi import reprocess_minidump_with_cfi
+from sentry.lang.native.minidump import is_minidump_event
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
 from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
     rebase_addr
@@ -207,10 +209,14 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 symbolicated_frames = self.sym.symbolize_frame(
                     instruction_addr,
                     self.sdk_info,
-                    symbolserver_match=processable_frame.data['symbolserver_match']
+                    symbolserver_match=processable_frame.data['symbolserver_match'],
+                    trust=raw_frame.get('trust'),
                 )
                 if not symbolicated_frames:
-                    return None, [raw_frame], []
+                    if raw_frame.get('trust') == 'scan':
+                        return [], [raw_frame], []
+                    else:
+                        return None, [raw_frame], []
             except SymbolicationFailed as e:
                 # User fixable but fatal errors are reported as processing
                 # issues
@@ -273,6 +279,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
 class NativePlugin(Plugin2):
     can_disable = False
+
+    def get_event_enhancers(self, data):
+        if is_minidump_event(data):
+            return [reprocess_minidump_with_cfi]
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if any(platform in NativeStacktraceProcessor.supported_platforms for platform in platforms):

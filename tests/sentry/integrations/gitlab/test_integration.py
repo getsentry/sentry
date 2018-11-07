@@ -17,14 +17,21 @@ from sentry.testutils import IntegrationTestCase
 class GitlabIntegrationTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     config = {
-        'url': 'https://gitlab.example.com',
+        # Trailing slash is intentional to ensure that valid
+        # URLs are generated even if the user inputs a trailing /
+        'url': 'https://gitlab.example.com/',
         'name': 'Test App',
         'group': 'cool-group',
         'verify_ssl': True,
         'client_id': 'client_id',
         'client_secret': 'client_secret'
     }
+
     default_group_id = 4
+
+    def setUp(self):
+        super(GitlabIntegrationTest, self).setUp()
+        self.init_path_without_guide = '%s%s' % (self.init_path, '?completed_installation_guide')
 
     def assert_setup_flow(self, user_id='user_id_1', group_id=None):
         if group_id is None:
@@ -32,7 +39,10 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
-        resp = self.client.post(self.init_path, data=self.config)
+        self.assertContains(resp, 'you will need to create a Sentry app in your GitLab instance')
+        resp = self.client.get(self.init_path_without_guide)
+        assert resp.status_code == 200
+        resp = self.client.post(self.init_path_without_guide, data=self.config)
         assert resp.status_code == 302
         redirect = urlparse(resp['Location'])
         assert redirect.scheme == 'https'
@@ -65,8 +75,8 @@ class GitlabIntegrationTest(IntegrationTestCase):
             'https://gitlab.example.com/api/v4/groups/cool-group',
             json={
                 'id': group_id,
-                'name': 'Cool',
-                'path': 'cool-group',
+                'full_name': 'Cool',
+                'full_path': 'cool-group',
                 'web_url': 'https://gitlab.example.com/groups/cool-group',
                 'avatar_url': 'https://gitlab.example.com/uploads/group/avatar/4/foo.jpg',
             }
@@ -115,7 +125,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert integration.name == 'Cool'
         assert integration.metadata == {
             'instance': 'gitlab.example.com',
-            'scopes': ['api', 'sudo'],
+            'scopes': ['api'],
             'icon': u'https://gitlab.example.com/uploads/group/avatar/4/foo.jpg',
             'domain_name': u'gitlab.example.com/cool-group',
             'verify_ssl': True,
@@ -139,6 +149,47 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert identity.data == {
             'access_token': 'xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx'
         }
+
+    @responses.activate
+    def test_setup_missing_group(self):
+        resp = self.client.get(self.init_path_without_guide)
+        assert resp.status_code == 200
+
+        resp = self.client.post(self.init_path_without_guide, data=self.config)
+        assert resp.status_code == 302
+
+        redirect = urlparse(resp['Location'])
+        assert redirect.scheme == 'https'
+        assert redirect.netloc == 'gitlab.example.com'
+        assert redirect.path == '/oauth/authorize'
+
+        params = parse_qs(redirect.query)
+        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
+
+        responses.add(
+            responses.POST,
+            'https://gitlab.example.com/oauth/token',
+            json={'access_token': 'access-token-value'}
+        )
+        responses.add(
+            responses.GET,
+            'https://gitlab.example.com/api/v4/user',
+            json={'id': 9}
+        )
+        responses.add(
+            responses.GET,
+            'https://gitlab.example.com/api/v4/groups/cool-group',
+            status=404
+        )
+        resp = self.client.get(u'{}?{}'.format(
+            self.setup_path,
+            urlencode({
+                'code': 'oauth-code',
+                'state': authorize_params['state'],
+            })
+        ))
+        assert resp.status_code == 200
+        self.assertContains(resp, 'GitLab group could not be found')
 
     @responses.activate
     def test_get_group_id(self):

@@ -10,6 +10,7 @@ import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
+import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
@@ -63,23 +64,21 @@ const Broadcasts = createReactClass({
       this.stopPoll();
     }
 
-    this.api.request('/broadcasts/', {
-      method: 'GET',
-      success: data => {
+    return getAllBroadcasts(this.api)
+      .then(data => {
         this.setState({
           broadcasts: data || [],
           loading: false,
         });
         this.startPoll();
-      },
-      error: () => {
+      })
+      .catch(() => {
         this.setState({
           loading: false,
           error: true,
         });
         this.startPoll();
-      },
-    });
+      });
   },
 
   startPoll() {
@@ -124,20 +123,13 @@ const Broadcasts = createReactClass({
     let unseenBroadcastIds = this.getUnseenIds();
     if (unseenBroadcastIds.length === 0) return;
 
-    this.api.request('/broadcasts/', {
-      method: 'PUT',
-      query: {id: unseenBroadcastIds},
-      data: {
-        hasSeen: '1',
-      },
-      success: () => {
-        this.setState({
-          broadcasts: this.state.broadcasts.map(item => {
-            item.hasSeen = true;
-            return item;
-          }),
-        });
-      },
+    markBroadcastsAsSeen(this.api, unseenBroadcastIds).then(data => {
+      this.setState(state => ({
+        broadcasts: state.broadcasts.map(item => {
+          item.hasSeen = true;
+          return item;
+        }),
+      }));
     });
   },
 

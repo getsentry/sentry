@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 import six
+from datetime import timedelta
+from django.utils import timezone
 from exam import fixture
+from uuid import uuid4
 
 from sentry.testutils import APITestCase, UserReportEnvironmentTestCase
 from sentry.models import EventUser, Environment, GroupStatus, UserReport
@@ -58,6 +61,22 @@ class ProjectUserReportListTest(APITestCase):
             ]
         )
 
+    def test_cannot_access_with_dsn_auth(self):
+        project = self.create_project()
+        project_key = self.create_project_key(project=project)
+
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.get(
+            url,
+            HTTP_AUTHORIZATION=u'DSN {}'.format(project_key.dsn_public),
+        )
+
+        assert response.status_code == 401, response.content
+
     def test_all_reports(self):
         self.login_as(user=self.user)
 
@@ -104,8 +123,11 @@ class CreateProjectUserReportTest(APITestCase):
         project = self.create_project()
         group = self.create_group(project=project)
         environment = self.make_environment(project)
-        event = self.create_event(group=group, tags={
-            'environment': environment.name})
+        event = self.create_event(
+            group=group,
+            tags={'environment': environment.name},
+            datetime=timezone.now(),
+        )
 
         url = u'/api/0/projects/{}/{}/user-feedback/'.format(
             project.organization.slug,
@@ -133,14 +155,69 @@ class CreateProjectUserReportTest(APITestCase):
         assert report.name == 'Foo Bar'
         assert report.comments == 'It broke!'
 
+    def test_with_dsn_auth(self):
+        project = self.create_project()
+        project_key = self.create_project_key(project=project)
+        group = self.create_group(project=project)
+        environment = self.make_environment(project)
+        event = self.create_event(
+            group=group,
+            tags={'environment': environment.name},
+            datetime=timezone.now(),
+        )
+
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.post(
+            url,
+            HTTP_AUTHORIZATION=u'DSN {}'.format(project_key.dsn_public),
+            data={
+                'event_id': event.event_id,
+                'email': 'foo@example.com',
+                'name': 'Foo Bar',
+                'comments': 'It broke!',
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+    def test_with_dsn_auth_invalid_project(self):
+        project = self.create_project()
+        project2 = self.create_project()
+        project_key = self.create_project_key(project=project)
+
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
+            project2.organization.slug,
+            project2.slug,
+        )
+
+        response = self.client.post(
+            url,
+            HTTP_AUTHORIZATION=u'DSN {}'.format(project_key.dsn_public),
+            data={
+                'event_id': uuid4().hex,
+                'email': 'foo@example.com',
+                'name': 'Foo Bar',
+                'comments': 'It broke!',
+            }
+        )
+
+        assert response.status_code == 400, response.content
+
     def test_already_present(self):
         self.login_as(user=self.user)
 
         project = self.create_project()
         group = self.create_group(project=project)
         environment = self.make_environment(project)
-        event = self.create_event(group=group, tags={
-            'environment': environment.name})
+        event = self.create_event(
+            group=group,
+            tags={'environment': environment.name},
+            datetime=timezone.now(),
+        )
 
         UserReport.objects.create(
             group=group,
@@ -184,10 +261,12 @@ class CreateProjectUserReportTest(APITestCase):
         group = self.create_group(project=project)
         environment = self.make_environment(project)
         event = self.create_event(
-            group=group, tags={
+            group=group,
+            tags={
                 'sentry:user': 'email:foo@example.com',
                 'environment': environment.name,
-            }
+            },
+            datetime=timezone.now(),
         )
         euser = EventUser.objects.create(
             project_id=project.id,
@@ -232,6 +311,71 @@ class CreateProjectUserReportTest(APITestCase):
 
         euser = EventUser.objects.get(id=euser.id)
         assert euser.name == 'Foo Bar'
+
+    def test_already_present_after_deadline(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        environment = self.make_environment(project)
+        event = self.create_event(group=group, tags={
+            'environment': environment.name})
+
+        UserReport.objects.create(
+            group=group,
+            project=project,
+            event_id=event.event_id,
+            name='foo',
+            email='bar@example.com',
+            comments='',
+            date_added=timezone.now() - timedelta(minutes=10),
+        )
+
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.post(
+            url,
+            data={
+                'event_id': event.event_id,
+                'email': 'foo@example.com',
+                'name': 'Foo Bar',
+                'comments': 'It broke!',
+            }
+        )
+
+        assert response.status_code == 409, response.content
+
+    def test_after_event_deadline(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        environment = self.make_environment(project)
+        event = self.create_event(
+            group=group,
+            tags={'environment': environment.name},
+            datetime=timezone.now() - timedelta(minutes=60),
+        )
+
+        url = u'/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.post(
+            url,
+            data={
+                'event_id': event.event_id,
+                'email': 'foo@example.com',
+                'name': 'Foo Bar',
+                'comments': 'It broke!',
+            }
+        )
+
+        assert response.status_code == 409, response.content
 
 
 class ProjectUserReportByEnvironmentsTest(UserReportEnvironmentTestCase):

@@ -139,12 +139,15 @@ class BaseTestCase(Fixtures, Exam):
         request.META['REMOTE_ADDR'] = '127.0.0.1'
         request.META['SERVER_NAME'] = 'testserver'
         request.META['SERVER_PORT'] = 80
+        request.REQUEST = {}
+
         # order matters here, session -> user -> other things
         request.session = self.session
         request.auth = auth
         request.user = user or AnonymousUser()
         request.superuser = Superuser(request)
         request.is_superuser = lambda: request.superuser.is_active
+        request.successful_authenticator = None
         return request
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
@@ -846,6 +849,10 @@ class SnubaTestCase(TestCase):
                 environment_id=environment.id,
                 group_id=event.group_id,
             )
+
+        if 'user' in tags:
+            user = tags.pop('user')
+            data['user'] = user
 
         hashes = get_hashes_from_fingerprint(
             event,
