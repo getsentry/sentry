@@ -1,4 +1,4 @@
-import {Box, Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import {debounce} from 'lodash';
 import React from 'react';
@@ -6,15 +6,14 @@ import styled from 'react-emotion';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import IndicatorStore from 'app/stores/indicatorStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Pagination from 'app/components/pagination';
+import RepositoryRow from 'app/components/repositoryRow';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import SpreadLayout from 'app/components/spreadLayout';
 import space from 'app/styles/space';
 import {t, tct} from 'app/locale';
 
@@ -53,6 +52,17 @@ export default class IntegrationRepos extends AsyncComponent {
     return this.state.itemList.filter(repo => repo.integrationId === integrationId);
   }
 
+  // Called by row to signal repository change.
+  onRepositoryChange = data => {
+    let itemList = this.state.itemList;
+    itemList.forEach(item => {
+      if (item.id === data.id) {
+        item.status = data.status;
+      }
+    });
+    this.setState({itemList});
+  };
+
   debouncedSearchRepositoriesRequest = debounce(
     query => this.searchRepositoriesRequest(query),
     200
@@ -79,21 +89,6 @@ export default class IntegrationRepos extends AsyncComponent {
     this.setState({dropdownBusy: true});
     this.debouncedSearchRepositoriesRequest(e.target.value);
   };
-
-  getStatusLabel(repo) {
-    switch (repo.status) {
-      case 'pending_deletion':
-        return 'Deletion Queued';
-      case 'deletion_in_progress':
-        return 'Deletion in Progress';
-      case 'disabled':
-        return 'Disabled';
-      case 'hidden':
-        return 'Disabled';
-      default:
-        return null;
-    }
-  }
 
   addRepo(selection) {
     let {integration} = this.props;
@@ -136,46 +131,6 @@ export default class IntegrationRepos extends AsyncComponent {
       },
     });
   }
-
-  deleteRepo = repo => {
-    let orgId = this.context.organization.slug;
-    let indicator = IndicatorStore.add(t('Saving changes..'));
-    this.api.request(`/organizations/${orgId}/repos/${repo.id}/`, {
-      method: 'DELETE',
-      success: data => {
-        let itemList = this.state.itemList;
-        itemList.forEach(item => {
-          if (item.id === data.id) {
-            item.status = data.status;
-          }
-        });
-        this.setState({itemList});
-      },
-      error: () => IndicatorStore.addError(t('Unable to delete repository.')),
-      complete: () => IndicatorStore.remove(indicator),
-    });
-  };
-
-  cancelDelete = repo => {
-    let orgId = this.context.organization.slug;
-    let indicator = IndicatorStore.add(t('Saving changes..'));
-
-    this.api.request(`/organizations/${orgId}/repos/${repo.id}/`, {
-      method: 'PUT',
-      data: {status: 'visible'},
-      success: data => {
-        let itemList = this.state.itemList;
-        itemList.forEach(item => {
-          if (item.id === data.id) {
-            item.status = data.status;
-          }
-        });
-        this.setState({itemList});
-      },
-      error: () => IndicatorStore.addError(t('An error occurred.')),
-      complete: () => IndicatorStore.remove(indicator),
-    });
-  };
 
   renderDropdown() {
     let access = new Set(this.context.organization.access);
@@ -235,6 +190,7 @@ export default class IntegrationRepos extends AsyncComponent {
 
   renderBody() {
     const {itemListPageLinks} = this.state;
+    const orgId = this.context.organization.slug;
     const itemList = this.getIntegrationRepos() || [];
     const header = (
       <PanelHeader disablePadding hasButtons>
@@ -267,43 +223,14 @@ export default class IntegrationRepos extends AsyncComponent {
               />
             )}
             {itemList.map(repo => {
-              let repoIsActive = repo.status === 'active';
               return (
-                <RepoOption key={repo.id} disabled={repo.status === 'disabled'}>
-                  <Box p={2} flex="1">
-                    <Flex direction="column">
-                      <Box pb={1}>
-                        <strong>{repo.name}</strong>
-                        {!repoIsActive && <small> — {this.getStatusLabel(repo)}</small>}
-                        {repo.status === 'pending_deletion' && (
-                          <small>
-                            {' '}
-                            (
-                            <a onClick={() => this.cancelDelete(repo)}>{t('Cancel')}</a>
-                            )
-                          </small>
-                        )}
-                      </Box>
-                      <Box>
-                        <small>
-                          {repo.url && (
-                            <a href={repo.url}>{repo.url.replace('https://', '')}</a>
-                          )}
-                        </small>
-                      </Box>
-                    </Flex>
-                  </Box>
-
-                  <Box p={2}>
-                    <Confirm
-                      disabled={!repoIsActive && repo.status !== 'disabled'}
-                      onConfirm={() => this.deleteRepo(repo)}
-                      message={t('Are you sure you want to remove this repository?')}
-                    >
-                      <Button size="xsmall" icon="icon-trash" />
-                    </Confirm>
-                  </Box>
-                </RepoOption>
+                <RepositoryRow
+                  key={repo.id}
+                  repository={repo}
+                  orgId={orgId}
+                  api={this.api}
+                  onRepositoryChange={this.onRepositoryChange}
+                />
               );
             })}
           </PanelBody>
@@ -333,19 +260,4 @@ const StyledName = styled('div')`
   flex-shrink: 1;
   min-width: 0;
   ${overflowEllipsis};
-`;
-
-const RepoOption = styled(SpreadLayout)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  ${p =>
-    p.disabled &&
-    `
-    filter: grayscale(1);
-    opacity: 0.4;
-  `};
 `;
