@@ -44,7 +44,7 @@ class OrganizationEvents extends AsyncView {
   }
 
   getTitle() {
-    return `${this.props.organization.slug} Events`;
+    return `Events - ${this.props.organization.slug}`;
   }
 
   renderBody() {
