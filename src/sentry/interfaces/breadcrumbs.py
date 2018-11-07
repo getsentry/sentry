@@ -62,7 +62,7 @@ class Breadcrumbs(Interface):
                     # TODO(dcramer): we dont want to discard the entirety of data
                     # when one breadcrumb errors, but it'd be nice if we could still
                     # record an error
-                    values.append(None)
+                    pass
 
         return cls(values=values)
 
