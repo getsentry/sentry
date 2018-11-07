@@ -1,3 +1,4 @@
+import {isEqual} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
@@ -25,6 +26,23 @@ class OrganizationEvents extends AsyncView {
     );
   }
 
+  shouldComponentUpdate(nextProps, nextState) {
+    if (this.state !== nextState) {
+      return true;
+    }
+
+    const isDiff = ['path', 'query', 'search'].find(
+      key => !isEqual(this.props[key], nextProps[key])
+    );
+    if (isDiff) {
+      return true;
+    }
+
+    return false;
+  }
+
+  shouldReload = true;
+
   getEndpoints() {
     const {organization, location} = this.props;
     let {statsPeriod, ...query} = location.query;
@@ -49,7 +67,7 @@ class OrganizationEvents extends AsyncView {
 
   renderBody() {
     const {organization} = this.props;
-    const {loading, events, eventsPageLinks} = this.state;
+    const {reloading, events, eventsPageLinks} = this.state;
 
     return (
       <React.Fragment>
@@ -64,7 +82,7 @@ class OrganizationEvents extends AsyncView {
           <EventsChart organization={organization} />
         </Panel>
 
-        <EventsTable loading={loading} events={events} organization={organization} />
+        <EventsTable reloading={reloading} events={events} organization={organization} />
 
         <Pagination pageLinks={eventsPageLinks} />
       </React.Fragment>

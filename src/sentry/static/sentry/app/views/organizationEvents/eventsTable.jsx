@@ -1,3 +1,4 @@
+import {isEqual} from 'lodash';
 import {withRouter, Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -9,12 +10,14 @@ import DateTime from 'app/components/dateTime';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventsContext from 'app/views/organizationEvents/eventsContext';
 import IdBadge from 'app/components/idBadge';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-class EventsTable extends React.PureComponent {
+class EventsTable extends React.Component {
   static propTypes = {
+    reloading: PropTypes.bool,
     events: PropTypes.array,
     organization: SentryTypes.Organization,
   };
@@ -24,6 +27,21 @@ class EventsTable extends React.PureComponent {
     this.projectsMap = new Map(
       props.organization.projects.map(project => [project.id, project])
     );
+  }
+
+  shouldComponentUpdate(nextProps) {
+    if (this.props.reloading !== nextProps.reloading) {
+      return true;
+    }
+
+    if (
+      this.props.organization === nextProps.organization &&
+      isEqual(this.props.events, nextProps.events)
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   getEventTitle(event) {
@@ -43,7 +61,7 @@ class EventsTable extends React.PureComponent {
   }
 
   render() {
-    const {events, organization} = this.props;
+    const {events, organization, reloading} = this.props;
     const hasEvents = events && !!events.length;
 
     return (
@@ -59,6 +77,7 @@ class EventsTable extends React.PureComponent {
         {!hasEvents && <EmptyStateWarning>No events</EmptyStateWarning>}
         {hasEvents && (
           <StyledPanelBody>
+            {reloading && <StyledLoadingIndicator overlay />}
             {events.map((event, eventIdx) => {
               const project = this.projectsMap.get(event.projectID);
               return (
@@ -117,6 +136,14 @@ const TableLayout = styled('div')`
   grid-template-columns: 0.8fr 0.15fr 0.25fr 200px;
   grid-column-gap: ${space(1.5)};
   width: 100%;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  padding-top: 10vh;
+  z-index: 1;
+  &.loading.overlay {
+    align-items: flex-start;
+  }
 `;
 
 const TableRow = styled(TableLayout)`

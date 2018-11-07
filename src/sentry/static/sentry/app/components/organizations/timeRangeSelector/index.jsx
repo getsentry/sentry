@@ -1,28 +1,23 @@
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import moment from 'moment';
 import styled from 'react-emotion';
 
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {analytics} from 'app/utils/analytics';
+import {getLocalToUtc, getPeriodAgo, getUtcInLocal} from 'app/utils/dates';
+import {parsePeriodToHours} from 'app/utils';
 import {t} from 'app/locale';
-import Button from 'app/components/button';
+import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
+import DateSummary from 'app/components/organizations/timeRangeSelector/dateSummary';
 import DropdownMenu from 'app/components/dropdownMenu';
 import HeaderItem from 'app/components/organizations/headerItem';
 import InlineSvg from 'app/components/inlineSvg';
+import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
+import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
 import getDynamicText from 'app/utils/getDynamicText';
-import space from 'app/styles/space';
 
-import AbsoluteSelector from './absoluteSelector';
-import CombinedSelector from './combinedSelector';
-import RelativeSelector from './relativeSelector';
-
-const ALLOWED_RELATIVE_DATES = {
-  '24h': t('Last 24 hours'),
-  '7d': t('Last 7 days'),
-  '14d': t('Last 14 days'),
-  '30d': t('Last 30 days'),
-};
-
-class TimeRangeSelector extends React.Component {
+class TimeRangeSelector extends React.PureComponent {
   static propTypes = {
     /**
      * Show absolute date selectors
@@ -35,17 +30,29 @@ class TimeRangeSelector extends React.Component {
 
     /**
      * Start date value for absolute date selector
+     * Accepts a JS Date or a moment object
+     *
+     * React does not support `instanceOf` with null values
      */
-    start: PropTypes.string,
+    start: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+
     /**
      * End date value for absolute date selector
+     * Accepts a JS Date or a moment object
+     *
+     * React does not support `instanceOf` with null values
      */
-    end: PropTypes.string,
+    end: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 
     /**
      * Relative date value
      */
     relative: PropTypes.string,
+
+    /**
+     * Default initial value for using UTC
+     */
+    useUtc: PropTypes.bool,
 
     /**
      * Callback when value changes
@@ -63,43 +70,112 @@ class TimeRangeSelector extends React.Component {
     showRelative: false,
   };
 
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = {
+      useUtc: props.useUtc,
       isOpen: false,
     };
   }
 
-  formatDate(date) {
-    return moment(date).format('MMMM D, h:mm a');
-  }
+  getSelectedStateFromProps = props => {
+    const {start, end, relative} = props || this.props;
+    return !!start && !!end ? 'absolute' : relative;
+  };
+
+  handleCloseMenu = () => {
+    this.handleUpdate();
+  };
 
   handleUpdate = () => {
     const {onUpdate} = this.props;
-    if (typeof onUpdate === 'function') {
-      onUpdate();
-    }
-    this.setState({
-      isOpen: false,
+
+    this.setState(
+      {
+        isOpen: false,
+      },
+      () => {
+        if (typeof onUpdate === 'function') {
+          onUpdate();
+        }
+      }
+    );
+  };
+
+  handleAbsoluteClick = () => {
+    const {relative, onChange} = this.props;
+
+    // Set default range to equivalent of last relative period,
+    // or use default stats period
+    onChange({
+      relative: null,
+      start: getPeriodAgo(
+        parsePeriodToHours(relative || DEFAULT_STATS_PERIOD),
+        'hours'
+      ).toDate(),
+      end: new Date(),
+    });
+  };
+
+  handleSelectRelative = value => {
+    const {onChange} = this.props;
+    onChange({
+      relative: value,
+      start: null,
+      end: null,
+    });
+    this.handleUpdate();
+  };
+
+  handleSelectDateRange = ({start, end}) => {
+    const {onChange} = this.props;
+
+    onChange({
+      relative: null,
+      start,
+      end,
+    });
+  };
+
+  handleUseUtc = () => {
+    const {onChange, start, end} = this.props;
+
+    this.setState(state => {
+      const useUtc = !state.useUtc;
+      analytics('dateselector.utc', {
+        utc: useUtc,
+      });
+
+      onChange({
+        relative: null,
+        start: useUtc ? getLocalToUtc(start) : getUtcInLocal(start),
+        end: useUtc ? getLocalToUtc(end) : getUtcInLocal(end),
+      });
+
+      return {
+        useUtc,
+      };
     });
   };
 
   render() {
-    const {start, end, relative, showAbsolute, showRelative, onChange} = this.props;
+    const {start, end, relative, showAbsolute, showRelative} = this.props;
 
-    const shouldShowAbsolute = showAbsolute && !showRelative;
-    const shouldShowRelative = !showAbsolute && showRelative;
-    const shouldShowBoth = showAbsolute && showRelative;
+    const shouldShowAbsolute = showAbsolute;
+    const shouldShowRelative = showRelative;
+    const isAbsoluteSelected = !!start && !!end;
 
-    const summary = relative
-      ? `${ALLOWED_RELATIVE_DATES[relative]}`
-      : `${this.formatDate(start)} to ${this.formatDate(end)}`;
+    const summary = relative ? (
+      `${DEFAULT_RELATIVE_PERIODS[relative]}`
+    ) : (
+      <DateSummary useUtc={this.state.useUtc} start={start} end={end} />
+    );
 
     return (
       <DropdownMenu
         isOpen={this.state.isOpen}
         onOpen={() => this.setState({isOpen: true})}
-        onClose={() => this.setState({isOpen: false})}
+        onClose={this.handleCloseMenu}
         keepMenuOpen={true}
       >
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
@@ -113,33 +189,41 @@ class TimeRangeSelector extends React.Component {
             >
               {getDynamicText({value: summary, fixed: 'start to end'})}
             </StyledHeaderItem>
-            <Menu
-              {...getMenuProps({isStyled: true})}
-              style={{display: isOpen ? 'block' : 'none'}}
-            >
-              {shouldShowAbsolute && (
-                <AbsoluteSelector onChange={onChange} start={start} end={end} />
-              )}
-              {shouldShowRelative && (
-                <RelativeSelector
-                  choices={Object.entries(ALLOWED_RELATIVE_DATES)}
-                  onChange={onChange}
-                  value={relative}
-                />
-              )}
-              {shouldShowBoth && (
-                <CombinedSelector
-                  choices={Object.entries(ALLOWED_RELATIVE_DATES)}
-                  onChange={onChange}
-                  relative={relative}
-                  start={start}
-                  end={end}
-                />
-              )}
-              <div>
-                <Button onClick={this.handleUpdate}>{t('Update')}</Button>
-              </div>
-            </Menu>
+
+            {isOpen && (
+              <Menu
+                {...getMenuProps({isStyled: true})}
+                isAbsoluteSelected={isAbsoluteSelected}
+              >
+                <SelectorList isAbsoluteSelected={isAbsoluteSelected}>
+                  {shouldShowRelative && (
+                    <RelativeSelector
+                      onClick={this.handleSelectRelative}
+                      selected={relative}
+                    />
+                  )}
+                  {shouldShowAbsolute && (
+                    <SelectorItem
+                      onClick={this.handleAbsoluteClick}
+                      value="absolute"
+                      label={t('Absolute Date')}
+                      selected={isAbsoluteSelected}
+                      last={true}
+                    />
+                  )}
+                </SelectorList>
+                {isAbsoluteSelected && (
+                  <DateRange
+                    showTimePicker
+                    useUtc={this.state.useUtc}
+                    start={start}
+                    end={end}
+                    onChange={this.handleSelectDateRange}
+                    onChangeUtc={this.handleUseUtc}
+                  />
+                )}
+              </Menu>
+            )}
           </div>
         )}
       </DropdownMenu>
@@ -149,7 +233,8 @@ class TimeRangeSelector extends React.Component {
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
-  width: 230px;
+  min-width: 230px;
+  max-width: 360px;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
@@ -159,16 +244,27 @@ const StyledInlineSvg = styled(InlineSvg)`
 `;
 
 const Menu = styled('div')`
+  ${p => !p.isAbsoluteSelected && 'left: -1px'};
+  ${p => p.isAbsoluteSelected && 'right: -1px'};
+
+  display: flex;
   background: #fff;
   border: 1px solid ${p => p.theme.borderLight};
   position: absolute;
   top: 100%;
-  left: -1px;
   min-width: 120%;
   z-index: ${p => p.theme.zIndex.dropdown};
   box-shadow: ${p => p.theme.dropShadowLight};
-  padding: ${space(2)};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  font-size: 0.8em;
+`;
+
+const SelectorList = styled(({isAbsoluteSelected, ...props}) => <Flex {...props} />)`
+  flex: 1;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: ${p => (p.isAbsoluteSelected ? '160px' : '220px')};
+  min-height: 305px;
 `;
 
 export default TimeRangeSelector;
