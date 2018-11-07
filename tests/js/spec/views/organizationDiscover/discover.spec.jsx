@@ -485,4 +485,99 @@ describe('Discover', function() {
       expect(wrapper.find('SavedQueries')).toHaveLength(1);
     });
   });
+
+  describe('Time Selector', function() {
+    let wrapper;
+    let query;
+
+    beforeEach(function() {
+      query = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+        method: 'POST',
+        body: {timing: {}, data: [], meta: []},
+      });
+      wrapper = mount(
+        <Discover
+          queryBuilder={queryBuilder}
+          organization={organization}
+          updateSavedQueryData={jest.fn()}
+          toggleEditMode={jest.fn()}
+        />,
+        TestStubs.routerContext([{organization}])
+      );
+    });
+
+    it('changes to absolute date', async function() {
+      await wrapper.instance().runQuery();
+      expect(query).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            range: '14d',
+          }),
+        })
+      );
+
+      // Select absolute date
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+      wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+
+      // Hide date picker
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+      // Should make request for the last 14 days as an absolute date range
+      expect(query).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            start: '2017-10-03T02:41:20',
+            end: '2017-10-17T02:41:20',
+          }),
+        })
+      );
+    });
+
+    it('switches between UTC and local dates', async function() {
+      // Select absolute date
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+      wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+
+      // Select a single day
+      wrapper
+        .find('DayCell')
+        .at(0)
+        .simulate('mouseUp');
+
+      // Hide date picker
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+      // Should make request for the last 14 days as an absolute date range
+      expect(query).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            start: '2017-10-01T00:00:00',
+            end: '2017-10-01T23:59:59',
+          }),
+        })
+      );
+
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+      // Switch to UTC
+      wrapper.find('UtcPicker Checkbox').simulate('change');
+      // Hide dropdown
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+      expect(query).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            start: '2017-10-01T04:00:00',
+            end: '2017-10-02T03:59:59',
+          }),
+        })
+      );
+    });
+  });
 });
