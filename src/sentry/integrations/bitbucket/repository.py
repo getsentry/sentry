@@ -14,11 +14,11 @@ from .webhook import parse_raw_user_email, parse_raw_user_name
 
 
 class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
-    name = 'Bitbucket v2'
+    name = 'Bitbucket'
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:
-            raise ValueError('Bitbucket version 2 requires an integration id.')
+            raise ValueError('Bitbucket requires an integration id.')
 
         try:
             integration_model = Integration.objects.get(id=integration_id)
