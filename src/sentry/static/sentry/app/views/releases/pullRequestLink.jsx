@@ -22,22 +22,9 @@ class PullRequestLink extends React.Component {
     return id;
   }
 
-  get url() {
-    let providerId = this.providerId;
-    if (providerId === 'github') {
-      return this.props.repository.url + '/pull/' + this.props.pullRequest.id;
-    }
-    if (providerId === 'gitlab') {
-      return this.props.repository.url + '/merge_requests/' + this.props.pullRequest.id;
-    }
-    return undefined;
-  }
-
   render() {
-    let url = this.url;
-    let providerId = this.providerId;
-
     let {pullRequest, repository} = this.props;
+    let providerId = this.providerId;
     let displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
 
     let icon = '';
@@ -51,10 +38,10 @@ class PullRequestLink extends React.Component {
       );
     }
 
-    return url ? (
+    return pullRequest.externalUrl ? (
       <a
         className={this.props.inline ? 'inline-commit' : 'btn btn-default btn-sm'}
-        href={url}
+        href={pullRequest.externalUrl}
         target="_blank"
       >
         {icon}&nbsp; {this.props.inline ? '' : ' '}

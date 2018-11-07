@@ -132,7 +132,16 @@ class IntegrationRepositoryProvider(object):
         pass
 
     def compare_commits(self, repo, start_sha, end_sha):
+        """
+        Generate a list of commits between the start & end sha
+        """
         raise NotImplementedError
+
+    def pull_request_url(self, repo, pull_request):
+        """
+        Generate a URL to a pull request on the repository provider.
+        """
+        return None
 
     @staticmethod
     def should_ignore_commit(message):

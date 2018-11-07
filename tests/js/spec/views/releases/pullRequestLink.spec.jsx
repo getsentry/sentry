@@ -4,9 +4,12 @@ import {mount} from 'enzyme';
 import PullRequestLink from 'app/views/releases/pullRequestLink';
 
 describe('PullRequestLink', function() {
-  it('renders no url on missing provider', function() {
+  it('renders no url on missing externalUrl', function() {
     let repository = TestStubs.Repository({provider: null});
-    let pullRequest = TestStubs.PullRequest({repository});
+    let pullRequest = TestStubs.PullRequest({
+      repository,
+      externalUrl: null,
+    });
     let wrapper = mount(
       <PullRequestLink repository={repository} pullRequest={pullRequest} />
     );
