@@ -5,7 +5,7 @@ import logging
 import six
 
 from sentry.models import Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
-from sentry.integrations.repositories import generate_secret
+from sentry.models.apitoken import generate_token
 from sentry.api.base import Endpoint
 
 from django.views.decorators.csrf import csrf_exempt
@@ -176,5 +176,5 @@ class WorkItemWebhook(Endpoint):
 
     def create_subscription(self, instance, identity_data, oauth_redirect_url):
         client = self.get_client(Identity(data=identity_data), oauth_redirect_url)
-        shared_secret = generate_secret()
+        shared_secret = generate_token()
         return client.create_subscription(instance, shared_secret), shared_secret

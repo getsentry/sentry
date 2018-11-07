@@ -2,13 +2,6 @@ from __future__ import absolute_import
 
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
-from uuid import uuid4
-
-
-def generate_secret():
-    # following this example
-    # https://github.com/getsentry/sentry-plugins/blob/master/src/sentry_plugins/github/plugin.py#L305
-    return uuid4().hex + uuid4().hex
 
 
 class RepositoryMixin(object):

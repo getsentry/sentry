@@ -8,7 +8,7 @@ from sentry.models import Integration
 from sentry.utils.http import absolute_uri
 
 from sentry.integrations.exceptions import ApiError
-from sentry.integrations.repository import generate_secret
+from sentry.models.apitoken import generate_token
 
 from .webhook import parse_raw_user_email, parse_raw_user_name
 
@@ -48,7 +48,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 key='bitbucket:webhook_secret',
             )
             if secret is None:
-                secret = generate_secret()
+                secret = generate_token()
                 OrganizationOption.objects.set_value(
                     organization=organization,
                     key='bitbucket:webhook_secret',
