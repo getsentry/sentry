@@ -55,6 +55,7 @@ describe('getOrderByOptions()', function() {
   });
 
   it('allows ordering by aggregations with aggregations and no fields', function() {
+    queryBuilder.updateField('fields', []);
     queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
     const options = getOrderByOptions(queryBuilder);
