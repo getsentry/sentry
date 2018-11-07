@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import moment from 'moment';
 import {browserHistory} from 'react-router';
 
 import {
@@ -7,7 +8,9 @@ import {
   clearIndicators,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
+import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
+import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
@@ -39,7 +42,6 @@ import {
   SidebarTabs,
   PageTitle,
   SavedQueryWrapper,
-  StyledHeaderSeparator,
 } from './styles';
 
 import {trackQuery} from './analytics';
@@ -119,8 +121,8 @@ export default class OrganizationDiscover extends React.Component {
   handleUpdateTime = ({relative, start, end}) => {
     this.updateFields({
       range: relative,
-      start,
-      end,
+      start: (start && getUtcDateString(start)) || start,
+      end: (end && getUtcDateString(end)) || end,
     });
   };
 
@@ -290,6 +292,12 @@ export default class OrganizationDiscover extends React.Component {
 
     const projects = organization.projects.filter(project => project.isMember);
 
+    const start =
+      (currentQuery.start && moment.utc(currentQuery.start).toDate()) ||
+      currentQuery.start;
+    const end =
+      (currentQuery.end && moment.utc(currentQuery.end).toDate()) || currentQuery.end;
+
     return (
       <DiscoverContainer>
         <Sidebar>
@@ -335,17 +343,18 @@ export default class OrganizationDiscover extends React.Component {
               onChange={val => this.updateField('projects', val)}
               onUpdate={this.runQuery}
             />
-            <StyledHeaderSeparator />
+            <HeaderSeparator />
             <TimeRangeSelector
               showAbsolute={true}
               showRelative={true}
-              start={currentQuery.start}
-              end={currentQuery.end}
+              useUtc={true}
+              start={start}
+              end={end}
               relative={currentQuery.range}
               onChange={this.handleUpdateTime}
               onUpdate={this.runQuery}
             />
-            <StyledHeaderSeparator />
+            <HeaderSeparator />
           </TopBar>
           <BodyContent>
             {shouldDisplayResult && (

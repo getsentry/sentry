@@ -12,7 +12,7 @@ const rootContainerStyles = css`
   display: flex;
 `;
 
-export default class MultipleProjectSelector extends React.Component {
+export default class MultipleProjectSelector extends React.PureComponent {
   static propTypes = {
     value: PropTypes.array,
     projects: PropTypes.array,

@@ -105,6 +105,9 @@ class BaseChart extends React.Component {
     // If data is grouped by date, then apply default date formatting to
     // x-axis and tooltips.
     isGroupedByDate: PropTypes.bool,
+
+    // How is data grouped (affects formatting of axis labels and tooltips)
+    interval: PropTypes.oneOf(['hour', 'day']),
   };
 
   static defaultProps = {
@@ -120,6 +123,7 @@ class BaseChart extends React.Component {
     xAxis: {},
     yAxis: {},
     isGroupedByDate: false,
+    interval: 'day',
   };
 
   handleChartReady = (...args) => {
@@ -149,6 +153,7 @@ class BaseChart extends React.Component {
       toolBox,
 
       isGroupedByDate,
+      interval,
       previousPeriod,
 
       devicePixelRatio,
@@ -188,13 +193,15 @@ class BaseChart extends React.Component {
           ...options,
           color: colors || this.getColorPalette(),
           grid: Grid(grid),
-          tooltip: tooltip !== null ? Tooltip({isGroupedByDate, ...tooltip}) : null,
+          tooltip:
+            tooltip !== null ? Tooltip({interval, isGroupedByDate, ...tooltip}) : null,
           legend: legend ? Legend({...legend}) : null,
           yAxis: yAxis !== null ? YAxis(yAxis) : null,
           xAxis:
             xAxis !== null
               ? XAxis({
                   ...xAxis,
+                  interval,
                   isGroupedByDate,
                 })
               : null,
