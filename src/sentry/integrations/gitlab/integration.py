@@ -112,7 +112,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         return client.search_group_issues(group_id, query)
 
     def reinstall(self):
-        installation_id = self.model.external_id.split(':')[1]
+        installation_id = self.model.metadata['group_id']
         metadata = self.model.metadata
         metadata['installation_id'] = installation_id
         self.model.update(metadata=metadata)
