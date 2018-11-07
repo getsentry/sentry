@@ -28,6 +28,50 @@ from functools import reduce
 MAX_ISSUES = 500
 MAX_HASHES = 5000
 
+SENTRY_SNUBA_MAP = {
+    # user
+    'user.id': 'user_id',
+    'user.email': 'email',
+    'user.username': 'username',
+    'user.ip': 'ip_address',
+    # sdk
+    'sdk.name': 'sdk_name',
+    'sdk.version': 'sdk_version',
+    # http
+    'http.method': 'http_method',
+    'http.url': 'http_referer',
+    # os
+    'os.build': 'os_build',
+    'os.kernel_version': 'os_kernel_version',
+    # device
+    'device.name': 'device_name',
+    'device.brand': 'device_brand',
+    'device.locale': 'device_locale',
+    'device.uuid': 'device_uuid',
+    'device.model_id': 'device_model_id',
+    'device.arch': 'device_arch',
+    'device.battery_level': 'device_battery_level',
+    'device.orientation': 'device_orientation',
+    'device.simulator': 'device_orientation',
+    'device.online': 'device_online',
+    'device.charging': 'device_charging',
+
+    # error, stack
+    'error.type': 'exception_stacks.type',
+    'error.value': 'exception_stacks.value',
+    'error.mechanism_type': 'exception_stacks.mechanism_type',
+    'error.mechanism_handled': 'exception_stacks.mechanism_handled',
+    'stack.abs_path': 'exception_frames.abs_path',
+    'stack.filename': 'exception_frames.filename',
+    'stack.package': 'exception_frames.package',
+    'stack.module': 'exception_frames.module',
+    'stack.function': 'exception_frames.function',
+    'stack.in_app': 'exception_frames.in_app',
+    'stack.colno': 'exception_frames.colno',
+    'stack.lineno': 'exception_frames.lineno',
+    'stack.stack_level': 'exception_frames.stack_level',
+}
+
 
 class SnubaError(Exception):
     pass
@@ -65,49 +109,6 @@ def transform_aliases_and_query(**kwargs):
     query to Snuba. Convert back translated aliases before returning snuba
     results.
     """
-    sentry_snuba_map = {
-        # user
-        'user.id': 'user_id',
-        'user.email': 'email',
-        'user.username': 'username',
-        'user.ip': 'ip_address',
-        # sdk
-        'sdk.name': 'sdk_name',
-        'sdk.version': 'sdk_version',
-        # http
-        'http.method': 'http_method',
-        'http.url': 'http_referer',
-        # os
-        'os.build': 'os_build',
-        'os.kernel_version': 'os_kernel_version',
-        # device
-        'device.name': 'device_name',
-        'device.brand': 'device_brand',
-        'device.locale': 'device_locale',
-        'device.uuid': 'device_uuid',
-        'device.model_id': 'device_model_id',
-        'device.arch': 'device_arch',
-        'device.battery_level': 'device_battery_level',
-        'device.orientation': 'device_orientation',
-        'device.simulator': 'device_orientation',
-        'device.online': 'device_online',
-        'device.charging': 'device_charging',
-
-        # error, stack
-        'error.type': 'exception_stacks.type',
-        'error.value': 'exception_stacks.value',
-        'error.mechanism_type': 'exception_stacks.mechanism_type',
-        'error.mechanism_handled': 'exception_stacks.mechanism_handled',
-        'stack.abs_path': 'exception_frames.abs_path',
-        'stack.filename': 'exception_frames.filename',
-        'stack.package': 'exception_frames.package',
-        'stack.module': 'exception_frames.module',
-        'stack.function': 'exception_frames.function',
-        'stack.in_app': 'exception_frames.in_app',
-        'stack.colno': 'exception_frames.colno',
-        'stack.lineno': 'exception_frames.lineno',
-        'stack.stack_level': 'exception_frames.stack_level',
-    }
 
     arrayjoin_map = {
         'error': 'exception_stacks',
@@ -122,20 +123,20 @@ def transform_aliases_and_query(**kwargs):
     conditions = kwargs['conditions'] or []
 
     for (idx, col) in enumerate(selected_columns):
-        match = sentry_snuba_map.get(col)
+        match = SENTRY_SNUBA_MAP.get(col)
         if match:
             selected_columns[idx] = match
             translated_columns[match] = col
 
     for (idx, col) in enumerate(groupby):
-        match = sentry_snuba_map.get(col)
+        match = SENTRY_SNUBA_MAP.get(col)
         if match:
             groupby[idx] = match
             translated_columns[match] = col
 
     for aggregation in aggregations or []:
-        if len(aggregation) and sentry_snuba_map.get(aggregation[1]):
-            aggregation[1] = sentry_snuba_map[aggregation[1]]
+        if len(aggregation) and SENTRY_SNUBA_MAP.get(aggregation[1]):
+            aggregation[1] = SENTRY_SNUBA_MAP[aggregation[1]]
 
     def handle_condition(cond):
         if isinstance(cond, (list, tuple)) and len(cond):
@@ -143,10 +144,10 @@ def transform_aliases_and_query(**kwargs):
                 cond[0] = handle_condition(cond[0])
             elif len(cond) == 3:
                 # map column name
-                cond[0] = sentry_snuba_map.get(cond[0], cond[0])
+                cond[0] = SENTRY_SNUBA_MAP.get(cond[0], cond[0])
             elif len(cond) == 2:
                 # map function arguments
-                cond[1] = [sentry_snuba_map.get(arg, arg) for arg in cond[1]]
+                cond[1] = [SENTRY_SNUBA_MAP.get(arg, arg) for arg in cond[1]]
         return cond
 
     kwargs['conditions'] = [handle_condition(condition) for condition in conditions]
@@ -154,7 +155,7 @@ def transform_aliases_and_query(**kwargs):
     order_by_column = kwargs['orderby'].lstrip('-')
     kwargs['orderby'] = u'{}{}'.format(
         '-' if kwargs['orderby'].startswith('-') else '',
-        sentry_snuba_map.get(order_by_column, order_by_column)
+        SENTRY_SNUBA_MAP.get(order_by_column, order_by_column)
     ) or None
 
     kwargs['arrayjoin'] = arrayjoin_map.get(kwargs['arrayjoin'], kwargs['arrayjoin'])
