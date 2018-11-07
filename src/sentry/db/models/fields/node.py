@@ -18,7 +18,6 @@ from django.db import models
 from django.db.models.signals import post_delete
 
 from sentry import nodestore
-from sentry.utils.cache import memoize
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
@@ -98,7 +97,7 @@ class NodeData(collections.MutableMapping):
     def copy(self):
         return self.data.copy()
 
-    @memoize
+    @property
     def data(self):
         if self._node_data is not None:
             return self._node_data
