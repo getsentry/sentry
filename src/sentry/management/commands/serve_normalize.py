@@ -98,14 +98,13 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
             key=None,
             content_encoding=meta.get('HTTP_CONTENT_ENCODING')
         )
+        event_manager.normalize()
 
         event = event_manager.get_data()
         group_hash = None
 
         if not should_process(event):
             group_hash = get_hashes_for_event(event_manager._get_event_instance(project_id=1))
-
-        event_manager.normalize()
         return {
             "event": dict(event),
             "group_hash": group_hash,
