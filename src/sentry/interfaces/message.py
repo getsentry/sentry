@@ -14,7 +14,7 @@ import six
 
 from django.conf import settings
 
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils import json
 from sentry.utils.safe import trim
 
@@ -41,11 +41,12 @@ class Message(Interface):
 
     @classmethod
     def to_python(cls, data):
+        if not data.get('message'):
+            raise InterfaceValidationError("No 'message' present")
+
         # TODO(dcramer): some day we should stop people from sending arbitrary
         # crap to the server
-        data.setdefault('message', None)
-
-        if data['message'] is not None and not isinstance(data['message'], six.string_types):
+        if not isinstance(data['message'], six.string_types):
             data['message'] = json.dumps(data['message'])
 
         kwargs = {
@@ -62,7 +63,7 @@ class Message(Interface):
             if not isinstance(kwargs['formatted'], six.string_types):
                 kwargs['formatted'] = json.dumps(data['formatted'])
         # support python-esque formatting (e.g. %s)
-        elif kwargs['message'] and '%' in kwargs['message'] and kwargs['params']:
+        elif '%' in kwargs['message'] and kwargs['params']:
             if isinstance(kwargs['params'], list):
                 kwargs['params'] = tuple(kwargs['params'])
 
@@ -74,7 +75,7 @@ class Message(Interface):
             except Exception:
                 pass
         # support very basic placeholder formatters (non-typed)
-        elif kwargs['message'] and '{}' in kwargs['message'] and kwargs['params']:
+        elif '{}' in kwargs['message'] and kwargs['params']:
             try:
                 kwargs['formatted'] = trim(
                     kwargs['message'].format(kwargs['params']),
