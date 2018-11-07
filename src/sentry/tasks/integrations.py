@@ -288,7 +288,7 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
                     instance=installation.instance,
                     subscription_id=subscription_id,
                 )
-            except (ApiError, ApiUnauthorized) as e:
+            except ApiError as e:
                 logger.info(
                     'vsts_subscription_check.failed_to_delete_subscription',
                     extra={
@@ -305,7 +305,7 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
                 instance=installation.instance,
                 shared_secret=secret,
             )
-        except (ApiError, ApiUnauthorized) as e:
+        except ApiError as e:
             logger.info(
                 'vsts_subscription_check.failed_to_create_subscription',
                 extra={
