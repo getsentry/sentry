@@ -168,7 +168,7 @@ class BitbucketIssueTest(APITestCase):
             }, {
                 'name': 'description',
                 'label': 'Description',
-                'default': u'Sentry Issue: [BAR-1](http://testserver/baz/bar/issues/%d/)\n\n```\nStacktrace (most recent call last):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```' % self.integration.id,
+                'default': u'Sentry Issue: [BAR-1](http://testserver/baz/bar/issues/%d/)\n\n```\nStacktrace (most recent call last):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```' % self.group.id,
                 'type': 'textarea',
                 'autosize': True,
                 'maxRows': 10,
