@@ -38,9 +38,9 @@ export default class Intro extends React.Component {
       {
         description: t('Top exception types'),
         query: {
-          fields: ['exception_stacks.type'],
+          fields: ['error.type'],
           aggregations: [['count()', null, 'count']],
-          conditions: [['exception_stacks.type', 'IS NOT NULL', null]],
+          conditions: [['error.type', 'IS NOT NULL', null]],
           limit: 1000,
           orderby: '-count',
         },

@@ -14,8 +14,8 @@ describe('Aggregation', function() {
           expectedTextValue: 'uniq(environment)',
         },
         {
-          value: ['avg', 'device_battery_level', 'avg_device_battery_level'],
-          expectedTextValue: 'avg(device_battery_level)',
+          value: ['avg', 'device.battery_level', 'avg_device_battery_level'],
+          expectedTextValue: 'avg(device.battery_level)',
         },
         {
           value: ['uniq', 'tags[message]', 'uniq_tags_message'],
@@ -38,7 +38,7 @@ describe('Aggregation', function() {
       const cols = [
         {name: 'col1', type: 'string'},
         {name: 'col2', type: 'number'},
-        {name: 'exception_stacks.type', type: 'string'},
+        {name: 'error.type', type: 'string'},
       ];
       wrapper = mount(
         <Aggregation value={[null, null, null]} onChange={jest.fn()} columns={cols} />
