@@ -62,3 +62,19 @@ def base36_encode(number):
 
 def base36_decode(s):
     return int(s, 36)
+
+
+DEFAULT_UNITS = ('B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB')
+
+
+def format_bytes(number, units=DEFAULT_UNITS, decimal_places=2):
+    block = 1024.0
+    if number < block:
+        return '{} {}'.format(number, units[0])
+
+    u = 0
+    max_unit = len(units) - 1
+    while number >= block and u < max_unit:
+        number /= block
+        u += 1
+    return (u'{:.%df} {}' % (decimal_places,)).format(number, units[u])
