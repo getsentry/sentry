@@ -144,7 +144,7 @@ STACKTRACE_INTERFACE_SCHEMA = {
         },
         'registers': {'type': 'object'},
     },
-    'required': [],
+    'required': ['frames'],
     # `additionalProperties: {'not': {}}` forces additional properties to
     # individually fail with errors that identify the key, so they can be deleted.
     'additionalProperties': {'not': {}},
