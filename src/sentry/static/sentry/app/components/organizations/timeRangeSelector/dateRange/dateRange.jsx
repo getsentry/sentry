@@ -10,8 +10,8 @@ import {
   DEFAULT_DAY_END_TIME,
   DEFAULT_DAY_START_TIME,
   getCoercedUtcOrLocalDate,
-  getDaysAgo,
   getFormattedDate,
+  getStartOfPeriodAgo,
   setDateToTime,
 } from 'app/utils/dates';
 import {analytics} from 'app/utils/analytics';
@@ -149,9 +149,12 @@ class DateRange extends React.Component {
 
     // Restraints on the time range that you can select
     // Can't select dates in the future b/c we're not fortune tellers (yet)
-    const minDate = getCoercedUtcOrLocalDate(getDaysAgo(maxPickableDays), {
-      local: !useUtc,
-    });
+    const minDate = getCoercedUtcOrLocalDate(
+      getStartOfPeriodAgo(maxPickableDays, 'days'),
+      {
+        local: !useUtc,
+      }
+    );
     const maxDate = getCoercedUtcOrLocalDate(new Date(), {local: !useUtc});
 
     return (

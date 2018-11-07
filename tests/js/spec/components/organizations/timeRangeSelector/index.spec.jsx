@@ -37,8 +37,8 @@ describe('TimeRangeSelector', function() {
 
     const newProps = {
       relative: null,
-      start: new Date('2017-10-02T04:00:00.000Z'),
-      end: new Date('2017-10-17T03:59:59.000Z'),
+      start: new Date('2017-10-03T02:41:20.000Z'),
+      end: new Date('2017-10-17T02:41:20.000Z'),
     };
     expect(onChange).toHaveBeenLastCalledWith(newProps);
     wrapper.setProps(newProps);
@@ -56,8 +56,8 @@ describe('TimeRangeSelector', function() {
 
     const newProps = {
       relative: null,
-      start: new Date('2017-10-03T00:00:00.000Z'),
-      end: new Date('2017-10-17T23:59:59.000Z'),
+      start: new Date('2017-10-03T02:41:20.000Z'),
+      end: new Date('2017-10-17T02:41:20.000Z'),
     };
     expect(onChange).toHaveBeenLastCalledWith(newProps);
     wrapper.setProps(newProps);
@@ -75,8 +75,8 @@ describe('TimeRangeSelector', function() {
     wrapper.find('SelectorItem[value="absolute"]').simulate('click');
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
-      start: new Date('2017-10-09T04:00:00.000Z'),
-      end: new Date('2017-10-17T03:59:59.000Z'),
+      start: new Date('2017-10-10T02:41:20.000Z'),
+      end: new Date('2017-10-17T02:41:20.000Z'),
     });
 
     wrapper.find('SelectorItem[value="14d"]').simulate('click');
@@ -91,8 +91,8 @@ describe('TimeRangeSelector', function() {
     wrapper.find('SelectorItem[value="absolute"]').simulate('click');
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
-      start: new Date('2017-10-02T04:00:00.000Z'), // local time = 2017-10-02T00:00:00
-      end: new Date('2017-10-17T03:59:59.000Z'), // local time = 2017-10-16T23:59:59
+      start: new Date('2017-10-03T02:41:20.000Z'),
+      end: new Date('2017-10-17T02:41:20.000Z'),
     });
   });
 
@@ -106,8 +106,8 @@ describe('TimeRangeSelector', function() {
     wrapper.find('SelectorItem[value="absolute"]').simulate('click');
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
-      start: new Date('2017-10-10T00:00:00.000Z'),
-      end: new Date('2017-10-17T23:59:59.000Z'),
+      start: new Date('2017-10-10T02:41:20.000Z'),
+      end: new Date('2017-10-17T02:41:20.000Z'),
     });
 
     wrapper.find('SelectorItem[value="14d"]').simulate('click');
@@ -122,8 +122,8 @@ describe('TimeRangeSelector', function() {
     wrapper.find('SelectorItem[value="absolute"]').simulate('click');
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
-      start: new Date('2017-10-03T00:00:00.000Z'), // local time = 2017-10-02T00:00:00
-      end: new Date('2017-10-17T23:59:59.000Z'), // local time = 2017-10-16T23:59:59
+      start: new Date('2017-10-03T02:41:20.000Z'),
+      end: new Date('2017-10-17T02:41:20.000Z'),
     });
   });
 

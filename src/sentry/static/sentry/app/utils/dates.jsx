@@ -101,16 +101,13 @@ export function getEndOfDay(date, {local} = {}) {
     .toDate();
 }
 
-function getStartOfPeriodAgo(period, unit, options) {
-  return getStartOfDay(moment().subtract(period, unit), options);
+export function getPeriodAgo(period, unit) {
+  return moment().subtract(period, unit);
 }
 
-export function getDaysAgo(days, options) {
-  // Get date "days" ago at midnight
-  return getStartOfPeriodAgo(days, 'days', options);
-}
-
-export function getHoursAgo(hours, options) {
-  // Get date "hours" ago at midnight
-  return getStartOfPeriodAgo(hours, 'hours', options);
+// Get the start of the day (midnight) for a period ago
+//
+// e.g. 2 weeks ago at midnight
+export function getStartOfPeriodAgo(period, unit, options) {
+  return getStartOfDay(getPeriodAgo(period, unit), options);
 }
