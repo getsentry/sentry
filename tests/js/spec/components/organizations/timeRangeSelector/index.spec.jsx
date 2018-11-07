@@ -128,6 +128,7 @@ describe('TimeRangeSelector', function() {
   });
 
   it('maintains time when switching UTC to local time', async function() {
+    let state;
     wrapper = createWrapper({
       relative: null,
       start: new Date('2017-10-10T00:00:00.000Z'),
@@ -136,18 +137,32 @@ describe('TimeRangeSelector', function() {
     });
     wrapper.find('HeaderItem').simulate('click');
 
+    // Local
+    wrapper.find('UtcPicker Checkbox').simulate('change');
+    state = {
+      relative: null,
+      start: new Date('2017-10-10T04:00:00.000Z'),
+      end: new Date('2017-10-18T03:59:59.000Z'),
+    };
+    expect(onChange).toHaveBeenLastCalledWith(state);
+    wrapper.setProps(state);
+
+    // UTC
+    wrapper.find('UtcPicker Checkbox').simulate('change');
+    state = {
+      relative: null,
+      start: new Date('2017-10-10T00:00:00.000Z'),
+      end: new Date('2017-10-17T23:59:59.000Z'),
+    };
+    expect(onChange).toHaveBeenLastCalledWith(state);
+    wrapper.setProps(state);
+
+    // Local
     wrapper.find('UtcPicker Checkbox').simulate('change');
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-10T04:00:00.000Z'),
       end: new Date('2017-10-18T03:59:59.000Z'),
-    });
-
-    wrapper.find('UtcPicker Checkbox').simulate('change');
-    expect(onChange).toHaveBeenLastCalledWith({
-      relative: null,
-      start: new Date('2017-10-10T00:00:00.000Z'),
-      end: new Date('2017-10-17T23:59:59.000Z'),
     });
   });
 });

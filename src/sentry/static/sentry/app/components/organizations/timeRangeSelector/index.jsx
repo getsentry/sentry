@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
-import {getCoercedUtcOrLocalDate, getEndOfDay, getHoursAgo} from 'app/utils/dates';
+import {getEndOfDay, getHoursAgo, getLocalToUtc, getUtcInLocal} from 'app/utils/dates';
 import {parsePeriodToHours} from 'app/utils';
 import {t} from 'app/locale';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
@@ -146,8 +146,8 @@ class TimeRangeSelector extends React.PureComponent {
 
       onChange({
         relative: null,
-        start: getCoercedUtcOrLocalDate(start, {local: useUtc}),
-        end: getCoercedUtcOrLocalDate(end, {local: useUtc}),
+        start: useUtc ? getLocalToUtc(start) : getUtcInLocal(start),
+        end: useUtc ? getLocalToUtc(end) : getUtcInLocal(end),
       });
 
       return {

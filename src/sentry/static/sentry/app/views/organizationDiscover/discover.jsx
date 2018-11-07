@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import moment from 'moment';
 import {browserHistory} from 'react-router';
 
 import {
@@ -341,8 +342,8 @@ export default class OrganizationDiscover extends React.Component {
               showAbsolute={true}
               showRelative={true}
               useUtc={true}
-              start={currentQuery.start}
-              end={currentQuery.end}
+              start={moment.utc(currentQuery.start).toDate()}
+              end={moment.utc(currentQuery.end).toDate()}
               relative={currentQuery.range}
               onChange={this.handleUpdateTime}
               onUpdate={this.runQuery}
