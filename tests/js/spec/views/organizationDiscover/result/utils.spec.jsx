@@ -49,49 +49,49 @@ describe('Utils', function() {
   it('getChartDataByDay()', function() {
     const raw = [
       {
-        'exception_stacks.type': 'ZeroDivisionError',
+        'error.type': 'ZeroDivisionError',
         platform: 'python',
         count: 6,
         time: 1531094400,
       },
       {
-        'exception_stacks.type': 'Type Error',
+        'error.type': 'Type Error',
         platform: 'javascript',
         count: 6,
         time: 1531094400,
       },
       {
-        'exception_stacks.type': 'Exception',
+        'error.type': 'Exception',
         platform: 'php',
         count: 6,
         time: 1531094400,
       },
       {
-        'exception_stacks.type': 'SnubaError',
+        'error.type': 'SnubaError',
         platform: 'python',
         count: 14,
         time: 1531094400,
       },
       {
-        'exception_stacks.type': 'ZeroDivisionError',
+        'error.type': 'ZeroDivisionError',
         platform: 'python',
         count: 20,
         time: 1531180800,
       },
       {
-        'exception_stacks.type': 'Type Error',
+        'error.type': 'Type Error',
         platform: 'javascript',
         count: 5,
         time: 1532070000,
       },
       {
-        'exception_stacks.type': 'Exception',
+        'error.type': 'Exception',
         platform: 'php',
         count: 8,
         time: 1532070000,
       },
       {
-        'exception_stacks.type': 'SnubaError',
+        'error.type': 'SnubaError',
         platform: 'python',
         count: 30,
         time: 1532070000,
@@ -100,7 +100,7 @@ describe('Utils', function() {
 
     const query = {
       aggregations: [['count()', null, 'count']],
-      fields: ['platform', 'exception_stacks.type'],
+      fields: ['platform', 'error.type'],
     };
 
     const expected = [
