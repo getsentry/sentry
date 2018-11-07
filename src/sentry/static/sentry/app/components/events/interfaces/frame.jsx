@@ -380,34 +380,36 @@ const Frame = createReactClass({
     let hint = this.getFrameHint();
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
-        <div className="title as-table">
-          {this.renderLeadHint()}
-          {defined(data.package) ? (
-            <span className="package" title={data.package}>
-              {trimPackage(data.package)}
-            </span>
-          ) : (
-            <span className="package">{'<unknown>'}</span>
-          )}
-          <span className="address">{data.instructionAddr}</span>
-          <span className="symbol">
-            <code>{data.function || '<unknown>'}</code>{' '}
-            {data.filename && (
-              <span className="filename">
-                {data.filename}
-                {data.lineNo ? ':' + data.lineNo : ''}
+        <DefaultLine className="title as-table">
+          <NativeLineContent>
+            {this.renderLeadHint()}
+            {defined(data.package) ? (
+              <span className="package" title={data.package}>
+                {trimPackage(data.package)}
               </span>
+            ) : (
+              <span className="package">{'<unknown>'}</span>
             )}
-            {hint !== null ? (
-              <Tooltip title={_.escape(hint)}>
-                <a key="inline">
-                  <span className="icon-question" />
-                </a>
-              </Tooltip>
-            ) : null}
-            {this.renderExpander()}
-          </span>
-        </div>
+            <span className="address">{data.instructionAddr}</span>
+            <span className="symbol">
+              <code>{data.function || '<unknown>'}</code>{' '}
+              {data.filename && (
+                <span className="filename">
+                  {data.filename}
+                  {data.lineNo ? ':' + data.lineNo : ''}
+                </span>
+              )}
+              {hint !== null ? (
+                <Tooltip title={_.escape(hint)}>
+                  <a key="inline">
+                    <span className="icon-question" />
+                  </a>
+                </Tooltip>
+              ) : null}
+            </span>
+          </NativeLineContent>
+          {this.renderExpander()}
+        </DefaultLine>
       </StrictClick>
     );
   },
@@ -470,6 +472,10 @@ const VertCenterWrapper = styled('div')`
 
 const RepeatedContent = styled(VertCenterWrapper)`
   justify-content: center;
+`;
+
+const NativeLineContent = styled(RepeatedContent)`
+  flex: 1;
 `;
 
 const DefaultLine = styled(VertCenterWrapper)`
