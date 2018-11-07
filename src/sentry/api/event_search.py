@@ -119,7 +119,11 @@ class SearchKey(namedtuple('SearchKey', 'name')):
 
     @property
     def snuba_name(self):
-        return FIELD_LOOKUP[self.name]['snuba_name']
+        field = FIELD_LOOKUP.get(self.name)
+        if field:
+            return field['snuba_name']
+        # assume custom tag if not listed
+        return 'tags[%s]' % (self.name,)
 
 
 class SearchValue(namedtuple('SearchValue', 'raw_value type')):
@@ -172,14 +176,12 @@ class SearchVisitor(NodeVisitor):
 
     def visit_basic_filter(self, node, children):
         search_key, _, search_value = children
-        try:
-            return SearchFilter(
-                SearchKey(search_key),
-                "=",
-                SearchValue(search_value, FIELD_LOOKUP[search_key]['type']),
-            )
-        except KeyError:
-            raise InvalidSearchQuery('Unsupported search term: %s' % (search_key,))
+        field = FIELD_LOOKUP.get(search_key)
+        return SearchFilter(
+            SearchKey(search_key),
+            "=",
+            SearchValue(search_value, field['type'] if field else 'string'),
+        )
 
     def visit_search_key(self, node, children):
         return node.text
