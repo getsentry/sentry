@@ -14,10 +14,6 @@ let validHookNames = new Set([
   'routes',
   'routes:admin',
   'routes:organization',
-  'project:data-forwarding:disabled',
-  'project:rate-limits:disabled',
-  'project:custom-inbound-filters:disabled',
-  'project:discard-groups:disabled',
   'issue:secondary-column',
   'amplitude:event',
   'analytics:event',
@@ -25,6 +21,14 @@ let validHookNames = new Set([
   'sidebar:organization-dropdown-menu',
   'sidebar:help-menu',
   'integrations:feature-gates',
+
+  // feature-disabled:<feature-flag> hooks should return components that will
+  // be rendered in place for Feature components when the feature is not
+  // enabled.
+  'feature-disabled:discard-groups',
+  'feature-disabled:data-forwarding',
+  'feature-disabled:custom-inbound-filters',
+  'feature-disabled:rate-limits',
 ]);
 
 /**
