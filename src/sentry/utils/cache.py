@@ -8,18 +8,40 @@ sentry.utils.cache
 from __future__ import absolute_import, print_function
 
 import functools
+from functools32 import lru_cache
 
 from django.core.cache import cache
 
 default_cache = cache
 
 
-class memoize(object):
+def memoize(func):
     """
-    Memoize the result of a property call.
+    A decorator that returns a cached property getter. This should work the
+    same as @property but the result of the underlying function will be cached.
+    Uses lru_cache to store the cached property to avoid polluting the object's
+    namespace.
 
     >>> class A(object):
     >>>     @memoize
+    >>>     def func(self):
+    >>>         return 'foo'
+    """
+    @property
+    @lru_cache(maxsize=10)
+    def prop(*args):
+        return func(*args)
+
+    return prop
+
+
+class cached_for_request(object):
+    """
+    Memoize the result of a for the duration of a request. If the system does
+    not think it's in a request, the result is never saved.
+
+    >>> class A(object):
+    >>>     @memoize_for_request
     >>>     def func(self):
     >>>         return 'foo'
     """
@@ -32,28 +54,6 @@ class memoize(object):
         self.__module__ = func.__module__
         self.__doc__ = func.__doc__
         self.func = func
-
-    def __get__(self, obj, type=None):
-        if obj is None:
-            return self
-        d, n = vars(obj), self.__name__
-        if n not in d:
-            value = self.func(obj)
-            d[n] = value
-        value = d[n]
-        return value
-
-
-class cached_for_request(memoize):
-    """
-    Memoize the result of a for the duration of a request. If the system does
-    not think it's in a request, the result is never saved.
-
-    >>> class A(object):
-    >>>     @memoize_for_request
-    >>>     def func(self):
-    >>>         return 'foo'
-    """
 
     def _get_key(self, args, kwargs):
         return (self, tuple(args), tuple(kwargs.items()))

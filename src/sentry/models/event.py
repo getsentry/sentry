@@ -57,44 +57,27 @@ class Event(Model):
 
     __repr__ = sane_repr('project_id', 'group_id')
 
-    def __getstate__(self):
-        state = Model.__getstate__(self)
-
-        # do not pickle cached info.  We want to fetch this on demand
-        # again.  In particular if we were to pickle interfaces we would
-        # pickle a CanonicalKeyView which old sentry workers do not know
-        # about
-        state.pop('_project_cache', None)
-        state.pop('_group_cache', None)
-        state.pop('interfaces', None)
-
-        return state
-
     # Implement a ForeignKey-like accessor for backwards compat
-    def _set_group(self, group):
-        self.group_id = group.id
-        self._group_cache = group
-
-    def _get_group(self):
+    @memoize
+    def group(self):
         from sentry.models import Group
-        if not hasattr(self, '_group_cache'):
-            self._group_cache = Group.objects.get(id=self.group_id)
-        return self._group_cache
+        return Group.objects.get(id=self.group_id)
 
-    group = property(_get_group, _set_group)
+    @group.setter
+    def group(self, group):
+        self.group_id = group.id
+        type(self).group.fget.cache_clear()
 
     # Implement a ForeignKey-like accessor for backwards compat
-    def _set_project(self, project):
-        self.project_id = project.id
-        self._project_cache = project
-
-    def _get_project(self):
+    @memoize
+    def project(self):
         from sentry.models import Project
-        if not hasattr(self, '_project_cache'):
-            self._project_cache = Project.objects.get(id=self.project_id)
-        return self._project_cache
+        return Project.objects.get(id=self.project_id)
 
-    project = property(_get_project, _set_project)
+    @project.setter
+    def project(self, project):
+        self.project_id = project.id
+        type(self).project.fget.cache_clear()
 
     def get_legacy_message(self):
         msg_interface = self.data.get('sentry.interfaces.Message', {
