@@ -177,10 +177,13 @@ describe('Discover', function() {
     });
 
     it('runs basic query', async function() {
+      const query = {...queryBuilder.getExternal()};
+      query.fields = [...queryBuilder.getExternal().fields, 'project_id'];
+
       wrapper.instance().runQuery();
       await tick();
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
-      expect(queryBuilder.fetch).toHaveBeenCalledWith(queryBuilder.getExternal());
+      expect(queryBuilder.fetch).toHaveBeenCalledWith(query);
       expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
     });
 
@@ -304,7 +307,8 @@ describe('Discover', function() {
         const fields = wrapper.find('SelectControl[name="fields"]');
         expect(fields.text()).toContain('message');
         wrapper.instance().reset();
-        expect(fields.text()).toContain('No fields selected');
+        expect(fields.text()).not.toContain('message');
+        expect(fields.text()).toContain('event_id');
       });
 
       it('resets "orderby"', function() {

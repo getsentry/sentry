@@ -10,7 +10,7 @@ import {isValidAggregation} from './aggregations/utils';
 
 const DEFAULTS = {
   projects: [],
-  fields: [],
+  fields: ['event_id', 'project_name', 'platform', 'timestamp'],
   conditions: [],
   aggregations: [],
   range: '14d',
