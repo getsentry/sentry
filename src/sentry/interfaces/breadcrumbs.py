@@ -68,13 +68,15 @@ class Breadcrumbs(Interface):
 
     @classmethod
     def normalize_crumb(cls, crumb):
-        rv = {
-            'type': crumb.get('type') or 'default',
-        }
-
+        ty = crumb.get('type') or 'default'
         ts = parse_timestamp(crumb.get('timestamp'))
-        if ts is not None:
-            rv['timestamp'] = to_timestamp(ts)
+        if ts is None:
+            raise InterfaceValidationError('Unable to determine timestamp ' 'for crumb')
+
+        rv = {
+            'type': ty,
+            'timestamp': to_timestamp(ts),
+        }
 
         level = crumb.get('level')
         if level not in (None, 'info'):

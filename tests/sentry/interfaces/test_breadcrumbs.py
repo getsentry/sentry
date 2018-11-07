@@ -39,7 +39,7 @@ class BreadcrumbsTest(TestCase):
         assert Breadcrumbs.to_python({'values': []}).to_json() == sink
 
     def test_null_values_in_crumb(self):
-        sink = {"values": [{"type": "default"}]}
+        sink = {"values": [None]}
 
         assert Breadcrumbs.to_python({'values': [{}]}).to_json() == sink
         assert Breadcrumbs.to_python({'values': [{"type": None}]}).to_json() == sink
