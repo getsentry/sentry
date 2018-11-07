@@ -292,6 +292,12 @@ export default class OrganizationDiscover extends React.Component {
 
     const projects = organization.projects.filter(project => project.isMember);
 
+    const start =
+      (currentQuery.start && moment.utc(currentQuery.start).toDate()) ||
+      currentQuery.start;
+    const end =
+      (currentQuery.end && moment.utc(currentQuery.end).toDate()) || currentQuery.end;
+
     return (
       <DiscoverContainer>
         <Sidebar>
@@ -342,8 +348,8 @@ export default class OrganizationDiscover extends React.Component {
               showAbsolute={true}
               showRelative={true}
               useUtc={true}
-              start={moment.utc(currentQuery.start).toDate()}
-              end={moment.utc(currentQuery.end).toDate()}
+              start={start}
+              end={end}
               relative={currentQuery.range}
               onChange={this.handleUpdateTime}
               onUpdate={this.runQuery}
