@@ -28,7 +28,8 @@ def requires_feature(feature, any_org=None):
             # The endpoint is accessible if any of the User's Orgs have the feature
             # flag enabled.
             if any_org:
-                if not any(features.has(feature, org) for org in request.user.get_orgs()):
+                if not any(features.has(feature, org, actor=request.user)
+                           for org in request.user.get_orgs()):
                     return Response(status=404)
 
                 return func(self, request, *args, **kwargs)
@@ -37,7 +38,7 @@ def requires_feature(feature, any_org=None):
                 if 'organization' not in kwargs:
                     return Response(status=404)
 
-                if not features.has(feature, kwargs['organization']):
+                if not features.has(feature, kwargs['organization'], actor=request.user):
                     return Response(status=404)
 
                 return func(self, request, *args, **kwargs)
