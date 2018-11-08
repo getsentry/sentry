@@ -17,17 +17,14 @@ raw_search      = ~r".+$"
 # standard key:val filter
 basic_filter    = search_key sep search_value
 # filter specifically for the timestamp
-time_filter     = "timestamp" operator date_formats
+time_filter     = "timestamp" operator date_format
 
 search_key      = ~r"[a-z]*\.?[a-z]*"
 search_value    = quoted_value / value
 value           = ~r"\S*"
 quoted_value    = ~r"\"(.*)\""s
 
-date_formats    = date_time_micro / date_time / date
-date            = ~r"\d{4}-\d{2}-\d{2}"
-date_time       = ~r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
-date_time_micro = ~r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{1,6}"
+date_format    = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
@@ -36,6 +33,7 @@ operator        = ">=" / "<=" / ">" / "<" / "=" / "!="
 sep             = ":"
 space           = ~r" "
 """)
+
 
 FIELD_LOOKUP = {
     'user.id': {
@@ -169,7 +167,7 @@ class SearchVisitor(NodeVisitor):
     def visit_operator(self, node, children):
         return node.text
 
-    def visit_date_formats(self, node, children):
+    def visit_date_format(self, node, children):
         return node.text
 
     def visit_basic_filter(self, node, children):
