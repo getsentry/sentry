@@ -108,7 +108,7 @@ def sync_assignee_outbound(external_issue_id, user_id, assign, **kwargs):
     default_retry_delay=60 * 5,
     max_retries=5
 )
-@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
+@retry(exclude=(Integration.DoesNotExist))
 def sync_status_outbound(group_id, external_issue_id, **kwargs):
     try:
         group = Group.objects.filter(
@@ -123,7 +123,11 @@ def sync_status_outbound(group_id, external_issue_id, **kwargs):
     if not has_issue_sync:
         return
 
-    external_issue = ExternalIssue.objects.get(id=external_issue_id)
+    try:
+        external_issue = ExternalIssue.objects.get(id=external_issue_id)
+    except ExternalIssue.DoesNotExist:
+        # Issue link could have been deleted while sync job was in the queue.
+        return
     integration = Integration.objects.get(id=external_issue.integration_id)
     installation = integration.get_installation(
         organization_id=external_issue.organization_id,
