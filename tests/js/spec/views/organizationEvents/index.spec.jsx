@@ -8,16 +8,11 @@ import {clearValue, selectByLabel} from '../../../helpers/select';
 
 describe('OrganizationEvents', function() {
   let wrapper;
-  const router = TestStubs.router({
-    location: {
-      pathname: '/organizations/org-slug/events/',
-      query: {},
-    },
-  });
+  let router;
   const project = TestStubs.Project({isMember: true});
   const organization = TestStubs.Organization({
     features: ['events-stream'],
-    projects: [project],
+    projects: [project, TestStubs.Project({isMember: true, slug: 'new-project', id: 3})],
   });
 
   beforeAll(async function() {
@@ -28,6 +23,15 @@ describe('OrganizationEvents', function() {
 
     setActiveOrganization(organization);
     await tick();
+  });
+
+  beforeEach(function() {
+    router = TestStubs.router({
+      location: {
+        pathname: '/organizations/org-slug/events/',
+        query: {},
+      },
+    });
 
     wrapper = mount(
       <OrganizationEventsContainer router={router} organization={organization}>
@@ -108,21 +112,12 @@ describe('OrganizationEvents', function() {
   });
 
   it('does not update component state when router is changed', async function() {
-    wrapper = mount(
-      <OrganizationEventsContainer router={router} organization={organization}>
-        <div />
-      </OrganizationEventsContainer>,
-      TestStubs.routerContext([
-        {
-          organization,
-        },
-      ])
-    );
     expect(wrapper.state('environment')).toEqual([]);
 
     // This shouldn't happen, we only use URL params for initial state
     wrapper.setProps({
       router: {
+        ...router,
         location: {
           pathname: '/organizations/org-slug/events/',
           query: {
@@ -133,5 +128,53 @@ describe('OrganizationEvents', function() {
       },
     });
     expect(wrapper.state('environment')).toEqual([]);
+  });
+
+  it('updates router when changing projects', function() {
+    expect(wrapper.state('project')).toEqual([]);
+
+    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+
+    wrapper
+      .find('MultipleProjectSelector AutoCompleteItem')
+      .at(0)
+      .simulate('click');
+    expect(wrapper.state('project')).toEqual([2]);
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {
+        project: [2],
+        statsPeriod: '14d',
+      },
+    });
+  });
+
+  it('selects multiple projects', async function() {
+    expect(wrapper.state('project')).toEqual([]);
+
+    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+
+    wrapper
+      .find('MultipleProjectSelector AutoCompleteItem MultiSelectWrapper')
+      .at(0)
+      .simulate('click');
+    expect(wrapper.state('project')).toEqual([2]);
+
+    wrapper
+      .find('MultipleProjectSelector AutoCompleteItem MultiSelectWrapper')
+      .at(1)
+      .simulate('click');
+    expect(wrapper.state('project')).toEqual([2, 3]);
+
+    wrapper.find('MultipleProjectSelector StyledChevron').simulate('click');
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {
+        project: [2, 3],
+        statsPeriod: '14d',
+      },
+    });
   });
 });
