@@ -920,7 +920,6 @@ SENTRY_INTERFACES = {
     'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
     'template': 'sentry.interfaces.template.Template',
     'user': 'sentry.interfaces.user.User',
-    'applecrashreport': 'sentry.interfaces.applecrash.AppleCrashReport',
     'breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'contexts': 'sentry.interfaces.contexts.Contexts',
     'threads': 'sentry.interfaces.threads.Threads',
