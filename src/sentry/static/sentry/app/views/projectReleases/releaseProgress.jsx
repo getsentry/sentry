@@ -65,7 +65,7 @@ class ReleaseProgress extends AsyncComponent {
 
   buildMessage(remainingSteps) {
     let keys = remainingSteps.map(step => step.step);
-    let message = 'Save time by ';
+    let message = "You're missing out on ";
 
     if (keys.includes('tag')) {
       message += STEPS.tag.msg;
@@ -169,7 +169,9 @@ class ReleaseProgress extends AsyncComponent {
                 <a
                   href={`https://docs.sentry.io/learn/releases/#${nextStep.url}`}
                   onClick={() => this.recordAnalytics('next', {cta: nextStep.desc})}
-                >{`${nextStep.desc}`}</a>
+                >
+                  {t(`${nextStep.desc}`)}
+                </a>
               </span>
               <h4 className="text-light"> {t("Releases aren't 100% set up")}</h4>
             </StyledDiv>
