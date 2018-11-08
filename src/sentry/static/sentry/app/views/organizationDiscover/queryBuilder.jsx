@@ -70,7 +70,7 @@ export default function createQueryBuilder(initial = {}, organization) {
       .then(res => {
         tags = res.data.map(tag => {
           const type = SPECIAL_TAGS[tags.tags_key] || 'string';
-          return {name: `tags[${tag.tags_key}]`, type};
+          return {name: tag.tags_key, type};
         });
       })
       .catch(err => {
