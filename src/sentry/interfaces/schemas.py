@@ -269,26 +269,6 @@ GEO_INTERFACE_SCHEMA = {
     'additionalProperties': False,
 }
 
-DEVICE_INTERFACE_SCHEMA = {
-    'type': 'object',
-    'properties': {
-        'name': {
-            'type': 'string',
-            'minLength': 1,
-        },
-        'version': {
-            'type': 'string',
-            'minLength': 1,
-        },
-        'build': {},
-        'data': {
-            'type': 'object',
-            'default': {},
-        },
-    },
-    'required': ['name', 'version'],
-}
-
 TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out
 MESSAGE_INTERFACE_SCHEMA = {'type': 'object'}
 
@@ -723,7 +703,6 @@ INTERFACE_SCHEMAS = {
     'sentry.interfaces.Message': MESSAGE_INTERFACE_SCHEMA,
     'template': TEMPLATE_INTERFACE_SCHEMA,
     'sentry.interfaces.Template': TEMPLATE_INTERFACE_SCHEMA,
-    'device': DEVICE_INTERFACE_SCHEMA,
     'geo': GEO_INTERFACE_SCHEMA,
 
     # Security reports
