@@ -100,6 +100,9 @@ class EventSerializerTest(TestCase):
 
         # create_event automatically creates the logentry interface
         del event.data['logentry']
+        # need to re-save because the serializer forces a re-fetch from
+        # nodestore which will reanmiate the property if we don't save.
+        event.save()
 
         result = serialize(event)
         assert result['message'] == 'foo'

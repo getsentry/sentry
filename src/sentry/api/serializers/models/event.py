@@ -108,6 +108,8 @@ class EventSerializer(Serializer):
         return (message, meta_with_chunks(message, msg_meta))
 
     def get_attrs(self, item_list, user, is_public=False):
+        # TODO this forces a reload from nodestore, which is maybe not
+        # required in the case that we have already got this data in the event.
         Event.objects.bind_nodes(item_list, 'data')
 
         results = {}
