@@ -476,8 +476,9 @@ const RepeatedContent = styled(VertCenterWrapper)`
 
 const NativeLineContent = styled(RepeatedContent)`
   flex: 1;
+  overflow: hidden;
 
-  > span {
+  & > span {
     display: block;
     padding: 0 5px;
   }
