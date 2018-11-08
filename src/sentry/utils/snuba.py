@@ -50,7 +50,14 @@ def timer(name, prefix='snuba.client'):
         metrics.timing(u'{}.{}'.format(prefix, name), time.time() - t)
 
 
-_snuba_pool = urllib3.connectionpool.connection_from_url(
+def connection_from_url(url, **kw):
+    if url[:1] == '/':
+        from sentry.net.http import UnixHTTPConnectionPool
+        return UnixHTTPConnectionPool(url, **kw)
+    return urllib3.connectionpool.connection_from_url(url, **kw)
+
+
+_snuba_pool = connection_from_url(
     settings.SENTRY_SNUBA,
     retries=False,
     timeout=30,
