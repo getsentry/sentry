@@ -122,9 +122,16 @@ export default class Condition extends React.Component {
   };
 
   isValidNewOption = ({label}) => {
-    console.log('IS VALID?', isValidCondition(getExternal(label, this.props.columns), this.props.columns), label)
+    console.log(
+      'IS VALID?',
+      isValidCondition(getExternal(label, this.props.columns), this.props.columns),
+      label
+    );
 
-    return isValidCondition(getExternal(this.state.inputValue, this.props.columns), this.props.columns);
+    return isValidCondition(
+      getExternal(this.state.inputValue, this.props.columns),
+      this.props.columns
+    );
   };
 
   inputRenderer = props => {
@@ -150,7 +157,6 @@ export default class Condition extends React.Component {
   };
 
   handleInputChange = value => {
-
     if (value !== this.state.inputValue) {
       this.setState({
         inputValue: ignoreCaseInput(value),

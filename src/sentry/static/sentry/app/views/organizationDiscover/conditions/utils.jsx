@@ -5,22 +5,17 @@ import {CONDITION_OPERATORS} from '../data';
 const specialConditions = new Set(['IS NULL', 'IS NOT NULL']);
 const specialLikeConditions = new Set(['LIKE', 'NOT LIKE']);
 
-
 // is nul -> IS NUL
 // like p -> LIKE p
 
 function changeCase(remaining) {
   // const match = remaining.match(/^(LIKE|NOT\sLIKE).+/)
 
-
   CONDITION_OPERATORS.forEach(operator => {
     if (operator.startsWith(remaining.toUpperCase())) {
       remaining = remaining.toUpperCase();
-    } else if(remaining.toUpperCase().startsWith(operator)) {
+    } else if (remaining.toUpperCase().startsWith(operator)) {
       remaining = operator + remaining.slice(operator.length);
-
-
-
 
       // check if operator starts with incomplete operator OR if remaining starts with an operator already (third arg)
       // const includesOperator = remaining.includes(operator.toLowerCase());
@@ -34,14 +29,10 @@ function changeCase(remaining) {
       //   //if includes operator, create new string with operator (uppercase) and third arg
       //
       // }
-
     }
-
   });
 
   return remaining;
-
-
 }
 
 /*
@@ -50,22 +41,21 @@ function changeCase(remaining) {
 *
 * */
 
-export function ignoreCaseInput(input = ''){
-  const match = input.match(/^[\w._]+\s(.*)/)
+export function ignoreCaseInput(input = '') {
+  const match = input.match(/^[\w._]+\s(.*)/);
   const remaining = match ? match[1] : null;
 
   // let colName = input && input.split(' ').length > 1 ? input.split(' ')[0].trim() : null;
 
   let result;
 
-  if(remaining){
+  if (remaining) {
     result = ['platform', changeCase(remaining)].join(' ');
   } else {
     result = input;
   }
   return result;
 }
-
 
 /**
  * Returns true if a condition is valid and false if not

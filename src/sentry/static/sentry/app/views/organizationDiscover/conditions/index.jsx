@@ -61,7 +61,7 @@ export default class Conditions extends React.Component {
             />
             <Box ml={1}>
               <a onClick={() => this.removeRow(idx)}>
-                <InlineSvg src="icon-circle-close" height="38px"/>
+                <InlineSvg src="icon-circle-close" height="38px" />
               </a>
             </Box>
           </SelectListItem>
