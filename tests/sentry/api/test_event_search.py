@@ -19,17 +19,17 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='user.email'),
                 operator="=",
-                value=SearchValue(raw_value='foo@example.com', type='string'),
+                value=SearchValue(raw_value='foo@example.com'),
             ),
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator="=",
-                value=SearchValue(raw_value='1.2.1', type='string'),
+                value=SearchValue(raw_value='1.2.1'),
             ),
             SearchFilter(
                 key=SearchKey(name='message'),
                 operator='=',
-                value=SearchValue(raw_value='hello', type='string'),
+                value=SearchValue(raw_value='hello'),
             )
         ]
 
@@ -38,9 +38,7 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='message'),
                 operator='=',
-                value=SearchValue(
-                    raw_value='hello user.email:foo@example.com release:1.2.1',
-                    type='string'),
+                value=SearchValue(raw_value='hello user.email:foo@example.com release:1.2.1'),
             ),
         ]
 
@@ -58,7 +56,7 @@ class EventSearchTest(TestCase):
                         0,
                         0,
                         tzinfo=timezone.utc),
-                    type='timestamp'),
+                ),
             ),
         ]
         # test date time format
@@ -75,7 +73,7 @@ class EventSearchTest(TestCase):
                         15,
                         1,
                         tzinfo=timezone.utc),
-                    type='timestamp'),
+                ),
             ),
         ]
 
@@ -94,7 +92,7 @@ class EventSearchTest(TestCase):
                         1,
                         103000,
                         tzinfo=timezone.utc),
-                    type='timestamp'),
+                ),
             ),
         ]
 
@@ -103,7 +101,7 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator='=',
-                value=SearchValue(raw_value='a release', type='string'),
+                value=SearchValue(raw_value='a release'),
             ),
         ]
 
@@ -112,7 +110,7 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='hi:there'),
                 operator='=',
-                value=SearchValue(raw_value='value', type='string'),
+                value=SearchValue(raw_value='value'),
             ),
         ]
 
@@ -122,7 +120,7 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator='=',
-                value=SearchValue(raw_value='a"thing"', type='string'),
+                value=SearchValue(raw_value='a"thing"'),
             ),
         ]
 
@@ -131,7 +129,7 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator='=',
-                value=SearchValue(raw_value='a\nrelease', type='string')
+                value=SearchValue(raw_value='a\nrelease')
             ),
         ]
         # newline outside quote
@@ -143,7 +141,7 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator='=',
-                value=SearchValue(raw_value='a\trelease', type='string')
+                value=SearchValue(raw_value='a\trelease')
             ),
         ]
         # tab outside quote
@@ -151,12 +149,12 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator='=',
-                value=SearchValue(raw_value='a', type='string'),
+                value=SearchValue(raw_value='a'),
             ),
             SearchFilter(
                 key=SearchKey(name='message'),
                 operator='=',
-                value=SearchValue(raw_value='\trelease', type='string')
+                value=SearchValue(raw_value='\trelease')
             ),
         ]
 
@@ -165,14 +163,14 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator='=',
-                value=SearchValue(raw_value='a"thing"', type='string')
+                value=SearchValue(raw_value='a"thing"')
             ),
         ]
         assert parse_search_query('release:"a\"\"release"') == [
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator='=',
-                value=SearchValue(raw_value='a""release', type='string')
+                value=SearchValue(raw_value='a""release')
             ),
         ]
 
@@ -181,14 +179,14 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator='=',
-                value=SearchValue(raw_value='a release', type='string')
+                value=SearchValue(raw_value='a release')
             ),
         ]
         assert parse_search_query('release:\"a release "') == [
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator='=',
-                value=SearchValue(raw_value='a release ', type='string')
+                value=SearchValue(raw_value='a release ')
             ),
         ]
 
@@ -197,12 +195,12 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='fruit'),
                 operator='=',
-                value=SearchValue(raw_value='apple', type='string'),
+                value=SearchValue(raw_value='apple'),
             ),
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator='=',
-                value=SearchValue(raw_value='1.2.1', type='string'),
+                value=SearchValue(raw_value='1.2.1'),
             ),
         ]
 
@@ -214,7 +212,7 @@ class EventSearchTest(TestCase):
         }) == {
             'conditions': [
                 ['email', '=', 'foo@example.com'],
-                ['sentry:release', '=', '1.2.1'],
+                ['tags[sentry:release]', '=', '1.2.1'],
                 ['tags[fruit]', '=', 'apple'],
                 [['positionCaseInsensitive', ['message', "'hello'"]], '!=', 0],
             ],
@@ -253,12 +251,12 @@ class EventSearchTest(TestCase):
                         15,
                         1,
                         tzinfo=timezone.utc),
-                    type='timestamp')
+                )
             ),
             SearchFilter(
                 key=SearchKey(name='project_id'),
                 operator='=',
-                value=SearchValue(raw_value=[1, 2, 3], type='list')
+                value=SearchValue(raw_value=[1, 2, 3])
             ),
             SearchFilter(
                 key=SearchKey(name='end'),
@@ -272,6 +270,6 @@ class EventSearchTest(TestCase):
                         15,
                         1,
                         tzinfo=timezone.utc),
-                    type='timestamp')
+                )
             ),
         ]
