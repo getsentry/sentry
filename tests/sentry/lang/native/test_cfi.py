@@ -114,6 +114,22 @@ CFI_STACKTRACE = [
     }
 ]
 
+CFI_CACHE = [
+    ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1dc0', 'scan'),
+    (None, '0x7f5140cdc000', 'scan'),
+    ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x40', 'scan'),
+    (None, '0x7fff5aef1000', 'scan'),
+    (None, '0x7fff5ae4ac88', 'cfi'),
+    ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1de9', 'scan'),
+    ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1dc0', 'scan'),
+    ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x14ca0', 'scan'),
+    ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1c70', 'scan'),
+    ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1dc0', 'scan'),
+    ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1c70', 'scan'),
+    ('451a38b5-0679-79d2-0738-22a5ceb24c4b', '0x20830', 'cfi'),
+    ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1d72', 'context'),
+]
+
 
 class CfiReprocessingTest(TestCase):
     def mock_attachments(self):
@@ -125,7 +141,7 @@ class CfiReprocessingTest(TestCase):
 
     def get_mock_event(self, reprocessed=False):
         stacktrace = CFI_STACKTRACE if reprocessed else RAW_STACKTRACE
-        return {
+        return copy.deepcopy({
             'event_id': '9dac1e3a7ea043818ba6f0685e258c09',
             'project': self.project.id,
             'platform': 'native',
@@ -169,7 +185,7 @@ class CfiReprocessingTest(TestCase):
                     }
                 ]
             },
-        }
+        })
 
     @mock.patch('sentry.attachments.base.BaseAttachmentCache.get', return_value=None)
     @mock.patch('sentry.utils.cache.cache.get', return_value=None)
@@ -194,7 +210,7 @@ class CfiReprocessingTest(TestCase):
     @mock.patch('sentry.attachments.base.BaseAttachmentCache.get', return_value=None)
     @mock.patch('sentry.utils.cache.cache.get', return_value=None)
     def test_cfi_reprocessing_no_scanned_frames(self, mock_cache_get, mock_attachment_get):
-        data = copy.deepcopy(self.get_mock_event(reprocessed=False))
+        data = self.get_mock_event(reprocessed=False)
         for frame in data['exception']['values'][0]['stacktrace']['frames']:
             if frame['trust'] == 'scan':
                 frame['trust'] = 'cfi'
@@ -207,26 +223,12 @@ class CfiReprocessingTest(TestCase):
     @mock.patch('sentry.attachments.base.BaseAttachmentCache.get', return_value=None)
     @mock.patch('sentry.utils.cache.cache.get', return_value=None)
     def test_cfi_reprocessing_cached(self, mock_cache_get, mock_attachment_get):
-        mock_cache_get.return_value = [
-            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1dc0', 'scan'),
-            (None, '0x7f5140cdc000', 'scan'),
-            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x0040', 'scan'),
-            (None, '0x7fff5aef1000', 'scan'),
-            (None, '0x7fff5ae4ac88', 'cfi'),
-            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1de9', 'scan'),
-            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1dc0', 'scan'),
-            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x14ca0', 'scan'),
-            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1c70', 'scan'),
-            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1dc0', 'scan'),
-            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1c70', 'scan'),
-            ('451a38b5-0679-79d2-0738-22a5ceb24c4b', '0x20830', 'cfi'),
-            ('c0bcc3f1-9827-fe65-3058-404b2831d9e6', '0x1d72', 'context'),
-        ]
+        mock_cache_get.return_value = CFI_CACHE
 
         data = self.get_mock_event(reprocessed=False)
         result = reprocess_minidump_with_cfi(data)
 
-        mock_cache_get.assert_called_once_with('st:a996085d85a6793c0f4c377630965675')
+        mock_cache_get.assert_called_once_with('st:b4eeed5c7008d0003cc5549c36dba6b7')
         assert mock_attachment_get.call_count == 0
         assert result == self.get_mock_event(reprocessed=True)
 
@@ -238,7 +240,7 @@ class CfiReprocessingTest(TestCase):
         data = self.get_mock_event(reprocessed=False)
         result = reprocess_minidump_with_cfi(data)
 
-        mock_cache_get.assert_called_once_with('st:a996085d85a6793c0f4c377630965675')
+        mock_cache_get.assert_called_once_with('st:b4eeed5c7008d0003cc5549c36dba6b7')
         assert mock_attachment_get.call_count == 0
         assert result is None
 
@@ -261,8 +263,9 @@ class CfiReprocessingTest(TestCase):
         assert result is None
 
     @mock.patch('sentry.attachments.base.BaseAttachmentCache.get', return_value=None)
+    @mock.patch('sentry.utils.cache.cache.set', return_value=None)
     @mock.patch('sentry.utils.cache.cache.get', return_value=None)
-    def test_cfi_reprocessing(self, mock_cache_get, mock_attachment_get):
+    def test_cfi_reprocessing(self, mock_cache_get, mock_cache_set, mock_attachment_get):
         dif = self.create_dif_file(
             debug_id='c0bcc3f1-9827-fe65-3058-404b2831d9e6',
             features=['unwind']
@@ -287,5 +290,6 @@ class CfiReprocessingTest(TestCase):
 
         cache_key = 'e:9dac1e3a7ea043818ba6f0685e258c09:%s' % self.project.id
         mock_attachment_get.assert_called_once_with(cache_key)
+        mock_cache_set.assert_called_with('st:b4eeed5c7008d0003cc5549c36dba6b7', CFI_CACHE)
 
         assert result == self.get_mock_event(reprocessed=True)
