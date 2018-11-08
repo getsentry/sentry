@@ -117,7 +117,12 @@ export default class Result extends React.Component {
       ? baseQuery.data
       : byDayQuery.data;
 
-    const summary = [`query time: ${summaryData.timing.duration_ms} ms`];
+    const summary = [
+      `query time: ${getDynamicText({
+        value: summaryData.timing.duration_ms,
+        fixed: '10',
+      })} ms`,
+    ];
     if (this.state.view === 'table') {
       summary.push(getRowsPageRange(baseQuery));
     }
