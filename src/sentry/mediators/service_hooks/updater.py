@@ -22,11 +22,10 @@ class Updater(Mediator):
         self._update_project()
         self._update_events()
         self._update_url()
-        return self.hook
+        return self.service_hook
 
     @if_param('application')
-    def _update_name(self):
-        # not sure if we want to allow this
+    def _update_application(self):
         self.service_hook.application = self.application
 
     @if_param('actor')
