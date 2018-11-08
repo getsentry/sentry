@@ -40,12 +40,12 @@ def hash_value(h, value):
     elif isinstance(value, (tuple, list)):
         h.update(b'\x04' + six.text_type(len(value)).encode('utf-8'))
         for item in value:
-            hash_value(item)
+            hash_value(h, item)
     elif isinstance(value, dict):
         h.update(b'\x05' + six.text_type(len(value)).encode('utf-8'))
         for k, v in six.iteritems(value):
-            hash_value(k)
-            hash_value(v)
+            hash_value(h, k)
+            hash_value(h, v)
     elif isinstance(value, bytes):
         h.update(b'\x06' + value + b'\x00')
     elif isinstance(value, six.text_type):
