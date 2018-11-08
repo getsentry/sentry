@@ -107,6 +107,15 @@ class EventSearchTest(TestCase):
             ),
         ]
 
+    def test_parse_search_query_quoted_key(self):
+        assert parse_search_query('"hi:there":value') == [
+            SearchFilter(
+                key=SearchKey(name='hi:there'),
+                operator='=',
+                value=SearchValue(raw_value='value', type='string'),
+            ),
+        ]
+
     def test_parse_search_query_weird_values(self):
         # quotes within quotes
         assert parse_search_query('release:"a"thing""') == [
