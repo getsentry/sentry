@@ -5,6 +5,7 @@ import {Box, Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
+import getDynamicText from 'app/utils/getDynamicText';
 import Link from 'app/components/link';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
@@ -132,7 +133,9 @@ export default class Result extends React.Component {
   renderSavedQueryHeader() {
     return (
       <Flex align="center">
-        <Heading>{this.props.savedQuery.name}</Heading>
+        <Heading>
+          {getDynamicText({value: this.props.savedQuery.name, fixed: 'saved query'})}
+        </Heading>
         <SavedQueryAction onClick={this.props.onToggleEdit}>
           <InlineSvg src="icon-edit" />
         </SavedQueryAction>

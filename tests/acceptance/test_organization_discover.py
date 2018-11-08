@@ -42,11 +42,12 @@ class OrganizationDiscoverTest(AcceptanceTestCase):
             self.browser.wait_until_not('.loading')
             self.browser.snapshot('discover - query results')
 
-    def test_save_query(self):
+    def test_save_query_edit(self):
         with self.feature('organizations:discover'):
             self.browser.get(self.path)
             self.browser.wait_until_not('.loading')
             self.browser.find_element_by_xpath("//button//span[contains(text(), 'Save')]").click()
+            self.browser.get(self.path + 'saved/1/?edit=true')
             self.browser.wait_until_not('.loading')
             self.browser.snapshot('discover - saved query')
 
