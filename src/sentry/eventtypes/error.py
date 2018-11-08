@@ -22,7 +22,13 @@ class ErrorEvent(BaseEvent):
     key = 'error'
 
     def has_metadata(self):
-        return 'sentry.interfaces.Exception' in self.data
+        try:
+            exception = self.data['sentry.interfaces.Exception']['values'][-1]
+            exception['type']
+            exception['value']
+            return True
+        except Exception:
+            return False
 
     def get_metadata(self):
         exception = self.data['sentry.interfaces.Exception']['values'][-1]

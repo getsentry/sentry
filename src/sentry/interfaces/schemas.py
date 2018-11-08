@@ -87,10 +87,7 @@ HTTP_INTERFACE_SCHEMA = {
 FRAME_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
-        'abs_path': {
-            'type': 'string',
-            'default': iverror,
-        },
+        'abs_path': {'type': 'string'},
         'colno': {'type': ['number', 'string']},
         'context_line': {'type': 'string'},
         'data': {
@@ -100,10 +97,7 @@ FRAME_INTERFACE_SCHEMA = {
             ]
         },
         'errors': {},
-        'filename': {
-            'type': 'string',
-            'default': iverror,
-        },
+        'filename': {'type': 'string'},
         'function': {'type': 'string'},
         'image_addr': {},
         'in_app': {'type': 'boolean', 'default': False},
@@ -111,10 +105,7 @@ FRAME_INTERFACE_SCHEMA = {
         'instruction_offset': {},
         'trust': {'type': 'string'},
         'lineno': {'type': ['number', 'string']},
-        'module': {
-            'type': 'string',
-            'default': iverror,
-        },
+        'module': {'type': 'string'},
         'package': {'type': 'string'},
         'platform': {
             'type': 'string',
@@ -143,7 +134,7 @@ STACKTRACE_INTERFACE_SCHEMA = {
         'frames': {
             'type': 'array',
             # To validate individual frames use FRAME_INTERFACE_SCHEMA
-            'items': {'type': 'object'},
+            'items': {},
             'minItems': 1,
         },
         'frames_omitted': {
@@ -250,10 +241,6 @@ EXCEPTION_INTERFACE_SCHEMA = {
             },
         },
     },
-    'anyOf': [  # Require at least one of these keys.
-        {'required': ['type']},
-        {'required': ['value']},
-    ],
     # TODO should be false but allowing extra garbage for now
     # for compatibility
     'additionalProperties': True,
@@ -286,7 +273,6 @@ DEVICE_INTERFACE_SCHEMA = {
             'default': {},
         },
     },
-    'required': ['name', 'version'],
 }
 
 TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out

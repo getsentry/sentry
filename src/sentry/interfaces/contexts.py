@@ -172,7 +172,8 @@ class Contexts(Interface):
     def to_python(cls, data):
         rv = {}
         for alias, value in six.iteritems(data):
-            rv[alias] = cls.normalize_context(alias, value)
+            if value is not None:
+                rv[alias] = cls.normalize_context(alias, value)
         return cls(**rv)
 
     @classmethod
