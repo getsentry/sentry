@@ -34,6 +34,7 @@ class ThreadRef(object):
         self.raw_frames = frames
         self.modules = modules
         self.resolved_frames = None
+        self._cache_key = self._get_cache_key()
 
     def _get_frame_key(self, frame):
         module = self.modules.find_object(frame['instruction_addr'])
@@ -49,8 +50,7 @@ class ThreadRef(object):
             rebase_addr(frame['instruction_addr'], module)
         )
 
-    @property
-    def _cache_key(self):
+    def _get_cache_key(self):
         values = [self._get_frame_key(f) for f in self.raw_frames]
         # XXX: The seed is hard coded for a future refactor
         return 'st:%s' % hash_values(values, seed='MinidumpCfiProcessor')
