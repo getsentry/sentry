@@ -4,18 +4,18 @@ import {debounce} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {migrateRepository, addRepository} from 'app/actionCreators/integrations';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
-import IndicatorStore from 'app/stores/indicatorStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import Pagination from 'app/components/pagination';
 import RepositoryRow from 'app/components/repositoryRow';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import space from 'app/styles/space';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 
 export default class IntegrationRepos extends AsyncComponent {
   static propTypes = {
@@ -92,44 +92,24 @@ export default class IntegrationRepos extends AsyncComponent {
 
   addRepo(selection) {
     let {integration} = this.props;
-    let orgId = this.context.organization.slug;
     let {itemList} = this.state;
-    let migratableRepo = itemList.filter(item => selection.value === item.name)[0];
-    let path = migratableRepo
-      ? `/organizations/${orgId}/repos/${migratableRepo.id}/`
-      : `/organizations/${orgId}/repos/`;
-    let data = migratableRepo
-      ? {integrationId: integration.id}
-      : {
-          installation: integration.id,
-          identifier: selection.value,
-          provider: `integrations:${integration.provider.key}`,
-        };
-    let method = migratableRepo ? 'PUT' : 'POST';
-    let saveIndicator = IndicatorStore.add(t('Adding repository...'));
+    let orgId = this.context.organization.slug;
+
     this.setState({adding: true});
-    this.api.request(path, {
-      data,
-      method,
-      success: repo => {
-        this.setState({itemList: itemList.concat(repo)});
-        IndicatorStore.addSuccess(
-          tct('[repo] has been successfully added.', {
-            repo: repo.name,
-          })
-        );
+
+    let migratableRepo = itemList.filter(item => selection.value === item.name)[0];
+    let promise;
+    if (migratableRepo) {
+      promise = migrateRepository(this.api, orgId, migratableRepo.id, integration);
+    } else {
+      promise = addRepository(this.api, orgId, selection.value, integration);
+    }
+    promise.then(
+      repo => {
+        this.setState({adding: false, itemList: itemList.concat(repo)});
       },
-      error: errorData => {
-        let text = errorData.responseJSON.errors
-          ? errorData.responseJSON.errors.__all__
-          : t('Unable to add repository.');
-        IndicatorStore.addError(text);
-      },
-      complete: () => {
-        IndicatorStore.remove(saveIndicator);
-        this.setState({adding: false});
-      },
-    });
+      () => this.setState({adding: false})
+    );
   }
 
   renderDropdown() {
