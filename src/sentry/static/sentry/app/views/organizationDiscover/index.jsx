@@ -163,7 +163,7 @@ export default class OrganizationDiscoverContainer extends React.Component {
     if (!hasFeature) return this.renderComingSoon();
 
     return (
-      <DocumentTitle title={`${organization.slug} Discover - Sentry`}>
+      <DocumentTitle title={`Discover - ${organization.slug} - Sentry`}>
         <DiscoverWrapper>
           {isLoading ? (
             this.renderLoading()
