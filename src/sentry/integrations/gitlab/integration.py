@@ -109,8 +109,9 @@ class InstallationForm(forms.Form):
     url = forms.CharField(
         label=_('GitLab URL'),
         help_text=_('The base URL for your GitLab instance, including the host and protocol. '
-                    'Do not include group path. If using gitlab.com, enter '
-                    'https://gitlab.com/'),
+                    'Do not include group path.'
+                    '<br>'
+                    'If using gitlab.com, enter https://gitlab.com/'),
         widget=forms.TextInput(
             attrs={'placeholder': 'https://gitlab.example.com'}
         ),
@@ -118,6 +119,7 @@ class InstallationForm(forms.Form):
     group = forms.CharField(
         label=_('GitLab Group Path'),
         help_text=_('This can be found in the URL of your group\'s GitLab page. '
+                    '<br>'
                     'For example, if your group can be found at '
                     'https://gitlab.com/my-group/my-subgroup, enter `my-group/my-subgroup`.'),
         widget=forms.TextInput(
