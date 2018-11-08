@@ -27,12 +27,7 @@ def memoize(func):
     >>>     def func(self):
     >>>         return 'foo'
     """
-    @property
-    @lru_cache(maxsize=10)
-    def prop(*args):
-        return func(*args)
-
-    return prop
+    return property(lru_cache(maxsize=10)(func))
 
 
 class cached_for_request(object):
