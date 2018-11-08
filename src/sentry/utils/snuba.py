@@ -70,6 +70,13 @@ SENTRY_SNUBA_MAP = {
     'stack.colno': 'exception_frames.colno',
     'stack.lineno': 'exception_frames.lineno',
     'stack.stack_level': 'exception_frames.stack_level',
+
+    # misc
+    'release': 'tags[sentry:release]',
+    'message': 'message',
+    'timestamp': 'timestamp',
+    'type': 'type',
+    'platform': 'platform',
 }
 
 

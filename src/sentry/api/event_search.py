@@ -6,6 +6,7 @@ from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry.search.utils import parse_datetime_string, InvalidQuery
+from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
 event_search_grammar = Grammar(r"""
 # raw_search must come at the end, otherwise other
@@ -38,76 +39,12 @@ space           = ~r" "
 """)
 
 
-FIELD_LOOKUP = {
-    'user.id': {
-        'snuba_name': 'user_id',
-        'type': 'string',
-    },
-    'user.email': {
-        'snuba_name': 'email',
-        'type': 'string',
-    },
-    'user.username': {
-        'snuba_name': 'username',
-        'type': 'string',
-    },
-    'user.ip': {
-        'snuba_name': 'ip_address',
-        'type': 'string',
-    },
-    'release': {
-        'snuba_name': 'sentry:release',
-        'type': 'string',
-    },
-    'message': {
-        'snuba_name': 'message',
-        'type': 'string',
-    },
-    'timestamp': {
-        'snuba_name': 'timestamp',
-        'type': 'timestamp',
-    },
-    'start': {
-        'snuba_name': 'start',
-        'type': 'timestamp',
-    },
-    'end': {
-        'snuba_name': 'end',
-        'type': 'timestamp',
-    },
-    'project_id': {
-        'snuba_name': 'project_id',
-        'type': 'list',
-    },
-    'type': {
-        'snuba_name': 'type',
-        'type': 'string',
-    },
-    'environment': {
-        'snuba_name': 'tags[environment]',
-        'type': 'string',
-    },
-    'platform': {
-        'snuba_name': 'platform',
-        'type': 'string',
-    },
-    'stack.filename': {
-        'snuba_name': 'exception_frames.filename',
-        'type': 'string',
-    },
-    'stack.module': {
-        'snuba_name': 'exception_frames.module',
-        'type': 'string',
-    },
-    'http.url': {
-        'snuba_name': 'url',
-        'type': 'string',
-    },
-    'http.method': {
-        'snuba_name': 'http_method',
-        'type': 'string',
-    },
-}
+# add valid snuba `raw_query` args
+SEARCH_MAP = dict({
+    'start': 'start',
+    'end': 'end',
+    'project_id': 'project_id',
+}, **SENTRY_SNUBA_MAP)
 
 
 class InvalidSearchQuery(Exception):
@@ -122,14 +59,14 @@ class SearchKey(namedtuple('SearchKey', 'name')):
 
     @property
     def snuba_name(self):
-        field = FIELD_LOOKUP.get(self.name)
-        if field:
-            return field['snuba_name']
+        snuba_name = SEARCH_MAP.get(self.name)
+        if snuba_name:
+            return snuba_name
         # assume custom tag if not listed
         return 'tags[%s]' % (self.name,)
 
 
-class SearchValue(namedtuple('SearchValue', 'raw_value type')):
+class SearchValue(namedtuple('SearchValue', 'raw_value')):
     pass
 
 
@@ -151,7 +88,7 @@ class SearchVisitor(NodeVisitor):
         return SearchFilter(
             SearchKey('message'),
             "=",
-            SearchValue(node.text, FIELD_LOOKUP['message']['type']),
+            SearchValue(node.text),
         )
 
     def visit_time_filter(self, node, children):
@@ -166,7 +103,7 @@ class SearchVisitor(NodeVisitor):
             return SearchFilter(
                 SearchKey(search_key),
                 operator,
-                SearchValue(search_value, FIELD_LOOKUP[search_key]['type']),
+                SearchValue(search_value),
             )
         except KeyError:
             raise InvalidSearchQuery('Unsupported search term: %s' % (search_key,))
@@ -179,11 +116,10 @@ class SearchVisitor(NodeVisitor):
 
     def visit_basic_filter(self, node, children):
         search_key, _, search_value = children
-        field = FIELD_LOOKUP.get(search_key)
         return SearchFilter(
             SearchKey(search_key),
             "=",
-            SearchValue(search_value, field['type'] if field else 'string'),
+            SearchValue(search_value),
         )
 
     def visit_search_key(self, node, children):
@@ -218,7 +154,7 @@ def convert_endpoint_params(params):
         SearchFilter(
             SearchKey(key),
             '=',
-            SearchValue(params[key], FIELD_LOOKUP[key]['type']),
+            SearchValue(params[key]),
         ) for key in params
     ]
 
