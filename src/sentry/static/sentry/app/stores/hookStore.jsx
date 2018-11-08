@@ -1,25 +1,34 @@
 import Reflux from 'reflux';
 import _ from 'lodash';
 
-let validHookNames = new Set([
-  'component:org-members-view',
-  'component:org-auth-view',
-  'component:releases-tab',
-  'component:sample-event',
-  'footer',
-  'settings:organization-navigation',
-  'settings:organization-navigation-config',
-  'organization:header',
-  'organization:sidebar',
+const validHookNames = new Set([
+  // Additional routes
   'routes',
   'routes:admin',
   'routes:organization',
-  'issue:secondary-column',
+
+  // Analytics and tracking hooks
   'amplitude:event',
   'analytics:event',
   'analytics:log-experiment',
-  'sidebar:organization-dropdown-menu',
+
+  // Specific component customizations
+  'component:org-auth-view',
+  'component:org-members-view',
+  'component:releases-tab',
+  'component:sample-event',
+
+  // Additional settings
+  'settings:organization-navigation',
+  'settings:organization-navigation-config',
+
+  // Additional interface chrome
+  'footer',
+  'organization:header',
   'sidebar:help-menu',
+  'sidebar:organization-dropdown-menu',
+
+  // Used to provide a component for integration features.
   'integrations:feature-gates',
 
   // feature-disabled:<feature-flag> hooks should return components that will
@@ -29,13 +38,17 @@ let validHookNames = new Set([
   'feature-disabled:data-forwarding',
   'feature-disabled:custom-inbound-filters',
   'feature-disabled:rate-limits',
+
+  // TODO(epurkhiser): These are not used anymore and should be removed
+  'issue:secondary-column',
+  'organization:sidebar',
 ]);
 
 /**
- * HookStore is used to allow extensability into Sentry's frontend via
+ * HookStore is used to allow extensibility into Sentry's frontend via
  * registration of 'hook functions'.
  *
- * This functionality is primarly used by the SASS sentry.io product.
+ * This functionality is primarily used by the SASS sentry.io product.
  */
 const HookStore = Reflux.createStore({
   init() {
