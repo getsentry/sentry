@@ -18,6 +18,13 @@ class GeoTest(TestCase):
             'region': 'CA',
         }
 
+    def test_null_values(self):
+        sink = {}
+        assert Geo.to_python({}).to_json() == sink
+        assert Geo.to_python({"country_code": None}).to_json() == sink
+        assert Geo.to_python({"city": None}).to_json() == sink
+        assert Geo.to_python({"region": None}).to_json() == sink
+
     @mock.patch('sentry.interfaces.geo.geo_by_addr')
     def test_from_ip_address(self, geo_by_addr_mock):
         geo_by_addr_mock.return_value = {

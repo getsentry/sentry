@@ -31,6 +31,19 @@ class BreadcrumbsTest(TestCase):
         assert abs(ts - 1458857193.973275) < 0.001
         assert result.values[0]['data'] == {'message': 'Whats up dawg?'}
 
+    def test_null_values(self):
+        sink = {}
+
+        assert Breadcrumbs.to_python({}).to_json() == sink
+        assert Breadcrumbs.to_python({'values': None}).to_json() == sink
+        assert Breadcrumbs.to_python({'values': []}).to_json() == sink
+
+        # TODO(markus): The following cases should eventually generate {"values": [None]}
+        assert Breadcrumbs.to_python({'values': [{}]}).to_json() == sink
+        assert Breadcrumbs.to_python({'values': [{"type": None}]}).to_json() == sink
+
+        assert Breadcrumbs.to_python({'values': [None]}).to_json() == sink
+
     def test_non_string_keys(self):
         result = Breadcrumbs.to_python(
             dict(

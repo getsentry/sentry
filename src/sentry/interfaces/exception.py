@@ -1012,20 +1012,21 @@ class Exception(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if 'values' not in data:
-            data = {'values': [data]}
+        if data and 'values' not in data and 'exc_omitted' not in data:
+            data = {"values": [data]}
+        values = data.get('values', [])
 
-        if not data['values']:
-            raise InterfaceValidationError("No 'values' present")
+        if values is None:
+            values = []
 
-        if not isinstance(data['values'], list):
+        if not isinstance(values, list):
             raise InterfaceValidationError("Invalid value for 'values'")
 
         kwargs = {
-            'values': [SingleException.to_python(
+            'values': [v and SingleException.to_python(
                 v,
                 slim_frames=False,
-            ) for v in data['values']],
+            ) for v in values],
         }
 
         if data.get('exc_omitted'):
@@ -1042,7 +1043,7 @@ class Exception(Interface):
 
     def to_json(self):
         return {
-            'values': [v.to_json() for v in self.values],
+            'values': [v and v.to_json() for v in self.values],
             'exc_omitted': self.exc_omitted,
         }
 
@@ -1144,7 +1145,7 @@ def slim_exception_data(instance, frame_allowance=settings.SENTRY_MAX_STACKTRACE
     # rather than distributing allowance among all exceptions
     frames = []
     for exception in instance.values:
-        if not exception.stacktrace:
+        if exception is None or not exception.stacktrace:
             continue
         frames.extend(exception.stacktrace.frames)
 

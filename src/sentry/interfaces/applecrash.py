@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 __all__ = ('AppleCrashReport', )
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface
 
 
 class AppleCrashReport(Interface):
@@ -27,15 +27,10 @@ class AppleCrashReport(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if not data.get('crash'):
-            raise InterfaceValidationError("No 'crash' present")
-        if not data.get('binary_images'):
-            raise InterfaceValidationError("No 'binary_images' present")
-
         kwargs = {
-            'crash': data['crash'],
+            'crash': data.get('crash'),
             'system': data.get('system') or {},
-            'binary_images': data['binary_images'],
+            'binary_images': data.get('binary_images'),
         }
 
         return cls(**kwargs)
