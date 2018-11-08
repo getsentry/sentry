@@ -13,7 +13,7 @@ from sentry.models import (
 )
 
 from sentry.integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
-from sentry.integrations.repositories import generate_secret
+from sentry.models.apitoken import generate_token
 from sentry.tasks.base import instrumented_task, retry
 
 logger = logging.getLogger('sentry.tasks.integrations')
@@ -300,7 +300,7 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
                 )
 
         try:
-            secret = generate_secret()
+            secret = generate_token()
             subscription = client.create_subscription(
                 instance=installation.instance,
                 shared_secret=secret,
