@@ -13,6 +13,28 @@ exports[`Configure should render correctly render() should redirect to if no mat
       }
     >
       Configure your application
+      <Hook
+        name="component:sample-event"
+        params={
+          Object {
+            "organization": Object {
+              "id": "1337",
+              "slug": "testOrg",
+              "teams": Array [
+                Array [
+                  "project-slug",
+                ],
+              ],
+            },
+            "params": Object {
+              "orgId": "testOrg",
+              "platform": "other",
+              "projectId": "project-slug",
+            },
+            "source": "header",
+          }
+        }
+      />
     </h2>
     <withProjects(withRouter(ProjectContext))
       orgId="testOrg"
@@ -90,6 +112,54 @@ exports[`Configure should render correctly render() should render platform docs 
         }
       >
         Configure your application
+        <Hook
+          name="component:sample-event"
+          params={
+            Object {
+              "organization": Object {
+                "id": "1337",
+                "projects": Array [
+                  Object {
+                    "hasAccess": true,
+                    "id": "testProject",
+                    "isBookmarked": false,
+                    "isMember": true,
+                    "name": "Test Project",
+                    "slug": "project-slug",
+                    "teams": Array [
+                      Object {
+                        "hasAccess": true,
+                        "id": "coolteam",
+                        "slug": "coolteam",
+                      },
+                    ],
+                  },
+                ],
+                "slug": "testOrg",
+                "teams": Array [
+                  Object {
+                    "hasAccess": true,
+                    "id": "coolteam",
+                    "projects": Array [
+                      Object {
+                        "id": "testProject",
+                        "name": "Test Project",
+                        "slug": "project-slug",
+                      },
+                    ],
+                    "slug": "coolteam",
+                  },
+                ],
+              },
+              "params": Object {
+                "orgId": "testOrg",
+                "platform": "node",
+                "projectId": "project-slug",
+              },
+              "source": "header",
+            }
+          }
+        />
       </h2>
       <withProjects(withRouter(ProjectContext))
         orgId="testOrg"
@@ -619,6 +689,54 @@ exports[`Configure should render correctly render() should render platform docs 
                       </Component>
                     </StyledButton>
                   </Button>
+                  <Hook
+                    name="component:sample-event"
+                    params={
+                      Object {
+                        "organization": Object {
+                          "id": "1337",
+                          "projects": Array [
+                            Object {
+                              "hasAccess": true,
+                              "id": "testProject",
+                              "isBookmarked": false,
+                              "isMember": true,
+                              "name": "Test Project",
+                              "slug": "project-slug",
+                              "teams": Array [
+                                Object {
+                                  "hasAccess": true,
+                                  "id": "coolteam",
+                                  "slug": "coolteam",
+                                },
+                              ],
+                            },
+                          ],
+                          "slug": "testOrg",
+                          "teams": Array [
+                            Object {
+                              "hasAccess": true,
+                              "id": "coolteam",
+                              "projects": Array [
+                                Object {
+                                  "id": "testProject",
+                                  "name": "Test Project",
+                                  "slug": "project-slug",
+                                },
+                              ],
+                              "slug": "coolteam",
+                            },
+                          ],
+                        },
+                        "params": Object {
+                          "orgId": "testOrg",
+                          "platform": "node",
+                          "projectId": "project-slug",
+                        },
+                        "source": "waiting",
+                      }
+                    }
+                  />
                 </div>
               </div>
             </CenteredButtons>
@@ -643,6 +761,28 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
       }
     >
       Configure your application
+      <Hook
+        name="component:sample-event"
+        params={
+          Object {
+            "organization": Object {
+              "id": "1337",
+              "slug": "testOrg",
+              "teams": Array [
+                Array [
+                  "project-slug",
+                ],
+              ],
+            },
+            "params": Object {
+              "orgId": "testOrg",
+              "platform": "node",
+              "projectId": "project-slug",
+            },
+            "source": "header",
+          }
+        }
+      />
     </h2>
     <withProjects(withRouter(ProjectContext))
       orgId="testOrg"

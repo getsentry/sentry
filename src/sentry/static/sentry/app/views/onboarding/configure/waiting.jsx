@@ -4,7 +4,7 @@ import {t} from 'app/locale';
 import styled from 'react-emotion';
 
 import Button from 'app/components/button';
-import HookStore from 'app/stores/hookStore';
+import Hook from 'app/components/hook';
 import SentryTypes from 'app/sentryTypes';
 
 class Waiting extends React.Component {
@@ -15,31 +15,10 @@ class Waiting extends React.Component {
     organization: SentryTypes.Organization,
   };
 
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      component: null,
-    };
-  }
-
-  componentDidMount() {
-    this.getHookComponent();
-  }
-
-  getHookComponent() {
-    let component =
-      HookStore.get('component:sample-event').length && !this.props.hasEvent
-        ? HookStore.get('component:sample-event')[0](
-            this.props.params,
-            this.props.organization,
-            'waiting'
-          )
-        : undefined;
-
-    this.setState({component});
-  }
-
   render() {
+    let {hasEvent, organization, params} = this.props;
+    let data = {params, organization, source: 'waiting'};
+
     return (
       <div className="awaiting-event">
         <div className="row">
@@ -64,7 +43,7 @@ class Waiting extends React.Component {
               >
                 {t('All done!')}
               </Button>
-              {this.state.component}
+              {!hasEvent && <Hook name="component:sample-event" params={data} />}
             </div>
           </CenteredButtons>
         </div>
