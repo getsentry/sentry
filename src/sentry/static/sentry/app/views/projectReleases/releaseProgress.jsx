@@ -14,18 +14,22 @@ const STEPS = {
   tag: {
     desc: t('Tag an error'),
     url: 'tag-errors',
+    msg: 'knowing which errors were introduced in a release, ',
   },
   repo: {
     desc: t('Link to a repo'),
     url: 'link-repository',
+    msg: 'determining which commit caused an error, ',
   },
   commit: {
     desc: t('Associate commits'),
     url: 'b-associate-commits-with-a-release',
+    msg: 'determining which commit caused an error, ',
   },
   deploy: {
     desc: t('Tell sentry about a deploy'),
     url: 'create-deploy',
+    msg: 'receiving notifications when your code gets deployed, ',
   },
 };
 
@@ -59,12 +63,31 @@ class ReleaseProgress extends AsyncComponent {
     }
   }
 
+  buildMessage(remainingSteps) {
+    let keys = remainingSteps.map(step => step.step);
+    let message = 'Save time by ';
+
+    if (keys.includes('tag')) {
+      message += STEPS.tag.msg;
+    }
+    if (keys.includes('repo') || keys.includes('commit')) {
+      message += STEPS.repo.msg;
+    }
+    if (keys.includes('deploy')) {
+      message += STEPS.deploy.msg;
+    }
+
+    message += 'and more!';
+
+    this.setState({message});
+  }
+
   getRemainingSteps(setupStatus) {
     let {organization, project} = this.context;
     let remainingSteps;
     if (setupStatus) {
       remainingSteps = setupStatus.filter(step => step.complete === false);
-
+      this.buildMessage(remainingSteps);
       this.setState({
         remainingSteps: Object.keys(remainingSteps).length,
         nextStep: remainingSteps[0] && STEPS[remainingSteps[0].step],
@@ -130,13 +153,11 @@ class ReleaseProgress extends AsyncComponent {
   }
 
   renderBody() {
-    let {remainingSteps, showBar} = this.state;
+    let {remainingSteps, showBar, nextStep, message} = this.state;
 
     if (!remainingSteps || remainingSteps === 0 || !showBar) {
       return null;
     }
-
-    let {nextStep} = this.state;
 
     return (
       <PanelItem>
@@ -154,11 +175,7 @@ class ReleaseProgress extends AsyncComponent {
             </StyledDiv>
             <div className="row">
               <ProgressBar width={this.getWidth()} />
-              <p>
-                {t(
-                  'Save time by surfacing when issues are first introduced, what commits are responsible, and more!'
-                )}
-              </p>
+              <p>{t(`${message}`)}</p>
             </div>
           </div>
         </div>
