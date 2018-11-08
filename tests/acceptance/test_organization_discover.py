@@ -20,6 +20,13 @@ class OrganizationDiscoverTest(AcceptanceTestCase):
             teams=[self.team],
             name='Bengal',
         )
+        self.group = self.create_group(project=self.project)
+        self.event = self.create_event(
+            group=self.group,
+            message="message!",
+            platform="python",
+        )
+
         self.login_as(self.user)
         self.path = u'/organizations/{}/discover/'.format(self.org.slug)
 
