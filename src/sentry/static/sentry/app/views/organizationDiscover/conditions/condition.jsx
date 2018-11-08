@@ -42,7 +42,6 @@ export default class Condition extends React.Component {
 
       return;
     }
-
     this.setState(
       {
         inputValue: option.value,
@@ -87,7 +86,8 @@ export default class Condition extends React.Component {
   }
 
   filterOptions = (options, input) => {
-    input = input || this.state.inputValue;
+    input = this.state.inputValue;
+    // input = input ? ignoreCaseInput(input) : this.state.inputValue;
 
     let optionList = options;
     const external = getExternal(input, this.props.columns);
@@ -118,17 +118,13 @@ export default class Condition extends React.Component {
       });
     }
 
-    // console.log('options: ', optionList);
-
-    console.log('input: ', input);
-    // console.log('optionsList filter', optionList.filter(({label}) => label.includes(ignoreCaseInput(input, external))));
-    // console.log('what actually happens', optionList.filter(({label}) => label.includes(input)));
-    // console.log( ops.filter(({label}) => label.includes(input)));
-    return optionList.filter(({label}) => label.includes(ignoreCaseInput(input, external)));
+    return optionList.filter(({label}) => label.includes(input));
   };
 
   isValidNewOption = ({label}) => {
-    return isValidCondition(getExternal(label, this.props.columns), this.props.columns);
+    console.log('IS VALID?', isValidCondition(getExternal(label, this.props.columns), this.props.columns), label)
+
+    return isValidCondition(getExternal(this.state.inputValue, this.props.columns), this.props.columns);
   };
 
   inputRenderer = props => {
@@ -149,16 +145,24 @@ export default class Condition extends React.Component {
 
   shouldKeyDownEventCreateNewOption = keyCode => {
     const createKeyCodes = new Set([13, 9]); // ENTER, TAB
+    return false;
     return createKeyCodes.has(keyCode);
   };
 
   handleInputChange = value => {
-    this.setState({
-      inputValue: value,
-    });
+
+    if (value !== this.state.inputValue) {
+      this.setState({
+        inputValue: ignoreCaseInput(value),
+      });
+    }
 
     return value;
   };
+
+  handleNewOption(option) {
+    return option;
+  }
 
   render() {
     return (
@@ -178,6 +182,7 @@ export default class Condition extends React.Component {
           backspaceRemoves={false}
           deleteRemoves={false}
           isValidNewOption={this.isValidNewOption}
+          newOptionCreator={this.handleNewOption}
           inputRenderer={this.inputRenderer}
           valueRenderer={this.valueRenderer}
           onInputChange={this.handleInputChange}
