@@ -39,6 +39,8 @@ class IssueSyncElement extends React.Component {
 
   getIcon() {
     switch (this.props.integrationType) {
+      case 'bitbucket':
+        return <IntegrationIcon src="icon-bitbucket" />;
       case 'gitlab':
         return <IntegrationIcon src="icon-gitlab" />;
       case 'github':

@@ -50,6 +50,13 @@ storiesOf('Other|IssueSyncListElement', module)
           onOpen={() => {}}
           onClose={() => {}}
         />
+        <IssueSyncListElement
+          integrationType="bitbucket"
+          externalIssueLink="bitbucket.org/issues/35"
+          externalIssueId="35"
+          onOpen={() => {}}
+          onClose={() => {}}
+        />
       </StyledIssueSyncList>
     ))
   );
