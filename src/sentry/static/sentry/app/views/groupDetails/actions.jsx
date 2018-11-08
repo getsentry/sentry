@@ -47,7 +47,7 @@ class DeleteActions extends React.Component {
 
   renderDiscardModal = ({Body, closeModal}) => (
     <Feature
-      features={['discard-groups']}
+      features={['projects:discard-groups']}
       organization={this.props.organization}
       renderDisabled={this.renderDiscardDisabled}
     >
