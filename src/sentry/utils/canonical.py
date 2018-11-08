@@ -25,7 +25,6 @@ CANONICAL_KEY_MAPPING = {
     'sentry.interfaces.Http': 'request',
     'sentry.interfaces.User': 'user',
     'sentry.interfaces.Csp': 'csp',
-    'sentry.interfaces.AppleCrashReport': 'applecrashreport',
     'sentry.interfaces.Breadcrumbs': 'breadcrumbs',
     'sentry.interfaces.Contexts': 'contexts',
     'sentry.interfaces.Threads': 'threads',

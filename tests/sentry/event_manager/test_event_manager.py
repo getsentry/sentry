@@ -107,20 +107,6 @@ class EventManagerTest(TransactionTestCase):
             event_id=event_id,
         ).exists()
 
-    def test_platform_is_saved(self):
-        manager = EventManager(
-            make_event(
-                **{'sentry.interfaces.AppleCrashReport': {
-                    'crash': {},
-                    'binary_images': []
-                }}
-            )
-        )
-        manager.normalize()
-        event = manager.save(1)
-
-        assert 'sentry.interfacse.AppleCrashReport' not in event.interfaces
-
     def test_ephemral_interfaces_removed_on_save(self):
         manager = EventManager(make_event(platform='python'))
         event = manager.save(1)
