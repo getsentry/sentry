@@ -915,7 +915,6 @@ SENTRY_INTERFACES = {
     'device': 'sentry.interfaces.device.Device',
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
-    'query': 'sentry.interfaces.query.Query',
     'repos': 'sentry.interfaces.repos.Repos',
     'request': 'sentry.interfaces.http.Http',
     'sdk': 'sentry.interfaces.sdk.Sdk',
