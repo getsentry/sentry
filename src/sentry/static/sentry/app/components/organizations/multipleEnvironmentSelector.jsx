@@ -263,10 +263,10 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
 
 class EnvironmentSelectorItem extends React.PureComponent {
   static propTypes = {
+    onMultiSelect: PropTypes.func.isRequired,
     environment: SentryTypes.Environment,
     inputValue: PropTypes.string,
     isChecked: PropTypes.bool,
-    onMultiSelect: PropTypes.func,
   };
 
   handleMultiSelect = e => {
