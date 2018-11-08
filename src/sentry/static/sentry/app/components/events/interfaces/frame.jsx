@@ -476,6 +476,11 @@ const RepeatedContent = styled(VertCenterWrapper)`
 
 const NativeLineContent = styled(RepeatedContent)`
   flex: 1;
+
+  > span {
+    display: block;
+    padding: 0 5px;
+  }
 `;
 
 const DefaultLine = styled(VertCenterWrapper)`
