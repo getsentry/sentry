@@ -144,3 +144,6 @@ register('snuba.search.max-total-chunk-time-seconds', default=30.0)
 # Kafka Publisher
 register('kafka-publisher.raw-event-sample-rate', default=0.0)
 register('kafka-publisher.max-event-size', default=100000)
+
+# Event Stream
+register('eventstream.kafka.send-post_process-task', type=Bool, default=True)
