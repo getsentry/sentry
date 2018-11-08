@@ -296,7 +296,10 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return self.get_client().create_comment(issue_id, quoted_comment)
 
     def search_issues(self, query):
-        return self.get_client().search_issues(query)
+        try:
+            return self.get_client().search_issues(query)
+        except Exception as e:
+            self.raise_error(e)
 
     def make_choices(self, x):
         return [(y['id'], y['name'] if 'name' in y else y['value']) for y in x] if x else []
