@@ -10,20 +10,20 @@ from sentry.testutils import TestCase
 
 
 HASHLIB_VALUES_TESTS = (
-    ('seed', None, '44689bafd59f4b1f0b0a152062b6dede'),
-    ('seed', True, '453224968c982a58ff5782853607f47f'),
-    ('seed', False, 'a65e1fcf12a02cee799b0591b060ce0b'),
-    ('seed', 42, 'c2fa989f1320b70f5c597a7358ce3a5a'),
-    ('seed', six.binary_type('test'), '008b2c3fd625055c3132bc72ea4a6f5e'),
-    ('seed', six.text_type('test'), '0ea4106eb2e5bcd3269be5cd7f8f3912'),
-    ('seed', (4, 2), '026ebc18a8e27193bc0ed80a18d0a7c1'),
-    ('seed', {'test': 42}, '6cd8da40ed2dd728b74cdcffa30b72d4'),
+    ('seed', None, '75a0ad233bd9a091d9d26bacbe2f377e'),
+    ('seed', True, '1057fb936dc9056388c0b9b48dd0c7df'),
+    ('seed', False, '07aae33053c0f3487882d61353780682'),
+    ('seed', 42, 'd1ce9a19d659ae70a6b76ef6029ae542'),
+    ('seed', six.binary_type('test'), '334e3fd2f66966a5c785d825c5f03494'),
+    ('seed', six.text_type('test'), 'ce35c0ce0d38976f61a5ca951de74a16'),
+    ('seed', (4, 2), 'd03b32e798444249d726158594d370f6'),
+    ('seed', {'test': 42}, 'c545cf1c4ab09eff4a1e0fa5209f1645'),
 )
 
 
 @pytest.mark.parametrize('seed,value,hash', HASHLIB_VALUES_TESTS)
 def test_hash_values(seed, value, hash):
-    assert hash_values(seed, [value]) == hash
+    assert hash_values([value], seed=seed) == hash
 
 
 class HashlibTest(TestCase):
