@@ -2,26 +2,34 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {getProjectSelectorType} from 'app/components/projectSelector/utils';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
-import CheckboxFancy from 'app/components/checkboxFancy';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
-import Highlight from 'app/components/highlight';
-import IdBadge from 'app/components/idBadge';
+import ProjectSelectorItem from 'app/components/projectSelector/projectSelectorItem';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 
 class ProjectSelector extends React.Component {
   static propTypes = {
+    organization: PropTypes.object.isRequired,
+
     // Accepts a project id (slug) and not a project *object* because ProjectSelector
     // is created from Django templates, and only organization is serialized
     projectId: PropTypes.string,
-    organization: PropTypes.object.isRequired,
+
+    // List of projects to show in menu
     projects: PropTypes.arrayOf(
       PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
     ),
+
+    // List of teams to show in menu
+    teams: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, SentryTypes.Team])),
+
+    // Allow teams to be picked
+    showTeams: PropTypes.bool,
 
     // Render a footer at the bottom of the list
     // render function that is passed an `actions` object with `close` and `open` properties.
@@ -36,6 +44,7 @@ class ProjectSelector extends React.Component {
 
     // Use this if the component should be a controlled component
     selectedProjects: PropTypes.arrayOf(SentryTypes.Project),
+    selectedTeams: PropTypes.arrayOf(SentryTypes.Team),
 
     // Callback when a project is selected
     onSelect: PropTypes.func,
@@ -52,6 +61,7 @@ class ProjectSelector extends React.Component {
   static defaultProps = {
     projectId: null,
     multi: false,
+    showTeams: false,
     onSelect: () => {},
   };
 
@@ -61,6 +71,7 @@ class ProjectSelector extends React.Component {
     this.state = {
       activeProject: this.getActiveProject(),
       selectedProjects: new Map(),
+      selectedTeams: new Map(),
     };
   }
 
@@ -78,48 +89,65 @@ class ProjectSelector extends React.Component {
     return projects || organization.projects.filter(project => project.isMember);
   }
 
+  getTeams() {
+    const {teams} = this.props;
+    return (teams && teams.filter(({isMember}) => isMember)) || [];
+  }
+
+  getSelected(model, state) {
+    const type = getProjectSelectorType(model);
+    const selectedName = type === 'team' ? 'selectedTeams' : 'selectedProjects';
+    return this.isControlled()
+      ? this.props[selectedName]
+      : (state || this.state)[selectedName];
+  }
+
   isControlled = () => typeof this.props.selectedProjects !== 'undefined';
 
-  toggleProject(project, e) {
+  toggleItem(model, e) {
     const {onMultiSelect} = this.props;
-    const {slug} = project;
+    const type = getProjectSelectorType(model);
+    const {slug} = model;
+
     // Don't update state if this is a controlled component
     if (this.isControlled()) return;
 
     this.setState(state => {
-      const selectedProjects = new Map(state.selectedProjects.entries());
+      const selectedMap = new Map(this.getSelected(model, state).entries());
 
-      if (selectedProjects.has(slug)) {
-        selectedProjects.delete(slug);
+      if (selectedMap.has(slug)) {
+        selectedMap.delete(slug);
       } else {
-        selectedProjects.set(slug, project);
+        selectedMap.set(slug, model);
       }
 
       if (typeof onMultiSelect === 'function') {
-        onMultiSelect(Array.from(selectedProjects.values()), e);
+        onMultiSelect(type, Array.from(selectedMap.values()), e);
       }
 
       return {
-        selectedProjects,
+        selectedProjects: type === 'team' ? state.selectedProjects : selectedMap,
+        selectedTeams: type === 'team' ? selectedMap : state.selectedTeams,
       };
     });
   }
 
-  handleSelect = ({value: project}) => {
+  handleSelect = ({value}) => {
     const {multiOnly, onSelect} = this.props;
 
     if (!multiOnly) {
-      this.setState({activeProject: project});
-      onSelect(project);
+      this.setState({activeProject: value});
+      onSelect(value);
     } else {
-      this.handleMultiSelect(project);
+      this.handleMultiSelect(value);
     }
   };
 
-  handleMultiSelect = (project, e) => {
-    const {onMultiSelect, selectedProjects} = this.props;
+  handleMultiSelect = (model, e) => {
+    const {onMultiSelect} = this.props;
     const isControlled = this.isControlled();
     const hasCallback = typeof onMultiSelect === 'function';
+    const type = getProjectSelectorType(model);
 
     if (isControlled && !hasCallback) {
       // eslint-disable-next-line no-console
@@ -130,31 +158,105 @@ class ProjectSelector extends React.Component {
 
     if (hasCallback) {
       if (isControlled) {
-        const selectedProjectsMap = new Map(selectedProjects.map(p => [p.slug, p]));
-        if (selectedProjectsMap.has(project.slug)) {
-          // unselected a project
-
-          selectedProjectsMap.delete(project.slug);
+        const selected = this.getSelected(model);
+        const selectedMap = new Map(selected.map(p => [p.slug, p]));
+        if (selectedMap.has(model.slug)) {
+          // unselected a model
+          selectedMap.delete(model.slug);
         } else {
-          selectedProjectsMap.set(project.slug, project);
+          selectedMap.set(model.slug, model);
         }
 
-        onMultiSelect(Array.from(selectedProjectsMap.values()), e);
+        onMultiSelect(type, Array.from(selectedMap.values()), e);
       }
     }
 
-    this.toggleProject(project, e);
+    this.toggleItem(model, e);
   };
+
+  isItemChecked(selected, model) {
+    return this.isControlled()
+      ? !!selected.find(({slug}) => slug === model.slug)
+      : selected.has(model.slug);
+  }
+
+  getProjectItems(projectList) {
+    const {multi} = this.props;
+    const selectedStore = this.isControlled()
+      ? this.props.selectedProjects
+      : this.state.selectedProjects;
+
+    return projectList.map(project => ({
+      value: project,
+      searchKey: project.slug,
+      label: ({inputValue}) => (
+        <ProjectSelectorItem
+          project={project}
+          multi={multi}
+          inputValue={inputValue}
+          isChecked={this.isItemChecked(selectedStore, project)}
+          onMultiSelect={this.handleMultiSelect}
+        />
+      ),
+    }));
+  }
+
+  getTeamItems() {
+    const {multi} = this.props;
+    const selectedStore = this.isControlled()
+      ? this.props.selectedTeams
+      : this.state.selectedTeams;
+
+    return this.getTeams()
+      .sort((a, b) => a.slug.localeCompare(b.slug))
+      .map(team => ({
+        value: team,
+        searchKey: team.slug,
+        label: ({inputValue}) => (
+          <ProjectSelectorItem
+            team={team}
+            multi={multi}
+            inputValue={inputValue}
+            isChecked={this.isItemChecked(selectedStore, team)}
+            onMultiSelect={this.handleMultiSelect}
+          />
+        ),
+      }));
+  }
+
+  /**
+   * Get list of items to display in dropdown menu
+   */
+  getItems(projectList) {
+    const {showTeams} = this.props;
+
+    if (!showTeams) {
+      return this.getProjectItems(projectList);
+    }
+
+    return [
+      {
+        id: 'team-header',
+        hideGroupLabel: true,
+        items: this.getTeamItems(),
+      },
+      {
+        id: 'project-header',
+        hideGroupLabel: true,
+        items: this.getProjectItems(projectList),
+      },
+    ];
+  }
 
   render() {
     const {
       children,
       organization: org,
       menuFooter,
-      multi,
       multiOnly,
       className,
       rootClassName,
+      showTeams,
       onClose,
     } = this.props;
     const {activeProject} = this.state;
@@ -173,7 +275,9 @@ class ProjectSelector extends React.Component {
         alignMenu="left"
         closeOnSelect={!multiOnly}
         blendCorner={false}
-        searchPlaceholder={t('Filter projects')}
+        searchPlaceholder={
+          showTeams ? t('Search for projects or teams') : t('Search for projects')
+        }
         onSelect={this.handleSelect}
         onClose={onClose}
         maxHeight={500}
@@ -208,28 +312,15 @@ class ProjectSelector extends React.Component {
             </React.Fragment>
           );
         }}
-        items={projectList.map(project => ({
-          value: project,
-          searchKey: project.slug,
-          label: ({inputValue}) => (
-            <ProjectSelectorItem
-              project={project}
-              multi={multi}
-              inputValue={inputValue}
-              isChecked={
-                this.isControlled()
-                  ? !!this.props.selectedProjects.find(({slug}) => slug === project.slug)
-                  : this.state.selectedProjects.has(project.slug)
-              }
-              onMultiSelect={this.handleMultiSelect}
-            />
-          ),
-        }))}
+        items={this.getItems(projectList)}
       >
         {renderProps =>
           children({
             ...renderProps,
             activeProject,
+            selectedTeams: this.isControlled()
+              ? this.props.selectedTeams
+              : Array.from(this.state.selectedTeams.values()),
             selectedProjects: this.isControlled()
               ? this.props.selectedProjects
               : Array.from(this.state.selectedProjects.values()),
@@ -239,107 +330,10 @@ class ProjectSelector extends React.Component {
   }
 }
 
-class ProjectSelectorItem extends React.PureComponent {
-  static propTypes = {
-    project: SentryTypes.Project,
-    multi: PropTypes.bool,
-    inputValue: PropTypes.string,
-    isChecked: PropTypes.bool,
-    onMultiSelect: PropTypes.func,
-  };
-
-  handleMultiSelect = e => {
-    const {project, onMultiSelect} = this.props;
-    onMultiSelect(project, e);
-  };
-
-  handleClick = e => {
-    e.stopPropagation();
-    this.handleMultiSelect(e);
-  };
-
-  render() {
-    const {project, multi, inputValue, isChecked} = this.props;
-    return (
-      <ProjectRow>
-        <BadgeAndBookmark>
-          <BadgeWrapper multi={multi}>
-            <IdBadgeMenuItem
-              project={project}
-              avatarSize={16}
-              displayName={<Highlight text={inputValue}>{project.slug}</Highlight>}
-              avatarProps={{consistentWidth: true}}
-            />
-          </BadgeWrapper>
-          {project.isBookmarked && <BookmarkIcon multi={multi} />}
-        </BadgeAndBookmark>
-
-        {multi && (
-          <MultiSelectWrapper onClick={this.handleClick}>
-            <MultiSelect checked={isChecked} />
-          </MultiSelectWrapper>
-        )}
-      </ProjectRow>
-    );
-  }
-}
-
-const FlexY = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const ProjectRow = styled(FlexY)`
-  font-size: 14px;
-  font-weight: 400;
-
-  /* thanks bootstrap? */
-  input[type='checkbox'] {
-    margin: 0;
-  }
-`;
-
-const BookmarkIcon = styled(({multi, ...props}) => (
-  <div {...props}>
-    <span className="icon-star-solid bookmark" />
-  </div>
-))`
-  display: flex;
-  font-size: 12px;
-  ${p => p.multi && `margin-left: ${space(0.5)}`};
-`;
-
 const CreateProjectButton = styled(Button)`
   display: block;
   text-align: center;
   margin: ${space(0.5)} 0;
-`;
-
-const BadgeWrapper = styled('div')`
-  display: flex;
-  ${p => !p.multi && 'flex: 1'};
-  white-space: nowrap;
-  overflow: hidden;
-`;
-const BadgeAndBookmark = styled('div')`
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-`;
-
-const IdBadgeMenuItem = styled(IdBadge)`
-  flex: 1;
-  overflow: hidden;
-`;
-
-const MultiSelectWrapper = styled('div')`
-  margin: -8px;
-  padding: 8px;
-`;
-
-const MultiSelect = styled(CheckboxFancy)`
-  flex-shrink: 0;
 `;
 
 export default ProjectSelector;
