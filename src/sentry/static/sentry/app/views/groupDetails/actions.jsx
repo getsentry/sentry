@@ -34,7 +34,7 @@ class DeleteActions extends React.Component {
     children({
       ...props,
       renderDisabled: ({features}) => (
-        <FeatureDisabled alert featureName="Discard and Delete" feature={features[0]} />
+        <FeatureDisabled alert featureName="Discard and Delete" features={features} />
       ),
     });
 

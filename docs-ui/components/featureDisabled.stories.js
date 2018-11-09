@@ -8,7 +8,10 @@ storiesOf('UI|FeatureDisabled', module)
   .add(
     'basic style',
     withInfo('A disabled feature component')(() => (
-      <FeatureDisabled name="Example Feature" feature="organization:example-feature" />
+      <FeatureDisabled
+        name="Example Feature"
+        features={['organization:example-feature', 'organization:example-feature-2']}
+      />
     ))
   )
   .add(
@@ -16,7 +19,7 @@ storiesOf('UI|FeatureDisabled', module)
     withInfo('A disabled feature wrapped in an alert')(() => (
       <FeatureDisabled
         name="Example Feature"
-        feature="organization:example-feature"
+        features={['organization:example-feature']}
         alert
       />
     ))
