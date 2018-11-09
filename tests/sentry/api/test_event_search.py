@@ -209,8 +209,8 @@ class EventSearchTest(TestCase):
         assert parse_search_query('has:release') == [
             SearchFilter(
                 key=SearchKey(name='release'),
-                operator='IS NOT NULL',
-                value=SearchValue(raw_value=None),
+                operator='!=',
+                value=SearchValue(raw_value=''),
             ),
         ]
 
@@ -218,8 +218,8 @@ class EventSearchTest(TestCase):
         assert parse_search_query('has:"hi:there"') == [
             SearchFilter(
                 key=SearchKey(name='hi:there'),
-                operator='IS NOT NULL',
-                value=SearchValue(raw_value=None),
+                operator='!=',
+                value=SearchValue(raw_value=''),
             ),
         ]
 
@@ -268,7 +268,7 @@ class EventSearchTest(TestCase):
     def test_get_snuba_query_args_has(self):
         assert get_snuba_query_args('has:release') == {
             'filter_keys': {},
-            'conditions': [['tags[sentry:release]', 'IS NOT NULL', None]]
+            'conditions': [['tags[sentry:release]', '!=', '']]
         }
 
     def test_convert_endpoint_params(self):
