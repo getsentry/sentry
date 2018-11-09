@@ -35,11 +35,8 @@ SENTRY_SNUBA_MAP = {
     'platform': 'platform',
     'message': 'message',
     'issue': 'issue',
-    'group_id': 'group_id',
     'timestamp': 'timestamp',
     'time': 'time',
-    'deleted': 'deleted',
-    'retention_days': 'retention_days',
     'type': 'type',
     'version': 'version',
     # user
