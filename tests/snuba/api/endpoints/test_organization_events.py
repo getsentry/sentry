@@ -362,3 +362,41 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_1.event_id])
+
+    def test_wildcard_search(self):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+
+        self.login_as(user=user)
+
+        project = self.create_project(organization=org, teams=[team])
+        group = self.create_group(project=project)
+
+        event_1 = self.create_event(
+            'a' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '3.1.2'}
+        )
+        self.create_event(
+            'b' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '4.1.2'}
+        )
+        event_2 = self.create_event(
+            'c' * 32, group=group, datetime=self.min_ago, tags={'user': {'email': 'foo@example.com'}}
+        )
+
+        base_url = reverse(
+            'sentry-api-0-organization-events',
+            kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        response = self.client.get('%s?query=release:3.1.*' % (base_url,), format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        self.assert_events_in_response(response, [event_1.event_id])
+
+        response = self.client.get('%s?query=user.email:*@example.com' % (base_url,), format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        self.assert_events_in_response(response, [event_2.event_id])

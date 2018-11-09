@@ -233,6 +233,15 @@ class EventSearchTest(TestCase):
             'end': datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
         }
 
+    def test_get_snuba_query_args_wildcard(self):
+        assert get_snuba_query_args('release:3.1.* user.email:*@example.com') == {
+            'conditions': [
+                [['match', ['tags[sentry:release]', "'3\\.1\\..*'"]], '=', 1],
+                [['match', ['email', "'.*\\@example\\.com'"]], '=', 1],
+            ],
+            'filter_keys': {},
+        }
+
     def test_convert_endpoint_params(self):
         assert convert_endpoint_params({
             'project_id': [1, 2, 3],
