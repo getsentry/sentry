@@ -193,7 +193,7 @@ export default class Result extends React.Component {
                 height={300}
                 tooltip={tooltipOptions}
                 legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
-                xAxis={{truncateXAxis: true}}
+                xAxis={{truncate: 80}}
                 renderer="canvas"
               />
             </ChartWrapper>
@@ -205,7 +205,7 @@ export default class Result extends React.Component {
                 height={300}
                 tooltip={tooltipOptions}
                 legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
-                xAxis={{truncateXAxis: true}}
+                xAxis={{truncate: 80}}
                 renderer="canvas"
               />
             </ChartWrapper>
