@@ -179,9 +179,9 @@ def transform_aliases_and_query(**kwargs):
             elif len(cond) == 3:
                 # map column name
                 cond[0] = get_snuba_column_name(cond[0])
-            elif len(cond) == 2:
-                # map function arguments
-                cond[1] = [get_snuba_column_name(arg) for arg in cond[1]]
+            elif len(cond) == 2 and cond[0] == "has":
+                # first function argument is the column if function is "has"
+                cond[1][0] = get_snuba_column_name(cond[1][0])
         return cond
 
     kwargs['conditions'] = [handle_condition(condition) for condition in conditions]
