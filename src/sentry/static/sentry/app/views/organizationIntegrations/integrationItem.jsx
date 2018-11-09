@@ -63,6 +63,7 @@ const DomainName = styled('div')`
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
   margin-top: ${p => (!p.compact ? space(0.25) : 'inherit')};
   font-size: 1.4rem;
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
