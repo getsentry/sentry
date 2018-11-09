@@ -63,6 +63,7 @@ describe('Sentry Application Details', function() {
           organization: org.slug,
           redirectUrl: 'https://webhook.com/setup',
           webhookUrl: 'https://webhook.com',
+          isAlertable: false,
           scopes: new Set(['project:read']),
         };
         expect(response).toHaveBeenCalledWith(

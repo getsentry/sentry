@@ -52,6 +52,7 @@ class SentryApplicationDetails extends AsyncView {
   renderBody() {
     const {orgId} = this.props.params;
     const {app} = this.state;
+    console.log(app);
     let method = app ? 'PUT' : 'POST';
     let endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
     return (
