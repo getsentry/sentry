@@ -29,6 +29,16 @@ MAX_ISSUES = 500
 MAX_HASHES = 5000
 
 SENTRY_SNUBA_MAP = {
+    # general
+    'event_id': 'event_id',
+    'project_id': 'project_id',
+    'platform': 'platform',
+    'message': 'message',
+    'issue': 'issue',
+    'timestamp': 'timestamp',
+    'time': 'time',
+    'type': 'type',
+    'version': 'version',
     # user
     'user.id': 'user_id',
     'user.email': 'email',
@@ -73,13 +83,15 @@ SENTRY_SNUBA_MAP = {
     'stack.colno': 'exception_frames.colno',
     'stack.lineno': 'exception_frames.lineno',
     'stack.stack_level': 'exception_frames.stack_level',
-
+    # tags, contexts
+    'tags.key': 'tags.key',
+    'tags.value': 'tags.value',
+    'tags_key': 'tags_key',
+    'tags_value': 'tags_value',
+    'contexts.key': 'contexts.key',
+    'contexts.value': 'contexts.value',
     # misc
     'release': 'tags[sentry:release]',
-    'message': 'message',
-    'timestamp': 'timestamp',
-    'type': 'type',
-    'platform': 'platform',
 }
 
 
@@ -119,6 +131,16 @@ _snuba_pool = connection_from_url(
 )
 
 
+def get_snuba_column_name(name):
+    """
+    Get corresponding Snuba column name from Sentry snuba map, if not found
+    the column is assumed to be a tag. If name is falsy, leave unchanged.
+    """
+    if not name:
+        return name
+    return SENTRY_SNUBA_MAP.get(name, u'tags[{}]'.format(name))
+
+
 def transform_aliases_and_query(**kwargs):
     """
     Convert aliases in selected_columns, groupby, aggregation, conditions,
@@ -133,6 +155,7 @@ def transform_aliases_and_query(**kwargs):
     }
 
     translated_columns = {}
+    derived_columns = set()
 
     selected_columns = kwargs['selected_columns']
     groupby = kwargs['groupby']
@@ -140,20 +163,18 @@ def transform_aliases_and_query(**kwargs):
     conditions = kwargs['conditions'] or []
 
     for (idx, col) in enumerate(selected_columns):
-        match = SENTRY_SNUBA_MAP.get(col)
-        if match:
-            selected_columns[idx] = match
-            translated_columns[match] = col
+        name = get_snuba_column_name(col)
+        selected_columns[idx] = name
+        translated_columns[name] = col
 
     for (idx, col) in enumerate(groupby):
-        match = SENTRY_SNUBA_MAP.get(col)
-        if match:
-            groupby[idx] = match
-            translated_columns[match] = col
+        name = get_snuba_column_name(col)
+        groupby[idx] = name
+        translated_columns[name] = col
 
     for aggregation in aggregations or []:
-        if len(aggregation) and SENTRY_SNUBA_MAP.get(aggregation[1]):
-            aggregation[1] = SENTRY_SNUBA_MAP[aggregation[1]]
+        derived_columns.add(aggregation[2])
+        aggregation[1] = get_snuba_column_name(aggregation[1])
 
     def handle_condition(cond):
         if isinstance(cond, (list, tuple)) and len(cond):
@@ -161,10 +182,10 @@ def transform_aliases_and_query(**kwargs):
                 cond[0] = handle_condition(cond[0])
             elif len(cond) == 3:
                 # map column name
-                cond[0] = SENTRY_SNUBA_MAP.get(cond[0], cond[0])
-            elif len(cond) == 2:
-                # map function arguments
-                cond[1] = [SENTRY_SNUBA_MAP.get(arg, arg) for arg in cond[1]]
+                cond[0] = get_snuba_column_name(cond[0])
+            elif len(cond) == 2 and cond[0] == "has":
+                # first function argument is the column if function is "has"
+                cond[1][0] = get_snuba_column_name(cond[1][0])
         return cond
 
     kwargs['conditions'] = [handle_condition(condition) for condition in conditions]
@@ -172,7 +193,8 @@ def transform_aliases_and_query(**kwargs):
     order_by_column = kwargs['orderby'].lstrip('-')
     kwargs['orderby'] = u'{}{}'.format(
         '-' if kwargs['orderby'].startswith('-') else '',
-        SENTRY_SNUBA_MAP.get(order_by_column, order_by_column)
+        order_by_column if order_by_column in derived_columns else get_snuba_column_name(
+            order_by_column)
     ) or None
 
     kwargs['arrayjoin'] = arrayjoin_map.get(kwargs['arrayjoin'], kwargs['arrayjoin'])

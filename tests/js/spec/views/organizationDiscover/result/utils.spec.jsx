@@ -11,34 +11,34 @@ import {
 describe('Utils', function() {
   it('getChartData()', function() {
     const raw = [
-      {count: 2, uniq_event_id: 1, project_id: 5, 'tags[environment]': null},
-      {count: 2, uniq_event_id: 3, project_id: 5, 'tags[environment]': 'staging'},
-      {count: 2, uniq_event_id: 4, project_id: 5, 'tags[environment]': 'alpha'},
-      {count: 6, uniq_event_id: 10, project_id: 5, 'tags[environment]': 'production'},
+      {count: 2, uniq_event_id: 1, project_id: 5, environment: null},
+      {count: 2, uniq_event_id: 3, project_id: 5, environment: 'staging'},
+      {count: 2, uniq_event_id: 4, project_id: 5, environment: 'alpha'},
+      {count: 6, uniq_event_id: 10, project_id: 5, environment: 'production'},
     ];
 
     const query = {
       aggregations: [['count()', null, 'count'], ['uniq', 'event_id', 'uniq_event_id']],
-      fields: ['project_id', 'tags[environment]'],
+      fields: ['project_id', 'environment'],
     };
 
     const expected = [
       {
         seriesName: 'count',
         data: [
-          {value: 2, name: 'project_id 5 tags[environment] null'},
-          {value: 2, name: 'project_id 5 tags[environment] staging'},
-          {value: 2, name: 'project_id 5 tags[environment] alpha'},
-          {value: 6, name: 'project_id 5 tags[environment] production'},
+          {value: 2, name: 'project_id 5 environment null'},
+          {value: 2, name: 'project_id 5 environment staging'},
+          {value: 2, name: 'project_id 5 environment alpha'},
+          {value: 6, name: 'project_id 5 environment production'},
         ],
       },
       {
         seriesName: 'uniq_event_id',
         data: [
-          {value: 1, name: 'project_id 5 tags[environment] null'},
-          {value: 3, name: 'project_id 5 tags[environment] staging'},
-          {value: 4, name: 'project_id 5 tags[environment] alpha'},
-          {value: 10, name: 'project_id 5 tags[environment] production'},
+          {value: 1, name: 'project_id 5 environment null'},
+          {value: 3, name: 'project_id 5 environment staging'},
+          {value: 4, name: 'project_id 5 environment alpha'},
+          {value: 10, name: 'project_id 5 environment production'},
         ],
       },
     ];
