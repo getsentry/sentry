@@ -55,7 +55,10 @@ SENTRY_SNUBA_MAP = {
     'device.simulator': 'device_orientation',
     'device.online': 'device_online',
     'device.charging': 'device_charging',
-
+    # geo
+    'geo.country_code': 'geo_country_code',
+    'geo.region': 'geo_region',
+    'geo.city': 'geo_city',
     # error, stack
     'error.type': 'exception_stacks.type',
     'error.value': 'exception_stacks.value',
