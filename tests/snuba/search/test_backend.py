@@ -790,6 +790,16 @@ class SnubaSearchTest(SnubaTestCase):
             assert result == new.version
 
     @mock.patch('sentry.utils.snuba.query')
+    def test_snuba_not_called_optimization(self, query_mock):
+        assert self.backend.query(self.project, query='foo').results == [self.group1]
+        assert not query_mock.called
+
+        assert self.backend.query(
+            self.project, query='foo', sort_by='date', last_seen_from=timezone.now()
+        ).results == []
+        assert query_mock.called
+
+    @mock.patch('sentry.utils.snuba.query')
     def test_optimized_aggregates(self, query_mock):
         query_mock.return_value = {}
 
@@ -818,12 +828,7 @@ class SnubaSearchTest(SnubaTestCase):
         }
 
         self.backend.query(self.project, query='foo')
-        assert query_mock.call_args == mock.call(
-            orderby='-last_seen',
-            aggregations=[['max', 'timestamp', 'last_seen']],
-            having=[],
-            **common_args
-        )
+        assert not query_mock.called
 
         self.backend.query(self.project, query='foo', sort_by='date', last_seen_from=timezone.now())
         assert query_mock.call_args == mock.call(

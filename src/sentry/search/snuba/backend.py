@@ -11,7 +11,7 @@ from datetime import timedelta, datetime
 from django.utils import timezone
 
 from sentry import options
-from sentry.api.paginator import SequencePaginator, Paginator
+from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.models import Release, Group, GroupEnvironment
 from sentry.search.django import backend as ds
@@ -156,20 +156,6 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # do that search against every event in Snuba instead, but results may
         # differ.
 
-        now = timezone.now()
-        end = parameters.get('date_to') or (now + ALLOWED_FUTURE_DELTA)
-        # TODO: Presumably we want to search back to the project's full retention,
-        #       which may be higher than 90 days in the past, but apparently
-        #       `retention_window_start` can be None(?), so we need a fallback.
-        start = max(
-            filter(None, [
-                retention_window_start,
-                parameters.get('date_from'),
-                now - timedelta(days=90)
-            ])
-        )
-        assert start < end
-
         # TODO: It's possible `first_release` could be handled by Snuba.
         if environment is not None:
             group_queryset = ds.QuerySetBuilder({
@@ -219,6 +205,40 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 group_queryset,
                 parameters,
             )
+
+        now = timezone.now()
+        # TODO: Presumably we want to search back to the project's full retention,
+        #       which may be higher than 90 days in the past, but apparently
+        #       `retention_window_start` can be None(?), so we need a fallback.
+        start = max(
+            filter(None, [
+                retention_window_start,
+                parameters.get('date_from'),
+                now - timedelta(days=90)
+            ])
+        )
+
+        end = parameters.get('date_to')
+        if not end:
+            end = now + ALLOWED_FUTURE_DELTA
+
+            # This search is for some time window that ends with "now",
+            # so if the requested sort is `date` (`last_seen`) and there
+            # are no other Snuba-based search predicates, we can simply
+            # return the results from Postgres.
+            if sort_by == 'date' \
+                    and not tags \
+                    and not environment \
+                    and not any(param in parameters for param in [
+                        'age_from', 'age_to', 'last_seen_from',
+                        'last_seen_to', 'times_seen', 'times_seen_lower',
+                        'times_seen_upper'
+                    ]):
+                group_queryset = group_queryset.order_by('-last_seen')
+                paginator = DateTimePaginator(group_queryset, '-last_seen', **paginator_options)
+                return paginator.get_result(limit, cursor, count_hits=count_hits)
+
+        assert start < end
 
         # maximum number of Group IDs to send down to Snuba,
         # if more Group ID candidates are found, a "bare" Snuba
@@ -285,11 +305,11 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
             # {group_id: group_score, ...}
             snuba_groups, more_results = snuba_search(
+                start=start,
+                end=end,
                 project_id=project.id,
                 environment_id=environment and environment.id,
                 tags=tags,
-                start=start,
-                end=end,
                 sort=sort,
                 extra_aggregations=extra_aggregations,
                 score_fn=score_fn,
@@ -375,7 +395,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         return paginator_results
 
 
-def snuba_search(project_id, environment_id, tags, start, end,
+def snuba_search(start, end, project_id, environment_id, tags,
                  sort, extra_aggregations, score_fn, candidate_ids,
                  limit, offset, **parameters):
     """
