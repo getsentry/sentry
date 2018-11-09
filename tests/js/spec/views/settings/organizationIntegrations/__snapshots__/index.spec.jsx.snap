@@ -1360,7 +1360,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     compact={true}
                                                   >
                                                     <div
-                                                      className="css-zo2wxu-DomainName ettpo132"
+                                                      className="css-equk2k-DomainName ettpo132"
                                                     >
                                                       github.com/test-integration
                                                     </div>
@@ -2672,7 +2672,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     compact={true}
                                                   >
                                                     <div
-                                                      className="css-zo2wxu-DomainName ettpo132"
+                                                      className="css-equk2k-DomainName ettpo132"
                                                     >
                                                       jira.com/test-integration
                                                     </div>
