@@ -28,6 +28,7 @@ class OrganizationEventsContainer extends React.Component {
     const {query} = props.router.location;
     const hasAbsolute = !!query.start && !!query.end;
     let project = [];
+    let team = [];
     let environment = query.environment || [];
 
     if (defined(query.project) && Array.isArray(query.project)) {
@@ -35,6 +36,13 @@ class OrganizationEventsContainer extends React.Component {
     } else if (defined(query.project)) {
       const projectIdInt = parseInt(query.project, 10);
       project = isNaN(projectIdInt) ? [] : [projectIdInt];
+    }
+
+    if (defined(query.team) && Array.isArray(query.team)) {
+      team = query.team.map(p => parseInt(p, 10));
+    } else if (defined(query.team)) {
+      const teamIdInt = parseInt(query.team, 10);
+      team = isNaN(teamIdInt) ? [] : [teamIdInt];
     }
 
     if (defined(query.environment) && !Array.isArray(query.environment)) {
@@ -50,6 +58,7 @@ class OrganizationEventsContainer extends React.Component {
 
     const values = {
       project,
+      team,
       environment,
       period: query.statsPeriod || (hasAbsolute ? null : DEFAULT_STATS_PERIOD),
       start: start || null,
@@ -98,9 +107,16 @@ class OrganizationEventsContainer extends React.Component {
     });
   };
 
-  handleChangeProjects = projects => {
+  handleChangeProjects = ({project, team, allProjects}) => {
+    this.setState({
+      project: allProjects || project,
+      team,
+    });
+  };
+
+  handleChangeTeams = teams => {
     this.setState(state => ({
-      project: projects,
+      team: teams,
     }));
   };
 
@@ -110,7 +126,7 @@ class OrganizationEventsContainer extends React.Component {
     }));
   };
 
-  handleChangeTime = ({start, end, relative}) => {
+  handleChangePeriod = ({start, end, relative}) => {
     this.setState({start, end, period: relative});
   };
 
@@ -153,7 +169,10 @@ class OrganizationEventsContainer extends React.Component {
 
   handleUpdateEnvironmments = () => this.handleUpdate('environment');
 
-  handleUpdateProjects = () => this.handleUpdate('project');
+  handleUpdateProjects = () => {
+    this.handleUpdate('project');
+    this.handleUpdate('team');
+  };
 
   render() {
     const {organization, children} = this.props;
@@ -170,9 +189,14 @@ class OrganizationEventsContainer extends React.Component {
           <OrganizationEventsContent>
             <Header>
               <MultipleProjectSelector
+                showTeams={true}
                 organization={organization}
                 projects={projects}
-                value={this.state.project}
+                teams={organization.teams}
+                value={{
+                  project: this.state.project,
+                  team: this.state.team,
+                }}
                 onChange={this.handleChangeProjects}
                 onUpdate={this.handleUpdateProjects}
               />
@@ -190,7 +214,7 @@ class OrganizationEventsContainer extends React.Component {
                 relative={period}
                 start={start}
                 end={end}
-                onChange={this.handleChangeTime}
+                onChange={this.handleChangePeriod}
                 onUpdate={this.handleUpdatePeriod}
               />
               <HeaderSeparator />

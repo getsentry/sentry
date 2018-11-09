@@ -1,1 +1,1 @@
-export {default} from './multipleProjectSelector';
+export {default} from './multipleProjectSelectorContainer';
