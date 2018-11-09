@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import sdk from 'app/utils/sdk';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';
+import sdk from 'app/utils/sdk';
 
 class DropdownMenu extends React.Component {
   static propTypes = {
@@ -215,7 +215,9 @@ class DropdownMenu extends React.Component {
   getRootProps = props => props;
 
   // Actor is the component that will open the dropdown menu
-  getActorProps = ({onClick, onMouseEnter, onMouseLeave, isStyled, ...props} = {}) => {
+  getActorProps = (
+    {onClick, onMouseEnter, onMouseLeave, isStyled, style, ...props} = {}
+  ) => {
     let {isNestedDropdown} = this.props;
 
     // Props that the actor needs to have <DropdownMenu> work
@@ -224,7 +226,17 @@ class DropdownMenu extends React.Component {
     return {
       ...props,
       ...((isStyled && {innerRef: this.handleActorMount}) || {}),
+      style: {
+        ...(style || {}),
+        outline: 'none',
+      },
       ref: !isStyled ? this.handleActorMount : undefined,
+      tabIndex: -1,
+      onKeyDown: e => {
+        if (e.key === 'Escape') {
+          this.handleClose(e);
+        }
+      },
       onMouseEnter: (...args) => {
         if (typeof onMouseEnter === 'function') {
           onMouseEnter(...args);
