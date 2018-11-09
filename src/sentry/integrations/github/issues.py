@@ -128,6 +128,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'name': 'externalIssue',
                 'label': 'Issue',
                 'default': '',
+                'choices': [],
                 'type': 'select',
                 'url': autocomplete_url,
                 'required': True,
