@@ -74,7 +74,10 @@ export default function createQueryBuilder(initial = {}, organization) {
         });
       })
       .catch(err => {
-        tags = PROMOTED_TAGS;
+        tags = PROMOTED_TAGS.map(tag => {
+          const type = SPECIAL_TAGS[tag] || 'string';
+          return {name: tag, type};
+        });
       });
   }
 
