@@ -20,7 +20,9 @@ class JiraIssueUpdatedWebhook(Endpoint):
         return super(JiraIssueUpdatedWebhook, self).dispatch(request, *args, **kwargs)
 
     def handle_assignee_change(self, integration, data):
-        assignee = data['issue']['fields']['assignee']
+        fields = data['issue']['fields']
+        # if no assignee, assume it was unassigned
+        assignee = fields.get('assignee')
         issue_key = data['issue']['key']
 
         if assignee is None:

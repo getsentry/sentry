@@ -7,7 +7,7 @@ from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
     convert_endpoint_params, get_snuba_query_args, parse_search_query,
-    InvalidSearchQuery, SearchFilter, SearchKey, SearchValue
+    SearchFilter, SearchKey, SearchValue
 )
 from sentry.testutils import TestCase
 
@@ -107,6 +107,15 @@ class EventSearchTest(TestCase):
             ),
         ]
 
+    def test_parse_search_query_quoted_key(self):
+        assert parse_search_query('"hi:there":value') == [
+            SearchFilter(
+                key=SearchKey(name='hi:there'),
+                operator='=',
+                value=SearchValue(raw_value='value', type='string'),
+            ),
+        ]
+
     def test_parse_search_query_weird_values(self):
         # quotes within quotes
         assert parse_search_query('release:"a"thing""') == [
@@ -183,12 +192,22 @@ class EventSearchTest(TestCase):
             ),
         ]
 
-    def test_parse_search_query_invalid(self):
-        with self.assertRaises(InvalidSearchQuery):
-            parse_search_query('fruit:apple release:1.2.1')
+    def test_parse_search_query_custom_tag(self):
+        assert parse_search_query('fruit:apple release:1.2.1') == [
+            SearchFilter(
+                key=SearchKey(name='fruit'),
+                operator='=',
+                value=SearchValue(raw_value='apple', type='string'),
+            ),
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='1.2.1', type='string'),
+            ),
+        ]
 
     def test_get_snuba_query_args(self):
-        assert get_snuba_query_args('user.email:foo@example.com release:1.2.1 hello', {
+        assert get_snuba_query_args('user.email:foo@example.com release:1.2.1 fruit:apple hello', {
             'project_id': [1, 2, 3],
             'start': datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
             'end': datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
@@ -196,6 +215,7 @@ class EventSearchTest(TestCase):
             'conditions': [
                 ['email', '=', 'foo@example.com'],
                 ['sentry:release', '=', '1.2.1'],
+                ['tags[fruit]', '=', 'apple'],
                 [['positionCaseInsensitive', ['message', "'hello'"]], '!=', 0],
             ],
             'filter_keys': {'project_id': [1, 2, 3]},

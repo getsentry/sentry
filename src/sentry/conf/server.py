@@ -802,8 +802,6 @@ SENTRY_FEATURES = {
     # DEPRECATED: pending removal.
     'organizations:js-loader': False,
     # DEPRECATED: pending removal.
-    'organizations:new-issue-ui': True,
-    # DEPRECATED: pending removal.
     'organizations:new-teams': True,
     # Enable the relay functionality, for use with sentry semaphore. See
     # https://github.com/getsentry/semaphore.
@@ -914,8 +912,6 @@ SENTRY_INTERFACES = {
     'expectstaple': 'sentry.interfaces.security.ExpectStaple',
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
-    'query': 'sentry.interfaces.query.Query',
-    'repos': 'sentry.interfaces.repos.Repos',
     'request': 'sentry.interfaces.http.Http',
     'sdk': 'sentry.interfaces.sdk.Sdk',
     'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',

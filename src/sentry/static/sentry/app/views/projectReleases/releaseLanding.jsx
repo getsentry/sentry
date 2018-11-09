@@ -71,6 +71,14 @@ const ReleaseLanding = withApi(
       };
     }
 
+    componentDidMount() {
+      let {organization, project} = this.context;
+      analytics('releases.landing_card_viewed', {
+        org_id: parseInt(organization.id, 10),
+        project_id: parseInt(project.id, 10),
+      });
+    }
+
     handleClick = () => {
       let {stepId} = this.state;
       let {organization, project} = this.context;
@@ -80,6 +88,7 @@ const ReleaseLanding = withApi(
       this.setState(state => ({
         stepId: state.stepId + 1,
       }));
+
       analytics('releases.landing_card_clicked', {
         org_id: parseInt(organization.id, 10),
         project_id: parseInt(project.id, 10),
