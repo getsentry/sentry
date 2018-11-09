@@ -20,6 +20,7 @@ class Creator(Mediator):
         self._create_api_grant()
         self._create_install()
         self._notify_service()
+        self.install.is_new = True
         return (self.install, self.api_grant)
 
     def _create_authorization(self):
