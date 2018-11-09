@@ -10,8 +10,9 @@ class FileChange extends React.PureComponent {
     authors: PropTypes.array.isRequired,
   };
 
-  getInitialState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       loading: true,
     };
   }
