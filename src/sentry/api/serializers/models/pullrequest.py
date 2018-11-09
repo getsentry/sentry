@@ -27,33 +27,40 @@ def get_users_for_pull_requests(item_list, user=None):
 class PullRequestSerializer(Serializer):
     def get_attrs(self, item_list, user):
         users_by_author = get_users_for_pull_requests(item_list, user)
-
-        repositories = serialize(
-            list(Repository.objects.filter(
-                id__in=[c.repository_id for c in item_list],
-            )), user
-        )
-
-        repository_objs = {repository['id']: repository for repository in repositories}
+        repositories = list(Repository.objects.filter(
+            id__in=[c.repository_id for c in item_list],
+        ))
+        repository_map = {repository.id: repository for repository in repositories}
+        serialized_repos = {r['id']: r for r in serialize(repositories, user)}
 
         result = {}
         for item in item_list:
+            repository_id = six.text_type(item.repository_id)
             result[item] = {
-                'repository': repository_objs.get(six.text_type(item.repository_id), {}),
+                'repository': serialized_repos.get(repository_id, {}),
+                'external_url': self._external_url(repository_map[item.repository_id], item),
                 'user': users_by_author.get(six.text_type(item.author_id), {})
                 if item.author_id else {},
             }
 
         return result
 
+    def _external_url(self, repository, pull):
+        from sentry.plugins import bindings
+        provider_id = repository.provider
+        if not provider_id or not provider_id.startswith('integrations:'):
+            return None
+        provider_cls = bindings.get('integration-repository.provider').get(provider_id)
+        provider = provider_cls(provider_id)
+        return provider.pull_request_url(repository, pull)
+
     def serialize(self, obj, attrs, user):
-        d = {
+        return {
             'id': obj.key,
             'title': obj.title,
             'message': obj.message,
             'dateCreated': obj.date_added,
             'repository': attrs['repository'],
-            'author': attrs['user']
+            'author': attrs['user'],
+            'externalUrl': attrs['external_url']
         }
-
-        return d
