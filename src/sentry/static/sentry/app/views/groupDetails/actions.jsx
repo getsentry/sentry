@@ -3,39 +3,32 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import FeatureDisabled from 'app/components/acl/featureDisabled';
 import {openModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
 import DropdownLink from 'app/components/dropdownLink';
 import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GroupActions from 'app/actions/groupActions';
 import GroupState from 'app/mixins/groupState';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import HookStore from 'app/stores/hookStore';
 import IgnoreActions from 'app/components/actions/ignore';
 import IndicatorStore from 'app/stores/indicatorStore';
-import IssuePluginActions from 'app/components/group/issuePluginActions';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
 import ResolveActions from 'app/components/actions/resolve';
+import SentryTypes from 'app/sentryTypes';
 import ShareIssue from 'app/components/shareIssue';
 import space from 'app/styles/space';
 
 class DeleteActions extends React.Component {
   static propTypes = {
-    organization: PropTypes.object.isRequired,
+    organization: SentryTypes.Organization.isRequired,
+    project: SentryTypes.Project.isRequired,
     onDelete: PropTypes.func.isRequired,
     onDiscard: PropTypes.func.isRequired,
   };
-
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      hooksDisabled: HookStore.get('project:discard-groups:disabled'),
-    };
-  }
 
   renderDiscardDisabled = ({children, ...props}) =>
     children({
@@ -47,8 +40,9 @@ class DeleteActions extends React.Component {
 
   renderDiscardModal = ({Body, closeModal}) => (
     <Feature
-      features={['discard-groups']}
+      features={['projects:discard-groups']}
       organization={this.props.organization}
+      project={this.props.project}
       renderDisabled={this.renderDiscardDisabled}
     >
       {({hasFeature, renderDisabled, ...props}) => (
@@ -269,6 +263,7 @@ const GroupDetailsActions = createReactClass({
         </div>
         <DeleteActions
           organization={org}
+          project={project}
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}
         />
@@ -285,37 +280,6 @@ const GroupDetailsActions = createReactClass({
             />
           </div>
         )}
-
-        {group.pluginActions.length > 1 && !orgFeatures.has('new-issue-ui') ? (
-          <div className="btn-group more">
-            <DropdownLink className="btn btn-default btn-sm" title={t('More')}>
-              {group.pluginActions.map((action, actionIdx) => {
-                return (
-                  <MenuItem key={actionIdx} href={action[1]}>
-                    {action[0]}
-                  </MenuItem>
-                );
-              })}
-            </DropdownLink>
-          </div>
-        ) : (
-          group.pluginActions.length !== 0 &&
-          !orgFeatures.has('new-issue-ui') &&
-          group.pluginActions.map((action, actionIdx) => {
-            return (
-              <div className="btn-group" key={actionIdx}>
-                <a className="btn btn-default btn-sm" href={action[1]}>
-                  {action[0]}
-                </a>
-              </div>
-            );
-          })
-        )}
-        {group.pluginIssues &&
-          !orgFeatures.has('new-issue-ui') &&
-          group.pluginIssues.map(plugin => {
-            return <IssuePluginActions key={plugin.slug} plugin={plugin} />;
-          })}
       </div>
     );
   },

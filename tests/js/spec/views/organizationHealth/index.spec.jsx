@@ -4,8 +4,6 @@ import {OrganizationHealth} from 'app/views/organizationHealth';
 import {mount} from 'enzyme';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 
-import {selectByLabel} from '../../../helpers/select';
-
 describe('OrganizationHealth', function() {
   let wrapper;
   const router = TestStubs.router({
@@ -43,27 +41,6 @@ describe('OrganizationHealth', function() {
 
   it('renders', function() {
     expect(wrapper.find('HealthWrapper')).toHaveLength(1);
-  });
-
-  it('updates router when changing environments', async function() {
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    await tick();
-    wrapper.update();
-
-    selectByLabel(wrapper, 'production', {control: true, name: 'environments'});
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/health/',
-      query: {
-        environments: ['production'],
-      },
-    });
-    selectByLabel(wrapper, 'staging', {control: true, name: 'environments'});
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/health/',
-      query: {
-        environments: ['production', 'staging'],
-      },
-    });
   });
 
   it('updates component state when router is updated', async function() {

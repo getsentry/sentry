@@ -5,6 +5,7 @@ import {Box, Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
+import getDynamicText from 'app/utils/getDynamicText';
 import Link from 'app/components/link';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
@@ -116,7 +117,12 @@ export default class Result extends React.Component {
       ? baseQuery.data
       : byDayQuery.data;
 
-    const summary = [`query time: ${summaryData.timing.duration_ms} ms`];
+    const summary = [
+      `query time: ${getDynamicText({
+        value: summaryData.timing.duration_ms,
+        fixed: '10',
+      })} ms`,
+    ];
     if (this.state.view === 'table') {
       summary.push(getRowsPageRange(baseQuery));
     }
@@ -132,7 +138,9 @@ export default class Result extends React.Component {
   renderSavedQueryHeader() {
     return (
       <Flex align="center">
-        <Heading>{this.props.savedQuery.name}</Heading>
+        <Heading>
+          {getDynamicText({value: this.props.savedQuery.name, fixed: 'saved query'})}
+        </Heading>
         <SavedQueryAction onClick={this.props.onToggleEdit}>
           <InlineSvg src="icon-edit" />
         </SavedQueryAction>

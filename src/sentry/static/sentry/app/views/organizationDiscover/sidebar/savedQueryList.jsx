@@ -3,6 +3,7 @@ import moment from 'moment';
 import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
+import getDynamicText from 'app/utils/getDynamicText';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
@@ -81,10 +82,13 @@ export default class SavedQueries extends React.Component {
     return (
       <SavedQueryListItem key={id} isActive={savedQuery && savedQuery.id === id}>
         <SavedQueryLink to={`/organizations/${organization.slug}/discover/saved/${id}/`}>
-          {name}
+          {getDynamicText({value: name, fixed: 'saved query'})}
           <SavedQueryUpdated>
             {tct('Updated [date] (UTC)', {
-              date: moment.utc(dateUpdated).format('MMM DD HH:mm:ss'),
+              date: getDynamicText({
+                value: moment.utc(dateUpdated).format('MMM DD HH:mm:ss'),
+                fixed: 'update-date',
+              }),
             })}
           </SavedQueryUpdated>
         </SavedQueryLink>
