@@ -15,6 +15,7 @@ from collections import OrderedDict
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from hashlib import md5
 
 from sentry import eventtypes
 from sentry.db.models import (
@@ -57,6 +58,10 @@ class Event(Model):
         index_together = (('group_id', 'datetime'), )
 
     __repr__ = sane_repr('project_id', 'group_id')
+
+    @classmethod
+    def get_node_id(cls, project_id, event_id):
+        return md5('{}:{}'.format(project_id, event_id)).hexdigest()
 
     def __getstate__(self):
         state = Model.__getstate__(self)
