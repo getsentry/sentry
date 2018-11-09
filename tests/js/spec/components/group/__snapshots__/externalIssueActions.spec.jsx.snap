@@ -79,6 +79,31 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
       >
         <Container
           className="css-1s8b4pt-hoverCardContainer"
+          innerRef={
+            Object {
+              "current": <span
+                class="css-1l5wko0-Container-hoverCardContainer e38w1je1"
+              >
+                <svg
+                  class="e1vaar1z1 css-18jkql6-StyledSvg-IntegrationIcon e2idor0"
+                  height="1em"
+                  viewBox="[object Object]"
+                  width="1em"
+                >
+                  <use
+                    href="#test"
+                    xlink:href="#test"
+                  />
+                </svg>
+                <a
+                  class="css-oytllg-IntegrationLink e1vaar1z2"
+                  href="https://github.com/MeredithAnya/testing/issues/2"
+                >
+                  getsentry/sentry#2
+                </a>
+              </span>,
+            }
+          }
           onMouseEnter={[Function]}
           onMouseLeave={[Function]}
         >
@@ -287,6 +312,30 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
         >
           <Container
             className="css-1s8b4pt-hoverCardContainer"
+            innerRef={
+              Object {
+                "current": <span
+                  class="css-1l5wko0-Container-hoverCardContainer e38w1je1"
+                >
+                  <svg
+                    class="e1vaar1z1 css-18jkql6-StyledSvg-IntegrationIcon e2idor0"
+                    height="1em"
+                    viewBox="[object Object]"
+                    width="1em"
+                  >
+                    <use
+                      href="#test"
+                      xlink:href="#test"
+                    />
+                  </svg>
+                  <a
+                    class="css-oytllg-IntegrationLink e1vaar1z2"
+                  >
+                    Link GitHub Issue
+                  </a>
+                </span>,
+              }
+            }
             onMouseEnter={[Function]}
             onMouseLeave={[Function]}
           >

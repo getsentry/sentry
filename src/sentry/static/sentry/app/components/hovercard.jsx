@@ -6,7 +6,7 @@ import styled, {css, keyframes} from 'react-emotion';
 import {fadeIn} from 'app/styles/animations';
 import space from 'app/styles/space';
 
-const DEFAULT_POSITION = {x: 'middle', y: 'top'};
+const DEFAULT_POSITION = {x: 'middle', y: 'top', offset: 0};
 
 class Hovercard extends React.Component {
   static propTypes = {
@@ -67,13 +67,17 @@ class Hovercard extends React.Component {
     if (!this.cardElement.current || this.state.visible) return;
     const rect = this.cardElement.current.getBoundingClientRect();
 
-    const y = rect.top < 0 ? 'bottom' : 'top';
+    // Computes the offset that the hovercard should be from the anchor point
+    // of the container (top or bottom absolute position).
+    const offset = this.containerElement.current.offsetHeight;
+
+    const y = rect.top - offset < 0 ? 'bottom' : 'top';
     const x =
       rect.right > window.innerWidth && !(rect.left < 0)
         ? 'right'
         : rect.left < 0 ? 'left' : 'middle';
 
-    this.setState({position: {x, y}});
+    this.setState({position: {x, y, offset}});
   }
 
   render() {
@@ -86,6 +90,7 @@ class Hovercard extends React.Component {
     return (
       <Container
         className={containerClassName}
+        innerRef={this.containerElement}
         onMouseEnter={this.handleToggleOn}
         onMouseLeave={this.handleToggleOff}
       >
@@ -152,7 +157,7 @@ const StyledHovercard = styled('div')`
 
   position: absolute;
   ${positionX('-2px')};
-  ${positionY('28px')};
+  ${p => positionY(`${p.position.offset + 12}px`)};
 
   animation: ${fadeIn} 100ms, ${slideIn} 100ms ease-in-out;
   animation-play-state: ${p => (p.visible ? 'running' : 'paused')};

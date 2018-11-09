@@ -1058,6 +1058,42 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       displayTimeout={100}
                     >
                       <Container
+                        innerRef={
+                          Object {
+                            "current": <span
+                              class="css-s35yzd-Container e38w1je1"
+                            >
+                              <div
+                                class="css-omtyju-StyledScoreBar eecxaw40"
+                              >
+                                <div
+                                  class="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar eecxaw41"
+                                  size="40"
+                                />
+                              </div>
+                            </span>,
+                          }
+                        }
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
@@ -1169,6 +1205,38 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       displayTimeout={100}
                     >
                       <Container
+                        innerRef={
+                          Object {
+                            "current": <span
+                              class="css-s35yzd-Container e38w1je1"
+                            >
+                              <div
+                                class="css-omtyju-StyledScoreBar eecxaw40"
+                              >
+                                <div
+                                  class="css-15vxee-Bar eecxaw41"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar eecxaw41"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar eecxaw41"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar eecxaw41"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar eecxaw41"
+                                  size="40"
+                                />
+                              </div>
+                            </span>,
+                          }
+                        }
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
