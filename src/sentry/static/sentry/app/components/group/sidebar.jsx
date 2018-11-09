@@ -7,7 +7,6 @@ import classNames from 'classnames';
 import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
-import Feature from 'app/components/acl/feature';
 import GroupParticipants from 'app/components/group/participants';
 import GroupReleaseStats from 'app/components/group/releaseStats';
 import ProjectState from 'app/mixins/projectState';
@@ -83,11 +82,11 @@ const GroupSidebar = createReactClass({
     this.api.request(`/issues/${group.id}/tags/`, {
       query: _.pickBy({
         key: group.tags.map(data => data.key),
-        environment: this.props.environment && this.props.environment.name
+        environment: this.props.environment && this.props.environment.name,
       }),
       success: data => {
         this.setState({
-          tagsWithTopValues: _.keyBy(data, 'key')
+          tagsWithTopValues: _.keyBy(data, 'key'),
         });
       },
       error: () => {
@@ -248,9 +247,7 @@ const GroupSidebar = createReactClass({
           group={this.props.group}
           allEnvironments={this.state.allEnvironmentsGroupData}
         />
-        <Feature features={['new-issue-ui']}>
-          <ExternalIssueList group={this.props.group} orgId={orgId} />
-        </Feature>
+        <ExternalIssueList group={this.props.group} orgId={orgId} />
 
         {this.renderPluginIssue()}
 
@@ -259,24 +256,25 @@ const GroupSidebar = createReactClass({
         <h6>
           <span>{t('Tags')}</span>
         </h6>
-        {this.state.tagsWithTopValues && group.tags.map(tag => {
-          let tagWithTopValues = this.state.tagsWithTopValues[tag.key];
-          let topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
-          let topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
-          return (
-            <TagDistributionMeter
-              key={tag.key}
-              tag={tag.key}
-              totalValues={tag.totalValues || topValuesTotal}
-              topValues={topValues}
-              name={tag.name}
-              data-test-id="group-tag"
-              orgId={orgId}
-              projectId={projectId}
-              group={group}
-            />
-          );
-        })}
+        {this.state.tagsWithTopValues &&
+          group.tags.map(tag => {
+            let tagWithTopValues = this.state.tagsWithTopValues[tag.key];
+            let topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
+            let topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
+            return (
+              <TagDistributionMeter
+                key={tag.key}
+                tag={tag.key}
+                totalValues={tag.totalValues || topValuesTotal}
+                topValues={topValues}
+                name={tag.name}
+                data-test-id="group-tag"
+                orgId={orgId}
+                projectId={projectId}
+                group={group}
+              />
+            );
+          })}
         {group.tags.length === 0 && (
           <p data-test-id="no-tags">
             {this.props.environment
