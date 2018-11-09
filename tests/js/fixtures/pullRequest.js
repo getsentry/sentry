@@ -12,6 +12,7 @@ export function PullRequest(params = {}) {
     message: 'Closes ISSUE-1',
     repository: Repository(),
     title: 'Fix first issue',
+    externalUrl: 'https://example.github.com/example/repo-name/pulls/3',
     ...params,
   };
 }

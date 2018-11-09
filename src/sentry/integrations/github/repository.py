@@ -140,3 +140,6 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
                     'type': 'A',
                 })
         return changes
+
+    def pull_request_url(self, repo, pull_request):
+        return u'{}/pulls/{}'.format(repo.url, pull_request.key)

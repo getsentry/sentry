@@ -6,7 +6,7 @@ import pytest
 
 from exam import fixture
 
-from sentry.models import Integration, Repository
+from sentry.models import Integration, Repository, PullRequest
 from sentry.testutils import PluginTestCase
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.utils import json
@@ -46,6 +46,7 @@ class GitHubAppsProviderTest(PluginTestCase):
             provider='integrations:github',
             organization_id=organization.id,
             integration_id=integration.id,
+            url='https://github.com/getsentry/example-repo',
             config={'name': 'getsentry/example-repo'},
         )
 
@@ -150,3 +151,8 @@ class GitHubAppsProviderTest(PluginTestCase):
         )
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, 'xyz123', 'abcdef')
+
+    def test_pull_request_url(self):
+        pull = PullRequest(key=99)
+        result = self.provider.pull_request_url(self.repository, pull)
+        assert result == 'https://github.com/getsentry/example-repo/pulls/99'

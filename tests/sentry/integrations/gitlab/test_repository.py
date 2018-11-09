@@ -13,6 +13,7 @@ from sentry.models import (
     Identity,
     IdentityProvider,
     Integration,
+    PullRequest,
     Repository,
 )
 from sentry.testutils import PluginTestCase
@@ -297,3 +298,12 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         repo = Repository.objects.get(pk=response.data['id'])
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(repo, None, 'abc')
+
+    @responses.activate
+    def test_pull_request_url(self):
+        response = self.create_repository(self.default_repository_config,
+                                          self.integration.id)
+        repo = Repository.objects.get(pk=response.data['id'])
+        pull = PullRequest(key=99)
+        result = self.provider.pull_request_url(repo, pull)
+        assert result == 'https://example.gitlab.com/getsentry/projects/example-repo/merge_requests/99'
