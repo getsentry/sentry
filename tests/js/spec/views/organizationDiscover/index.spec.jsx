@@ -33,12 +33,8 @@ describe('OrganizationDiscoverContainer', function() {
     it('fetches tags', function() {
       const queryBuilder = wrapper.instance().queryBuilder;
       expect(wrapper.state().isLoading).toBe(false);
-      expect(queryBuilder.getColumns().some(column => column.name === 'tags[tag1]')).toBe(
-        true
-      );
-      expect(queryBuilder.getColumns().some(column => column.name === 'tags[tag2]')).toBe(
-        true
-      );
+      expect(queryBuilder.getColumns().some(column => column.name === 'tag1')).toBe(true);
+      expect(queryBuilder.getColumns().some(column => column.name === 'tag2')).toBe(true);
     });
   });
 

@@ -6,29 +6,29 @@ const TYPES = {
 };
 
 export const PROMOTED_TAGS = [
-  {name: 'tags[level]', type: TYPES.STRING},
-  {name: 'tags[logger]', type: TYPES.STRING},
-  {name: 'tags[server_name]', type: TYPES.STRING},
-  {name: 'tags[transaction]', type: TYPES.STRING},
-  {name: 'tags[environment]', type: TYPES.STRING},
-  {name: 'tags[site]', type: TYPES.STRING},
-  {name: 'tags[url]', type: TYPES.STRING},
-  {name: 'tags[app_device]', type: TYPES.STRING},
-  {name: 'tags[device]', type: TYPES.STRING},
-  {name: 'tags[device_family]', type: TYPES.STRING},
-  {name: 'tags[runtime]', type: TYPES.STRING},
-  {name: 'tags[runtime_name]', type: TYPES.STRING},
-  {name: 'tags[browser]', type: TYPES.STRING},
-  {name: 'tags[browser_name]', type: TYPES.STRING},
-  {name: 'tags[os]', type: TYPES.STRING},
-  {name: 'tags[os_name]', type: TYPES.STRING},
-  {name: 'tags[os_rooted]', type: TYPES.BOOLEAN},
-  {name: 'tags[sentry:release]', type: TYPES.STRING},
+  'level',
+  'logger',
+  'server_name',
+  'transaction',
+  'environment',
+  'site',
+  'url',
+  'app_device',
+  'device',
+  'device_family',
+  'runtime',
+  'runtime_name',
+  'browser',
+  'browser_name',
+  'os',
+  'os_name',
+  'os_rooted',
+  'sentry:release',
 ];
 
 // All tags are assumed to be strings, except the following
 export const SPECIAL_TAGS = {
-  'tags[os_rooted]': TYPES.BOOLEAN,
+  os_rooted: TYPES.BOOLEAN,
 };
 
 export const COLUMNS = [

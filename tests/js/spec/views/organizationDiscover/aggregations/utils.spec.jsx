@@ -20,12 +20,12 @@ const aggregationList = [
     external: ['avg', 'device.battery_level', 'avg_device_battery_level'],
   },
   {
-    internal: 'uniq(tags[server_name])',
-    external: ['uniq', 'tags[server_name]', 'uniq_tags_server_name'],
+    internal: 'uniq(server_name)',
+    external: ['uniq', 'server_name', 'uniq_server_name'],
   },
   {
-    internal: 'uniq(tags[browser.name])',
-    external: ['uniq', 'tags[browser.name]', 'uniq_tags_browser_name'],
+    internal: 'uniq(browser.name)',
+    external: ['uniq', 'browser.name', 'uniq_browser_name'],
   },
 ];
 

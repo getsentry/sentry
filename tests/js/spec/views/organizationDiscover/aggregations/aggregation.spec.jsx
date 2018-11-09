@@ -18,8 +18,8 @@ describe('Aggregation', function() {
           expectedTextValue: 'avg(device.battery_level)',
         },
         {
-          value: ['uniq', 'tags[message]', 'uniq_tags_message'],
-          expectedTextValue: 'uniq(tags[message])',
+          value: ['uniq', 'message', 'uniq_message'],
+          expectedTextValue: 'uniq(message)',
         },
       ];
 
