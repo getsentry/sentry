@@ -21,7 +21,6 @@ CANONICAL_KEY_MAPPING = {
     'sentry.interfaces.Message': 'logentry',
     'sentry.interfaces.Stacktrace': 'stacktrace',
     'sentry.interfaces.Template': 'template',
-    'sentry.interfaces.Query': 'query',
     'sentry.interfaces.Http': 'request',
     'sentry.interfaces.User': 'user',
     'sentry.interfaces.Csp': 'csp',
