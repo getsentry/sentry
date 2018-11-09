@@ -142,7 +142,7 @@ class TimeRangeSelector extends React.PureComponent {
 
     this.setState(state => {
       const useUtc = !state.useUtc;
-      analytics('dateselector.utc', {
+      analytics('dateselector.utc_changed', {
         utc: useUtc,
       });
 
