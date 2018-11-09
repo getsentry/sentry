@@ -9,7 +9,6 @@ import Papa from 'papaparse';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 const CHART_KEY = '__CHART_KEY__';
-const TRUNCATION_LENGTH = 80;
 
 /**
  * Returns data formatted for basic line and bar charts, with each aggregation
@@ -21,16 +20,6 @@ const TRUNCATION_LENGTH = 80;
  */
 export function getChartData(data, query) {
   const {fields} = query;
-
-  data.forEach(obj => {
-    fields.forEach(field => {
-      if (obj.hasOwnProperty(field) && typeof obj[field] === 'string') {
-        if (obj[field].length > TRUNCATION_LENGTH) {
-          obj[field] = obj[field].slice(0, TRUNCATION_LENGTH) + '…';
-        }
-      }
-    });
-  });
 
   return query.aggregations.map(aggregation => {
     return {
