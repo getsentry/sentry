@@ -10,12 +10,12 @@ describe('IntegrationRepos', function() {
     Client.clearMockResponses();
   });
 
-  describe('Adding repositories', function() {
-    const org = TestStubs.Organization();
-    const integration = TestStubs.GitHubIntegration();
-    const routerContext = TestStubs.routerContext();
+  const org = TestStubs.Organization();
+  const integration = TestStubs.GitHubIntegration();
+  const routerContext = TestStubs.routerContext();
 
-    describe('successful save', async function() {
+  describe('Adding repositories', function() {
+    it('can save successfully', async function() {
       let addRepo = Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',
@@ -24,7 +24,7 @@ describe('IntegrationRepos', function() {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
         body: {
-          repos: [{identifier: 'repo-name', name: 'repo-name'}],
+          repos: [{identifier: 'example/repo-name', name: 'repo-name'}],
         },
       });
       Client.addMockResponse({
@@ -49,7 +49,7 @@ describe('IntegrationRepos', function() {
           data: {
             installation: '1',
             provider: 'integrations:github',
-            identifier: 'repo-name',
+            identifier: 'example/repo-name',
           },
         })
       );
@@ -58,10 +58,10 @@ describe('IntegrationRepos', function() {
         .find('strong')
         .first();
       expect(name).toHaveLength(1);
-      expect(name.text()).toEqual('repo-name');
+      expect(name.text()).toEqual('example/repo-name');
     });
 
-    describe('save failure', async function() {
+    it('handles failure during save', async function() {
       let addRepo = Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',
@@ -95,48 +95,79 @@ describe('IntegrationRepos', function() {
       expect(addRepo).toHaveBeenCalled();
       expect(wrapper.find('RepoOption')).toHaveLength(0);
     });
+  });
 
-    describe('migratable repo', function() {
+  describe('migratable repo', function() {
+    it('associates repository with integration', () => {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         body: [
-          {
-            name: 'foo/bar',
-            id: 2,
+          TestStubs.Repository({
             integrationId: null,
             provider: {
-              name: 'GitHub',
               id: 'integrations:github',
+              name: 'GitHub',
               status: 'active',
-              url: 'github.com/foo/bar',
             },
-          },
+          }),
         ],
       });
       Client.addMockResponse({
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
-        body: {repos: [{identifier: 'foo/bar', name: 'foo'}]},
+        body: {repos: [{identifier: 'example/repo-name', name: 'repo-name'}]},
+      });
+      const updateRepo = Client.addMockResponse({
+        method: 'PUT',
+        url: `/organizations/${org.slug}/repos/4/`,
+        body: {},
       });
       const wrapper = mount(
         <IntegrationRepos integration={integration} />,
         routerContext
       );
 
-      it('associates repository with integration', () => {
-        const updateRepo = Client.addMockResponse({
-          method: 'PUT',
-          url: `/organizations/${org.slug}/repos/${2}/`,
-          body: {},
-        });
-        wrapper.find('DropdownButton').simulate('click');
-        wrapper.find('StyledListElement').simulate('click');
-        expect(updateRepo).toHaveBeenCalledWith(
-          `/organizations/${org.slug}/repos/${2}/`,
-          expect.objectContaining({
-            data: {integrationId: '1'},
-          })
-        );
+      wrapper.find('DropdownButton').simulate('click');
+      wrapper.find('StyledListElement').simulate('click');
+      expect(updateRepo).toHaveBeenCalledWith(
+        `/organizations/${org.slug}/repos/4/`,
+        expect.objectContaining({
+          data: {integrationId: '1'},
+        })
+      );
+    });
+
+    it('compares case-insensitive', () => {
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'GET',
+        body: [TestStubs.Repository({name: 'Example/repo-name'})],
       });
+      const getItems = Client.addMockResponse({
+        url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
+        method: 'GET',
+        body: {
+          repos: [{identifier: 'example/repo-name', name: 'repo-name'}],
+        },
+      });
+      const updateRepo = Client.addMockResponse({
+        method: 'PUT',
+        url: `/organizations/${org.slug}/repos/4/`,
+        body: {},
+      });
+      const wrapper = mount(
+        <IntegrationRepos integration={integration} />,
+        routerContext
+      );
+      wrapper.find('DropdownButton').simulate('click');
+      wrapper.find('StyledListElement').simulate('click');
+
+      expect(getItems).toHaveBeenCalled();
+      expect(updateRepo).toHaveBeenCalledWith(
+        `/organizations/${org.slug}/repos/4/`,
+        expect.objectContaining({
+          data: {integrationId: '1'},
+        })
+      );
     });
   });
 });
