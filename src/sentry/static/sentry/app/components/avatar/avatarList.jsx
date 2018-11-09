@@ -7,14 +7,20 @@ import SentryTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
 import Tooltip from 'app/components/tooltip';
 
-export default class AvatarList extends React.Component {
+class BaseAvatarList extends React.Component {
   static propTypes = {
-    users: PropTypes.arrayOf(SentryTypes.User).isRequired,
+    items: PropTypes.arrayOf(PropTypes.shape({
+      organization: SentryTypes.Organization,
+      project: SentryTypes.Project,
+      team: SentryTypes.Team,
+      user: SentryTypes.User,
+    })),
     avatarSize: PropTypes.number,
     maxVisibleAvatars: PropTypes.number,
     renderTooltip: PropTypes.func,
     tooltipOptions: PropTypes.object,
     typeMembers: PropTypes.string,
+    round: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -25,30 +31,35 @@ export default class AvatarList extends React.Component {
 
   render() {
     const {
-      users,
+      items,
       avatarSize,
       maxVisibleAvatars,
       tooltipOptions,
       renderTooltip,
       typeMembers,
+      round,
     } = this.props;
-    const visibleUsers = users.slice(0, maxVisibleAvatars);
-    const numCollapsedUsers = users.length - visibleUsers.length;
+    const visibleItems = items.slice(0, maxVisibleAvatars);
+    const numCollapsedItems = items.length - visibleItems.length;
     return (
       <Flex direction="row-reverse">
-        {!!numCollapsedUsers && (
-          <Tooltip title={`${numCollapsedUsers} other ${typeMembers}`}>
-            <CollapsedUsers size={avatarSize}>
-              {numCollapsedUsers < 99 && <Plus>+</Plus>}
-              {numCollapsedUsers}
-            </CollapsedUsers>
+        {!!numCollapsedItems && (
+          <Tooltip title={`${numCollapsedItems} other ${typeMembers}`}>
+            <CollapsedItems size={avatarSize}
+              round={round}
+            >
+              {numCollapsedItems < 99 && <Plus>+</Plus>}
+              {numCollapsedItems}
+            </CollapsedItems>
           </Tooltip>
         )}
-        {visibleUsers.map(user => {
+        {visibleItems.map(itemObj => {
+          const [[type, item]] = Object.entries(itemObj);
           return (
             <StyledAvatar
-              key={user.id}
-              user={user}
+              round={round}
+              key={`${type}-${item.id || item.slug}`}
+              {...itemObj}
               size={avatarSize}
               renderTooltip={renderTooltip}
               tooltipOptions={tooltipOptions}
@@ -61,8 +72,25 @@ export default class AvatarList extends React.Component {
   }
 }
 
-const Circle = css`
-  border-radius: 50%;
+export default class AvatarList extends React.Component {
+  static propTypes = {
+    users: PropTypes.arrayOf(SentryTypes.User).isRequired,
+  };
+
+  render() {
+    const {
+      users,
+      ...props,
+    } = this.props;
+
+    return (
+      <BaseAvatarList typeMembers="users" items={users && users.map(user => ({user}))} {...props}/>
+    );
+  }
+}
+
+const Circle = (props) => css`
+  border-radius: ${props.round ? '50%' : '3px'};
   border: 2px solid white;
   margin-left: -8px;
   cursor: default;
@@ -77,7 +105,7 @@ const StyledAvatar = styled(Avatar)`
   ${Circle};
 `;
 
-const CollapsedUsers = styled('div')`
+const CollapsedItems = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;

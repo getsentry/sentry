@@ -45,10 +45,11 @@ class PlatformList extends React.Component {
   };
 
   render() {
-    const {platforms, max, size, direction, consistentWidth} = this.props;
+    const {className, platforms, max, size, direction, consistentWidth} = this.props;
     const platformsPreview = platforms.slice(0, max);
     return (
       <PlatformIcons
+        className={className}
         direction={direction}
         max={max}
         size={size}
