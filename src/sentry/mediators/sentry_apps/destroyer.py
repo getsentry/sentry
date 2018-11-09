@@ -4,7 +4,7 @@ from sentry.mediators import Mediator, Param
 
 
 class Destroyer(Mediator):
-    sentry_app = Param('sentry.models.sentryapp.SentryApp')
+    sentry_app = Param('sentry.models.SentryApp')
 
     def call(self):
         self._destroy_api_application()

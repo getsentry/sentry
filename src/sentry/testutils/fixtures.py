@@ -26,6 +26,7 @@ from uuid import uuid4
 
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Creator as SentryAppCreator
+from sentry.mediators.service_hooks import Creator as ServiceHookCreator
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
@@ -723,3 +724,22 @@ class Fixtures(object):
             app.update(status=SentryAppStatus.PUBLISHED)
 
         return app
+
+    def create_service_hook(self, actor=None, project=None, events=None, url=None, **kwargs):
+        if not actor:
+            actor = self.create_user()
+        if not project:
+            org = self.create_organization(owner=actor)
+            project = self.create_project(organization=org)
+        if not events:
+            events = ('event.created',)
+        if not url:
+            url = 'https://example/sentry/webhook'
+
+        return ServiceHookCreator.run(
+            actor=actor,
+            project=project,
+            events=events,
+            url=url,
+            **kwargs
+        )
