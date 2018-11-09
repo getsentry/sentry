@@ -26,8 +26,8 @@ const SampleEventBanner = createReactClass({
   },
 
   onConfigStoreUpdate(config) {
-    if (config.sentFirstEvent) {
-      this.setState({sentFirstEvent: Boolean(config.sentFirstEvent)});
+    if (!this.state.sentFirstEvent && config.sentFirstEvent) {
+      this.setState({sentFirstEvent: true});
     }
   },
 
@@ -57,12 +57,10 @@ const SampleEventBanner = createReactClass({
   inSetupFlow() {
     let path = window.location.pathname;
 
-    let notSetupPage =
-      path.indexOf('getting-started') === -1 &&
-      path.indexOf('onboarding') === -1 &&
-      path.indexOf('/projects/new') === -1;
-
-    return !notSetupPage;
+    return !(
+      path.indexOf('/getting-started/') === -1 &&
+      path.indexOf('/onboarding/') === -1 &&
+      path.indexOf('/projects/new/') === -1);
   },
 
   render() {
