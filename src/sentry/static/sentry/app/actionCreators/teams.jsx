@@ -11,16 +11,19 @@ const doCallback = (params = {}, name, ...args) => {
 // Fetch teams for org
 export function fetchTeams(api, params, options) {
   TeamActions.fetchAll(params.orgId);
-  return api.request(`/teams/${params.orgId}/`, {
-    success: data => {
+  const promise = api.requestPromise(`/organizations/${params.orgId}/teams/`);
+
+  promise.then(
+    data => {
       TeamActions.fetchAllSuccess(params.orgId, data);
-      doCallback(options, 'success', data);
     },
-    error: error => {
+    error => {
       TeamActions.fetchAllError(params.orgId, error);
-      doCallback(options, 'error', error);
-    },
-  });
+    }
+  );
+
+  // Return promise to allow caller to handle rejections
+  return promise;
 }
 
 export function fetchTeamDetails(api, params, options) {
