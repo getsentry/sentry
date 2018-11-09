@@ -38,7 +38,9 @@ describe('IntegrationRepos', function() {
         routerContext
       );
       wrapper.find('DropdownButton').simulate('click');
+
       wrapper.find('StyledListElement').simulate('click');
+      await wrapper.update();
       await wrapper.update();
 
       expect(addRepo).toHaveBeenCalledWith(
@@ -51,8 +53,12 @@ describe('IntegrationRepos', function() {
           },
         })
       );
-      let repoRow = wrapper.find('RepositoryRow').first();
-      expect(repoRow.find('strong').text()).toEqual('repo-name');
+      let name = wrapper
+        .find('RepositoryRow')
+        .find('strong')
+        .first();
+      expect(name).toHaveLength(1);
+      expect(name.text()).toEqual('repo-name');
     });
 
     describe('save failure', async function() {
