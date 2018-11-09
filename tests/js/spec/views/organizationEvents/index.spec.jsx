@@ -4,20 +4,13 @@ import {OrganizationEventsContainer} from 'app/views/organizationEvents';
 import {mount} from 'enzyme';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 
-import {clearValue, selectByLabel} from '../../../helpers/select';
-
 describe('OrganizationEvents', function() {
   let wrapper;
-  const router = TestStubs.router({
-    location: {
-      pathname: '/organizations/org-slug/events/',
-      query: {},
-    },
-  });
+  let router;
   const project = TestStubs.Project({isMember: true});
   const organization = TestStubs.Organization({
     features: ['events-stream'],
-    projects: [project],
+    projects: [project, TestStubs.Project({isMember: true, slug: 'new-project', id: 3})],
   });
 
   beforeAll(async function() {
@@ -28,6 +21,15 @@ describe('OrganizationEvents', function() {
 
     setActiveOrganization(organization);
     await tick();
+  });
+
+  beforeEach(function() {
+    router = TestStubs.router({
+      location: {
+        pathname: '/organizations/org-slug/events/',
+        query: {},
+      },
+    });
 
     wrapper = mount(
       <OrganizationEventsContainer router={router} organization={organization}>
@@ -52,12 +54,13 @@ describe('OrganizationEvents', function() {
     await tick();
     wrapper.update();
 
-    selectByLabel(wrapper, 'production', {control: true, name: 'environments'});
+    wrapper
+      .find('EnvironmentSelectorItem')
+      .at(0)
+      .simulate('click');
     // This should update state, but not route or context
     expect(wrapper.state('environment')).toEqual(['production']);
 
-    // Click "Update"
-    wrapper.find('Button[data-test-id="update-envs"]').simulate('click');
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/events/',
       query: {
@@ -70,14 +73,23 @@ describe('OrganizationEvents', function() {
     );
 
     // Select a second environment, "staging"
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    await tick();
+    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     wrapper.update();
-    selectByLabel(wrapper, 'staging', {control: true, name: 'environments'});
+    wrapper
+      .find('EnvironmentSelectorItem')
+      .at(1)
+      .find('MultiSelect')
+      .simulate('click');
+    // selectByLabel(wrapper, 'staging', {control: true, name: 'environments'});
     expect(wrapper.state('environment')).toEqual(['production', 'staging']);
 
-    wrapper.find('Button[data-test-id="update-envs"]').simulate('click');
-    expect(router.push).toHaveBeenCalledWith({
+    // close dropdown
+    await wrapper
+      .find('MultipleEnvironmentSelector')
+      .instance()
+      .doUpdate();
+    wrapper.update();
+    expect(router.push).toHaveBeenLastCalledWith({
       pathname: '/organizations/org-slug/events/',
       query: {
         environment: ['production', 'staging'],
@@ -92,9 +104,9 @@ describe('OrganizationEvents', function() {
     wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
     await tick();
     wrapper.update();
-    clearValue(wrapper);
+    wrapper.find('MultipleEnvironmentSelector HeaderItem StyledClose').simulate('click');
     expect(wrapper.state('environment')).toEqual([]);
-    wrapper.find('Button[data-test-id="update-envs"]').simulate('click');
+
     expect(wrapper.state('queryValues')).toEqual(
       expect.objectContaining({environment: []})
     );
@@ -108,21 +120,12 @@ describe('OrganizationEvents', function() {
   });
 
   it('does not update component state when router is changed', async function() {
-    wrapper = mount(
-      <OrganizationEventsContainer router={router} organization={organization}>
-        <div />
-      </OrganizationEventsContainer>,
-      TestStubs.routerContext([
-        {
-          organization,
-        },
-      ])
-    );
     expect(wrapper.state('environment')).toEqual([]);
 
     // This shouldn't happen, we only use URL params for initial state
     wrapper.setProps({
       router: {
+        ...router,
         location: {
           pathname: '/organizations/org-slug/events/',
           query: {
@@ -133,5 +136,53 @@ describe('OrganizationEvents', function() {
       },
     });
     expect(wrapper.state('environment')).toEqual([]);
+  });
+
+  it('updates router when changing projects', function() {
+    expect(wrapper.state('project')).toEqual([]);
+
+    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+
+    wrapper
+      .find('MultipleProjectSelector AutoCompleteItem')
+      .at(0)
+      .simulate('click');
+    expect(wrapper.state('project')).toEqual([2]);
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {
+        project: [2],
+        statsPeriod: '14d',
+      },
+    });
+  });
+
+  it('selects multiple projects', async function() {
+    expect(wrapper.state('project')).toEqual([]);
+
+    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+
+    wrapper
+      .find('MultipleProjectSelector AutoCompleteItem MultiSelectWrapper')
+      .at(0)
+      .simulate('click');
+    expect(wrapper.state('project')).toEqual([2]);
+
+    wrapper
+      .find('MultipleProjectSelector AutoCompleteItem MultiSelectWrapper')
+      .at(1)
+      .simulate('click');
+    expect(wrapper.state('project')).toEqual([2, 3]);
+
+    wrapper.find('MultipleProjectSelector StyledChevron').simulate('click');
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {
+        project: [2, 3],
+        statsPeriod: '14d',
+      },
+    });
   });
 });

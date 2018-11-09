@@ -17,17 +17,17 @@ raw_search      = ~r".+$"
 # standard key:val filter
 basic_filter    = search_key sep search_value
 # filter specifically for the timestamp
-time_filter     = "timestamp" operator date_formats
+time_filter     = "timestamp" operator date_format
 
-search_key      = ~r"[a-z]*\.?[a-z]*"
+search_key      = key / quoted_key
 search_value    = quoted_value / value
 value           = ~r"\S*"
 quoted_value    = ~r"\"(.*)\""s
+key             = ~r"[a-zA-Z0-9_\.-]+"
+# only allow colons in quoted keys
+quoted_key      = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
-date_formats    = date_time_micro / date_time / date
-date            = ~r"\d{4}-\d{2}-\d{2}"
-date_time       = ~r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
-date_time_micro = ~r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{1,6}"
+date_format    = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
@@ -36,6 +36,7 @@ operator        = ">=" / "<=" / ">" / "<" / "=" / "!="
 sep             = ":"
 space           = ~r" "
 """)
+
 
 FIELD_LOOKUP = {
     'user.id': {
@@ -121,7 +122,11 @@ class SearchKey(namedtuple('SearchKey', 'name')):
 
     @property
     def snuba_name(self):
-        return FIELD_LOOKUP[self.name]['snuba_name']
+        field = FIELD_LOOKUP.get(self.name)
+        if field:
+            return field['snuba_name']
+        # assume custom tag if not listed
+        return 'tags[%s]' % (self.name,)
 
 
 class SearchValue(namedtuple('SearchValue', 'raw_value type')):
@@ -169,22 +174,20 @@ class SearchVisitor(NodeVisitor):
     def visit_operator(self, node, children):
         return node.text
 
-    def visit_date_formats(self, node, children):
+    def visit_date_format(self, node, children):
         return node.text
 
     def visit_basic_filter(self, node, children):
         search_key, _, search_value = children
-        try:
-            return SearchFilter(
-                SearchKey(search_key),
-                "=",
-                SearchValue(search_value, FIELD_LOOKUP[search_key]['type']),
-            )
-        except KeyError:
-            raise InvalidSearchQuery('Unsupported search term: %s' % (search_key,))
+        field = FIELD_LOOKUP.get(search_key)
+        return SearchFilter(
+            SearchKey(search_key),
+            "=",
+            SearchValue(search_value, field['type'] if field else 'string'),
+        )
 
     def visit_search_key(self, node, children):
-        return node.text
+        return children[0]
 
     def visit_search_value(self, node, children):
         return children[0]
@@ -192,7 +195,13 @@ class SearchVisitor(NodeVisitor):
     def visit_value(self, node, children):
         return node.text
 
+    def visit_key(self, node, children):
+        return node.text
+
     def visit_quoted_value(self, node, children):
+        return node.match.groups()[0]
+
+    def visit_quoted_key(self, node, children):
         return node.match.groups()[0]
 
     def generic_visit(self, node, children):

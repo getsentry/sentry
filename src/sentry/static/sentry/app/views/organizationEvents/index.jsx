@@ -153,7 +153,7 @@ class OrganizationEventsContainer extends React.Component {
 
   handleUpdateEnvironmments = () => this.handleUpdate('environment');
 
-  handleUpdateProjects = () => this.handleUpdate('projects');
+  handleUpdateProjects = () => this.handleUpdate('project');
 
   render() {
     const {organization, children} = this.props;

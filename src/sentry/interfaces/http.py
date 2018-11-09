@@ -140,7 +140,10 @@ class Http(Interface):
         else:
             kwargs['method'] = None
 
-        scheme, netloc, path, query_bit, fragment_bit = urlsplit(data['url'])
+        if data.get('url', None):
+            scheme, netloc, path, query_bit, fragment_bit = urlsplit(data['url'])
+        else:
+            scheme = netloc = path = query_bit = fragment_bit = None
 
         query_string = data.get('query_string') or query_bit
         if query_string:

@@ -3,10 +3,10 @@ import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 
+import {deleteRepository, cancelDeleteRepository} from 'app/actionCreators/integrations';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import SpreadLayout from 'app/components/spreadLayout';
-import IndicatorStore from 'app/stores/indicatorStore';
 import {Repository} from 'app/sentryTypes';
 import {t} from 'app/locale';
 
@@ -55,30 +55,22 @@ class RepositoryRow extends React.Component {
 
   cancelDelete = () => {
     let {api, orgId, repository, onRepositoryChange} = this.props;
-    let indicator = IndicatorStore.add(t('Saving changes...'));
-
-    api.request(`/organizations/${orgId}/repos/${repository.id}/`, {
-      method: 'PUT',
-      data: {status: 'visible'},
-      success: data => {
+    cancelDeleteRepository(api, orgId, repository.id).then(
+      data => {
         if (onRepositoryChange) onRepositoryChange(data);
       },
-      error: () => IndicatorStore.addError(t('An error occurred.')),
-      complete: () => IndicatorStore.remove(indicator),
-    });
+      () => {}
+    );
   };
 
   deleteRepo = () => {
     let {api, orgId, repository, onRepositoryChange} = this.props;
-    let indicator = IndicatorStore.add(t('Saving changes..'));
-    api.request(`/organizations/${orgId}/repos/${repository.id}/`, {
-      method: 'DELETE',
-      success: data => {
+    deleteRepository(api, orgId, repository.id).then(
+      data => {
         if (onRepositoryChange) onRepositoryChange(data);
       },
-      error: () => IndicatorStore.addError(t('Unable to delete repository.')),
-      complete: () => IndicatorStore.remove(indicator),
-    });
+      () => {}
+    );
   };
 
   get isActive() {
