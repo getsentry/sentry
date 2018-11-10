@@ -4,6 +4,7 @@ __all__ = ['JavaScriptStacktraceProcessor']
 
 import logging
 import re
+import sys
 import base64
 import six
 import zlib
@@ -247,8 +248,8 @@ def fetch_release_file(filename, release, dist=None):
             with metrics.timer('sourcemaps.release_file_read'):
                 with releasefile.file.getfile() as fp:
                     z_body, body = compress_file(fp)
-        except Exception as e:
-            logger.exception(six.text_type(e))
+        except Exception:
+            logger.error('sourcemap.compress_read_failed', exc_info=sys.exc_info())
             cache.set(cache_key, -1, 3600)
             result = None
         else:
