@@ -250,7 +250,7 @@ def fetch_release_file(filename, release, dist=None):
                     z_body, body = compress_file(fp)
         except Exception:
             logger.error('sourcemap.compress_read_failed', exc_info=sys.exc_info())
-            cache.set(cache_key, -1, 3600)
+            cache.set(cache_key, -1, 60)
             result = None
         else:
             headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
