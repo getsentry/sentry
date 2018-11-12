@@ -384,6 +384,10 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
             'c' * 32, group=group, datetime=self.min_ago, tags={'user': {'email': 'foo@example.com'}}
         )
 
+        self.create_event(
+            'd' * 32, group=group, datetime=self.min_ago, tags={'user': {'email': 'foo@example.commmmmmmm'}}
+        )
+
         base_url = reverse(
             'sentry-api-0-organization-events',
             kwargs={
