@@ -162,6 +162,7 @@ class PostSentryAppsTest(SentryAppsTest):
             'organization': self.org.slug,
             'scopes': ('project:read', 'project:write'),
             'webhookUrl': 'https://example.com',
+            'isAlertable': False,
         }
 
         body.update(**kwargs)

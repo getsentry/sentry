@@ -103,7 +103,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             data={
                 'name': 'NewName',
                 'webhookUrl': 'https://newurl.com',
-                'redirectUrl': 'https://new-redirect-url',
+                'redirectUrl': 'https://new-redirect-url.com',
                 'isAlertable': True,
             },
             format='json',
@@ -111,7 +111,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.data['name'] == 'NewName'
         assert response.data['uuid'] == self.published_app.uuid
         assert response.data['webhookUrl'] == 'https://newurl.com'
-        assert response.data['webhookUrl'] == 'https://new-redirect-url'
+        assert response.data['redirectUrl'] == 'https://new-redirect-url.com'
         assert response.data['isAlertable']
 
     @with_feature('organizations:internal-catchall')
