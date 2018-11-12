@@ -7,7 +7,7 @@ class MultipleProjectSelectorContainer extends React.Component {
   render() {
     return (
       <FetchTeams {...this.props}>
-        {({teams}) => <MultipleProjectSelector {...this.props} teams={teams} />}
+        {props => <MultipleProjectSelector {...this.props} {...props} />}
       </FetchTeams>
     );
   }

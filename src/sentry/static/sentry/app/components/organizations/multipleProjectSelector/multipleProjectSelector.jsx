@@ -15,13 +15,24 @@ const rootContainerStyles = css`
 
 class MultipleProjectSelector extends React.PureComponent {
   static propTypes = {
+    // Show teams in selector?
     showTeams: PropTypes.bool,
+
+    // List of detailed teams
+    teams: PropTypes.arrayOf(SentryTypes.Team),
+
+    // team loading status
+    teamLoading: PropTypes.bool,
+
+    // The teams/projects currently selected
     value: PropTypes.shape({
       projects: PropTypes.arrayOf(SentryTypes.Project),
       teams: PropTypes.arrayOf(SentryTypes.Team),
     }),
+
+    // List of projects
     projects: PropTypes.arrayOf(SentryTypes.Project),
-    teams: PropTypes.arrayOf(SentryTypes.Team),
+
     onChange: PropTypes.func,
     onUpdate: PropTypes.func,
   };
@@ -116,7 +127,7 @@ class MultipleProjectSelector extends React.PureComponent {
   };
 
   render() {
-    const {value, projects, teams, showTeams, ...props} = this.props;
+    const {value, projects, teams, teamLoading, showTeams, ...props} = this.props;
     const {project, team} = value;
     const selectedProjectIds = new Set(project);
     const selectedTeamIds = new Set(team);
@@ -133,6 +144,7 @@ class MultipleProjectSelector extends React.PureComponent {
         showTeams={showTeams}
         multi
         teams={teams}
+        teamLoading={teamLoading}
         projects={projects}
         selectedTeams={allSelectedTeams}
         selectedProjects={allSelectedProjects}
@@ -167,7 +179,7 @@ class MultipleProjectSelector extends React.PureComponent {
                 showTeams={showTeams}
                 teams={selectedTeams}
                 projects={selectedProjects}
-                loading={teams === null}
+                loading={teamLoading}
               />
             </StyledHeaderItem>
           );

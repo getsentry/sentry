@@ -20,6 +20,7 @@ const FetchTeams = withRouter(
         super();
         this.state = {
           teams: null,
+          error: false,
         };
       }
 
@@ -31,7 +32,10 @@ const FetchTeams = withRouter(
 
         fetchTeams(api, router.params).then(
           teams => this.setState({teams}),
-          () => addErrorMessage(t('Error fetching teams'))
+          () => {
+            addErrorMessage(t('Error fetching teams'));
+            this.setState({error: true});
+          }
         );
       }
 
@@ -39,6 +43,8 @@ const FetchTeams = withRouter(
         const {showTeams, children} = this.props;
         return children({
           teams: showTeams ? this.state.teams : [],
+          teamLoading: this.state.teams === null && !this.state.error,
+          teamLoadError: this.state.error,
         });
       }
     }

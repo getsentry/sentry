@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 import {getProjectSelectorType} from 'app/components/projectSelector/utils';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import ProjectSelectorItem from 'app/components/projectSelector/projectSelectorItem';
@@ -25,11 +26,14 @@ class ProjectSelector extends React.Component {
       PropTypes.oneOfType([PropTypes.string, SentryTypes.Project])
     ),
 
+    // Allow teams to be picked
+    showTeams: PropTypes.bool,
+
     // List of teams to show in menu
     teams: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, SentryTypes.Team])),
 
-    // Allow teams to be picked
-    showTeams: PropTypes.bool,
+    // If there was an error loading teams
+    teamLoadError: PropTypes.bool,
 
     // Render a footer at the bottom of the list
     // render function that is passed an `actions` object with `close` and `open` properties.
@@ -258,6 +262,7 @@ class ProjectSelector extends React.Component {
       rootClassName,
       showTeams,
       onClose,
+      teamLoadError,
     } = this.props;
     const {activeProject} = this.state;
     const access = new Set(org.access);
@@ -290,15 +295,27 @@ class ProjectSelector extends React.Component {
         noResultsMessage={t('No projects found')}
         virtualizedHeight={40}
         emptyHidesInput
+        menuHeader={() => {
+          if (!teamLoadError) {
+            return null;
+          }
+
+          return (
+            <StyledAlert type="error" icon="icon-circle-close">
+              {t('Error loading teams')}
+            </StyledAlert>
+          );
+        }}
         menuFooter={renderProps => {
           const renderedFooter =
             typeof menuFooter === 'function' ? menuFooter(renderProps) : menuFooter;
           const showCreateProjectButton = !hasProjects && hasProjectWrite;
+          const {LabelWithPadding} = renderProps.components;
 
           if (!renderedFooter && !showCreateProjectButton) return null;
 
           return (
-            <React.Fragment>
+            <LabelWithPadding>
               {showCreateProjectButton && (
                 <CreateProjectButton
                   priority="primary"
@@ -309,7 +326,7 @@ class ProjectSelector extends React.Component {
                 </CreateProjectButton>
               )}
               {renderedFooter}
-            </React.Fragment>
+            </LabelWithPadding>
           );
         }}
         items={this.getItems(projectList)}
@@ -334,6 +351,11 @@ const CreateProjectButton = styled(Button)`
   display: block;
   text-align: center;
   margin: ${space(0.5)} 0;
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: 0;
+  border-radius: 0;
 `;
 
 export default ProjectSelector;
