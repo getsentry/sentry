@@ -126,13 +126,16 @@ const slideIn = p => keyframes`
 
 const positionX = offset => p => css`
   right: ${p.position.x === 'right' ? offset : 'inherit'};
-  left: ${{left: offset, right: 'inherit', middle: '50%'}[p.position.x]};
+  left: ${p.position.x === 'middle'
+    ? '50%'
+    : p.position.x === 'left' ? offset : 'inherit'};
+
   transform: ${translateX(p.position.x)};
 `;
 
 const positionY = offset => p => css`
-  bottom: ${{top: offset, bottom: 'inherit'}[p.position.y]};
-  top: ${{top: 'inherit', bottom: offset}[p.position.y]};
+  bottom: ${p.position.y === 'top' ? offset : 'inherit'};
+  top: ${p.position.y === 'bottom' ? offset : 'inherit'};
 `;
 
 const getTipColor = p =>
