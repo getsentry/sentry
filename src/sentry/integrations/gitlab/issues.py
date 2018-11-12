@@ -107,7 +107,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         return [
             {
                 'name': 'project',
-                'label': 'GitLub Project',
+                'label': 'GitLab Project',
                 'type': 'select',
                 'default': default_project,
                 'choices': project_choices,
