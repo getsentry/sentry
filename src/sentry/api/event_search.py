@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import re
+import six
+
 from collections import namedtuple
 
 from parsimonious.exceptions import ParseError
@@ -7,6 +10,47 @@ from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry.search.utils import parse_datetime_string, InvalidQuery
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
+
+WILDCARD_CHARS = re.compile(r'[\*\[\]\?]')
+
+
+def translate(pat):
+    """Translate a shell PATTERN to a regular expression.
+    There is no way to quote meta-characters.
+    modified from: https://github.com/python/cpython/blob/2.7/Lib/fnmatch.py#L85
+    """
+
+    i, n = 0, len(pat)
+    res = ''
+    while i < n:
+        c = pat[i]
+        i = i + 1
+        if c == '*':
+            res = res + '.*'
+        elif c == '?':
+            res = res + '.'
+        elif c == '[':
+            j = i
+            if j < n and pat[j] == '!':
+                j = j + 1
+            if j < n and pat[j] == ']':
+                j = j + 1
+            while j < n and pat[j] != ']':
+                j = j + 1
+            if j >= n:
+                res = res + '\\['
+            else:
+                stuff = pat[i:j].replace('\\', '\\\\')
+                i = j + 1
+                if stuff[0] == '!':
+                    stuff = '^' + stuff[1:]
+                elif stuff[0] == '^':
+                    stuff = '\\' + stuff
+                res = '%s[%s]' % (res, stuff)
+        else:
+            res = res + re.escape(c)
+    return '^' + res + '$'
+
 
 event_search_grammar = Grammar(r"""
 # raw_search must come at the end, otherwise other
@@ -67,7 +111,17 @@ class SearchKey(namedtuple('SearchKey', 'name')):
 
 
 class SearchValue(namedtuple('SearchValue', 'raw_value')):
-    pass
+
+    @property
+    def value(self):
+        if self.is_wildcard():
+            return translate(self.raw_value)
+        return self.raw_value
+
+    def is_wildcard(self):
+        if not isinstance(self.raw_value, six.string_types):
+            return False
+        return bool(WILDCARD_CHARS.search(self.raw_value))
 
 
 class SearchVisitor(NodeVisitor):
@@ -180,7 +234,7 @@ def get_snuba_query_args(query=None, params=None):
     }
     for _filter in parsed_filters:
         snuba_name = _filter.key.snuba_name
-        value = _filter.value.raw_value
+        value = _filter.value.value
 
         if snuba_name in ('start', 'end'):
             kwargs[snuba_name] = value
@@ -208,10 +262,15 @@ def get_snuba_query_args(query=None, params=None):
             )
 
         else:
-            kwargs['conditions'].append([
-                snuba_name,
-                _filter.operator,
-                value,
-            ])
+            if _filter.value.is_wildcard():
+                kwargs['conditions'].append(
+                    [['match', [snuba_name, "'%s'" % (value,)]], '=', 1]
+                )
+            else:
+                kwargs['conditions'].append([
+                    snuba_name,
+                    _filter.operator,
+                    value,
+                ])
 
     return kwargs
