@@ -64,7 +64,7 @@ basic_filter    = search_key sep search_value
 # filter specifically for the timestamp
 time_filter     = "timestamp" operator date_format
 # has filter for not null type checks
-has_filter      = "has" sep search_key
+has_filter      = "has" sep (search_key / search_value)
 
 search_key      = key / quoted_key
 search_value    = quoted_value / value
@@ -173,32 +173,30 @@ class SearchVisitor(NodeVisitor):
     def visit_basic_filter(self, node, children):
         search_key, _, search_value = children
 
-        # if this matched with the `has` key, then their value for
-        # this was not a valid key pattern
-        if search_key == 'has':
-            raise InvalidSearchQuery('Invalid format for "has" search: %s' % (search_value,))
-
-        return SearchFilter(
-            SearchKey(search_key),
-            "=",
-            SearchValue(search_value),
-        )
+        return SearchFilter(search_key, "=", search_value)
 
     def visit_has_filter(self, node, children):
         # the key is has here, which we don't need
-        _, _, search_value = children
+        _, _, search_key = children
+        search_key = search_key[0]
+
+        # if it matched search value instead, it's not a valid key
+        if isinstance(search_key, SearchValue):
+            raise InvalidSearchQuery(
+                'Invalid format for "has" search: %s' %
+                (search_key.raw_value,))
 
         return SearchFilter(
-            SearchKey(search_value),
+            search_key,
             '!=',
             SearchValue(''),
         )
 
     def visit_search_key(self, node, children):
-        return children[0]
+        return SearchKey(children[0])
 
     def visit_search_value(self, node, children):
-        return children[0]
+        return SearchValue(children[0])
 
     def visit_value(self, node, children):
         return node.text
