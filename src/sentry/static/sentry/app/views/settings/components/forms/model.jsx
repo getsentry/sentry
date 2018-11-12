@@ -234,9 +234,6 @@ class FormModel {
   doApiRequest({apiEndpoint, apiMethod, data}) {
     let endpoint = apiEndpoint || this.options.apiEndpoint;
     let method = apiMethod || this.options.apiMethod;
-    console.log(data);
-    console.log(method);
-    console.log(endpoint);
     return new Promise((resolve, reject) => {
       this.api.request(endpoint, {
         method,
