@@ -97,7 +97,13 @@ export default class IntegrationRepos extends AsyncComponent {
 
     this.setState({adding: true});
 
-    let migratableRepo = itemList.filter(item => selection.value === item.name)[0];
+    let migratableRepo = itemList.filter(item => {
+      if (!(selection.value && item.name)) {
+        return false;
+      }
+      return selection.value.toLowerCase() === item.name.toLowerCase();
+    })[0];
+
     let promise;
     if (migratableRepo) {
       promise = migrateRepository(this.api, orgId, migratableRepo.id, integration);

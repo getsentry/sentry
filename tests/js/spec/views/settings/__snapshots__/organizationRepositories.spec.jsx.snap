@@ -36,7 +36,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
           repository={
             Object {
               "id": "4",
-              "name": "repo-name",
+              "name": "example/repo-name",
               "provider": "github",
               "status": "active",
               "url": "https://github.com/example/repo-name",

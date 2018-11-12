@@ -15,7 +15,7 @@ describe('PullRequestLink', function() {
     );
 
     expect(wrapper.find('a')).toHaveLength(0);
-    expect(wrapper.find('span').text()).toEqual('repo-name #3: Fix first issue');
+    expect(wrapper.find('span').text()).toEqual('example/repo-name #3: Fix first issue');
   });
 
   it('renders github links for integrations:github repositories', function() {
@@ -35,7 +35,7 @@ describe('PullRequestLink', function() {
 
     let link = wrapper.find('a');
     expect(link).toHaveLength(1);
-    expect(link.text().trim()).toEqual('repo-name #3: Fix first issue');
+    expect(link.text().trim()).toEqual('example/repo-name #3: Fix first issue');
   });
 
   it('renders github links for github repositories', function() {
@@ -55,7 +55,7 @@ describe('PullRequestLink', function() {
 
     let link = wrapper.find('a');
     expect(link).toHaveLength(1);
-    expect(link.text().trim()).toEqual('repo-name #3: Fix first issue');
+    expect(link.text().trim()).toEqual('example/repo-name #3: Fix first issue');
   });
 
   it('renders gitlab links for integrations:gitlab repositories', function() {
@@ -75,7 +75,7 @@ describe('PullRequestLink', function() {
 
     let link = wrapper.find('a');
     expect(link).toHaveLength(1);
-    expect(link.text().trim()).toEqual('repo-name #3: Fix first issue');
+    expect(link.text().trim()).toEqual('example/repo-name #3: Fix first issue');
   });
 
   it('renders github links for gitlab repositories', function() {
@@ -95,6 +95,6 @@ describe('PullRequestLink', function() {
 
     let link = wrapper.find('a');
     expect(link).toHaveLength(1);
-    expect(link.text().trim()).toEqual('repo-name #3: Fix first issue');
+    expect(link.text().trim()).toEqual('example/repo-name #3: Fix first issue');
   });
 });
