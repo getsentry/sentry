@@ -186,7 +186,7 @@ class GitLabApiClient(ApiClient):
     def search_project_issues(self, project_id, query, iids=None):
         """Search issues in a project
 
-        See https://docs.gitlab.com/ee/api/issues.html#list-group-issues
+        See https://docs.gitlab.com/ee/api/issues.html#list-project-issues
         """
         path = GitLabApiClientPath.project_issues.format(project=project_id)
 
