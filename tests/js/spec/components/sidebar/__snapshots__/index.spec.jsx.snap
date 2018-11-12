@@ -500,6 +500,7 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                     organizations={Array []}
                   >
                     <DropdownMenu
+                      closeOnEscape={true}
                       isNestedDropdown={true}
                       keepMenuOpen={false}
                     >
@@ -507,15 +508,29 @@ exports[`Sidebar SidebarDropdown can open Sidebar org/name dropdown menu 1`] = `
                         data-test-id="sidebar-switch-org"
                         innerRef={[Function]}
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <span
                           className="css-1lqnj07-SwitchOrganizationMenuActor ejspo4a3"
                           data-test-id="sidebar-switch-org"
                           onClick={[Function]}
+                          onKeyDown={[Function]}
                           onMouseEnter={[Function]}
                           onMouseLeave={[Function]}
+                          style={
+                            Object {
+                              "outline": "none",
+                            }
+                          }
+                          tabIndex={-1}
                         >
                           Switch organization
                           <SubMenuCaret>

@@ -34,6 +34,9 @@ class DropdownMenu extends React.Component {
     // This will change where we attach event handlers
     alwaysRenderMenu: PropTypes.bool,
 
+    // closes menu on "Esc" keypress
+    closeOnEscape: PropTypes.bool,
+
     /**
      * If this is set to true, the dropdown behaves as a "nested dropdown" and is
      * triggered on mouse enter and mouse leave
@@ -43,6 +46,7 @@ class DropdownMenu extends React.Component {
 
   static defaultProps = {
     keepMenuOpen: false,
+    closeOnEscape: true,
   };
 
   constructor(...args) {
@@ -216,9 +220,9 @@ class DropdownMenu extends React.Component {
 
   // Actor is the component that will open the dropdown menu
   getActorProps = (
-    {onClick, onMouseEnter, onMouseLeave, isStyled, style, ...props} = {}
+    {onClick, onMouseEnter, onMouseLeave, onKeyDown, isStyled, style, ...props} = {}
   ) => {
-    let {isNestedDropdown} = this.props;
+    let {isNestedDropdown, closeOnEscape} = this.props;
 
     // Props that the actor needs to have <DropdownMenu> work
     //
@@ -233,10 +237,15 @@ class DropdownMenu extends React.Component {
       ref: !isStyled ? this.handleActorMount : undefined,
       tabIndex: -1,
       onKeyDown: e => {
-        if (e.key === 'Escape') {
+        if (typeof onKeyDown === 'function') {
+          onKeyDown(e);
+        }
+
+        if (e.key === 'Escape' && closeOnEscape) {
           this.handleClose(e);
         }
       },
+
       onMouseEnter: (...args) => {
         if (typeof onMouseEnter === 'function') {
           onMouseEnter(...args);
