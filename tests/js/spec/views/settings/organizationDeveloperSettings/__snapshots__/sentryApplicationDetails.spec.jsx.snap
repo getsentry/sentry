@@ -2930,16 +2930,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={true}
-                                                                                            className="switch switch-lg switch-on"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={true}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={true}
+                                                                                              className="e1wluz6r0 css-wg0gmk-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={true}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-n9hg2w-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -2990,16 +3008,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -3050,16 +3086,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -3110,16 +3164,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -3170,16 +3242,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -3230,16 +3320,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -3290,16 +3398,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -3350,16 +3476,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -3410,16 +3554,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -3470,16 +3632,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -3530,16 +3710,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -3590,16 +3788,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -3650,16 +3866,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -3710,16 +3944,34 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -7537,16 +7789,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -7597,16 +7867,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -7657,16 +7945,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -7717,16 +8023,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -7777,16 +8101,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -7837,16 +8179,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -7897,16 +8257,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -7957,16 +8335,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -8017,16 +8413,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -8077,16 +8491,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -8137,16 +8569,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -8197,16 +8647,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -8257,16 +8725,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
@@ -8317,16 +8803,34 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           size="lg"
                                                                                           toggle={[Function]}
                                                                                         >
-                                                                                          <div
+                                                                                          <SwitchContainer
                                                                                             aria-checked={false}
-                                                                                            className="switch switch-lg"
+                                                                                            className="css-1q6p3sw-StyledSwitch e1wluz6r0"
+                                                                                            data-test-id="switch"
+                                                                                            isActive={false}
                                                                                             onClick={[Function]}
                                                                                             role="checkbox"
+                                                                                            size="lg"
                                                                                           >
-                                                                                            <span
-                                                                                              className="switch-toggle"
-                                                                                            />
-                                                                                          </div>
+                                                                                            <div
+                                                                                              aria-checked={false}
+                                                                                              className="e1wluz6r0 css-17xhvmo-SwitchContainer-StyledSwitch e1wgeblw0"
+                                                                                              data-test-id="switch"
+                                                                                              onClick={[Function]}
+                                                                                              role="checkbox"
+                                                                                              size="lg"
+                                                                                            >
+                                                                                              <Toggle
+                                                                                                isActive={false}
+                                                                                                size="lg"
+                                                                                              >
+                                                                                                <span
+                                                                                                  className="css-1uoqc08-Toggle e1wgeblw1"
+                                                                                                  size="lg"
+                                                                                                />
+                                                                                              </Toggle>
+                                                                                            </div>
+                                                                                          </SwitchContainer>
                                                                                         </Switch>
                                                                                       </StyledSwitch>
                                                                                     </div>
