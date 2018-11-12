@@ -4,6 +4,7 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import styled from 'react-emotion';
 
+import {analytics} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
 import ConfigStore from 'app/stores/configStore';
 import {t} from 'app/locale';
@@ -21,8 +22,12 @@ const SampleEventBanner = createReactClass({
       sentFirstEvent: false,
     };
   },
+
   componentDidMount() {
     this.sentFirstEvent();
+    analytics('sample_event.banner_viewed', {
+      org_id: parseInt(this.props.organization.id, 10),
+    });
   },
 
   onConfigStoreUpdate(config) {
@@ -46,12 +51,18 @@ const SampleEventBanner = createReactClass({
     // if no projects - redirect back to onboarding flow
     if (organization.projects.length > 0) {
       let project = organization.projects.pop();
-      url = `/${organization.slug}/${project.slug}/getting-started/${project.platform}`;
+      url = `/onboarding/${organization.slug}/${project.slug}/configure/${project.platform}`;
     } else {
       url = `/onboarding/${organization.slug}`;
     }
 
     return url;
+  },
+
+  handleClick() {
+    analytics('sample_event.banner_viewed', {
+      org_id: parseInt(this.props.organization.id, 10),
+    });
   },
 
   inSetupFlow() {
@@ -70,8 +81,8 @@ const SampleEventBanner = createReactClass({
     return (
       <React.Fragment>
         {!hideBanner && (
-          <StyledAlert type="warning" icon="icon-circle-exclamation" system={true}>
-            <a href={this.getUrl()}>
+          <StyledAlert type="warning" icon="icon-circle-exclamation" system={'system'}>
+            <a onClick={() => this.handleClick()} href={this.getUrl()}>
               {t(
                 "You're almost there! Start capturing errors with just a few lines of code"
               )}

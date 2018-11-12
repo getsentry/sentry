@@ -24,6 +24,17 @@ const SampleEvent = createReactClass({
 
   mixins: [ApiMixin],
 
+  componentDidMount() {
+    let {projectId} = this.props.params;
+    let {organization} = this.context;
+    let project = organization.projects.find(proj => proj.slug === projectId);
+    analytics('sample_event.button_viewed', {
+      org_id: parseInt(organization.id, 10),
+      project_id: parseInt(project.id, 10),
+      source: this.props.source,
+    });
+  },
+
   createSampleEvent() {
     // TODO(DENA): if experiment is successful-create util function
     let {orgId, projectId} = this.props.params;
