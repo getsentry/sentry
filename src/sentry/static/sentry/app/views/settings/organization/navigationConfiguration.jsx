@@ -39,8 +39,7 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/auth/`,
         title: t('Auth'),
-        show: ({organization, access, features}) =>
-          features.has('sso-basic') && access.has('org:admin'),
+        show: ({organization, access, features}) => access.has('org:admin'),
         description: t('Configure single sign-on'),
       },
       {

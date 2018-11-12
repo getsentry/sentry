@@ -2,10 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {CSRF_COOKIE_NAME} from 'app/constants';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {descopeFeatureName} from 'app/utils';
 import {t, tct} from 'app/locale';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/externalLink';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import getCookie from 'app/utils/getCookie';
@@ -22,14 +23,23 @@ class OrganizationAuthList extends React.Component {
   };
 
   render() {
-    let {organization} = this.context;
-    let {providerList} = this.props;
-    let hasProviderList = providerList && !!providerList.length;
-    let samlAvailable =
-      hasProviderList &&
-      providerList.some(([providerKey, providerName, providerSaml]) => {
-        return providerSaml;
-      });
+    const {organization} = this.context;
+
+    // Sort feature-flagged integrations last
+    const providerList = (this.props.providerList || []).sort((a, b) => {
+      const feats = organization.features;
+      const aEnabled = feats.includes(descopeFeatureName(a.requiredFeature));
+      const bEnabled = feats.includes(descopeFeatureName(b.requiredFeature));
+
+      if (aEnabled !== bEnabled) {
+        return aEnabled ? -1 : 1;
+      }
+
+      return a.requiredFeature.localeCompare(b.requiredFeature);
+    });
+
+    const warn2FADisable =
+      organization.require2FA && providerList.some(({disables2FA}) => disables2FA);
 
     return (
       <div className="sso">
@@ -47,14 +57,13 @@ class OrganizationAuthList extends React.Component {
               )}
             </PanelAlert>
 
-            {organization.require2FA &&
-              samlAvailable && (
-                <PanelAlert m={0} mb={0} type="warning">
-                  {t(
-                    'Require 2FA will be disabled if you enable SAML-based SSO (Okta, OneLogin, Auth0, etc.)'
-                  )}
-                </PanelAlert>
-              )}
+            {warn2FADisable && (
+              <PanelAlert m={0} mb={0} type="warning">
+                {t(
+                  'Require 2FA will be disabled if you enable SAML-based SSO (Okta, OneLogin, Auth0, etc.)'
+                )}
+              </PanelAlert>
+            )}
 
             <form
               action={`/organizations/${organization.slug}/auth/configure/`}
@@ -67,21 +76,19 @@ class OrganizationAuthList extends React.Component {
               />
               <input type="hidden" name="init" value="1" />
 
-              {hasProviderList &&
-                providerList.map(([providerKey, providerName]) => (
-                  <ProviderItem
-                    key={providerKey}
-                    providerKey={providerKey}
-                    providerName={providerName}
-                  />
-                ))}
+              {providerList.map(provider => (
+                <ProviderItem
+                  key={provider.key}
+                  organization={organization}
+                  provider={provider}
+                />
+              ))}
+              {providerList.length === 0 && (
+                <EmptyMessage>
+                  {t('No authentication providers are available.')}
+                </EmptyMessage>
+              )}
             </form>
-
-            {!hasProviderList && (
-              <EmptyMessage style={{padding: 50, textAlign: 'center'}}>
-                {t('No authentication providers are available.')}
-              </EmptyMessage>
-            )}
           </PanelBody>
         </Panel>
       </div>
