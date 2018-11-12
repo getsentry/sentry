@@ -236,8 +236,8 @@ class EventSearchTest(TestCase):
     def test_get_snuba_query_args_wildcard(self):
         assert get_snuba_query_args('release:3.1.* user.email:*@example.com') == {
             'conditions': [
-                [['match', ['tags[sentry:release]', "'3\\.1\\..*'"]], '=', 1],
-                [['match', ['email', "'.*\\@example\\.com'"]], '=', 1],
+                [['match', ['tags[sentry:release]', "'^3\\.1\\..*$'"]], '=', 1],
+                [['match', ['email', "'^.*\\@example\\.com$'"]], '=', 1],
             ],
             'filter_keys': {},
         }
