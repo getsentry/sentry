@@ -25,6 +25,15 @@ class GitlabIssueBasic(IssueBasicMixin):
     def get_persisted_default_config_fields(self):
         return ['project']
 
+    def get_projects_and_default(self, group, **kwargs):
+        params = kwargs.get('params', {})
+        defaults = self.get_project_defaults(group.project_id)
+        kwargs['repo'] = params.get('project', defaults.get('project'))
+
+        # In GitLab Repositories are called Projects
+        default_project, project_choices = self.get_repository_choices(group, **kwargs)
+        return default_project, project_choices
+
     def create_default_repo_choice(self, default_repo):
         client = self.get_client()
         try:
@@ -35,13 +44,9 @@ class GitlabIssueBasic(IssueBasicMixin):
         return (project['id'], project['name_with_namespace'])
 
     def get_create_issue_config(self, group, **kwargs):
-        params = kwargs.get('params', {})
-        defaults = self.get_project_defaults(group.project_id)
-        kwargs['repo'] = params.get('project', defaults.get('project'))
-
         fields = super(GitlabIssueBasic, self).get_create_issue_config(group, **kwargs)
         # In GitLab Repositories are called Projects
-        default_project, project_choices = self.get_repository_choices(group, **kwargs)
+        default_project, project_choices = self.get_projects_and_default(group, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -92,6 +97,8 @@ class GitlabIssueBasic(IssueBasicMixin):
         }
 
     def get_link_issue_config(self, group, **kwargs):
+        default_project, project_choices = self.get_projects_and_default(group, **kwargs)
+
         org = group.organization
         autocomplete_url = reverse(
             'sentry-extensions-gitlab-search', args=[org.slug, self.model.id],
@@ -99,13 +106,22 @@ class GitlabIssueBasic(IssueBasicMixin):
 
         return [
             {
+                'name': 'project',
+                'label': 'GitLub Project',
+                'type': 'select',
+                'default': default_project,
+                'choices': project_choices,
+                'url': autocomplete_url,
+                'updatesForm': True,
+                'required': True,
+            },
+            {
                 'name': 'externalIssue',
                 'label': 'Issue',
                 'default': '',
                 'type': 'select',
                 'url': autocomplete_url,
                 'required': True,
-                'updatesForm': True,
             },
         ]
 
