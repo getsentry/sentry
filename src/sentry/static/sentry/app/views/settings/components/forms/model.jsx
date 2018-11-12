@@ -331,7 +331,6 @@ class FormModel {
   saveForm() {
     this.validateForm();
     if (this.isError) return null;
-
     let saveSnapshot = this.createSnapshot();
 
     let request = this.doApiRequest({

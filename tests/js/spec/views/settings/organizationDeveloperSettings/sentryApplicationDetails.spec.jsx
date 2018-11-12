@@ -6,10 +6,6 @@ import {mount} from 'enzyme';
 import SentryApplicationDetails from 'app/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
 describe('Sentry Application Details', function() {
-  beforeEach(function() {
-    Client.clearMockResponses();
-  });
-
   describe('new sentry application', () => {
     const org = TestStubs.Organization();
     const routerContext = TestStubs.routerContext();
@@ -17,7 +13,6 @@ describe('Sentry Application Details', function() {
       <SentryApplicationDetails params={{orgId: org.slug}} />,
       routerContext
     );
-
     describe('renders()', () => {
       it('it shows empty scopes and no credentials', function() {
         expect(wrapper).toMatchSnapshot();
@@ -35,12 +30,13 @@ describe('Sentry Application Details', function() {
     });
 
     describe('saving new app', () => {
-      it('it changes the data', async function() {
-        let response = Client.addMockResponse({
-          url: '/sentry-apps/',
-          method: 'POST',
-          body: [],
-        });
+      Client.clearMockResponses();
+      let response = Client.addMockResponse({
+        url: '/sentry-apps/',
+        method: 'POST',
+        body: [],
+      });
+      it('it changes the data', function() {
         wrapper
           .find('Input')
           .first()
@@ -55,7 +51,7 @@ describe('Sentry Application Details', function() {
           .simulate('change', {target: {value: 'https://webhook.com/setup'}});
         wrapper
           .find('.switch-lg')
-          .first()
+          .last()
           .simulate('click');
         wrapper.find('form').simulate('submit');
         let data = {
@@ -63,8 +59,7 @@ describe('Sentry Application Details', function() {
           organization: org.slug,
           redirectUrl: 'https://webhook.com/setup',
           webhookUrl: 'https://webhook.com',
-          isAlertable: false,
-          scopes: new Set(['project:read']),
+          scopes: new Set(['member:admin']),
         };
         expect(response).toHaveBeenCalledWith(
           '/sentry-apps/',
@@ -84,6 +79,7 @@ describe('Sentry Application Details', function() {
 
     describe('renders()', () => {
       it('it shows application data and credentials', function() {
+        Client.clearMockResponses();
         Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           body: sentryApp,
@@ -110,16 +106,18 @@ describe('Sentry Application Details', function() {
     });
 
     describe('saving edited app', () => {
-      Client.addMockResponse({
-        url: `/sentry-apps/${sentryApp.slug}/`,
-        body: sentryApp,
-      });
-
-      const wrapper = mount(
-        <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId: org.slug}} />,
-        routerContext
-      );
       it('it updates app with correct data', function() {
+        Client.clearMockResponses();
+        Client.addMockResponse({
+          url: `/sentry-apps/${sentryApp.slug}/`,
+          body: sentryApp,
+        });
+        const wrapper = mount(
+          <SentryApplicationDetails
+            params={{appSlug: sentryApp.slug, orgId: org.slug}}
+          />,
+          routerContext
+        );
         let response = Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           method: 'PUT',
