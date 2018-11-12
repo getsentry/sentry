@@ -193,8 +193,10 @@ class ProjectSelector extends React.Component {
 
           if (!renderedFooter && !showCreateProjectButton) return null;
 
+          const {LabelWithPadding} = renderProps.components;
+
           return (
-            <React.Fragment>
+            <LabelWithPadding>
               {showCreateProjectButton && (
                 <CreateProjectButton
                   priority="primary"
@@ -205,7 +207,7 @@ class ProjectSelector extends React.Component {
                 </CreateProjectButton>
               )}
               {renderedFooter}
-            </React.Fragment>
+            </LabelWithPadding>
           );
         }}
         items={projectList.map(project => ({
