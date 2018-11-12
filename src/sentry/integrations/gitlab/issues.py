@@ -44,9 +44,8 @@ class GitlabIssueBasic(IssueBasicMixin):
         return (project['id'], project['name_with_namespace'])
 
     def get_create_issue_config(self, group, **kwargs):
-        fields = super(GitlabIssueBasic, self).get_create_issue_config(group, **kwargs)
-        # In GitLab Repositories are called Projects
         default_project, project_choices = self.get_projects_and_default(group, **kwargs)
+        fields = super(GitlabIssueBasic, self).get_create_issue_config(group, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
