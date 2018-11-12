@@ -15,15 +15,16 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         if integration_id is None:
             raise ValueError('%s requires an integration_id' % self.name)
 
-        try:
-            integration_model = Integration.objects.get(id=integration_id)
-        except Integration.DoesNotExist as error:
-            self.handle_api_error(error)
+        integration_model = Integration.objects.get(
+            id=integration_id,
+            organizations=organization_id,
+            provider='vsts',
+        )
 
         return integration_model.get_installation(organization_id)
 
     def get_repository_data(self, organization, config):
-        installation = self.get_installation(config['installation'], organization.id)
+        installation = self.get_installation(config.get('installation'), organization.id)
         client = installation.get_client()
         instance = installation.instance
 

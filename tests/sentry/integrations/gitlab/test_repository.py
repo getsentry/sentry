@@ -87,16 +87,24 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         )
 
         with self.feature({'organizations:repos': True}):
+            if not integration_id:
+                data = {
+                    'provider': self.provider_name,
+                    'identifier': repository_config['id'],
+                }
+            else:
+                data = {
+                    'provider': self.provider_name,
+                    'installation': integration_id,
+                    'identifier': repository_config['id'],
+                }
+
             response = self.client.post(
                 path=reverse(
                     'sentry-api-0-organization-repositories',
                     args=[organization_slug or self.organization.slug]
                 ),
-                data={
-                    'provider': self.provider_name,
-                    'installation': integration_id,
-                    'identifier': repository_config['id'],
-                }
+                data=data
             )
         return response
 
@@ -149,14 +157,14 @@ class GitLabRepositoryProviderTest(PluginTestCase):
 
     def test_create_repository_null_installation_id(self):
         response = self.create_repository(self.default_repository_config, None)
-        assert response.status_code == 500
+        assert response.status_code == 400
 
     def test_create_repository_integration_does_not_exist(self):
         integration_id = self.integration.id
         self.integration.delete()
 
         response = self.create_repository(self.default_repository_config, integration_id)
-        assert response.status_code == 500  # TODO(lb): shouldn't this result in a 404?
+        assert response.status_code == 404
 
     def test_create_repository_org_given_has_no_installation(self):
         organization = self.create_organization(owner=self.user)
@@ -164,7 +172,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
             self.default_repository_config,
             self.integration.id,
             organization.slug)
-        assert response.status_code == 500
+        assert response.status_code == 404
 
     @responses.activate
     def test_create_repository_get_project_request_fails(self):
@@ -174,8 +182,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
             status=503,
         )
         response = self.create_repository(self.default_repository_config, self.integration.id)
-        # TODO(lb): it gives a 400 which I'm not sure makes sense here
-        assert response.status_code == 400
+        assert response.status_code == 503
 
     @responses.activate
     def test_create_repository_integration_create_webhook_failure(self):
@@ -186,7 +193,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         )
         response = self.create_repository(self.default_repository_config,
                                           self.integration.id)
-        assert response.status_code == 400
+        assert response.status_code == 503
 
     @responses.activate
     def test_on_delete_repository_remove_webhook(self):
