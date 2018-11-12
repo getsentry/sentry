@@ -10,7 +10,7 @@ export default function XAxis({isGroupedByDate, interval, ...props} = {}) {
         .utc(value)
         .local()
         .format(format);
-    } else if (props.truncate) {
+    } else if (props.truncate && value.length > props.truncate) {
       return value.slice(0, props.truncate) + '…';
     } else {
       return undefined;
