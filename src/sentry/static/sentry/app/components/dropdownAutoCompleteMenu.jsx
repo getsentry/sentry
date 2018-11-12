@@ -18,6 +18,24 @@ const ItemObjectPropType = {
 };
 const ItemShapePropType = PropTypes.shape(ItemObjectPropType);
 
+// Use before define :(
+const LabelWithBorder = styled('div')`
+  background-color: ${p => p.theme.offWhite};
+  border: 1px solid ${p => p.theme.borderLight};
+  border-width: 1px 0;
+
+  &:first-child {
+    border-top: none;
+  }
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const LabelWithPadding = styled(LabelWithBorder)`
+  padding: ${space(0.25)} ${space(1)};
+`;
+
 class DropdownAutoCompleteMenu extends React.Component {
   static propTypes = {
     items: PropTypes.oneOfType([
@@ -117,7 +135,7 @@ class DropdownAutoCompleteMenu extends React.Component {
     menuWithArrow: PropTypes.bool,
 
     menuFooter: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
-    menuHeader: PropTypes.node,
+    menuHeader: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
 
     /**
      * Props to pass to menu component
@@ -317,8 +335,15 @@ class DropdownAutoCompleteMenu extends React.Component {
           // emptyHidesInput is set to true.
           let showInput = hasItems || !emptyHidesInput;
 
+          let renderProps = {actions, components: {LabelWithPadding}};
           let renderedFooter =
-            typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
+            typeof menuFooter === 'function'
+              ? menuFooter(renderProps)
+              : menuFooter && <LabelWithPadding>{menuFooter}</LabelWithPadding>;
+          let renderedHeader =
+            typeof menuHeader === 'function'
+              ? menuHeader(renderProps)
+              : menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>;
 
           return (
             <AutoCompleteRoot {...getRootProps()} className={rootClassName}>
@@ -356,7 +381,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                     </Flex>
                   )}
                   <div>
-                    {menuHeader && <LabelWithPadding>{menuHeader}</LabelWithPadding>}
+                    {renderedHeader}
 
                     <StyledItemList maxHeight={maxHeight}>
                       {showNoItems && <EmptyMessage>{emptyMessage}</EmptyMessage>}
@@ -380,9 +405,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                         })}
                     </StyledItemList>
 
-                    {renderedFooter && (
-                      <LabelWithPadding>{renderedFooter}</LabelWithPadding>
-                    )}
+                    {renderedFooter}
                   </div>
                 </StyledMenu>
               )}
@@ -515,23 +538,6 @@ const AutoCompleteItem = styled('div')`
   &:hover {
     background-color: ${p => p.theme.offWhite};
   }
-`;
-
-const LabelWithBorder = styled('div')`
-  background-color: ${p => p.theme.offWhite};
-  border: 1px solid ${p => p.theme.borderLight};
-  border-width: 1px 0;
-
-  &:first-child {
-    border-top: none;
-  }
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const LabelWithPadding = styled(LabelWithBorder)`
-  padding: ${space(0.25)} ${space(1)};
 `;
 
 const GroupLabel = styled('div')`
