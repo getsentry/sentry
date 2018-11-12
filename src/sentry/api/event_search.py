@@ -177,8 +177,7 @@ class SearchVisitor(NodeVisitor):
 
     def visit_has_filter(self, node, children):
         # the key is has here, which we don't need
-        _, _, search_key = children
-        search_key = search_key[0]
+        _, _, (search_key,) = children
 
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):
