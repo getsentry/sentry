@@ -47,6 +47,19 @@ class SnubaUtilTest(TestCase):
         ]
         assert set(snuba.all_referenced_columns(conditions)) == set(['a', 'b', 'c', 'd'])
 
+    def test_filter_keys_set(self):
+        snuba.raw_query(
+            start=datetime.now(),
+            end=datetime.now(),
+            filter_keys={
+                'project_id': set([1]),
+                'logger': set(['asdf']),
+            },
+            aggregations=[
+                ['count()', '', 'count'],
+            ],
+        )
+
     def test_shrink_timeframe(self):
         now = datetime.now()
         year_ago = now - timedelta(days=365)
