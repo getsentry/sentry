@@ -38,4 +38,10 @@ storiesOf('UI|Tags', module)
         Development
       </Tag>
     ))
+  )
+  .add(
+    'with icon',
+    withInfo(
+      'A tag-like thing with an icon. Use when you need to represent something'
+    )(() => <Tag icon="icon-lock">Locked</Tag>)
   );
