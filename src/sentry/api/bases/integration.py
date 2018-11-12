@@ -24,5 +24,4 @@ class IntegrationEndpoint(OrganizationEndpoint):
             response = Response(context, status=503)
             response.exception = True
             return response
-        response = super(IntegrationEndpoint, self).handle_exception(exc)
-        return response
+        return super(IntegrationEndpoint, self).handle_exception(exc)
