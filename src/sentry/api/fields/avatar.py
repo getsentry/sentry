@@ -47,7 +47,7 @@ class AvatarField(serializers.WritableField):
             with Image.open(BytesIO(data)) as img:
                 width, height = img.size
                 if not self.is_valid_size(width, height):
-                    raise APIException('Invalid image dimensions.', status_code=400)
+                    raise serializers.ValidationError('Invalid image dimensions.')
         except IOError:
             raise serializers.ValidationError('Invalid image format.')
 
