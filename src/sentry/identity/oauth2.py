@@ -5,8 +5,9 @@ __all__ = ['OAuth2Provider', 'OAuth2CallbackView', 'OAuth2LoginView']
 from six.moves.urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 from time import time
-from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import SSLError
+from simplejson import JSONDecodeError
+from django.views.decorators.csrf import csrf_exempt
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
@@ -260,6 +261,11 @@ class OAuth2CallbackView(PipelineView):
             return {
                 'error': 'Could not verify SSL certificate',
                 'error_description': u'Ensure that {} has a valid SSL certificate'.format(url)
+            }
+        except JSONDecodeError:
+            return {
+                'error': 'Could not decode a JSON Response',
+                'error_description': u'We were not able to parse a JSON response, please try again.'
             }
 
     def dispatch(self, request, pipeline):
