@@ -46,6 +46,29 @@ class GitlabSearchTest(GitLabTestCase):
         ]
 
     @responses.activate
+    def test_finds_external_issue_results_with_iid(self):
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=25',
+            json=[
+                {'iid': 25, 'title': 'AEIOU Error', 'project_id': '5'},
+            ]
+        )
+        resp = self.client.get(
+            self.url,
+            data={
+                'field': 'externalIssue',
+                'query': '25',
+                'project': '5'
+            }
+        )
+
+        assert resp.status_code == 200
+        assert resp.data == [
+            {'value': '5#25', 'label': '(#25) AEIOU Error'},
+        ]
+
+    @responses.activate
     def test_finds_project_results(self):
         responses.add(
             responses.GET,
@@ -89,6 +112,25 @@ class GitlabSearchTest(GitLabTestCase):
             data={
                 'field': 'externalIssue',
                 'query': 'XYZ',
+                'project': '5',
+            }
+        )
+
+        assert resp.status_code == 200
+        assert resp.data == []
+
+    @responses.activate
+    def test_finds_no_external_issues_results_iid(self):
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=11',
+            json=[]
+        )
+        resp = self.client.get(
+            self.url,
+            data={
+                'field': 'externalIssue',
+                'query': '11',
                 'project': '5',
             }
         )
