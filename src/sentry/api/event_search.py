@@ -81,7 +81,7 @@ date_format    = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?"
 # even if the operator is <=
 operator        = ">=" / "<=" / ">" / "<" / "=" / "!="
 sep             = ":"
-space           = ~r" "
+space           = " "
 """)
 
 
