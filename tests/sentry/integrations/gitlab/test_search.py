@@ -24,10 +24,10 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_external_issue_results(self):
         responses.add(
             responses.GET,
-            'https://example.gitlab.com/api/v4/groups/1/issues?scope=all&search=AEIOU',
+            'https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=AEIOU',
             json=[
-                {'iid': 25, 'title': 'AEIOU Error', 'project_id': '1'},
-                {'iid': 45, 'title': 'AEIOU Error', 'project_id': '2'}
+                {'iid': 25, 'title': 'AEIOU Error', 'project_id': '5'},
+                {'iid': 45, 'title': 'AEIOU Error', 'project_id': '5'}
             ]
         )
         resp = self.client.get(
@@ -35,13 +35,14 @@ class GitlabSearchTest(GitLabTestCase):
             data={
                 'field': 'externalIssue',
                 'query': 'AEIOU',
+                'project': '5'
             }
         )
 
         assert resp.status_code == 200
         assert resp.data == [
-            {'value': '1#25', 'label': '(#25) AEIOU Error'},
-            {'value': '2#45', 'label': '(#45) AEIOU Error'}
+            {'value': '5#25', 'label': '(#25) AEIOU Error'},
+            {'value': '5#45', 'label': '(#45) AEIOU Error'}
         ]
 
     @responses.activate
@@ -80,7 +81,7 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_no_external_issues_results(self):
         responses.add(
             responses.GET,
-            'https://example.gitlab.com/api/v4/groups/1/issues?scope=all&search=XYZ',
+            'https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=XYZ',
             json=[]
         )
         resp = self.client.get(
@@ -88,6 +89,7 @@ class GitlabSearchTest(GitLabTestCase):
             data={
                 'field': 'externalIssue',
                 'query': 'XYZ',
+                'project': '5',
             }
         )
 
@@ -188,6 +190,7 @@ class GitlabSearchTest(GitLabTestCase):
             data={
                 'field': 'externalIssue',
                 'query': 'GetSentry',
+                'project': '5',
             }
         )
         assert resp.status_code == 500
