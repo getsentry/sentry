@@ -40,7 +40,6 @@ const validHookNames = new Set([
   'feature-disabled:rate-limits',
 
   // TODO(epurkhiser): These are not used anymore and should be removed
-  'issue:secondary-column',
   'organization:sidebar',
 ]);
 
