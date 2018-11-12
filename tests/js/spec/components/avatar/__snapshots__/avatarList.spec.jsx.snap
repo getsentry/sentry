@@ -131,7 +131,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         </Tooltip>
         <StyledAvatar
           hasTooltip={true}
-          key="1"
+          key="1-foo@example.com"
           size={28}
           user={
             Object {
@@ -280,7 +280,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         </StyledAvatar>
         <StyledAvatar
           hasTooltip={true}
-          key="2"
+          key="2-foo@example.com"
           size={28}
           user={
             Object {
@@ -429,7 +429,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         </StyledAvatar>
         <StyledAvatar
           hasTooltip={true}
-          key="3"
+          key="3-foo@example.com"
           size={28}
           user={
             Object {
@@ -578,7 +578,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         </StyledAvatar>
         <StyledAvatar
           hasTooltip={true}
-          key="4"
+          key="4-foo@example.com"
           size={28}
           user={
             Object {
@@ -727,7 +727,7 @@ exports[`AvatarList renders with collapsed avatar count if > 5 users 1`] = `
         </StyledAvatar>
         <StyledAvatar
           hasTooltip={true}
-          key="5"
+          key="5-foo@example.com"
           size={28}
           user={
             Object {
@@ -931,7 +931,7 @@ exports[`AvatarList renders with user avatars 1`] = `
       >
         <StyledAvatar
           hasTooltip={true}
-          key="1"
+          key="1-foo@example.com"
           size={28}
           user={
             Object {
@@ -1080,7 +1080,7 @@ exports[`AvatarList renders with user avatars 1`] = `
         </StyledAvatar>
         <StyledAvatar
           hasTooltip={true}
-          key="2"
+          key="2-foo@example.com"
           size={28}
           user={
             Object {
