@@ -73,6 +73,12 @@ DEFAULT_DISALLOWED_SOURCES = (
     'connectionstrenth.com',
     'siteheart.net',
     'netanalitics.space',
+    'printapplink.com',
+    'godlinkapp.com',
+    'devappstor.com',
+    'hoholikik.club',
+    'smartlink.cool',
+    'promfflinkdev.com',
 )  # yapf: disable
 
 
