@@ -18,7 +18,6 @@ class GitLabApiClientPath(object):
     compare = u'/projects/{project}/repository/compare'
     diff = u'/projects/{project}/repository/commits/{sha}/diff'
     group = u'/groups/{group}'
-    group_issues = u'/groups/{group}/issues'
     group_projects = u'/groups/{group}/projects'
     hooks = u'/hooks'
     issue = u'/projects/{project}/issues/{issue}'
@@ -183,19 +182,6 @@ class GitLabApiClient(ApiClient):
             GitLabApiClientPath.issues.format(project=project),
             data=data,
         )
-
-    def search_group_issues(self, group_id, query, iids=None):
-        """Search issues in a group
-
-        See https://docs.gitlab.com/ee/api/issues.html#list-group-issues
-        """
-        path = GitLabApiClientPath.group_issues.format(group=group_id)
-
-        return self.get(path, params={
-            'scope': 'all',
-            'search': query,
-            'iids': iids,
-        })
 
     def search_project_issues(self, project_id, query, iids=None):
         """Search issues in a project
