@@ -7,7 +7,7 @@ from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
     convert_endpoint_params, get_snuba_query_args, parse_search_query,
-    SearchFilter, SearchKey, SearchValue
+    InvalidSearchQuery, SearchFilter, SearchKey, SearchValue
 )
 from sentry.testutils import TestCase
 
@@ -204,6 +204,29 @@ class EventSearchTest(TestCase):
             ),
         ]
 
+    def test_parse_search_query_has_tag(self):
+        # unquoted key
+        assert parse_search_query('has:release') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='!=',
+                value=SearchValue(raw_value=''),
+            ),
+        ]
+
+        # quoted key
+        assert parse_search_query('has:"hi:there"') == [
+            SearchFilter(
+                key=SearchKey(name='hi:there'),
+                operator='!=',
+                value=SearchValue(raw_value=''),
+            ),
+        ]
+
+        # malformed key
+        with self.assertRaises(InvalidSearchQuery):
+            parse_search_query('has:"hi there"')
+
     def test_get_snuba_query_args(self):
         assert get_snuba_query_args('user.email:foo@example.com release:1.2.1 fruit:apple hello', {
             'project_id': [1, 2, 3],
@@ -240,6 +263,12 @@ class EventSearchTest(TestCase):
                 [['match', ['email', "'^.*\\@example\\.com$'"]], '=', 1],
             ],
             'filter_keys': {},
+        }
+
+    def test_get_snuba_query_args_has(self):
+        assert get_snuba_query_args('has:release') == {
+            'filter_keys': {},
+            'conditions': [['tags[sentry:release]', '!=', '']]
         }
 
     def test_convert_endpoint_params(self):
