@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from django.contrib.auth import logout
+from django.contrib.auth import logout, authenticate
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
@@ -122,7 +122,8 @@ class AuthIndexEndpoint(Endpoint):
 
         # attempt password authentication
         else:
-            authenticated = request.user.check_password(validator.object['password'])
+            authenticated = authenticate(username=request.user.username,
+                                         password=validator.object['password'])
 
         # UI treats 401s by redirecting, this 401 should be ignored
         if not authenticated:
