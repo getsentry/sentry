@@ -57,7 +57,8 @@ def test_is_minidump():
 def test_minidump_linux():
     event = {'release': 'test-1.0.0'}
     minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'linux.dmp')
-    merge_minidump_event(event, minidump)
+    with open(minidump, 'rb') as f:
+        merge_minidump_event(event, f.read())
 
     assert event == {
         'contexts': {
@@ -287,7 +288,8 @@ def test_minidump_linux():
 def test_minidump_macos():
     event = {'release': 'test-1.0.0'}
     minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'macos.dmp')
-    merge_minidump_event(event, minidump)
+    with open(minidump, 'rb') as f:
+        merge_minidump_event(event, f.read())
 
     assert event == {
         'contexts': {
@@ -678,7 +680,8 @@ def test_minidump_macos():
 def test_minidump_windows():
     event = {'release': 'test-1.0.0'}
     minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp')
-    merge_minidump_event(event, minidump)
+    with open(minidump, 'rb') as f:
+        merge_minidump_event(event, f.read())
 
     assert event == {
         'contexts': {
