@@ -85,11 +85,11 @@ class TagStorageTest(SnubaTestCase):
         assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
 
     def test_get_group_tag_keys_and_top_values(self):
-        result = self.ts.get_group_tag_keys_and_top_values(
+        result = list(self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
-        )
+        ))
         tags = [r.key for r in result]
         assert set(tags) == set(['foo', 'baz', 'environment', 'sentry:release', 'sentry:user'])
 
@@ -108,12 +108,12 @@ class TagStorageTest(SnubaTestCase):
         assert all(v.times_seen == 1 for v in top_release_values)
 
         # Now with only a specific set of keys,
-        result = self.ts.get_group_tag_keys_and_top_values(
+        result = list(self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
             keys=['environment', 'sentry:release'],
-        )
+        ))
         tags = [r.key for r in result]
         assert set(tags) == set(['environment', 'sentry:release'])
 
