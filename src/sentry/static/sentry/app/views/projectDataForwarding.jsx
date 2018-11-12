@@ -144,11 +144,7 @@ class ProjectDataForwarding extends AsyncComponent {
             </Alert>
 
             {!hasFeature && (
-              <FeatureDisabled
-                alert
-                featureName="Data Forwarding"
-                feature={features[0]}
-              />
+              <FeatureDisabled alert featureName="Data Forwarding" features={features} />
             )}
 
             <DataForwardingStats params={params} />

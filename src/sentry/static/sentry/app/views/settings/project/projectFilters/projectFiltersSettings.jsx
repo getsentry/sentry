@@ -181,7 +181,7 @@ class ProjectFiltersSettings extends AsyncComponent {
 
   renderDisabledCustomFilters = p => (
     <FeatureDisabled
-      feature={p.features[0]}
+      features={p.features}
       alert={PanelAlert}
       name={t('Custom Inbound Filters')}
       message={t(

@@ -199,7 +199,7 @@ class KeyRateLimitsForm extends React.Component {
     let disabledAlert = ({features}) => (
       <FeatureDisabled
         alert={PanelAlert}
-        feature={features[0]}
+        features={features}
         featureName={t('Key Rate Limits')}
       />
     );
