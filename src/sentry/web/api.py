@@ -383,6 +383,7 @@ class StoreView(APIView):
             auth=auth,
             client_ip=remote_addr,
             user_agent=helper.context.agent,
+            version=auth.version,
             content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
         )
         del data
