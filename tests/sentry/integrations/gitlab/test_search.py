@@ -190,7 +190,7 @@ class GitlabSearchTest(GitLabTestCase):
                 'query': 'GetSentry',
             }
         )
-        assert resp.status_code == 500
+        assert resp.status_code == 503
 
     def test_projects_request_fails(self):
         responses.add(
@@ -204,4 +204,4 @@ class GitlabSearchTest(GitLabTestCase):
                 'query': 'GetSentry',
             }
         )
-        assert resp.status_code == 500
+        assert resp.status_code == 503
