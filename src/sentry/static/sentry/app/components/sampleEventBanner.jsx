@@ -68,10 +68,11 @@ const SampleEventBanner = createReactClass({
   inSetupFlow() {
     let path = window.location.pathname;
 
-    return !(
-      path.indexOf('/getting-started/') === -1 &&
-      path.indexOf('/onboarding/') === -1 &&
-      path.indexOf('/projects/new/') === -1);
+    return (
+      path.indexOf('/getting-started/') !== -1 &&
+      path.indexOf('/onboarding/') !== -1 &&
+      path.indexOf('/projects/new/') !== -1
+    );
   },
 
   render() {
@@ -99,6 +100,9 @@ const StyledAlert = styled(Alert)`
   position: relative;
   margin: 0;
   padding-right: ${p => p.theme.grid * 4}px;
+  a {
+    color: #2f2936;
+  }
 `;
 
 export default SampleEventBanner;
