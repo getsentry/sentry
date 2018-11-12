@@ -9,7 +9,10 @@ describe('FeatureDisabled', function() {
 
   it('renders', function() {
     const wrapper = mount(
-      <FeatureDisabled feature={'organization:my-feature'} featureName="Some Feature" />,
+      <FeatureDisabled
+        features={['organization:my-features']}
+        featureName="Some Feature"
+      />,
       routerContext
     );
 
@@ -29,7 +32,7 @@ describe('FeatureDisabled', function() {
     const wrapper = mount(
       <FeatureDisabled
         message={customMessage}
-        feature={'organization:my-feature'}
+        features={['organization:my-features']}
         featureName="Some Feature"
       />,
       routerContext
@@ -47,7 +50,7 @@ describe('FeatureDisabled', function() {
     const wrapper = mount(
       <FeatureDisabled
         alert
-        feature={'organization:my-feature'}
+        features={['organization:my-features']}
         featureName="Some Feature"
       />,
       routerContext
@@ -60,7 +63,7 @@ describe('FeatureDisabled', function() {
     const wrapper = mount(
       <FeatureDisabled
         alert={PanelAlert}
-        feature={'organization:my-feature'}
+        features={['organization:my-features']}
         featureName="Some Feature"
       />,
       routerContext
@@ -73,7 +76,7 @@ describe('FeatureDisabled', function() {
     const wrapper = mount(
       <FeatureDisabled
         alert
-        feature={'organization:my-feature'}
+        features={['organization:my-features']}
         featureName="Some Feature"
       />,
       routerContext
