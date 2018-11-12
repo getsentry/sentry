@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 import Switch from 'app/components/switch';
-import {t} from 'app/locale';
 
 import {API_SCOPES} from 'app/constants';
 
@@ -67,7 +66,6 @@ class ApplicationScopes extends React.Component {
 }
 
 export default ApplicationScopes;
-
 
 const StyledSwitch = styled(Switch)`
   margin-left: 6px;

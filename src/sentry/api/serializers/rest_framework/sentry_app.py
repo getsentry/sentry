@@ -22,4 +22,5 @@ class SentryAppSerializer(Serializer):
     scopes = ApiScopesField()
     webhookUrl = serializers.URLField()
     redirectUrl = serializers.URLField(required=False)
+    isAlertable = serializers.BooleanField(required=False)
     overview = serializers.CharField(required=False)

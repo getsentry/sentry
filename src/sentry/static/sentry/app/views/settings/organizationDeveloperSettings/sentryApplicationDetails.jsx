@@ -54,20 +54,6 @@ class SentryApplicationDetails extends AsyncView {
     const {app} = this.state;
     let method = app ? 'PUT' : 'POST';
     let endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
-  }
-
-  onSubmitSuccess = data => {
-    const {orgId} = this.props.params;
-    browserHistory.push(`/settings/${orgId}/developer-settings/`);
-  };
-
-  renderBody() {
-    const {orgId} = this.props.params;
-    const {app} = this.state;
-
-    let method = app ? 'PUT' : 'POST';
-    let endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
-
     return (
       <div>
         <SettingsPageHeader title={this.getTitle()} />
@@ -112,7 +98,7 @@ class SentryApplicationDetails extends AsyncView {
                     );
                   }}
                 </FormField>
-                  <FormField overflow name="clientSecret" label="Client Secret">
+                <FormField overflow name="clientSecret" label="Client Secret">
                   {({value}) => {
                     return value ? (
                       <TextCopyInput>

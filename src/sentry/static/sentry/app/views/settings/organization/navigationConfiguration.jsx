@@ -76,11 +76,7 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/developer-settings/`,
         title: t('Developer Settings'),
-<<<<<<< HEAD
         show: ({access, features}) => features.has('internal-catchall'),
-=======
-        show: ({access}) => access.has('org:integrations'),
->>>>>>> feat(app-platform): Add UI for adding sentry apps
         description: t('Manage developer applications'),
       },
     ],

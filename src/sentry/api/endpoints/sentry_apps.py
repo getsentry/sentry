@@ -35,6 +35,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             scopes=request.json_body.get('scopes'),
             webhook_url=request.json_body.get('webhookUrl'),
             redirect_url=request.json_body.get('redirectUrl'),
+            is_alertable=request.json_body.get('isAlertable'),
             overview=request.json_body.get('overview'),
         )
 
