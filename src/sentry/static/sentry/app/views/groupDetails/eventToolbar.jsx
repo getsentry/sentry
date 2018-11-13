@@ -170,7 +170,7 @@ let GroupEventToolbar = createReactClass({
         <span>
           <Tooltip title={this.getDateTooltip()} tooltipOptions={{html: true}}>
             <span>
-              <DateTime date={evt.dateCreated} style={style} />
+              <DateTime date={process.env.IS_PERCY ? evt.dateCreated : "Dummy timestamp"} style={style} />
               {isOverLatencyThreshold && <span className="icon-alert" />}
             </span>
           </Tooltip>
