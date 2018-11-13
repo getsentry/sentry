@@ -44,8 +44,8 @@ export const ResultTitle = styled(Flex)`
 `;
 
 //TODO: Add @media for responsiveness
-export const ResultViewButtons = styled('div')`
-  flex: flex-end;
+export const ResultViewButtons = styled(Flex)`
+  justify-content: flex-end;
 `;
 
 export const Sidebar = styled(props => (
