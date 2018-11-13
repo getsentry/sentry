@@ -16,7 +16,7 @@ from sentry.plugins.bases.tag import TagPlugin
 class UrlsPlugin(TagPlugin):
     """
     Automatically adds the 'url' tag from events containing interface data
-    from ``sentry.interfaces.Http``.
+    from ``request``.
     """
     slug = 'urls'
     title = 'Auto Tag: URLs'
@@ -27,7 +27,7 @@ class UrlsPlugin(TagPlugin):
     project_default_enabled = True
 
     def get_tag_values(self, event):
-        http = event.interfaces.get('sentry.interfaces.Http')
+        http = event.interfaces.get('request')
         if not http:
             return []
         if not http.url:

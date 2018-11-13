@@ -15,13 +15,13 @@ class LocalhostFilter(Filter):
 
     def get_ip_address(self, data):
         try:
-            return data['sentry.interfaces.User']['ip_address']
+            return data['user']['ip_address']
         except KeyError:
             return ''
 
     def get_url(self, data):
         try:
-            return data['sentry.interfaces.Http']['url'] or ''
+            return data['request']['url'] or ''
         except KeyError:
             return ''
 

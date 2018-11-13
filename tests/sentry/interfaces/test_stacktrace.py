@@ -69,9 +69,9 @@ class StacktraceTest(TestCase):
         # Simple test to ensure legacy data works correctly with the ``Frame``
         # objects
         event = self.event
-        interface = Stacktrace.to_python(event.data['sentry.interfaces.Stacktrace'])
+        interface = Stacktrace.to_python(event.data['stacktrace'])
         assert len(interface.frames) == 2
-        assert interface == event.interfaces['sentry.interfaces.Stacktrace']
+        assert interface == event.interfaces['stacktrace']
 
     def test_filename(self):
         Stacktrace.to_python(dict(frames=[{

@@ -18,7 +18,7 @@ def test_csp_validate_basic():
     report = {
         "release": "abc123",
         "environment": "production",
-        "interface": 'sentry.interfaces.Csp',
+        "interface": 'csp',
         "report": {
             "csp-report": {
                 "document-uri": "http://45.55.25.245:8123/csp",
@@ -36,15 +36,15 @@ def test_csp_validate_basic():
     assert result['release'] == 'abc123'
     assert result['environment'] == 'production'
     assert result['errors'] == []
-    assert 'sentry.interfaces.Message' in result
+    assert 'logentry' in result
     assert 'culprit' in result
     assert result['tags'] == [
         ('effective-directive', 'img-src'),
         ('blocked-uri', 'http://google.com'),
     ]
-    assert result['sentry.interfaces.User'] == {'ip_address': '198.51.100.0'}
-    assert result['sentry.interfaces.Http']['url'] == 'http://45.55.25.245:8123/csp'
-    assert dict(result['sentry.interfaces.Http']['headers']) == {
+    assert result['user'] == {'ip_address': '198.51.100.0'}
+    assert result['request']['url'] == 'http://45.55.25.245:8123/csp'
+    assert dict(result['request']['headers']) == {
         'User-Agent': 'Awesome Browser',
         'Referer': 'http://example.com'
     }
@@ -53,7 +53,7 @@ def test_csp_validate_basic():
 def test_csp_validate_failure():
     report = {
         "release": "abc123",
-        "interface": 'sentry.interfaces.Csp',
+        "interface": 'csp',
         "report": {}
     }
 
@@ -67,7 +67,7 @@ def test_csp_validate_failure():
 def test_csp_tags_out_of_bounds():
     report = {
         "release": "abc123",
-        "interface": 'sentry.interfaces.Csp',
+        "interface": 'csp',
         "report": {
             "csp-report": {
                 "document-uri": "http://45.55.25.245:8123/csp",
@@ -90,7 +90,7 @@ def test_csp_tags_out_of_bounds():
 def test_csp_tag_value():
     report = {
         "release": "abc123",
-        "interface": 'sentry.interfaces.Csp',
+        "interface": 'csp',
         "report": {
             "csp-report": {
                 "document-uri": "http://45.55.25.245:8123/csp",
@@ -129,15 +129,15 @@ def test_hpkp_validate_basic():
     result = validate_and_normalize(report)
     assert result['release'] == 'abc123'
     assert result['errors'] == []
-    assert 'sentry.interfaces.Message' in result
+    assert 'logentry' in result
     assert 'culprit' in result
     assert sorted(result['tags']) == [
         ('hostname', 'www.example.com'),
         ('include-subdomains', 'false'),
         ('port', '443'),
     ]
-    assert result['sentry.interfaces.User'] == {'ip_address': '198.51.100.0'}
-    assert result['sentry.interfaces.Http'] == {
+    assert result['user'] == {'ip_address': '198.51.100.0'}
+    assert result['request'] == {
         'url': 'www.example.com',
         'headers': [
             ('User-Agent', 'Awesome Browser'),

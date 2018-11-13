@@ -172,7 +172,7 @@ def find_stacktraces_in_data(data, include_raw=False):
             platforms.add(frame.get('platform') or data.get('platform'))
         rv.append(StacktraceInfo(stacktrace=stacktrace, container=container, platforms=platforms))
 
-    exc_container = data.get('sentry.interfaces.Exception')
+    exc_container = data.get('exception')
     if exc_container:
         for exc in exc_container['values']:
             if not exc:
@@ -181,7 +181,7 @@ def find_stacktraces_in_data(data, include_raw=False):
             if stacktrace:
                 _report_stack(stacktrace, exc)
 
-    stacktrace = data.get('sentry.interfaces.Stacktrace')
+    stacktrace = data.get('stacktrace')
     if stacktrace:
         _report_stack(stacktrace, None)
 

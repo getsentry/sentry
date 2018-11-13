@@ -661,6 +661,7 @@ then be transformed into the requisite interface.
 """
 INPUT_SCHEMAS = {
     'sentry.interfaces.Csp': CSP_SCHEMA,
+    'csp': CSP_SCHEMA,
     'hpkp': HPKP_SCHEMA,
     'expectct': EXPECT_CT_SCHEMA,
     'expectstaple': EXPECT_STAPLE_SCHEMA,
@@ -690,6 +691,7 @@ INTERFACE_SCHEMAS = {
 
     # Security reports
     'sentry.interfaces.Csp': CSP_INTERFACE_SCHEMA,
+    'csp': CSP_INTERFACE_SCHEMA,
     'hpkp': HPKP_INTERFACE_SCHEMA,
     'expectct': EXPECT_CT_INTERFACE_SCHEMA,
     'expectstaple': EXPECT_STAPLE_INTERFACE_SCHEMA,
