@@ -7,7 +7,7 @@ def test_stacktraces_basics():
     data = {
         'message': 'hello',
         'platform': 'javascript',
-        'sentry.interfaces.Stacktrace': {
+        'stacktrace': {
             'frames': [
                 {
                     'abs_path': 'http://example.com/foo.js',
@@ -35,7 +35,7 @@ def test_get_stacktraces_returns_exception_interface():
     data = {
         'message': 'hello',
         'platform': 'javascript',
-        'sentry.interfaces.Exception': {
+        'exception': {
             'values': [
                 {
                     'type': 'Error',

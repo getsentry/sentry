@@ -124,7 +124,7 @@ class SnubaTSDBTest(TestCase):
                     'sentry:user': u'id:user{}'.format(r // 3300),
                     'sentry:release': six.text_type(r // 3600) * 10,  # 1 per hour
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     # change every 55 min so some hours have 1 user, some have 2
                     'id': u"user{}".format(r // 3300),
                     'email': u"user{}@sentry.io".format(r)

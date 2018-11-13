@@ -209,7 +209,7 @@ class LegacyBrowsersFilterTest(TestCase):
     def get_mock_data(self, user_agent):
         return {
             'platform': 'javascript',
-            'sentry.interfaces.Http': {
+            'request': {
                 'url': 'http://example.com',
                 'method': 'GET',
                 'headers': [
