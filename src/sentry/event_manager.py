@@ -36,7 +36,7 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
-from sentry.interfaces.base import get_interface
+from sentry.interfaces.base import Meta, get_interface
 from sentry.interfaces.exception import normalize_mechanism_meta
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.lang.native.utils import get_sdk_from_event
@@ -539,7 +539,6 @@ class EventManager(object):
                     errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
                     del data[c]
 
-        from sentry.interfaces.base import Meta
         meta = Meta(data.get('_meta'))
 
         # raw 'message' is coerced to the Message interface.  Longer term
