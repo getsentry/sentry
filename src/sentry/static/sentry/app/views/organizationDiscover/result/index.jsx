@@ -15,10 +15,14 @@ import InlineSvg from 'app/components/inlineSvg';
 import {getChartData, getChartDataByDay, downloadAsCsv, getRowsPageRange} from './utils';
 import Table from './table';
 import Pagination from './pagination';
+import ViewsDropdown from './viewsDropdown';
+
 import {
   ResultTitle,
   Heading,
   ResultSummary,
+  ResultViewButtons,
+  ResultViewDropdownButtons,
   ResultContainer,
   ResultInnerContainer,
   ChartWrapper,
@@ -66,6 +70,12 @@ export default class Result extends React.Component {
     });
   }
 
+  handleViews = opt => {
+    this.setState({
+      view: opt,
+    });
+  };
+
   renderToggle() {
     const {baseQuery, byDayQuery} = this.props.data;
 
@@ -86,7 +96,7 @@ export default class Result extends React.Component {
 
     return (
       <Flex justify="flex-end">
-        <Flex className="btn-group">
+        <ResultViewButtons className="btn-group">
           {options.map(opt => {
             const active = opt.id === this.state.view;
             return (
@@ -101,7 +111,14 @@ export default class Result extends React.Component {
               </a>
             );
           })}
-        </Flex>
+        </ResultViewButtons>
+        <ResultViewDropdownButtons>
+          <ViewsDropdown
+            options={options}
+            handleChange={this.handleViews}
+            view={this.state.view}
+          />
+        </ResultViewDropdownButtons>
         <Box ml={1}>
           <Link className={linkClasses} onClick={() => downloadAsCsv(baseQuery.data)}>
             {t('Export CSV')}

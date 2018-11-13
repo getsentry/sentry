@@ -43,6 +43,19 @@ export const ResultTitle = styled(Box)`
   min-width: 70px;
 `;
 
+export const ResultViewButtons = styled(Flex)`
+  @media (max-width: 950px) {
+    display: none;
+  }
+`;
+
+export const ResultViewDropdownButtons = styled('div')`
+  display: none;
+  @media (max-width: 950px) {
+    display: contents;
+  }
+`;
+
 export const Sidebar = styled(props => (
   <Flex {...props} direction="column" w={[320, 320, 320, 380]} />
 ))`
