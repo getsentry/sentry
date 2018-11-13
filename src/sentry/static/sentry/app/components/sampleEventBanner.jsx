@@ -69,8 +69,8 @@ const SampleEventBanner = createReactClass({
     let path = window.location.pathname;
 
     return (
-      path.indexOf('/getting-started/') !== -1 &&
-      path.indexOf('/onboarding/') !== -1 &&
+      path.indexOf('/getting-started/') !== -1 ||
+      path.indexOf('/onboarding/') !== -1 ||
       path.indexOf('/projects/new/') !== -1
     );
   },
