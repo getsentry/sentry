@@ -88,6 +88,29 @@ class Browser(object):
 
         return self
 
+    def retry_send_keys(self, selector, value, retry=10):
+        """
+        Performs a `send_keys` action on `selector` and will retry until the value of the input
+        is equal to `value`. There's been lots of flakiness in our acceptance tests because the input
+        is incorrect.
+
+        Warning! this will fail if input value gets reformatted
+        """
+
+        if not selector:
+            raise ValueError
+
+        if retry <= 0:
+            return self
+
+        self.element(selector).clear()
+        self.element(selector).send_keys(value)
+
+        if self.element(selector).get_attribute('value').encode('utf-8') != value:
+            self.retry_send_keys(selector, value, retry - 1)
+
+        return self
+
     def move_to(self, selector=None):
         """
         Mouse move to ``selector``
