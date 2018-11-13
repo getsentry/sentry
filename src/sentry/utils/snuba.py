@@ -217,7 +217,7 @@ def transform_aliases_and_query(**kwargs):
 def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
               aggregations=None, rollup=None, arrayjoin=None, limit=None, offset=None,
               orderby=None, having=None, referrer=None, is_grouprelease=False,
-              selected_columns=None, totals=None, limitby=None):
+              selected_columns=None, totals=None, limitby=None, turbo=False):
     """
     Sends a query to snuba.
 
@@ -323,6 +323,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'limitby': limitby,
         'orderby': orderby,
         'selected_columns': selected_columns,
+        'turbo': turbo
     }) if v is not None}
 
     headers = {}

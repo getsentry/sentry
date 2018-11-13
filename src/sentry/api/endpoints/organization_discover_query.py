@@ -63,6 +63,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
         required=False,
         allow_null=True,
     )
+    turbo = serializers.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
         super(DiscoverQuerySerializer, self).__init__(*args, **kwargs)
@@ -331,4 +332,5 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
             filter_keys={'project_id': serialized.get('projects')},
             arrayjoin=serialized.get('arrayjoin'),
             request=request,
+            turbo=serialized.get('turbo'),
         )
