@@ -131,7 +131,7 @@ class User(Interface):
         }
 
     def get_path(self):
-        return 'sentry.interfaces.User'
+        return 'user'
 
     def get_hash(self):
         return []

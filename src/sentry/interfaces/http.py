@@ -118,7 +118,7 @@ class Http(Interface):
     """
     display_score = 1000
     score = 800
-    path = 'sentry.interfaces.Http'
+    path = 'request'
 
     FORM_TYPE = 'application/x-www-form-urlencoded'
 

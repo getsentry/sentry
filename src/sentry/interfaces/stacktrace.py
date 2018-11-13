@@ -631,7 +631,7 @@ class Stacktrace(Interface):
     OR
 
     ``module``
-      Platform-specific module path (e.g. sentry.interfaces.Stacktrace)
+      Platform-specific module path (e.g. stacktrace)
 
     The following additional attributes are supported:
 
@@ -699,7 +699,7 @@ class Stacktrace(Interface):
               to the full interface path.
     """
     score = 2000
-    path = 'sentry.interfaces.Stacktrace'
+    path = 'stacktrace'
 
     def __iter__(self):
         return iter(self.frames)

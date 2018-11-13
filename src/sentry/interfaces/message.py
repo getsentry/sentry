@@ -91,7 +91,7 @@ class Message(Interface):
         return cls(**kwargs)
 
     def get_path(self):
-        return 'sentry.interfaces.Message'
+        return 'logentry'
 
     def get_hash(self):
         return [self.message]

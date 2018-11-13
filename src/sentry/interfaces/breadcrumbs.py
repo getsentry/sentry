@@ -114,7 +114,7 @@ class Breadcrumbs(Interface):
         return rv
 
     def get_path(self):
-        return 'sentry.interfaces.Breadcrumbs'
+        return 'breadcrumbs'
 
     def get_alias(self):
         return 'breadcrumbs'

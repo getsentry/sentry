@@ -26,7 +26,7 @@ class UserAgentPlugin(TagPlugin):
         if contexts:
             return []
 
-        http = event.interfaces.get('sentry.interfaces.Http')
+        http = event.interfaces.get('request')
         if not http:
             return []
         if not http.headers:
@@ -53,7 +53,7 @@ class UserAgentPlugin(TagPlugin):
 class BrowserPlugin(UserAgentPlugin):
     """
     Automatically adds the 'browser' tag from events containing interface data
-    from ``sentry.interfaces.Http``.
+    from ``request``.
     """
     slug = 'browsers'
     title = 'Auto Tag: Browsers'
@@ -82,7 +82,7 @@ register(BrowserPlugin)
 class OsPlugin(UserAgentPlugin):
     """
     Automatically adds the 'os' tag from events containing interface data
-    from ``sentry.interfaces.Http``.
+    from ``request``.
     """
     slug = 'os'
     title = 'Auto Tag: Operating Systems'
@@ -112,7 +112,7 @@ register(OsPlugin)
 class DevicePlugin(UserAgentPlugin):
     """
     Automatically adds the 'device' tag from events containing interface data
-    from ``sentry.interfaces.Http``.
+    from ``request``.
     """
     slug = 'device'
     title = 'Auto Tag: Device'

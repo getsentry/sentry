@@ -57,7 +57,7 @@ class Template(Interface):
         return 'template'
 
     def get_path(self):
-        return 'sentry.interfaces.Template'
+        return 'template'
 
     def get_hash(self):
         return [self.filename, self.context_line]

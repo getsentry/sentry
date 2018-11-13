@@ -342,7 +342,7 @@ class Csp(SecurityReport):
     score = 1300
     display_score = 1300
 
-    path = 'sentry.interfaces.Csp'
+    path = 'csp'
     title = 'CSP Report'
 
     @classmethod

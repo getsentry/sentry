@@ -39,10 +39,10 @@ def score_path_match_length(path_a, path_b):
 def _get_frame_paths(event):
     data = event.data
     try:
-        frames = data['sentry.interfaces.Stacktrace']['frames']
+        frames = data['stacktrace']['frames']
     except KeyError:
         try:
-            frames = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
+            frames = data['exception']['values'][0]['stacktrace']['frames']
         except (KeyError, TypeError):
             return []  # can't find stacktrace information
 

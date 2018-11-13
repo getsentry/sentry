@@ -812,7 +812,7 @@ class SingleException(Interface):
     module namespace. Either ``type`` or ``value`` must be present.
 
     You can also optionally bind a stacktrace interface to an exception. The
-    spec is identical to ``sentry.interfaces.Stacktrace``.
+    spec is identical to ``stacktrace``.
 
     >>> {
     >>>     "type": "ValueError",
@@ -820,12 +820,12 @@ class SingleException(Interface):
     >>>     "module": "__builtins__",
     >>>     "mechanism": {},
     >>>     "stacktrace": {
-    >>>         # see sentry.interfaces.Stacktrace
+    >>>         # see stacktrace
     >>>     }
     >>> }
     """
     score = 2000
-    path = 'sentry.interfaces.Exception'
+    path = 'exception'
 
     @classmethod
     def to_python(cls, data, slim_frames=True):
@@ -976,7 +976,7 @@ class Exception(Interface):
     namespace.
 
     You can also optionally bind a stacktrace interface to an exception. The
-    spec is identical to ``sentry.interfaces.Stacktrace``.
+    spec is identical to ``stacktrace``.
 
     >>> {
     >>>     "values": [{
@@ -987,7 +987,7 @@ class Exception(Interface):
     >>>             # see sentry.interfaces.Mechanism
     >>>         },
     >>>         "stacktrace": {
-    >>>             # see sentry.interfaces.Stacktrace
+    >>>             # see stacktrace
     >>>         }
     >>>     }]
     >>> }
@@ -1051,7 +1051,7 @@ class Exception(Interface):
         return 'exception'
 
     def get_path(self):
-        return 'sentry.interfaces.Exception'
+        return 'exception'
 
     def compute_hashes(self, platform):
         system_hash = self.get_hash(platform, system_frames=True)

@@ -180,12 +180,12 @@ class ClientApiHelper(object):
         return self.project_key_from_auth(auth).project_id
 
     def ensure_does_not_have_ip(self, data):
-        if 'sentry.interfaces.Http' in data:
-            if 'env' in data['sentry.interfaces.Http']:
-                data['sentry.interfaces.Http']['env'].pop('REMOTE_ADDR', None)
+        if 'request' in data:
+            if 'env' in data['request']:
+                data['request']['env'].pop('REMOTE_ADDR', None)
 
-        if 'sentry.interfaces.User' in data:
-            data['sentry.interfaces.User'].pop('ip_address', None)
+        if 'user' in data:
+            data['user'].pop('ip_address', None)
 
         if 'sdk' in data:
             data['sdk'].pop('client_ip', None)
@@ -235,7 +235,7 @@ class MinidumpApiHelper(ClientApiHelper):
 
 class SecurityApiHelper(ClientApiHelper):
 
-    report_interfaces = ('sentry.interfaces.Csp', 'hpkp', 'expectct', 'expectstaple')
+    report_interfaces = ('csp', 'hpkp', 'expectct', 'expectstaple')
 
     def origin_from_request(self, request):
         # In the case of security reports, the origin is not available at the
