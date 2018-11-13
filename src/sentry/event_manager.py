@@ -36,7 +36,7 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
-from sentry.interfaces.base import get_interface, InterfaceValidationError
+from sentry.interfaces.base import get_interface
 from sentry.interfaces.exception import normalize_mechanism_meta
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.lang.native.utils import get_sdk_from_event
@@ -535,9 +535,12 @@ class EventManager(object):
                 except InvalidTimestamp as it:
                     errors.append({'type': it.args[0], 'name': c, 'value': data[c]})
                     del data[c]
-                except Exception as e:
+                except Exception:
                     errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
                     del data[c]
+
+        from sentry.interfaces.base import Meta
+        meta = Meta(data.get('_meta'))
 
         # raw 'message' is coerced to the Message interface.  Longer term
         # we want to treat 'message' as a pure alias for 'logentry' but
@@ -553,19 +556,14 @@ class EventManager(object):
         msg_str = data.pop('message', None)
         if msg_str:
             msg_if = data.get('logentry')
-            msg_meta = data.get('_meta', {}).get('message')
 
             if not msg_if:
                 msg_if = data['logentry'] = {'message': msg_str}
-                if msg_meta:
-                    data.setdefault('_meta', {}).setdefault('logentry', {})['message'] = msg_meta
+                meta.enter('logentry', 'message').merge(meta.enter('message'))
 
-            if msg_if.get('message') != msg_str:
-                if not msg_if.get('formatted'):
-                    msg_if['formatted'] = msg_str
-                    if msg_meta:
-                        data.setdefault('_meta', {}).setdefault(
-                            'logentry', {})['formatted'] = msg_meta
+            if msg_if.get('message') != msg_str and not msg_if.get('formatted'):
+                msg_if['formatted'] = msg_str
+                meta.enter('logentry', 'formatted').merge(meta.enter('message'))
 
         # Fill in ip addresses marked as {{auto}}
         if self._client_ip:
@@ -608,14 +606,14 @@ class EventManager(object):
                 errors.append({'type': EventError.INVALID_ATTRIBUTE, 'name': k})
                 continue
 
-            try:
-                inst = interface.to_python(value)
-                data[inst.path] = inst.to_json()
-            except Exception as e:
-                log = logger.debug if isinstance(
-                    e, InterfaceValidationError) else logger.error
-                log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
-                errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
+            inst = interface.to_python(value, meta=meta.enter(k))
+            # TODO(ja): Remove this after removing InterfaceValidationErrors.
+            # Since we check that value is non-empty before invoking to_python,
+            # the only case where inst._data can be empty is when an error was
+            # thrown during normalization.
+            data[inst.path] = inst.to_json() if inst._data else None
+            for error in inst.get_errors():
+                errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': error})
 
         # Additional data coercion and defaulting we only do for store.
         if self._for_store:

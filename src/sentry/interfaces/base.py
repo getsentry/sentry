@@ -53,17 +53,48 @@ def get_interfaces(data):
     )
 
 
-def add_meta_error(meta, error, value=None, path=None):
-    if path:
-        for key in path.split('.'):
+class Meta(object):
+    def __init__(self, meta=None, path=None):
+        self._meta = meta or {}
+        self._path = path or []
+
+    def enter(self, *path):
+        return Meta(self._meta, path=self._path + map(six.text_type, path))
+
+    def get(self):
+        meta = self._meta
+        for key in self._path:
+            meta = meta.get(key, {})
+        return meta.get('', {})
+
+    def has_errors(self):
+        bool(self.get().get('err'))
+
+    def create(self):
+        meta = self._meta
+        for key in self._path:
             meta = meta.setdefault(key, {})
 
-    meta = meta.setdefault('', {})
-    errors = meta.setdefault('err', [])
-    errors.append(six.text_type(error))
+        return meta.setdefault('', {})
 
-    if value is not None:
-        meta['val'] = value
+    def merge(self, other):
+        other = other.get()
+        if not other:
+            return
+
+        meta = self.create()
+        err = meta.get('err')
+        meta.update(other)
+
+        if err and other.get('err'):
+            meta['err'] = err + other['err']
+
+    def add_error(self, error, value=None):
+        meta = self.create()
+        meta.setdefault('err', []).append(six.text_type(error))
+
+        if value is not None:
+            meta['val'] = value
 
 
 class InterfaceValidationError(Exception):
@@ -81,9 +112,9 @@ class Interface(object):
     display_score = None
     ephemeral = False
 
-    def __init__(self, _meta=None, **data):
+    def __init__(self, **data):
         self._data = data or {}
-        self._meta = _meta or None
+        self._meta = Meta()
 
     @classproperty
     def path(cls):
@@ -120,27 +151,33 @@ class Interface(object):
             self._data[name] = value
 
     @classmethod
-    def _to_python(cls, data, **kwargs):
+    def _to_python(cls, data, meta=None, **kwargs):
         return cls(**data)
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data, meta=None, **kwargs):
         """Creates a python interface object from the given raw data. By
         default, this uses all keys passed in as `data`.
 
         To override this behavior, implement `_to_python`.
         """
 
+        if meta is None:
+            meta = Meta()
+
         try:
-            return cls._to_python(data, **kwargs)
+            instance = cls._to_python(data, meta=meta, **kwargs)
         except Exception as e:
+            # TODO(ja): Remove this after switching to Rust normalization
             if not isinstance(e, InterfaceValidationError):
                 logger.error('Discarded invalid value for interface: %s (%r)',
                              cls().get_slug(), data, exc_info=True)
 
-            meta = {}
-            add_meta_error(meta, e, value=data)
-            return cls(_meta=meta)
+            meta.add_error(e, value=data)
+            instance = cls()
+
+        instance._meta = meta
+        return instance
 
     def get_api_context(self, is_public=False):
         return self.to_json()
@@ -184,6 +221,9 @@ class Interface(object):
         if not body:
             return ''
         return '<pre>%s</pre>' % (escape(body), )
+
+    def get_errors(self):
+        return self._meta.get().get('err', [])
 
     # deprecated stuff.  These were deprecated in late 2018, once
     # determined they are unused we can kill them.
