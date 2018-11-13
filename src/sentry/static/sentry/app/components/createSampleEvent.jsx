@@ -10,8 +10,8 @@ import Button from 'app/components/button';
 import IndicatorStore from 'app/stores/indicatorStore';
 import sdk from 'app/utils/sdk';
 
-const SampleEvent = createReactClass({
-  displayName: 'sampleEvent',
+const CreateSampleEvent = createReactClass({
+  displayName: 'createSampleEvent',
 
   propTypes: {
     params: PropTypes.object.isRequired,
@@ -36,7 +36,7 @@ const SampleEvent = createReactClass({
   },
 
   createSampleEvent() {
-    // TODO(DENA): if experiment is successful-create util function
+    // TODO(DENA): swap out for action creator
     let {orgId, projectId} = this.props.params;
     let {organization} = this.context;
     let url = `/projects/${orgId}/${projectId}/create-sample/`;
@@ -89,4 +89,4 @@ const StyledButton = styled(Button)`
   }
 `;
 
-export default SampleEvent;
+export default CreateSampleEvent;

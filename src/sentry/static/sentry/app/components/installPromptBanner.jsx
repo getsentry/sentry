@@ -9,8 +9,8 @@ import Alert from 'app/components/alert';
 import ConfigStore from 'app/stores/configStore';
 import {t} from 'app/locale';
 
-const SampleEventBanner = createReactClass({
-  displayName: 'sampleEventBanner',
+const InstallPromptBanner = createReactClass({
+  displayName: 'installPromptBanner',
   propTypes: {
     organization: PropTypes.object,
   },
@@ -24,9 +24,12 @@ const SampleEventBanner = createReactClass({
   },
 
   componentDidMount() {
+    let {href} = window.location;
+    let {organization} = this.props;
     this.sentFirstEvent();
-    analytics('sample_event.banner_viewed', {
-      org_id: parseInt(this.props.organization.id, 10),
+    analytics('install_prompt.banner_viewed', {
+      org_id: parseInt(organization.id, 10),
+      page: href,
     });
   },
 
@@ -59,9 +62,12 @@ const SampleEventBanner = createReactClass({
     return url;
   },
 
-  handleClick() {
-    analytics('sample_event.banner_viewed', {
-      org_id: parseInt(this.props.organization.id, 10),
+  recordAnalytics() {
+    let {href} = window.location;
+    let {organization} = this.props;
+    analytics('install_prompt.banner_clicked', {
+      org_id: parseInt(organization.id, 10),
+      page: href,
     });
   },
 
@@ -83,9 +89,9 @@ const SampleEventBanner = createReactClass({
       <React.Fragment>
         {!hideBanner && (
           <StyledAlert type="warning" icon="icon-circle-exclamation" system={'system'}>
-            <a onClick={() => this.handleClick()} href={this.getUrl()}>
+            <a onClick={() => this.recordAnalytics()} href={this.getUrl()}>
               {t(
-                "You're almost there! Start capturing errors with just a few lines of code"
+                "You're almost there! Start capturing errors with just a few lines of code."
               )}
             </a>
           </StyledAlert>
@@ -105,4 +111,4 @@ const StyledAlert = styled(Alert)`
   }
 `;
 
-export default SampleEventBanner;
+export default InstallPromptBanner;
