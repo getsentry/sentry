@@ -51,7 +51,7 @@ class User(Interface):
     """
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         data = data.copy()
 
         extra_data = data.pop('data', data)

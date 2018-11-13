@@ -42,7 +42,7 @@ class Message(Interface):
     external_type = 'message'
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         if not data.get('message'):
             raise InterfaceValidationError("No 'message' present")
 

@@ -733,7 +733,7 @@ class Mechanism(Interface):
     """
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         data = upgrade_legacy_mechanism(data)
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
@@ -823,7 +823,7 @@ class SingleException(Interface):
     path = 'exception'
 
     @classmethod
-    def to_python(cls, data, slim_frames=True):
+    def _to_python(cls, data, slim_frames=True):
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid exception")
@@ -1000,7 +1000,7 @@ class Exception(Interface):
         return len(self.values)
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         if data and 'values' not in data and 'exc_omitted' not in data:
             data = {"values": [data]}
         values = data.get('values', [])

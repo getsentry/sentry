@@ -169,7 +169,7 @@ class Contexts(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         rv = {}
         for alias, value in six.iteritems(data):
             if value is not None:

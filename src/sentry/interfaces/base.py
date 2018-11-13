@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import logging
 import six
 from collections import OrderedDict
 
@@ -11,6 +12,9 @@ from sentry.utils.html import escape
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
 from sentry.utils.decorators import classproperty
+
+
+logger = logging.getLogger("sentry.events")
 
 
 def get_interface(name):
@@ -49,6 +53,19 @@ def get_interfaces(data):
     )
 
 
+def add_meta_error(meta, error, value=None, path=None):
+    if path:
+        for key in path.split('.'):
+            meta = meta.setdefault(key, {})
+
+    meta = meta.setdefault('', {})
+    errors = meta.setdefault('err', [])
+    errors.append(six.text_type(error))
+
+    if value is not None:
+        meta['val'] = value
+
+
 class InterfaceValidationError(Exception):
     pass
 
@@ -64,8 +81,9 @@ class Interface(object):
     display_score = None
     ephemeral = False
 
-    def __init__(self, **data):
+    def __init__(self, _meta=None, **data):
         self._data = data or {}
+        self._meta = _meta or None
 
     @classproperty
     def path(cls):
@@ -102,8 +120,27 @@ class Interface(object):
             self._data[name] = value
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data, **kwargs):
         return cls(**data)
+
+    @classmethod
+    def to_python(cls, data, **kwargs):
+        """Creates a python interface object from the given raw data. By
+        default, this uses all keys passed in as `data`.
+
+        To override this behavior, implement `_to_python`.
+        """
+
+        try:
+            return cls._to_python(data, **kwargs)
+        except Exception as e:
+            if not isinstance(e, InterfaceValidationError):
+                logger.error('Discarded invalid value for interface: %s (%r)',
+                             cls().get_slug(), data, exc_info=True)
+
+            meta = {}
+            add_meta_error(meta, e, value=data)
+            return cls(_meta=meta)
 
     def get_api_context(self, is_public=False):
         return self.to_json()

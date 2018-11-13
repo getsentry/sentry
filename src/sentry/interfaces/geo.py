@@ -20,7 +20,7 @@ class Geo(Interface):
     """
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         kwargs = {
             'country_code': data.get('country_code'),
             'city': data.get('city'),

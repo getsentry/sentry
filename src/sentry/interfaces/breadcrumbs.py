@@ -50,7 +50,7 @@ class Breadcrumbs(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         values = []
         for crumb in data.get('values') or ():
             if crumb is None:

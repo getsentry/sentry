@@ -19,7 +19,7 @@ class Threads(Interface):
     score = 1900
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         threads = []
 
         for thread in data.get('values') or ():

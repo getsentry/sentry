@@ -41,7 +41,7 @@ class Template(Interface):
     score = 1100
 
     @classmethod
-    def to_python(cls, data):
+    def _to_python(cls, data):
         kwargs = {
             'abs_path': trim(data.get('abs_path', None), 256),
             'filename': trim(data.get('filename', None), 256),
