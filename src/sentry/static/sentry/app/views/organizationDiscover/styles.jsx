@@ -45,14 +45,14 @@ export const ResultTitle = styled(Box)`
 `;
 
 export const ResultViewButtons = styled(Flex)`
-  @media (max-width: ${theme.breakpoints[2]}) {
+  @media (max-width: ${theme.breakpoints[1]}) {
     display: none;
   }
 `;
 
 export const ResultViewDropdownButtons = styled('div')`
   display: none;
-  @media (max-width: ${theme.breakpoints[2]}) {
+  @media (max-width: ${theme.breakpoints[1]}) {
     display: block;
   }
 `;
