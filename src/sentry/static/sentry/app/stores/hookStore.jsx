@@ -12,6 +12,10 @@ const validHookNames = new Set([
   'analytics:event',
   'analytics:log-experiment',
 
+  // Operational metrics
+  'metrics:gauge',
+  'metrics:increment',
+
   // Specific component customizations
   'component:org-auth-view',
   'component:org-members-view',
