@@ -285,8 +285,6 @@ def is_recursion(frame1, frame2):
 
 class Frame(Interface):
 
-    path = 'frame'
-
     @classmethod
     def to_python(cls, data, raw=False):
         is_valid, errors = validate_and_default_interface(data, cls.path)
@@ -631,7 +629,7 @@ class Stacktrace(Interface):
     OR
 
     ``module``
-      Platform-specific module path (e.g. sentry.interfaces.Stacktrace)
+      Platform-specific module path (e.g. stacktrace)
 
     The following additional attributes are supported:
 
@@ -699,7 +697,6 @@ class Stacktrace(Interface):
               to the full interface path.
     """
     score = 2000
-    path = 'sentry.interfaces.Stacktrace'
 
     def __iter__(self):
         return iter(self.frames)
@@ -790,9 +787,6 @@ class Stacktrace(Interface):
             'frames_omitted': self.frames_omitted,
             'registers': self.registers,
         }
-
-    def get_path(self):
-        return self.path
 
     def compute_hashes(self, platform):
         system_hash = self.get_hash(platform, system_frames=True)

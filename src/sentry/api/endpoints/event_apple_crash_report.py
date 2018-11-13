@@ -47,7 +47,7 @@ class EventAppleCrashReportEndpoint(Endpoint):
 
         threads = (event.data.get('threads') or {}).get('values')
         exceptions = (event.data.get(
-            'sentry.interfaces.Exception') or {}).get('values')
+            'exception') or {}).get('values')
 
         symbolicated = (request.GET.get('minified') not in ('1', 'true'))
         debug_images = None

@@ -73,7 +73,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             # to disambiugate the first frame.  If we can get this information
             # from the mechanism we want to pass it onwards.
             signal = None
-            exc = self.data.get('sentry.interfaces.Exception')
+            exc = self.data.get('exception')
             if exc is not None:
                 mechanism = exc['values'][0].get('mechanism')
                 if mechanism and 'meta' in mechanism and \

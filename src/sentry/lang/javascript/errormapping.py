@@ -115,7 +115,7 @@ def rewrite_exception(data):
     in place and returns `True` if a modification was performed or `False`
     otherwise.
     """
-    exc_data = data.get('sentry.interfaces.Exception')
+    exc_data = data.get('exception')
     if not exc_data:
         return False
 
