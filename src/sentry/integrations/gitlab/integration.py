@@ -99,10 +99,9 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         group_id = self.get_group_id()
         return client.search_group_projects(group_id, query)
 
-    def search_issues(self, query):
+    def search_issues(self, project_id, query, iids):
         client = self.get_client()
-        group_id = self.get_group_id()
-        return client.search_group_issues(group_id, query)
+        return client.search_project_issues(project_id, query, iids)
 
 
 class InstallationForm(forms.Form):

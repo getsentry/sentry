@@ -24,10 +24,10 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_external_issue_results(self):
         responses.add(
             responses.GET,
-            'https://example.gitlab.com/api/v4/groups/1/issues?scope=all&search=AEIOU',
+            'https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=AEIOU',
             json=[
-                {'iid': 25, 'title': 'AEIOU Error', 'project_id': '1'},
-                {'iid': 45, 'title': 'AEIOU Error', 'project_id': '2'}
+                {'iid': 25, 'title': 'AEIOU Error', 'project_id': '5'},
+                {'iid': 45, 'title': 'AEIOU Error', 'project_id': '5'}
             ]
         )
         resp = self.client.get(
@@ -35,13 +35,37 @@ class GitlabSearchTest(GitLabTestCase):
             data={
                 'field': 'externalIssue',
                 'query': 'AEIOU',
+                'project': '5'
             }
         )
 
         assert resp.status_code == 200
         assert resp.data == [
-            {'value': '1#25', 'label': '(#25) AEIOU Error'},
-            {'value': '2#45', 'label': '(#45) AEIOU Error'}
+            {'value': '5#25', 'label': '(#25) AEIOU Error'},
+            {'value': '5#45', 'label': '(#45) AEIOU Error'}
+        ]
+
+    @responses.activate
+    def test_finds_external_issue_results_with_iid(self):
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=25',
+            json=[
+                {'iid': 25, 'title': 'AEIOU Error', 'project_id': '5'},
+            ]
+        )
+        resp = self.client.get(
+            self.url,
+            data={
+                'field': 'externalIssue',
+                'query': '25',
+                'project': '5'
+            }
+        )
+
+        assert resp.status_code == 200
+        assert resp.data == [
+            {'value': '5#25', 'label': '(#25) AEIOU Error'},
         ]
 
     @responses.activate
@@ -80,7 +104,7 @@ class GitlabSearchTest(GitLabTestCase):
     def test_finds_no_external_issues_results(self):
         responses.add(
             responses.GET,
-            'https://example.gitlab.com/api/v4/groups/1/issues?scope=all&search=XYZ',
+            'https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=XYZ',
             json=[]
         )
         resp = self.client.get(
@@ -88,6 +112,26 @@ class GitlabSearchTest(GitLabTestCase):
             data={
                 'field': 'externalIssue',
                 'query': 'XYZ',
+                'project': '5',
+            }
+        )
+
+        assert resp.status_code == 200
+        assert resp.data == []
+
+    @responses.activate
+    def test_finds_no_external_issues_results_iid(self):
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=11',
+            json=[]
+        )
+        resp = self.client.get(
+            self.url,
+            data={
+                'field': 'externalIssue',
+                'query': '11',
+                'project': '5',
             }
         )
 
@@ -143,6 +187,26 @@ class GitlabSearchTest(GitLabTestCase):
 
         assert resp.status_code == 400
 
+    @responses.activate
+    def test_missing_project_with_external_issue_field(self):
+        responses.add(
+            responses.GET,
+            'https://example.gitlab.com/api/v4/projects/5/issues?scope=all&search=AEIOU',
+            json=[
+                {'iid': 25, 'title': 'AEIOU Error', 'project_id': '5'},
+                {'iid': 45, 'title': 'AEIOU Error', 'project_id': '5'}
+            ]
+        )
+        resp = self.client.get(
+            self.url,
+            data={
+                'field': 'externalIssue',
+                'query': 'AEIOU',
+            }
+        )
+
+        assert resp.status_code == 400
+
     # Missing Resources
     def test_missing_integration(self):
         url = reverse(
@@ -188,6 +252,7 @@ class GitlabSearchTest(GitLabTestCase):
             data={
                 'field': 'externalIssue',
                 'query': 'GetSentry',
+                'project': '5',
             }
         )
         assert resp.status_code == 500

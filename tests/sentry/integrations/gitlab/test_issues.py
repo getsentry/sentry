@@ -77,15 +77,33 @@ class GitlabIssuesTest(GitLabTestCase):
 
     @responses.activate
     def test_get_link_issue_config(self):
+        responses.add(
+            responses.GET,
+            u'https://example.gitlab.com/api/v4/groups/%s/projects' % self.installation.model.metadata['group_id'],
+            json=[
+                {'name_with_namespace': 'getsentry / sentry', 'id': 1},
+                {'name_with_namespace': 'getsentry / hello', 'id': 22},
+            ]
+        )
+        autocomplete_url = '/extensions/gitlab/search/baz/%d/' % self.installation.model.id
         assert self.installation.get_link_issue_config(self.group) == [
+            {
+                'name': 'project',
+                'label': 'GitLab Project',
+                'type': 'select',
+                'default': 1,
+                'choices': [(1, u'getsentry / sentry'), (22, u'getsentry / hello')],
+                'url': autocomplete_url,
+                'updatesForm': True,
+                'required': True,
+            },
             {
                 'name': 'externalIssue',
                 'label': 'Issue',
                 'default': '',
                 'type': 'select',
-                'url': '/extensions/gitlab/search/baz/%d/' % self.installation.model.id,
+                'url': autocomplete_url,
                 'required': True,
-                'updatesForm': True,
             },
         ]
 
