@@ -16,7 +16,6 @@ import {getChartData, getChartDataByDay, downloadAsCsv, getRowsPageRange} from '
 import Table from './table';
 import Pagination from './pagination';
 import VisualizationsDropdown from './vizualizationsDropdown';
-
 import {
   ResultTitle,
   Heading,
@@ -93,6 +92,7 @@ export default class Result extends React.Component {
     }
 
     const linkClasses = 'btn btn-default btn-sm';
+
     return (
       <Flex justify="flex-end">
         <ResultViewButtons className="btn-group">
