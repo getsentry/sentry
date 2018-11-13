@@ -2,12 +2,11 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.models import Integration
 
 
-class GitlabIssueSearchEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationPermission, )
+class GitlabIssueSearchEndpoint(IntegrationEndpoint):
 
     def get(self, request, organization, integration_id):
         try:
