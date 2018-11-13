@@ -38,14 +38,9 @@ export const PageTitle = styled.h2`
   height: ${HEADER_HEIGHT}px;
 `;
 
-export const ResultTitle = styled(Flex)`
+export const ResultTitle = styled(Box)`
   flex: 1;
   min-width: 70px;
-`;
-
-//TODO: Add @media for responsiveness
-export const ResultViewButtons = styled(Flex)`
-  justify-content: flex-end;
 `;
 
 export const Sidebar = styled(props => (

@@ -19,7 +19,6 @@ import {
   ResultTitle,
   Heading,
   ResultSummary,
-  ResultViewButtons,
   ResultContainer,
   ResultInnerContainer,
   ChartWrapper,
@@ -87,7 +86,7 @@ export default class Result extends React.Component {
 
     return (
       <Flex justify="flex-end">
-        <ResultViewButtons className="btn-group">
+        <Flex className="btn-group">
           {options.map(opt => {
             const active = opt.id === this.state.view;
             return (
@@ -102,7 +101,7 @@ export default class Result extends React.Component {
               </a>
             );
           })}
-        </ResultViewButtons>
+        </Flex>
         <Box ml={1}>
           <Link className={linkClasses} onClick={() => downloadAsCsv(baseQuery.data)}>
             {t('Export CSV')}
