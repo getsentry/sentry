@@ -33,7 +33,7 @@ class EventSerializer(Serializer):
 
             entry = {
                 'data': data,
-                'type': interface.get_alias(),
+                'type': interface.external_type,
             }
 
             api_meta = None

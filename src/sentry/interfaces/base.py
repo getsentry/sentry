@@ -69,7 +69,15 @@ class Interface(object):
 
     @classproperty
     def path(cls):
+        """The 'path' of the interface which is the root key in the data."""
         return cls.__name__.lower()
+
+    @classproperty
+    def external_type(cls):
+        """The external name of the interface.  This is the same as path
+        for all but logentry for historical reasons.
+        """
+        return cls.path
 
     def __eq__(self, other):
         if not isinstance(self, type(other)):

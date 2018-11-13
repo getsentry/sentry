@@ -39,6 +39,7 @@ class Message(Interface):
     score = 0
     display_score = 2050
     path = 'logentry'
+    external_type = 'message'
 
     @classmethod
     def to_python(cls, data):
