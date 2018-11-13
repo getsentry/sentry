@@ -96,6 +96,7 @@ class DebugMeta(Interface):
 
     ephemeral = False
     path = 'debug_meta'
+    external_type = 'debugmeta'
 
     @classmethod
     def to_python(cls, data):

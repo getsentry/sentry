@@ -74,8 +74,8 @@ class Interface(object):
 
     @classproperty
     def external_type(cls):
-        """The external name of the interface.  This is the same as path
-        for all but logentry for historical reasons.
+        """The external name of the interface.  This is mostly the same as
+        path with some small differences (message, debugmeta).
         """
         return cls.path
 
