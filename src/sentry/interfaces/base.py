@@ -46,7 +46,7 @@ def get_interfaces(data):
         if not value:
             continue
 
-        if value.has_errors():
+        if value.get_errors():
             continue
 
         result.append((key, value))
