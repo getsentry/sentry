@@ -254,7 +254,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
     if 'project_id' in filter_keys:
         # If we are given a set of project ids, use those directly.
-        project_ids = filter_keys['project_id']
+        project_ids = list(set(filter_keys['project_id']))
     elif filter_keys:
         # Otherwise infer the project_ids from any related models
         with timer('get_related_project_ids'):
@@ -265,7 +265,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
     for col, keys in six.iteritems(forward(filter_keys.copy())):
         if keys:
-            if len(keys) == 1 and keys[0] is None:
+            if len(keys) == 1 and None in keys:
                 conditions.append((col, 'IS NULL', None))
             else:
                 conditions.append((col, 'IN', keys))
