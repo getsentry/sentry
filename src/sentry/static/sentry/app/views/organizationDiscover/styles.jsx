@@ -38,6 +38,11 @@ export const PageTitle = styled.h2`
   height: ${HEADER_HEIGHT}px;
 `;
 
+export const ResultTitle = styled(Box)`
+  flex: 1;
+  min-width: 70px;
+`;
+
 export const Sidebar = styled(props => (
   <Flex {...props} direction="column" w={[320, 320, 320, 380]} />
 ))`
