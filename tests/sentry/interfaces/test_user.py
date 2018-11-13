@@ -6,6 +6,7 @@ import mock
 from exam import fixture
 
 from sentry.testutils import TestCase
+from sentry.interfaces.base import Meta
 from sentry.interfaces.user import User
 from sentry.models import Event
 
@@ -41,21 +42,24 @@ class UserTest(TestCase):
         }
 
     def test_invalid_ip_address(self):
-        with self.assertRaises(Exception):
-            User.to_python(dict(
-                ip_address='abc',
-            ))
+        meta = Meta()
+        User.to_python(dict(
+            ip_address='abc',
+        ), meta=meta)
+        assert meta.raw()['']['err'] == ["Invalid value for 'ip_address'"]
 
     def test_invalid_email_address(self):
-        with self.assertRaises(Exception):
-            User.to_python(dict(
-                email=1,
-            ))
+        meta = Meta()
+        User.to_python(dict(
+            email=1,
+        ), meta=meta)
+        assert meta.raw()['']['err'] == ["Invalid value for 'email'"]
 
-        with self.assertRaises(Exception):
-            User.to_python(dict(
-                email='foo',
-            ))
+        meta = Meta()
+        User.to_python(dict(
+            email='foo',
+        ), meta=meta)
+        assert meta.raw()['']['err'] == ["Invalid value for 'email'"]
 
     def test_id_long_dict(self):
         u = User.to_python({

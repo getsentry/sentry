@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from exam import fixture
 
-from sentry.interfaces.base import InterfaceValidationError
+from sentry.interfaces.base import InterfaceValidationError, Meta
 from sentry.interfaces.http import Http
 from sentry.testutils import TestCase
 
@@ -146,23 +146,26 @@ class HttpTest(TestCase):
         assert result.headers == [('Foo', '1')]
 
     def test_method(self):
-        with self.assertRaises(InterfaceValidationError):
-            Http.to_python(dict(
-                url='http://example.com',
-                method='1234',
-            ))
+        meta = Meta()
+        Http.to_python(dict(
+            url='http://example.com',
+            method='1234',
+        ), meta=meta)
+        assert meta.raw()['']['err'] == ["Invalid value for 'method'"]
 
-        with self.assertRaises(InterfaceValidationError):
-            Http.to_python(dict(
-                url='http://example.com',
-                method='A' * 33,
-            ))
+        meta = Meta()
+        Http.to_python(dict(
+            url='http://example.com',
+            method='A' * 33,
+        ), meta=meta)
+        assert meta.raw()['']['err'] == ["Invalid value for 'method'"]
 
-        with self.assertRaises(InterfaceValidationError):
-            Http.to_python(dict(
-                url='http://example.com',
-                method='A',
-            ))
+        meta = Meta()
+        Http.to_python(dict(
+            url='http://example.com',
+            method='A',
+        ), meta=meta)
+        assert meta.raw()['']['err'] == ["Invalid value for 'method'"]
 
         result = Http.to_python(dict(
             url='http://example.com',
