@@ -19,7 +19,11 @@ from sentry.models import (
 from sentry.utils.snuba import raw_query
 
 
-class OrganizationEventsEndpoint(OrganizationEndpoint):
+class OrganizationEventsError(Exception):
+    pass
+
+
+class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_project_ids(self, request, organization):
         project_ids = set(map(int, request.GET.getlist('project')))
@@ -77,16 +81,16 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
 
         return list(environments)
 
-    def get(self, request, organization):
+    def get_snuba_query_args(self, request, organization):
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as exc:
-            return Response({'detail': exc.message}, status=400)
+            raise OrganizationEventsError(exc.message)
 
         try:
             project_ids = self.get_project_ids(request, organization)
         except ValueError:
-            return Response({'detail': 'Invalid project ids'}, status=400)
+            raise OrganizationEventsError('Invalid project ids')
 
         environments = self.get_environments(request, organization)
         params = {
@@ -98,8 +102,17 @@ class OrganizationEventsEndpoint(OrganizationEndpoint):
             params['environment'] = environments
 
         try:
-            snuba_args = get_snuba_query_args(query=request.GET.get('query'), params=params)
+            return get_snuba_query_args(query=request.GET.get('query'), params=params)
         except InvalidSearchQuery as exc:
+            raise OrganizationEventsError(exc.message)
+
+
+class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
+
+    def get(self, request, organization):
+        try:
+            snuba_args = self.get_snuba_query_args(request, organization)
+        except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
 
         data_fn = partial(
