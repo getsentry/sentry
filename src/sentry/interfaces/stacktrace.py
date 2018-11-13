@@ -286,7 +286,7 @@ def is_recursion(frame1, frame2):
 class Frame(Interface):
 
     @classmethod
-    def _to_python(cls, data, raw=False):
+    def _to_python(cls, data, meta, raw=False):
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
@@ -702,7 +702,7 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def _to_python(cls, data, slim_frames=True, raw=False):
+    def _to_python(cls, data, meta, slim_frames=True, raw=False):
         is_valid, errors = validate_and_default_interface(data, cls.path)
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
