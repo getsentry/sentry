@@ -77,22 +77,29 @@ export default class AsyncComponent extends React.Component {
     }
   }
 
-  componentWillReceiveProps(nextProps, nextContext) {
-    const isRouterInContext = !!this.context.router;
-    const isLocationInProps = nextProps.location !== undefined;
+  // Compatiblity shim for child classes that call super on this hook.
+  componentWillReceiveProps(newProps, newContext) {}
+
+  componentDidUpdate(prevProps, prevContext) {
+    const isRouterInContext = !!prevContext.router;
+    const isLocationInProps = prevProps.location !== undefined;
 
     const currentLocation = isLocationInProps
       ? this.props.location
       : isRouterInContext ? this.context.router.location : null;
-    const nextLocation = isLocationInProps
-      ? nextProps.location
-      : isRouterInContext ? nextContext.router.location : null;
+    const prevLocation = isLocationInProps
+      ? prevProps.location
+      : isRouterInContext ? prevContext.router.location : null;
 
-    // re-fetch data when router params change
+    if (!(currentLocation && prevLocation)) {
+      return;
+    }
+
+    // Re-fetch data when router params change.
     if (
-      !isEqual(this.props.params, nextProps.params) ||
-      currentLocation.search !== nextLocation.search ||
-      currentLocation.state !== nextLocation.state
+      !isEqual(this.props.params, prevProps.params) ||
+      currentLocation.search !== prevLocation.search ||
+      currentLocation.state !== prevLocation.state
     ) {
       this.remountComponent();
     }
