@@ -129,7 +129,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.browser.wait_until('.entries')
-        self.browser.snapshot('issue details nulled out')
+        self.browser.snapshot('issue details empty exception')
 
     def test_empty_stacktrace(self):
         event = self.create_sample_event(
