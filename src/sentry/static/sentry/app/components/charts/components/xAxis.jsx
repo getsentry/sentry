@@ -3,15 +3,19 @@ import moment from 'moment';
 import theme from 'app/utils/theme';
 
 export default function XAxis({isGroupedByDate, interval, ...props} = {}) {
-  const axisLabelFormatter = isGroupedByDate
-    ? (value, index) => {
-        const format = interval === 'hour' ? 'LT' : 'MMM Do';
-        return moment
-          .utc(value)
-          .local()
-          .format(format);
-      }
-    : undefined;
+  const axisLabelFormatter = value => {
+    if (isGroupedByDate) {
+      const format = interval === 'hour' ? 'LT' : 'MMM Do';
+      return moment
+        .utc(value)
+        .local()
+        .format(format);
+    } else if (props.truncate && value.length > props.truncate) {
+      return value.slice(0, props.truncate) + '…';
+    } else {
+      return undefined;
+    }
+  };
 
   return {
     type: 'category',
