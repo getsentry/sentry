@@ -200,16 +200,35 @@ exports[`ProjectPluginRow renders 1`] = `
               size="lg"
               toggle={[Function]}
             >
-              <div
+              <SwitchContainer
                 aria-checked={false}
-                className="switch switch-lg"
+                data-test-id="switch"
+                isActive={false}
+                isDisabled={false}
                 onClick={[Function]}
                 role="checkbox"
+                size="lg"
               >
-                <span
-                  className="switch-toggle"
-                />
-              </div>
+                <div
+                  aria-checked={false}
+                  className="css-eo6s8j-SwitchContainer e1wgeblw0"
+                  data-test-id="switch"
+                  onClick={[Function]}
+                  role="checkbox"
+                  size="lg"
+                >
+                  <Toggle
+                    isActive={false}
+                    isDisabled={false}
+                    size="lg"
+                  >
+                    <span
+                      className="css-1uoqc08-Toggle e1wgeblw1"
+                      size="lg"
+                    />
+                  </Toggle>
+                </div>
+              </SwitchContainer>
             </Switch>
           </div>
         </Base>
