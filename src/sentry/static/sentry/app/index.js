@@ -26,8 +26,10 @@ import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
 
 // Used for operational metrics to determine that the application js
-// bundle was loaded by browser
-if (window.performance) {
+// bundle was loaded by browser.
+//
+// JSDOM implements window.performance but not window.performance.mark
+if (window.performance && typeof window.performance.mark === 'function') {
   window.performance.mark('sentry-app-init');
 }
 
