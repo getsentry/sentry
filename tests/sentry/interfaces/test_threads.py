@@ -46,7 +46,7 @@ class ThreadsTest(TestCase):
 
     def test_basics(self):
         self.create_event(data={
-            'sentry.interfaces.Exception': self.interface.to_json(),
+            'exception': self.interface.to_json(),
         })
         context = self.interface.get_api_context()
         assert context['values'][0]['stacktrace']['frames'][0]['function'] == 'main'

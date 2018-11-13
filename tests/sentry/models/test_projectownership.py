@@ -40,7 +40,7 @@ class ProjectOwnershipTestCase(TestCase):
         # Match only rule_a
         self.assert_ownership_equals(ProjectOwnership.get_owners(
             self.project.id, {
-                'sentry.interfaces.Stacktrace': {
+                'stacktrace': {
                     'frames': [{
                         'filename': 'foo.py',
                     }]
@@ -51,7 +51,7 @@ class ProjectOwnershipTestCase(TestCase):
         # Match only rule_b
         self.assert_ownership_equals(ProjectOwnership.get_owners(
             self.project.id, {
-                'sentry.interfaces.Stacktrace': {
+                'stacktrace': {
                     'frames': [{
                         'filename': 'src/thing.txt',
                     }]
@@ -62,7 +62,7 @@ class ProjectOwnershipTestCase(TestCase):
         # Matches both rule_a and rule_b
         self.assert_ownership_equals(ProjectOwnership.get_owners(
             self.project.id, {
-                'sentry.interfaces.Stacktrace': {
+                'stacktrace': {
                     'frames': [{
                         'filename': 'src/foo.py',
                     }]
@@ -72,7 +72,7 @@ class ProjectOwnershipTestCase(TestCase):
 
         assert ProjectOwnership.get_owners(
             self.project.id, {
-                'sentry.interfaces.Stacktrace': {
+                'stacktrace': {
                     'frames': [{
                         'filename': 'xxxx',
                     }]
@@ -87,7 +87,7 @@ class ProjectOwnershipTestCase(TestCase):
 
         assert ProjectOwnership.get_owners(
             self.project.id, {
-                'sentry.interfaces.Stacktrace': {
+                'stacktrace': {
                     'frames': [{
                         'filename': 'xxxx',
                     }]

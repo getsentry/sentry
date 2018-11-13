@@ -19,9 +19,6 @@ class Geo(Interface):
     >>> }
     """
 
-    def get_path(self):
-        return 'geo'
-
     @classmethod
     def to_python(cls, data):
         kwargs = {

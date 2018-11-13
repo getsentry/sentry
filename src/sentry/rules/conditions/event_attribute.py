@@ -158,27 +158,27 @@ class EventAttributeCondition(EventCondition):
                 return []
 
             return [
-                getattr(e, path[1]) for e in event.interfaces['sentry.interfaces.Exception'].values
+                getattr(e, path[1]) for e in event.interfaces['exception'].values
             ]
 
         elif path[0] == 'user':
             if path[1] in ('id', 'ip_address', 'email', 'username'):
-                return [getattr(event.interfaces['sentry.interfaces.User'], path[1])]
-            return [getattr(event.interfaces['sentry.interfaces.User'].data, path[1])]
+                return [getattr(event.interfaces['user'], path[1])]
+            return [getattr(event.interfaces['user'].data, path[1])]
 
         elif path[0] == 'http':
             if path[1] not in ('url', 'method'):
                 return []
 
-            return [getattr(event.interfaces['sentry.interfaces.Http'], path[1])]
+            return [getattr(event.interfaces['request'], path[1])]
 
         elif path[0] == 'stacktrace':
-            stacks = event.interfaces.get('sentry.interfaces.Stacktrace')
+            stacks = event.interfaces.get('stacktrace')
             if stacks:
                 stacks = [stacks]
             else:
                 stacks = [
-                    e.stacktrace for e in event.interfaces['sentry.interfaces.Exception'].values
+                    e.stacktrace for e in event.interfaces['exception'].values
                     if e.stacktrace
                 ]
 

@@ -13,7 +13,7 @@ class BrowserExtensionsFilterTest(TestCase):
     def get_mock_data(self, exc_value=None, exc_source=None):
         return {
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -71,7 +71,7 @@ class BrowserExtensionsFilterTest(TestCase):
 
     def test_filters_malformed_data(self):
         data = self.get_mock_data()
-        data['sentry.interfaces.Exception'] = None
+        data['exception'] = None
         assert not self.apply_filter(data)
 
     def test_filters_facebook_source(self):

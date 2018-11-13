@@ -58,7 +58,7 @@ class EventTest(TestCase):
     def test_event_as_dict(self):
         event = self.create_event(
             data={
-                'sentry.interfaces.Message': {
+                'logentry': {
                     'message': 'Hello World!',
                 },
             }
@@ -134,7 +134,7 @@ class EventGetLegacyMessageTest(TestCase):
     def test_message_interface(self):
         event = self.create_event(
             message='biz baz',
-            data={'sentry.interfaces.Message': {
+            data={'logentry': {
                 'message': 'foo bar'
             }},
         )
@@ -144,7 +144,7 @@ class EventGetLegacyMessageTest(TestCase):
         event = self.create_event(
             message='biz baz',
             data={
-                'sentry.interfaces.Message': {
+                'logentry': {
                     'message': 'foo %s',
                     'formatted': 'foo bar',
                     'params': ['bar'],

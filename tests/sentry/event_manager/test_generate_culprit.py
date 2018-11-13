@@ -8,7 +8,7 @@ from sentry.event_manager import generate_culprit, md5_from_hash
 
 def test_with_exception_interface():
     data = {
-        'sentry.interfaces.Exception': {
+        'exception': {
             'values': [
                 {
                     'stacktrace': {
@@ -26,7 +26,7 @@ def test_with_exception_interface():
                 }
             ]
         },
-        'sentry.interfaces.Stacktrace': {
+        'stacktrace': {
             'frames': [
                 {
                     'lineno': 1,
@@ -38,7 +38,7 @@ def test_with_exception_interface():
                 }
             ],
         },
-        'sentry.interfaces.Http': {
+        'request': {
             'url': 'http://example.com'
         },
     }
@@ -47,7 +47,7 @@ def test_with_exception_interface():
 
 def test_with_missing_exception_interface():
     data = {
-        'sentry.interfaces.Stacktrace': {
+        'stacktrace': {
             'frames': [
                 {
                     'lineno': 1,
@@ -59,7 +59,7 @@ def test_with_missing_exception_interface():
                 }
             ],
         },
-        'sentry.interfaces.Http': {
+        'request': {
             'url': 'http://example.com'
         },
     }
@@ -68,8 +68,8 @@ def test_with_missing_exception_interface():
 
 def test_with_empty_stacktrace():
     data = {
-        'sentry.interfaces.Stacktrace': None,
-        'sentry.interfaces.Http': {
+        'stacktrace': None,
+        'request': {
             'url': 'http://example.com'
         },
     }
@@ -78,14 +78,14 @@ def test_with_empty_stacktrace():
 
 def test_with_only_http_interface():
     data = {
-        'sentry.interfaces.Http': {
+        'request': {
             'url': 'http://example.com'
         },
     }
     assert generate_culprit(data) == 'http://example.com'
 
     data = {
-        'sentry.interfaces.Http': {},
+        'request': {},
     }
     assert generate_culprit(data) == ''
 
@@ -96,7 +96,7 @@ def test_empty_data():
 
 def test_truncation():
     data = {
-        'sentry.interfaces.Exception': {
+        'exception': {
             'values':
             [{
                 'stacktrace': {
@@ -110,7 +110,7 @@ def test_truncation():
     assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
 
     data = {
-        'sentry.interfaces.Stacktrace': {
+        'stacktrace': {
             'frames': [{
                 'filename': 'x' * (MAX_CULPRIT_LENGTH + 1),
             }]
@@ -119,7 +119,7 @@ def test_truncation():
     assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
 
     data = {
-        'sentry.interfaces.Http': {
+        'request': {
             'url': 'x' * (MAX_CULPRIT_LENGTH + 1),
         }
     }

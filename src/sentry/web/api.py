@@ -791,7 +791,7 @@ class SecurityReportView(StoreView):
 
     def security_report_type(self, body):
         report_type_for_key = {
-            'csp-report': 'sentry.interfaces.Csp',
+            'csp-report': 'csp',
             'expect-ct-report': 'expectct',
             'expect-staple-report': 'expectstaple',
             'known-pins': 'hpkp',
