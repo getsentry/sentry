@@ -97,11 +97,18 @@ export default class IntegrationRepos extends AsyncComponent {
 
     this.setState({adding: true});
 
-    let migratableRepo = itemList.filter(item => {
-      if (!(selection.value && item.name)) {
-        return false;
+    let normalize = function(value) {
+      if (!value) {
+        return '';
       }
-      return selection.value.toLowerCase() === item.name.toLowerCase();
+      if (value.toLowerCase) {
+        return value.toLowerCase();
+      }
+      return value;
+    };
+
+    let migratableRepo = itemList.filter(item => {
+      return normalize(selection.value) === normalize(item.name);
     })[0];
 
     let promise;

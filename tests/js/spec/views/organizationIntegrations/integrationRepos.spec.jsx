@@ -95,6 +95,34 @@ describe('IntegrationRepos', function() {
       expect(addRepo).toHaveBeenCalled();
       expect(wrapper.find('RepoOption')).toHaveLength(0);
     });
+
+    it('uses numeric identifier', () => {
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'GET',
+        body: [TestStubs.Repository({name: 'Example/repo-name'})],
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
+        method: 'GET',
+        body: {
+          repos: [{identifier: 123456, name: 'repo-name'}],
+        },
+      });
+      const createRepo = Client.addMockResponse({
+        method: 'POST',
+        url: `/organizations/${org.slug}/repos/`,
+        body: TestStubs.Repository({integrationId: '1'}),
+      });
+      const wrapper = mount(
+        <IntegrationRepos integration={integration} />,
+        routerContext
+      );
+      wrapper.find('DropdownButton').simulate('click');
+      wrapper.find('StyledListElement').simulate('click');
+
+      expect(createRepo).toHaveBeenCalled();
+    });
   });
 
   describe('migratable repo', function() {
@@ -146,7 +174,7 @@ describe('IntegrationRepos', function() {
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
         method: 'GET',
         body: {
-          repos: [{identifier: 'example/repo-name', name: 'repo-name'}],
+          repos: [{identifier: 'example/Repo-name', name: 'repo-name'}],
         },
       });
       const updateRepo = Client.addMockResponse({
