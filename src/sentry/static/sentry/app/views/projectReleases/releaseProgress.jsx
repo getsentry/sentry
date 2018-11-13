@@ -83,7 +83,6 @@ class ReleaseProgress extends AsyncComponent {
   }
 
   getRemainingSteps(setupStatus) {
-    let {organization, project} = this.context;
     let remainingSteps;
     if (setupStatus) {
       remainingSteps = setupStatus.filter(step => step.complete === false);
@@ -94,8 +93,6 @@ class ReleaseProgress extends AsyncComponent {
       });
 
       this.recordAnalytics('viewed', {
-        org_id: parseInt(organization.id, 10),
-        project_id: parseInt(project.id, 10),
         steps: setupStatus,
       });
     }
@@ -128,13 +125,16 @@ class ReleaseProgress extends AsyncComponent {
     };
     promptsUpdate(this.api, params).then(this.setState({showBar: false}));
     this.recordAnalytics('closed', {
-      org_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
       action,
     });
   }
 
   recordAnalytics(action, data) {
+    let {project, organization} = this.context;
+
+    data.org_id = parseInt(organization.id, 10);
+    data.project_id = parseInt(project.id, 10);
+
     if (action === 'next') {
       analytics('releases.progress_bar_clicked_next', data);
     } else if (action === 'closed') {
