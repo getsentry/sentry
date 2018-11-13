@@ -44,8 +44,6 @@ def test_interface_is_relabeled():
     data = manager.get_data()
 
     assert data['user'] == {'id': '1'}
-    # data is a CanonicalKeyDict, so we need to check .keys() explicitly
-    assert 'user' not in data.keys()
 
 
 def test_does_default_ip_address_to_user():

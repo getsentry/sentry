@@ -10,6 +10,7 @@ from sentry.utils.canonical import get_canonical_name
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
+from sentry.utils.decorators import classproperty
 
 
 def get_interface(name):
@@ -66,6 +67,10 @@ class Interface(object):
     def __init__(self, **data):
         self._data = data or {}
 
+    @classproperty
+    def path(cls):
+        return cls.__name__.lower()
+
     def __eq__(self, other):
         if not isinstance(self, type(other)):
             return False
@@ -105,13 +110,6 @@ class Interface(object):
         # lists and strings get discarded as we've deemed them not important
         return dict((k, v) for k, v in six.iteritems(self._data) if (v == 0 or v))
 
-    def get_path(self):
-        cls = type(self)
-        return '%s.%s' % (cls.__module__, cls.__name__)
-
-    def get_alias(self):
-        return self.get_slug()
-
     def get_hash(self):
         return []
 
@@ -120,9 +118,6 @@ class Interface(object):
         if not result:
             return []
         return [result]
-
-    def get_slug(self):
-        return type(self).__name__.lower()
 
     def get_title(self):
         return _(type(self).__name__)
@@ -144,3 +139,21 @@ class Interface(object):
         if not body:
             return ''
         return '<pre>%s</pre>' % (escape(body), )
+
+    # deprecated stuff.  These were deprecated in late 2018, once
+    # determined they are unused we can kill them.
+
+    def get_path(self):
+        from warnings import warn
+        warn(DeprecationWarning('Replaced with .path'))
+        return self.path
+
+    def get_alias(self):
+        from warnings import warn
+        warn(DeprecationWarning('Replaced with .path'))
+        return self.path
+
+    def get_slug(self):
+        from warnings import warn
+        warn(DeprecationWarning('Replaced with .path'))
+        return self.path

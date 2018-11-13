@@ -95,6 +95,7 @@ class DebugMeta(Interface):
     """
 
     ephemeral = False
+    path = 'debug_meta'
 
     @classmethod
     def to_python(cls, data):
@@ -142,6 +143,3 @@ class DebugMeta(Interface):
             }
         except KeyError as e:
             raise InterfaceValidationError('Missing value for sdk_info: %s' % e.args[0])
-
-    def get_path(self):
-        return 'debug_meta'

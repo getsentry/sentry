@@ -38,6 +38,7 @@ class Message(Interface):
     """
     score = 0
     display_score = 2050
+    path = 'logentry'
 
     @classmethod
     def to_python(cls, data):
@@ -89,9 +90,6 @@ class Message(Interface):
             kwargs['formatted'] = None
 
         return cls(**kwargs)
-
-    def get_path(self):
-        return 'logentry'
 
     def get_hash(self):
         return [self.message]

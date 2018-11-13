@@ -949,11 +949,8 @@ class SingleException(Interface):
             'stacktrace': stacktrace_meta,
         }
 
-    def get_alias(self):
-        return 'exception'
-
     def get_path(self):
-        return self.path
+        return 'exception'
 
     def get_hash(self, platform=None):
         output = None
@@ -1046,9 +1043,6 @@ class Exception(Interface):
             'values': [v and v.to_json() for v in self.values],
             'exc_omitted': self.exc_omitted,
         }
-
-    def get_alias(self):
-        return 'exception'
 
     def get_path(self):
         return 'exception'

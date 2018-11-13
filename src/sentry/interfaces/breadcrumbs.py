@@ -116,9 +116,6 @@ class Breadcrumbs(Interface):
     def get_path(self):
         return 'breadcrumbs'
 
-    def get_alias(self):
-        return 'breadcrumbs'
-
     def get_api_context(self, is_public=False):
         def _convert(x):
             return {
