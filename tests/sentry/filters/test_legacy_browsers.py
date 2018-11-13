@@ -7,6 +7,7 @@ from ua_parser.user_agent_parser import Parse
 from sentry.filters.legacy_browsers import LegacyBrowsersFilter
 from sentry.models import ProjectOption
 from sentry.testutils import APITestCase, TestCase
+from sentry.utils.canonical import CanonicalKeyView
 
 USER_AGENTS = {
     'android_2':
@@ -204,7 +205,7 @@ class LegacyBrowsersFilterTest(TestCase):
     filter_cls = LegacyBrowsersFilter
 
     def apply_filter(self, data):
-        return self.filter_cls(self.project).test(data)
+        return CanonicalKeyView(self.filter_cls(self.project).test(data))
 
     def get_mock_data(self, user_agent):
         return {
