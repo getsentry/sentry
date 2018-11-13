@@ -27,8 +27,9 @@ import plugins from 'app/plugins';
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser
-window.__sentryMetrics = window.__sentryMetrics || {};
-window.__sentryMetrics.sentryAppInit = +new Date();
+if (window.performance) {
+  window.performance.mark('sentry-app-init');
+}
 
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
