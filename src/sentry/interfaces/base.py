@@ -148,8 +148,8 @@ class Interface(object):
         return self._data[name]
 
     def __setattr__(self, name, value):
-        if name == '_data':
-            self.__dict__['_data'] = value
+        if name in ('_data', '_meta'):
+            self.__dict__[name] = value
         else:
             self._data[name] = value
 
@@ -223,7 +223,7 @@ class Interface(object):
         body = self.to_string(event)
         if not body:
             return ''
-        return '<pre>%s</pre>' % (escape(body), )
+        return '<pre>%s</pre>' % (escape(body),)
 
     def get_errors(self):
         return self._meta.get().get('err', [])
