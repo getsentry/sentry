@@ -16,13 +16,7 @@
     "server_name": "mcbk.local",
     "exception": {
         "values": [
-            null,
-            {},
-            {
-                "stacktrace": {
-                    "frames": []
-                }
-            }
+            null
         ]
     },
     "sdk": {

@@ -14,12 +14,6 @@
     "platform": "python",
     "timestamp": 1539708807,
     "server_name": "mcbk.local",
-    "exception": {
-        "values": [
-            null,
-            {}
-        ]
-    },
     "stacktrace": {
         "frames": []
     },
