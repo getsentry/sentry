@@ -22,7 +22,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         integration_model = Integration.objects.get(
             id=integration_id,
-            organization_id=organization_id,
+            organizations=organization_id,
             provider='bitbucket',
         )
 
