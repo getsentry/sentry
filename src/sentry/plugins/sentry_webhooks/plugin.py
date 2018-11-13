@@ -104,7 +104,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             verify_ssl=False,
         )
 
-    def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
+    def notify_users(self, group, event, triggering_rules, fail_silently=False):
         payload = self.get_group_data(group, event, triggering_rules)
         for url in self.get_webhook_urls(group.project):
             safe_execute(self.send_webhook, url, payload, _with_transaction=False)
