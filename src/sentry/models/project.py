@@ -9,8 +9,11 @@ from __future__ import absolute_import, print_function
 
 import logging
 import warnings
+from collections import defaultdict
 
 import six
+from pytz import utc
+from datetime import datetime
 from bitfield import BitField
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -19,7 +22,7 @@ from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
 from sentry.app import locks
-from sentry.constants import ObjectStatus
+from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
@@ -66,13 +69,12 @@ class ProjectManager(BaseManager):
                 return []
 
         base_qs = self.filter(
-            team=team,
+            teams=team,
             status=ProjectStatus.VISIBLE,
         )
 
         project_list = []
         for project in base_qs:
-            project.team = team
             project_list.append(project)
 
         return sorted(project_list, key=lambda x: x.name.lower())
@@ -89,7 +91,6 @@ class Project(Model):
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
     organization = FlexibleForeignKey('sentry.Organization')
-    team = FlexibleForeignKey('sentry.Team')
     teams = models.ManyToManyField(
         'sentry.Team', related_name='teams', through=ProjectTeam
     )
@@ -120,7 +121,7 @@ class Project(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_project'
-        unique_together = (('team', 'slug'), ('organization', 'slug'))
+        unique_together = (('organization', 'slug'),)
 
     __repr__ = sane_repr('team_id', 'name', 'slug')
 
@@ -135,13 +136,18 @@ class Project(Model):
         if not self.slug:
             lock = locks.get('slug:project', duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(self, self.name, organization=self.organization)
+                slugify_instance(
+                    self,
+                    self.name,
+                    organization=self.organization,
+                    reserved=RESERVED_PROJECT_SLUGS)
             super(Project, self).save(*args, **kwargs)
         else:
             super(Project, self).save(*args, **kwargs)
+        self.update_rev_for_option()
 
     def get_absolute_url(self):
-        return absolute_uri('/{}/{}/'.format(self.organization.slug, self.slug))
+        return absolute_uri(u'/{}/{}/'.format(self.organization.slug, self.slug))
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
@@ -154,21 +160,32 @@ class Project(Model):
     # TODO: Make these a mixin
     def update_option(self, *args, **kwargs):
         from sentry.models import ProjectOption
-
+        self.update_rev_for_option()
         return ProjectOption.objects.set_value(self, *args, **kwargs)
 
     def get_option(self, *args, **kwargs):
         from sentry.models import ProjectOption
-
         return ProjectOption.objects.get_value(self, *args, **kwargs)
 
     def delete_option(self, *args, **kwargs):
         from sentry.models import ProjectOption
-
+        self.update_rev_for_option()
         return ProjectOption.objects.unset_value(self, *args, **kwargs)
+
+    def update_rev_for_option(self):
+        from sentry.models import ProjectOption
+        ProjectOption.objects.set_value(self, 'sentry:relay-rev', uuid1().hex)
+        ProjectOption.objects.set_value(
+            self,
+            'sentry:relay-rev-lastchange',
+            datetime.utcnow().replace(
+                tzinfo=utc))
 
     @property
     def callsign(self):
+        warnings.warn(
+            'Project.callsign is deprecated. Use Group.get_short_id() instead.',
+            DeprecationWarning)
         return self.slug.upper()
 
     @property
@@ -183,7 +200,7 @@ class Project(Model):
         return self.organization.member_set.filter(
             id__in=OrganizationMember.objects.filter(
                 organizationmemberteam__is_active=True,
-                organizationmemberteam__team=self.team,
+                organizationmemberteam__team__in=self.teams.all(),
             ).values('id'),
             user__is_active=True,
         ).distinct()
@@ -223,9 +240,7 @@ class Project(Model):
         }
 
     def get_full_name(self):
-        if self.team.name not in self.name:
-            return '%s %s' % (self.team.name, self.name)
-        return self.name
+        return self.slug
 
     def get_notification_recipients(self, user_option):
         from sentry.models import UserOption
@@ -277,35 +292,83 @@ class Project(Model):
             is_enabled = bool(is_enabled)
         return is_enabled
 
-    def transfer_to(self, team):
-        from sentry.models import ReleaseProject
+    def transfer_to(self, team=None, organization=None):
+        # NOTE: this will only work properly if the new team is in a different
+        # org than the existing one, which is currently the only use case in
+        # production
+        # TODO(jess): refactor this to make it an org transfer only
+        from sentry.models import (
+            Environment,
+            EnvironmentProject,
+            ProjectTeam,
+            ReleaseProject,
+            ReleaseProjectEnvironment,
+            Rule,
+        )
 
-        organization = team.organization
+        if organization is None:
+            organization = team.organization
 
-        # We only need to delete ReleaseProjects when moving to a different
-        # Organization. Releases are bound to Organization, so it's not realistic
-        # to keep this link unless we say, copied all Releases as well.
-        if self.organization_id != organization.id:
-            ReleaseProject.objects.filter(
-                project_id=self.id,
-            ).delete()
+        old_org_id = self.organization_id
+        org_changed = old_org_id != organization.id
 
         self.organization = organization
-        self.team = team
 
         try:
             with transaction.atomic():
                 self.update(
                     organization=organization,
-                    team=team,
                 )
         except IntegrityError:
             slugify_instance(self, self.name, organization=organization)
             self.update(
                 slug=self.slug,
                 organization=organization,
-                team=team,
             )
+
+        # Both environments and releases are bound at an organization level.
+        # Due to this, when you transfer a project into another org, we have to
+        # handle this behavior somehow. We really only have two options here:
+        # * Copy over all releases/environments into the new org and handle de-duping
+        # * Delete the bindings and let them reform with new data.
+        # We're generally choosing to just delete the bindings since new data
+        # flowing in will recreate links correctly. The tradeoff is that
+        # historical data is lost, but this is a compromise we're willing to
+        # take and a side effect of allowing this feature. There are exceptions
+        # to this however, such as rules, which should maintain their
+        # configuration when moved across organizations.
+        if org_changed:
+            for model in ReleaseProject, ReleaseProjectEnvironment, EnvironmentProject:
+                model.objects.filter(
+                    project_id=self.id,
+                ).delete()
+            # this is getting really gross, but make sure there aren't lingering associations
+            # with old orgs or teams
+            ProjectTeam.objects.filter(project=self, team__organization_id=old_org_id).delete()
+
+        rules_by_environment_id = defaultdict(set)
+        for rule_id, environment_id in Rule.objects.filter(
+                project_id=self.id,
+                environment_id__isnull=False).values_list('id', 'environment_id'):
+            rules_by_environment_id[environment_id].add(rule_id)
+
+        environment_names = dict(
+            Environment.objects.filter(
+                id__in=rules_by_environment_id,
+            ).values_list('id', 'name')
+        )
+
+        for environment_id, rule_ids in rules_by_environment_id.items():
+            Rule.objects.filter(id__in=rule_ids).update(
+                environment_id=Environment.get_or_create(
+                    self,
+                    environment_names[environment_id],
+                ).id,
+            )
+
+        # ensure this actually exists in case from team was null
+        if team is not None:
+            self.add_team(team)
 
     def add_team(self, team):
         try:
@@ -315,6 +378,12 @@ class Project(Model):
             return False
         else:
             return True
+
+    def remove_team(self, team):
+        ProjectTeam.objects.filter(
+            project=self,
+            team=team,
+        ).delete()
 
     def get_security_token(self):
         lock = locks.get(self.get_lock_key(), duration=5)

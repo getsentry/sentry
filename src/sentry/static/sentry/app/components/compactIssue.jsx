@@ -1,24 +1,28 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import {Flex, Box} from 'grid-emotion';
 
-import ApiMixin from '../mixins/apiMixin';
-import IndicatorStore from '../stores/indicatorStore';
-import DropdownLink from './dropdownLink';
-import SnoozeAction from './issues/snoozeAction';
-import GroupChart from './stream/groupChart';
-import GroupStore from '../stores/groupStore';
-import Link from './link';
-import {t} from '../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import IndicatorStore from 'app/stores/indicatorStore';
+import DropdownLink from 'app/components/dropdownLink';
+import SnoozeAction from 'app/components/issues/snoozeAction';
+import GroupChart from 'app/components/stream/groupChart';
+import GroupStore from 'app/stores/groupStore';
+import Link from 'app/components/link';
+import ProjectLink from 'app/components/projectLink';
+import {t} from 'app/locale';
+import {PanelItem} from 'app/components/panels';
 
-const CompactIssueHeader = React.createClass({
-  propTypes: {
+class CompactIssueHeader extends React.Component {
+  static propTypes = {
     data: PropTypes.object.isRequired,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-  },
+  };
 
-  getTitle() {
+  getTitle = () => {
     let data = this.props.data;
     let metadata = data.metadata;
     switch (data.type) {
@@ -43,9 +47,9 @@ const CompactIssueHeader = React.createClass({
       default:
         return <span>{data.title}</span>;
     }
-  },
+  };
 
-  getMessage() {
+  getMessage = () => {
     let data = this.props.data;
     let metadata = data.metadata;
     switch (data.type) {
@@ -56,7 +60,7 @@ const CompactIssueHeader = React.createClass({
       default:
         return '';
     }
-  },
+  };
 
   render() {
     let {orgId, projectId, data} = this.props;
@@ -66,18 +70,22 @@ const CompactIssueHeader = React.createClass({
       styles = {color: '#57be8c'};
     }
     return (
-      <div>
-        <span className="error-level truncate" title={data.level} />
-        <h3 className="truncate">
-          <Link to={`/${orgId}/${projectId}/issues/${data.id}/`}>
-            <span className="icon icon-soundoff" />
-            <span className="icon icon-star-solid" />
-            {this.getTitle()}
-          </Link>
-        </h3>
+      <React.Fragment>
+        <Flex align="center">
+          <Box mr={1}>
+            <span className="error-level truncate" title={data.level} />
+          </Box>
+          <h3 className="truncate">
+            <ProjectLink to={`/${orgId}/${projectId}/issues/${data.id}/`}>
+              <span className="icon icon-soundoff" />
+              <span className="icon icon-star-solid" />
+              {this.getTitle()}
+            </ProjectLink>
+          </h3>
+        </Flex>
         <div className="event-extra">
           <span className="project-name">
-            <Link to={`/${orgId}/${projectId}/`}>{data.project.name}</Link>
+            <ProjectLink to={`/${orgId}/${projectId}/`}>{data.project.slug}</ProjectLink>
           </span>
           {data.numComments !== 0 && (
             <span>
@@ -92,12 +100,14 @@ const CompactIssueHeader = React.createClass({
           )}
           <span className="culprit">{this.getMessage()}</span>
         </div>
-      </div>
+      </React.Fragment>
     );
-  },
-});
+  }
+}
 
-const CompactIssue = React.createClass({
+const CompactIssue = createReactClass({
+  displayName: 'CompactIssue',
+
   propTypes: {
     data: PropTypes.object,
     id: PropTypes.string,
@@ -190,7 +200,12 @@ const CompactIssue = React.createClass({
     let title = <span className="icon-more" />;
 
     return (
-      <li className={className} onClick={this.toggleSelect}>
+      <PanelItem
+        className={className}
+        onClick={this.toggleSelect}
+        direction="column"
+        style={{paddingTop: '12px', paddingBottom: '6px'}}
+      >
         <CompactIssueHeader data={issue} orgId={orgId} projectId={projectId} />
         {this.props.statsPeriod && (
           <div className="event-graph">
@@ -244,7 +259,7 @@ const CompactIssue = React.createClass({
           </div>
         )}
         {this.props.children}
-      </li>
+      </PanelItem>
     );
   },
 });

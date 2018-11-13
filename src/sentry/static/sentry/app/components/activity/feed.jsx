@@ -1,15 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 
-import ApiMixin from '../../mixins/apiMixin';
-import ActivityItem from './item';
-import LoadingError from '../loadingError';
-import LoadingIndicator from '../loadingIndicator';
-import Pagination from '../pagination';
-import {t} from '../../locale';
-import {logException} from '../../utils/logging';
+import {logException} from 'app/utils/logging';
+import {t} from 'app/locale';
+import ActivityItem from 'app/components/activity/item';
+import ApiMixin from 'app/mixins/apiMixin';
+import ErrorBoundary from 'app/components/errorBoundary';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import space from 'app/styles/space';
 
-const ActivityFeed = React.createClass({
+const ActivityFeed = createReactClass({
+  displayName: 'ActivityFeed',
+
   propTypes: {
     endpoint: PropTypes.string,
     query: PropTypes.object,
@@ -92,7 +97,15 @@ const ActivityFeed = React.createClass({
           <ul className="activity">
             {this.state.itemList.map(item => {
               try {
-                return <ActivityItem key={item.id} orgId={orgId} item={item} />;
+                return (
+                  <ErrorBoundary
+                    mini
+                    css={{marginBottom: space(1), borderRadius: 0}}
+                    key={item.id}
+                  >
+                    <ActivityItem orgId={orgId} item={item} />
+                  </ErrorBoundary>
+                );
               } catch (ex) {
                 logException(ex, {
                   itemId: item.id,

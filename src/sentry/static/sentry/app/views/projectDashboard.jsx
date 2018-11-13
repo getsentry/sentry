@@ -1,22 +1,27 @@
-import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 
-import EventList from './projectDashboard/eventList';
-import ProjectState from '../mixins/projectState';
-import ProjectChart from './projectDashboard/chart';
-import {t} from '../locale';
+import SentryTypes from 'app/sentryTypes';
+import EventList from 'app/views/projectDashboard/eventList';
+import ProjectState from 'app/mixins/projectState';
+import ProjectChart from 'app/views/projectDashboard/chart';
+import {t} from 'app/locale';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 const PERIOD_HOUR = '1h';
 const PERIOD_DAY = '1d';
 const PERIOD_WEEK = '1w';
 const PERIODS = new Set([PERIOD_HOUR, PERIOD_DAY, PERIOD_WEEK]);
 
-const ProjectDashboard = React.createClass({
+const ProjectDashboard = createReactClass({
+  displayName: 'ProjectDashboard',
+
   propTypes: {
     defaultStatsPeriod: PropTypes.string,
     setProjectNavSection: PropTypes.func,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ProjectState],
@@ -81,26 +86,6 @@ const ProjectDashboard = React.createClass({
     }
   },
 
-  getTrendingIssuesEndpoint(dateSince) {
-    let params = this.props.params;
-    let qs = jQuery.param({
-      sort: 'priority',
-      query: 'is:unresolved',
-      since: dateSince,
-    });
-    return '/projects/' + params.orgId + '/' + params.projectId + '/issues/?' + qs;
-  },
-
-  getNewIssuesEndpoint(dateSince) {
-    let params = this.props.params;
-    let qs = jQuery.param({
-      sort: 'new',
-      query: 'is:unresolved',
-      since: dateSince,
-    });
-    return '/projects/' + params.orgId + '/' + params.projectId + '/issues/?' + qs;
-  },
-
   render() {
     let {statsPeriod} = this.state;
     let dateSince = this.getStatsPeriodBeginTimestamp(statsPeriod);
@@ -153,18 +138,26 @@ const ProjectDashboard = React.createClass({
           </div>
           <h3>{t('Overview')}</h3>
         </div>
-        <ProjectChart dateSince={dateSince} resolution={resolution} />
+        <ProjectChart
+          dateSince={dateSince}
+          resolution={resolution}
+          environment={this.props.environment}
+        />
         <div className="row">
           <div className="col-md-6">
             <EventList
-              title={t('Trending Issues')}
-              endpoint={this.getTrendingIssuesEndpoint(dateSince)}
+              type="priority"
+              environment={this.props.environment}
+              dateSince={dateSince}
+              params={this.props.params}
             />
           </div>
           <div className="col-md-6">
             <EventList
-              title={t('New Issues')}
-              endpoint={this.getNewIssuesEndpoint(dateSince)}
+              type="new"
+              environment={this.props.environment}
+              dateSince={dateSince}
+              params={this.props.params}
             />
           </div>
         </div>
@@ -173,4 +166,4 @@ const ProjectDashboard = React.createClass({
   },
 });
 
-export default ProjectDashboard;
+export default withEnvironmentInQueryString(ProjectDashboard);

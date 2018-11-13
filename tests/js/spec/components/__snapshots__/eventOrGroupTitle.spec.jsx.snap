@@ -17,7 +17,9 @@ exports[`EventOrGroupTitle renders with subtitle when \`type = csp\` 1`] = `
   >
     metadata directive
   </span>
-  <em>
+  <em
+    title="metadata uri"
+  >
     metadata uri
   </em>
   <br />
@@ -35,7 +37,9 @@ exports[`EventOrGroupTitle renders with subtitle when \`type = error\` 1`] = `
   >
     metadata type
   </span>
-  <em>
+  <em
+    title="culprit"
+  >
     culprit
   </em>
   <br />

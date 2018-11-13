@@ -1,5 +1,5 @@
-import {Client} from '../api';
-import parseLinkHeader from './parseLinkHeader';
+import {Client} from 'app/api';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 
 class CursorPoller {
   constructor(options) {

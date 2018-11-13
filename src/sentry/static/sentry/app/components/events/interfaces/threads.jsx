@@ -1,16 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from '../eventDataSection';
-import SentryTypes from '../../../proptypes';
-import {isStacktraceNewestFirst} from './stacktrace';
-import {defined} from '../../../utils';
-import DropdownLink from '../../dropdownLink';
-import MenuItem from '../../menuItem';
-import {trimPackage} from './frame';
-import CrashHeader from './crashHeader';
-import CrashContent from './crashContent';
-import Pills from '../../pills';
-import Pill from '../../pill';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import SentryTypes from 'app/sentryTypes';
+import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
+import {defined} from 'app/utils';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
+import {trimPackage} from 'app/components/events/interfaces/frame';
+import CrashHeader from 'app/components/events/interfaces/crashHeader';
+import CrashContent from 'app/components/events/interfaces/crashContent';
+import Pills from 'app/components/pills';
+import Pill from 'app/components/pill';
 
 function trimFilename(fn) {
   let pieces = fn.split(/\//g);
@@ -200,7 +200,6 @@ class ThreadsInterface extends React.Component {
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    platform: PropTypes.string,
   };
 
   constructor(props) {

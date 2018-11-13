@@ -7,8 +7,8 @@ from symbolic import SymbolicError, ObjectLookup, LineInfo, parse_addr
 
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
-from sentry.models import EventError, ProjectDSymFile
-from sentry.lang.native.utils import rebase_addr
+from sentry.models import EventError, ProjectDebugFile
+from sentry.lang.native.utils import image_name, rebase_addr
 from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
 FATAL_ERRORS = (EventError.NATIVE_MISSING_DSYM, EventError.NATIVE_BAD_DSYM, )
@@ -30,7 +30,17 @@ _support_framework = re.compile(
 )
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
 SIM_APP_PATH = '/Containers/Bundle/Application/'
-MAC_OS_PATH = '.app/Contents/'
+MAC_OS_PATHS = (
+    '.app/Contents/',
+    '/Users/',
+    '/usr/local/',
+)
+LINUX_SYS_PATHS = (
+    '/lib/',
+    '/usr/lib/',
+    'linux-gate.so',
+)
+WINDOWS_SYS_PATH = re.compile(r'^[a-z]:\\windows', re.IGNORECASE)
 
 _internal_function_re = re.compile(
     r'(kscm_|kscrash_|KSCrash |SentryClient |RNSentry )')
@@ -53,10 +63,10 @@ class SymbolicationFailed(Exception):
         self.image_name = None
         self.image_path = None
         if obj is not None:
-            self.image_uuid = six.text_type(obj.uuid)
+            self.image_uuid = six.text_type(obj.id)
             if obj.name:
                 self.image_path = obj.name
-                self.image_name = obj.name.rsplit('/', 1)[-1]
+                self.image_name = image_name(obj.name)
             self.image_arch = obj.arch
         else:
             self.image_uuid = None
@@ -79,7 +89,7 @@ class SymbolicationFailed(Exception):
 
     def get_data(self):
         """Returns the event data."""
-        rv = {'message': self.message}
+        rv = {'message': self.message, 'type': self.type}
         if self.image_path is not None:
             rv['image_path'] = self.image_path
         if self.image_uuid is not None:
@@ -106,15 +116,15 @@ class Symbolizer(object):
     """
 
     def __init__(self, project, object_lookup, referenced_images,
-                 on_dsym_file_referenced=None):
+                 on_dif_referenced=None):
         if not isinstance(object_lookup, ObjectLookup):
             object_lookup = ObjectLookup(object_lookup)
         self.object_lookup = object_lookup
 
         self.symcaches, self.symcaches_conversion_errors = \
-            ProjectDSymFile.dsymcache.get_symcaches(
+            ProjectDebugFile.difcache.get_symcaches(
                 project, referenced_images,
-                on_dsym_file_referenced=on_dsym_file_referenced,
+                on_dif_referenced=on_dif_referenced,
                 with_conversion_errors=True)
 
     def _process_frame(self, sym, obj, package=None, addr_off=0):
@@ -140,17 +150,25 @@ class Symbolizer(object):
         return frame
 
     def is_image_from_app_bundle(self, obj, sdk_info=None):
-        fn = obj.name
-        if not fn:
+        obj_path = obj.name
+        if not obj_path:
             return False
-        is_mac_platform = (
-            sdk_info is not None and sdk_info['sdk_name'].lower() == 'macos')
-        if not (
-            fn.startswith(APP_BUNDLE_PATHS) or (SIM_PATH in fn and SIM_APP_PATH in fn) or
-            (is_mac_platform and MAC_OS_PATH in fn)
-        ):
-            return False
-        return True
+
+        if obj_path.startswith(APP_BUNDLE_PATHS):
+            return True
+
+        if SIM_PATH in obj_path and SIM_APP_PATH in obj_path:
+            return True
+
+        sdk_name = sdk_info['sdk_name'].lower() if sdk_info else ''
+        if sdk_name == 'macos' and any(p in obj_path for p in MAC_OS_PATHS):
+            return True
+        if sdk_name == 'linux' and not obj_path.startswith(LINUX_SYS_PATHS):
+            return True
+        if sdk_name == 'windows' and not WINDOWS_SYS_PATH.match(obj_path):
+            return True
+
+        return False
 
     def _is_support_framework(self, obj):
         """True if the frame is from a framework that is known and app
@@ -180,8 +198,8 @@ class Symbolizer(object):
         # Otherwise, yeah, let's just say it's in_app
         return True
 
-    def _is_optional_dsym(self, obj, sdk_info=None):
-        """Checks if this is a dsym that is optional."""
+    def _is_optional_dif(self, obj, sdk_info=None):
+        """Checks if this is an optional debug information file."""
         # Frames that are not in the app are not considered optional.  In
         # theory we should never reach this anyways.
         if not self.is_image_from_app_bundle(obj, sdk_info=sdk_info):
@@ -203,18 +221,18 @@ class Symbolizer(object):
     def _is_simulator_frame(self, frame, obj):
         return obj.name and _sim_platform_re.search(obj.name) is not None
 
-    def _symbolize_app_frame(self, instruction_addr, obj, sdk_info=None):
-        symcache = self.symcaches.get(obj.uuid)
+    def _symbolize_app_frame(self, instruction_addr, obj, sdk_info=None, trust=None):
+        symcache = self.symcaches.get(obj.id)
         if symcache is None:
             # In case we know what error happened on symcache conversion
             # we can report it to the user now.
-            if obj.uuid in self.symcaches_conversion_errors:
+            if obj.id in self.symcaches_conversion_errors:
                 raise SymbolicationFailed(
-                    message=self.symcaches_conversion_errors[obj.uuid],
+                    message=self.symcaches_conversion_errors[obj.id],
                     type=EventError.NATIVE_BAD_DSYM,
                     obj=obj
                 )
-            if self._is_optional_dsym(obj, sdk_info=sdk_info):
+            if self._is_optional_dif(obj, sdk_info=sdk_info):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
             else:
                 type = EventError.NATIVE_MISSING_DSYM
@@ -229,8 +247,9 @@ class Symbolizer(object):
 
         if not rv:
             # For some frameworks we are willing to ignore missing symbol
-            # errors.
-            if self._is_optional_dsym(obj, sdk_info=sdk_info):
+            # errors. Also, ignore scanned stack frames when symbols are
+            # available to complete breakpad's stack scanning heuristics.
+            if trust == 'scan' or self._is_optional_dif(obj, sdk_info=sdk_info):
                 return []
             raise SymbolicationFailed(
                 type=EventError.NATIVE_MISSING_SYMBOL, obj=obj)
@@ -255,18 +274,36 @@ class Symbolizer(object):
             ), obj, package=symbolserver_match['object_name'])
         ]
 
-    def symbolize_frame(self, instruction_addr, sdk_info=None, symbolserver_match=None):
+    def symbolize_frame(self, instruction_addr, sdk_info=None, symbolserver_match=None, trust=None):
         obj = self.object_lookup.find_object(instruction_addr)
         if obj is None:
+            if trust == 'scan':
+                return []
             raise SymbolicationFailed(type=EventError.NATIVE_UNKNOWN_IMAGE)
 
-        # If we are dealing with a frame that is not bundled with the app
-        # we look at system symbols.  If that fails, we go to looking for
-        # app symbols explicitly.
-        if not self.is_image_from_app_bundle(obj, sdk_info=sdk_info):
-            return self._convert_symbolserver_match(instruction_addr, symbolserver_match, obj)
+        # Try to always prefer the images from the application storage.
+        # If the symbolication fails we keep the error for later
+        app_err = None
+        try:
+            match = self._symbolize_app_frame(instruction_addr, obj, sdk_info=sdk_info, trust=trust)
+            if match:
+                return match
+        except SymbolicationFailed as err:
+            app_err = err
 
-        return self._symbolize_app_frame(instruction_addr, obj, sdk_info=sdk_info)
+        # Then we check the symbolserver for a match.
+        match = self._convert_symbolserver_match(instruction_addr, symbolserver_match, obj)
+
+        # If we do not get a match and the image was from an app bundle
+        # and we got an error first, we now fail with the original error
+        # as we did indeed encounter a symbolication error.  If however
+        # the match was empty we just accept it as a valid symbolication
+        # that just did not return any results but without error.
+        if not match and self.is_image_from_app_bundle(obj, sdk_info=sdk_info) \
+           and app_err is not None:
+            raise app_err
+
+        return match
 
     def is_in_app(self, instruction_addr, sdk_info=None):
         obj = self.object_lookup.find_object(instruction_addr)

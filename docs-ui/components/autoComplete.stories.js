@@ -1,9 +1,8 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
-// import {action} from '@storybook/addon-actions';
 
-import AutoComplete from 'sentry-ui/autoComplete';
+import AutoComplete from 'app/components/autoComplete';
 
 const items = [
   {
@@ -17,9 +16,9 @@ const items = [
   },
 ];
 
-storiesOf('AutoComplete', module).add(
-  'default',
-  withInfo('Description')(() => (
+storiesOf('UI|AutoComplete', module).add(
+  'Input',
+  withInfo('Autocomplete on an input')(() => (
     <AutoComplete itemToString={item => item.name}>
       {({
         getRootProps,

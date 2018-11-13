@@ -72,7 +72,7 @@ class RangeQuerySetWrapper(object):
             queryset = queryset.order_by(self.order_by)
 
         # we implement basic cursor pagination for columns that are not unique
-        last_object = None
+        last_object_pk = None
         has_results = True
         while has_results:
             if (max_value and cur_value >= max_value) or (limit and num >= limit):
@@ -93,14 +93,19 @@ class RangeQuerySetWrapper(object):
                 cb(results)
 
             for result in results:
-                if result == last_object:
+                if last_object_pk is not None and result.pk == last_object_pk:
                     continue
 
-                yield result
-
+                # Need to bind value before yielding, because the caller
+                # may mutate the value and we're left with a bad value.
+                # This is commonly the case if iterating over and
+                # deleting, because a Model.delete() mutates the `id`
+                # to `None` causing the loop to exit early.
                 num += 1
+                last_object_pk = result.pk
                 cur_value = getattr(result, self.order_by)
-                last_object = result
+
+                yield result
 
             if cur_value is None:
                 break
@@ -286,12 +291,20 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
                 post_save.send(created=True, **signal_kwargs)
 
 
-def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **filters):
+def bulk_delete_objects(model, limit=10000, transaction_id=None,
+                        logger=None, partition_key=None, **filters):
     connection = connections[router.db_for_write(model)]
     quote_name = connection.ops.quote_name
 
     query = []
     params = []
+    partition_query = []
+
+    if partition_key:
+        for column, value in partition_key.items():
+            partition_query.append('%s = %%s' % (quote_name(column), ))
+            params.append(value)
+
     for column, value in filters.items():
         query.append('%s = %%s' % (quote_name(column), ))
         params.append(value)
@@ -299,13 +312,14 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **
     if db.is_postgres():
         query = """
             delete from %(table)s
-            where id = any(array(
+            where %(partition_query)s id = any(array(
                 select id
                 from %(table)s
                 where (%(query)s)
                 limit %(limit)d
             ))
         """ % dict(
+            partition_query=(' AND '.join(partition_query)) + (' AND ' if partition_query else ''),
             query=' AND '.join(query),
             table=model._meta.db_table,
             limit=limit,
@@ -313,9 +327,10 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **
     elif db.is_mysql():
         query = """
             delete from %(table)s
-            where (%(query)s)
+            where %(partition_query)s (%(query)s)
             limit %(limit)d
         """ % dict(
+            partition_query=(' AND '.join(partition_query)) + (' AND ' if partition_query else ''),
             query=' AND '.join(query),
             table=model._meta.db_table,
             limit=limit,

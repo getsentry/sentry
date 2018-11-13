@@ -9,7 +9,6 @@ from sentry.models import (
 )
 from sentry.web.frontend.base import ProjectView
 from sentry.web.frontend.mixins.csv import CsvMixin
-from sentry.utils.query import RangeQuerySetWrapper
 
 
 def attach_eventuser(project_id):
@@ -58,7 +57,7 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
             item.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
         )
 
-    def get(self, request, organization, project, team, group_id, key):
+    def get(self, request, organization, project, group_id, key):
         try:
             # TODO(tkaemming): This should *actually* redirect, see similar
             # comment in ``GroupEndpoint.convert_args``.
@@ -70,7 +69,7 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
             raise Http404
 
         if tagstore.is_reserved_key(key):
-            lookup_key = 'sentry:{0}'.format(key)
+            lookup_key = u'sentry:{0}'.format(key)
         else:
             lookup_key = key
 
@@ -91,14 +90,13 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
         else:
             callbacks = []
 
-        queryset = RangeQuerySetWrapper(
-            tagstore.get_group_tag_value_qs(group.project_id, group.id, environment_id, lookup_key),
-            callbacks=callbacks,
+        gtv_iter = tagstore.get_group_tag_value_iter(
+            group.project_id, group.id, environment_id, lookup_key, callbacks=callbacks
         )
 
-        filename = '{}-{}'.format(
+        filename = u'{}-{}'.format(
             group.qualified_short_id or group.id,
             key,
         )
 
-        return self.to_csv_response(queryset, filename, key=key)
+        return self.to_csv_response(gtv_iter, filename, key=key)

@@ -1,17 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
 
-import {t} from '../../locale';
-import GroupingActions from '../../actions/groupingActions';
-import GroupingStore from '../../stores/groupingStore';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import ProjectState from '../../mixins/projectState';
-import SimilarList from './similarList';
+import {t} from 'app/locale';
+import GroupingActions from 'app/actions/groupingActions';
+import GroupingStore from 'app/stores/groupingStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import ProjectState from 'app/mixins/projectState';
+import SimilarList from 'app/views/groupSimilar/similarList';
 
-const GroupGroupingView = React.createClass({
+const GroupGroupingView = createReactClass({
+  displayName: 'GroupGroupingView',
+
   propTypes: {
     query: PropTypes.string,
   },
@@ -58,8 +61,11 @@ const GroupGroupingView = React.createClass({
         error: typeof error !== 'undefined' ? error : false,
       });
     } else if (mergedParent && mergedParent !== this.props.params.groupId) {
+      let {params} = this.props;
       // Merge success, since we can't specify target, we need to redirect to new parent
-      browserHistory.push(`/issues/${mergedParent}/similar/`);
+      browserHistory.push(
+        `/${params.orgId}/${params.projectId}/issues/${mergedParent}/similar/`
+      );
     }
   },
 

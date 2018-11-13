@@ -1,16 +1,24 @@
+import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import ApiMixin from '../../mixins/apiMixin';
-import LanguageNav from './languageNav';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import NotFound from '../../components/errors/notFound';
-import Link from '../../components/link';
-import {t, tct} from '../../locale';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/button';
+import Link from 'app/components/link';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import NotFound from 'app/components/errors/notFound';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
-const ProjectInstallPlatform = React.createClass({
+const ProjectInstallPlatform = createReactClass({
+  displayName: 'ProjectInstallPlatform',
+
   propTypes: {
+    // eslint-disable-next-line react/no-unused-prop-types
     platformData: PropTypes.object.isRequired,
     linkPath: PropTypes.func,
   },
@@ -97,31 +105,7 @@ const ProjectInstallPlatform = React.createClass({
     );
   },
 
-  renderSidebar() {
-    let platform = this.state.platform;
-    return (
-      <div className="install-sidebar col-md-2">
-        {this.props.platformData.platforms.map(p_item => {
-          return (
-            <LanguageNav
-              key={p_item.id}
-              name={p_item.name}
-              active={platform && platform.id === p_item.id}
-            >
-              {p_item.integrations.map(i_item => {
-                return this.getPlatformLink(
-                  i_item.id,
-                  i_item.id === p_item.id ? t('Generic') : i_item.name
-                );
-              })}
-            </LanguageNav>
-          );
-        })}
-      </div>
-    );
-  },
-
-  renderBody() {
+  render() {
     let {integration, platform} = this.state;
     let {orgId, projectId} = this.props.params;
 
@@ -130,18 +114,25 @@ const ProjectInstallPlatform = React.createClass({
     }
 
     return (
-      <div className="box">
-        <div className="box-header">
-          <div className="pull-right">
-            <a href={integration.link} className="btn btn-sm btn-default">
-              {t('Full Documentation')}
-            </a>
-          </div>
+      <Panel>
+        <PanelHeader hasButtons>
+          {t('Configure %(integration)s', {integration: integration.name})}
+          <Flex>
+            <Box ml={1}>
+              <Button size="small" href={`/${orgId}/${projectId}/getting-started/`}>
+                {t('< Back')}
+              </Button>
+            </Box>
+            <Box ml={1}>
+              <Button size="small" href={integration.link} external>
+                {t('Full Documentation')}
+              </Button>
+            </Box>
+          </Flex>
+        </PanelHeader>
 
-          <h3>{t('Configure %(integration)s', {integration: integration.name})}</h3>
-        </div>
-        <div className="box-content with-padding">
-          <p>
+        <PanelBody disablePadding={false}>
+          <TextBlock>
             {tct(
               `
              This is a quick getting started guide. For in-depth instructions
@@ -153,39 +144,40 @@ const ProjectInstallPlatform = React.createClass({
                 docLink: <a href={integration.link} />,
               }
             )}
-          </p>
+          </TextBlock>
 
           {this.state.loading ? (
             <LoadingIndicator />
           ) : this.state.error ? (
             <LoadingError onRetry={this.fetchData} />
           ) : (
-            <div dangerouslySetInnerHTML={{__html: this.state.html}} />
+            <DocumentationWrapper dangerouslySetInnerHTML={{__html: this.state.html}} />
           )}
 
           {this.isGettingStarted() && (
-            <p>
-              <Link
-                to={`/${orgId}/${projectId}/#welcome`}
-                className="btn btn-primary btn-lg"
-              >
-                {t('Got it! Take me to the Issue Stream.')}
-              </Link>
-            </p>
+            <Button
+              priority="primary"
+              size="large"
+              to={`/${orgId}/${projectId}/#welcome`}
+              style={{marginTop: 20}}
+            >
+              {t('Got it! Take me to the Issue Stream.')}
+            </Button>
           )}
-        </div>
-      </div>
-    );
-  },
-
-  render() {
-    return (
-      <div className="install row">
-        <div className="install-content col-md-10">{this.renderBody()}</div>
-        {this.renderSidebar()}
-      </div>
+        </PanelBody>
+      </Panel>
     );
   },
 });
 
 export default ProjectInstallPlatform;
+
+const DocumentationWrapper = styled('div')`
+  p {
+    line-height: 1.5;
+  }
+  pre {
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+`;

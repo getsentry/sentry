@@ -19,11 +19,15 @@ class BaseRelation(object):
 
 
 class ModelRelation(BaseRelation):
-    def __init__(self, model, query, task=None):
+    def __init__(self, model, query, task=None, partition_key=None):
         params = {
             'model': model,
             'query': query,
         }
+
+        if partition_key:
+            params['partition_key'] = partition_key
+
         super(ModelRelation, self).__init__(params=params, task=task)
 
 
@@ -33,12 +37,12 @@ class BaseDeletionTask(object):
     DEFAULT_CHUNK_SIZE = 100
 
     def __init__(self, manager, skip_models=None, transaction_id=None,
-                 actor_id=None, chunk_size=DEFAULT_CHUNK_SIZE):
+                 actor_id=None, chunk_size=None):
         self.manager = manager
         self.skip_models = set(skip_models) if skip_models else None
         self.transaction_id = transaction_id
         self.actor_id = actor_id
-        self.chunk_size = chunk_size
+        self.chunk_size = chunk_size if chunk_size is not None else self.DEFAULT_CHUNK_SIZE
 
     def __repr__(self):
         return '<%s: skip_models=%s transaction_id=%s actor_id=%s>' % (
@@ -113,19 +117,17 @@ class BaseDeletionTask(object):
 
     def delete_children(self, relations):
         # Ideally this runs through the deletion manager
-        has_more = False
         for relation in relations:
             task = self.manager.get(
                 transaction_id=self.transaction_id,
                 actor_id=self.actor_id,
-                chunk_size=self.chunk_size,
                 task=relation.task,
                 **relation.params
             )
-            has_more = task.chunk()
-            if has_more:
-                return has_more
-        return has_more
+            has_more = True
+            while has_more:
+                has_more = task.chunk()
+        return False
 
     def mark_deletion_in_progress(self, instance_list):
         pass
@@ -174,7 +176,7 @@ class ModelDeletionTask(BaseDeletionTask):
                 assert shard_id < num_shards
                 queryset = queryset.extra(
                     where=[
-                        'id %% {num_shards} = {shard_id}'.format(
+                        u'id %% {num_shards} = {shard_id}'.format(
                             num_shards=num_shards,
                             shard_id=shard_id,
                         )
@@ -238,6 +240,11 @@ class BulkModelDeletionTask(ModelDeletionTask):
     """
     DEFAULT_CHUNK_SIZE = 10000
 
+    def __init__(self, manager, model, query, partition_key=None, **kwargs):
+        super(BulkModelDeletionTask, self).__init__(manager, model, query, **kwargs)
+
+        self.partition_key = partition_key
+
     def chunk(self):
         return self.delete_instance_bulk()
 
@@ -247,6 +254,7 @@ class BulkModelDeletionTask(ModelDeletionTask):
                 model=self.model,
                 limit=self.chunk_size,
                 transaction_id=self.transaction_id,
+                partition_key=self.partition_key,
                 **self.query
             )
         finally:

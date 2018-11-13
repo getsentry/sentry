@@ -1,35 +1,30 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import u2f from 'u2f-api';
-import Raven from 'raven-js';
-import ConfigStore from '../stores/configStore';
+import ConfigStore from 'app/stores/configStore';
+import sdk from 'app/utils/sdk';
+import {t, tct} from 'app/locale';
 
-import {t, tct} from '../locale';
-
-const U2fInterface = React.createClass({
-  propTypes: {
+class U2fInterface extends React.Component {
+  static propTypes = {
     challengeData: PropTypes.object.isRequired,
     flowMode: PropTypes.string.isRequired,
     onTap: PropTypes.func,
     silentIfUnsupported: PropTypes.bool,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      silentIfUnsupported: false,
-    };
-  },
+  static defaultProps = {
+    silentIfUnsupported: false,
+  };
 
-  getInitialState() {
-    return {
-      isSupported: null,
-      formElement: null,
-      challengeElement: null,
-      hasBeenTapped: false,
-      deviceFailure: null,
-      responseElement: null,
-    };
-  },
+  state = {
+    isSupported: null,
+    formElement: null,
+    challengeElement: null,
+    hasBeenTapped: false,
+    deviceFailure: null,
+    responseElement: null,
+  };
 
   componentDidMount() {
     u2f.isSupported().then(supported => {
@@ -41,9 +36,9 @@ const U2fInterface = React.createClass({
       }
       this.invokeU2fFlow();
     });
-  },
+  }
 
-  onTryAgain() {
+  onTryAgain = () => {
     this.setState(
       {
         hasBeenTapped: false,
@@ -53,9 +48,9 @@ const U2fInterface = React.createClass({
         this.invokeU2fFlow();
       }
     );
-  },
+  };
 
-  invokeU2fFlow() {
+  invokeU2fFlow = () => {
     let promise;
     if (this.props.flowMode === 'sign') {
       promise = u2f.sign(this.props.challengeData.authenticateRequests);
@@ -72,9 +67,27 @@ const U2fInterface = React.createClass({
             hasBeenTapped: true,
           },
           () => {
-            this.state.responseElement.value = JSON.stringify(data);
-            if (!this.props.onTap || this.props.onTap()) {
-              this.state.formElement.submit();
+            let u2fResponse = JSON.stringify(data);
+            let challenge = JSON.stringify(this.props.challengeData);
+
+            // eslint-disable-next-line react/no-direct-mutation-state
+            this.state.responseElement.value = u2fResponse;
+
+            if (!this.props.onTap) {
+              this.state.formElement && this.state.formElement.submit();
+            } else {
+              this.props
+                .onTap({
+                  response: u2fResponse,
+                  challenge,
+                })
+                .catch(err => {
+                  // This is kind of gross but I want to limit the amount of changes to this component
+                  this.setState({
+                    deviceFailure: 'UNKNOWN_ERROR',
+                    hasBeenTapped: false,
+                  });
+                });
             }
           }
         );
@@ -97,29 +110,32 @@ const U2fInterface = React.createClass({
         // we want to know what is happening here.  There are some indicators
         // that users are getting errors that should not happen through the
         // regular u2f flow.
-        Raven.captureException(err);
+        sdk.captureException(err);
         this.setState({
           deviceFailure: failure,
           hasBeenTapped: false,
         });
       });
-  },
+  };
 
-  bindChallengeElement(ref) {
+  bindChallengeElement = ref => {
     this.setState({
       challengeElement: ref,
-      formElement: ref.form,
+      formElement: ref && ref.form,
     });
-    ref.value = JSON.stringify(this.props.challengeData);
-  },
 
-  bindResponseElement(ref) {
+    if (ref) {
+      ref.value = JSON.stringify(this.props.challengeData);
+    }
+  };
+
+  bindResponseElement = ref => {
     this.setState({
       responseElement: ref,
     });
-  },
+  };
 
-  renderUnsupported() {
+  renderUnsupported = () => {
     if (this.props.silentIfUnsupported) {
       return null;
     }
@@ -138,13 +154,13 @@ const U2fInterface = React.createClass({
         </div>
       </div>
     );
-  },
+  };
 
-  canTryAgain() {
+  canTryAgain = () => {
     return this.state.deviceFailure !== 'BAD_APPID';
-  },
+  };
 
-  renderFailure() {
+  renderFailure = () => {
     let {deviceFailure} = this.state;
     let supportMail = ConfigStore.get('supportEmail');
     let support = supportMail ? (
@@ -154,10 +170,11 @@ const U2fInterface = React.createClass({
     );
     return (
       <div className="failure-message">
-        <p>
+        <div>
           <strong>{t('Error: ')}</strong>{' '}
           {
             {
+              UNKNOWN_ERROR: t('There was an unknown problem, please try again'),
               DEVICE_ERROR: t('Your U2F device reported an error.'),
               DUPLICATE_DEVICE: t('This device is already in use.'),
               UNKNOWN_DEVICE: t('The device you used for sign-in is unknown.'),
@@ -175,29 +192,31 @@ const U2fInterface = React.createClass({
               ),
             }[deviceFailure]
           }
-        </p>
+        </div>
         {this.canTryAgain() && (
-          <p>
+          <div style={{marginTop: 18}}>
             <a onClick={this.onTryAgain} className="btn btn-primary">
               {t('Try Again')}
             </a>
-          </p>
+          </div>
         )}
       </div>
     );
-  },
+  };
 
-  renderBody() {
+  renderBody = () => {
     if (this.state.deviceFailure) {
       return this.renderFailure();
     } else {
       return this.props.children;
     }
-  },
+  };
 
-  renderPrompt() {
+  renderPrompt = () => {
+    let {style} = this.props;
     return (
       <div
+        style={style}
         className={
           'u2f-box' +
           (this.state.hasBeenTapped ? ' tapped' : '') +
@@ -218,7 +237,7 @@ const U2fInterface = React.createClass({
         <div className="inner">{this.renderBody()}</div>
       </div>
     );
-  },
+  };
 
   render() {
     let {isSupported} = this.state;
@@ -231,7 +250,7 @@ const U2fInterface = React.createClass({
     } else {
       return this.renderPrompt();
     }
-  },
-});
+  }
+}
 
 export default U2fInterface;

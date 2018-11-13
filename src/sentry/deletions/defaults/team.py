@@ -5,10 +5,10 @@ from ..base import ModelDeletionTask, ModelRelation
 
 class TeamDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.models import Project
+        from sentry.models import ProjectTeam
 
         return [
-            ModelRelation(Project, {'team_id': instance.id}),
+            ModelRelation(ProjectTeam, {'team_id': instance.id}),
         ]
 
     def mark_deletion_in_progress(self, instance_list):

@@ -5,29 +5,24 @@ import six
 import logging
 
 from collections import namedtuple
-from symbolic import parse_addr, arch_from_macho, arch_is_known, ProcessState
+from symbolic import parse_addr, arch_from_macho, arch_is_known
 
-from sentry.constants import LOG_LEVELS_MAP
 from sentry.interfaces.contexts import DeviceContextType
 
 logger = logging.getLogger(__name__)
 
-KNOWN_DSYM_TYPES = {
-    'iOS': 'macho',
-    'tvOS': 'macho',
-    'macOS': 'macho',
-    'watchOS': 'macho',
-}
-
 # Regular expression to parse OS versions from a minidump OS string
 VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)\s+(.*)')
 
-# Mapping of well-known minidump OS constants to our internal names
-MINIDUMP_OS_TYPES = {
-    'Mac OS X': 'macOS',
-}
+# Regular expression to guess whether we're dealing with Windows or Unix paths
+WINDOWS_PATH_RE = re.compile(r'^[a-z]:\\', re.IGNORECASE)
 
 AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
+
+
+def image_name(pkg):
+    split = '\\' if WINDOWS_PATH_RE.match(pkg) else '/'
+    return pkg.rsplit(split, 1)[-1]
 
 
 def find_all_stacktraces(data):
@@ -77,7 +72,8 @@ def get_sdk_from_os(data):
     if 'name' not in data or 'version' not in data:
         return
     try:
-        system_version = tuple(int(x) for x in (data['version'] + '.0' * 3).split('.')[:3])
+        version = six.text_type(data['version']).split('-', 1)[0] + '.0' * 3
+        system_version = tuple(int(x) for x in version.split('.')[:3])
     except ValueError:
         return
 
@@ -118,23 +114,6 @@ def cpu_name_from_data(data):
     return unique_cpu_name
 
 
-def version_build_from_data(data):
-    """Returns release and build string from the given data if it exists."""
-    app_context = data.get('contexts', {}).get('app', {})
-    if app_context is not None:
-        if (app_context.get('app_identifier', None) and
-                app_context.get('app_version', None) and
-                app_context.get('app_build', None) and
-                app_context.get('app_name', None)):
-            return AppInfo(
-                app_context.get('app_identifier', None),
-                app_context.get('app_version', None),
-                app_context.get('app_build', None),
-                app_context.get('app_name', None),
-            )
-    return None
-
-
 def rebase_addr(instr_addr, obj):
     return parse_addr(instr_addr) - parse_addr(obj.addr)
 
@@ -150,77 +129,3 @@ def sdk_info_to_sdk_id(sdk_info):
     if build is not None:
         rv = '%s_%s' % (rv, build)
     return rv
-
-
-def merge_minidump_event(data, minidump_path):
-    state = ProcessState.from_minidump(minidump_path)
-
-    data['level'] = LOG_LEVELS_MAP['fatal'] if state.crashed else LOG_LEVELS_MAP['info']
-    data['message'] = 'Assertion Error: %s' % state.assertion if state.assertion \
-        else 'Fatal Error: %s' % state.crash_reason
-
-    if state.timestamp:
-        data['timestamp'] = float(state.timestamp)
-
-    # Extract as much system information as we can. TODO: We should create
-    # a custom context and implement a specific minidump view in the event
-    # UI.
-    info = state.system_info
-    context = data.setdefault('contexts', {})
-    os = context.setdefault('os', {})
-    device = context.setdefault('device', {})
-    os['type'] = 'os'  # Required by "get_sdk_from_event"
-    os['name'] = MINIDUMP_OS_TYPES.get(info.os_name, info.os_name)
-    device['arch'] = info.cpu_family
-
-    # Breakpad reports the version and build number always in one string,
-    # but a version number is guaranteed even on certain linux distros.
-    match = VERSION_RE.search(info.os_version)
-    if match is not None:
-        version, build = match.groups()
-        os['version'] = version
-        os['build'] = build
-
-    # We can extract stack traces here already but since CFI is not
-    # available yet (without debug symbols), the stackwalker will
-    # resort to stack scanning which yields low-quality results. If
-    # the user provides us with debug symbols, we could reprocess this
-    # minidump and add improved stacktraces later.
-    threads = [{
-        'id': thread.thread_id,
-        'crashed': False,
-        'stacktrace': {
-            'frames': [{
-                'instruction_addr': '0x%x' % frame.instruction,
-                'function': '<unknown>',  # Required by interface
-            } for frame in thread.frames()],
-        },
-    } for thread in state.threads()]
-    data.setdefault('threads', {})['values'] = threads
-
-    # Mark the crashed thread and add its stacktrace to the exception
-    crashed_thread = threads[state.requesting_thread]
-    crashed_thread['crashed'] = True
-
-    # Extract the crash reason and infos
-    exception = {
-        'value': data['message'],
-        'thread_id': crashed_thread['id'],
-        'type': state.crash_reason,
-        # Move stacktrace here from crashed_thread (mutating!)
-        'stacktrace': crashed_thread.pop('stacktrace'),
-    }
-
-    data.setdefault('sentry.interfaces.Exception', {}) \
-        .setdefault('values', []) \
-        .append(exception)
-
-    # Extract referenced (not all loaded) images
-    images = [{
-        'type': 'apple',  # Required by interface
-        'uuid': six.text_type(module.uuid),
-        'image_addr': '0x%x' % module.addr,
-        'image_size': '0x%x' % module.size,
-        'name': module.name,
-    } for module in state.modules()]
-    data.setdefault('debug_meta', {})['images'] = images

@@ -14,6 +14,7 @@ import six
 from django.conf import settings
 
 from sentry.utils import warnings
+from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
@@ -54,6 +55,12 @@ def register_plugins(settings):
             )
         else:
             integrations.register(integration_cls)
+
+    for integration in integrations.all():
+        try:
+            integration.setup()
+        except AttributeError:
+            pass
 
 
 def init_plugin(plugin):
@@ -266,8 +273,6 @@ def initialize_app(config, skip_service_validation=False):
 
     apply_legacy_settings(settings)
 
-    bind_cache_to_option_store()
-
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
     if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
@@ -301,11 +306,20 @@ def initialize_app(config, skip_service_validation=False):
         version=settings.ASSET_VERSION,
     )
 
+    import django
+    if hasattr(django, 'setup'):
+        # support for Django 1.7+
+        django.setup()
+
+    bind_cache_to_option_store()
+
     register_plugins(settings)
 
     initialize_receivers()
 
     validate_options(settings)
+
+    configure_sdk()
 
     setup_services(validate=not skip_service_validation)
 
@@ -334,7 +348,7 @@ def setup_services(validate=True):
             except AttributeError as exc:
                 reraise_as(
                     ConfigurationError(
-                        '{} service failed to call validate()\n{}'.format(
+                        u'{} service failed to call validate()\n{}'.format(
                             service.__name__,
                             six.text_type(exc),
                         )
@@ -346,7 +360,7 @@ def setup_services(validate=True):
             if not hasattr(service, 'setup') or not callable(service.setup):
                 reraise_as(
                     ConfigurationError(
-                        '{} service failed to call setup()\n{}'.format(
+                        u'{} service failed to call setup()\n{}'.format(
                             service.__name__,
                             six.text_type(exc),
                         )

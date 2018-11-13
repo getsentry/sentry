@@ -20,16 +20,25 @@ class SentryManagerTest(TestCase):
         environment = self.create_environment()
 
         with self.tasks():
-            Group.objects.add_tags(group, environment, tags=(
-                ('foo', 'bar'), ('foo', 'baz'), ('biz', 'boz')))
+            Group.objects.add_tags(
+                group,
+                environment,
+                tags=[
+                    ('foo', 'bar'),
+                    ('foo', 'baz'),
+                    ('biz', 'boz'),
+                ],
+            )
 
         results = sorted(
             tagstore.get_group_tag_values(
                 group.project_id,
                 group.id,
                 environment_id=None,
-                key='foo'),
-            key=lambda x: x.id)
+                key='foo',
+            ),
+            key=lambda x: x.value,
+        )
         assert len(results) == 2
         res = results[0]
         self.assertEquals(res.value, 'bar')
@@ -38,15 +47,14 @@ class SentryManagerTest(TestCase):
         self.assertEquals(res.value, 'baz')
         self.assertEquals(res.times_seen, 1)
 
-        results = sorted(
-            tagstore.get_group_tag_values(
-                group.project_id,
-                group.id,
-                environment_id=None,
-                key='biz'),
-            key=lambda x: x.id)
+        results = tagstore.get_group_tag_values(
+            group.project_id,
+            group.id,
+            environment_id=None,
+            key='biz'
+        )
         assert len(results) == 1
-        res = results[0]
+        res = list(results)[0]
         self.assertEquals(res.value, 'boz')
         self.assertEquals(res.times_seen, 1)
 
@@ -106,8 +114,8 @@ class TeamManagerTest(TestCase):
         org = self.create_organization()
         team = self.create_team(organization=org, name='Test')
         self.create_member(organization=org, user=user, teams=[team])
-        project = self.create_project(team=team, name='foo')
-        project2 = self.create_project(team=team, name='bar')
+        project = self.create_project(teams=[team], name='foo')
+        project2 = self.create_project(teams=[team], name='bar')
         result = Team.objects.get_for_user(
             organization=org,
             user=user,
@@ -121,8 +129,8 @@ class ProjectManagerTest(TestCase):
         user = User.objects.create(username='foo')
         org = self.create_organization()
         team = self.create_team(organization=org, name='Test')
-        project = self.create_project(team=team, name='foo')
-        project2 = self.create_project(team=team, name='baz')
+        project = self.create_project(teams=[team], name='foo')
+        project2 = self.create_project(teams=[team], name='baz')
 
         result = Project.objects.get_for_user(
             team=team,

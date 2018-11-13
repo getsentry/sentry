@@ -23,6 +23,11 @@ class UserTest(TestCase):
             favorite_color='brown',
         ))
 
+    def test_null_values(self):
+        sink = {}
+
+        assert User.to_python({}).to_json() == sink
+
     def test_path(self):
         assert self.interface.get_path() == 'sentry.interfaces.User'
 
@@ -51,6 +56,12 @@ class UserTest(TestCase):
             User.to_python(dict(
                 email='foo',
             ))
+
+    def test_id_long_dict(self):
+        u = User.to_python({
+            'id': {x: 'foobarbaz' for x in range(10)},  # dict longer than 128 chars
+        })
+        assert len(u.to_json()['id']) == 128
 
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())

@@ -1,16 +1,37 @@
+import {withRouter} from 'react-router';
 import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
-import DiffModal from '../components/modals/diffModal';
-import ProjectHeader from '../components/projectHeader';
-import ProjectState from '../mixins/projectState';
+import {setLastRoute} from 'app/actionCreators/navigation';
+import SentryTypes from 'app/sentryTypes';
+import EnvironmentStore from 'app/stores/environmentStore';
+import ProjectHeader from 'app/components/projectHeader';
+import ProjectState from 'app/mixins/projectState';
+import withEnvironment from 'app/utils/withEnvironment';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 
-const ProjectDetailsLayout = React.createClass({
-  mixins: [ProjectState],
+const ProjectDetailsLayout = createReactClass({
+  displayName: 'ProjectDetailsLayout',
+
+  propTypes: {
+    environment: SentryTypes.Environment,
+  },
+
+  mixins: [ProjectState, Reflux.connect(EnvironmentStore, 'environments')],
 
   getInitialState() {
     return {
+      environments: EnvironmentStore.getActive() || [],
       projectNavSection: null,
     };
+  },
+
+  componentWillUnmount() {
+    let {location} = this.props;
+    let {pathname, search} = location;
+    // Save last route so that we can jump back to view from settings
+    setLastRoute(`${pathname}${search || ''}`);
   },
 
   /**
@@ -28,11 +49,14 @@ const ProjectDetailsLayout = React.createClass({
     if (!this.context.project) return null;
 
     return (
-      <div>
+      <React.Fragment>
+        <GuideAnchor target="project_details" type="invisible" />
         <ProjectHeader
           activeSection={this.state.projectNavSection}
           project={this.context.project}
           organization={this.getOrganization()}
+          environments={this.state.environments}
+          activeEnvironment={this.props.environment}
         />
         <div className="container">
           <div className="content">
@@ -42,11 +66,10 @@ const ProjectDetailsLayout = React.createClass({
             })}
           </div>
         </div>
-
-        <DiffModal />
-      </div>
+      </React.Fragment>
     );
   },
 });
 
-export default ProjectDetailsLayout;
+export {ProjectDetailsLayout};
+export default withRouter(withEnvironment(ProjectDetailsLayout));

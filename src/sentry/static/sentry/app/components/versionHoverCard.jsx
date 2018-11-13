@@ -1,21 +1,26 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
-import Avatar from './avatar';
+import AvatarList from 'app/components/avatar/avatarList';
 
-import LastCommit from './lastCommit';
-import LoadingIndicator from './loadingIndicator';
-import LoadingError from './loadingError';
-import TimeSince from './timeSince';
-import Hovercard from './hovercard';
+import {Box} from 'grid-emotion';
+import Button from 'app/components/button';
+import LastCommit from 'app/components/lastCommit';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingError from 'app/components/loadingError';
+import TimeSince from 'app/components/timeSince';
+import Hovercard from 'app/components/hovercard';
 
-import {getShortVersion} from '../utils';
-import {t} from '../locale';
+import {getShortVersion} from 'app/utils';
+import {t, tct} from 'app/locale';
 
-import ApiMixin from '../mixins/apiMixin';
+import ApiMixin from 'app/mixins/apiMixin';
 
-const VersionHoverCard = React.createClass({
+const VersionHoverCard = createReactClass({
+  displayName: 'VersionHoverCard',
+
   propTypes: {
     version: PropTypes.string.isRequired,
     orgId: PropTypes.string.isRequired,
@@ -103,7 +108,8 @@ const VersionHoverCard = React.createClass({
 
   toggleHovercard() {
     this.setState({
-      visible: !this.state.visible,
+      visible: true,
+      // visible: !this.state.visible,
     });
   },
 
@@ -111,16 +117,16 @@ const VersionHoverCard = React.createClass({
     let {orgId} = this.props;
     return {
       body: (
-        <div className="version-hovercard blankslate m-a-0 p-x-1 p-y-1 align-center">
+        <Box p={2} className="align-center">
           <h5>Releases are better with commit data!</h5>
           <p>
             Connect a repository to see commit info, files changed, and authors involved
             in future releases.
           </p>
-          <a className="btn btn-primary" href={`/organizations/${orgId}/repos/`}>
+          <Button href={`/organizations/${orgId}/repos/`} priority="primary">
             Connect a repository
-          </a>
-        </div>
+          </Button>
+        </Box>
       ),
     };
   },
@@ -144,41 +150,38 @@ const VersionHoverCard = React.createClass({
       mostRecentDeploySlice = Object.keys(recentDeploysByEnviroment).slice(0, 3);
     }
     return {
-      header: <span className="truncate">Release {shortVersion}</span>,
+      header: (
+        <span className="truncate">
+          {tct('Release [version]', {version: shortVersion})}
+        </span>
+      ),
       body: (
         <div>
           <div className="row row-flex">
             <div className="col-xs-4">
-              <h6>New Issues</h6>
-              <div className="count">{release.newGroups}</div>
+              <h6>{t('New Issues')}</h6>
+              <div className="count-since">{release.newGroups}</div>
             </div>
             <div className="col-xs-8">
-              <h6>
+              <h6 style={{textAlign: 'right'}}>
                 {release.commitCount}{' '}
                 {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
                 {release.authors.length}{' '}
                 {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
               </h6>
-              <div className="avatar-grid">
-                {release.authors.map((author, idx) => {
-                  return (
-                    <span
-                      className="avatar-grid-item tip"
-                      title={author.name + ' ' + author.email}
-                      key={idx}
-                    >
-                      <Avatar user={author} />
-                    </span>
-                  );
-                })}
-              </div>
+              <AvatarList
+                users={release.authors}
+                avatarSize={25}
+                tooltipOptions={{container: 'body'}}
+                typeMembers={'authors'}
+              />
             </div>
           </div>
           {lastCommit && <LastCommit commit={lastCommit} headerClass="commit-heading" />}
           {deploys.length > 0 && (
             <div>
               <div className="divider">
-                <h6 className="deploy-heading">Deploys</h6>
+                <h6 className="deploy-heading">{t('Deploys')}</h6>
               </div>
               {mostRecentDeploySlice.map((env, idx) => {
                 let dateFinished = recentDeploysByEnviroment[env];
@@ -238,7 +241,7 @@ const VersionHoverCard = React.createClass({
     }
 
     return (
-      <Hovercard header={header} body={body}>
+      <Hovercard {...this.props} header={header} body={body}>
         {this.props.children}
       </Hovercard>
     );

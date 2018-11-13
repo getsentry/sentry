@@ -1,37 +1,55 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import ReactDOM from 'react-dom';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
 import Reflux from 'reflux';
 import _ from 'lodash';
 import classNames from 'classnames';
 
-import StreamTagStore from '../../stores/streamTagStore';
-import MemberListStore from '../../stores/memberListStore';
+import TagStore from 'app/stores/tagStore';
+import MemberListStore from 'app/stores/memberListStore';
 
-import ApiMixin from '../../mixins/apiMixin';
-import {t} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import {t} from 'app/locale';
 
-import SearchDropdown from './searchDropdown';
+import SearchDropdown from 'app/views/stream/searchDropdown';
+import OrganizationState from 'app/mixins/organizationState';
 
-const SearchBar = React.createClass({
+export function addSpace(query = '') {
+  if (query.length !== 0 && query[query.length - 1] !== ' ') {
+    return query + ' ';
+  } else {
+    return query;
+  }
+}
+
+export function removeSpace(query = '') {
+  if (query[query.length - 1] === ' ') {
+    return query.slice(0, query.length - 1);
+  } else {
+    return query;
+  }
+}
+
+const SearchBar = createReactClass({
+  displayName: 'SearchBar',
+
   propTypes: {
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-
     defaultQuery: PropTypes.string,
     query: PropTypes.string,
     defaultSearchItems: PropTypes.array.isRequired,
     disabled: PropTypes.bool,
     placeholder: PropTypes.string,
-
-    onQueryChange: PropTypes.func,
     onSearch: PropTypes.func,
+    // If true, excludes the environment tag from the autocompletion list
+    // This is because we don't want to treat environment as a tag in some places
+    // such as the stream view where it is a top level concept
+    excludeEnvironment: PropTypes.bool,
   },
 
   mixins: [
     ApiMixin,
-    PureRenderMixin,
+    OrganizationState,
     Reflux.listenTo(MemberListStore, 'onMemberListStoreChange'),
   ],
 
@@ -61,8 +79,7 @@ const SearchBar = React.createClass({
       defaultQuery: '',
       query: null,
       onSearch: function() {},
-      onQueryChange: function() {},
-
+      excludeEnvironment: false,
       defaultSearchItems: [
         {
           title: t('Tag'),
@@ -110,7 +127,8 @@ const SearchBar = React.createClass({
 
   getInitialState() {
     return {
-      query: this.props.query !== null ? this.props.query : this.props.defaultQuery,
+      query:
+        this.props.query !== null ? addSpace(this.props.query) : this.props.defaultQuery,
 
       searchTerm: '',
       searchItems: [],
@@ -126,9 +144,9 @@ const SearchBar = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     // query was updated by another source (e.g. sidebar filters)
-    if (nextProps.query !== this.state.query) {
+    if (nextProps.query !== this.props.query) {
       this.setState({
-        query: nextProps.query,
+        query: addSpace(nextProps.query),
       });
     }
   },
@@ -142,7 +160,7 @@ const SearchBar = React.createClass({
   onSubmit(evt) {
     evt.preventDefault();
     this.blur();
-    this.props.onSearch(this.state.query);
+    this.props.onSearch(removeSpace(this.state.query));
   },
 
   clearSearch() {
@@ -185,9 +203,17 @@ const SearchBar = React.createClass({
    * e.g. ['is:', 'assigned:', 'url:', 'release:']
    */
   getTagKeys: function(query) {
-    return StreamTagStore.getTagKeys()
+    const allKeys = TagStore.getTagKeys()
       .map(key => key + ':')
       .filter(key => key.indexOf(query) > -1);
+
+    // If the environment feature is active and excludeEnvironment = true
+    // then remove the environment key
+    if (this.props.excludeEnvironment) {
+      return allKeys.filter(key => key !== 'environment:');
+    } else {
+      return allKeys;
+    }
   },
 
   /**
@@ -203,6 +229,7 @@ const SearchBar = React.createClass({
     });
 
     let {orgId, projectId} = this.props;
+
     this.api.request(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
       data: {
         query,
@@ -233,24 +260,7 @@ const SearchBar = React.createClass({
   },
 
   onInputClick() {
-    let cursor = this.getCursorPosition();
-
-    if (
-      cursor === this.state.query.length &&
-      this.state.query.charAt(cursor - 1) !== ' '
-    ) {
-      // If the cursor lands at the end of the input value, and the preceding character
-      // is not whitespace, then add a space and move the cursor beyond that space.
-      this.setState({query: this.state.query + ' '}, () => {
-        ReactDOM.findDOMNode(this.refs.searchInput).setSelectionRange(
-          cursor + 1,
-          cursor + 1
-        );
-        this.updateAutoCompleteItems();
-      });
-    } else {
-      this.updateAutoCompleteItems();
-    }
+    this.updateAutoCompleteItems();
   },
 
   updateAutoCompleteItems() {
@@ -308,8 +318,14 @@ const SearchBar = React.createClass({
         searchItems: filteredSearchItems,
       });
 
-      let tag = StreamTagStore.getTag(tagName);
+      let tag = TagStore.getTag(tagName);
+
       if (!tag) return undefined;
+
+      // Ignore the environment tag if the feature is active and excludeEnvironment = true
+      if (this.props.excludeEnvironment && tagName === 'environment') {
+        return undefined;
+      }
 
       return void (tag.predefined ? this.getPredefinedTagValues : this.getTagValues)(
         tag,

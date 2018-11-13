@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import classNames from 'classnames';
 
-import Confirm from '../confirm';
+import Confirm from 'app/components/confirm';
 
 export default class ActionLink extends React.Component {
   static propTypes = {
@@ -33,10 +33,10 @@ export default class ActionLink extends React.Component {
       children,
     } = this.props;
 
-    if (shouldConfirm) {
+    if (shouldConfirm && !disabled) {
       return (
         <Confirm message={message} confirmText={confirmLabel} onConfirm={onAction}>
-          <a className={className} title={title} disabled={disabled}>
+          <a className={className} title={title}>
             {' '}
             {children}
           </a>
@@ -46,7 +46,7 @@ export default class ActionLink extends React.Component {
       return (
         <a
           className={classNames(className, {disabled})}
-          onClick={!disabled && onAction}
+          onClick={disabled ? undefined : onAction}
           disabled={disabled}
         >
           {children}

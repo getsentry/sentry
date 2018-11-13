@@ -19,6 +19,7 @@ CRAWLERS = re.compile(
             r'Google',
             # Bing search
             r'BingBot',
+            r'BingPreview',
             # Baidu search
             r'Baiduspider',
             # Yahoo
@@ -30,11 +31,13 @@ CRAWLERS = re.compile(
             # Alexa
             r'ia_archiver',
             # Generic bot
-            r'bot[\/\s\)\;]',
+            r'bots?[\/\s\)\;]',
             # Generic spider
             r'spider[\/\s\)\;]',
             # Slack - see https://api.slack.com/robots
             r'Slack',
+            # Google indexing bot
+            r'Calypso AppCrawler',
         )
     ),
     re.I

@@ -1,6 +1,6 @@
 """
 sentry.interfaces.schemas
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2017 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -20,7 +20,8 @@ from sentry.constants import (
     MAX_TAG_KEY_LENGTH,
     MAX_TAG_VALUE_LENGTH,
     VALID_PLATFORMS,
-    VERSION_LENGTH,
+    ENVIRONMENT_NAME_MAX_LENGTH,
+    ENVIRONMENT_NAME_PATTERN,
 )
 from sentry.interfaces.base import InterfaceValidationError
 from sentry.models import EventError
@@ -35,6 +36,7 @@ def apierror(message="Invalid data"):
     from sentry.coreapi import APIForbidden
     raise APIForbidden(message)
 
+
 PAIRS = {
     'type': 'array',
     'items': {
@@ -43,6 +45,13 @@ PAIRS = {
         'maxItems': 2,
         'items': {'type': 'string'}
     }
+}
+
+TAG_VALUE = {
+    'type': 'string',
+    'pattern': '^[^\n]*\Z',  # \Z because $ matches before a trailing newline
+    'minLength': 1,
+    'maxLength': MAX_TAG_VALUE_LENGTH,
 }
 
 HTTP_INTERFACE_SCHEMA = {
@@ -78,10 +87,7 @@ HTTP_INTERFACE_SCHEMA = {
 FRAME_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
-        'abs_path': {
-            'type': 'string',
-            'default': iverror,
-        },
+        'abs_path': {'type': 'string'},
         'colno': {'type': ['number', 'string']},
         'context_line': {'type': 'string'},
         'data': {
@@ -91,20 +97,15 @@ FRAME_INTERFACE_SCHEMA = {
             ]
         },
         'errors': {},
-        'filename': {
-            'type': 'string',
-            'default': iverror,
-        },
+        'filename': {'type': 'string'},
         'function': {'type': 'string'},
         'image_addr': {},
         'in_app': {'type': 'boolean', 'default': False},
         'instruction_addr': {},
         'instruction_offset': {},
+        'trust': {'type': 'string'},
         'lineno': {'type': ['number', 'string']},
-        'module': {
-            'type': 'string',
-            'default': iverror,
-        },
+        'module': {'type': 'string'},
         'package': {'type': 'string'},
         'platform': {
             'type': 'string',
@@ -133,7 +134,7 @@ STACKTRACE_INTERFACE_SCHEMA = {
         'frames': {
             'type': 'array',
             # To validate individual frames use FRAME_INTERFACE_SCHEMA
-            'items': {'type': 'object'},
+            'items': {},
             'minItems': 1,
         },
         'frames_omitted': {
@@ -150,6 +151,64 @@ STACKTRACE_INTERFACE_SCHEMA = {
     'additionalProperties': {'not': {}},
 }
 
+EXCEPTION_MECHANISM_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'type': {
+            'type': 'string',
+            'minLength': 1,
+        },
+        'description': {
+            'type': 'string',
+        },
+        'help_link': {
+            'type': 'string',
+            'minLength': 1,
+        },
+        'handled': {
+            'type': 'boolean',
+        },
+        'data': {
+            'type': 'object',
+        },
+        'meta': {
+            'type': 'object',
+            'default': {},
+            'properties': {
+                'signal': {
+                    'type': 'object',
+                    'properties': {
+                        'number': {'type': 'number'},
+                        'code': {'type': 'number'},
+                        'name': {'type': 'string'},
+                        'code_name': {'type': 'string'},
+                    },
+                    'required': ['number'],
+                },
+                'errno': {
+                    'type': 'object',
+                    'properties': {
+                        'number': {'type': 'number'},
+                        'name': {'type': 'string'},
+                    },
+                    'required': ['number'],
+                },
+                'mach_exception': {
+                    'type': 'object',
+                    'properties': {
+                        'exception': {'type': 'number'},
+                        'code': {'type': 'number'},
+                        'subcode': {'type': 'number'},
+                        'name': {'type': 'string'},
+                    },
+                    'required': ['exception', 'code', 'subcode'],
+                },
+            },
+        }
+    },
+    'required': ['type'],
+}
+
 EXCEPTION_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
@@ -163,7 +222,7 @@ EXCEPTION_INTERFACE_SCHEMA = {
             # 'minLength': 1,
         },
         'module': {'type': 'string'},
-        'mechanism': {'type': 'object'},
+        'mechanism': {},  # see EXCEPTION_MECHANISM_INTERFACE_SCHEMA
         'stacktrace': {
             # To validate stacktraces use STACKTRACE_INTERFACE_SCHEMA
             'type': 'object',
@@ -182,33 +241,19 @@ EXCEPTION_INTERFACE_SCHEMA = {
             },
         },
     },
-    'anyOf': [  # Require at least one of these keys.
-        {'required': ['type']},
-        {'required': ['value']},
-    ],
     # TODO should be false but allowing extra garbage for now
     # for compatibility
     'additionalProperties': True,
 }
 
-DEVICE_INTERFACE_SCHEMA = {
+GEO_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
-        'name': {
-            'type': 'string',
-            'minLength': 1,
-        },
-        'version': {
-            'type': 'string',
-            'minLength': 1,
-        },
-        'build': {},
-        'data': {
-            'type': 'object',
-            'default': {},
-        },
+        'country_code': {'type': 'string'},
+        'city': {'type': 'string'},
+        'region': {'type': 'string'},
     },
-    'required': ['name', 'version'],
+    'additionalProperties': False,
 }
 
 TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out
@@ -220,12 +265,7 @@ TAGS_DICT_SCHEMA = {
             'type': 'object',
             # TODO with draft 6 support, we can just use propertyNames/maxLength
             'patternProperties': {
-                '^[a-zA-Z0-9_\.:-]{1,%d}$' % MAX_TAG_KEY_LENGTH: {
-                    'type': 'string',
-                    'minLength': 1,
-                    'maxLength': MAX_TAG_VALUE_LENGTH,
-                    'pattern': '^[^\n]+\Z',  # \Z because $ matches before trailing newline
-                }
+                '^[a-zA-Z0-9_\.:-]{1,%d}$' % MAX_TAG_KEY_LENGTH: TAG_VALUE,
             },
             'additionalProperties': False,
         },
@@ -329,11 +369,9 @@ EVENT_SCHEMA = {
             # 'maxLength': MAX_CULPRIT_LENGTH,
             'default': lambda: apierror('Invalid value for culprit'),
         },
-        'server_name': {'type': 'string'},
-        'release': {
-            'type': 'string',
-            'maxLength': VERSION_LENGTH,
-        },
+        'transaction': {'type': 'string'},
+        'server_name': TAG_VALUE,
+        'release': TAG_VALUE,
         'dist': {
             'type': 'string',
             'pattern': '^[a-zA-Z0-9_.-]+$',
@@ -349,7 +387,8 @@ EVENT_SCHEMA = {
         },
         'environment': {
             'type': 'string',
-            'maxLength': 64,
+            'maxLength': ENVIRONMENT_NAME_MAX_LENGTH,
+            'pattern': ENVIRONMENT_NAME_PATTERN,
         },
         'modules': {'type': 'object'},
         'extra': {'type': 'object'},
@@ -381,18 +420,243 @@ EVENT_SCHEMA = {
         # Other interfaces
         'sentry.interfaces.User': {'type': 'object'},
         'sentry.interfaces.Http': {},
+        'geo': {},  # GEO_INTERFACE_SCHEMA
 
         # Other reserved keys. (some are added in processing)
         'project': {'type': ['number', 'string']},
         'key_id': {},
         'errors': {'type': 'array'},
         'checksum': {},
-        'site': {},
+        'site': TAG_VALUE,
         'received': {},
+
+        # PII stripping meta data in the same schema as events.
+        '_meta': {'type': 'object'}
     },
     'required': ['platform', 'event_id'],
     'additionalProperties': True,
 }
+
+CSP_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'csp-report': {
+            'type': 'object',
+            'properties': {
+                'effective-directive': {
+                    'type': 'string',
+                    'enum': [
+                        'base-uri',
+                        'child-src',
+                        'connect-src',
+                        'default-src',
+                        'font-src',
+                        'form-action',
+                        'frame-ancestors',
+                        'img-src',
+                        'manifest-src',
+                        'media-src',
+                        'object-src',
+                        'plugin-types',
+                        'referrer',
+                        'script-src',
+                        'style-src',
+                        'upgrade-insecure-requests',
+                        'frame-src',
+                        'worker-src',
+                        # 'sandbox', # Unsupported
+                    ],
+                },
+                'blocked-uri': {
+                    'type': 'string',
+                    'default': 'self',
+                },
+                'document-uri': {
+                    'type': 'string',
+                    'not': {'enum': ['about:blank']}
+                },
+                'original-policy': {'type': 'string'},
+                'referrer': {'type': 'string', 'default': ''},
+                'status-code': {'type': 'number'},
+                'violated-directive': {'type': 'string', 'default': ''},
+                'source-file': {'type': 'string'},
+                'line-number': {'type': 'number'},
+                'column-number': {'type': 'number'},
+                'script-sample': {},
+                'disposition': {'type': 'string'},
+            },
+            'required': ['effective-directive'],
+            # Allow additional keys as browser vendors are still changing CSP
+            # implementations fairly frequently
+            'additionalProperties': True,
+        }
+    },
+    'required': ['csp-report'],
+    'additionalProperties': False,
+}
+
+CSP_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {k.replace('-', '_'): v for k, v in six.iteritems(CSP_SCHEMA['properties']['csp-report']['properties'])},
+    'required': ['effective_directive', 'violated_directive', 'blocked_uri'],
+    'additionalProperties': False,  # Don't allow any other keys.
+}
+
+# RFC7469 Section 3
+HPKP_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'date-time': {'type': 'string', },  # TODO validate (RFC3339)
+        'hostname': {'type': 'string'},
+        'port': {'type': 'number'},
+        'effective-expiration-date': {'type': 'string', },  # TODO validate (RFC3339)
+        'include-subdomains': {'type': 'boolean'},
+        'noted-hostname': {'type': 'string'},
+        'served-certificate-chain': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+        'validated-certificate-chain': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+        'known-pins': {
+            'type': 'array',
+            'items': {'type': 'string'}  # TODO regex this string for 'pin-sha256="ABC123"' syntax
+        },
+    },
+    'required': ['hostname'],  # TODO fill in more required keys
+    'additionalProperties': False,  # Don't allow any other keys.
+}
+
+HPKP_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {k.replace('-', '_'): v for k, v in six.iteritems(HPKP_SCHEMA['properties'])},
+    'required': ['hostname'],  # TODO fill in more required keys
+    'additionalProperties': False,  # Don't allow any other keys.
+}
+
+EXPECT_CT_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'expect-ct-report': {
+            'type': 'object',
+            'properties': {
+                'date-time': {
+                    'type': 'string',
+                    'format': 'date-time',
+                },
+                'hostname': {'type': 'string'},
+                'port': {'type': 'number'},
+                'effective-expiration-date': {
+                    'type': 'string',
+                    'format': 'date-time',
+                },
+                'served-certificate-chain': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                },
+                'validated-certificate-chain': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                },
+                'scts': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'version': {'type': 'number'},
+                            'status': {
+                                'type': 'string',
+                                'enum': ['unknown', 'valid', 'invalid'],
+                            },
+                            'source': {
+                                'type': 'string',
+                                'enum': ['tls-extension', 'ocsp', 'embedded'],
+                            },
+                            'serialized_sct': {'type': 'string'},  # Base64
+                        },
+                        'additionalProperties': False,
+                    },
+                },
+            },
+            'required': ['hostname'],
+            'additionalProperties': False,
+        },
+    },
+    'additionalProperties': False,
+}
+
+EXPECT_CT_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {k.replace('-', '_'): v for k, v in
+                   six.iteritems(EXPECT_CT_SCHEMA['properties']['expect-ct-report']['properties'])},
+    'required': ['hostname'],
+    'additionalProperties': False,
+}
+
+EXPECT_STAPLE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'expect-staple-report': {
+            'type': 'object',
+            'properties': {
+                'date-time': {
+                    'type': 'string',
+                    'format': 'date-time',
+                },
+                'hostname': {'type': 'string'},
+                'port': {'type': 'number'},
+                'effective-expiration-date': {
+                    'type': 'string',
+                    'format': 'date-time',
+                },
+                'response-status': {
+                    'type': 'string',
+                    'enum': [
+                        'MISSING',
+                        'PROVIDED',
+                        'ERROR_RESPONSE',
+                        'BAD_PRODUCED_AT',
+                        'NO_MATCHING_RESPONSE',
+                        'INVALID_DATE',
+                        'PARSE_RESPONSE_ERROR',
+                        'PARSE_RESPONSE_DATA_ERROR',
+                    ],
+                },
+                'ocsp-response': {},
+                'cert-status': {
+                    'type': 'string',
+                    'enum': [
+                        'GOOD',
+                        'REVOKED',
+                        'UNKNOWN',
+                    ],
+                },
+                'served-certificate-chain': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                },
+                'validated-certificate-chain': {
+                    'type': 'array',
+                    'items': {'type': 'string'}
+                },
+            },
+            'required': ['hostname'],
+            'additionalProperties': False,
+        },
+    },
+    'additionalProperties': False,
+}
+
+EXPECT_STAPLE_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {k.replace('-', '_'): v for k, v in
+                   six.iteritems(EXPECT_STAPLE_SCHEMA['properties']['expect-staple-report']['properties'])},
+    'required': ['hostname'],
+    'additionalProperties': False,
+}
+
 """
 Schemas for raw request data.
 
@@ -400,6 +664,10 @@ This is to validate input data at the very first stage of ingestion. It can
 then be transformed into the requisite interface.
 """
 INPUT_SCHEMAS = {
+    'sentry.interfaces.Csp': CSP_SCHEMA,
+    'hpkp': HPKP_SCHEMA,
+    'expectct': EXPECT_CT_SCHEMA,
+    'expectstaple': EXPECT_STAPLE_SCHEMA,
 }
 
 """
@@ -409,7 +677,7 @@ Data returned by interface.to_json() or passed into interface.to_python()
 should conform to these schemas. Currently this is not enforced everywhere yet.
 """
 INTERFACE_SCHEMAS = {
-    # These should match SENTRY_INTERFACES keys
+    # Sentry interfaces
     'sentry.interfaces.Http': HTTP_INTERFACE_SCHEMA,
     'request': HTTP_INTERFACE_SCHEMA,
     'exception': EXCEPTION_INTERFACE_SCHEMA,
@@ -418,10 +686,17 @@ INTERFACE_SCHEMAS = {
     'sentry.interfaces.Stacktrace': STACKTRACE_INTERFACE_SCHEMA,
     'frame': FRAME_INTERFACE_SCHEMA,  # Not listed in SENTRY_INTERFACES
     'logentry': MESSAGE_INTERFACE_SCHEMA,
+    'mechanism': EXCEPTION_MECHANISM_INTERFACE_SCHEMA,
     'sentry.interfaces.Message': MESSAGE_INTERFACE_SCHEMA,
     'template': TEMPLATE_INTERFACE_SCHEMA,
     'sentry.interfaces.Template': TEMPLATE_INTERFACE_SCHEMA,
-    'device': DEVICE_INTERFACE_SCHEMA,
+    'geo': GEO_INTERFACE_SCHEMA,
+
+    # Security reports
+    'sentry.interfaces.Csp': CSP_INTERFACE_SCHEMA,
+    'hpkp': HPKP_INTERFACE_SCHEMA,
+    'expectct': EXPECT_CT_INTERFACE_SCHEMA,
+    'expectstaple': EXPECT_STAPLE_INTERFACE_SCHEMA,
 
     # Not interfaces per se, but looked up as if they were.
     'event': EVENT_SCHEMA,
@@ -433,7 +708,11 @@ INTERFACE_SCHEMAS = {
 def validator_for_interface(name):
     if name not in INTERFACE_SCHEMAS:
         return None
-    return jsonschema.Draft4Validator(INTERFACE_SCHEMAS[name], types={'array': (list, tuple)})
+    return jsonschema.Draft4Validator(
+        INTERFACE_SCHEMAS[name],
+        types={'array': (list, tuple)},
+        format_checker=jsonschema.FormatChecker()
+    )
 
 
 def validate_and_default_interface(data, interface, name=None,
@@ -472,7 +751,6 @@ def validate_and_default_interface(data, interface, name=None,
                     default = schema['properties'][p]['default']
                     data[p] = default() if callable(default) else default
                 else:
-                    # TODO raise as shortcut?
                     errors.append({'type': EventError.MISSING_ATTRIBUTE, 'name': p})
 
     validator_errors = list(validator.iter_errors(data))
@@ -484,7 +762,12 @@ def validate_and_default_interface(data, interface, name=None,
     for key, group in groupby(keyed_errors, lambda e: e.path[0]):
         ve = six.next(group)
         is_max = ve.validator.startswith('max')
-        error_type = EventError.VALUE_TOO_LONG if is_max else EventError.INVALID_DATA
+        if is_max:
+            error_type = EventError.VALUE_TOO_LONG
+        elif key == 'environment':
+            error_type = EventError.INVALID_ENVIRONMENT
+        else:
+            error_type = EventError.INVALID_DATA
         errors.append({'type': error_type, 'name': name or key, 'value': data[key]})
 
         if 'default' in ve.schema:

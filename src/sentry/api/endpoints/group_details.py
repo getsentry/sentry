@@ -8,24 +8,29 @@ from uuid import uuid4
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import tsdb, tagstore
+from sentry import eventstream, tsdb, tagstore
 from sentry.api import client
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize, GroupSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
 from sentry.models import (
     Activity,
     Environment,
     Group,
-    GroupHash,
+    GroupHashTombstone,
+    GroupRelease,
     GroupSeen,
     GroupStatus,
     Release,
+    ReleaseEnvironment,
+    ReleaseProject,
     User,
     UserReport,
 )
 from sentry.plugins import IssueTrackingPlugin2, plugins
+from sentry.signals import issue_deleted
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -178,7 +183,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             group,
             request.user,
             GroupSerializer(
-                environment_id_func=self._get_environment_id_func(
+                environment_func=self._get_environment_func(
                     request, group.project.organization_id)
             )
         )
@@ -208,10 +213,16 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             get_range = lambda model, keys, start, end, **kwargs: \
                 {k: tsdb.make_series(0, start, end) for k in keys}
             tags = []
+            user_reports = UserReport.objects.none()
+
         else:
             get_range = functools.partial(tsdb.get_range, environment_id=environment_id)
             tags = tagstore.get_group_tag_keys(
                 group.project_id, group.id, environment_id, limit=100)
+            if environment_id is None:
+                user_reports = UserReport.objects.filter(group=group)
+            else:
+                user_reports = UserReport.objects.filter(group=group, environment_id=environment_id)
 
         now = timezone.now()
         hourly_stats = tsdb.rollup(
@@ -248,7 +259,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 'pluginActions': action_list,
                 'pluginIssues': self._get_available_issue_plugins(request, group),
                 'pluginContexts': self._get_context_plugins(request, group),
-                'userReportCount': UserReport.objects.filter(group=group).count(),
+                'userReportCount': user_reports.count(),
                 'tags': sorted(serialize(tags, request.user), key=lambda x: x['name']),
                 'stats': {
                     '24h': hourly_stats,
@@ -256,6 +267,38 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 }
             }
         )
+
+        # the current release is the 'latest seen' release within the
+        # environment even if it hasnt affected this issue
+
+        try:
+            environment = self._get_environment_from_request(
+                request,
+                group.project.organization_id,
+            )
+        except Environment.DoesNotExist:
+            environment = None
+
+        if environment is not None:
+            try:
+                current_release = GroupRelease.objects.filter(
+                    group_id=group.id,
+                    environment=environment.name,
+                    release_id=ReleaseEnvironment.objects.filter(
+                        release_id__in=ReleaseProject.objects.filter(project_id=group.project_id
+                                                                     ).values_list('release_id', flat=True),
+                        organization_id=group.project.organization_id,
+                        environment_id=environment.id,
+                    ).order_by('-first_seen').values_list('release_id', flat=True)[:1],
+                )[0]
+            except IndexError:
+                current_release = None
+
+            data.update({
+                'currentRelease': serialize(
+                    current_release, request.user, GroupReleaseWithStatsSerializer()
+                )
+            })
 
         return Response(data)
 
@@ -272,8 +315,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :param string status: the new status for the issue.  Valid values
                               are ``"resolved"``, ``resolvedInNextRelease``,
                               ``"unresolved"``, and ``"ignored"``.
-        :param string assignedTo: the username of the user that should be
-                               assigned to this issue.
+        :param string assignedTo: the actor id (or username) of the user or team that should be
+                                  assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
@@ -289,17 +332,20 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         # TODO(dcramer): we need to implement assignedTo in the bulk mutation
         # endpoint
-        response = client.put(
-            path='/projects/{}/{}/issues/'.format(
-                group.project.organization.slug,
-                group.project.slug,
-            ),
-            params={
-                'id': group.id,
-            },
-            data=request.DATA,
-            request=request,
-        )
+        try:
+            response = client.put(
+                path=u'/projects/{}/{}/issues/'.format(
+                    group.project.organization.slug,
+                    group.project.slug,
+                ),
+                params={
+                    'id': group.id,
+                },
+                data=request.DATA,
+                request=request,
+            )
+        except client.ApiError as e:
+            return Response(e.body, status=e.status_code)
 
         # if action was discard, there isn't a group to serialize anymore
         if discard:
@@ -317,7 +363,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             group,
             request.user,
             GroupSerializer(
-                environment_id_func=self._get_environment_id_func(
+                environment_func=self._get_environment_func(
                     request, group.project.organization_id)
             )
         )
@@ -335,7 +381,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string issue_id: the ID of the issue to delete.
         :auth: required
         """
-        from sentry.tasks.deletion import delete_group
+        from sentry.tasks.deletion import delete_groups
 
         updated = Group.objects.filter(
             id=group.id,
@@ -344,15 +390,22 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             GroupStatus.DELETION_IN_PROGRESS,
         ]).update(status=GroupStatus.PENDING_DELETION)
         if updated:
-            GroupHash.objects.filter(group=group).delete()
-
-            transaction_id = uuid4().hex
             project = group.project
 
-            delete_group.apply_async(
+            eventstream_state = eventstream.start_delete_groups(group.project_id, [group.id])
+
+            GroupHashTombstone.tombstone_groups(
+                project_id=project.id,
+                group_ids=[group.id],
+            )
+
+            transaction_id = uuid4().hex
+
+            delete_groups.apply_async(
                 kwargs={
-                    'object_id': group.id,
+                    'object_ids': [group.id],
                     'transaction_id': transaction_id,
+                    'eventstream_state': eventstream_state,
                 },
                 countdown=3600,
             )
@@ -372,5 +425,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     'model': type(group).__name__,
                 }
             )
+
+            issue_deleted.send_robust(
+                group=group,
+                user=request.user,
+                delete_type='delete',
+                sender=self.__class__)
 
         return Response(status=202)

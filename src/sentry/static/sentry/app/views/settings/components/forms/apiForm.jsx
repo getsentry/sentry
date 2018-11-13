@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Client} from '../../../../api';
-import IndicatorStore from '../../../../stores/indicatorStore';
-import Form from './form';
-import {t} from '../../../../locale';
+import {Client} from 'app/api';
+import IndicatorStore from 'app/stores/indicatorStore';
+import Form from 'app/views/settings/components/forms/form';
+import {t} from 'app/locale';
 
 export default class ApiForm extends React.Component {
   static propTypes = {
@@ -29,13 +29,13 @@ export default class ApiForm extends React.Component {
     this.api.request(this.props.apiEndpoint, {
       method: this.props.apiMethod,
       data,
-      success: result => {
+      success: (...args) => {
         IndicatorStore.remove(loadingIndicator);
-        onSuccess(result);
+        onSuccess(...args);
       },
-      error: error => {
+      error: (...args) => {
         IndicatorStore.remove(loadingIndicator);
-        onError(error);
+        onError(...args);
       },
     });
   };

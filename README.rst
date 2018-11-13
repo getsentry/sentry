@@ -26,16 +26,15 @@ language, in any application.
 
 Official Sentry SDKs
 ~~~~~~~~~~~~~~~~~~~~
-* `JavaScript <https://github.com/getsentry/raven-js>`_
+* `JavaScript <https://github.com/getsentry/sentry-javascript>`_
 * `React-Native <https://github.com/getsentry/react-native-sentry>`_
-* `Python <https://github.com/getsentry/raven-python>`_
+* `Python <https://github.com/getsentry/sentry-python>`_
 * `Ruby <https://github.com/getsentry/raven-ruby>`_
-* `Node <https://github.com/getsentry/raven-node>`_
 * `PHP <https://github.com/getsentry/sentry-php>`_
 * `Go <https://github.com/getsentry/raven-go>`_
 * `Java <https://github.com/getsentry/sentry-java>`_
 * `Objective-C/Swift <https://github.com/getsentry/sentry-cocoa>`_
-* `C# <https://github.com/getsentry/raven-csharp>`_
+* `C# <https://github.com/getsentry/sentry-dotnet>`_
 * `Perl <https://github.com/getsentry/perl-raven>`_
 * `Elixir <https://github.com/getsentry/sentry-elixir>`_
 * `Laravel <https://github.com/getsentry/sentry-laravel>`_

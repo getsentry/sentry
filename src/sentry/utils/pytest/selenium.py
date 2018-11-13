@@ -6,7 +6,6 @@ from __future__ import absolute_import
 import logging
 import os
 import pytest
-import signal
 
 from datetime import datetime
 from django.conf import settings
@@ -14,6 +13,7 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.common.action_chains import ActionChains
 from six.moves.urllib.parse import quote, urlparse
 
 # if we're not running in a PR, we kill the PERCY_TOKEN because its a push
@@ -41,7 +41,7 @@ class Browser(object):
         """
         Return the absolute URI for a given route in Sentry.
         """
-        return '{}/{}'.format(self.live_server_url, path.lstrip('/').format(*args, **kwargs))
+        return u'{}/{}'.format(self.live_server_url, path.lstrip('/').format(*args, **kwargs))
 
     def get(self, path, *args, **kwargs):
         self.driver.get(self.route(path), *args, **kwargs)
@@ -75,6 +75,48 @@ class Browser(object):
 
     def click(self, selector):
         self.element(selector).click()
+
+    def click_when_visible(self, selector=None, timeout=3):
+        """
+        Waits until ``selector`` is available to be clicked before attempting to click
+        """
+        if selector:
+            self.wait_until_clickable(selector, timeout)
+            self.click(selector)
+        else:
+            raise ValueError
+
+        return self
+
+    def move_to(self, selector=None):
+        """
+        Mouse move to ``selector``
+        """
+        if selector:
+            actions = ActionChains(self.driver)
+            actions.move_to_element(self.element(selector)).perform()
+        else:
+            raise ValueError
+
+        return self
+
+    def wait_until_clickable(self, selector=None, timeout=3):
+        """
+        Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
+        is hit, whichever happens first.
+        """
+        from selenium.webdriver.common.by import By
+
+        if selector:
+            condition = expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector))
+        else:
+            raise ValueError
+
+        WebDriverWait(
+            self.driver, timeout
+        ).until(condition)
+
+        return self
 
     def wait_until(self, selector=None, title=None, timeout=3):
         """
@@ -140,13 +182,16 @@ class Browser(object):
         self.percy.snapshot(name=name)
         return self
 
-    def save_cookie(self, name, value, path='/', expires='Tue, 20 Jun 2025 19:07:44 GMT'):
+    def save_cookie(self, name, value, domain=None, path='/',
+                    expires='Tue, 20 Jun 2025 19:07:44 GMT', max_age=None, secure=None):
         cookie = {
             'name': name,
             'value': value,
             'expires': expires,
             'path': path,
-            'domain': self.domain,
+            'domain': domain or self.domain,
+            'max-age': max_age,
+            'secure': secure,
         }
 
         # XXX(dcramer): the cookie store must be initialized via a URL
@@ -159,12 +204,12 @@ class Browser(object):
         # http://stackoverflow.com/questions/37103621/adding-cookies-working-with-firefox-webdriver-but-not-in-phantomjs
 
         # TODO(dcramer): this should be escaped, but idgaf
-        logger.info('selenium.set-cookie.{}'.format(name), extra={
+        logger.info(u'selenium.set-cookie.{}'.format(name), extra={
             'value': value,
         })
         if isinstance(self.driver, webdriver.PhantomJS):
             self.driver.execute_script(
-                "document.cookie = '{name}={value}; path={path}; domain={domain}; expires={expires}';\n".format(
+                u"document.cookie = '{name}={value}; path={path}; domain={domain}; expires={expires}'; max-age={max_age}\n".format(
                     **cookie)
             )
         else:
@@ -224,7 +269,7 @@ def browser(request, percy, live_server):
         options = webdriver.ChromeOptions()
         options.add_argument('headless')
         options.add_argument('disable-gpu')
-        options.add_argument('window-size={}'.format(window_size))
+        options.add_argument(u'window-size={}'.format(window_size))
         chrome_path = request.config.getoption('chrome_path')
         if chrome_path:
             options.binary_location = chrome_path
@@ -258,13 +303,9 @@ def browser(request, percy, live_server):
     def fin():
         # Teardown Selenium.
         try:
-            driver.close()
+            driver.quit()
         except Exception:
             pass
-        # TODO: remove this when fixed in: https://github.com/seleniumhq/selenium/issues/767
-        if hasattr(driver, 'service'):
-            driver.service.process.send_signal(signal.SIGTERM)
-        driver.quit()
 
     request.node._driver = driver
     request.addfinalizer(fin)
@@ -309,20 +350,20 @@ def _gather_url(item, report, driver, summary, extra):
     try:
         url = driver.current_url
     except Exception as e:
-        summary.append('WARNING: Failed to gather URL: {0}'.format(e))
+        summary.append(u'WARNING: Failed to gather URL: {0}'.format(e))
         return
     pytest_html = item.config.pluginmanager.getplugin('html')
     if pytest_html is not None:
         # add url to the html report
         extra.append(pytest_html.extras.url(url))
-    summary.append('URL: {0}'.format(url))
+    summary.append(u'URL: {0}'.format(url))
 
 
 def _gather_screenshot(item, report, driver, summary, extra):
     try:
         screenshot = driver.get_screenshot_as_base64()
     except Exception as e:
-        summary.append('WARNING: Failed to gather screenshot: {0}'.format(e))
+        summary.append(u'WARNING: Failed to gather screenshot: {0}'.format(e))
         return
     pytest_html = item.config.pluginmanager.getplugin('html')
     if pytest_html is not None:
@@ -334,7 +375,7 @@ def _gather_html(item, report, driver, summary, extra):
     try:
         html = driver.page_source.encode('utf-8')
     except Exception as e:
-        summary.append('WARNING: Failed to gather HTML: {0}'.format(e))
+        summary.append(u'WARNING: Failed to gather HTML: {0}'.format(e))
         return
     pytest_html = item.config.pluginmanager.getplugin('html')
     if pytest_html is not None:
@@ -347,13 +388,13 @@ def _gather_logs(item, report, driver, summary, extra):
         types = driver.log_types
     except Exception as e:
         # note that some drivers may not implement log types
-        summary.append('WARNING: Failed to gather log types: {0}'.format(e))
+        summary.append(u'WARNING: Failed to gather log types: {0}'.format(e))
         return
     for name in types:
         try:
             log = driver.get_log(name)
         except Exception as e:
-            summary.append('WARNING: Failed to gather {0} log: {1}'.format(name, e))
+            summary.append(u'WARNING: Failed to gather {0} log: {1}'.format(name, e))
             return
         pytest_html = item.config.pluginmanager.getplugin('html')
         if pytest_html is not None:

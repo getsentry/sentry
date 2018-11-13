@@ -3,7 +3,7 @@ import {shallow} from 'enzyme';
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
-import ProjectReleases from 'app/views/projectReleases';
+import {ProjectReleases} from 'app/views/projectReleases';
 import SearchBar from 'app/views/stream/searchBar';
 import Pagination from 'app/components/pagination';
 
@@ -19,7 +19,7 @@ describe('ProjectReleases', function() {
 
     sandbox.stub(Client.prototype, 'request');
     stubReactComponents(sandbox, [SearchBar, Pagination]);
-    sandbox.stub(browserHistory, 'pushState');
+    sandbox.stub(browserHistory, 'push');
 
     props = {
       setProjectNavSection: function() {},
@@ -35,8 +35,10 @@ describe('ProjectReleases', function() {
 
   describe('fetchData()', function() {
     it('should call releases endpoint', function() {
-      expect(Client.prototype.request.args[0][0]).toEqual(
-        '/projects/123/456/releases/?per_page=20&query=derp'
+      expect(Client.prototype.request.args[0][1]).toEqual(
+        expect.objectContaining({
+          query: {per_page: 20, query: 'derp'},
+        })
       );
     });
   });
@@ -51,11 +53,9 @@ describe('ProjectReleases', function() {
     it('should change query string with new search parameter', function() {
       projectReleases.instance().onSearch('searchquery');
 
-      expect(browserHistory.pushState.calledOnce).toBeTruthy();
-      expect(browserHistory.pushState.args[0]).toEqual([
-        null,
-        '/123/456/releases/',
-        {query: 'searchquery'},
+      expect(browserHistory.push.calledOnce).toBeTruthy();
+      expect(browserHistory.push.args[0]).toEqual([
+        {pathname: '/123/456/releases/', query: {query: 'searchquery'}},
       ]);
     });
   });

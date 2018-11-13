@@ -2,7 +2,7 @@ import jQuery from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import FormField from './formField';
+import FormField from 'app/components/forms/formField';
 
 export default class InputField extends FormField {
   static propTypes = {
@@ -44,6 +44,7 @@ export default class InputField extends FormField {
         onChange={this.onChange}
         disabled={this.props.disabled}
         ref="input"
+        name={this.props.name}
         required={this.props.required}
         value={this.state.value}
         style={this.props.inputStyle}

@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 
-import {Client} from '../../api';
-import IndicatorStore from '../../stores/indicatorStore';
-import Form from './form';
-import FormState from './state';
-import {t} from '../../locale';
+import {Client} from 'app/api';
+import IndicatorStore from 'app/stores/indicatorStore';
+import Form from 'app/components/forms/form';
+import FormState from 'app/components/forms/state';
+import {t} from 'app/locale';
 
 export default class ApiForm extends Form {
   static propTypes = {
@@ -12,6 +12,14 @@ export default class ApiForm extends Form {
     onSubmit: PropTypes.func,
     apiMethod: PropTypes.string.isRequired,
     apiEndpoint: PropTypes.string.isRequired,
+    submitLoadingMessage: PropTypes.string,
+    submitErrorMessage: PropTypes.string,
+  };
+
+  static defaultProps = {
+    ...Form.defaultProps,
+    submitErrorMessage: t('There was an error saving your changes.'),
+    submitLoadingMessage: t('Saving changes..'),
   };
 
   constructor(props, context) {
@@ -38,19 +46,18 @@ export default class ApiForm extends Form {
         state: FormState.SAVING,
       },
       () => {
-        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+        let loadingIndicator = IndicatorStore.add(this.props.submitLoadingMessage);
         this.api.request(this.props.apiEndpoint, {
           method: this.props.apiMethod,
           data,
           success: result => {
+            IndicatorStore.remove(loadingIndicator);
             this.onSubmitSuccess(result);
           },
           error: error => {
-            IndicatorStore.add(t('There was an error saving your changes.'), 'error');
-            this.onSubmitError(error);
-          },
-          complete: () => {
             IndicatorStore.remove(loadingIndicator);
+            IndicatorStore.add(this.props.submitErrorMessage, 'error');
+            this.onSubmitError(error);
           },
         });
       }

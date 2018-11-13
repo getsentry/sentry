@@ -2,25 +2,23 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import ContextData from '../../contextData';
-import {deviceNameMapper} from '../../../utils';
+import DeviceName from 'app/components/deviceName';
+import ContextData from 'app/components/contextData';
 
-const KeyValueList = React.createClass({
-  propTypes: {
+class KeyValueList extends React.Component {
+  static propTypes = {
     data: PropTypes.any.isRequired,
     isContextData: PropTypes.bool,
     isSorted: PropTypes.bool,
     onClick: PropTypes.func,
     raw: PropTypes.bool,
-  },
+  };
 
-  getDefaultProps() {
-    return {
-      isContextData: false,
-      isSorted: true,
-      raw: false,
-    };
-  },
+  static defaultProps = {
+    isContextData: false,
+    isSorted: true,
+    raw: false,
+  };
 
   render() {
     // TODO(dcramer): use non-string keys as reserved words ("unauthorized")
@@ -33,7 +31,7 @@ const KeyValueList = React.createClass({
       data = Object.keys(data).map(key => [key, data[key]]);
     }
 
-    data = this.props.isSorted ? _.sortBy(data, [(key, value) => key]) : data;
+    data = this.props.isSorted ? _.sortBy(data, [([key]) => key]) : data;
     let raw = this.props.raw;
     const props = this.props.onClick ? {onClick: this.props.onClick} : {};
     return (
@@ -54,7 +52,9 @@ const KeyValueList = React.createClass({
                 <tr key={key}>
                   <td className="key">{key}</td>
                   <td className="value">
-                    <pre>{deviceNameMapper('' + value || ' ')}</pre>
+                    <pre>
+                      <DeviceName>{'' + value || ' '}</DeviceName>
+                    </pre>
                   </td>
                 </tr>,
               ];
@@ -63,7 +63,9 @@ const KeyValueList = React.createClass({
         </tbody>
       </table>
     );
-  },
-});
+  }
+}
+
+KeyValueList.displayName = 'KeyValueList';
 
 export default KeyValueList;

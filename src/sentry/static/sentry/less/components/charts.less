@@ -7,7 +7,8 @@
     display: none;
   }
 
-  a {
+  a,
+  g {
     position: relative;
     float: left;
     height: 20px;
@@ -15,8 +16,10 @@
     cursor: default;
 
     &:hover {
-      > span {
+      > span,
+      > .barchart-rect {
         background: @purple;
+        fill: @purple;
         border-color: transparent;
       }
     }
@@ -27,50 +30,17 @@
       bottom: 0;
       left: 1px;
       right: 1px;
-      min-width: 1px;
       height: 0;
       overflow: hidden;
       text-indent: -9999px;
       text-align: left;
       min-height: 1px;
+    }
 
+    > span,
+    > .barchart-rect {
       background: @gray-lighter;
-    }
-  }
-
-  .chart-marker {
-    display: block;
-    position: relative;
-    float: left;
-    width: 0;
-    bottom: -5px;
-    left: -5px;
-
-    &:hover {
-      > span {
-        background-color: gray;
-        border-color: #fff;
-      }
-    }
-
-    &.first-seen {
-      left: -13px;
-      > span {
-        background: @pink;
-      }
-    }
-
-    &.last-seen > span {
-      background: @green;
-    }
-
-    > span {
-      z-index: 2;
-      position: absolute;
-      border: 2px solid #fff;
-      .square(10px);
-      background: gray;
-      border-radius: 8px;
+      fill: @gray-lighter;
     }
   }
 }

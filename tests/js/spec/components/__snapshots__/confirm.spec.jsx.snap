@@ -1,10 +1,12 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Confirm renders 1`] = `
-<button
-  onClick={[Function]}
->
-  Confirm?
+<Fragment>
+  <button
+    onClick={[Function]}
+  >
+    Confirm?
+  </button>
   <Modal
     animation={false}
     autoFocus={true}
@@ -12,15 +14,17 @@ exports[`Confirm renders 1`] = `
     bsClass="modal"
     dialogComponentClass={[Function]}
     enforceFocus={true}
-    key="confirm"
     keyboard={true}
     manager={
       ModalManager {
+        "add": [Function],
         "containers": Array [],
         "data": Array [],
         "handleContainerOverflow": true,
         "hideSiblingNodes": true,
+        "isTopModal": [Function],
         "modals": Array [],
+        "remove": [Function],
       }
     }
     onHide={[Function]}
@@ -52,6 +56,8 @@ exports[`Confirm renders 1`] = `
         Cancel
       </Button>
       <Button
+        autoFocus={true}
+        data-test-id="confirm-modal"
         disabled={false}
         onClick={[Function]}
         priority="primary"
@@ -60,5 +66,5 @@ exports[`Confirm renders 1`] = `
       </Button>
     </div>
   </Modal>
-</button>
+</Fragment>
 `;

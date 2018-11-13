@@ -9,20 +9,24 @@ sentry.testutils.cases
 from __future__ import absolute_import
 
 __all__ = (
-    'TestCase', 'TransactionTestCase', 'APITestCase', 'AuthProviderTestCase', 'RuleTestCase',
+    'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase',
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase',
 )
 
 import base64
+import calendar
 import os
 import os.path
 import pytest
+import requests
 import six
 import types
+import logging
+
+from sentry_sdk import Hub
 
 from click.testing import CliRunner
-from contextlib import contextmanager
 from datetime import datetime
 from django.conf import settings
 from django.contrib.auth import login
@@ -30,11 +34,13 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
+from django.db import connections, DEFAULT_DB_ALIAS
 from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from django.utils.importlib import import_module
-from exam import before, fixture, Exam
+from exam import before, after, fixture, Exam
 from mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -43,17 +49,23 @@ from six.moves.urllib.parse import urlencode
 from sentry import auth
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.superuser import (
-    Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME
+    Superuser, COOKIE_SALT as SU_COOKIE_SALT, COOKIE_NAME as SU_COOKIE_NAME, ORG_ID as SU_ORG_ID,
+    COOKIE_SECURE as SU_COOKIE_SECURE, COOKIE_DOMAIN as SU_COOKIE_DOMAIN, COOKIE_PATH as SU_COOKIE_PATH
 )
 from sentry.constants import MODULE_ROOT
-from sentry.models import GroupMeta, ProjectOption, DeletedOrganization
+from sentry.models import (
+    GroupEnvironment, GroupHash, GroupMeta, ProjectOption, DeletedOrganization,
+    Environment, GroupStatus, Organization, TotpInterface, UserReport,
+)
 from sentry.plugins import plugins
 from sentry.rules import EventState
 from sentry.utils import json
 from sentry.utils.auth import SSO_SESSION_KEY
 
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner, override_options
+from .helpers import (
+    AuthProvider, Feature, get_auth_header, TaskRunner, override_options, parse_queries
+)
 
 DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 
@@ -65,6 +77,10 @@ class BaseTestCase(Fixtures, Exam):
         resp = getattr(self.client, method.lower())(path)
         assert resp.status_code == 302
         assert resp['Location'].startswith('http://testserver' + reverse('sentry-login'))
+
+    @after
+    def teardown_internal_sdk(self):
+        Hub.main.bind_client(None)
 
     @before
     def setup_dummy_auth_provider(self):
@@ -99,18 +115,22 @@ class BaseTestCase(Fixtures, Exam):
 
     def save_session(self):
         self.session.save()
+        self.save_cookie(
+            name=settings.SESSION_COOKIE_NAME,
+            value=self.session.session_key,
+            max_age=None,
+            path='/',
+            domain=settings.SESSION_COOKIE_DOMAIN,
+            secure=settings.SESSION_COOKIE_SECURE or None,
+            expires=None
+        )
 
-        cookie_data = {
-            'max-age': None,
-            'path': '/',
-            'domain': settings.SESSION_COOKIE_DOMAIN,
-            'secure': settings.SESSION_COOKIE_SECURE or None,
-            'expires': None,
-        }
-
-        session_cookie = settings.SESSION_COOKIE_NAME
-        self.client.cookies[session_cookie] = self.session.session_key
-        self.client.cookies[session_cookie].update(cookie_data)
+    def save_cookie(self, name, value, **params):
+        self.client.cookies[name] = value
+        self.client.cookies[name].update({
+            k.replace('_', '-'): v
+            for k, v in six.iteritems(params)
+        })
 
     def make_request(self, user=None, auth=None, method=None):
         request = HttpRequest()
@@ -119,24 +139,42 @@ class BaseTestCase(Fixtures, Exam):
         request.META['REMOTE_ADDR'] = '127.0.0.1'
         request.META['SERVER_NAME'] = 'testserver'
         request.META['SERVER_PORT'] = 80
+        request.REQUEST = {}
+
         # order matters here, session -> user -> other things
         request.session = self.session
         request.auth = auth
         request.user = user or AnonymousUser()
         request.superuser = Superuser(request)
         request.is_superuser = lambda: request.superuser.is_active
+        request.successful_authenticator = None
         return request
 
-    # TODO(dcramer): we want to make the default behavior be ``superuser=False``
-    # but for compatibility reasons we need to update other projects first
-    def login_as(self, user, organization_id=None, superuser=False):
+    # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
+    # a lot of tests changing
+    def login_as(self, user, organization_id=None, organization_ids=None,
+                 superuser=False, superuser_sso=True):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
         login(request, user)
         request.user = user
+
+        if organization_ids is None:
+            organization_ids = set()
+        else:
+            organization_ids = set(organization_ids)
+        if superuser and superuser_sso is not False:
+            if SU_ORG_ID:
+                organization_ids.add(SU_ORG_ID)
         if organization_id:
-            request.session[SSO_SESSION_KEY] = six.text_type(organization_id)
+            organization_ids.add(organization_id)
+
+        # TODO(dcramer): ideally this would get abstracted
+        if organization_ids:
+            request.session[SSO_SESSION_KEY] = ','.join(
+                six.text_type(o) for o in organization_ids)
+
         # logging in implicitly binds superuser, but for test cases we
         # want that action to be explicit to avoid accidentally testing
         # superuser-only code
@@ -147,9 +185,17 @@ class BaseTestCase(Fixtures, Exam):
             request.superuser.set_logged_in(request.user)
             # XXX(dcramer): awful hack to ensure future attempts to instantiate
             # the Superuser object are successful
-            self.client.cookies[SU_COOKIE_NAME] = signing.get_cookie_signer(
-                salt=SU_COOKIE_NAME + SU_COOKIE_SALT,
-            ).sign(request.superuser.token)
+            self.save_cookie(
+                name=SU_COOKIE_NAME,
+                value=signing.get_cookie_signer(
+                    salt=SU_COOKIE_NAME + SU_COOKIE_SALT,
+                ).sign(request.superuser.token),
+                max_age=None,
+                path=SU_COOKIE_PATH,
+                domain=SU_COOKIE_DOMAIN,
+                secure=SU_COOKIE_SECURE or None,
+                expires=None,
+            )
         # Save the session values.
         self.save_session()
 
@@ -217,6 +263,19 @@ class BaseTestCase(Fixtures, Exam):
                 **extra
             )
 
+    def _postMinidumpWithHeader(self, upload_file_minidump, data=None, key=None, **extra):
+        data = dict(data or {})
+        data['upload_file_minidump'] = upload_file_minidump
+        path = reverse('sentry-api-minidump', kwargs={'project_id': self.project.id})
+        path += '?sentry_key=%s' % self.projectkey.public_key
+        with self.tasks():
+            return self.client.post(
+                path,
+                data=data,
+                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
+                **extra
+            )
+
     def _getWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
         if key is None:
             key = self.projectkey.public_key
@@ -269,19 +328,6 @@ class BaseTestCase(Fixtures, Exam):
         """
         return override_options(options)
 
-    @contextmanager
-    def dsn(self, dsn):
-        """
-        A context manager that temporarily sets the internal client's DSN
-        """
-        from raven.contrib.django.models import client
-
-        try:
-            client.set_dsn(dsn)
-            yield
-        finally:
-            client.set_dsn(None)
-
     _postWithSignature = _postWithHeader
     _postWithNewSignature = _postWithHeader
 
@@ -302,6 +348,62 @@ class BaseTestCase(Fixtures, Exam):
             microsecond=0) == original_object.date_added.replace(microsecond=0)
         assert deleted_log.date_deleted >= deleted_log.date_created
 
+    def assertWriteQueries(self, queries, debug=False, *args, **kwargs):
+        func = kwargs.pop('func', None)
+        using = kwargs.pop("using", DEFAULT_DB_ALIAS)
+        conn = connections[using]
+
+        context = _AssertQueriesContext(self, queries, debug, conn)
+        if func is None:
+            return context
+
+        with context:
+            func(*args, **kwargs)
+
+
+class _AssertQueriesContext(CaptureQueriesContext):
+    def __init__(self, test_case, queries, debug, connection):
+        self.test_case = test_case
+        self.queries = queries
+        self.debug = debug
+        super(_AssertQueriesContext, self).__init__(connection)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        super(_AssertQueriesContext, self).__exit__(exc_type, exc_value, traceback)
+        if exc_type is not None:
+            return
+
+        parsed_queries = parse_queries(self.captured_queries)
+
+        if (self.debug):
+            import pprint
+            pprint.pprint("====================== Raw Queries ======================")
+            pprint.pprint(self.captured_queries)
+            pprint.pprint("====================== Table writes ======================")
+            pprint.pprint(parsed_queries)
+
+        for table, num in parsed_queries.items():
+            expected = self.queries.get(table, 0)
+            if expected == 0:
+                import pprint
+                pprint.pprint("WARNING: no query against %s emitted, add debug=True to see all the queries" % (
+                    table
+                ))
+            else:
+                self.test_case.assertTrue(
+                    num == expected, "%d write queries expected on `%s`, got %d, add debug=True to see all the queries" % (
+                        expected, table, num
+                    )
+                )
+
+        for table, num in self.queries.items():
+            executed = parsed_queries.get(table, None)
+            self.test_case.assertFalse(
+                executed is None, "no query against %s emitted, add debug=True to see all the queries" % (
+                    table
+                )
+            )
+
 
 class TestCase(BaseTestCase, TestCase):
     pass
@@ -313,6 +415,120 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
     pass
+
+
+class TwoFactorAPITestCase(APITestCase):
+    @fixture
+    def path_2fa(self):
+        return reverse('sentry-account-settings-security')
+
+    def enable_org_2fa(self, organization):
+        organization.flags.require_2fa = True
+        organization.save()
+
+    def api_enable_org_2fa(self, organization, user):
+        self.login_as(user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': organization.slug
+        })
+        return self.client.put(url, data={'require2FA': True})
+
+    def api_disable_org_2fa(self, organization, user):
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': organization.slug,
+        })
+        return self.client.put(url, data={'require2FA': False})
+
+    def assert_can_enable_org_2fa(self, organization, user, status_code=200):
+        self.__helper_enable_organization_2fa(organization, user, status_code)
+
+    def assert_cannot_enable_org_2fa(self, organization, user, status_code):
+        self.__helper_enable_organization_2fa(organization, user, status_code)
+
+    def __helper_enable_organization_2fa(self, organization, user, status_code):
+        response = self.api_enable_org_2fa(organization, user)
+        assert response.status_code == status_code, response.content
+        organization = Organization.objects.get(id=organization.id)
+
+        if status_code >= 200 and status_code < 300:
+            assert organization.flags.require_2fa
+        else:
+            assert not organization.flags.require_2fa
+
+    def add_2fa_users_to_org(self, organization, num_of_users=10, num_with_2fa=5):
+        non_compliant_members = []
+        for num in range(0, num_of_users):
+            user = self.create_user('foo_%s@example.com' % num)
+            self.create_member(organization=organization, user=user)
+            if num_with_2fa:
+                TotpInterface().enroll(user)
+                num_with_2fa -= 1
+            else:
+                non_compliant_members.append(user.email)
+        return non_compliant_members
+
+
+class UserReportEnvironmentTestCase(APITestCase):
+    def setUp(self):
+
+        self.project = self.create_project()
+        self.env1 = self.create_environment(self.project, 'production')
+        self.env2 = self.create_environment(self.project, 'staging')
+
+        self.group = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+
+        self.env1_events = self.create_events_for_environment(self.group, self.env1, 5)
+        self.env2_events = self.create_events_for_environment(self.group, self.env2, 5)
+
+        self.env1_userreports = self.create_user_report_for_events(
+            self.project, self.group, self.env1_events, self.env1)
+        self.env2_userreports = self.create_user_report_for_events(
+            self.project, self.group, self.env2_events, self.env2)
+
+    def make_event(self, **kwargs):
+        result = {
+            'event_id': 'a' * 32,
+            'message': 'foo',
+            'timestamp': 1403007314.570599,
+            'level': logging.ERROR,
+            'logger': 'default',
+            'tags': [],
+        }
+        result.update(kwargs)
+        return result
+
+    def create_environment(self, project, name):
+        env = Environment.objects.create(
+            project_id=project.id,
+            organization_id=project.organization_id,
+            name=name,
+        )
+        env.add_project(project)
+        return env
+
+    def create_events_for_environment(self, group, environment, num_events):
+        return [self.create_event(group=group, tags={
+            'environment': environment.name}) for __i in range(num_events)]
+
+    def create_user_report_for_events(self, project, group, events, environment):
+        reports = []
+        for i, event in enumerate(events):
+            reports.append(UserReport.objects.create(
+                group=group,
+                project=project,
+                event_id=event.event_id,
+                name='foo%d' % i,
+                email='bar%d@example.com' % i,
+                comments='It Broke!!!',
+                environment=environment,
+            ))
+        return reports
+
+    def assert_same_userreports(self, response_data, userreports):
+        assert sorted(int(r.get('id')) for r in response_data) == sorted(
+            r.id for r in userreports)
+        assert sorted(r.get('eventID') for r in response_data) == sorted(
+            r.event_id for r in userreports)
 
 
 class AuthProviderTestCase(TestCase):
@@ -333,16 +549,16 @@ class RuleTestCase(TestCase):
     def get_event(self):
         return self.event
 
-    def get_rule(self, data=None):
-        return self.rule_cls(
-            project=self.project,
-            data=data or {},
-        )
+    def get_rule(self, **kwargs):
+        kwargs.setdefault('project', self.project)
+        kwargs.setdefault('data', {})
+        return self.rule_cls(**kwargs)
 
     def get_state(self, **kwargs):
         kwargs.setdefault('is_new', True)
         kwargs.setdefault('is_regression', True)
-        kwargs.setdefault('is_sample', True)
+        kwargs.setdefault('is_new_group_environment', True)
+        kwargs.setdefault('has_reappeared', True)
         return EventState(**kwargs)
 
     def assertPasses(self, rule, event=None, **kwargs):
@@ -532,9 +748,16 @@ class AcceptanceTestCase(TransactionTestCase):
         self.addCleanup(patcher.stop)
         super(AcceptanceTestCase, self).setUp()
 
+    def save_cookie(self, name, value, **params):
+        self.browser.save_cookie(
+            name=name,
+            value=value,
+            **params
+        )
+
     def save_session(self):
         self.session.save()
-        self.browser.save_cookie(
+        self.save_cookie(
             name=settings.SESSION_COOKIE_NAME,
             value=self.session.session_key,
         )
@@ -544,26 +767,116 @@ class IntegrationTestCase(TestCase):
     provider = None
 
     def setUp(self):
-        from sentry.integrations.helper import PipelineHelper
+        from sentry.integrations.pipeline import IntegrationPipeline
 
         super(IntegrationTestCase, self).setUp()
 
         self.organization = self.create_organization(name='foo', owner=self.user)
         self.login_as(self.user)
-        self.path = '/extensions/{}/setup/'.format(self.provider.id)
         self.request = self.make_request(self.user)
         # XXX(dcramer): this is a bit of a hack, but it helps contain this test
-        self.helper = PipelineHelper.initialize(
+        self.pipeline = IntegrationPipeline(
             request=self.request,
             organization=self.organization,
-            provider_id=self.provider.id,
-            dialog=True,
+            provider_key=self.provider.key,
         )
-        self.save_session()
 
-        feature = Feature('organizations:integrations-v3')
-        feature.__enter__()
-        self.addCleanup(feature.__exit__, None, None, None)
+        self.init_path = reverse('sentry-organization-integrations-setup', kwargs={
+            'organization_slug': self.organization.slug,
+            'provider_id': self.provider.key,
+        })
+
+        self.setup_path = reverse('sentry-extension-setup', kwargs={
+            'provider_id': self.provider.key,
+        })
+
+        self.pipeline.initialize()
+        self.save_session()
 
     def assertDialogSuccess(self, resp):
         assert 'window.opener.postMessage(' in resp.content
+
+
+class SnubaTestCase(TestCase):
+    def setUp(self):
+        super(SnubaTestCase, self).setUp()
+
+        assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
+
+    def __wrap_event(self, event, data, primary_hash):
+        # TODO: Abstract and combine this with the stream code in
+        #       getsentry once it is merged, so that we don't alter one
+        #       without updating the other.
+        return {
+            'group_id': event.group_id,
+            'event_id': event.event_id,
+            'project_id': event.project_id,
+            'message': event.message,
+            'platform': event.platform,
+            'datetime': event.datetime,
+            'data': dict(data),
+            'primary_hash': primary_hash,
+        }
+
+    def create_event(self, *args, **kwargs):
+        """\
+        Takes the results from the existing `create_event` method and
+        inserts into the local test Snuba cluster so that tests can be
+        run against the same event data.
+
+        Note that we create a GroupHash as necessary because `create_event`
+        doesn't run them through the 'real' event pipeline. In a perfect
+        world all test events would go through the full regular pipeline.
+        """
+
+        from sentry.event_manager import get_hashes_from_fingerprint, md5_from_hash
+
+        event = super(SnubaTestCase, self).create_event(*args, **kwargs)
+
+        data = event.data.data
+        tags = dict(data.get('tags', []))
+
+        if not data.get('received'):
+            data['received'] = calendar.timegm(event.datetime.timetuple())
+
+        if 'environment' in tags:
+            environment = Environment.get_or_create(
+                event.project,
+                tags['environment'],
+            )
+
+            GroupEnvironment.objects.get_or_create(
+                environment_id=environment.id,
+                group_id=event.group_id,
+            )
+
+        if 'user' in tags:
+            user = tags.pop('user')
+            data['user'] = user
+
+        hashes = get_hashes_from_fingerprint(
+            event,
+            data.get('fingerprint', ['{{ default }}']),
+        )
+        primary_hash = md5_from_hash(hashes[0])
+
+        grouphash, _ = GroupHash.objects.get_or_create(
+            project=event.project,
+            group=event.group,
+            hash=primary_hash,
+        )
+
+        self.snuba_insert(self.__wrap_event(event, data, grouphash.hash))
+
+        return event
+
+    def snuba_insert(self, events):
+        "Write a (wrapped) event (or events) to Snuba."
+
+        if not isinstance(events, list):
+            events = [events]
+
+        assert requests.post(
+            settings.SENTRY_SNUBA + '/tests/insert',
+            data=json.dumps(events)
+        ).status_code == 200

@@ -1,18 +1,38 @@
 import React from 'react';
 import {mount} from 'enzyme';
+
 import ProjectPlugins from 'app/views/projectPlugins';
 import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 
 jest.mock('app/actionCreators/plugins');
 
 describe('ProjectPluginsContainer', function() {
-  let org, project, plugins, wrapper;
+  let org, project, plugins, wrapper, params, organization;
+  let routerContext = TestStubs.routerContext();
 
   beforeEach(function() {
     org = TestStubs.Organization();
     project = TestStubs.Project();
     plugins = TestStubs.Plugins();
+    params = {
+      orgId: org.slug,
+      projectId: project.slug,
+    };
+    organization = {
+      id: org.slug,
+      features: [],
+    };
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/`,
+      method: 'GET',
+      body: org,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/`,
+      method: 'GET',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
       method: 'GET',
@@ -27,12 +47,8 @@ describe('ProjectPluginsContainer', function() {
       method: 'DELETE',
     });
     wrapper = mount(
-      <ProjectPlugins params={{orgId: org.slug, projectId: project.slug}} />,
-      {
-        context: {
-          router: TestStubs.router(),
-        },
-      }
+      <ProjectPlugins params={params} organization={organization} />,
+      routerContext
     );
   });
 

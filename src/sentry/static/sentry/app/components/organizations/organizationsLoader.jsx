@@ -1,9 +1,12 @@
 import React from 'react';
 
-import ApiMixin from '../../mixins/apiMixin';
-import OrganizationsStore from '../../stores/organizationsStore';
+import createReactClass from 'create-react-class';
 
-const OrganizationsLoader = React.createClass({
+import ApiMixin from 'app/mixins/apiMixin';
+import OrganizationsStore from 'app/stores/organizationsStore';
+
+const OrganizationsLoader = createReactClass({
+  displayName: 'OrganizationsLoader',
   mixins: [ApiMixin],
 
   componentWillMount() {

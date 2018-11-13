@@ -22,7 +22,7 @@ class CreateDefaultProjectsTest(TestCase):
         assert project.public is False
         assert project.name == 'Internal'
         assert project.slug == 'internal'
-        team = project.team
+        team = project.teams.first()
         assert team.slug == 'sentry'
 
         pk = ProjectKey.objects.get(project=project)
@@ -43,7 +43,7 @@ class CreateDefaultProjectsTest(TestCase):
         assert project.public is False
         assert project.name == 'Internal'
         assert project.slug == 'internal'
-        team = project.team
+        team = project.teams.first()
         assert team.slug == 'sentry'
 
         pk = ProjectKey.objects.get(project=project)

@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import DropdownLink from '../../components/dropdownLink';
-import MenuItem from '../../components/menuItem';
-import {t} from '../../locale';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
+import {t} from 'app/locale';
 
 class SortOptions extends React.PureComponent {
   static propTypes = {

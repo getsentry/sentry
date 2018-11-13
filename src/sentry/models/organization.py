@@ -7,7 +7,10 @@ sentry.models.organization
 """
 from __future__ import absolute_import, print_function
 
+import six
+
 from datetime import timedelta
+from enum import IntEnum
 
 from bitfield import BitField
 from django.conf import settings
@@ -15,22 +18,50 @@ from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
 from sentry.app import locks
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS, RESERVED_PROJECT_SLUGS
 from sentry.db.models import (BaseManager, BoundedPositiveIntegerField, Model, sane_repr)
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 
 
-# TODO(dcramer): pull in enum library
-class OrganizationStatus(object):
-    VISIBLE = 0
+class OrganizationStatus(IntEnum):
+    ACTIVE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
+
+    # alias
+    VISIBLE = 0
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def label(self):
+        return OrganizationStatus._labels[self]
+
+    @classmethod
+    def as_choices(cls):
+        result = []
+        for name, member in six.iteritems(cls.__members__):
+            # an alias
+            if name != member.name:
+                continue
+            # realistically Enum shouldn't even creating these, but alas
+            if name.startswith('_'):
+                continue
+            result.append((member.value, member.label))
+        return tuple(result)
+
+
+OrganizationStatus._labels = {
+    OrganizationStatus.ACTIVE: 'active',
+    OrganizationStatus.PENDING_DELETION: 'pending deletion',
+    OrganizationStatus.DELETION_IN_PROGRESS: 'deletion in progress',
+}
 
 
 class OrganizationManager(BaseManager):
@@ -48,13 +79,13 @@ class OrganizationManager(BaseManager):
 
         if settings.SENTRY_PUBLIC and scope is None:
             if only_visible:
-                return list(self.filter(status=OrganizationStatus.VISIBLE))
+                return list(self.filter(status=OrganizationStatus.ACTIVE))
             else:
                 return list(self.filter())
 
         qs = OrganizationMember.objects.filter(user=user).select_related('organization')
         if only_visible:
-            qs = qs.filter(organization__status=OrganizationStatus.VISIBLE)
+            qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
 
         results = list(qs)
 
@@ -72,12 +103,10 @@ class Organization(Model):
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
-        choices=(
-            (OrganizationStatus.VISIBLE,
-             _('Visible')), (OrganizationStatus.PENDING_DELETION, _('Pending Deletion')),
-            (OrganizationStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
-        ),
-        default=OrganizationStatus.VISIBLE
+        choices=OrganizationStatus.as_choices(),
+        # south will generate a default value of `'<OrganizationStatus.ACTIVE: 0>'`
+        # if `.value` is omitted
+        default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
     members = models.ManyToManyField(
@@ -105,6 +134,9 @@ class Organization(Model):
             ), (
                 'early_adopter',
                 'Enable early adopter status, gaining access to features prior to public release.'
+            ), (
+                'require_2fa',
+                'Require and enforce two-factor authentication for all members.'
             ),
         ),
         default=1
@@ -124,7 +156,7 @@ class Organization(Model):
         Return the organization used in single organization mode.
         """
         return cls.objects.filter(
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
         )[0]
 
     def __unicode__(self):
@@ -163,8 +195,8 @@ class Organization(Model):
             'id': self.id,
             'slug': self.slug,
             'name': self.name,
-            'status': self.status,
-            'flags': self.flags,
+            'status': int(self.status),
+            'flags': int(self.flags),
             'default_role': self.default_role,
         }
 
@@ -250,7 +282,11 @@ class Organization(Model):
                 with transaction.atomic():
                     project.update(organization=to_org)
             except IntegrityError:
-                slugify_instance(project, project.name, organization=to_org)
+                slugify_instance(
+                    project,
+                    project.name,
+                    organization=to_org,
+                    reserved=RESERVED_PROJECT_SLUGS)
                 project.update(
                     organization=to_org,
                     slug=project.slug,
@@ -321,3 +357,24 @@ class Organization(Model):
             type='org.confirm_delete',
             context=context,
         ).send_async([o.email for o in owners])
+
+    def flag_has_changed(self, flag_name):
+        "Returns ``True`` if ``flag`` has changed since initialization."
+        return getattr(self.old_value('flags'), flag_name, None) != getattr(self.flags, flag_name)
+
+    def handle_2fa_required(self, request):
+        from sentry.models import ApiKey
+        from sentry.tasks.auth import remove_2fa_non_compliant_members
+
+        actor_id = request.user.id if request.user and request.user.is_authenticated() else None
+        api_key_id = request.auth.id if hasattr(
+            request, 'auth') and isinstance(
+            request.auth, ApiKey) else None
+        ip_address = request.META['REMOTE_ADDR']
+
+        remove_2fa_non_compliant_members.delay(
+            self.id,
+            actor_id=actor_id,
+            actor_key_id=api_key_id,
+            ip_address=ip_address
+        )

@@ -54,7 +54,7 @@ class ProjectUsersTest(APITestCase):
     def test_empty_search_query(self):
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?query=foo'.format(self.path), format='json')
+        response = self.client.get(u'{}?query=foo'.format(self.path), format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
@@ -62,13 +62,13 @@ class ProjectUsersTest(APITestCase):
     def test_username_search(self):
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?query=username:baz'.format(self.path), format='json')
+        response = self.client.get(u'{}?query=username:baz'.format(self.path), format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(self.euser2.id)
 
-        response = self.client.get('{}?query=username:ba'.format(self.path), format='json')
+        response = self.client.get(u'{}?query=username:ba'.format(self.path), format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -77,14 +77,14 @@ class ProjectUsersTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.client.get(
-            '{}?query=email:foo@example.com'.format(self.path), format='json'
+            u'{}?query=email:foo@example.com'.format(self.path), format='json'
         )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(self.euser1.id)
 
-        response = self.client.get('{}?query=email:@example.com'.format(self.path), format='json')
+        response = self.client.get(u'{}?query=email:@example.com'.format(self.path), format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -92,13 +92,13 @@ class ProjectUsersTest(APITestCase):
     def test_id_search(self):
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?query=id:1'.format(self.path), format='json')
+        response = self.client.get(u'{}?query=id:1'.format(self.path), format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(self.euser1.id)
 
-        response = self.client.get('{}?query=id:3'.format(self.path), format='json')
+        response = self.client.get(u'{}?query=id:3'.format(self.path), format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
@@ -106,13 +106,13 @@ class ProjectUsersTest(APITestCase):
     def test_ip_search(self):
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?query=ip:192.168.0.1'.format(self.path), format='json')
+        response = self.client.get(u'{}?query=ip:192.168.0.1'.format(self.path), format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(self.euser2.id)
 
-        response = self.client.get('{}?query=ip:0'.format(self.path), format='json')
+        response = self.client.get(u'{}?query=ip:0'.format(self.path), format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2

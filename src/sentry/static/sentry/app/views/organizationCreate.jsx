@@ -1,9 +1,10 @@
 import React from 'react';
 
-import AsyncView from './asyncView';
-import NarrowLayout from '../components/narrowLayout';
-import {ApiForm, TextField} from '../components/forms';
-import {t} from '../locale';
+import AsyncView from 'app/views/asyncView';
+import ConfigStore from 'app/stores/configStore';
+import NarrowLayout from 'app/components/narrowLayout';
+import {ApiForm, BooleanField, TextField} from 'app/components/forms';
+import {t, tct} from 'app/locale';
 
 export default class OrganizationCreate extends AsyncView {
   onSubmitSuccess = data => {
@@ -12,13 +13,20 @@ export default class OrganizationCreate extends AsyncView {
     window.location.href = `/organizations/${data.slug}/projects/new/`;
   };
 
+  getEndpoints() {
+    return [];
+  }
+
   getTitle() {
     return 'Create Organization';
   }
 
   renderBody() {
+    let termsUrl = ConfigStore.get('termsUrl');
+    let privacyUrl = ConfigStore.get('privacyUrl');
+
     return (
-      <NarrowLayout>
+      <NarrowLayout showLogout>
         <h3>{t('Create a New Organization')}</h3>
 
         <p>
@@ -41,6 +49,22 @@ export default class OrganizationCreate extends AsyncView {
             placeholder={t('e.g. My Company')}
             required={true}
           />
+
+          {termsUrl &&
+            privacyUrl && (
+              <BooleanField
+                name="agreeTerms"
+                label={tct(
+                  'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
+                  {
+                    termsLink: <a href={termsUrl} />,
+                    privacyLink: <a href={privacyUrl} />,
+                  }
+                )}
+                placeholder={t('e.g. My Company')}
+                required={true}
+              />
+            )}
         </ApiForm>
       </NarrowLayout>
     );

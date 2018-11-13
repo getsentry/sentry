@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Avatar from './avatar';
-import Version from './version';
-import {t, tct} from '../locale';
+import Avatar from 'app/components/avatar';
+import Version from 'app/components/version';
+import {t, tct} from 'app/locale';
 
 export default class ResolutionBox extends React.Component {
   static propTypes = {
@@ -54,7 +54,7 @@ export default class ResolutionBox extends React.Component {
     return (
       <div className="box">
         <span className="icon icon-checkmark" />
-        <p>{this.renderReason()}</p>
+        <p className="truncate break-all">{this.renderReason()}</p>
       </div>
     );
   };

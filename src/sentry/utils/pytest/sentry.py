@@ -51,6 +51,7 @@ def pytest_configure(config):
                     'ENGINE': 'sentry.db.postgres',
                     'USER': 'postgres',
                     'NAME': 'sentry',
+                    'HOST': '127.0.0.1',
                 }
             )
             # postgres requires running full migration all the time
@@ -104,6 +105,10 @@ def pytest_configure(config):
     settings.SENTRY_TSDB = 'sentry.tsdb.inmemory.InMemoryTSDB'
     settings.SENTRY_TSDB_OPTIONS = {}
 
+    if settings.SENTRY_NEWSLETTER == 'sentry.newsletter.base.Newsletter':
+        settings.SENTRY_NEWSLETTER = 'sentry.newsletter.dummy.DummyNewsletter'
+        settings.SENTRY_NEWSLETTER_OPTIONS = {}
+
     settings.BROKER_BACKEND = 'memory'
     settings.BROKER_URL = None
     settings.CELERY_ALWAYS_EAGER = False
@@ -137,9 +142,17 @@ def pytest_configure(config):
             },
             'mail.backend': 'django.core.mail.backends.locmem.EmailBackend',
             'system.url-prefix': 'http://testserver',
+
             'slack.client-id': 'slack-client-id',
             'slack.client-secret': 'slack-client-secret',
             'slack.verification-token': 'slack-verification-token',
+
+            'github-app.name': 'sentry-test-app',
+            'github-app.client-id': 'github-client-id',
+            'github-app.client-secret': 'github-client-secret',
+
+            'vsts.client-id': 'vsts-client-id',
+            'vsts.client-secret': 'vsts-client-secret',
         }
     )
 
@@ -147,6 +160,9 @@ def pytest_configure(config):
     # networking isn't stable
     patcher = mock.patch('socket.getfqdn', return_value='localhost')
     patcher.start()
+
+    if not settings.SOUTH_TESTS_MIGRATE:
+        settings.INSTALLED_APPS = tuple(i for i in settings.INSTALLED_APPS if i != 'south')
 
     from sentry.runner.initializer import (
         bootstrap_options, configure_structlog, initialize_receivers, fix_south,
@@ -156,6 +172,10 @@ def pytest_configure(config):
     bootstrap_options(settings)
     configure_structlog()
     fix_south(settings)
+
+    import django
+    if hasattr(django, 'setup'):
+        django.setup()
 
     bind_cache_to_option_store()
 
@@ -183,21 +203,47 @@ def register_extensions():
     plugins.register(TestIssuePlugin2)
 
     from sentry import integrations
-    from sentry.integrations.example import ExampleIntegration
-    from sentry.integrations.slack import SlackIntegration
-    integrations.register(ExampleIntegration)
-    integrations.register(SlackIntegration)
+    from sentry.integrations.bitbucket import BitbucketIntegrationProvider
+    from sentry.integrations.example import (
+        ExampleIntegrationProvider, AliasedIntegrationProvider, ExampleRepositoryProvider
+    )
+    from sentry.integrations.github import GitHubIntegrationProvider
+    from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
+    from sentry.integrations.gitlab import GitlabIntegrationProvider
+    from sentry.integrations.jira import JiraIntegrationProvider
+    from sentry.integrations.slack import SlackIntegrationProvider
+    from sentry.integrations.vsts import VstsIntegrationProvider
+    from sentry.integrations.vsts_extension import VstsExtensionIntegrationProvider
+    integrations.register(BitbucketIntegrationProvider)
+    integrations.register(ExampleIntegrationProvider)
+    integrations.register(AliasedIntegrationProvider)
+    integrations.register(GitHubIntegrationProvider)
+    integrations.register(GitHubEnterpriseIntegrationProvider)
+    integrations.register(GitlabIntegrationProvider)
+    integrations.register(JiraIntegrationProvider)
+    integrations.register(SlackIntegrationProvider)
+    integrations.register(VstsIntegrationProvider)
+    integrations.register(VstsExtensionIntegrationProvider)
 
     from sentry.plugins import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider
 
     bindings.add('repository.provider', DummyRepositoryProvider, id='dummy')
+    bindings.add(
+        'integration-repository.provider',
+        ExampleRepositoryProvider,
+        id='integrations:example')
 
 
 def pytest_runtest_teardown(item):
     from sentry import tsdb
     # TODO(dcramer): this only works if this is the correct tsdb backend
-    tsdb.backend.flush()
+    tsdb.flush()
+
+    # XXX(dcramer): only works with DummyNewsletter
+    from sentry import newsletter
+    if hasattr(newsletter.backend, 'clear'):
+        newsletter.backend.clear()
 
     from sentry.utils.redis import clusters
 
@@ -206,3 +252,7 @@ def pytest_runtest_teardown(item):
 
     from celery.task.control import discard_all
     discard_all()
+
+    from sentry.models import OrganizationOption, ProjectOption, UserOption
+    for model in (OrganizationOption, ProjectOption, UserOption):
+        model.objects.clear_local_cache()

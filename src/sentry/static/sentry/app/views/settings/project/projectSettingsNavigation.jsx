@@ -1,11 +1,14 @@
 import React from 'react';
 
-import HookStore from '../../../stores/hookStore';
-import ProjectState from '../../../mixins/projectState';
-import SettingsNavigation from '../components/settingsNavigation';
-import getConfiguration from './navigationConfiguration';
+import createReactClass from 'create-react-class';
 
-const ProjectSettingsNavigation = React.createClass({
+import HookStore from 'app/stores/hookStore';
+import ProjectState from 'app/mixins/projectState';
+import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
+import getConfiguration from 'app/views/settings/project/navigationConfiguration';
+
+const ProjectSettingsNavigation = createReactClass({
+  displayName: 'ProjectSettingsNavigation',
   mixins: [ProjectState],
 
   getInitialState() {
@@ -29,7 +32,7 @@ const ProjectSettingsNavigation = React.createClass({
 
     return (
       <SettingsNavigation
-        navigationObjects={getConfiguration(project)}
+        navigationObjects={getConfiguration({project})}
         access={access}
         features={features}
         organization={org}

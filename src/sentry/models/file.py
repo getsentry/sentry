@@ -21,18 +21,37 @@ from django.conf import settings
 from django.core.files.base import File as FileObj
 from django.core.files.base import ContentFile
 from django.core.files.storage import get_storage_class
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.app import locks
 from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model)
+from sentry.tasks.files import delete_file as delete_file_task
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
 ONE_DAY = 60 * 60 * 24
 
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
+CHUNK_STATE_HEADER = '__state'
+
+
+def enum(**named_values):
+    return type('Enum', (), named_values)
+
+
+ChunkFileState = enum(
+    OK='ok',  # File in database
+    NOT_FOUND='not_found',  # File not found in database
+    CREATED='created',  # File was created in the request and send to the worker for assembling
+    ASSEMBLING='assembling',  # File still being processed by worker
+    ERROR='error'  # Error happened during assembling
+)
+
+
+class AssembleChecksumMismatch(Exception):
+    pass
 
 
 def get_storage():
@@ -80,7 +99,7 @@ class FileBlob(Model):
 
         # TODO(dcramer): the database here is safe, but if this lock expires
         # and duplicate files are uploaded then we need to prune one
-        lock = locks.get('fileblob:upload:{}'.format(checksum), duration=60 * 10)
+        lock = locks.get(u'fileblob:upload:{}'.format(checksum), duration=60 * 10)
         with TimedRetryPolicy(60)(lock.acquire):
             # test for presence
             try:
@@ -111,17 +130,26 @@ class FileBlob(Model):
         return u'/'.join(pieces)
 
     def delete(self, *args, **kwargs):
-        lock = locks.get('fileblob:upload:{}'.format(self.checksum), duration=60 * 10)
+        lock = locks.get(u'fileblob:upload:{}'.format(self.checksum), duration=60 * 10)
         with TimedRetryPolicy(60)(lock.acquire):
-            if self.path:
-                self.deletefile(commit=False)
             super(FileBlob, self).delete(*args, **kwargs)
+        if self.path:
+            self.deletefile(commit=False)
 
     def deletefile(self, commit=False):
         assert self.path
 
-        storage = get_storage()
-        storage.delete(self.path)
+        # Defer this by 1 minute just to make sure
+        # we avoid any transaction isolation where the
+        # FileBlob row might still be visible by the
+        # task before transaction is committed.
+        delete_file_task.apply_async(
+            kwargs={
+                'path': self.path,
+                'checksum': self.checksum,
+            },
+            countdown=60,
+        )
 
         self.path = None
 
@@ -145,13 +173,13 @@ class FileBlob(Model):
 class File(Model):
     __core__ = False
 
-    name = models.CharField(max_length=128)
+    name = models.TextField()
     type = models.CharField(max_length=64)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
     headers = JSONField()
     blobs = models.ManyToManyField('sentry.FileBlob', through='sentry.FileBlobIndex')
     size = BoundedPositiveIntegerField(null=True)
-    checksum = models.CharField(max_length=40, null=True)
+    checksum = models.CharField(max_length=40, null=True, db_index=True)
 
     # <Legacy fields>
     # Remove in 8.1
@@ -254,6 +282,43 @@ class File(Model):
             self.save()
         return results
 
+    def assemble_from_file_blob_ids(self, file_blob_ids, checksum, commit=True):
+        """
+        This creates a file, from file blobs and returns a temp file with the
+        contents.
+        """
+        tf = tempfile.NamedTemporaryFile()
+        with transaction.atomic():
+            file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
+            # Make sure the blobs are sorted with the order provided
+            file_blobs = sorted(file_blobs, key=lambda blob: file_blob_ids.index(blob.id))
+
+            new_checksum = sha1(b'')
+            offset = 0
+            for blob in file_blobs:
+                FileBlobIndex.objects.create(
+                    file=self,
+                    blob=blob,
+                    offset=offset,
+                )
+                for chunk in blob.getfile().chunks():
+                    new_checksum.update(chunk)
+                    tf.write(chunk)
+                offset += blob.size
+
+            self.size = offset
+            self.checksum = new_checksum.hexdigest()
+
+            if checksum != self.checksum:
+                raise AssembleChecksumMismatch('Checksum mismatch')
+
+        metrics.timing('filestore.file-size', offset)
+        if commit:
+            self.save()
+        tf.flush()
+        tf.seek(0)
+        return tf
+
 
 class FileBlobIndex(Model):
     __core__ = False
@@ -338,7 +403,7 @@ class ChunkedFileBlobIndexWrapper(object):
 
         def fetch_file(offset, getfile):
             with getfile() as sf:
-                while 1:
+                while True:
                     chunk = sf.read(65535)
                     if not chunk:
                         break
@@ -416,3 +481,15 @@ class ChunkedFileBlobIndexWrapper(object):
                     result.extend(blob_result)
 
         return bytes(result)
+
+
+class FileBlobOwner(Model):
+    __core__ = False
+
+    blob = FlexibleForeignKey('sentry.FileBlob')
+    organization = FlexibleForeignKey('sentry.Organization')
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_fileblobowner'
+        unique_together = (('blob', 'organization'), )

@@ -16,9 +16,36 @@ from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
 from sentry.utils import auth
+from sentry.utils.sdk import capture_exception
 
 ERR_NO_SSO = _(
     'The organization does not exist or does not have Single Sign-On enabled.')
+
+
+# Stores callbacks that are called to get additional template context data before the login page
+# is rendered. Callbacks are called in any order. If an error is encountered in a callback it is
+# ignored. This works like HookStore in Javascript.
+class AdditionalContext(object):
+    def __init__(self):
+        self._callbacks = set()
+
+    def add_callback(self, callback):
+        """callback should take a request object and return a dict of key-value pairs
+        to add to the context."""
+        self._callbacks.add(callback)
+
+    def run_callbacks(self, request):
+        context = {}
+        for cb in self._callbacks:
+            try:
+                result = cb(request)
+                context.update(result)
+            except Exception:
+                capture_exception()
+        return context
+
+
+additional_context = AdditionalContext()
 
 
 class AuthLoginView(BaseView):
@@ -72,10 +99,13 @@ class AuthLoginView(BaseView):
 
         op = request.POST.get('op')
 
-        # Detect that we are on the register page by url /register/ and
-        # then activate the register tab by default.
-        if not op and '/register' in request.path_info and can_register:
-            op = 'register'
+        if not op:
+            # Detect that we are on the register page by url /register/ and
+            # then activate the register tab by default.
+            if '/register' in request.path_info and can_register:
+                op = 'register'
+            elif request.GET.get('op') == 'sso':
+                op = 'sso'
 
         login_form = self.get_login_form(request)
         if can_register:
@@ -143,6 +173,8 @@ class AuthLoginView(BaseView):
             'register_form': register_form,
             'CAN_REGISTER': can_register,
         }
+        context.update(additional_context.run_callbacks(request))
+
         return self.respond_login(request, context, organization=organization, *args, **kwargs)
 
     def handle_authenticated(self, request, *args, **kwargs):

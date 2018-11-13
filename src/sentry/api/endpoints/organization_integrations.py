@@ -1,32 +1,31 @@
 from __future__ import absolute_import
 
-from sentry import features
 from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationIntegrationsPermission
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import Integration
+from sentry.models import ObjectStatus, OrganizationIntegration
 
 
 class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission, )
 
-    def has_feature(self, request, organization):
-        return features.has(
-            'organizations:integrations-v3',
+    def get(self, request, organization):
+        integrations = OrganizationIntegration.objects.filter(
             organization=organization,
-            actor=request.user,
+            status=ObjectStatus.VISIBLE,
         )
 
-    def get(self, request, organization):
-        if not self.has_feature(request, organization):
-            return self.respond({'detail': ['You do not have that feature enabled']}, status=400)
+        if 'provider_key' in request.GET:
+            integrations = integrations.filter(
+                integration__provider=request.GET['provider_key']
+            )
 
         return self.paginate(
-            queryset=Integration.objects.filter(organizations=organization),
+            queryset=integrations,
             request=request,
-            order_by='name',
+            order_by='integration__name',
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )

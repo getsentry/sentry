@@ -1,20 +1,25 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
-import ApiMixin from '../../mixins/apiMixin';
-import AssigneeSelector from '../../components/assigneeSelector';
-import Count from '../../components/count';
-import GroupActions from './actions';
-import GroupSeenBy from './seenBy';
-import IndicatorStore from '../../stores/indicatorStore';
-import ListLink from '../../components/listLink';
-import ShortId from '../../components/shortId';
-import EventOrGroupTitle from '../../components/eventOrGroupTitle';
-import ProjectState from '../../mixins/projectState';
-import TooltipMixin from '../../mixins/tooltip';
-import {t} from '../../locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AssigneeSelector from 'app/components/assigneeSelector';
+import Count from 'app/components/count';
+import GroupActions from 'app/views/groupDetails/actions';
+import GroupSeenBy from 'app/views/groupDetails/seenBy';
+import IndicatorStore from 'app/stores/indicatorStore';
+import ListLink from 'app/components/listLink';
+import NavTabs from 'app/components/navTabs';
+import ShortId from 'app/components/shortId';
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import ProjectState from 'app/mixins/projectState';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
-const GroupHeader = React.createClass({
+const GroupHeader = createReactClass({
+  displayName: 'GroupHeader',
+
   propTypes: {
     group: PropTypes.object.isRequired,
   },
@@ -23,13 +28,7 @@ const GroupHeader = React.createClass({
     location: PropTypes.object,
   },
 
-  mixins: [
-    ApiMixin,
-    ProjectState,
-    TooltipMixin({
-      selector: '.tip',
-    }),
-  ],
+  mixins: [ApiMixin, ProjectState],
 
   onToggleMute() {
     let group = this.props.group;
@@ -134,23 +133,23 @@ const GroupHeader = React.createClass({
               {group.shortId && (
                 <div className="short-id-box count align-right">
                   <h6 className="nav-header">
-                    <a
-                      className="help-link tip"
+                    <GuideAnchor target="issue_number" type="text" />
+                    <Tooltip
                       title={t(
                         'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
                       )}
-                      href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits"
                     >
-                      {t('Issue #')}
-                    </a>
+                      <a
+                        className="help-link"
+                        href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits"
+                      >
+                        {t('Issue #')}
+                      </a>
+                    </Tooltip>
                   </h6>
                   <ShortId shortId={group.shortId} />
                 </div>
               )}
-              <div className="assigned-to">
-                <h6 className="nav-header">{t('Assigned')}</h6>
-                <AssigneeSelector id={group.id} />
-              </div>
               <div className="count align-right">
                 <h6 className="nav-header">{t('Events')}</h6>
                 <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
@@ -167,12 +166,16 @@ const GroupHeader = React.createClass({
                   <span>0</span>
                 )}
               </div>
+              <div className="assigned-to">
+                <h6 className="nav-header">{t('Assignee')}</h6>
+                <AssigneeSelector id={group.id} />
+              </div>
             </div>
           </div>
         </div>
         <GroupSeenBy />
         <GroupActions />
-        <ul className="nav nav-tabs">
+        <NavTabs>
           <ListLink
             to={`/${orgId}/${projectId}/issues/${groupId}/`}
             isActive={() => {
@@ -208,7 +211,7 @@ const GroupHeader = React.createClass({
               {t('Similar Issues')}
             </ListLink>
           )}
-        </ul>
+        </NavTabs>
       </div>
     );
   },

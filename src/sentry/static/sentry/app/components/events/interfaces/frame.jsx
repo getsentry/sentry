@@ -2,25 +2,29 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 import classNames from 'classnames';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import ClippedBox from '../../../components/clippedBox';
-import TooltipMixin from '../../../mixins/tooltip';
-import StrictClick from '../../strictClick';
-import Truncate from '../../../components/truncate';
-import {t} from '../../../locale';
-import {defined, objectIsEmpty, isUrl} from '../../../utils';
-
-import ContextLine from './contextLine';
-import FrameVariables from './frameVariables';
+import {defined, objectIsEmpty, isUrl} from 'app/utils';
+import {t} from 'app/locale';
+import ClippedBox from 'app/components/clippedBox';
+import ContextLine from 'app/components/events/interfaces/contextLine';
+import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
+import FrameVariables from 'app/components/events/interfaces/frameVariables';
+import StrictClick from 'app/components/strictClick';
+import Tooltip from 'app/components/tooltip';
+import Truncate from 'app/components/truncate';
+import space from 'app/styles/space';
 
 export function trimPackage(pkg) {
-  let pieces = pkg.split(/\//g);
-  let rv = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
-  let match = rv.match(/^(.*?)\.(dylib|so|a)$/);
-  return (match && match[1]) || rv;
+  let pieces = pkg.split(/^[a-z]:\\/i.test(pkg) ? '\\' : '/');
+  let filename = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
+  return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
 }
 
-const Frame = React.createClass({
+const Frame = createReactClass({
+  displayName: 'Frame',
+
   propTypes: {
     data: PropTypes.object.isRequired,
     nextFrame: PropTypes.object,
@@ -30,15 +34,8 @@ const Frame = React.createClass({
     emptySourceNotation: PropTypes.bool,
     isOnlyFrame: PropTypes.bool,
     timesRepeated: PropTypes.number,
+    registers: PropTypes.objectOf(PropTypes.string.isRequired),
   },
-
-  mixins: [
-    TooltipMixin({
-      html: true,
-      selector: '.tip',
-      trigger: 'hover',
-    }),
-  ],
 
   getDefaultProps() {
     return {
@@ -72,11 +69,16 @@ const Frame = React.createClass({
     return !objectIsEmpty(this.props.data.vars);
   },
 
+  hasContextRegisters() {
+    return !objectIsEmpty(this.props.registers);
+  },
+
   isExpandable() {
     return (
       (!this.props.isOnlyFrame && this.props.emptySourceNotation) ||
       this.hasContextSource() ||
-      this.hasContextVars()
+      this.hasContextVars() ||
+      this.hasContextRegisters()
     );
   },
 
@@ -142,13 +144,11 @@ const Frame = React.createClass({
       // we want to show a litle (?) icon that on hover shows the actual filename
       if (shouldPrioritizeModuleName && data.filename) {
         title.push(
-          <a
-            key="real-filename"
-            className="in-at tip real-filename"
-            data-title={_.escape(data.filename)}
-          >
-            <span className="icon-question" />
-          </a>
+          <Tooltip title={_.escape(data.filename)} tooltipOptions={{html: true}}>
+            <a className="in-at real-filename">
+              <span className="icon-question" />
+            </a>
+          </Tooltip>
         );
       }
 
@@ -214,17 +214,17 @@ const Frame = React.createClass({
 
     if (defined(data.origAbsPath)) {
       title.push(
-        <a
-          key="original-src"
-          className="in-at tip original-src"
-          data-title={this.renderOriginalSourceInfo()}
+        <Tooltip
+          key="info-tooltip"
+          title={this.renderOriginalSourceInfo()}
+          tooltipOptions={{html: true}}
         >
-          <span className="icon-question" />
-        </a>
+          <a className="in-at original-src">
+            <span className="icon-question" />
+          </a>
+        </Tooltip>
       );
     }
-
-    title.push(this.renderExpander());
 
     return title;
   },
@@ -241,13 +241,14 @@ const Frame = React.createClass({
 
     let hasContextSource = this.hasContextSource();
     let hasContextVars = this.hasContextVars();
+    let hasContextRegisters = this.hasContextRegisters();
     let expandable = this.isExpandable();
 
     let contextLines = isExpanded
       ? data.context
       : data.context && data.context.filter(l => l[0] === data.lineNo);
 
-    if (hasContextSource || hasContextVars) {
+    if (hasContextSource || hasContextVars || hasContextRegisters) {
       let startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
         <ol start={startLineNo} className={outerClassName}>
@@ -264,9 +265,12 @@ const Frame = React.createClass({
               );
             })}
 
-          {hasContextVars && (
+          {(hasContextRegisters || hasContextVars) && (
             <ClippedBox clipHeight={100}>
-              <FrameVariables data={data.vars} key="vars" />
+              {hasContextRegisters && (
+                <FrameRegisters data={this.props.registers} key="registers" />
+              )}
+              {hasContextVars && <FrameVariables data={data.vars} key="vars" />}
             </ClippedBox>
           )}
         </ol>
@@ -314,6 +318,9 @@ const Frame = React.createClass({
     if (this.isInlineFrame()) {
       return t('Inlined frame');
     }
+    if (this.props.data.trust === 'scan') {
+      return t('Found by stack scanning');
+    }
     if (this.getPlatform() == 'cocoa') {
       let func = this.props.data.function || '<unknown>';
       if (func.match(/^@objc\s/)) {
@@ -339,13 +346,14 @@ const Frame = React.createClass({
     let timesRepeated = this.props.timesRepeated;
     if (timesRepeated > 0) {
       return (
-        <span
-          className="repeated-frames"
+        <RepeatedFrames
           title={`Frame repeated ${timesRepeated} time${timesRepeated === 1 ? '' : 's'}`}
         >
-          <span className="icon-refresh" />
-          <span>{timesRepeated}</span>
-        </span>
+          <RepeatedContent>
+            <span className="icon-refresh" />
+            <span>{timesRepeated}</span>
+          </RepeatedContent>
+        </RepeatedFrames>
       );
     } else return null;
   },
@@ -353,11 +361,16 @@ const Frame = React.createClass({
   renderDefaultLine() {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
-        <div className="title">
-          {this.renderLeadHint()}
-          {this.renderDefaultTitle()}
-          {this.renderRepeats()}
-        </div>
+        <DefaultLine className="title">
+          <VertCenterWrapper>
+            <div>
+              {this.renderLeadHint()}
+              {this.renderDefaultTitle()}
+            </div>
+            {this.renderRepeats()}
+          </VertCenterWrapper>
+          {this.renderExpander()}
+        </DefaultLine>
       </StrictClick>
     );
   },
@@ -367,33 +380,36 @@ const Frame = React.createClass({
     let hint = this.getFrameHint();
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
-        <div className="title as-table">
-          {this.renderLeadHint()}
-          {defined(data.package) ? (
-            <span className="package" title={data.package}>
-              {trimPackage(data.package)}
-            </span>
-          ) : (
-            <span className="package">{'<unknown>'}</span>
-          )}
-          <span className="address">{data.instructionAddr}</span>
-          <span className="symbol">
-            <code>{data.function || '<unknown>'}</code>
-            {data.filename && (
-              <span className="filename">
-                {data.filename}
-                {data.lineNo ? ':' + data.lineNo : ''}
+        <DefaultLine className="title as-table">
+          <NativeLineContent>
+            {this.renderLeadHint()}
+            {defined(data.package) ? (
+              <span className="package" title={data.package}>
+                {trimPackage(data.package)}
               </span>
+            ) : (
+              <span className="package">{'<unknown>'}</span>
             )}
-            {hint !== null ? (
-              <a key="inline" className="tip" data-title={_.escape(hint)}>
-                {' '}
-                <span className="icon-question" />
-              </a>
-            ) : null}
-            {this.renderExpander()}
-          </span>
-        </div>
+            <span className="address">{data.instructionAddr}</span>
+            <span className="symbol">
+              <code>{data.function || '<unknown>'}</code>{' '}
+              {data.filename && (
+                <span className="filename">
+                  {data.filename}
+                  {data.lineNo ? ':' + data.lineNo : ''}
+                </span>
+              )}
+              {hint !== null ? (
+                <Tooltip title={_.escape(hint)}>
+                  <a key="inline">
+                    <span className="icon-question" />
+                  </a>
+                </Tooltip>
+              ) : null}
+            </span>
+          </NativeLineContent>
+          {this.renderExpander()}
+        </DefaultLine>
       </StrictClick>
     );
   },
@@ -435,5 +451,41 @@ const Frame = React.createClass({
     );
   },
 });
+
+const RepeatedFrames = styled('div')`
+  display: inline-block;
+  border-radius: 50px;
+  padding: 1px 3px;
+  margin-left: ${space(1)};
+  border-width: thin;
+  border-style: solid;
+  border-color: ${p => p.theme.yellowOrangeDark};
+  color: ${p => p.theme.yellowOrangeDark};
+  background-color: ${p => p.theme.whiteDark};
+  white-space: nowrap;
+`;
+
+const VertCenterWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const RepeatedContent = styled(VertCenterWrapper)`
+  justify-content: center;
+`;
+
+const NativeLineContent = styled(RepeatedContent)`
+  flex: 1;
+  overflow: hidden;
+
+  & > span {
+    display: block;
+    padding: 0 5px;
+  }
+`;
+
+const DefaultLine = styled(VertCenterWrapper)`
+  justify-content: space-between;
+`;
 
 export default Frame;

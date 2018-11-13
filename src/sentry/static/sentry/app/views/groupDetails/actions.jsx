@@ -1,65 +1,80 @@
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import DropdownLink from '../../components/dropdownLink';
-import GroupActions from '../../actions/groupActions';
-import GroupState from '../../mixins/groupState';
-import HookStore from '../../stores/hookStore';
-import IndicatorStore from '../../stores/indicatorStore';
-import IssuePluginActions from '../../components/group/issuePluginActions';
-import LinkWithConfirmation from '../../components/linkWithConfirmation';
-import MenuItem from '../../components/menuItem';
-import ShareIssue from '../../components/shareIssue';
-import TooltipMixin from '../../mixins/tooltip';
+import {openModal} from 'app/actionCreators/modal';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/button';
+import DropdownLink from 'app/components/dropdownLink';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
+import GroupActions from 'app/actions/groupActions';
+import GroupState from 'app/mixins/groupState';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import IgnoreActions from 'app/components/actions/ignore';
+import IndicatorStore from 'app/stores/indicatorStore';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import MenuItem from 'app/components/menuItem';
+import ResolveActions from 'app/components/actions/resolve';
+import SentryTypes from 'app/sentryTypes';
+import ShareIssue from 'app/components/shareIssue';
+import space from 'app/styles/space';
 
-import ResolveActions from '../../components/actions/resolve';
-import IgnoreActions from '../../components/actions/ignore';
-
-const DeleteActions = React.createClass({
-  propTypes: {
-    organization: PropTypes.object.isRequired,
-    project: PropTypes.object.isRequired,
+class DeleteActions extends React.Component {
+  static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
+    project: SentryTypes.Project.isRequired,
     onDelete: PropTypes.func.isRequired,
     onDiscard: PropTypes.func.isRequired,
-  },
+  };
 
-  getInitialState() {
-    return {
-      hooksDisabled: HookStore.get('project:discard-groups:disabled'),
-    };
-  },
+  renderDiscardDisabled = ({children, ...props}) =>
+    children({
+      ...props,
+      renderDisabled: ({features}) => (
+        <FeatureDisabled alert featureName="Discard and Delete" features={features} />
+      ),
+    });
 
-  renderDisabledDiscard() {
-    let {project, organization} = this.props;
-    return this.state.hooksDisabled.map(hook => hook(organization, project));
-  },
-
-  renderDiscard() {
-    return (
-      <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
-        <li>
-          <LinkWithConfirmation
-            title={t('Discard')}
-            message={t(
+  renderDiscardModal = ({Body, closeModal}) => (
+    <Feature
+      features={['projects:discard-groups']}
+      organization={this.props.organization}
+      project={this.props.project}
+      renderDisabled={this.renderDiscardDisabled}
+    >
+      {({hasFeature, renderDisabled, ...props}) => (
+        <React.Fragment>
+          <Body>
+            {!hasFeature && renderDisabled({hasFeature, ...props})}
+            {t(
               'Discarding this event will result in the deletion ' +
                 'of most data associated with this issue and future ' +
                 'events being discarded before reaching your stream. ' +
                 'Are you sure you wish to continue?'
             )}
-            onConfirm={this.props.onDiscard}
-          >
-            <span>{t('Delete and discard future events')}</span>
-          </LinkWithConfirmation>
-        </li>
-      </DropdownLink>
-    );
-  },
+          </Body>
+          <div className="modal-footer">
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <Button
+              style={{marginLeft: space(1)}}
+              priority="primary"
+              onClick={this.props.onDiscard}
+              disabled={!hasFeature}
+            >
+              {t('Discard Future Events')}
+            </Button>
+          </div>
+        </React.Fragment>
+      )}
+    </Feature>
+  );
+
+  openDiscardModal = () => openModal(this.renderDiscardModal);
 
   render() {
-    let features = new Set(this.props.project.features);
     return (
       <div className="btn-group">
         <LinkWithConfirmation
@@ -71,24 +86,23 @@ const DeleteActions = React.createClass({
           onConfirm={this.props.onDelete}
         >
           <span className="icon-trash" />
+          <GuideAnchor type="text" target="ignore_delete_discard" />
         </LinkWithConfirmation>
-        {features.has('discard-groups')
-          ? this.renderDiscard()
-          : this.renderDisabledDiscard()}
+        <DropdownLink caret={true} className="group-delete btn btn-default btn-sm">
+          <MenuItem onClick={this.openDiscardModal}>
+            <GuideAnchor type="text" target="delete_discard" />
+            <span>{t('Delete and discard future events')}</span>
+          </MenuItem>
+        </DropdownLink>
       </div>
     );
-  },
-});
+  }
+}
 
-const GroupDetailsActions = React.createClass({
-  mixins: [
-    ApiMixin,
-    GroupState,
-    TooltipMixin({
-      selector: '.tip',
-      container: 'body',
-    }),
-  ],
+const GroupDetailsActions = createReactClass({
+  displayName: 'GroupDetailsActions',
+
+  mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     return {ignoreModal: null, shareBusy: false};
@@ -121,7 +135,7 @@ const GroupDetailsActions = React.createClass({
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
 
-          browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
+          browserHistory.push(`/${org.slug}/${project.slug}/`);
         },
       }
     );
@@ -198,7 +212,7 @@ const GroupDetailsActions = React.createClass({
       data: {discard: true},
       success: response => {
         GroupActions.discardSuccess(id, group.id, response);
-        browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
+        browserHistory.push(`/${org.slug}/${project.slug}/`);
       },
       error: error => {
         GroupActions.discardError(id, group.id, error);
@@ -221,9 +235,6 @@ const GroupDetailsActions = React.createClass({
     }
 
     let hasRelease = this.getProjectFeatures().has('releases');
-
-    // account for both old and new style plugins
-    let hasIssueTracking = group.pluginActions.length || group.pluginIssues.length;
 
     let isResolved = group.status === 'resolved';
     let isIgnored = group.status === 'ignored';
@@ -251,8 +262,8 @@ const GroupDetailsActions = React.createClass({
           </a>
         </div>
         <DeleteActions
-          project={project}
           organization={org}
+          project={project}
           onDelete={this.onDelete}
           onDiscard={this.onDiscard}
         />
@@ -268,44 +279,6 @@ const GroupDetailsActions = React.createClass({
               busy={this.state.shareBusy}
             />
           </div>
-        )}
-
-        {group.pluginActions.length > 1 ? (
-          <div className="btn-group more">
-            <DropdownLink className="btn btn-default btn-sm" title={t('More')}>
-              {group.pluginActions.map((action, actionIdx) => {
-                return (
-                  <MenuItem key={actionIdx} href={action[1]}>
-                    {action[0]}
-                  </MenuItem>
-                );
-              })}
-            </DropdownLink>
-          </div>
-        ) : (
-          group.pluginActions.length !== 0 &&
-          group.pluginActions.map((action, actionIdx) => {
-            return (
-              <div className="btn-group" key={actionIdx}>
-                <a className="btn btn-default btn-sm" href={action[1]}>
-                  {action[0]}
-                </a>
-              </div>
-            );
-          })
-        )}
-        {group.pluginIssues &&
-          group.pluginIssues.map(plugin => {
-            return <IssuePluginActions key={plugin.slug} plugin={plugin} />;
-          })}
-        {!hasIssueTracking && (
-          <a
-            href={`/${this.getOrganization().slug}/${this.getProject()
-              .slug}/settings/issue-tracking/`}
-            className={'btn btn-default btn-sm btn-config-issue-tracking'}
-          >
-            {t('Link Issue Tracker')}
-          </a>
         )}
       </div>
     );

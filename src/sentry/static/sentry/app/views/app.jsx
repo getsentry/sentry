@@ -1,23 +1,30 @@
 /*global __webpack_public_path__ */
 /*eslint no-native-reassign:0 */
+import $ from 'jquery';
+import {ThemeProvider} from 'emotion-theming';
+import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
-import $ from 'jquery';
-import Cookies from 'js-cookie';
-import {ThemeProvider} from 'emotion-theming';
-import theme from '../utils/theme';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
+import keydown from 'react-keydown';
+import idx from 'idx';
 
-import ApiMixin from '../mixins/apiMixin';
-import Alerts from '../components/alerts';
-import AlertActions from '../actions/alertActions';
-import ConfigStore from '../stores/configStore';
-import Indicators from '../components/indicators';
-import InstallWizard from './installWizard';
-import LoadingIndicator from '../components/loadingIndicator';
-import OrganizationsLoader from '../components/organizations/organizationsLoader';
-import OrganizationsStore from '../stores/organizationsStore';
-
-import {t} from '../locale';
+import {openCommandPalette} from 'app/actionCreators/modal';
+import {t} from 'app/locale';
+import AlertActions from 'app/actions/alertActions';
+import Alerts from 'app/components/alerts';
+import ApiMixin from 'app/mixins/apiMixin';
+import AssistantHelper from 'app/components/assistant/helper';
+import ConfigStore from 'app/stores/configStore';
+import ErrorBoundary from 'app/components/errorBoundary';
+import GlobalModal from 'app/components/globalModal';
+import Indicators from 'app/components/indicators';
+import InstallWizard from 'app/views/installWizard';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import NewsletterConsent from 'app/views/newsletterConsent';
+import OrganizationsStore from 'app/stores/organizationsStore';
+import theme from 'app/utils/theme';
 
 if (window.globalStaticUrl) __webpack_public_path__ = window.globalStaticUrl; // defined in layout.html
 
@@ -30,18 +37,22 @@ function getAlertTypeForProblem(problem) {
   }
 }
 
-const App = React.createClass({
+const App = createReactClass({
+  displayName: 'App',
+
   childContextTypes: {
     location: PropTypes.object,
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, Reflux.listenTo(ConfigStore, 'onConfigStoreChange')],
 
   getInitialState() {
+    let user = ConfigStore.get('user');
     return {
       loading: false,
       error: false,
-      needsUpgrade: ConfigStore.get('needsUpgrade'),
+      needsUpgrade: user && user.isSuperuser && ConfigStore.get('needsUpgrade'),
+      newsletterConsentPrompt: user && user.flags.newsletter_consent_prompt,
     };
   },
 
@@ -97,12 +108,27 @@ const App = React.createClass({
       // TODO: Need better way of identifying anonymous pages
       //       that don't trigger redirect
       let pageAllowsAnon = /^\/share\//.test(window.location.pathname);
-      if (jqXHR && jqXHR.status === 401 && !pageAllowsAnon) {
-        Cookies.set('session_expired', 1);
-        // User has become unauthenticated; reload URL, and let Django
-        // redirect to login page
-        window.location.reload();
+
+      // Ignore error unless it is a 401
+      if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) return;
+
+      let code = idx(jqXHR, _ => _.responseJSON.detail.code);
+      let extra = idx(jqXHR, _ => _.responseJSON.detail.extra);
+
+      // 401s can also mean sudo is required or it's a request that is allowed to fail
+      // Ignore if these are the cases
+      if (code === 'sudo-required' || code === 'ignore') return;
+
+      // If user must login via SSO, redirect to org login page
+      if (code === 'sso-required') {
+        window.location.assign(extra.loginUrl);
+        return;
       }
+
+      // Otherwise, user has become unauthenticated; reload URL, and let Django
+      // redirect to login page
+      Cookies.set('session_expired', 1);
+      window.location.reload();
     });
   },
 
@@ -110,23 +136,53 @@ const App = React.createClass({
     OrganizationsStore.load([]);
   },
 
+  onConfigStoreChange(config) {
+    let newState = {};
+    if (config.needsUpgrade !== undefined) newState.needsUpgrade = config.needsUpgrade;
+    if (config.user !== undefined) newState.user = config.user;
+    if (Object.keys(newState).length > 0) this.setState(newState);
+  },
+
+  @keydown('meta+shift+p', 'meta+k')
+  openCommandPalette(e) {
+    openCommandPalette();
+    e.preventDefault();
+    e.stopPropagation();
+  },
+
   onConfigured() {
     this.setState({needsUpgrade: false});
   },
 
-  render() {
-    let user = ConfigStore.get('user');
-    let needsUpgrade = this.state.needsUpgrade;
+  onNewsletterConsent() {
+    // this is somewhat hackish
+    this.setState({
+      newsletterConsentPrompt: false,
+    });
+  },
 
-    if (user && user.isSuperuser && needsUpgrade) {
-      return (
-        <div>
-          <Indicators className="indicators-container" />
-          <InstallWizard onConfigured={this.onConfigured} />
-        </div>
-      );
+  handleGlobalModalClose() {
+    if (!this.mainContainerRef) return;
+    if (typeof this.mainContainerRef.focus !== 'function') return;
+
+    // Focus the main container to get hotkeys to keep working after modal closes
+    this.mainContainerRef.focus();
+  },
+
+  renderBody() {
+    let {needsUpgrade, newsletterConsentPrompt} = this.state;
+    if (needsUpgrade) {
+      return <InstallWizard onConfigured={this.onConfigured} />;
     }
 
+    if (newsletterConsentPrompt) {
+      return <NewsletterConsent onSubmitSuccess={this.onNewsletterConsent} />;
+    }
+
+    return this.props.children;
+  },
+
+  render() {
     if (this.state.loading) {
       return (
         <LoadingIndicator triangle={true}>
@@ -137,11 +193,17 @@ const App = React.createClass({
 
     return (
       <ThemeProvider theme={theme}>
-        <OrganizationsLoader>
+        <div
+          className="main-container"
+          tabIndex="-1"
+          ref={ref => (this.mainContainerRef = ref)}
+        >
+          <GlobalModal onClose={this.handleGlobalModalClose} />
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
-          {this.props.children}
-        </OrganizationsLoader>
+          <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
+          <AssistantHelper />
+        </div>
       </ThemeProvider>
     );
   },

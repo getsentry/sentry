@@ -17,12 +17,10 @@ class UserReportSerializer(Serializer):
 
         # If a event list with multiple project IDs is passed to this and event IDs are not unique
         # this could return the wrong eventIDs
-        events_list = Event.objects.filter(
+        events_dict = dict(Event.objects.filter(
             project_id__in={i.project_id for i in item_list},
             event_id__in=[i.event_id for i in item_list]
-        ).values('id', 'event_id')
-
-        events_dict = {e['event_id']: e['id'] for e in events_list}
+        ).values_list('id', 'event_id'))
 
         attrs = {}
         for item in item_list:
@@ -59,8 +57,8 @@ class UserReportSerializer(Serializer):
 
 
 class ProjectUserReportSerializer(UserReportSerializer):
-    def __init__(self, environment_id_func=None):
-        self.environment_id_func = environment_id_func
+    def __init__(self, environment_func=None):
+        self.environment_func = environment_func
 
     def get_attrs(self, item_list, user):
         from sentry.api.serializers import GroupSerializer
@@ -70,7 +68,7 @@ class ProjectUserReportSerializer(UserReportSerializer):
             d['id']: d for d in serialize(
                 set(i.group for i in item_list if i.group_id),
                 user,
-                GroupSerializer(environment_id_func=self.environment_id_func))
+                GroupSerializer(environment_func=self.environment_func))
         }
 
         attrs = super(ProjectUserReportSerializer, self).get_attrs(item_list, user)

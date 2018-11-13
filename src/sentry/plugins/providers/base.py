@@ -29,7 +29,7 @@ class ProviderMixin(object):
             provider=self.auth_provider,
             external_id=usa.uid,
         )[0]
-        integration.add_organization(organization.id, default_auth_id=usa.id)
+        integration.add_organization(organization, user, default_auth_id=usa.id)
 
     def get_available_auths(self, user, organization, integrations, social_auths, **kwargs):
         if self.auth_provider is None:
@@ -131,12 +131,19 @@ class ProviderMixin(object):
             'error_type': 'unknown',
         }
         if isinstance(error, InvalidIdentity):
-            context.update(
-                {
-                    'error_type': 'auth',
-                    'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
-                }
-            )
+            if self.auth_provider is None:
+                context.update(
+                    {
+                        'message': 'Your authentication credentials are invalid. Please check your project settings.'
+                    }
+                )
+            else:
+                context.update(
+                    {
+                        'error_type': 'auth',
+                        'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
+                    }
+                )
             status = 400
         elif isinstance(error, PluginError):
             # TODO(dcramer): we should have a proper validation error

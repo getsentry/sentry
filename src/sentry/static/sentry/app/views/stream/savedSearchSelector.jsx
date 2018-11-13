@@ -1,17 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Modal from 'react-bootstrap/lib/Modal';
 import {Link} from 'react-router';
 
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import IndicatorStore from '../../stores/indicatorStore';
-import DropdownLink from '../../components/dropdownLink';
-import QueryCount from '../../components/queryCount';
-import MenuItem from '../../components/menuItem';
-import {BooleanField, FormState, TextField} from '../../components/forms';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import IndicatorStore from 'app/stores/indicatorStore';
+import DropdownLink from 'app/components/dropdownLink';
+import QueryCount from 'app/components/queryCount';
+import MenuItem from 'app/components/menuItem';
+import {BooleanField, FormState, TextField} from 'app/components/forms';
 
-const SaveSearchButton = React.createClass({
+const SaveSearchButton = createReactClass({
+  displayName: 'SaveSearchButton',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
@@ -109,15 +112,16 @@ const SaveSearchButton = React.createClass({
   render() {
     let isSaving = this.state.state === FormState.SAVING;
     return (
-      <a
-        title={this.props.tooltip || this.props.buttonTitle}
-        className={this.props.className}
-        disabled={this.props.disabled}
-        onClick={this.onToggle}
-        style={this.props.style}
-      >
-        {this.props.children}
-
+      <React.Fragment>
+        <a
+          title={this.props.tooltip || this.props.buttonTitle}
+          className={this.props.className}
+          disabled={this.props.disabled}
+          onClick={this.onToggle}
+          style={this.props.style}
+        >
+          {this.props.children}
+        </a>
         <Modal show={this.state.isModalOpen} animation={false} onHide={this.onToggle}>
           <form onSubmit={this.onSubmit}>
             <div className="modal-header">
@@ -180,12 +184,14 @@ const SaveSearchButton = React.createClass({
             </div>
           </form>
         </Modal>
-      </a>
+      </React.Fragment>
     );
   },
 });
 
-const SavedSearchSelector = React.createClass({
+const SavedSearchSelector = createReactClass({
+  displayName: 'SavedSearchSelector',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,

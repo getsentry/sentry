@@ -13,6 +13,7 @@ exports[`DropdownLink renders and anchors to left by default 1`] = `
   topLevelClasses="top-level-class"
 >
   <DropdownMenu
+    alwaysRenderMenu={true}
     keepMenuOpen={false}
     onClose={[Function]}
     onOpen={[Function]}
@@ -40,6 +41,7 @@ exports[`DropdownLink renders and anchors to left by default 1`] = `
       <ul
         className="dropdown-menu"
         onClick={[Function]}
+        onMouseEnter={[Function]}
         onMouseLeave={[Function]}
       >
         <div>
@@ -67,6 +69,7 @@ exports[`DropdownLink renders and anchors to right 1`] = `
   topLevelClasses="top-level-class"
 >
   <DropdownMenu
+    alwaysRenderMenu={true}
     keepMenuOpen={false}
     onClose={[Function]}
     onOpen={[Function]}
@@ -94,6 +97,7 @@ exports[`DropdownLink renders and anchors to right 1`] = `
       <ul
         className="dropdown-menu"
         onClick={[Function]}
+        onMouseEnter={[Function]}
         onMouseLeave={[Function]}
       >
         <div>

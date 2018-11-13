@@ -1,9 +1,10 @@
+import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ProjectContext from '../projects/projectContext';
-import ProjectDocsContext from './docsContext';
-import ProjectSelector from '../../components/projectHeader/projectSelector';
+import ProjectContext from 'app/views/projects/projectContext';
+import ProjectDocsContext from 'app/views/projectInstall/docsContext';
+import ProjectSelector from 'app/components/projectHeader/projectSelector';
 
 class GettingStartedBody extends React.Component {
   static contextTypes = {
@@ -14,7 +15,7 @@ class GettingStartedBody extends React.Component {
   render() {
     let {project, organization} = this.context;
     return (
-      <div className="getting-started">
+      <Box flex={1}>
         <div className="sub-header flex flex-container flex-vertically-centered">
           <div className="p-t-1 p-b-1">
             <ProjectSelector organization={organization} projectId={project.slug} />
@@ -30,7 +31,7 @@ class GettingStartedBody extends React.Component {
             </ProjectDocsContext>
           </div>
         </div>
-      </div>
+      </Box>
     );
   }
 }

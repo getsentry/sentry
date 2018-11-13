@@ -22,6 +22,7 @@ class GroupSubscriptionReason(object):
     status_change = 4
     deploy_setting = 5
     mentioned = 6
+    team_mentioned = 7
 
     descriptions = {
         implicit:
@@ -43,6 +44,8 @@ class GroupSubscriptionReason(object):
         u"opted to receive all deploy notifications for this organization",
         mentioned:
         u"have been mentioned in this issue",
+        team_mentioned:
+        u"are a member of a team mentioned in this issue",
     }
 
 
@@ -91,6 +94,55 @@ class GroupSubscriptionManager(BaseManager):
         except IntegrityError:
             pass
 
+    def subscribe_actor(self, group, actor, reason=GroupSubscriptionReason.unknown):
+        from sentry.models import User, Team
+
+        if isinstance(actor, User):
+            return self.subscribe(group, actor, reason)
+        if isinstance(actor, Team):
+            # subscribe the members of the team
+            team_users_ids = list(actor.member_set.values_list('user_id', flat=True))
+            return self.bulk_subscribe(group, team_users_ids, reason)
+
+        raise NotImplementedError('Unknown actor type: %r' % type(actor))
+
+    def bulk_subscribe(self, group, user_ids, reason=GroupSubscriptionReason.unknown):
+        """
+        Subscribe a list of user ids to an issue, but only if the users are not explicitly
+        unsubscribed.
+        """
+        user_ids = set(user_ids)
+
+        # 5 retries for race conditions where
+        # concurrent subscription attempts cause integrity errors
+        for i in range(4, -1, -1):  # 4 3 2 1 0
+
+            existing_subscriptions = set(GroupSubscription.objects.filter(
+                user_id__in=user_ids,
+                group=group,
+                project=group.project,
+            ).values_list('user_id', flat=True))
+
+            subscriptions = [
+                GroupSubscription(
+                    user_id=user_id,
+                    group=group,
+                    project=group.project,
+                    is_active=True,
+                    reason=reason,
+                )
+                for user_id in user_ids
+                if user_id not in existing_subscriptions
+            ]
+
+            try:
+                with transaction.atomic():
+                    self.bulk_create(subscriptions)
+                    return True
+            except IntegrityError as e:
+                if i == 0:
+                    raise e
+
     def get_participants(self, group):
         """
         Identify all users who are participating with a given issue.
@@ -101,7 +153,7 @@ class GroupSubscriptionManager(BaseManager):
             user.id: user
             for user in
             User.objects.filter(
-                sentry_orgmember_set__teams=group.project.team,
+                sentry_orgmember_set__teams=group.project.teams.all(),
                 is_active=True,
             )
         }

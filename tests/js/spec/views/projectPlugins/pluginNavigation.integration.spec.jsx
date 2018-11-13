@@ -6,15 +6,23 @@ import PluginNavigation from 'app/views/projectSettings/pluginNavigation';
 jest.mock('app/api');
 
 describe('PluginNavigation Integration', function() {
-  let org, project, plugins, wrapper;
-  let sandbox;
+  let wrapper;
+  let routerContext = TestStubs.routerContext();
+  let org = routerContext.context.organization;
+  let project = routerContext.context.project;
+  let plugins = TestStubs.Plugins();
 
   beforeEach(function() {
-    sandbox = sinon.sandbox.create();
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
-    plugins = TestStubs.Plugins();
-
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/`,
+      method: 'GET',
+      body: {organization: org},
+    });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
       method: 'GET',
@@ -30,25 +38,17 @@ describe('PluginNavigation Integration', function() {
     });
   });
 
-  afterEach(function() {
-    sandbox.restore();
-  });
-
   // Integration test with PluginNavigation
-  describe.only('with PluginNavigation', function() {
-    beforeEach(async function() {
+  describe('with PluginNavigation', function() {
+    beforeEach(function() {
       let params = {orgId: org.slug, projectId: project.slug};
-
+      let organization = {...org, id: org.slug, features: []};
       wrapper = mount(
         <div>
-          <ProjectPlugins params={params} />
-          <PluginNavigation urlRoot="/" />
+          <ProjectPlugins params={params} organization={organization} />
+          <PluginNavigation organization={organization} urlRoot="/" />
         </div>,
-        {
-          context: {
-            router: TestStubs.router(),
-          },
-        }
+        TestStubs.routerContext()
       );
     });
 
@@ -59,41 +59,17 @@ describe('PluginNavigation Integration', function() {
     /**
      * This tests that ProjectPlugins and PluginNavigation respond to the same store
      */
-    it('has Amazon in <PluginNavigation /> after enabling', function(done) {
-      let hasEnabled = false;
+    it('has Amazon in <PluginNavigation /> after enabling', async function() {
+      await tick();
+      wrapper.update();
+      wrapper
+        .find('Switch')
+        .first()
+        .simulate('click');
 
-      // Yuck, not sure of a better way to test these
-      ProjectPlugins.prototype.componentDidUpdate = function() {
-        try {
-          wrapper.update();
-          if (!hasEnabled && wrapper.find('Checkbox').length) {
-            hasEnabled = true;
-            // Enable first plugin, should be amazon
-            wrapper
-              .find('Checkbox')
-              .first()
-              .simulate('change');
-
-            wrapper.update();
-          }
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.error(err);
-        }
-      };
-
-      PluginNavigation.prototype.componentDidUpdate = function() {
-        try {
-          wrapper.update();
-          if (wrapper.find('PluginNavigation a').length) {
-            expect(wrapper.find('PluginNavigation').find('a')).toHaveLength(1);
-            done();
-          }
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.error(err);
-        }
-      };
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('PluginNavigation').find('a')).toHaveLength(1);
     });
   });
 });

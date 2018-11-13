@@ -14,7 +14,7 @@ class ProjectGroupStatsTest(APITestCase):
         group1 = self.create_group(project=project)
         group2 = self.create_group(project=project)
 
-        url = '/api/0/projects/{}/{}/issues/stats/'.format(
+        url = u'/api/0/projects/{}/{}/issues/stats/'.format(
             project.organization.slug,
             project.slug,
         )

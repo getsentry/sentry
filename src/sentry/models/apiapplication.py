@@ -14,6 +14,14 @@ from sentry.db.models import (
 )
 
 
+def generate_name():
+    return petname.Generate(2, ' ', letters=10).title()
+
+
+def generate_token():
+    return uuid4().hex + uuid4().hex
+
+
 class ApiApplicationStatus(object):
     active = 0
     inactive = 1
@@ -25,12 +33,12 @@ class ApiApplication(Model):
     __core__ = True
 
     client_id = models.CharField(
-        max_length=64, unique=True, default=lambda: ApiApplication.generate_token()
+        max_length=64, unique=True, default=generate_token
     )
-    client_secret = EncryptedTextField(default=lambda: ApiApplication.generate_token())
+    client_secret = EncryptedTextField(default=generate_token)
     owner = FlexibleForeignKey('sentry.User')
     name = models.CharField(
-        max_length=64, blank=True, default=lambda: petname.Generate(2, ' ', letters=10).title()
+        max_length=64, blank=True, default=generate_name
     )
     status = BoundedPositiveIntegerField(
         default=0,
@@ -59,10 +67,6 @@ class ApiApplication(Model):
 
     def __unicode__(self):
         return self.name
-
-    @classmethod
-    def generate_token(cls):
-        return uuid4().hex + uuid4().hex
 
     @property
     def is_active(self):

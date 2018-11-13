@@ -64,7 +64,10 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
         except SavedSearch.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if request.access.has_team_scope(project.team, 'project:write'):
+        has_team_scope = any(
+            request.access.has_team_scope(team, 'project:write') for team in project.teams.all()
+        )
+        if has_team_scope:
             serializer = SavedSearchSerializer(data=request.DATA, partial=True)
         else:
             serializer = LimitedSavedSearchSerializer(data=request.DATA, partial=True)
@@ -116,6 +119,14 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
         except SavedSearch.DoesNotExist:
             raise ResourceDoesNotExist
 
-        search.delete()
+        is_search_owner = request.user and request.user == search.owner
 
-        return Response(status=204)
+        if request.access.has_scope('project:write'):
+            if not search.owner or is_search_owner:
+                search.delete()
+                return Response(status=204)
+        elif is_search_owner:
+            search.delete()
+            return Response(status=204)
+
+        return Response(status=403)

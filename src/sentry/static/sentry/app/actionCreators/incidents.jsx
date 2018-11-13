@@ -1,7 +1,7 @@
 import $ from 'jquery';
 
-import ConfigStore from '../stores/configStore';
-import IncidentActions from '../actions/incidentActions';
+import ConfigStore from 'app/stores/configStore';
+import IncidentActions from 'app/actions/incidentActions';
 
 function getIncidentsFromIncidentResponse(incidents) {
   if (incidents === null || incidents.length == 0) {

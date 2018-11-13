@@ -1,17 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import {t} from '../../locale';
-import GroupingStore from '../../stores/groupingStore';
+import {t} from 'app/locale';
+import GroupingStore from 'app/stores/groupingStore';
 
-import SpreadLayout from '../../components/spreadLayout';
-import FlowLayout from '../../components/flowLayout';
-import LinkWithConfirmation from '../../components/linkWithConfirmation';
-import Toolbar from '../../components/toolbar';
-import ToolbarHeader from '../../components/toolbarHeader';
+import SpreadLayout from 'app/components/spreadLayout';
+import FlowLayout from 'app/components/flowLayout';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import Toolbar from 'app/components/toolbar';
+import ToolbarHeader from 'app/components/toolbarHeader';
 
-const SimilarToolbar = React.createClass({
+const SimilarToolbar = createReactClass({
+  displayName: 'SimilarToolbar',
+
   propTypes: {
     onMerge: PropTypes.func.isRequired,
   },
@@ -41,6 +44,7 @@ const SimilarToolbar = React.createClass({
             <FlowLayout>
               <div className="similar-toolbar-actions">
                 <LinkWithConfirmation
+                  data-test-id="merge"
                   disabled={this.state.mergeCount === 0}
                   title={t(`Merging ${this.state.mergeCount} issues`)}
                   message={t('Are you sure you want to merge these issues?')}

@@ -1,17 +1,19 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
-const InlineSvg = ({src, size, width, height}) => {
+const InlineSvg = ({src, size, width, height, ...props}) => {
   const {id, viewBox} = require(`../icons/${src}.svg`).default;
 
   return (
-    <svg
+    <StyledSvg
+      {...props}
       viewBox={viewBox}
       width={width || size || '1em'}
       height={height || size || '1em'}
     >
       <use href={`#${id}`} xlinkHref={`#${id}`} />
-    </svg>
+    </StyledSvg>
   );
 };
 
@@ -21,5 +23,9 @@ InlineSvg.propTypes = {
   width: PropTypes.string,
   height: PropTypes.string,
 };
+
+const StyledSvg = styled('svg')`
+  vertical-align: middle;
+`;
 
 export default InlineSvg;

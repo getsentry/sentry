@@ -1,9 +1,11 @@
 import {observable, computed, action} from 'mobx';
 import _ from 'lodash';
 
-import {Client} from '../../../../api';
-import {defined} from '../../../../utils';
-import FormState from '../../../../components/forms/state';
+import {Client} from 'app/api';
+import {addErrorMessage, saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
+import {defined} from 'app/utils';
+import {t} from 'app/locale';
+import FormState from 'app/components/forms/state';
 
 class FormModel {
   /**
@@ -64,12 +66,16 @@ class FormModel {
   reset() {
     this.api.clear();
     this.api = null;
+    this.fieldDescriptor.clear();
+    this.resetForm();
+  }
+
+  resetForm() {
     this.fields.clear();
     this.errors.clear();
     this.fieldState.clear();
     this.snapshots = [];
     this.initialData = {};
-    this.fieldDescriptor.clear();
   }
 
   /**
@@ -77,7 +83,7 @@ class FormModel {
    */
   @computed
   get formChanged() {
-    return !_.isEqual(this.initialData, this.fields.toJSON(), true);
+    return !_.isEqual(this.initialData, this.fields.toJSON());
   }
 
   @computed
@@ -123,9 +129,21 @@ class FormModel {
    */
   setFieldDescriptor(id, props) {
     this.fieldDescriptor.set(id, props);
+
+    // Set default value iff initialData for field is undefined
+    // This must take place before checking for `props.setValue` so that it can
+    // be applied to `defaultValue`
+    if (
+      typeof props.defaultValue !== 'undefined' &&
+      typeof this.initialData[id] === 'undefined'
+    ) {
+      this.initialData[id] = props.defaultValue;
+      this.fields.set(id, this.initialData[id]);
+    }
+
     if (typeof props.setValue === 'function') {
-      this.initialData[id] = props.setValue(this.initialData[id]);
-      this.setValue(id, this.initialData[id]);
+      this.initialData[id] = props.setValue(this.initialData[id], props);
+      this.fields.set(id, this.initialData[id]);
     }
   }
 
@@ -166,6 +184,38 @@ class FormModel {
     return this.fields.get(id);
   }
 
+  getTransformedValue(id) {
+    let fieldDescriptor = this.fieldDescriptor.get(id);
+    let transformer =
+      fieldDescriptor && typeof fieldDescriptor.getValue === 'function'
+        ? fieldDescriptor.getValue
+        : null;
+    let value = this.getValue(id);
+
+    return transformer ? transformer(value) : value;
+  }
+
+  /**
+   * Data represented in UI
+   */
+  getData() {
+    return this.fields.toJSON();
+  }
+
+  /**
+   * Form data that will be sent to API endpoint (i.e. after transforms)
+   */
+  getTransformedData() {
+    let form = this.getData();
+
+    return Object.keys(form)
+      .map(id => [id, this.getTransformedValue(id)])
+      .reduce((acc, [id, value]) => {
+        acc[id] = value;
+        return acc;
+      }, {});
+  }
+
   getError(id) {
     return this.errors.has(id) && this.errors.get(id);
   }
@@ -178,13 +228,12 @@ class FormModel {
   }
 
   isValidField(id) {
-    return this.isValidRequiredField(id);
+    return (this.getError(id) || []).length === 0;
   }
 
   doApiRequest({apiEndpoint, apiMethod, data}) {
     let endpoint = apiEndpoint || this.options.apiEndpoint;
     let method = apiMethod || this.options.apiMethod;
-
     return new Promise((resolve, reject) => {
       this.api.request(endpoint, {
         method,
@@ -197,16 +246,73 @@ class FormModel {
 
   @action
   setValue(id, value) {
-    this.fields.set(id, value);
+    let fieldDescriptor = this.fieldDescriptor.get(id);
+    let finalValue = value;
 
-    // specifically check for empty string, 0 should be allowed
-    if (!this.isValidRequiredField(id)) {
-      this.setError(id, 'Field is required');
-    } else {
-      this.setError(id, false);
+    if (fieldDescriptor && typeof fieldDescriptor.transformInput === 'function') {
+      finalValue = fieldDescriptor.transformInput(value);
     }
+
+    this.fields.set(id, finalValue);
+
+    if (this.options.onFieldChange) {
+      this.options.onFieldChange(id, finalValue);
+    }
+
+    this.validateField(id);
+    this.updateShowSaveState(id, finalValue);
+    this.updateShowReturnButtonState(id, finalValue);
   }
 
+  @action
+  validateField(id) {
+    let validate = this.getDescriptor(id, 'validate');
+    let errors = [];
+
+    if (typeof validate === 'function') {
+      // Returns "tuples" of [id, error string]
+      errors = validate({model: this, id, form: this.getData()}) || [];
+    }
+
+    let fieldIsRequiredMessage = t('Field is required');
+
+    if (!this.isValidRequiredField(id)) {
+      errors.push([id, fieldIsRequiredMessage]);
+    }
+
+    // If we have no errors, ensure we clear the field
+    errors = errors.length === 0 ? [[id, null]] : errors;
+
+    errors.forEach(([field, errorMessage]) => this.setError(field, errorMessage));
+  }
+
+  @action
+  updateShowSaveState(id, value) {
+    let isValueChanged = value !== this.initialData[id];
+    // Update field state to "show save" if save on blur is disabled for this field
+    // (only if contents of field differs from initial value)
+    let saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
+    if (typeof saveOnBlurFieldOverride === 'undefined' || saveOnBlurFieldOverride) return;
+    if (this.getFieldState(id, 'showSave') === isValueChanged) return;
+
+    this.setFieldState(id, 'showSave', isValueChanged);
+  }
+
+  @action
+  updateShowReturnButtonState(id, value) {
+    let isValueChanged = value !== this.initialData[id];
+    let shouldShowReturnButton = this.getDescriptor(id, 'showReturnButton');
+
+    if (!shouldShowReturnButton) return;
+    // Only update state if state has changed
+    if (this.getFieldState(id, 'showReturnButton') === isValueChanged) return;
+
+    this.setFieldState(id, 'showReturnButton', isValueChanged);
+  }
+
+  /**
+   * Changes form values to previous saved state
+   */
   @action
   undo() {
     // Always have initial data snapshot
@@ -219,6 +325,85 @@ class FormModel {
   }
 
   /**
+   * Attempts to save entire form to server and saves a snapshot for undos
+   */
+  @action
+  saveForm() {
+    this.validateForm();
+    if (this.isError) return null;
+
+    let saveSnapshot = this.createSnapshot();
+
+    let request = this.doApiRequest({
+      data: this.getTransformedData(),
+    });
+
+    this.formState = FormState.SAVING;
+
+    request
+      .then(resp => {
+        // save snapshot
+        if (saveSnapshot) {
+          saveSnapshot();
+          saveSnapshot = null;
+        }
+
+        if (this.options.onSubmitSuccess) {
+          this.options.onSubmitSuccess(resp, this);
+        }
+      })
+      .catch((resp, ...args) => {
+        // should we revert field value to last known state?
+        saveSnapshot = null;
+        if (this.options.resetOnError) {
+          this.setInitialData({});
+        }
+        this.submitError(resp);
+        if (this.options.onSubmitError) {
+          this.options.onSubmitError(resp, this);
+        }
+      });
+
+    return request;
+  }
+
+  /**
+   * Attempts to save field and show undo message if necessary.
+   * Calls submit handlers.
+   * TODO(billy): This should return a promise that resolves (instead of null)
+   */
+  @action
+  saveField(id, currentValue) {
+    let oldValue = this.initialData[id];
+    let savePromise = this.saveFieldRequest(id, currentValue);
+
+    if (!savePromise) return null;
+
+    return savePromise
+      .then(resp => {
+        let newValue = this.getValue(id);
+        let change = {old: oldValue, new: newValue};
+
+        // Only use `allowUndo` option if explicity defined
+        if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
+          saveOnBlurUndoMessage(change, this, id);
+        }
+
+        if (this.options.onSubmitSuccess) {
+          this.options.onSubmitSuccess(resp, this, id, change);
+        }
+
+        return resp;
+      })
+      .catch(error => {
+        if (this.options.onSubmitError) {
+          this.options.onSubmitError(error, this, id);
+        }
+        return {};
+      });
+  }
+
+  /**
    * Saves a field with new value
    *
    * If field has changes, field does not have errors, then it will:
@@ -228,55 +413,91 @@ class FormModel {
    * If failed then: 1) reset save state, 2) add error state
    */
   @action
-  saveField(id, currentValue) {
+  saveFieldRequest(id, currentValue) {
+    let initialValue = this.initialData[id];
+
     // Don't save if field hasn't changed
     // Don't need to check for error state since initialData wouldn't have updated since last error
-    if (
-      currentValue === this.initialData[id] ||
-      (currentValue === '' && !defined(this.initialData[id]))
-    )
+    if (currentValue === initialValue || (currentValue === '' && !defined(initialValue)))
       return null;
 
     // Check for error first
+    this.validateField(id);
     if (!this.isValidField(id)) return null;
 
     // shallow clone fields
     let saveSnapshot = this.createSnapshot();
-    let newValue = this.getValue(id);
 
     // Save field + value
     this.setSaving(id, true);
 
-    // Transform data before saving, this uses `getValue` defined when declaring the form
     let fieldDescriptor = this.fieldDescriptor.get(id);
-    let serializer =
-      typeof fieldDescriptor.getValue === 'function' ? fieldDescriptor.getValue : a => a;
 
-    return this.doApiRequest({data: {[id]: serializer(newValue)}})
+    // Check if field needs to handle transforming request object
+    let getData =
+      typeof fieldDescriptor.getData === 'function' ? fieldDescriptor.getData : a => a;
+
+    let request = this.doApiRequest({
+      data: getData(
+        {[id]: this.getTransformedValue(id)},
+        {model: this, id, form: this.getData()}
+      ),
+    });
+
+    request
       .then(data => {
         this.setSaving(id, false);
 
-        // Updating initialData and save snapshot
-        let oldValue = this.initialData[id];
-        this.initialData[id] = newValue;
-
+        // save snapshot
         if (saveSnapshot) {
           saveSnapshot();
           saveSnapshot = null;
         }
 
-        return {old: oldValue, new: newValue};
-      })
-      .catch(error => {
-        // should we revert field value to last known state?
+        // Update initialData after successfully saving a field as it will now be the baseline value
+        this.initialData[id] = this.getValue(id);
 
+        return data;
+      })
+      .catch(resp => {
+        // should we revert field value to last known state?
         saveSnapshot = null;
-        this.setError(id, 'Failed to save');
+
+        // Field can be configured to reset on error
+        // e.g. BooleanFields
+        let shouldReset = this.getDescriptor(id, 'resetOnError');
+        if (shouldReset) {
+          this.setValue(id, initialValue);
+        }
+
+        // API can return a JSON object with either:
+        // 1) map of {[fieldName] => Array<ErrorMessages>}
+        // 2) {'non_field_errors' => Array<ErrorMessages>}
+        if (resp && resp.responseJSON) {
+          // Show resp msg from API endpoint if possible
+          if (Array.isArray(resp.responseJSON[id]) && resp.responseJSON[id].length) {
+            // Just take first resp for now
+            this.setError(id, resp.responseJSON[id][0]);
+          } else if (
+            Array.isArray(resp.responseJSON.non_field_errors) &&
+            resp.responseJSON.non_field_errors.length
+          ) {
+            addErrorMessage(resp.responseJSON.non_field_errors[0], 10000);
+            // Reset saving state
+            this.setError(id, '');
+          } else {
+            this.setError(id, 'Failed to save');
+          }
+        } else {
+          // Default error behavior
+          this.setError(id, 'Failed to save');
+        }
 
         // eslint-disable-next-line no-console
-        console.error(error);
-        throw error;
+        console.error('Error saving form field', resp && resp.responseJSON);
       });
+
+    return request;
   }
 
   /**
@@ -285,27 +506,40 @@ class FormModel {
    * If `saveOnBlur` is set then call `saveField` and handle form callbacks accordingly
    */
   @action
-  handleFieldBlur(id, currentValue) {
+  handleBlurField(id, currentValue) {
     // Nothing to do if `saveOnBlur` is not on
     if (!this.options.saveOnBlur) return null;
 
-    let savePromise = this.saveField(id, currentValue);
+    // Fields can individually set `saveOnBlur` to `false` (note this is ignored when `undefined`)
+    let saveOnBlurFieldOverride = this.getDescriptor(id, 'saveOnBlur');
+    if (typeof saveOnBlurFieldOverride !== 'undefined' && !saveOnBlurFieldOverride) {
+      return null;
+    }
+
+    return this.saveField(id, currentValue);
+  }
+
+  /**
+   * This is called when a field does not saveOnBlur and has an individual "Save" button
+   */
+  @action
+  handleSaveField(id, currentValue) {
+    const savePromise = this.saveField(id, currentValue);
 
     if (!savePromise) return null;
 
-    return savePromise
-      .then(change => {
-        if (this.options.onSubmitSuccess) {
-          this.options.onSubmitSuccess(change, this, id);
-        }
-        return change;
-      })
-      .catch(error => {
-        if (this.options.onSubmitError) {
-          this.options.onSubmitError(error, this, id);
-        }
-        return {};
-      });
+    return savePromise.then(() => {
+      this.setFieldState(id, 'showSave', false);
+    });
+  }
+
+  /**
+   * Cancel "Save Field" state and revert form value back to initial value
+   */
+  @action
+  handleCancelSaveField(id) {
+    this.setValue(id, this.initialData[id]);
+    this.setFieldState(id, 'showSave', false);
   }
 
   @action
@@ -348,13 +582,28 @@ class FormModel {
   }
 
   @action
-  getData() {
-    return this.fields;
+  validateForm() {
+    Array.from(this.fieldDescriptor.keys()).forEach(id => !this.validateField(id));
   }
 
-  // TODO: More validations
   @action
-  validate() {}
+  handleErrorResponse({responseJSON: resp} = {}) {
+    if (!resp) return;
+
+    // Show resp msg from API endpoint if possible
+    Object.keys(resp).forEach(id => {
+      if (
+        id === 'non_field_errors' &&
+        Array.isArray(resp.non_field_errors) &&
+        resp.non_field_errors.length
+      ) {
+        addErrorMessage(resp.non_field_errors[0], 10000);
+      } else if (Array.isArray(resp[id]) && resp[id].length) {
+        // Just take first resp for now
+        this.setError(id, resp[id][0]);
+      }
+    });
+  }
 
   @action
   submitSuccess(data) {
@@ -367,6 +616,7 @@ class FormModel {
   submitError(err) {
     this.formState = FormState.ERROR;
     this.formErrors = err.responseJSON;
+    this.handleErrorResponse(err);
   }
 }
 

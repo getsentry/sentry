@@ -1,22 +1,15 @@
 import _ from 'lodash';
 
 // import/export sub-utils
-import parseLinkHeader from './utils/parseLinkHeader';
-import deviceNameMapper from './utils/deviceNameMapper';
-import Collection from './utils/collection';
-import PendingChangeQueue from './utils/pendingChangeQueue';
-import CursorPoller from './utils/cursorPoller';
-import StreamManager from './utils/streamManager';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
+import Collection from 'app/utils/collection';
+import PendingChangeQueue from 'app/utils/pendingChangeQueue';
+import CursorPoller from 'app/utils/cursorPoller';
+import StreamManager from 'app/utils/streamManager';
 
 /*eslint no-use-before-define:0*/
-export const modelsEqual = function(obj1, obj2) {
-  if (!obj1 && !obj2) return true;
-  if (obj1.id && !obj2) return false;
-  if (obj2.id && !obj1) return false;
-  return obj1.id === obj2.id;
-};
 
-export const arrayIsEqual = function(arr, other, deep) {
+const arrayIsEqual = function(arr, other, deep) {
   // if the other array is a falsy value, return
   if (!arr && !other) {
     return true;
@@ -49,7 +42,7 @@ export const valueIsEqual = function(value, other, deep) {
   return false;
 };
 
-export const objectMatchesSubset = function(obj, other, deep) {
+const objectMatchesSubset = function(obj, other, deep) {
   let k;
 
   if (obj === other) {
@@ -87,66 +80,9 @@ export const objectToArray = function(obj) {
   return result;
 };
 
-export const compareArrays = function(arr1, arr2, compFunc) {
-  if (arr1 === arr2) {
-    return true;
-  }
-  if (!arr1) {
-    arr1 = [];
-  }
-  if (!arr2) {
-    arr2 = [];
-  }
-
-  if (arr1.length != arr2.length) {
-    return false;
-  }
-
-  for (let i = 0; i < Math.max(arr1.length, arr2.length); i++) {
-    if (!arr1[i]) {
-      return false;
-    }
-    if (!arr2[i]) {
-      return false;
-    }
-    if (!compFunc(arr1[i], arr2[i])) {
-      return false;
-    }
-  }
-  return true;
-};
-
 export const intcomma = function(x) {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
-
-export function getQueryParams() {
-  let hashes, hash;
-  let vars = {},
-    href = window.location.href;
-
-  if (href.indexOf('?') == -1) return vars;
-
-  hashes = href
-    .slice(
-      href.indexOf('?') + 1,
-      href.indexOf('#') != -1 ? href.indexOf('#') : href.length
-    )
-    .split('&');
-
-  hashes.forEach(chunk => {
-    hash = chunk.split('=');
-    if (!hash[0] && !hash[1]) {
-      return;
-    }
-
-    vars[decodeURIComponent(hash[0])] = hash[1]
-      ? decodeURIComponent(hash[1]).replace(/\+/, ' ')
-      : '';
-  });
-
-  return vars;
-}
 
 export function sortArray(arr, score_fn) {
   arr.sort((a, b) => {
@@ -181,6 +117,13 @@ export function trim(str) {
   return str.replace(/^\s+|\s+$/g, '');
 }
 
+/**
+ * Replaces slug special chars with a space
+ */
+export function explodeSlug(slug) {
+  return trim(slug.replace(/[-_]+/g, ' '));
+}
+
 export function defined(item) {
   return !_.isUndefined(item) && item !== null;
 }
@@ -208,11 +151,6 @@ export function percent(value, totalValue, precise) {
   return value / totalValue * 100;
 }
 
-export function urlize(str) {
-  // TODO
-  return str;
-}
-
 export function toTitleCase(str) {
   return str.replace(/\w\S*/g, txt => {
     return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
@@ -235,6 +173,10 @@ export function formatBytes(bytes) {
 }
 
 export function getShortVersion(version) {
+  if (version.length < 12) {
+    return version;
+  }
+
   let match = version.match(
     /^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/
   );
@@ -269,33 +211,82 @@ export function extractMultilineFields(value) {
     .filter(f => f !== '');
 }
 
+function projectDisplayCompare(a, b) {
+  if (a.isBookmarked !== b.isBookmarked) {
+    return a.isBookmarked ? -1 : 1;
+  }
+  return a.slug.localeCompare(b.slug);
+}
+
+// Sort a list of projects by bookmarkedness, then by id
+export function sortProjects(projects) {
+  return projects.sort(projectDisplayCompare);
+}
+
+//build actorIds
+export const buildUserId = id => `user:${id}`;
+export const buildTeamId = id => `team:${id}`;
+
+/**
+ * Removes the organization / project scope prefix on feature names.
+ */
+export function descopeFeatureName(feature) {
+  return typeof feature.match !== 'function'
+    ? feature
+    : feature.match(/(?:^(?:projects|organizations):)?(.*)/).pop();
+}
+
+export function isWebpackChunkLoadingError(error) {
+  return (
+    error &&
+    typeof error.message === 'string' &&
+    error.message.toLowerCase().includes('loading chunk')
+  );
+}
+
+/**
+ * This parses our period shorthand strings (e.g. <int><unit>)
+ * and converts it into hours
+ */
+export function parsePeriodToHours(str) {
+  const [, periodNumber, periodLength] = str.match(/([0-9]+)([mhdw])/);
+
+  switch (periodLength) {
+    case 'm':
+      return periodNumber / 60;
+    case 'h':
+      return periodNumber;
+    case 'd':
+      return periodNumber * 24;
+    case 'w':
+      return periodLength * 24 * 7;
+    default:
+      return -1;
+  }
+}
+
 // re-export under utils
-export {parseLinkHeader, deviceNameMapper, Collection, PendingChangeQueue, CursorPoller};
+export {parseLinkHeader, Collection, PendingChangeQueue, CursorPoller};
 
 // backwards compatible default export for use w/ getsentry (exported
 // as a single object w/ function refs for consumption by getsentry)
 export default {
-  getQueryParams,
   sortArray,
   objectIsEmpty,
-  trim,
   defined,
   nl2br,
   isUrl,
   escape,
   percent,
-  urlize,
   toTitleCase,
-  arrayIsEqual,
-  objectMatchesSubset,
-  compareArrays,
   intcomma,
-  modelsEqual,
   valueIsEqual,
   parseLinkHeader,
+  buildUserId,
+  buildTeamId,
+  descopeFeatureName,
 
   // external imports
-  deviceNameMapper,
   objectToArray,
   Collection,
   PendingChangeQueue,

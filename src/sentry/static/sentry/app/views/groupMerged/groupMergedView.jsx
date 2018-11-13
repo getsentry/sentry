@@ -1,15 +1,17 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import MergedList from './mergedList';
-import GroupingActions from '../../actions/groupingActions';
-import GroupingStore from '../../stores/groupingStore';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import MergedList from 'app/views/groupMerged/mergedList';
+import GroupingActions from 'app/actions/groupingActions';
+import GroupingStore from 'app/stores/groupingStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
-const GroupMergedView = React.createClass({
+const GroupMergedView = createReactClass({
+  displayName: 'GroupMergedView',
   mixins: [ApiMixin, Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {

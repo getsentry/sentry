@@ -1,48 +1,44 @@
+import {withRouter} from 'react-router';
 import React from 'react';
 
-import AsyncView from './asyncView';
-import NarrowLayout from '../components/narrowLayout';
-import {ApiForm, TextField} from '../components/forms';
-import {t} from '../locale';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import CreateTeamForm from 'app/components/createTeam/createTeamForm';
+import NarrowLayout from 'app/components/narrowLayout';
+import SentryTypes from 'app/sentryTypes';
 
-export default class TeamCreate extends AsyncView {
-  onSubmitSuccess = data => {
-    let {orgId} = this.props.params;
-    // redirect to project creation
-    window.location.href = `/organizations/${orgId}/projects/new/?team=${data.slug}`;
+class TeamCreate extends AsyncView {
+  static contextTypes = {
+    organization: SentryTypes.Organization,
   };
 
   getTitle() {
     return 'Create Team';
   }
 
-  renderBody() {
+  getEndpoints() {
+    return [];
+  }
+
+  handleSubmitSuccess = data => {
     let {orgId} = this.props.params;
+    let redirectUrl = `/settings/${orgId}/teams/${data.slug}/`;
+    this.props.router.push(redirectUrl);
+  };
+
+  renderBody() {
     return (
       <NarrowLayout>
         <h3>{t('Create a New Team')}</h3>
 
-        <p>
-          {t(
-            "Teams group members' access to a specific focus, e.g. a major product or application that may have sub-projects."
-          )}
-        </p>
-
-        <ApiForm
-          submitLabel={t('Save Changes')}
-          apiEndpoint={`/organizations/${orgId}/teams/`}
-          apiMethod="POST"
-          onSubmitSuccess={this.onSubmitSuccess}
-          requireChanges={true}
-        >
-          <TextField
-            name="name"
-            label={t('Team Name')}
-            placeholder={t('e.g. Operations, Web, Desktop')}
-            required={true}
-          />
-        </ApiForm>
+        <CreateTeamForm
+          onSuccess={this.handleSubmitSuccess}
+          organization={this.context.organization}
+        />
       </NarrowLayout>
     );
   }
 }
+
+export {TeamCreate};
+export default withRouter(TeamCreate);

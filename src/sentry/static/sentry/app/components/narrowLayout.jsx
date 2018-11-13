@@ -1,16 +1,30 @@
 import jQuery from 'jquery';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import Footer from '../components/footer';
+import {t} from 'app/locale';
+import {logout} from 'app/actionCreators/account';
+import {Client} from 'app/api';
+import styled from 'react-emotion';
 
-class NarryLayout extends React.Component {
+class NarrowLayout extends React.Component {
+  static propTypes = {
+    showLogout: PropTypes.bool,
+  };
+
   componentWillMount() {
+    this.api = new Client();
     jQuery(document.body).addClass('narrow');
   }
 
   componentWillUnmount() {
+    this.api.clear();
     jQuery(document.body).removeClass('narrow');
   }
+
+  handleLogout = () => {
+    logout(this.api).then(() => (window.location = '/auth/login'));
+  };
 
   render() {
     return (
@@ -22,14 +36,22 @@ class NarryLayout extends React.Component {
               <a href="/">
                 <span className="icon-sentry-logo" />
               </a>
+              {this.props.showLogout && (
+                <a className="logout pull-right" onClick={this.handleLogout}>
+                  <Logout>{t('Sign out')}</Logout>
+                </a>
+              )}
             </div>
             <div className="box-content with-padding">{this.props.children}</div>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
 }
 
-export default NarryLayout;
+const Logout = styled.span`
+  font-size: 16px;
+`;
+
+export default NarrowLayout;

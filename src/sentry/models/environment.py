@@ -1,6 +1,6 @@
 """
-sentry.models.release
-~~~~~~~~~~~~~~~~~~~~~
+sentry.models.environment
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -10,9 +10,16 @@ from __future__ import absolute_import, print_function
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
+from sentry.constants import (
+    ENVIRONMENT_NAME_PATTERN,
+    ENVIRONMENT_NAME_MAX_LENGTH
+)
 from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+import re
+
+OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
 
 class EnvironmentProject(Model):
@@ -20,6 +27,7 @@ class EnvironmentProject(Model):
 
     project = FlexibleForeignKey('sentry.Project')
     environment = FlexibleForeignKey('sentry.Environment')
+    is_hidden = models.NullBooleanField()
 
     class Meta:
         app_label = 'sentry'
@@ -32,6 +40,7 @@ class Environment(Model):
 
     organization_id = BoundedPositiveIntegerField()
     projects = models.ManyToManyField('sentry.Project', through=EnvironmentProject)
+    # DEPRECATED, use projects
     project_id = BoundedPositiveIntegerField(null=True)
     name = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
@@ -39,9 +48,20 @@ class Environment(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_environment'
-        unique_together = (('project_id', 'name'), ('organization_id', 'name'), )
+        unique_together = (('organization_id', 'name'), )
 
     __repr__ = sane_repr('organization_id', 'name')
+
+    @classmethod
+    def is_valid_name(cls, value):
+        """Limit length and reject problematic bytes
+
+        If you change the rules here also update the event ingestion schema
+        in sentry.interfaces.schemas
+        """
+        if len(value) > ENVIRONMENT_NAME_MAX_LENGTH:
+            return False
+        return OK_NAME_PATTERN.match(value) is not None
 
     @classmethod
     def get_cache_key(cls, organization_id, name):
@@ -86,8 +106,22 @@ class Environment(Model):
         return env
 
     def add_project(self, project):
-        try:
-            with transaction.atomic():
-                EnvironmentProject.objects.create(project=project, environment=self)
-        except IntegrityError:
-            pass
+        cache_key = 'envproj:c:%s:%s' % (self.id, project.id)
+
+        if cache.get(cache_key) is None:
+            try:
+                with transaction.atomic():
+                    EnvironmentProject.objects.create(project=project, environment=self)
+                cache.set(cache_key, 1, 3600)
+            except IntegrityError:
+                # We've already created the object, should still cache the action.
+                cache.set(cache_key, 1, 3600)
+
+    @staticmethod
+    def get_name_from_path_segment(segment):
+        # In cases where the environment name is passed as a URL path segment,
+        # the (case-sensitive) string "none" represents the empty string
+        # environment name for historic reasons (see commit b09858f.) In all
+        # other contexts (incl. request query string parameters), the empty
+        # string should be used.
+        return segment if segment != 'none' else ''

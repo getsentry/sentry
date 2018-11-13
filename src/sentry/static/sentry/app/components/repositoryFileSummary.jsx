@@ -1,14 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import FileChange from './fileChange';
-import {t, tn} from '../locale';
+import FileChange from 'app/components/fileChange';
+import {t, tn} from 'app/locale';
 
 function Collapsed(props) {
   return (
     <li className="list-group-item list-group-item-sm align-center">
       <span className="icon-container" />
       <a onClick={props.onClick}>
-        {tn('Show %d collapsed file', 'Show %d collapsed files', props.count)}
+        {tn('Show %s collapsed file', 'Show %s collapsed files', props.count)}
       </a>
     </li>
   );
@@ -56,8 +56,8 @@ class RepositoryFileSummary extends React.Component {
       <div>
         <h5>
           {tn(
-            '%d file changed in ' + repository,
-            '%d files changed in ' + repository,
+            '%s file changed in ' + repository,
+            '%s files changed in ' + repository,
             fileCount
           )}
         </h5>

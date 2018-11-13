@@ -1,20 +1,29 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
-import LatestContextStore from '../stores/latestContextStore';
-import withOrganizations from './withOrganizations';
+import getDisplayName from 'app/utils/getDisplayName';
+import LatestContextStore from 'app/stores/latestContextStore';
+import SentryTypes from 'app/sentryTypes';
+import withOrganizations from 'app/utils/withOrganizations';
 
 // HoC that returns most usable organization + project
 // This means your org if you only have 1 org, or
 // last accessed organization/project
 const withLatestContext = WrappedComponent =>
   withOrganizations(
-    React.createClass({
+    createReactClass({
+      displayName: `withLatestContext(${getDisplayName(WrappedComponent)})`,
+      propTypes: {
+        organizations: PropTypes.arrayOf(SentryTypes.Organization),
+      },
       mixins: [Reflux.connect(LatestContextStore, 'latestContext')],
+
       render() {
         let {organizations} = this.props;
         let {latestContext} = this.state;
-        let {organization, project} = latestContext || {};
+        let {organization, project, lastRoute} = latestContext || {};
 
         // Even though org details exists in LatestContextStore,
         // fetch organization from OrganizationsStore so that we can
@@ -24,11 +33,14 @@ const withLatestContext = WrappedComponent =>
           organization ||
           (organizations && organizations.length ? organizations[0] : null);
 
+        // TODO(billy): Below is going to be wrong if component is passed project, it will override
+        // project from `latestContext`
         return (
           <WrappedComponent
             organizations={organizations}
             organization={latestOrganization}
             project={project}
+            lastRoute={lastRoute}
             {...this.props}
           />
         );

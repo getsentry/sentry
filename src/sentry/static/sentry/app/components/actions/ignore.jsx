@@ -2,13 +2,15 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
-import {t} from '../../locale';
-import MenuItem from '../menuItem';
-import DropdownLink from '../dropdownLink';
-import Duration from '../duration';
-import CustomIgnoreCountModal from '../customIgnoreCountModal';
-import CustomIgnoreDurationModal from '../customIgnoreDurationModal';
-import ActionLink from './actionLink';
+import {t, tn} from 'app/locale';
+import MenuItem from 'app/components/menuItem';
+import DropdownLink from 'app/components/dropdownLink';
+import Duration from 'app/components/duration';
+import CustomIgnoreCountModal from 'app/components/customIgnoreCountModal';
+import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal';
+import ActionLink from 'app/components/actions/actionLink';
+import Tooltip from 'app/components/tooltip';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 export default class IgnoreActions extends React.Component {
   static propTypes = {
@@ -34,7 +36,7 @@ export default class IgnoreActions extends React.Component {
   }
 
   getIgnoreCounts() {
-    return [10, 100, 1000, 10000, 100000];
+    return [1, 10, 100, 1000, 10000, 100000];
   }
 
   getIgnoreWindows() {
@@ -80,13 +82,11 @@ export default class IgnoreActions extends React.Component {
     if (isIgnored) {
       return (
         <div className="btn-group">
-          <a
-            className={linkClassName + ' tip'}
-            title={t('Change status to unresolved')}
-            onClick={() => onUpdate({status: 'unresolved'})}
-          >
-            <span className="icon-ban" />
-          </a>
+          <Tooltip title={t('Change status to unresolved')}>
+            <a className={linkClassName} onClick={() => onUpdate({status: 'unresolved'})}>
+              <span className="icon-ban" />
+            </a>
+          </Tooltip>
         </div>
       );
     }
@@ -102,7 +102,7 @@ export default class IgnoreActions extends React.Component {
           show={this.state.modal === 'count'}
           onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore this issue until it occurs again .. ')}
+          label={t('Ignore this issue until it occurs again\u2026')}
           countLabel={t('Number of times')}
           countName="ignoreCount"
           windowName="ignoreWindow"
@@ -112,7 +112,7 @@ export default class IgnoreActions extends React.Component {
           show={this.state.modal === 'users'}
           onSelected={details => this.onCustomIgnore(details)}
           onCanceled={() => this.setState({modal: null})}
-          label={t('Ignore this issue until it affects an additional .. ')}
+          label={t('Ignore this issue until it affects an additional\u2026')}
           countLabel={t('Numbers of users')}
           countName="ignoreUserCount"
           windowName="ignoreUserWindow"
@@ -124,7 +124,8 @@ export default class IgnoreActions extends React.Component {
             className={linkClassName}
             onAction={() => onUpdate({status: 'ignored'})}
           >
-            <span className="icon-ban" style={{marginRight: 5}} />
+            <span className="icon-ban hidden-xs" style={{marginRight: 5}} />
+            <GuideAnchor target="ignore_delete_discard" type="text" />
             {t('Ignore')}
           </ActionLink>
 
@@ -135,10 +136,10 @@ export default class IgnoreActions extends React.Component {
             alwaysRenderMenu
             disabled={disabled}
           >
-            <MenuItem header={true}>Ignore Until</MenuItem>
+            <MenuItem header={true}>Ignore</MenuItem>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="This occurs again after .."
+                title={'For\u2026'}
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu
@@ -163,7 +164,7 @@ export default class IgnoreActions extends React.Component {
             </li>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="This occurs again .."
+                title={'Until this occurs again\u2026'}
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu
@@ -172,7 +173,7 @@ export default class IgnoreActions extends React.Component {
                   return (
                     <li className="dropdown-submenu" key={count}>
                       <DropdownLink
-                        title={t('%s times', count.toLocaleString())}
+                        title={tn('one time', '%s times', count)}
                         caret={false}
                         isNestedDropdown={true}
                         alwaysRenderMenu
@@ -213,7 +214,7 @@ export default class IgnoreActions extends React.Component {
             </li>
             <li className="dropdown-submenu">
               <DropdownLink
-                title="This affects an additional .."
+                title={'Until this affects an additional\u2026'}
                 caret={false}
                 isNestedDropdown={true}
                 alwaysRenderMenu
@@ -222,7 +223,7 @@ export default class IgnoreActions extends React.Component {
                   return (
                     <li className="dropdown-submenu" key={count}>
                       <DropdownLink
-                        title={t('%s users', count.toLocaleString())}
+                        title={tn('one user', '%s users', count)}
                         caret={false}
                         isNestedDropdown={true}
                         alwaysRenderMenu

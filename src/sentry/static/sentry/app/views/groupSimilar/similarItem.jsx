@@ -2,24 +2,26 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
+import createReactClass from 'create-react-class';
 
-import GroupingStore from '../../stores/groupingStore';
-import GroupingActions from '../../actions/groupingActions';
-import ProjectActions from '../../actions/projectActions';
-
-import Count from '../../components/count';
-import EventOrGroupHeader from '../../components/eventOrGroupHeader';
-import EventOrGroupExtraDetails from '../../components/eventOrGroupExtraDetails';
-import SpreadLayout from '../../components/spreadLayout';
-import FlowLayout from '../../components/flowLayout';
-import Checkbox from '../../components/checkbox';
-import ScoreBar from '../../components/scoreBar';
-import Hovercard from '../../components/hovercard';
-import SimilarScoreCard from '../../components/similarScoreCard';
+import {openDiffModal} from 'app/actionCreators/modal';
+import Checkbox from 'app/components/checkbox';
+import Count from 'app/components/count';
+import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
+import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import FlowLayout from 'app/components/flowLayout';
+import GroupingActions from 'app/actions/groupingActions';
+import GroupingStore from 'app/stores/groupingStore';
+import Hovercard from 'app/components/hovercard';
+import ScoreBar from 'app/components/scoreBar';
+import SimilarScoreCard from 'app/components/similarScoreCard';
+import SpreadLayout from 'app/components/spreadLayout';
 
 const similarInterfaces = ['exception', 'message'];
 
-const SimilarIssueItem = React.createClass({
+const SimilarIssueItem = createReactClass({
+  displayName: 'SimilarIssueItem',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
@@ -50,6 +52,7 @@ const SimilarIssueItem = React.createClass({
       hideLevel: PropTypes.bool,
     }),
   },
+
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
@@ -87,12 +90,17 @@ const SimilarIssueItem = React.createClass({
 
   handleShowDiff(e) {
     let {groupId, issue} = this.props;
-    ProjectActions.openDiffModal({
+    openDiffModal({
       baseIssueId: groupId,
       targetIssueId: issue.id,
     });
 
     e.stopPropagation();
+  },
+
+  handleCheckClick() {
+    // noop to appease React warnings
+    // This is controlled via row click instead of only Checkbox
   },
 
   render() {
@@ -108,11 +116,21 @@ const SimilarIssueItem = React.createClass({
     });
 
     return (
-      <SpreadLayout className={cx} responsive onClick={this.handleToggle}>
+      <SpreadLayout
+        data-test-id="similar-item-row"
+        className={cx}
+        responsive
+        onClick={this.handleToggle}
+      >
         <FlowLayout truncate>
           <FlowLayout truncate>
             <div className="action-column">
-              <Checkbox id={issue.id} value={issue.id} checked={this.state.checked} />
+              <Checkbox
+                id={issue.id}
+                value={issue.id}
+                checked={this.state.checked}
+                onChange={this.handleCheckClick}
+              />
             </div>
             <div className="event-details level-error" style={{flex: 1}}>
               <EventOrGroupHeader orgId={orgId} projectId={projectId} data={issue} />

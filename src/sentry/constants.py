@@ -29,7 +29,7 @@ def get_all_languages():
             continue
         if '_' in path:
             pre, post = path.split('_', 1)
-            path = '{}-{}'.format(pre, post.lower())
+            path = u'{}-{}'.format(pre, post.lower())
         results.append(path)
     return results
 
@@ -37,7 +37,7 @@ def get_all_languages():
 MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
 DATA_ROOT = os.path.join(MODULE_ROOT, 'data')
 
-VERSION_LENGTH = 250
+VERSION_LENGTH = 200
 
 SORT_OPTIONS = OrderedDict(
     (
@@ -76,6 +76,11 @@ MAX_TAG_VALUE_LENGTH = 200
 MAX_CULPRIT_LENGTH = 200
 MAX_EMAIL_FIELD_LENGTH = 75
 
+ENVIRONMENT_NAME_PATTERN = r'^[^\n\r\f\/]*$'
+ENVIRONMENT_NAME_MAX_LENGTH = 64
+
+SENTRY_APP_SLUG_MAX_LENGTH = 64
+
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
 RESERVED_ORGANIZATION_SLUGS = frozenset(
@@ -86,9 +91,17 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'pricing', 'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide', 'privacy',
         'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
         'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions',
-        'plugins', 'themonitor', 'settings',
+        'plugins', 'themonitor', 'settings', 'legal', 'avatar', 'organization-avatar',
+        'project-avatar', 'team-avatar', 'careers', '_experiment', 'sentry-apps',
     )
 )
+
+RESERVED_PROJECT_SLUGS = frozenset((
+    'api-keys', 'audit-log', 'auth', 'members', 'projects',
+    'rate-limits', 'repos', 'settings', 'teams', 'billing',
+    'payments', 'legal', 'subscription', 'support', 'integrations',
+    'developer-settings',
+))
 
 LOG_LEVELS = {
     logging.NOTSET: 'sample',
@@ -125,6 +138,12 @@ TAG_LABELS = {
     'server_name': 'Server',
 }
 
+PROTECTED_TAG_KEYS = frozenset([
+    'environment',
+    'release',
+    'sentry:release',
+])
+
 # TODO(dcramer): once this is more flushed out we want this to be extendable
 SENTRY_RULES = (
     'sentry.rules.actions.notify_event.NotifyEventAction',
@@ -132,6 +151,7 @@ SENTRY_RULES = (
     'sentry.rules.conditions.every_event.EveryEventCondition',
     'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
     'sentry.rules.conditions.regression_event.RegressionEventCondition',
+    'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
     'sentry.rules.conditions.tagged_event.TaggedEventCondition',
     'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
     'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
@@ -146,7 +166,8 @@ HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD',
 CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
     'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
-    'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id',
+    'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id', '_meta',
+    'applecrashreport', 'device', 'repos', 'query',
 )
 
 # XXX: Must be all lowercase
@@ -204,9 +225,11 @@ FILTER_MASK = '[Filtered]'
 # Maximum length of a symbol
 MAX_SYM = 256
 
-# Known dsym mimetypes
-KNOWN_DSYM_TYPES = {
+# Known debug information file mimetypes
+KNOWN_DIF_TYPES = {
+    'text/x-breakpad': 'breakpad',
     'application/x-mach-binary': 'macho',
+    'application/x-elf-binary': 'elf',
     'text/x-proguard+plain': 'proguard',
 }
 
@@ -259,10 +282,12 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "koa": "node-koa",
     "django": "python-django",
     "flask": "python-flask",
+    "sanic": "python-sanic",
     "tornado": "python-tornado",
     "celery": "python-celery",
     "rq": "python-rq",
     "bottle": "python-bottle",
+    "pythonawslambda": "python-awslambda",
     "pyramid": "python-pyramid",
     "pylons": "python-pylons",
     "laravel": "php-laravel",
@@ -343,4 +368,18 @@ class ObjectStatus(object):
         )
 
 
+class SentryAppStatus(object):
+    UNPUBLISHED = 0
+    PUBLISHED = 1
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (cls.UNPUBLISHED, 'unpublished'),
+            (cls.PUBLISHED, 'published'),
+        )
+
+
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
+
+LEGACY_RATE_LIMIT_OPTIONS = frozenset(('sentry:project-rate-limit', 'sentry:account-rate-limit'))

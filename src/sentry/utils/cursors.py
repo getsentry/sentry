@@ -14,8 +14,6 @@ from collections import Sequence
 
 class Cursor(object):
     def __init__(self, value, offset=0, is_prev=False, has_results=None):
-        # XXX: ceil is not entirely correct here, but it's a simple hack
-        # that solves most problems
         self.value = int(value)
         self.offset = int(offset)
         self.is_prev = bool(is_prev)
@@ -24,9 +22,16 @@ class Cursor(object):
     def __str__(self):
         return '%s:%s:%s' % (self.value, self.offset, int(self.is_prev))
 
+    def __eq__(self, other):
+        return all(
+            getattr(self, attr) == getattr(other, attr)
+            for attr in
+            ('value', 'offset', 'is_prev', 'has_results')
+        )
+
     def __repr__(self):
         return '<%s: value=%s offset=%s is_prev=%s>' % (
-            type(self), self.value, self.offset, int(self.is_prev)
+            type(self).__name__, self.value, self.offset, int(self.is_prev)
         )
 
     def __nonzero__(self):
@@ -63,26 +68,6 @@ class CursorResult(Sequence):
 
     def __repr__(self):
         return '<%s: results=%s>' % (type(self).__name__, len(self.results))
-
-    @classmethod
-    def from_ids(cls, id_list, key=None, limit=100, cursor=None):
-        from sentry.models import Group
-
-        group_map = Group.objects.in_bulk(id_list)
-
-        results = []
-        for g_id in id_list:
-            try:
-                results.append(group_map[g_id])
-            except KeyError:
-                pass
-
-        return build_cursor(
-            results=results,
-            key=key,
-            cursor=cursor,
-            limit=limit,
-        )
 
 
 def _build_next_values(cursor, results, key, limit, is_desc):
@@ -213,7 +198,8 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     return (prev_value, prev_offset, has_prev)
 
 
-def build_cursor(results, key, limit=100, is_desc=False, cursor=None, hits=None, max_hits=None):
+def build_cursor(results, key, limit=100, is_desc=False, cursor=None, hits=None,
+        max_hits=None, on_results=None):
     if cursor is None:
         cursor = Cursor(0, 0, 0)
 
@@ -247,6 +233,9 @@ def build_cursor(results, key, limit=100, is_desc=False, cursor=None, hits=None,
 
     next_cursor = Cursor(next_value or 0, next_offset, False, has_next)
     prev_cursor = Cursor(prev_value or 0, prev_offset, True, has_prev)
+
+    if on_results:
+        results = on_results(results)
 
     return CursorResult(
         results=results,

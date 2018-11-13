@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import jQuery from 'jquery';
 import ReactDOM from 'react-dom';
 
-import InputField from './inputField';
+import InputField from 'app/components/forms/inputField';
 
 export default class RangeField extends InputField {
   static formatMinutes = value => {

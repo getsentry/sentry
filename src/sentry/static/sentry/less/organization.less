@@ -14,6 +14,8 @@
 }
 
 .organization-home {
+  flex: 1;
+
   .sub-header {
     margin-bottom: 30px;
 
@@ -30,11 +32,6 @@
         padding: 5px 14px;
       }
     }
-  }
-
-  .box,
-  .issue-list {
-    margin-bottom: 25px;
   }
 
   .nav-header {
@@ -54,27 +51,6 @@
 
     &.rejected {
       color: @red;
-    }
-  }
-
-  .dashboard-barchart {
-    height: 100px;
-    margin-bottom: 30px;
-
-    a {
-      > span {
-        left: 2px;
-        right: 2px;
-        background: @purple-light;
-
-        &.rejected {
-          background: @red-light;
-        }
-
-        &.blacklisted {
-          background: @gray;
-        }
-      }
     }
   }
 
@@ -149,7 +125,7 @@
         }
       }
 
-      .avatar {
+      .activity-avatar {
         position: absolute;
         .square(36px);
         left: 12px;
@@ -190,41 +166,6 @@
       &:last-child {
         border-bottom: 0;
       }
-    }
-  }
-}
-
-/**
-* Dashboard
-* ============================================================================
-*/
-.organization-dashboard-projects {
-  h4 {
-    font-size: 16px;
-    margin-bottom: 5px;
-  }
-  h5 {
-    font-size: 14px;
-    color: @gray-light;
-  }
-
-  .sparkline {
-    width: 100px;
-  }
-}
-
-.btn-sidebar-header {
-  float: right;
-  font-size: 12px;
-  color: @gray;
-  font-weight: bold;
-  line-height: 1em;
-}
-
-.org-sidebar {
-  .nav-stacked {
-    li.active a:after {
-      left: -30px;
     }
   }
 }
@@ -370,79 +311,6 @@
 
       &:last-child {
         text-align: right;
-      }
-    }
-  }
-}
-
-/**
-* SSO
-* ============================================================================
-*/
-
-.sso {
-  h3 {
-    margin: 0 0 20px;
-  }
-
-  h4 {
-    margin: 0 0 3px;
-    line-height: 1.2;
-  }
-
-  .simple-list {
-    margin-bottom: 0;
-
-    li {
-      position: relative;
-      border-top: 1px solid @trim;
-      padding: 18px 0 0 60px;
-
-      button {
-        margin-top: 8px;
-      }
-
-      .provider-logo {
-        position: absolute;
-        left: 0;
-        top: 20px;
-        .square(48px);
-        border-radius: 3px;
-      }
-    }
-  }
-}
-
-// Project list
-table.project-list {
-  border: 0;
-  margin-bottom: 0;
-  font-size: 16px;
-
-  h5 a {
-    color: @gray-darker;
-
-    &:hover {
-      color: @gray-darkest;
-    }
-  }
-
-  tbody tr {
-    td {
-      border: 0;
-      padding: 15px 20px !important;
-      height: 55px;
-      width: 150px;
-
-      &:first-child {
-        width: auto;
-      }
-
-      &.project-chart {
-        width: 210px;
-        .barchart {
-          height: 20px;
-        }
       }
     }
   }
@@ -776,6 +644,38 @@ table.project-list {
     bottom: -10px;
     left: -10px;
     right: -10px;
+  }
+}
+
+.body-sidebar {
+  .onboarding-progress-bar {
+    height: 16px;
+    width: 100%;
+    float: none;
+    margin-right: 0;
+    margin-top: 0;
+
+    .slider {
+      height: 16px;
+    }
+    &:before {
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+  }
+
+  &.collapsed {
+    .onboarding-progress-bar {
+      width: 16px;
+      height: 150px;
+      margin-left: 8px;
+    }
+    .slider {
+      width: 16px;
+      height: auto;
+    }
   }
 }
 

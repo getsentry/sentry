@@ -12,44 +12,31 @@ from __future__ import absolute_import, print_function
 
 import base64
 import logging
+import re
 import six
 import zlib
-import re
 
-from collections import MutableMapping
 from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import constant_time_compare
 from gzip import GzipFile
 from six import BytesIO
 from time import time
 
-from sentry import filters
+from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
-from sentry.interfaces.csp import Csp
-from sentry.event_manager import EventManager
-from sentry.lang.native.utils import merge_minidump_event
 from sentry.models import ProjectKey
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
-from sentry.utils.csp import is_valid_csp_report
 from sentry.utils.http import origin_from_request
-from sentry.utils.data_filters import is_valid_ip, \
-    is_valid_release, is_valid_error_message, FilterStatKeys
 from sentry.utils.strings import decompress
+from sentry.utils.sdk import configure_scope
+from sentry.utils.canonical import CANONICAL_TYPES
 
-try:
-    # Attempt to load ujson if it's installed.
-    # It's advantageous to leverage here because this is
-    # our primary data ingestion endpoint, and it's a
-    # simple win. ujson differs from simplejson a bunch
-    # so it's not worth utilizing it anywhere else.
-    import ujson as json  # noqa
-except ImportError:
-    from sentry.utils import json
 
 _dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
+logger = logging.getLogger("sentry.api")
 
 
 class APIError(Exception):
@@ -108,57 +95,16 @@ class ClientContext(object):
     def bind_project(self, project):
         self.project = project
         self.project_id = project.id
+        with configure_scope() as scope:
+            scope.set_tag("project", project.id)
 
     def bind_auth(self, auth):
         self.agent = auth.client
         self.version = auth.version
 
-    def get_tags_context(self):
-        return {'project': self.project_id, 'agent': self.agent, 'protocol': self.version}
-
-
-class ClientLogHelper(object):
-    def __init__(self, context):
-        self.context = context
-        self.logger = logging.getLogger('sentry.api')
-
-    def debug(self, *a, **k):
-        self.logger.debug(*a, **self._metadata(**k))
-
-    def info(self, *a, **k):
-        self.logger.info(*a, **self._metadata(**k))
-
-    def warning(self, *a, **k):
-        self.logger.warning(*a, **self._metadata(**k))
-
-    def error(self, *a, **k):
-        self.logger.error(*a, **self._metadata(**k))
-
-    def _metadata(self, tags=None, extra=None, **kwargs):
-        if not extra:
-            extra = {}
-        if not tags:
-            tags = {}
-
-        context = self.context
-
-        project = context.project
-        if project:
-            project_label = '%s/%s' % (project.organization.slug, project.slug)
-        else:
-            project_label = 'id=%s' % (context.project_id, )
-
-        tags.update(context.get_tags_context())
-        tags['project'] = project_label
-
-        extra['tags'] = tags
-        extra['agent'] = context.agent
-        extra['protocol'] = context.version
-        extra['project'] = project_label
-
-        kwargs['extra'] = extra
-
-        return kwargs
+        with configure_scope() as scope:
+            scope.set_tag("agent", self.agent)
+            scope.set_tag("protocol", self.version)
 
 
 class ClientApiHelper(object):
@@ -169,7 +115,6 @@ class ClientApiHelper(object):
             project_id=project_id,
             ip_address=ip_address,
         )
-        self.log = ClientLogHelper(self.context)
 
     def auth_from_request(self, request):
         result = {k: request.GET[k] for k in six.iterkeys(
@@ -234,118 +179,6 @@ class ClientApiHelper(object):
     def project_id_from_auth(self, auth):
         return self.project_key_from_auth(auth).project_id
 
-    def decode_data(self, encoded_data):
-        try:
-            return encoded_data.decode('utf-8')
-        except UnicodeDecodeError as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' %
-                           (type(e).__name__, e))
-
-    def decompress_deflate(self, encoded_data):
-        try:
-            return zlib.decompress(encoded_data).decode('utf-8')
-        except Exception as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' %
-                           (type(e).__name__, e))
-
-    def decompress_gzip(self, encoded_data):
-        try:
-            fp = BytesIO(encoded_data)
-            try:
-                f = GzipFile(fileobj=fp)
-                return f.read().decode('utf-8')
-            finally:
-                f.close()
-        except Exception as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' %
-                           (type(e).__name__, e))
-
-    def decode_and_decompress_data(self, encoded_data):
-        try:
-            try:
-                return decompress(encoded_data).decode('utf-8')
-            except zlib.error:
-                return base64.b64decode(encoded_data).decode('utf-8')
-        except Exception as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' %
-                           (type(e).__name__, e))
-
-    def safely_load_json_string(self, json_string):
-        try:
-            if isinstance(json_string, six.binary_type):
-                json_string = json_string.decode('utf-8')
-            obj = json.loads(json_string)
-            assert isinstance(obj, dict)
-        except Exception as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data reconstructing object (%s, %s)' %
-                           (type(e).__name__, e))
-        return obj
-
-    def parse_client_as_sdk(self, value):
-        if not value:
-            return {}
-        try:
-            name, version = value.split('/', 1)
-        except ValueError:
-            try:
-                name, version = value.split(' ', 1)
-            except ValueError:
-                return {}
-        return {
-            'name': name,
-            'version': version,
-        }
-
-    def should_filter(self, project, data, ip_address=None):
-        """
-        returns (result: bool, reason: string or None)
-        Result is True if an event should be filtered
-        The reason for filtering is passed along as a string
-        so that we can store it in metrics
-        """
-        if ip_address and not is_valid_ip(project, ip_address):
-            return (True, FilterStatKeys.IP_ADDRESS)
-
-        release = data.get('release')
-        if release and not is_valid_release(project, release):
-            return (True, FilterStatKeys.RELEASE_VERSION)
-
-        message_interface = data.get('sentry.interfaces.Message', {})
-        error_message = message_interface.get('formatted', ''
-                                              ) or message_interface.get('message', '')
-        if error_message and not is_valid_error_message(project, error_message):
-            return (True, FilterStatKeys.ERROR_MESSAGE)
-
-        for exception_interface in data.get('sentry.interfaces.Exception', {}).get('values', []):
-            message = u': '.join(filter(None, map(exception_interface.get, ['type', 'value'])))
-            if message and not is_valid_error_message(project, message):
-                return (True, FilterStatKeys.ERROR_MESSAGE)
-
-        for filter_cls in filters.all():
-            filter_obj = filter_cls(project)
-            if filter_obj.is_enabled() and filter_obj.test(data):
-                return (True, six.text_type(filter_obj.id))
-
-        return (False, None)
-
-    def validate_data(self, data):
-        return data
-
     def ensure_does_not_have_ip(self, data):
         if 'sentry.interfaces.Http' in data:
             if 'env' in data['sentry.interfaces.Http']:
@@ -354,14 +187,28 @@ class ClientApiHelper(object):
         if 'sentry.interfaces.User' in data:
             data['sentry.interfaces.User'].pop('ip_address', None)
 
-    def insert_data_to_database(self, data, start_time=None, from_reprocessing=False):
+        if 'sdk' in data:
+            data['sdk'].pop('client_ip', None)
+
+    def insert_data_to_database(self, data, start_time=None,
+                                from_reprocessing=False, attachments=None):
         if start_time is None:
             start_time = time()
-        # we might be passed LazyData
-        if isinstance(data, LazyData):
+
+        # we might be passed some sublcasses of dict that fail dumping
+        if isinstance(data, CANONICAL_TYPES):
             data = dict(data.items())
-        cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
-        default_cache.set(cache_key, data, timeout=3600)
+
+        cache_timeout = 3600
+        cache_key = cache_key_for_event(data)
+        default_cache.set(cache_key, data, cache_timeout)
+
+        # Attachments will be empty or None if the "event-attachments" feature
+        # is turned off. For native crash reports it will still contain the
+        # crash dump (e.g. minidump) so we can load it during processing.
+        if attachments is not None:
+            attachment_cache.set(cache_key, attachments, cache_timeout)
+
         task = from_reprocessing and \
             preprocess_event_from_reprocessing or preprocess_event
         task.delay(cache_key=cache_key, start_time=start_time,
@@ -378,58 +225,22 @@ class MinidumpApiHelper(ClientApiHelper):
         if not key:
             raise APIUnauthorized('Unable to find authentication information')
 
-        auth = Auth({'sentry_key': key}, is_public=True)
+        # Minidump requests are always "trusted".  We at this point only
+        # use is_public to identify requests that have an origin set (via
+        # CORS)
+        auth = Auth({'sentry_key': key}, is_public=False)
         auth.client = 'sentry-minidump'
         return auth
 
-    def validate_data(self, data):
-        try:
-            release = data.pop('release')
-        except KeyError:
-            release = None
 
-        # Minidump request payloads do not have the same structure as
-        # usual events from other SDKs. Most importantly, all parameters
-        # passed in the POST body are only "extra" information. The
-        # actual information is in the "upload_file_minidump" field.
+class SecurityApiHelper(ClientApiHelper):
 
-        # At this point, we only extract the bare minimum information
-        # needed to continue processing. If all validations pass, the
-        # event will be inserted into the database, at which point we
-        # can process the minidump and extract a little more information.
+    report_interfaces = ('sentry.interfaces.Csp', 'hpkp', 'expectct', 'expectstaple')
 
-        validated = {
-            'platform': 'native',
-            'extra': data,
-            'errors': [],
-            'sentry.interfaces.User': {
-                'ip_address': self.context.ip_address,
-            },
-        }
-
-        # Copy/pasted from above in ClientApiHelper.validate_data
-        if release:
-            release = six.text_type(release)
-
-        return validated
-
-    def insert_data_to_database(self, data, start_time=None, from_reprocessing=False):
-        # Seems like the event is valid and we can do some more expensive
-        # work on the minidump. We process the minidump to extract some more
-        # information to populate the initial callstacks and exception
-        # information.
-        minidump = data['extra'].pop('upload_file_minidump')
-        merge_minidump_event(data, minidump.temporary_file_path())
-
-        # Continue with persisting the event in the usual manner and
-        # schedule default preprocessing tasks
-        super(MinidumpApiHelper, self).insert_data_to_database(
-            data, start_time, from_reprocessing)
-
-
-class CspApiHelper(ClientApiHelper):
     def origin_from_request(self, request):
-        # We don't use an origin here
+        # In the case of security reports, the origin is not available at the
+        # dispatch() stage, as we need to parse it out of the request body, so
+        # we do our own CORS check once we have parsed it.
         return None
 
     def auth_from_request(self, request):
@@ -445,132 +256,70 @@ class CspApiHelper(ClientApiHelper):
         auth.client = request.META.get('HTTP_USER_AGENT')
         return auth
 
-    def should_filter(self, project, data, ip_address=None):
-        if not is_valid_csp_report(data['sentry.interfaces.Csp'], project):
-            return (True, FilterStatKeys.INVALID_CSP)
-        return super(CspApiHelper, self).should_filter(project, data, ip_address)
 
-    def validate_data(self, data):
-        # pop off our meta data used to hold Sentry specific stuff
-        meta = data.pop('_meta', {})
+def cache_key_for_event(data):
+    return u'e:{1}:{0}'.format(data['project'], data['event_id'])
 
-        # All keys are sent with hyphens, so we want to conver to underscores
-        report = {k.replace('-', '_'): v for k, v in six.iteritems(data)}
 
+def decompress_deflate(encoded_data):
+    try:
+        return zlib.decompress(encoded_data).decode("utf-8")
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
+
+
+def decompress_gzip(encoded_data):
+    try:
+        fp = BytesIO(encoded_data)
         try:
-            inst = Csp.to_python(report)
-        except Exception as exc:
-            raise APIForbidden('Invalid CSP Report: %s' % exc)
-
-        # Construct a faux Http interface based on the little information we have
-        headers = {}
-        if self.context.agent:
-            headers['User-Agent'] = self.context.agent
-        if inst.referrer:
-            headers['Referer'] = inst.referrer
-
-        data = {
-            'logger': 'csp',
-            'message': inst.get_message(),
-            'culprit': inst.get_culprit(),
-            'release': meta.get('release'),
-            'tags': inst.get_tags(),
-            inst.get_path(): inst.to_json(),
-            # This is a bit weird, since we don't have nearly enough
-            # information to create an Http interface, but
-            # this automatically will pick up tags for the User-Agent
-            # which is actually important here for CSP
-            'sentry.interfaces.Http': {
-                'url': inst.document_uri,
-                'headers': headers,
-            },
-            'sentry.interfaces.User': {
-                'ip_address': self.context.ip_address,
-            },
-        }
-
-        return data
+            f = GzipFile(fileobj=fp)
+            return f.read().decode("utf-8")
+        finally:
+            f.close()
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
 
 
-class LazyData(MutableMapping):
-    def __init__(self, data, content_encoding, helper, project, key, auth, client_ip):
-        self._data = data
-        self._content_encoding = content_encoding
-        self._helper = helper
-        self._project = project
-        self._key = key
-        self._auth = auth
-        self._client_ip = client_ip
-        self._decoded = False
+def decode_and_decompress_data(encoded_data):
+    try:
+        try:
+            return decompress(encoded_data).decode("utf-8")
+        except zlib.error:
+            return base64.b64decode(encoded_data).decode("utf-8")
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
 
-    def _decode(self):
-        data = self._data
-        content_encoding = self._content_encoding
-        helper = self._helper
-        auth = self._auth
 
-        # TODO(dcramer): CSP is passing already decoded JSON, which sort of
-        # defeats the purpose of a lot of lazy evaluation. It needs refactored
-        # to avoid doing that.
-        if isinstance(data, six.binary_type):
-            if content_encoding == 'gzip':
-                data = helper.decompress_gzip(data)
-            elif content_encoding == 'deflate':
-                data = helper.decompress_deflate(data)
-            elif data[0] != b'{':
-                data = helper.decode_and_decompress_data(data)
-            else:
-                data = helper.decode_data(data)
-        if isinstance(data, six.text_type):
-            data = helper.safely_load_json_string(data)
+def decode_data(encoded_data):
+    try:
+        return encoded_data.decode("utf-8")
+    except UnicodeDecodeError as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
 
-        # We need data validation/etc to apply as part of LazyData so that
-        # if there are filters present, they can operate on a normalized
-        # version of the data
 
-        # mutates data
-        data = helper.validate_data(data)
-
-        data['project'] = self._project.id
-        data['key_id'] = self._key.id
-        data['sdk'] = data.get('sdk') or helper.parse_client_as_sdk(auth.client)
-
-        # mutates data
-        manager = EventManager(data, version=auth.version)
-        manager.normalize(request_env={
-            'client_ip': self._client_ip,
-            'auth': self._auth,
-        })
-
-        self._data = data
-        self._decoded = True
-
-    def __getitem__(self, name):
-        if not self._decoded:
-            self._decode()
-        return self._data[name]
-
-    def __setitem__(self, name, value):
-        if not self._decoded:
-            self._decode()
-        self._data[name] = value
-
-    def __delitem__(self, name):
-        if not self._decoded:
-            self._decode()
-        del self._data[name]
-
-    def __contains__(self, name):
-        if not self._decoded:
-            self._decode()
-        return name in self._data
-
-    def __len__(self):
-        if not self._decoded:
-            self._decode()
-        return len(self._data)
-
-    def __iter__(self):
-        if not self._decoded:
-            self._decode()
-        return iter(self._data)
+def safely_load_json_string(json_string):
+    try:
+        if isinstance(json_string, six.binary_type):
+            json_string = json_string.decode("utf-8")
+        obj = json.loads(json_string)
+        assert isinstance(obj, dict)
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError(
+            "Bad data reconstructing object (%s, %s)" % (type(e).__name__, e)
+        )
+    return obj

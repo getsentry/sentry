@@ -1,17 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 
-import {fetchPlugins} from '../../actionCreators/plugins';
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import Badge from '../../components/badge';
-import ListLink from '../../components/listLink';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import OrganizationState from '../../mixins/organizationState';
-import PluginNavigation from './pluginNavigation';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Badge from 'app/components/badge';
+import ListLink from 'app/components/listLink';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationState from 'app/mixins/organizationState';
+import PluginNavigation from 'app/views/projectSettings/pluginNavigation';
+import ExternalLink from 'app/components/externalLink';
 
-const ProjectSettings = React.createClass({
+const ProjectSettings = createReactClass({
+  displayName: 'ProjectSettings',
+
   propTypes: {
     setProjectNavSection: PropTypes.func,
   },
@@ -32,15 +35,10 @@ const ProjectSettings = React.createClass({
   },
 
   componentWillMount() {
-    let {params, setProjectNavSection} = this.props;
-    let {projectId, orgId} = params || {};
+    let {setProjectNavSection} = this.props;
 
     setProjectNavSection('settings');
     this.fetchData();
-
-    // fetch list of plugins, we will also fetch everytime we are routed
-    // to plugins view (e.g. "All Integrations")
-    fetchPlugins(this.api, {projectId, orgId});
   },
 
   componentWillReceiveProps(nextProps) {
@@ -80,15 +78,16 @@ const ProjectSettings = React.createClass({
   },
 
   render() {
-    let access = this.getAccess();
     // TODO(dcramer): move sidebar into component
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
+    let access = this.getAccess();
     let {orgId, projectId} = this.props.params;
-    let settingsUrlRoot = `/${orgId}/${projectId}/settings`;
+    let pathPrefix = `/settings/${orgId}/${projectId}`;
+    let settingsUrlRoot = pathPrefix;
     let project = this.state.project;
-    let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
+    let rootInstallPath = `${pathPrefix}/install/`;
     let path = this.props.location.pathname;
     let processingIssues = this.state.project.processingIssues;
 
@@ -97,40 +96,40 @@ const ProjectSettings = React.createClass({
         <div className="col-md-2">
           <h6 className="nav-header">{t('Configuration')}</h6>
           <ul className="nav nav-stacked">
-            <ListLink to={`/${orgId}/${projectId}/settings/`} index={true}>
+            <ListLink to={`${pathPrefix}/`} index={true}>
               {t('General')}
             </ListLink>
             <ListLink
-              to={`/${orgId}/${projectId}/settings/alerts/`}
+              to={`${pathPrefix}/alerts/`}
               isActive={loc => path.indexOf(loc.pathname) === 0}
             >
               {t('Alerts')}
             </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/tags/`}>{t('Tags')}</ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/issue-tracking/`}>
-              {t('Issue Tracking')}
+            <ListLink
+              to={`${pathPrefix}/environments/`}
+              isActive={loc => path.indexOf(loc.pathname) === 0}
+            >
+              {t('Environments')}
             </ListLink>
+            <ListLink to={`${pathPrefix}/tags/`}>{t('Tags')}</ListLink>
             {access.has('project:write') && (
               <ListLink
-                to={`/${orgId}/${projectId}/settings/release-tracking/`}
+                to={`${pathPrefix}/release-tracking/`}
                 isActive={loc => path.indexOf(loc.pathname) === 0}
               >
                 {t('Release Tracking')}
               </ListLink>
             )}
-            <ListLink to={`/${orgId}/${projectId}/settings/data-forwarding/`}>
+            <ListLink to={`${pathPrefix}/data-forwarding/`}>
               {t('Data Forwarding')}
             </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/saved-searches/`}>
+            <ListLink to={`${pathPrefix}/saved-searches/`}>
               {t('Saved Searches')}
             </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/debug-symbols/`}>
+            <ListLink to={`${pathPrefix}/debug-symbols/`}>
               {t('Debug Information Files')}
             </ListLink>
-            <ListLink
-              className="badged"
-              to={`/${orgId}/${projectId}/settings/processing-issues/`}
-            >
+            <ListLink className="badged" to={`${pathPrefix}/processing-issues/`}>
               {t('Processing Issues')}
               {processingIssues > 0 && (
                 <Badge
@@ -151,33 +150,36 @@ const ProjectSettings = React.createClass({
             >
               {t('Error Tracking')}
             </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/csp/`}>
-              {t('CSP Reports')}
+            <ListLink to={`${pathPrefix}/security-headers/`}>
+              {t('Security Headers')}
             </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/user-feedback/`}>
-              {t('User Feedback')}
-            </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/filters/`}>
-              {t('Inbound Filters')}
-            </ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/keys/`}>
-              {t('Client Keys')} (DSN)
-            </ListLink>
+            <ListLink to={`${pathPrefix}/user-feedback/`}>{t('User Feedback')}</ListLink>
+            <ListLink to={`${pathPrefix}/filters/`}>{t('Inbound Filters')}</ListLink>
+            <ListLink to={`${pathPrefix}/keys/`}>{t('Client Keys')} (DSN)</ListLink>
           </ul>
-          <h6 className="nav-header">{t('Integrations')}</h6>
+          <h6 className="nav-header">{t('Legacy Integrations')}</h6>
           <ul className="nav nav-stacked">
-            <ListLink to={`/${orgId}/${projectId}/settings/plugins/`}>
-              {t('All Integrations')}
-            </ListLink>
+            <ListLink to={`${pathPrefix}/plugins/`}>{t('Legacy Integrations')}</ListLink>
             <PluginNavigation urlRoot={settingsUrlRoot} />
           </ul>
         </div>
         <div className="col-md-10">
-          {React.cloneElement(this.props.children, {
-            setProjectNavSection: this.props.setProjectNavSection,
-            project,
-            organization: this.context.organization,
-          })}
+          {access.has('project:write') ? (
+            React.cloneElement(this.props.children, {
+              setProjectNavSection: this.props.setProjectNavSection,
+              project,
+              organization: this.context.organization,
+            })
+          ) : (
+            <div className="alert alert-block">
+              {t(
+                'You’re restricted from accessing this page based on your organization role. Read more here: '
+              )}
+              <ExternalLink href="https://docs.sentry.io/learn/membership/">
+                https://docs.sentry.io/learn/membership/
+              </ExternalLink>
+            </div>
+          )}
         </div>
       </div>
     );

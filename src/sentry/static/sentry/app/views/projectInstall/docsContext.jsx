@@ -1,12 +1,15 @@
 import React from 'react';
 
-import ApiMixin from '../../mixins/apiMixin';
-import ProjectState from '../../mixins/projectState';
+import createReactClass from 'create-react-class';
 
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
+import ApiMixin from 'app/mixins/apiMixin';
+import ProjectState from 'app/mixins/projectState';
 
-const ProjectDocsContext = React.createClass({
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+
+const ProjectDocsContext = createReactClass({
+  displayName: 'ProjectDocsContext',
   mixins: [ApiMixin, ProjectState],
 
   getInitialState() {

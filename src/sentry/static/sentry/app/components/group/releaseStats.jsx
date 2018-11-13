@@ -1,238 +1,125 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {browserHistory} from 'react-router';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
+import ApiMixin from 'app/mixins/apiMixin';
+import EnvironmentStore from 'app/stores/environmentStore';
+import LatestContextStore from 'app/stores/latestContextStore';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import GroupState from 'app/mixins/groupState';
+import GroupReleaseChart from 'app/components/group/releaseChart';
+import SeenInfo from 'app/components/group/seenInfo';
+import {t} from 'app/locale';
 
-import ApiMixin from '../../mixins/apiMixin';
-import DropdownLink from '../dropdownLink';
-import EnvironmentStore from '../../stores/environmentStore';
-import LoadingIndicator from '../loadingIndicator';
-import LoadingError from '../loadingError';
-import GroupState from '../../mixins/groupState';
-import GroupReleaseChart from './releaseChart';
-import MenuItem from '../menuItem';
-import SeenInfo from './seenInfo';
-import {toTitleCase} from '../../utils';
-import {t} from '../../locale';
+const GroupReleaseStats = createReactClass({
+  displayName: 'GroupReleaseStats',
 
-const DEFAULT_ENV_NAME = '(Default Environment)';
-
-const PRODUCTION_ENV_NAMES = new Set([
-  'production',
-  'prod',
-  'release',
-  'master',
-  'trunk',
-]);
-
-// TODO(dcramer): this should listen to EnvironmentStore
-// changes
-const GroupReleaseStats = React.createClass({
   propTypes: {
-    defaultEnvironment: PropTypes.string,
     group: PropTypes.object,
+    allEnvironments: PropTypes.object,
   },
 
-  mixins: [ApiMixin, GroupState],
-
-  getDefaultProps() {
-    return {
-      defaultEnvironment: '',
-    };
+  contextTypes: {
+    organization: PropTypes.object,
   },
+
+  mixins: [
+    ApiMixin,
+    GroupState,
+    Reflux.listenTo(LatestContextStore, 'onLatestContextChange'),
+  ],
 
   getInitialState() {
-    let envList = EnvironmentStore.getAll();
-    let queryParams = this.props.location.query;
-
-    let selectedEnvironment = queryParams.hasOwnProperty('environment')
-      ? queryParams.environment
-      : this.props.defaultEnvironment;
-
-    if (
-      selectedEnvironment &&
-      envList.filter(e => e.name === selectedEnvironment).length === 0
-    ) {
-      selectedEnvironment = null;
-    }
-
-    if (!selectedEnvironment) {
-      let prodEnvs = envList.filter(e => PRODUCTION_ENV_NAMES.has(e.name));
-      selectedEnvironment = prodEnvs.length && prodEnvs[0].name;
-    }
-
-    if (!selectedEnvironment) {
-      selectedEnvironment = envList.length && envList[0].name;
-    }
+    let envList = EnvironmentStore.getActive();
 
     return {
-      loading: true,
-      error: false,
-      data: null,
       envList,
-      environment: selectedEnvironment || '',
+      environment: LatestContextStore.getInitialState().environment,
     };
   },
 
-  componentWillMount() {
-    if (this.state.loading) {
-      this.fetchData();
-    }
+  getEnvironment(envName) {
+    let defaultEnv = EnvironmentStore.getDefault();
+    let queriedEnvironment = EnvironmentStore.getByName(envName);
+
+    return queriedEnvironment || defaultEnv;
   },
 
-  componentWillReceiveProps(nextProps) {
-    let queryParams = nextProps.location.query;
-    if (queryParams.environment !== this.props.location.query.environment) {
-      this.setState(
-        {
-          environment: queryParams.environment,
-          loading: true,
-          error: false,
-        },
-        this.fetchData
-      );
-    }
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return (
-      this.state.loading !== nextState.loading ||
-      this.state.error !== nextState.error ||
-      this.state.environment !== nextState.environment ||
-      this.props.group.id !== nextProps.group.id
-    );
-  },
-
-  fetchData() {
-    let group = this.props.group;
-    let env = this.state.environment || 'none';
-    let stats = this.props.group.stats['24h'];
-
-    // due to the current stats logic in Sentry we need to extend the bounds
-    let until = stats[stats.length - 1][0] + 1;
-
-    this.api.request(`/issues/${group.id}/environments/${env}/`, {
-      query: {
-        until,
-      },
-      success: data => {
-        this.setState({
-          data,
-          loading: false,
-          error: false,
-        });
-      },
-      error: () => {
-        this.setState({
-          data: null,
-          loading: false,
-          error: true,
-        });
-      },
-    });
-  },
-
-  switchEnv(env) {
-    if (this.state.environment === env) return;
-
-    let queryParams = Object.assign({}, this.props.location.query);
-    queryParams.environment = env;
-
-    browserHistory.pushState(null, this.props.location.pathname, queryParams);
+  onLatestContextChange(context) {
+    this.setState({environment: context.environment || null});
   },
 
   render() {
-    let group = this.props.group;
+    let {group, allEnvironments} = this.props;
+    let {environment} = this.state;
+
+    let envName = environment ? environment.displayName : t('All Environments');
     let projectId = this.getProject().slug;
     let orgId = this.getOrganization().slug;
-    let environment = this.state.environment;
-    let data = this.state.data || {};
-    let firstSeenEnv = data.firstSeen;
-    let lastSeenEnv = data.lastSeen;
-
-    let envList = this.state.envList;
     let hasRelease = this.getProjectFeatures().has('releases');
+    let isLoading = !group || !allEnvironments;
 
     return (
       <div className="env-stats">
         <h6>
-          <span>
-            <DropdownLink
-              title={environment ? toTitleCase(environment) : DEFAULT_ENV_NAME}
-            >
-              {envList.map(e => {
-                return (
-                  <MenuItem
-                    key={e.name}
-                    isActive={environment === e.name}
-                    onClick={this.switchEnv.bind(this, e.name)}
-                  >
-                    {toTitleCase(e.name) || DEFAULT_ENV_NAME}
-                  </MenuItem>
-                );
-              })}
-            </DropdownLink>
-          </span>
+          <span>{envName}</span>
         </h6>
         <div className="env-content">
-          {this.state.loading ? (
+          {isLoading ? (
             <LoadingIndicator />
-          ) : this.state.error ? (
-            <LoadingError />
           ) : (
             <div>
               <GroupReleaseChart
-                group={group}
-                environment={environment}
-                environmentStats={data.environment.stats}
-                release={data.currentRelease ? data.currentRelease.release : null}
-                releaseStats={data.currentRelease ? data.currentRelease.stats : null}
+                group={allEnvironments}
+                environment={envName}
+                environmentStats={group.stats}
+                release={group.currentRelease ? group.currentRelease.release : null}
+                releaseStats={group.currentRelease ? group.currentRelease.stats : null}
                 statsPeriod="24h"
                 title={t('Last 24 Hours')}
                 firstSeen={group.firstSeen}
                 lastSeen={group.lastSeen}
               />
-
               <GroupReleaseChart
-                group={group}
-                environment={environment}
-                environmentStats={data.environment.stats}
-                release={data.currentRelease ? data.currentRelease.release : null}
-                releaseStats={data.currentRelease ? data.currentRelease.stats : null}
+                group={allEnvironments}
+                environment={envName}
+                environmentStats={group.stats}
+                release={group.currentRelease ? group.currentRelease.release : null}
+                releaseStats={group.currentRelease ? group.currentRelease.stats : null}
                 statsPeriod="30d"
                 title={t('Last 30 Days')}
                 className="bar-chart-small"
                 firstSeen={group.firstSeen}
                 lastSeen={group.lastSeen}
               />
-
               <h6>
                 <span>{t('First seen')}</span>
-                {environment && <small>({environment})</small>}
+                {environment ? <small>({environment.displayName})</small> : null}
               </h6>
 
               <SeenInfo
                 orgId={orgId}
                 projectId={projectId}
-                date={firstSeenEnv}
-                dateGlobal={group.firstSeen}
+                date={group.firstSeen}
+                dateGlobal={allEnvironments.firstSeen}
                 hasRelease={hasRelease}
-                environment={environment}
-                release={data.firstRelease ? data.firstRelease.release : null}
+                environment={environment ? environment.name : null}
+                release={group.firstRelease || null}
                 title={t('First seen')}
               />
 
               <h6>
                 <span>{t('Last seen')}</span>
-                {environment && <small>({environment})</small>}
+                {environment ? <small>({environment.displayName})</small> : null}
               </h6>
               <SeenInfo
                 orgId={orgId}
                 projectId={projectId}
-                date={lastSeenEnv}
-                dateGlobal={group.lastSeen}
+                date={group.lastSeen}
+                dateGlobal={allEnvironments.lastSeen}
                 hasRelease={hasRelease}
-                environment={environment}
-                release={data.lastRelease ? data.lastRelease.release : null}
+                environment={environment ? environment.name : null}
+                release={group.lastRelease || null}
                 title={t('Last seen')}
               />
             </div>

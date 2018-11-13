@@ -24,15 +24,15 @@ class Migration(SchemaMigration):
                  self.gf('django.db.models.fields.EmailField')(max_length=75, null=True)), (
                      'username',
                      self.gf('django.db.models.fields.CharField')(max_length=64, null=True)
-                 ), (
+                ), (
                      'ip_address', self.gf('django.db.models.fields.GenericIPAddressField')(
                          max_length=39, null=True
                      )
-                 ), (
+                ), (
                      'date_added', self.gf('django.db.models.fields.DateTimeField')(
-                         default=datetime.datetime.now, db_index=True
+                         db_index=True
                      )
-                 ),
+                ),
             )
         )
         db.send_create_signal('sentry', ['EventUser'])

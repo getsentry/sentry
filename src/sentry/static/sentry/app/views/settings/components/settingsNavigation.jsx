@@ -2,8 +2,8 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SettingsNavigationGroup from '../components/settingsNavigationGroup';
-import SentryTypes from '../../../proptypes';
+import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
+import SentryTypes from 'app/sentryTypes';
 
 class SettingsNavigation extends React.Component {
   static propTypes = {
@@ -26,7 +26,11 @@ class SettingsNavigation extends React.Component {
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
         ))}
-        {hooks.map((Hook, i) => Hook)}
+        {hooks.map((Hook, i) =>
+          React.cloneElement(Hook, {
+            key: `hook-${i}`,
+          })
+        )}
       </Box>
     );
   }

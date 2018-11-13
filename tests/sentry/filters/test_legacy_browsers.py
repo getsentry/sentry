@@ -19,8 +19,12 @@ USER_AGENTS = {
     'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1; Win64; x64; Trident/4.0; .NET CLR 2.0.50727; SLCC2; .NET CLR 3.5.30729; .NET CLR 3.0.30729; Media Center PC 6.0; MDDC; Tablet PC 2.0)',
     'ie_9':
     'Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))',
+    'iemobile_9':
+    'Mozilla/5.0 (compatible; MSIE 9.0; Windows Phone OS 7.5; Trident/5.0; IEMobile/9.0; NOKIA; Lumia 710)',
     'ie_10':
     'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 7.0; InfoPath.3; .NET CLR 3.1.40767; Trident/6.0; en-IN)',
+    'iemobile_10':
+    'Mozilla/5.0 (compatible; MSIE 10.0; Windows Phone 8.0; Trident/6.0; IEMobile/10.0; ARM; Touch; NOKIA; Lumia 520)',
     'opera_11':
     'Opera/9.80 (Windows NT 5.1; U; it) Presto/2.7.62 Version/11.00',
     'opera_12':
@@ -35,6 +39,10 @@ USER_AGENTS = {
     'Mozilla/5.0 (Windows; U; Windows NT 6.1; zh-HK) AppleWebKit/533.18.1 (KHTML, like Gecko) Version/5.0.2 Safari/533.18.5',
     'safari_7':
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.75.14 (KHTML, like Gecko) Version/7.0.3 Safari/7046A194A',
+    'opera_mini_8':
+    'Opera/9.80 (J2ME/MIDP; Opera Mini/8.0.35158/36.2534; U; en) Presto/2.12.423 Version/12.16',
+    'opera_mini_7':
+    'Opera/9.80 (J2ME/MIDP; Opera Mini/7.0.32796/59.323; U; fr) Presto/2.12.423 Version/12.16',
 }
 
 
@@ -100,6 +108,24 @@ class SetLegacyBrowserFilterTest(APITestCase):
 
         options = ProjectOption.objects.get_value(project=project, key='filters:legacy-browsers')
         assert options == {'opera_pre_15'}
+
+    def test_set_opera_mini(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        url = reverse(
+            'sentry-api-0-project-filters',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'filter_id': "legacy-browsers"
+            }
+        )
+        response = self.client.put(url, data={'subfilters': ["opera_mini_pre_8"]})
+        assert response.status_code == 201, response.content
+
+        options = ProjectOption.objects.get_value(project=project, key='filters:legacy-browsers')
+        assert options == {'opera_mini_pre_8'}
 
     def test_set_ie9(self):
         self.login_as(user=self.user)
@@ -207,9 +233,7 @@ class LegacyBrowsersFilterTest(TestCase):
             key='filters:legacy-browsers',
             value='1',
         )
-        data = self.get_mock_data(
-            'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19'
-        )
+        data = self.get_mock_data(USER_AGENTS['android_4'])
         assert self.apply_filter(data) is False
 
     def test_filters_ie_9_by_default(self):
@@ -218,7 +242,16 @@ class LegacyBrowsersFilterTest(TestCase):
             key='filters:legacy-browsers',
             value='1',
         )
-        data = self.get_mock_data('Mozilla/5.0 (Windows; U; MSIE 9.0; WIndows NT 9.0; en-US))')
+        data = self.get_mock_data(USER_AGENTS['ie_9'])
+        assert self.apply_filter(data) is True
+
+    def test_filters_iemobile_9_by_default(self):
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key='filters:legacy-browsers',
+            value='1',
+        )
+        data = self.get_mock_data(USER_AGENTS['iemobile_9'])
         assert self.apply_filter(data) is True
 
     def test_does_not_filter_ie_10_by_default(self):
@@ -230,15 +263,31 @@ class LegacyBrowsersFilterTest(TestCase):
         data = self.get_mock_data(USER_AGENTS['ie_10'])
         assert self.apply_filter(data) is False
 
+    def test_does_not_filter_iemobile_10_by_default(self):
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key='filters:legacy-browsers',
+            value='1',
+        )
+        data = self.get_mock_data(USER_AGENTS['iemobile_10'])
+        assert self.apply_filter(data) is False
+
     def test_filters_opera_12_by_default(self):
         ProjectOption.objects.set_value(
             project=self.project,
             key='filters:legacy-browsers',
             value='1',
         )
-        data = self.get_mock_data(
-            'Opera/9.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.12.388 Version/12.16'
+        data = self.get_mock_data(USER_AGENTS['opera_12'])
+        assert self.apply_filter(data) is True
+
+    def test_filters_opera_mini_7_by_default(self):
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key='filters:legacy-browsers',
+            value='1',
         )
+        data = self.get_mock_data(USER_AGENTS['opera_mini_7'])
         assert self.apply_filter(data) is True
 
     def test_does_not_filter_chrome_by_default(self):
@@ -247,9 +296,7 @@ class LegacyBrowsersFilterTest(TestCase):
             key='filters:legacy-browsers',
             value='1',
         )
-        data = self.get_mock_data(
-            'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
-        )
+        data = self.get_mock_data(USER_AGENTS['chrome'])
         assert self.apply_filter(data) is False
 
     def test_does_not_filter_edge_by_default(self):
@@ -258,9 +305,7 @@ class LegacyBrowsersFilterTest(TestCase):
             key='filters:legacy-browsers',
             value='1',
         )
-        data = self.get_mock_data(
-            'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.10136'
-        )
+        data = self.get_mock_data(USER_AGENTS['edge'])
         assert self.apply_filter(data) is False
 
     def test_filter_opera(self):
@@ -284,6 +329,27 @@ class LegacyBrowsersFilterTest(TestCase):
         browser = ua['user_agent']
         assert self.filter_cls(self.project).filter_opera_pre_15(browser) is False
 
+    def test_filter_opera_mini(self):
+        ProjectOption.objects.set_value(
+            project=self.project, key='filters:legacy-browsers', value={'opera_mini_pre_8'}
+        )
+        data = self.get_mock_data(USER_AGENTS['opera_mini_7'])
+        assert self.apply_filter(data) is True
+
+    def test_filter_opera_mini_method(self):
+        data = self.get_mock_data(USER_AGENTS['opera_mini_7'])
+        ua_data = self.filter_cls(self.project).get_user_agent(data)
+        ua = Parse(ua_data)
+        browser = ua['user_agent']
+        assert self.filter_cls(self.project).filter_opera_mini_pre_8(browser) is True
+
+    def test_dont_filter_opera_mini_8(self):
+        data = self.get_mock_data(USER_AGENTS['opera_mini_8'])
+        ua_data = self.filter_cls(self.project).get_user_agent(data)
+        ua = Parse(ua_data)
+        browser = ua['user_agent']
+        assert self.filter_cls(self.project).filter_opera_mini_pre_8(browser) is False
+
     def test_filters_ie8(self):
         ProjectOption.objects.set_value(
             project=self.project, key='filters:legacy-browsers', value={'ie_pre_9'}
@@ -305,6 +371,13 @@ class LegacyBrowsersFilterTest(TestCase):
         data = self.get_mock_data(USER_AGENTS['ie_9'])
         assert self.apply_filter(data) is True
 
+    def test_does_filter_iemobile_9(self):
+        ProjectOption.objects.set_value(
+            project=self.project, key='filters:legacy-browsers', value={'ie9'}
+        )
+        data = self.get_mock_data(USER_AGENTS['iemobile_9'])
+        assert self.apply_filter(data) is True
+
     def test_does_filter_ie10(self):
         ProjectOption.objects.set_value(
             project=self.project, key='filters:legacy-browsers', value={'ie10'}
@@ -314,6 +387,20 @@ class LegacyBrowsersFilterTest(TestCase):
 
     def test_does_not_filter_ie10(self):
         data = self.get_mock_data(USER_AGENTS['ie_10'])
+        ua_data = self.filter_cls(self.project).get_user_agent(data)
+        ua = Parse(ua_data)
+        browser = ua['user_agent']
+        assert self.filter_cls(self.project).filter_ie_pre_9(browser) is False
+
+    def test_does_filter_iemobile_10(self):
+        ProjectOption.objects.set_value(
+            project=self.project, key='filters:legacy-browsers', value={'ie10'}
+        )
+        data = self.get_mock_data(USER_AGENTS['iemobile_10'])
+        assert self.apply_filter(data) is True
+
+    def test_does_not_filter_iemobile_10(self):
+        data = self.get_mock_data(USER_AGENTS['iemobile_10'])
         ua_data = self.filter_cls(self.project).get_user_agent(data)
         ua = Parse(ua_data)
         browser = ua['user_agent']

@@ -1,11 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 //import GroupEventDataSection from "../eventDataSection";
-import Frame from './frame';
-import {t} from '../../../locale';
-import OrganizationState from '../../../mixins/organizationState';
+import Frame from 'app/components/events/interfaces/frame';
+import {t} from 'app/locale';
+import OrganizationState from 'app/mixins/organizationState';
 
-const StacktraceContent = React.createClass({
+const StacktraceContent = createReactClass({
+  displayName: 'StacktraceContent',
+
   propTypes: {
     data: PropTypes.object.isRequired,
     includeSystemFrames: PropTypes.bool,
@@ -13,6 +16,7 @@ const StacktraceContent = React.createClass({
     platform: PropTypes.string,
     newestFirst: PropTypes.bool,
   },
+
   mixins: [OrganizationState],
 
   getDefaultProps() {
@@ -103,6 +107,14 @@ const StacktraceContent = React.createClass({
         frames.push(this.renderOmittedFrames(firstFrameOmitted, lastFrameOmitted));
       }
     });
+
+    if (frames.length > 0 && data.registers) {
+      let lastFrame = frames.length - 1;
+      frames[lastFrame] = React.cloneElement(frames[lastFrame], {
+        registers: data.registers
+      });
+    }
+
     if (this.props.newestFirst) {
       frames.reverse();
     }

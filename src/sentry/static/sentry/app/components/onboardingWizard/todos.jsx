@@ -1,12 +1,15 @@
 import React from 'react';
-import {t} from '../../locale';
+import createReactClass from 'create-react-class';
+import {t} from 'app/locale';
 
-import ApiMixin from '../../mixins/apiMixin';
-import OrganizationState from '../../mixins/organizationState';
-import TodoItem from './toDoItem';
+import ApiMixin from 'app/mixins/apiMixin';
+import OrganizationState from 'app/mixins/organizationState';
+import TodoItem from 'app/components/onboardingWizard/toDoItem';
 
-const TodoList = React.createClass({
+const TodoList = createReactClass({
+  displayName: 'TodoList',
   mixins: [ApiMixin, OrganizationState],
+
   statics: {
     TASKS: [
       {
@@ -20,7 +23,7 @@ const TodoList = React.createClass({
         prereq: [],
         featureLocation: 'organization',
         location: 'projects/new/',
-        display: true
+        display: true,
       },
       {
         task: 2,
@@ -31,7 +34,7 @@ const TodoList = React.createClass({
         prereq: [1],
         featureLocation: 'project',
         location: 'settings/install/',
-        display: true
+        display: true,
       },
       {
         task: 3,
@@ -45,7 +48,7 @@ const TodoList = React.createClass({
         prereq: [],
         featureLocation: 'organization',
         location: 'members/',
-        display: true
+        display: true,
       },
       {
         task: 4,
@@ -58,7 +61,7 @@ const TodoList = React.createClass({
         prereq: [1, 2],
         featureLocation: 'organization',
         location: 'projects/new/',
-        display: true
+        display: true,
       },
       {
         task: 5,
@@ -72,7 +75,7 @@ const TodoList = React.createClass({
         prereq: [1, 2],
         featureLocation: 'absolute',
         location: 'https://docs.sentry.io/hosted/learn/context/#capturing-the-user',
-        display: true
+        display: true,
       },
       {
         task: 6,
@@ -86,7 +89,7 @@ const TodoList = React.createClass({
         prereq: [1, 2],
         featureLocation: 'project',
         location: 'settings/release-tracking/',
-        display: true
+        display: true,
       },
       {
         task: 7,
@@ -100,7 +103,7 @@ const TodoList = React.createClass({
         prereq: [1, 2], // Is one of the platforms javascript?
         featureLocation: 'absolute',
         location: 'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/',
-        display: true
+        display: true,
       },
       {
         task: 8,
@@ -110,7 +113,7 @@ const TodoList = React.createClass({
         prereq: [1, 2, 5],
         featureLocation: 'project',
         location: 'settings/user-reports/',
-        display: false
+        display: false,
       },
       {
         task: 9,
@@ -119,8 +122,8 @@ const TodoList = React.createClass({
         skippable: true,
         prereq: [1, 2],
         featureLocation: 'project',
-        location: 'settings/issue-tracking/',
-        display: false
+        location: 'settings/plugins/',
+        display: false,
       },
       {
         task: 10,
@@ -130,7 +133,7 @@ const TodoList = React.createClass({
         prereq: [1, 2],
         featureLocation: 'project',
         location: 'settings/alerts/',
-        display: false
+        display: false,
       },
     ],
   },
@@ -175,10 +178,6 @@ const TodoList = React.createClass({
     this.getOnboardingTasks();
   },
 
-  click(e) {
-    e.stopPropagation();
-  },
-
   render() {
     let nextTasks = this.state.tasks.filter(task => task.display);
 
@@ -188,7 +187,7 @@ const TodoList = React.createClass({
 
     return (
       <div>
-        <div onClick={this.click} className="onboarding-wrapper">
+        <div className="onboarding-wrapper">
           <ul className="list-unstyled">{todoListTasks}</ul>
         </div>
       </div>

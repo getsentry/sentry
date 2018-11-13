@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
+
 from sentry.runner import configure
 configure()
 
@@ -17,18 +19,17 @@ from django.utils import timezone
 from loremipsum import Generator
 from pytz import utc
 
-from sentry import buffer, roles
+from sentry import buffer, roles, tsdb
 from sentry.event_manager import HashDiscarded
 from sentry.models import (
-    Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy,
+    Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy, EventAttachment, Event,
     Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
     OrganizationAccessRequest, OrganizationMember, Project, Release,
-    ReleaseCommit, ReleaseEnvironment, ReleaseFile, Repository, Team,
-    TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
+    ReleaseCommit, ReleaseEnvironment, ReleaseProjectEnvironment, ReleaseFile, Repository,
+    Team, TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
-from sentry.tsdb import backend as tsdb
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event
 from sentry.utils.samples import generate_user
@@ -57,7 +58,30 @@ ENVIRONMENTS = itertools.cycle([
     'staging',
     'alpha',
     'beta',
+    ''
 ])
+
+LONG_MESSAGE = """Code: 0.
+DB::Exception: String is too long for DateTime: 2018-10-26T19:14:18+00:00. Stack trace:
+
+0. clickhouse-server(StackTrace::StackTrace()+0x16) [0x99e9626]
+1. clickhouse-server(DB::Exception::Exception(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, int)+0x22) [0x3087172]
+2. clickhouse-server(DB::FunctionComparison<DB::EqualsOp, DB::NameEquals>::executeDateOrDateTimeOrEnumOrUUIDWithConstString(DB::Block&, unsigned long, DB::IColumn const*, DB::IColumn const*, std::shared_ptr<DB::IDataType const> const&, std::shared_ptr<DB::IDataType const> const&, bool, unsigned long)+0x13c8) [0x3b233d8]
+3. clickhouse-server(DB::FunctionComparison<DB::EqualsOp, DB::NameEquals>::executeImpl(DB::Block&, std::vector<unsigned long, std::allocator<unsigned long> > const&, unsigned long, unsigned long)+0x576) [0x3bafc86]
+4. clickhouse-server(DB::PreparedFunctionImpl::defaultImplementationForNulls(DB::Block&, std::vector<unsigned long, std::allocator<unsigned long> > const&, unsigned long, unsigned long)+0x174) [0x7953cd4]
+5. clickhouse-server(DB::PreparedFunctionImpl::executeWithoutLowCardinalityColumns(DB::Block&, std::vector<unsigned long, std::allocator<unsigned long> > const&, unsigned long, unsigned long)+0x54) [0x7953b04]
+6. clickhouse-server(DB::PreparedFunctionImpl::execute(DB::Block&, std::vector<unsigned long, std::allocator<unsigned long> > const&, unsigned long, unsigned long)+0x3e2) [0x7954222]
+7. clickhouse-server(DB::ExpressionAction::execute(DB::Block&, std::unordered_map<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, unsigned long, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, unsigned long> > >&) const+0x69b) [0x7b021fb]
+8. clickhouse-server(DB::ExpressionActions::execute(DB::Block&) const+0xe6) [0x7b03676]
+9. clickhouse-server(DB::FilterBlockInputStream::FilterBlockInputStream(std::shared_ptr<DB::IBlockInputStream> const&, std::shared_ptr<DB::ExpressionActions> const&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, bool)+0x711) [0x79b7e31]
+10. clickhouse-server() [0x75e9443]
+11. clickhouse-server(DB::InterpreterSelectQuery::executeImpl(DB::InterpreterSelectQuery::Pipeline&, std::shared_ptr<DB::IBlockInputStream> const&, bool)+0x118f) [0x75f212f]
+12. clickhouse-server(DB::InterpreterSelectQuery::InterpreterSelectQuery(std::shared_ptr<DB::IAST> const&, DB::Context const&, std::shared_ptr<DB::IBlockInputStream> const&, std::shared_ptr<DB::IStorage> const&, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&, DB::QueryProcessingStage::Enum, unsigned long, bool)+0x5e6) [0x75f2d46]
+13. clickhouse-server(DB::InterpreterSelectQuery::InterpreterSelectQuery(std::shared_ptr<DB::IAST> const&, DB::Context const&, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&, DB::QueryProcessingStage::Enum, unsigned long, bool)+0x56) [0x75f3aa6]
+14. clickhouse-server(DB::InterpreterSelectWithUnionQuery::InterpreterSelectWithUnionQuery(std::shared_ptr<DB::IAST> const&, DB::Context const&, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&, DB::QueryProcessingStage::Enum, unsigned long, bool)+0x7e7) [0x75ffab7]
+15. clickhouse-server(DB::InterpreterFactory::get(std::shared_ptr<DB::IAST>&, DB::Context&, DB::QueryProcessingStage::Enum)+0x3a8) [0x75dc138]
+16. clickhouse-server() [0x768fad9]
+17. clickhouse-server(DB::executeQuery(std::__cxx11::basic..."""
 
 
 def make_sentence(words=None):
@@ -70,16 +94,20 @@ def create_sample_event(*args, **kwargs):
     try:
         event = _create_sample_event(*args, **kwargs)
     except HashDiscarded as e:
-        print "> Skipping Event: {}".format(e.message)
+        print("> Skipping Event: {}".format(e.message))  # NOQA
     else:
         if event is not None:
             features.record([event])
             return event
 
+
 def generate_commits(user):
     commits = []
-    for i in range(random.randint(0, 20)):
-        filename = random.choice(loremipsum.words)
+    for i in range(random.randint(1, 20)):
+        if i == 1:
+            filename = 'raven/base.py'
+        else:
+            filename = random.choice(loremipsum.words) + '.js'
         if random.randint(0, 5) == 1:
             author = (user.name, user.email)
         else:
@@ -95,7 +123,7 @@ def generate_commits(user):
 
         commits.append({
             'key': sha1(uuid4().hex).hexdigest(),
-            'message': 'modified {}.js}',
+            'message': 'feat: Do something to {}\n{}'.format(filename, make_sentence()),
             'author': author,
             'files': [
                 (filename, 'M'),
@@ -160,6 +188,8 @@ def create_system_time_series():
 def create_sample_time_series(event, release=None):
     if event is None:
         return
+
+    Event.objects.bind_nodes([event], 'data')
 
     group = event.group
 
@@ -310,9 +340,9 @@ def main(num_events=1, extra_events=False):
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
         org = Organization.get_default()
-        print('Mocking org {}'.format(org.name))
+        print('Mocking org {}'.format(org.name))  # NOQA
     else:
-        print('Mocking org {}'.format('Default'))
+        print('Mocking org {}'.format('Default'))  # NOQA
         org, _ = Organization.objects.get_or_create(
             slug='default',
         )
@@ -332,7 +362,7 @@ def main(num_events=1, extra_events=False):
     )
 
     for team_name, project_names in mocks:
-        print('> Mocking team {}'.format(team_name))
+        print('> Mocking team {}'.format(team_name))  # NOQA
         team, _ = Team.objects.get_or_create(
             name=team_name,
             defaults={
@@ -341,9 +371,8 @@ def main(num_events=1, extra_events=False):
         )
 
         for project_name in project_names:
-            print('  > Mocking project {}'.format(project_name))
+            print('  > Mocking project {}'.format(project_name))  # NOQA
             project, _ = Project.objects.get_or_create(
-                team=team,
                 name=project_name,
                 defaults={
                     'organization': org,
@@ -440,6 +469,21 @@ def main(num_events=1, extra_events=False):
                     order=commit_index,
                 )
 
+            # create an unreleased commit
+            Commit.objects.get_or_create(
+                organization_id=org.id,
+                repository_id=repo[0].id,
+                key=sha1(uuid4().hex).hexdigest(),
+                defaults={
+                    'author': CommitAuthor.objects.get_or_create(
+                        organization_id=org.id,
+                        email=user.email,
+                        defaults={'name': user.name}
+                    )[0],
+                    'message': 'feat: Do something to {}\n{}'.format(random.choice(loremipsum.words) + '.js', make_sentence()),
+                },
+            )[0]
+
             Activity.objects.create(
                 type=Activity.RELEASE,
                 project=project,
@@ -450,7 +494,7 @@ def main(num_events=1, extra_events=False):
 
             environment = Environment.get_or_create(
                 project=project,
-                name=ENVIRONMENTS.next()
+                name=six.next(ENVIRONMENTS)
             )
 
             deploy = Deploy.objects.create(
@@ -467,6 +511,13 @@ def main(num_events=1, extra_events=False):
                 authors=[six.text_type(a.id) for a in authors],
             )
 
+            ReleaseProjectEnvironment.objects.create_or_update(
+                project=project,
+                environment=environment,
+                release=release,
+                defaults={'last_deploy_id': deploy.id}
+            )
+
             Activity.objects.create(
                 type=Activity.DEPLOY,
                 project=project,
@@ -477,19 +528,19 @@ def main(num_events=1, extra_events=False):
                     'environment': environment.name
                 },
                 datetime=deploy.date_finished,
-             )
+            )
 
             # Add a bunch of additional dummy events to support pagination
             if extra_events:
                 for _ in range(45):
-                    platform = PLATFORMS.next()
+                    platform = six.next(PLATFORMS)
 
                     create_sample_event(
                         project=project,
                         platform=platform,
                         release=release.version,
-                        level=LEVELS.next(),
-                        environment=ENVIRONMENTS.next(),
+                        level=six.next(LEVELS),
+                        environment=six.next(ENVIRONMENTS),
                         message='This is a mostly useless example %s exception' % platform,
                         checksum=md5_text(platform + six.text_type(_)).hexdigest(),
                         user=generate_user(),
@@ -500,15 +551,28 @@ def main(num_events=1, extra_events=False):
                     project=project,
                     platform='python',
                     release=release.version,
-                    environment=ENVIRONMENTS.next(),
+                    environment=six.next(ENVIRONMENTS),
                     user=generate_user(),
+                )
+
+                EventAttachment.objects.create(
+                    project_id=project.id,
+                    group_id=event1.group_id,
+                    event_id=event1.event_id,
+                    name='example-logfile.txt',
+                    file=File.objects.get_or_create(
+                        name='example-logfile.txt',
+                        type='text/plain',
+                        checksum='abcde' * 8,
+                        size=13043,
+                    )[0],
                 )
 
                 event2 = create_sample_event(
                     project=project,
                     platform='javascript',
                     release=release.version,
-                    environment=ENVIRONMENTS.next(),
+                    environment=six.next(ENVIRONMENTS),
                     sdk={
                         'name': 'raven-js',
                         'version': '2.1.0',
@@ -522,7 +586,7 @@ def main(num_events=1, extra_events=False):
                     project=project,
                     platform='ruby',
                     release=release.version,
-                    environment=ENVIRONMENTS.next(),
+                    environment=six.next(ENVIRONMENTS),
                     user=generate_user(),
                 )
 
@@ -530,7 +594,7 @@ def main(num_events=1, extra_events=False):
                     project=project,
                     platform='cocoa',
                     release=release.version,
-                    environment=ENVIRONMENTS.next(),
+                    environment=six.next(ENVIRONMENTS),
                     user=generate_user(),
                 )
 
@@ -538,8 +602,8 @@ def main(num_events=1, extra_events=False):
                     project=project,
                     platform='php',
                     release=release.version,
-                    environment=ENVIRONMENTS.next(),
-                    message='This is a an example PHP event with an extremely long and annoying title\nIt also happens to contain some newlines in it,\nthus making it even more annoying.',
+                    environment=six.next(ENVIRONMENTS),
+                    message=LONG_MESSAGE,
                     user=generate_user(),
                 )
 
@@ -548,7 +612,15 @@ def main(num_events=1, extra_events=False):
                     platform='cocoa',
                     sample_name='react-native',
                     release=release.version,
-                    environment=ENVIRONMENTS.next(),
+                    environment=six.next(ENVIRONMENTS),
+                    user=generate_user(),
+                )
+
+                create_sample_event(
+                    project=project,
+                    platform='pii',
+                    release=release.version,
+                    environment=six.next(ENVIRONMENTS),
                     user=generate_user(),
                 )
             if event5:
@@ -566,10 +638,9 @@ def main(num_events=1, extra_events=False):
                     },
                 )[0]
 
-
             create_sample_event(
                 project=project,
-                environment=ENVIRONMENTS.next(),
+                environment=six.next(ENVIRONMENTS),
                 platform='csp',
             )
 
@@ -593,7 +664,7 @@ def main(num_events=1, extra_events=False):
                     comments=make_sentence(),
                 )
 
-            print('    > Loading time series data'.format(project_name))
+            print('    > Loading time series data'.format(project_name))  # NOQA
 
             create_sample_time_series(event1, release=release)
             create_sample_time_series(event2, release=release)
@@ -602,7 +673,7 @@ def main(num_events=1, extra_events=False):
             create_sample_time_series(event5, release=release)
 
             if hasattr(buffer, 'process_pending'):
-                print('    > Processing pending buffers')
+                print('    > Processing pending buffers')  # NOQA
                 buffer.process_pending()
 
             mocks_loaded.send(project=project, sender=__name__)

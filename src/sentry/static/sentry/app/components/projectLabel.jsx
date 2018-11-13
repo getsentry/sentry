@@ -4,14 +4,14 @@ import React from 'react';
 export default class ProjectLabel extends React.PureComponent {
   static propTypes = {
     project: PropTypes.object,
-    organization: PropTypes.object,
   };
 
   render() {
-    let project = this.props.project;
+    let {project} = this.props;
+
     return (
-      <span className="project-label">
-        <span className="project-name">{project.name}</span>
+      <span className="project-label" {...this.props}>
+        <span className="project-name">{project.slug}</span>
       </span>
     );
   }

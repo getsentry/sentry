@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 import Confirm from 'app/components/confirm';
 
 describe('Confirm', function() {
@@ -8,7 +8,8 @@ describe('Confirm', function() {
     let wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
-      </Confirm>
+      </Confirm>,
+      TestStubs.routerContext()
     );
     expect(wrapper).toMatchSnapshot();
   });
@@ -18,7 +19,8 @@ describe('Confirm', function() {
     let wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
-      </Confirm>
+      </Confirm>,
+      TestStubs.routerContext()
     );
 
     wrapper.find('button').simulate('click');
@@ -31,7 +33,8 @@ describe('Confirm', function() {
     let wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
-      </Confirm>
+      </Confirm>,
+      TestStubs.routerContext()
     );
 
     let button = wrapper.find('button');
@@ -43,10 +46,11 @@ describe('Confirm', function() {
 
   it('clicks Confirm in modal and calls `onConfirm` callback', function() {
     let mock = jest.fn();
-    let wrapper = shallow(
+    let wrapper = mount(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
-      </Confirm>
+      </Confirm>,
+      TestStubs.routerContext()
     );
 
     expect(mock).not.toHaveBeenCalled();
@@ -56,38 +60,17 @@ describe('Confirm', function() {
 
     // Click "Confirm" button, should be last button
     wrapper
-      .find('Modal')
       .find('Button')
       .last()
       .simulate('click');
 
-    expect(wrapper.find('Modal').prop('show')).toBe(false);
+    expect(
+      wrapper
+        .find('Modal')
+        .first()
+        .prop('show')
+    ).toBe(false);
     expect(mock).toHaveBeenCalled();
-  });
-
-  it('clicks Confirm in modal and calls `onConfirm` callback', function() {
-    let mock = jest.fn();
-    let wrapper = shallow(
-      <Confirm message="Are you sure?" onConfirm={mock}>
-        <button>Confirm?</button>
-      </Confirm>
-    );
-
-    expect(mock).not.toHaveBeenCalled();
-
-    wrapper.find('button').simulate('click');
-    wrapper.update();
-
-    // Click "Confirm" button, should be last button
-    let confirm = wrapper
-      .find('Modal')
-      .find('Button')
-      .last();
-
-    confirm.simulate('click');
-    confirm.simulate('click');
-
-    expect(wrapper.find('Modal').prop('show')).toBe(false);
     expect(mock.mock.calls).toHaveLength(1);
   });
 });

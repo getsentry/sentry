@@ -12,7 +12,7 @@ class Migration(SchemaMigration):
         db.create_table('sentry_email', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
             ('email', self.gf('sentry.db.models.fields.citext.CIEmailField')(unique=True, max_length=75)),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')()),
         ))
         db.send_create_signal('sentry', ['Email'])
 

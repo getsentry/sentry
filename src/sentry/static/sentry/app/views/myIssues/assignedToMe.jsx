@@ -1,7 +1,7 @@
 import React from 'react';
 
-import OrganizationIssueList from '../../components/organizationIssueList';
-import {t} from '../../locale';
+import OrganizationIssueList from 'app/components/organizationIssueList';
+import {t} from 'app/locale';
 
 class AssignedToMe extends React.Component {
   getEndpoint = () => {
@@ -17,6 +17,7 @@ class AssignedToMe extends React.Component {
       <OrganizationIssueList
         title={this.getTitle()}
         endpoint={this.getEndpoint()}
+        emptyText={t('No issues currently assigned to you.')}
         {...this.props}
       />
     );

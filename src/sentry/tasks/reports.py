@@ -166,11 +166,13 @@ def prepare_project_series(start__stop, project, rollup=60 * 60 * 24):
                 clean,
                 tsdb.get_range(
                     tsdb.models.group,
-                    project.group_set.filter(
-                        status=GroupStatus.RESOLVED,
-                        resolved_at__gte=start,
-                        resolved_at__lt=stop,
-                    ).values_list('id', flat=True),
+                    list(
+                        project.group_set.filter(
+                            status=GroupStatus.RESOLVED,
+                            resolved_at__gte=start,
+                            resolved_at__lt=stop,
+                        ).values_list('id', flat=True),
+                    ),
                     start,
                     stop,
                     rollup=rollup,
@@ -457,7 +459,7 @@ class RedisReportBackend(ReportBackend):
         self.namespace = namespace
 
     def __make_key(self, timestamp, duration, organization):
-        return '{}:{}:{}:{}:{}'.format(
+        return u'{}:{}:{}:{}:{}'.format(
             self.namespace,
             self.version,
             organization.id,
@@ -554,27 +556,33 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
 
 def fetch_personal_statistics(start__stop, organization, user):
     start, stop = start__stop
-    resolved_issue_ids = Activity.objects.filter(
-        project__organization_id=organization.id,
-        user_id=user.id,
-        type__in=(Activity.SET_RESOLVED, Activity.SET_RESOLVED_IN_RELEASE, ),
-        datetime__gte=start,
-        datetime__lt=stop,
-        group__status=GroupStatus.RESOLVED,  # only count if the issue is still resolved
-    ).distinct().values_list(
-        'group_id', flat=True
+    resolved_issue_ids = set(
+        Activity.objects.filter(
+            project__organization_id=organization.id,
+            user_id=user.id,
+            type__in=(Activity.SET_RESOLVED, Activity.SET_RESOLVED_IN_RELEASE, ),
+            datetime__gte=start,
+            datetime__lt=stop,
+            group__status=GroupStatus.RESOLVED,  # only count if the issue is still resolved
+        ).distinct().values_list(
+            'group_id', flat=True
+        )
     )
-    return {
-        'resolved':
-        len(resolved_issue_ids),
-        'users':
-        tsdb.get_distinct_counts_union(
+
+    if resolved_issue_ids:
+        users = tsdb.get_distinct_counts_union(
             tsdb.models.users_affected_by_group,
             resolved_issue_ids,
             start,
             stop,
             60 * 60 * 24,
-        ),
+        )
+    else:
+        users = {}
+
+    return {
+        'resolved': len(resolved_issue_ids),
+        'users': users,
     }
 
 
@@ -770,7 +778,8 @@ def build_project_breakdown_series(reports):
         operator.itemgetter(0),
         sorted(
             reports.items(),
-            key=lambda instance__report: sum(sum(values) for timestamp, values in instance__report[1][0]),
+            key=lambda instance__report: sum(sum(values)
+                                             for timestamp, values in instance__report[1][0]),
             reverse=True,
         ),
     )[:len(colors)]

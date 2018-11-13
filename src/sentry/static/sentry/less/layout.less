@@ -10,25 +10,59 @@ body {
   color: @gray-darker;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  padding-left: @sidebar-width;
-  padding-top: 30px;
-
-  // Fake sidebar rendering until actual sidebar is loaded
-
-  background-image: linear-gradient(@header-bg-color, @header-bg-color);
-  background-size: @sidebar-width;
-  background-repeat: repeat-y;
+  min-height: 100vh;
 
   &.new-settings {
     overflow-y: scroll;
     background-image: none;
     background-color: #fcfcfc;
-    padding: 0 0 40px;
+    padding: 0;
 
     .messages-container {
       margin: 0;
     }
+    .sentry-error-embed-wrapper {
+      z-index: 1000;
+    }
   }
+
+  &.org-dashboard {
+    background-color: #fcfcfc;
+  }
+
+  &.body-sidebar {
+    padding-left: @sidebar-expanded-width;
+    font-family: 'Rubik', 'Avenir Next', 'Helvetica Neue', sans-serif;
+
+    &.collapsed {
+      padding-left: @sidebar-collapsed-width;
+    }
+
+    /* This is for organization level views e.g. "Assigned to me" */
+    .organization-home {
+      .container {
+        margin-top: 24px;
+      }
+    }
+  }
+
+  /* Discover has a 100% height based layout with no footer */
+  &.body-discover {
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+    footer {
+      display: none;
+    }
+  }
+}
+
+#blk_router {
+  min-height: 100vh;
+}
+
+#login_as {
+  z-index: 1000000;
 }
 
 /**
@@ -38,9 +72,21 @@ body {
 
 body.narrow {
   zoom: 1;
-  padding: 30px 0 0;
+  padding: 0;
 
   background: #fff;
+
+  &.body-sidebar {
+    padding-left: @sidebar-expanded-width;
+
+    &.collapsed {
+      padding-left: @sidebar-collapsed-width;
+    }
+  }
+
+  &.dialog {
+    padding-top: 0;
+  }
 
   h3,
   h4 {
@@ -48,11 +94,16 @@ body.narrow {
   }
 
   .app > .container {
-    padding-top: 10px;
+    padding-top: 40px;
     max-width: 860px;
 
     .box-header {
-      padding: 15px 30px 10px;
+      padding: 15px 30px 12px;
+
+      .logo-with-action {
+        display: flex;
+        align-items: center;
+      }
 
       a {
         font-size: 20px;
@@ -102,8 +153,115 @@ body.narrow {
 
 body.auth {
   .app > .container {
+    padding-top: 5vh;
+    max-width: 740px;
+  }
+
+  .box {
+    border: 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    display: flex;
+    width: 100%;
+  }
+
+  .auth-sidebar {
+    padding-top: 20px;
+    width: 60px;
+    background: #564f64;
+    background-image: linear-gradient(
+      -180deg,
+      rgba(52, 44, 62, 0) 0%,
+      rgba(52, 44, 62, 0.5) 100%
+    );
+    box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.1);
+    border-radius: 4px 0 0 4px;
+    margin-top: -1px;
+    margin-bottom: -1px;
+    text-align: center;
+
+    a {
+      color: #fff;
+      font-size: 22px;
+      line-height: 1.5;
+    }
+  }
+
+  .org-login {
+    flex: 1;
+  }
+
+  .auth-container {
+    padding-left: 40px;
+    padding-right: 40px;
+
+    &.border-bottom {
+      border-bottom: 1px solid @trim;
+    }
+
+    ul,
+    ol,
+    p,
+    blockquote {
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .tab-content .auth-container {
     padding-top: 30px;
-    max-width: 540px;
+    padding-bottom: 40px;
+    display: flex;
+  }
+
+  .auth-form-column {
+    flex: 1;
+  }
+
+  .auth-provider-column {
+    width: 46%;
+    padding-left: 30px;
+    margin-left: 30px;
+    border-left: 1px solid @trim;
+
+    p {
+      margin-bottom: 15px;
+
+      &:first-child {
+        margin-top: 28px;
+      }
+    }
+
+    .btn-default {
+      display: block;
+      text-align: left;
+      padding: 8px 12px;
+
+      .provider-logo {
+        top: 0;
+      }
+    }
+  }
+
+  .auth-footer {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+
+    > .btn {
+      margin-right: 6px;
+    }
+
+    .secondary {
+      flex: 1;
+      text-align: right;
+      color: @gray-light;
+
+      &:hover {
+        color: @gray-dark;
+      }
+    }
   }
 }
 
@@ -115,6 +273,7 @@ body.auth {
 .app {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
 }
 
 .container {
@@ -122,6 +281,20 @@ body.auth {
   padding-left: 30px;
   padding-right: 30px;
   width: 100% !important;
+  flex: 1;
+}
+
+// Container around content in app.jsx
+.main-container {
+  min-height: 100vh;
+  outline: none;
+}
+
+// So loader can take up full height so that footer is fixed to bottom of screen
+.loading-full-layout {
+  flex: 1;
+  display: flex;
+  align-items: center;
 }
 
 /**
@@ -133,7 +306,7 @@ body.auth {
   color: @gray-dark;
   border-bottom: 1px solid darken(@trim, 5);
   position: relative;
-  margin: -30px 0 20px; // Offset body padding-top
+  margin: 0 0 20px;
   line-height: 1;
   font-size: 16px;
   min-height: 62px;
@@ -161,24 +334,48 @@ body.auth {
     }
   }
 
-  .project-select {
-    position: relative;
+  .project-header {
+    display: flex;
+    margin-top: 18px;
 
-    h3 {
-      font-size: 20px;
-      margin: 0;
-
-      a {
-        color: @gray-dark;
-
-        &:hover {
-          color: @gray-darkest;
-        }
+    &-main {
+      flex-grow: 1;
+    }
+    &-toggle {
+      text-align: right;
+      label {
+        color: @gray-lighter;
+        font-size: 14px;
+        font-weight: normal;
+        display: block;
+        margin-top: 8px;
+        margin-bottom: 8px;
       }
     }
+  }
 
-    .project-selected {
-      background-color: lighten(@blue-light, 30);
+  .project-select-wrapper {
+    display: flex;
+    align-items: center;
+  }
+
+  .project-select-bookmark {
+    border-left: 1px solid @gray-lightest;
+    padding-left: 15px;
+    margin-left: 10px;
+    color: @40;
+    &.active {
+      color: @yellow-orange;
+    }
+  }
+
+  .environment-selector-toggle {
+    color: @gray-darkest;
+    font-weight: 600;
+
+    + .dropdown-menu {
+      z-index: @zindex-sticky-bar + 2;
+      width: 172px;
     }
   }
 
@@ -208,14 +405,14 @@ body.auth {
       z-index: 2;
 
       a {
-        padding-bottom: 13px;
+        padding-bottom: 10px;
       }
     }
   }
 
-  .project-select + .nav-tabs,
+  .project-select-wrapper + .nav-tabs,
   #blk_projectselect + .nav-tabs {
-    margin-top: 10px;
+    margin-top: 12px;
   }
 
   .align-right {
@@ -257,6 +454,12 @@ footer {
   margin-top: 20px;
   padding: 28px 0;
 
+  .container {
+    // Ensure dropdowns inside application views
+    // don't stack under footer content.
+    position: static;
+  }
+
   .pull-right {
     a {
       margin-left: 20px;
@@ -276,46 +479,6 @@ footer {
     width: 32px;
     margin: 0 auto;
     display: block;
-  }
-}
-
-/**
-* Project action menu
-* ============================================================================
-*/
-
-.project-actions {
-  .btn-sm {
-    font-size: 13px;
-    margin-left: 7px;
-    line-height: 21px;
-    padding: 4px 9px;
-  }
-
-  .icon {
-    font-size: 14px;
-    padding-right: 5px;
-    color: @40;
-    position: relative;
-
-    &.icon-star-solid {
-      top: 0;
-      margin: 0;
-    }
-
-    &.icon-signal {
-      font-size: 18px;
-      top: 1px;
-    }
-
-    &.icon-settings {
-      top: 2px;
-      font-size: 15px;
-    }
-
-    &.active {
-      color: @yellow-orange;
-    }
   }
 }
 
@@ -370,7 +533,6 @@ footer {
   header {
     display: none;
   }
-  .org-sidebar,
   .toolbar {
     display: none;
   }
@@ -409,6 +571,15 @@ footer {
 
     // Account for there being no footer on mobile
     padding-bottom: 20px;
+
+    &.body-sidebar {
+      padding-left: 0;
+      padding-top: @sidebar-mobile-height;
+
+      &.collapsed {
+        padding-left: 0;
+      }
+    }
   }
 
   .app {
@@ -431,6 +602,11 @@ footer {
   .narrow .app > .container,
   .narrow.windowed-small .app > .container {
     padding-top: 30px !important;
+  }
+
+  .narrow.dialog .app > .container,
+  .narrow.dialog.windowed-small .app > .container {
+    padding-top: 10px !important;
   }
 
   .nav-tabs {
@@ -462,14 +638,58 @@ footer {
       right: 0;
       top: 0;
       font-size: 20px;
-      background: @header-bg-color;
+      background: @sidebar-bg-color;
       padding-left: 30px;
     }
 
     .app > .container {
-      padding: 62px 10px 0 10px !important;
       .box-content.with-padding {
         padding: 20px 20px 10px;
+      }
+    }
+
+    .box {
+      flex-direction: column;
+    }
+
+    .auth-sidebar {
+      width: 100%;
+      text-align: left;
+      padding: 20px;
+      border-radius: 4px 4px 0 0;
+
+      a {
+        line-height: 1;
+        position: relative;
+        top: 3px;
+      }
+    }
+
+    .auth-container {
+      flex-wrap: wrap;
+      padding-left: 20px;
+      padding-right: 20px;
+
+      > div {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        border: 0;
+
+        &.auth-provider-column {
+          border-top: 1px solid @trim;
+          padding-top: 20px;
+          margin-top: 20px;
+          p {
+            margin-top: 0;
+          }
+        }
+      }
+    }
+
+    .tab-pane {
+      .auth-container {
+        padding: 20px;
       }
     }
   }

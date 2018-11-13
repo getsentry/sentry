@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-import OrganizationsActions from '../actions/organizationsActions';
+import OrganizationsActions from 'app/actions/organizationsActions';
 
 const OrganizationsStore = Reflux.createStore({
   listenables: [OrganizationsActions],
@@ -64,5 +64,3 @@ const OrganizationsStore = Reflux.createStore({
 });
 
 export default OrganizationsStore;
-
-window.o = OrganizationsStore;

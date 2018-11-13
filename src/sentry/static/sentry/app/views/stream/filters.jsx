@@ -1,24 +1,21 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SavedSearchSelector from './savedSearchSelector';
-import SearchBar from './searchBar';
-import SortOptions from './sortOptions';
-import {t} from '../../locale';
+import SavedSearchSelector from 'app/views/stream/savedSearchSelector';
+import SearchBar from 'app/views/stream/searchBar';
+import SortOptions from 'app/views/stream/sortOptions';
+import {t} from 'app/locale';
 
 class StreamFilters extends React.Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     access: PropTypes.object.isRequired,
-    tags: PropTypes.object.isRequired,
 
     searchId: PropTypes.string,
     savedSearchList: PropTypes.array.isRequired,
 
-    defaultQuery: PropTypes.string,
     sort: PropTypes.string,
-    filter: PropTypes.string,
     query: PropTypes.string,
     isSearchDisabled: PropTypes.bool,
     queryCount: PropTypes.number,
@@ -35,9 +32,7 @@ class StreamFilters extends React.Component {
   };
 
   static defaultProps = {
-    defaultQuery: '',
     sort: '',
-    filter: '',
     query: null,
     onSortChange: function() {},
     onSearch: function() {},
@@ -54,8 +49,6 @@ class StreamFilters extends React.Component {
       queryMaxCount,
       query,
       savedSearchList,
-      tags,
-      defaultQuery,
       isSearchDisabled,
       sort,
 
@@ -90,13 +83,11 @@ class StreamFilters extends React.Component {
               <SearchBar
                 orgId={orgId}
                 projectId={projectId}
-                ref="searchBar"
-                tags={tags}
-                defaultQuery={defaultQuery || ''}
                 placeholder={t('Search for events, users, tags, and everything else.')}
                 query={query || ''}
                 onSearch={onSearch}
                 disabled={isSearchDisabled}
+                excludeEnvironment={true}
               />
               <a
                 className="btn btn-default toggle-stream-sidebar"

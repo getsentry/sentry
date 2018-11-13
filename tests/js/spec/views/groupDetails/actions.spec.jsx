@@ -21,24 +21,24 @@ describe('GroupActions', function() {
     it('renders correctly', function() {
       let wrapper = shallow(<GroupActions />, {
         context: {
-          group: {
+          group: TestStubs.Group({
             id: '1337',
             pluginActions: [],
             pluginIssues: [],
-          },
-          organization: {
+          }),
+          organization: TestStubs.Organization({
             id: '4660',
             slug: 'org',
-          },
-          project: {
+          }),
+          project: TestStubs.ProjectDetails({
             id: '2448',
             name: 'project name',
             slug: 'project',
-          },
-          team: {
+          }),
+          team: TestStubs.Team({
             id: '3559',
             slug: 'team',
-          },
+          }),
         },
       });
       expect(wrapper).toMatchSnapshot();

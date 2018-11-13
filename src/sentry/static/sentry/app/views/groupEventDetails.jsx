@@ -1,15 +1,21 @@
 import React from 'react';
-import ApiMixin from '../mixins/apiMixin';
-import EventEntries from '../components/events/eventEntries';
-import GroupEventToolbar from './groupDetails/eventToolbar';
-import GroupSidebar from '../components/group/sidebar';
-import GroupState from '../mixins/groupState';
-import MutedBox from '../components/mutedBox';
-import GroupEventDetailsLoadingError from '../components/errors/groupEventDetailsLoadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import ResolutionBox from '../components/resolutionBox';
+import createReactClass from 'create-react-class';
 
-const GroupEventDetails = React.createClass({
+import {withMeta} from 'app/components/events/meta/metaProxy';
+import ApiMixin from 'app/mixins/apiMixin';
+import EventEntries from 'app/components/events/eventEntries';
+import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
+import GroupEventToolbar from 'app/views/groupDetails/eventToolbar';
+import GroupSidebar from 'app/components/group/sidebar';
+import GroupState from 'app/mixins/groupState';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MutedBox from 'app/components/mutedBox';
+import ResolutionBox from 'app/components/resolutionBox';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+
+const GroupEventDetails = createReactClass({
+  displayName: 'GroupEventDetails',
+
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
@@ -71,7 +77,7 @@ const GroupEventDetails = React.createClass({
 
   render() {
     let group = this.getGroup();
-    let evt = this.state.event;
+    let evt = withMeta(this.state.event);
     let params = this.props.params;
 
     return (
@@ -118,4 +124,4 @@ const GroupEventDetails = React.createClass({
   },
 });
 
-export default GroupEventDetails;
+export default withEnvironmentInQueryString(GroupEventDetails);

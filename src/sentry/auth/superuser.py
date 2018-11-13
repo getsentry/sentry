@@ -21,6 +21,8 @@ from django.core.signing import BadSignature
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 
+from sentry.utils.auth import has_completed_sso
+
 logger = logging.getLogger('sentry.superuser')
 
 SESSION_KEY = '_su'
@@ -45,6 +47,8 @@ IDLE_MAX_AGE = getattr(settings, 'SUPERUSER_IDLE_MAX_AGE', timedelta(minutes=30)
 
 ALLOWED_IPS = frozenset(getattr(settings, 'SUPERUSER_ALLOWED_IPS', settings.INTERNAL_IPS) or ())
 
+ORG_ID = getattr(settings, 'SUPERUSER_ORG_ID', None)
+
 UNSET = object()
 
 
@@ -58,23 +62,47 @@ class Superuser(object):
         ipaddress.ip_network(six.text_type(v), strict=False) for v in ALLOWED_IPS
     ]
 
-    def __init__(self, request, allowed_ips=UNSET, current_datetime=None):
+    org_id = ORG_ID
+
+    def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
         self.request = request
         if allowed_ips is not UNSET:
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(six.text_type(v), strict=False) for v in allowed_ips or ()
             )
+        if org_id is not UNSET:
+            self.org_id = org_id
         self._populate(current_datetime=current_datetime)
 
+    @property
+    def is_active(self):
+        # if we've been logged out
+        if not self.request.user.is_authenticated():
+            return False
+        # if superuser status was changed
+        if not self.request.user.is_superuser:
+            return False
+        # if the user has changed
+        if six.text_type(self.request.user.id) != self.uid:
+            return False
+        return self._is_active
+
     def is_privileged_request(self):
+        """
+        Returns ``(bool is_privileged, str reason)``
+        """
         allowed_ips = self.allowed_ips
+        # if we've bound superuser to an organization they must
+        # have completed SSO to gain status
+        if self.org_id and not has_completed_sso(self.request, self.org_id):
+            return False, 'incomplete-sso'
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:
-            return True
+            return True, None
         ip = ipaddress.ip_address(six.text_type(self.request.META['REMOTE_ADDR']))
         if not any(ip in addr for addr in allowed_ips):
-            return False
-        return True
+            return False, 'invalid-ip'
+        return True, None
 
     def get_session_data(self, current_datetime=None):
         """
@@ -196,10 +224,16 @@ class Superuser(object):
             )
 
             if not self.is_active:
-                logger.warn('superuser.invalid-ip', extra={
-                    'ip_address': request.META['REMOTE_ADDR'],
-                    'user_id': request.user.id,
-                })
+                if self._inactive_reason:
+                    logger.warn(u'superuser.{}'.format(self._inactive_reason), extra={
+                        'ip_address': request.META['REMOTE_ADDR'],
+                        'user_id': request.user.id,
+                    })
+                else:
+                    logger.warn('superuser.inactive-unknown-reason', extra={
+                        'ip_address': request.META['REMOTE_ADDR'],
+                        'user_id': request.user.id,
+                    })
 
     def _set_logged_in(self, expires, token, user, current_datetime=None):
         # we bind uid here, as if you change users in the same request
@@ -215,7 +249,7 @@ class Superuser(object):
         # do we have a valid superuser session?
         self.is_valid = True
         # is the session active? (it could be valid, but inactive)
-        self.is_active = self.is_privileged_request()
+        self._is_active, self._inactive_reason = self.is_privileged_request()
         self.request.session[SESSION_KEY] = {
             'exp': self.expires.strftime('%s'),
             'idl': (current_datetime + IDLE_MAX_AGE).strftime('%s'),
@@ -228,7 +262,8 @@ class Superuser(object):
         self.uid = None
         self.expires = None
         self.token = None
-        self.is_active = False
+        self._is_active = False
+        self._inactive_reason = None
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 

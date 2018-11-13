@@ -1,9 +1,9 @@
 import Reflux from 'reflux';
 import {pick} from 'lodash';
 
-import IndicatorStore from './indicatorStore';
-import {Client} from '../api';
-import GroupingActions from '../actions/groupingActions';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {Client} from 'app/api';
+import GroupingActions from 'app/actions/groupingActions';
 
 const api = new Client();
 
@@ -303,6 +303,12 @@ const GroupingStore = Reflux.createStore({
           },
           {
             success: (data, _, jqXHR) => {
+              if (data && data.merge && data.merge.parent) {
+                this.trigger({
+                  mergedParent: data.merge.parent,
+                });
+              }
+
               // Hide rows after successful merge
               this.setStateForId(this.mergeState, ids, {
                 checked: false,
@@ -328,14 +334,6 @@ const GroupingStore = Reflux.createStore({
     });
 
     return promise;
-  },
-
-  onMergeSuccess(id, ids, response) {
-    if (!response || !response.merge || !response.merge.parent) return;
-
-    this.trigger({
-      mergedParent: response.merge.parent,
-    });
   },
 
   // Toggle collapsed state of all fingerprints

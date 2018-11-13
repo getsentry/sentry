@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
                 to=orm['sentry.User'])),
             ('identity', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
                 to=orm['sentry.Identity'])),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')()),
         ))
         db.send_create_signal('sentry', ['UserIdentity'])
 
@@ -47,8 +47,8 @@ class Migration(SchemaMigration):
             ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0)),
             ('scopes', self.gf('sentry.db.models.fields.array.ArrayField')(
                 of=('django.db.models.fields.TextField', [], {}))),
-            ('date_verified', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('date_verified', self.gf('django.db.models.fields.DateTimeField')()),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')()),
         ))
         db.send_create_signal('sentry', ['Identity'])
 

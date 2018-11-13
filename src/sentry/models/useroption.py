@@ -135,13 +135,13 @@ class UserOptionManager(BaseManager):
             self.__metadata[metakey] = result
         return self.__metadata.get(metakey, {})
 
-    def clear_cache(self, **kwargs):
+    def clear_local_cache(self, **kwargs):
         self.__metadata = {}
 
     def contribute_to_class(self, model, name):
         super(UserOptionManager, self).contribute_to_class(model, name)
-        task_postrun.connect(self.clear_cache)
-        request_finished.connect(self.clear_cache)
+        task_postrun.connect(self.clear_local_cache)
+        request_finished.connect(self.clear_local_cache)
 
 
 # TODO(dcramer): the NULL UNIQUE constraint here isnt valid, and instead has to

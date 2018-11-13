@@ -1,35 +1,39 @@
+import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Link} from 'react-router';
-import ApiMixin from '../../mixins/apiMixin';
-import SentryTypes from '../../proptypes';
-import TooltipMixin from '../../mixins/tooltip';
-import {escape, percent, deviceNameMapper} from '../../utils';
-import {t} from '../../locale';
+import createReactClass from 'create-react-class';
 
-const TagDistributionMeter = React.createClass({
+import {escape, percent} from 'app/utils';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import DeviceName, {
+  deviceNameMapper,
+  loadDeviceListModule,
+} from 'app/components/deviceName';
+import SentryTypes from 'app/sentryTypes';
+import Tooltip from 'app/components/tooltip';
+import withEnvironment from 'app/utils/withEnvironment';
+
+const TagDistributionMeter = createReactClass({
+  displayName: 'TagDistributionMeter',
+
   propTypes: {
     group: SentryTypes.Group.isRequired,
     tag: PropTypes.string.isRequired,
     name: PropTypes.string,
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
+    environment: SentryTypes.Environment,
+    totalValues: PropTypes.number,
+    topValues: PropTypes.array,
   },
 
-  mixins: [
-    ApiMixin,
-    TooltipMixin({
-      html: true,
-      selector: '.segment',
-      container: 'body',
-    }),
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
       loading: true,
       error: false,
-      data: null,
     };
   },
 
@@ -42,38 +46,39 @@ const TagDistributionMeter = React.createClass({
       this.state.loading !== nextState.loading ||
       this.state.error !== nextState.error ||
       this.props.tag !== nextProps.tag ||
-      this.props.name !== nextProps.name
+      this.props.name !== nextProps.name ||
+      this.props.environment !== nextProps.environment ||
+      this.props.totalValues !== nextProps.totalValues ||
+      this.props.topValues !== nextProps.topValues
     );
   },
 
-  fetchData() {
-    let url =
-      '/issues/' +
-      this.props.group.id +
-      '/tags/' +
-      encodeURIComponent(this.props.tag) +
-      '/';
+  componentDidUpdate(prevProps) {
+    if (prevProps.environment !== this.props.environment) {
+      this.fetchData();
+    }
+  },
 
+  fetchData() {
     this.setState({
       loading: true,
       error: false,
     });
 
-    this.api.request(url, {
-      success: (data, _, jqXHR) => {
+      loadDeviceListModule()
+      .then(iOSDeviceList => {
         this.setState({
-          data,
+          iOSDeviceList,
           error: false,
           loading: false,
         });
-      },
-      error: () => {
+      })
+      .catch(() => {
         this.setState({
           error: true,
           loading: false,
         });
-      },
-    });
+      });
   },
 
   /**
@@ -87,43 +92,42 @@ const TagDistributionMeter = React.createClass({
    */
 
   renderSegments() {
-    let data = this.state.data;
-    let totalValues = data.totalValues;
+    let {orgId, projectId, group, totalValues, topValues, tag} = this.props;
 
-    let totalVisible = data.topValues.reduce((sum, value) => sum + value.count, 0);
-
+    let totalVisible = topValues.reduce((sum, value) => sum + value.count, 0);
     let hasOther = totalVisible < totalValues;
     let otherPct = percent(totalValues - totalVisible, totalValues);
     let otherPctLabel = Math.floor(otherPct);
 
-    let {orgId, projectId} = this.props;
     return (
       <div className="segments">
-        {data.topValues.map((value, index) => {
-          let pct = percent(value.count, totalValues);
-          let pctLabel = Math.floor(pct);
-          let className = 'segment segment-' + index;
+        {topValues.map((value, index) => {
+          const pct = percent(value.count, totalValues);
+          const pctLabel = Math.floor(pct);
+          const className = 'segment segment-' + index;
+
+          const tooltipHtml =
+            '<div class="truncate">' +
+            escape(deviceNameMapper(value.name || '', this.state.iOSDeviceList) || '') +
+            '</div>' +
+            pctLabel +
+            '%';
 
           return (
-            <Link
-              key={value.id}
-              className={className}
-              style={{width: pct + '%'}}
-              to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props
-                .tag}/`}
-              title={
-                '<div class="truncate">' +
-                escape(deviceNameMapper(value.name) || '') +
-                '</div>' +
-                pctLabel +
-                '%'
-              }
-            >
-              <span className="tag-description">
-                <span className="tag-percentage">{pctLabel}%</span>
-                <span className="tag-label">{deviceNameMapper(value.name)}</span>
-              </span>
-            </Link>
+            <Tooltip key={value.key} title={tooltipHtml} tooltipOptions={{html: true}}>
+              <Link
+                className={className}
+                style={{width: pct + '%'}}
+                to={`/${orgId}/${projectId}/issues/${group.id}/tags/${tag}/`}
+              >
+                <span className="tag-description">
+                  <span className="tag-percentage">{pctLabel}%</span>
+                  <span className="tag-label">
+                    <DeviceName>{value.name}</DeviceName>
+                  </span>
+                </span>
+              </Link>
+            </Tooltip>
           );
         })}
         {hasOther && (
@@ -148,7 +152,7 @@ const TagDistributionMeter = React.createClass({
   renderBody() {
     if (this.state.loading || this.state.error) return null;
 
-    if (!this.state.data.totalValues) return <p>{t('No recent data.')}</p>;
+    if (!this.props.totalValues) return <p>{t('No recent data.')}</p>;
 
     return this.renderSegments();
   },
@@ -165,4 +169,5 @@ const TagDistributionMeter = React.createClass({
   },
 });
 
-export default TagDistributionMeter;
+export {TagDistributionMeter};
+export default withEnvironment(TagDistributionMeter);

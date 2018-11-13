@@ -1,10 +1,12 @@
 import React from 'react';
 import _ from 'lodash';
 
-import EventDataSection from './eventDataSection';
-import EventErrorItem from './errorItem';
-import SentryTypes from '../../proptypes';
-import {t, tn} from '../../locale';
+import EventDataSection from 'app/components/events/eventDataSection';
+import EventErrorItem from 'app/components/events/errorItem';
+import SentryTypes from 'app/sentryTypes';
+import {t, tn} from 'app/locale';
+
+const MAX_ERRORS = 100;
 
 class EventErrors extends React.Component {
   static propTypes = {
@@ -31,11 +33,14 @@ class EventErrors extends React.Component {
   };
 
   uniqueErrors = errors => {
-    return _.uniqBy(errors, _.isEqual);
+    return _.uniqWith(errors, _.isEqual);
   };
 
   render() {
-    let errors = this.uniqueErrors(this.props.event.errors);
+    let eventErrors = this.props.event.errors;
+    // XXX: uniqueErrors is not performant with large datasets
+    let errors =
+      eventErrors.length > MAX_ERRORS ? eventErrors : this.uniqueErrors(eventErrors);
     let numErrors = errors.length;
     let isOpen = this.state.isOpen;
     return (
@@ -51,8 +56,8 @@ class EventErrors extends React.Component {
             {isOpen ? t('Hide') : t('Show')}
           </a>
           {tn(
-            'There was %d error encountered while processing this event',
-            'There were %d errors encountered while processing this event',
+            'There was %s error encountered while processing this event',
+            'There were %s errors encountered while processing this event',
             numErrors
           )}
         </p>

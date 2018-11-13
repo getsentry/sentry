@@ -123,13 +123,6 @@ class TeamDetailsEndpoint(TeamEndpoint):
         ).update(status=TeamStatus.PENDING_DELETION)
         if updated:
             transaction_id = uuid4().hex
-            delete_team.apply_async(
-                kwargs={
-                    'object_id': team.id,
-                    'transaction_id': transaction_id,
-                },
-                countdown=3600,
-            )
 
             self.create_audit_entry(
                 request=request,
@@ -138,6 +131,13 @@ class TeamDetailsEndpoint(TeamEndpoint):
                 event=AuditLogEntryEvent.TEAM_REMOVE,
                 data=team.get_audit_log_data(),
                 transaction_id=transaction_id,
+            )
+
+            delete_team.apply_async(
+                kwargs={
+                    'object_id': team.id,
+                    'transaction_id': transaction_id,
+                },
             )
 
             delete_logger.info(

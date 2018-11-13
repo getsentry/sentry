@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import IconCloseLg from '../icons/icon-close-lg';
-import ConfigStore from '../stores/configStore';
-import ApiMixin from '../mixins/apiMixin';
-import {logAjaxError} from '../utils/logging';
+import createReactClass from 'create-react-class';
+
+import InlineSvg from 'app/components/inlineSvg';
+import ConfigStore from 'app/stores/configStore';
+import ApiMixin from 'app/mixins/apiMixin';
+import {logAjaxError} from 'app/utils/logging';
 
 const ReleaseAnnouncement = ({close}) => {
   const mediaUrl = ConfigStore.get('mediaUrl');
@@ -11,7 +13,7 @@ const ReleaseAnnouncement = ({close}) => {
     <div>
       <h3>
         Releases are better with commits{' '}
-        <span className="badge badge-square badge-new">NEW</span>
+        <span className="badge badge-square highlight">NEW</span>
       </h3>
       <p>
         <img src={mediaUrl + 'images/onboarding/release-commits-modal.gif'} />
@@ -49,10 +51,13 @@ ReleaseAnnouncement.propTypes = {
   close: PropTypes.func.isRequired,
 };
 
-const BroadcastModal = React.createClass({
+const BroadcastModal = createReactClass({
+  displayName: 'BroadcastModal',
+
   propTypes: {
     closeBroadcast: PropTypes.func.isRequired,
   },
+
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -99,9 +104,11 @@ const BroadcastModal = React.createClass({
   },
 
   handleClick(evt) {
-    if ([].indexOf.call(evt.target.classList, 'modal') !== -1) {
-      this.close();
+    if (!evt.target.classList.contains('modal')) {
+      return;
     }
+
+    this.close();
   },
 
   renderOneModal(message, i, a) {
@@ -126,7 +133,7 @@ const BroadcastModal = React.createClass({
                     this.setState({index: this.state.index + 1});
                   }}
                 >
-                  <IconCloseLg />
+                  <InlineSvg src="icon-close-lg" />
                 </span>
               </div>
               {message({close: this.close})}

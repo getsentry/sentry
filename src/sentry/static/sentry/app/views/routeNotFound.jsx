@@ -1,10 +1,18 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import Footer from '../components/footer';
-import Sidebar from '../components/sidebar';
-import NotFound from '../components/errors/notFound';
+
+import sdk from 'app/utils/sdk';
+import Footer from 'app/components/footer';
+import Sidebar from 'app/components/sidebar';
+import NotFound from 'app/components/errors/notFound';
 
 class RouteNotFound extends React.Component {
+  componentDidMount() {
+    sdk.captureException(new Error('Route not found'), {
+      fingerprint: ['RouteNotFound'],
+    });
+  }
+
   getTitle = () => {
     return 'Page Not Found';
   };

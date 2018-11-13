@@ -14,6 +14,7 @@ import re
 from bitfield import BitField
 from uuid import uuid4
 
+from jsonfield import JSONField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -28,8 +29,9 @@ from sentry.db.models import (
 
 _uuid4_re = re.compile(r'^[a-f0-9]{32}$')
 
-
 # TODO(dcramer): pull in enum library
+
+
 class ProjectKeyStatus(object):
     ACTIVE = 0
     INACTIVE = 1
@@ -66,6 +68,8 @@ class ProjectKey(Model):
     rate_limit_window = BoundedPositiveIntegerField(null=True)
 
     objects = BaseManager(cache_fields=('public_key', 'secret_key', ))
+
+    data = JSONField()
 
     # support legacy project keys in API
     scopes = (
@@ -111,12 +115,11 @@ class ProjectKey(Model):
 
     @classmethod
     def get_default(cls, project):
-        try:
-            return cls.objects.filter(
-                project=project, roles=cls.roles.store, status=ProjectKeyStatus.ACTIVE
-            )[0]
-        except IndexError:
-            return None
+        return cls.objects.filter(
+            project=project,
+            roles=models.F('roles').bitor(cls.roles.store),
+            status=ProjectKeyStatus.ACTIVE
+        ).first()
 
     @property
     def is_active(self):
@@ -155,6 +158,14 @@ class ProjectKey(Model):
         )
 
     @property
+    def organization_id(self):
+        return self.project.organization_id
+
+    @property
+    def organization(self):
+        return self.project.organization
+
+    @property
     def dsn_private(self):
         return self.get_dsn(public=False)
 
@@ -164,9 +175,7 @@ class ProjectKey(Model):
 
     @property
     def csp_endpoint(self):
-        endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
-        if not endpoint:
-            endpoint = options.get('system.url-prefix')
+        endpoint = self.get_endpoint()
 
         return '%s%s?sentry_key=%s' % (
             endpoint,
@@ -175,16 +184,41 @@ class ProjectKey(Model):
         )
 
     @property
-    def minidump_endpoint(self):
-        endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
-        if not endpoint:
-            endpoint = options.get('system.url-prefix')
+    def security_endpoint(self):
+        endpoint = self.get_endpoint()
 
         return '%s%s?sentry_key=%s' % (
+            endpoint,
+            reverse('sentry-api-security-report', args=[self.project_id]),
+            self.public_key,
+        )
+
+    @property
+    def minidump_endpoint(self):
+        endpoint = self.get_endpoint()
+
+        return '%s%s/?sentry_key=%s' % (
             endpoint,
             reverse('sentry-api-minidump', args=[self.project_id]),
             self.public_key,
         )
+
+    @property
+    def js_sdk_loader_cdn_url(self):
+        if settings.JS_SDK_LOADER_CDN_URL:
+            return '%s%s.min.js' % (settings.JS_SDK_LOADER_CDN_URL, self.public_key)
+        else:
+            endpoint = self.get_endpoint()
+            return '%s%s' % (
+                endpoint,
+                reverse('sentry-js-sdk-loader', args=[self.public_key, '.min'])
+            )
+
+    def get_endpoint(self):
+        endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
+        if not endpoint:
+            endpoint = options.get('system.url-prefix')
+        return endpoint
 
     def get_allowed_origins(self):
         from sentry.utils.http import get_origins

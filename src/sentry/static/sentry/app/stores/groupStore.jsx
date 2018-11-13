@@ -1,10 +1,10 @@
 import _ from 'lodash';
 import Reflux from 'reflux';
 
-import GroupActions from '../actions/groupActions';
-import IndicatorStore from './indicatorStore';
-import PendingChangeQueue from '../utils/pendingChangeQueue';
-import {t} from '../locale';
+import GroupActions from 'app/actions/groupActions';
+import IndicatorStore from 'app/stores/indicatorStore';
+import PendingChangeQueue from 'app/utils/pendingChangeQueue';
+import {t} from 'app/locale';
 
 function showAlert(msg, type) {
   IndicatorStore.add(msg, type, {
@@ -236,6 +236,7 @@ const GroupStore = Reflux.createStore({
   },
 
   onDelete(changeId, itemIds) {
+    itemIds = this._itemIdsOrAll(itemIds);
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'delete');
     });
@@ -254,6 +255,7 @@ const GroupStore = Reflux.createStore({
   },
 
   onDeleteSuccess(changeId, itemIds, response) {
+    itemIds = this._itemIdsOrAll(itemIds);
     let itemIdSet = new Set(itemIds);
     itemIds.forEach(itemId => {
       delete this.statuses[itemId];
@@ -313,8 +315,13 @@ const GroupStore = Reflux.createStore({
 
     // Remove all but parent id (items were merged into this one)
     let mergedIdSet = new Set(mergedIds);
+
+    // Looks like the `PUT /api/0/projects/:orgId/:projectId/issues/` endpoint
+    // actually returns a 204, so there is no `response` body
     this.items = this.items.filter(
-      item => !mergedIdSet.has(item.id) || item.id === response.merge.parent
+      item =>
+        !mergedIdSet.has(item.id) ||
+        (response && response.merge && item.id === response.merge.parent)
     );
 
     showAlert(t('The selected events have been scheduled for merge.'), 'success');

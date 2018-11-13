@@ -10,8 +10,6 @@ const staticPath = path.resolve(
   'sentry',
   'app'
 );
-const componentPath = path.resolve(staticPath, 'components');
-const newSettingsPath = path.resolve(staticPath, 'views', 'settings', 'components');
 
 const sentryConfig = require('../webpack.config');
 const appConfig = sentryConfig[0];
@@ -20,6 +18,20 @@ const legacyCssConfig = sentryConfig[1];
 module.exports = {
   module: {
     rules: [
+      {
+        test: /\.stories\.jsx?$/,
+        loaders: [
+          {
+            loader: require.resolve('@storybook/addon-storysource/loader'),
+            options: {
+              prettierConfig: {
+                parser: 'babylon',
+              },
+            },
+          },
+        ],
+        enforce: 'pre',
+      },
       {
         test: /\.po$/,
         loader: 'po-catalog-loader',
@@ -31,6 +43,17 @@ module.exports = {
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
+      },
+      {
+        test: /app\/icons\/.*\.svg$/,
+        use: [
+          {
+            loader: 'svg-sprite-loader',
+          },
+          {
+            loader: 'svgo-loader',
+          },
+        ],
       },
       {
         test: /\.less$/,
@@ -48,6 +71,7 @@ module.exports = {
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
+        exclude: /app\/icons\/.*\.svg$/,
         loader: 'file-loader?name=' + '[name].[ext]',
       },
     ],
@@ -58,7 +82,6 @@ module.exports = {
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
-      Raven: 'raven-js',
       underscore: 'underscore',
       _: 'underscore',
     }),
@@ -71,9 +94,7 @@ module.exports = {
   resolve: {
     extensions: appConfig.resolve.extensions,
     alias: Object.assign({}, appConfig.resolve.alias, {
-      'sentry-ui': componentPath,
-      'settings-ui': newSettingsPath,
-      'application-root': staticPath,
+      app: staticPath,
     }),
   },
 };

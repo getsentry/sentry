@@ -30,16 +30,11 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
             {method} {path}
 
         """
-        if request.access.has_scope('project:write'):
-            results = list(
-                SavedSearch.objects.filter(project=project, owner__isnull=True).order_by('name')
-            )
-        else:
-            results = list(
-                SavedSearch.objects.filter(
-                    Q(owner=request.user) | Q(owner__isnull=True), project=project
-                ).order_by('name')
-            )
+        results = list(
+            SavedSearch.objects.filter(
+                Q(owner=request.user) | Q(owner__isnull=True), project=project
+            ).order_by('name')
+        )
 
         return Response(serialize(results, request.user))
 
@@ -70,7 +65,7 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
                         is_default=result.get('isDefault', False),
                         owner=(None if request.access.has_scope('project:write') else request.user)
                     )
-                    save_search_created.send(project=project, sender=self)
+                    save_search_created.send_robust(project=project, user=request.user, sender=self)
 
                 except IntegrityError:
                     return Response(

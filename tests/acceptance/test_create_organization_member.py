@@ -31,7 +31,7 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
         Add by email
         """
         self.browser.get(
-            '/organizations/{}/members/new/'.format(self.org.slug))
+            u'/organizations/{}/members/new/'.format(self.org.slug))
         self.browser.wait_until_not('.loading')
         self.browser.element('.checkbox').click()
 
@@ -39,7 +39,3 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
             'input#id-email').send_keys('test@gmail.com, invalidemail')
 
         self.browser.snapshot(name='invite organization member')
-        self.browser.click('.invite-member-submit')
-
-        self.browser.wait_until_not('.loading')
-        self.browser.wait_until('.alert-success')

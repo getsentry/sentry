@@ -41,6 +41,10 @@ from sentry.web.helpers import render_to_string
 # The maximum amount of recipients to display in human format.
 MAX_RECIPIENTS = 5
 
+# The fake TLD used to construct email addresses when one is required,
+# for example by automatically generated SSO accounts.
+FAKE_EMAIL_TLD = '.sentry-fake'
+
 logger = logging.getLogger('sentry.mail')
 
 
@@ -147,6 +151,22 @@ def get_from_email_domain():
     return _from_email_domain_cache[1]
 
 
+def create_fake_email(unique_id, namespace):
+    """
+    Generate a fake email of the form: {unique_id}@{namespace}{FAKE_EMAIL_TLD}
+
+    For example: c74e5b75-e037-4e75-ad27-1a0d21a6b203@cloudfoundry.sentry-fake
+    """
+    return u"{}@{}{}".format(unique_id, namespace, FAKE_EMAIL_TLD)
+
+
+def is_fake_email(email):
+    """
+    Returns True if the provided email matches the fake email pattern.
+    """
+    return email.endswith(FAKE_EMAIL_TLD)
+
+
 def get_email_addresses(user_ids, project=None):
     pending = set(user_ids)
     results = {}
@@ -157,7 +177,7 @@ def get_email_addresses(user_ids, project=None):
             user__in=pending,
             key='mail:email',
         )
-        for option in (o for o in queryset if o.value):
+        for option in (o for o in queryset if o.value and not is_fake_email(o.value)):
             results[option.user_id] = option.value
             pending.discard(option.user_id)
 
@@ -166,14 +186,14 @@ def get_email_addresses(user_ids, project=None):
             user__in=pending,
             key='alert_email',
         )
-        for option in (o for o in queryset if o.value):
+        for option in (o for o in queryset if o.value and not is_fake_email(o.value)):
             results[option.user_id] = option.value
             pending.discard(option.user_id)
 
     if pending:
         queryset = User.objects.filter(pk__in=pending, is_active=True)
         for (user_id, email) in queryset.values_list('id', 'email'):
-            if email:
+            if email and not is_fake_email(email):
                 results[user_id] = email
                 pending.discard(user_id)
 
@@ -222,13 +242,13 @@ class ListResolver(object):
             handler = self.__type_handlers[type(instance)]
         except KeyError:
             raise self.UnregisteredTypeError(
-                'Cannot generate mailing list identifier for {!r}'.format(instance)
+                u'Cannot generate mailing list identifier for {!r}'.format(instance)
             )
 
         label = '.'.join(map(six.binary_type, handler(instance)))
         assert is_valid_dot_atom(label)
 
-        return '{}.{}'.format(label, self.__namespace)
+        return u'{}.{}'.format(label, self.__namespace)
 
 
 default_list_type_handlers = {
@@ -375,7 +395,7 @@ class MessageBuilder(object):
         if not to:
             return ''
         if len(to) > MAX_RECIPIENTS:
-            to = to[:MAX_RECIPIENTS] + ['and {} more.'.format(len(to[MAX_RECIPIENTS:]))]
+            to = to[:MAX_RECIPIENTS] + [u'and {} more.'.format(len(to[MAX_RECIPIENTS:]))]
         return ', '.join(to)
 
     def send(self, to=None, cc=None, bcc=None, fail_silently=False):
@@ -443,6 +463,7 @@ def get_connection(fail_silently=False):
         username=options.get('mail.username'),
         password=options.get('mail.password'),
         use_tls=options.get('mail.use-tls'),
+        timeout=options.get('mail.timeout'),
         fail_silently=fail_silently,
     )
 

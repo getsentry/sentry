@@ -60,9 +60,9 @@ class ProjectIndexEndpoint(Endpoint):
                 )
             else:
                 queryset = queryset.none()
-        elif not is_active_superuser(request):
+        elif not (is_active_superuser(request) and request.GET.get('show') == 'all'):
             queryset = queryset.filter(
-                team__organizationmember__user=request.user,
+                teams__organizationmember__user=request.user,
             )
 
         query = request.GET.get('query')
@@ -84,6 +84,8 @@ class ProjectIndexEndpoint(Endpoint):
                     )
                 elif key == 'id':
                     queryset = queryset.filter(id__in=value)
+                else:
+                    queryset = queryset.none()
 
         return self.paginate(
             request=request,

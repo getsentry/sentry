@@ -26,7 +26,9 @@ SDK_INFO = {"sdk_name": "iOS", "version_major": 9,
             "version_minor": 3, "version_patchlevel": 0}
 
 
-def patched_symbolize_app_frame(self, instruction_addr, img, sdk_info=None):
+def patched_symbolize_app_frame(self, instruction_addr, img, sdk_info=None, trust=None):
+    if instruction_addr != 4295123756:
+        return []
     return [
         {
             'filename': 'Foo.swift',
@@ -131,18 +133,20 @@ class BasicResolvingFileTest(TestCase):
                         "type":
                         "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (

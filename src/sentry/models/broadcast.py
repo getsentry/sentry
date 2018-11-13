@@ -14,6 +14,10 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
+def default_expiration():
+    return timezone.now() + timedelta(days=7)
+
+
 class Broadcast(Model):
     __core__ = False
 
@@ -23,7 +27,7 @@ class Broadcast(Model):
     link = models.URLField(null=True, blank=True)
     is_active = models.BooleanField(default=True, db_index=True)
     date_expires = models.DateTimeField(
-        default=lambda: timezone.now() + timedelta(days=7),
+        default=default_expiration,
         null=True,
         blank=True,
     )

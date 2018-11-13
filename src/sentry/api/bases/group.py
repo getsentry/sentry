@@ -5,7 +5,7 @@ import logging
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.app import raven
+from sentry.utils.sdk import configure_scope
 from sentry.models import Group, GroupStatus, get_group_with_redirect
 
 logger = logging.getLogger(__name__)
@@ -44,22 +44,21 @@ class GroupEndpoint(Endpoint):
         try:
             group, _ = get_group_with_redirect(
                 issue_id,
-                queryset=Group.objects.select_related('project'),
+                queryset=Group.objects.select_related('project', 'project__organization'),
             )
         except Group.DoesNotExist:
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, group)
 
-        raven.tags_context(
-            {
-                'project': group.project_id,
-                'organization': group.project.organization_id,
-            }
-        )
+        with configure_scope() as scope:
+            scope.set_tag("project", group.project_id)
+            scope.set_tag("organization", group.project.organization_id)
 
         if group.status in EXCLUDED_STATUSES:
             raise ResourceDoesNotExist
+
+        request._request.organization = group.project.organization
 
         kwargs['group'] = group
 

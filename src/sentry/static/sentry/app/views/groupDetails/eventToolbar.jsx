@@ -1,14 +1,16 @@
 import {Link} from 'react-router';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ConfigStore from '../../stores/configStore';
-import SentryTypes from '../../proptypes';
-import DateTime from '../../components/dateTime';
-import FileSize from '../../components/fileSize';
-import TooltipMixin from '../../mixins/tooltip';
-import {t} from '../../locale';
+import createReactClass from 'create-react-class';
+
+import ConfigStore from 'app/stores/configStore';
+import SentryTypes from 'app/sentryTypes';
+import DateTime from 'app/components/dateTime';
+import FileSize from 'app/components/fileSize';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
 let formatDateDelta = (reference, observed) => {
   let duration = moment.duration(Math.abs(+observed - +reference));
@@ -31,20 +33,15 @@ let formatDateDelta = (reference, observed) => {
   return results.join(', ');
 };
 
-let GroupEventToolbar = React.createClass({
+let GroupEventToolbar = createReactClass({
+  displayName: 'GroupEventToolbar',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
   },
-
-  mixins: [
-    TooltipMixin({
-      html: true,
-      selector: '.tip',
-    }),
-  ],
 
   shouldComponentUpdate(nextProps, nextState) {
     return this.props.event.id !== nextProps.event.id;
@@ -171,11 +168,12 @@ let GroupEventToolbar = React.createClass({
           </Link>
         </h4>
         <span>
-          {/* use a key here to force removal of tooltip parent - fixes #3341 */}
-          <span className="tip" data-title={this.getDateTooltip()} key={evt.id}>
-            <DateTime date={evt.dateCreated} style={style} />
-            {isOverLatencyThreshold && <span className="icon-alert" />}
-          </span>
+          <Tooltip title={this.getDateTooltip()} tooltipOptions={{html: true}}>
+            <span>
+              <DateTime date={evt.dateCreated} style={style} />
+              {isOverLatencyThreshold && <span className="icon-alert" />}
+            </span>
+          </Tooltip>
           <a href={jsonUrl} target="_blank" className="json-link">
             {'JSON'} (<FileSize bytes={evt.size} />)
           </a>

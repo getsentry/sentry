@@ -11,11 +11,12 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import features, search
+from sentry import analytics, eventstream, features, search
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
-from sentry.api.fields import UserField
+from sentry.api.fields import ActorField, Actor
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import (
     SUBSCRIPTION_REASON_MAP, StreamGroupSerializer)
 from sentry.constants import DEFAULT_SORT_OPTION
@@ -23,17 +24,18 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, Environment, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
     GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
-    GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption
+    GroupHashTombstone, GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption, User, Team
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
 from sentry.receivers import DEFAULT_SAVED_SEARCHES
 from sentry.search.utils import InvalidQuery, parse_query
-from sentry.signals import advanced_search, issue_resolved_in_release
-from sentry.tasks.deletion import delete_group
-from sentry.tasks.merge import merge_group
+from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release, issue_deleted
+from sentry.tasks.deletion import delete_groups
+from sentry.tasks.integrations import kick_off_status_syncs
+from sentry.tasks.merge import merge_groups
 from sentry.utils.apidocs import attach_scenarios, scenario
-from sentry.utils.cursors import Cursor
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.functional import extract_lazy_object
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -159,16 +161,23 @@ class GroupValidator(serializers.Serializer):
     ignoreUserCount = serializers.IntegerField()
     # in minutes, max of one week
     ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
-    assignedTo = UserField()
+    assignedTo = ActorField()
 
     # TODO(dcramer): remove in 9.0
     snoozeDuration = serializers.IntegerField()
 
     def validate_assignedTo(self, attrs, source):
         value = attrs[source]
-        if value and not self.context['project'].member_set.filter(user=value).exists():
+        if value and value.type is User and not self.context['project'].member_set.filter(
+                user_id=value.id).exists():
             raise serializers.ValidationError(
                 'Cannot assign to non-team member')
+
+        if value and value.type is Team and not self.context['project'].teams.filter(
+                id=value.id).exists():
+            raise serializers.ValidationError(
+                'Cannot assign to a team without access to the project')
+
         return attrs
 
     def validate(self, attrs):
@@ -214,6 +223,25 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         return query_kwargs
 
+    def _search(self, request, project, extra_query_kwargs=None):
+        query_kwargs = self._build_query_params_from_request(request, project)
+        if extra_query_kwargs is not None:
+            assert 'environment' not in extra_query_kwargs
+            query_kwargs.update(extra_query_kwargs)
+
+        try:
+            query_kwargs['environment'] = self._get_environment_from_request(
+                request,
+                project.organization_id,
+            )
+        except Environment.DoesNotExist:
+            # XXX: The 1000 magic number for `max_hits` is an abstraction leak
+            # from `sentry.api.paginator.BasePaginator.get_result`.
+            result = CursorResult([], None, None, hits=0, max_hits=1000)
+        else:
+            result = search.query(**query_kwargs)
+        return result, query_kwargs
+
     def _subscribe_and_assign_issue(self, acting_user, group, result):
         if acting_user:
             GroupSubscription.objects.subscribe(
@@ -225,7 +253,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 user=acting_user, key='self_assign_issue', default='0'
             )
             if self_assign_issue == '1' and not group.assignee_set.exists():
-                result['assignedTo'] = extract_lazy_object(acting_user)
+                result['assignedTo'] = Actor(type=User, id=extract_lazy_object(acting_user).id)
 
     # statsPeriod=24h
     @attach_scenarios([list_project_issues_scenario])
@@ -274,7 +302,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         serializer = functools.partial(
             StreamGroupSerializer,
-            environment_id_func=self._get_environment_id_func(request, project.organization_id),
+            environment_func=self._get_environment_func(request, project.organization_id),
             stats_period=stats_period,
         )
 
@@ -294,6 +322,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                             event_id=query, project_id=project.id)
                     except Event.DoesNotExist:
                         pass
+                    else:
+                        Event.objects.bind_nodes([matching_event], 'data')
 
             # If the query looks like a short id, we want to provide some
             # information about where that is.  Note that this can return
@@ -308,10 +338,18 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     matching_group = None
 
             if matching_group is not None:
+                matching_event_environment = None
+
+                try:
+                    matching_event_environment = matching_event.get_environment().name if matching_event else None
+                except Environment.DoesNotExist:
+                    pass
+
                 response = Response(
                     serialize(
                         [matching_group], request.user, serializer(
                             matching_event_id=getattr(matching_event, 'id', None),
+                            matching_event_environment=matching_event_environment,
                         )
                     )
                 )
@@ -319,21 +357,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 return response
 
         try:
-            query_kwargs = self._build_query_params_from_request(
-                request, project)
+            cursor_result, query_kwargs = self._search(request, project, {'count_hits': True})
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
-
-        try:
-            environment_id = self._get_environment_id_from_request(
-                request, project.organization_id)
-        except Environment.DoesNotExist:
-            cursor_result = []
-        else:
-            cursor_result = search.query(
-                count_hits=True,
-                environment_id=environment_id,
-                **query_kwargs)
 
         results = list(cursor_result)
 
@@ -349,6 +375,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         if results and query not in SAVED_SEARCH_QUERIES:
             advanced_search.send(project=project, sender=request.user)
+            analytics.record('project_issue.searched', user_id=request.user.id,
+                             organization_id=project.organization_id, project_id=project.id,
+                             query=query)
 
         return response
 
@@ -392,7 +421,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
-        :param string assignedTo: the username of the user that should be
+        :param string assignedTo: the actor id (or username) of the user or team that should be
                                   assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
@@ -427,20 +456,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         if not group_ids:
             try:
-                query_kwargs = self._build_query_params_from_request(
-                    request, project)
+                # bulk mutations are limited to 1000 items
+                # TODO(dcramer): it'd be nice to support more than this, but its
+                # a bit too complicated right now
+                cursor_result, _ = self._search(request, project, {
+                    'limit': 1000,
+                    'paginator_options': {'max_limit': 1000},
+                })
             except ValidationError as exc:
                 return Response({'detail': six.text_type(exc)}, status=400)
-
-            # bulk mutations are limited to 1000 items
-            # TODO(dcramer): it'd be nice to support more than this, but its
-            # a bit too complicated right now
-            limit = 1000
-            query_kwargs['limit'] = limit
-
-            # the paginator has a default max_limit of 100, which must be overwritten.
-            cursor_result = search.query(
-                paginator_options={'max_limit': limit}, **query_kwargs)
 
             group_list = list(cursor_result)
             group_ids = [g.id for g in group_list]
@@ -482,7 +506,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                             group_tombstone_id=tombstone.id,
                         )
 
-            self._delete_groups(request, project, groups_to_delete)
+            self._delete_groups(request, project, groups_to_delete, delete_type='discard')
 
             return Response(status=204)
 
@@ -506,6 +530,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
                 res_type = GroupResolution.Type.in_next_release
+                res_type_str = 'in_next_release'
                 res_status = GroupResolution.Status.pending
             elif statusDetails.get('inRelease'):
                 release = statusDetails['inRelease']
@@ -519,9 +544,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
                 res_type = GroupResolution.Type.in_release
+                res_type_str = 'in_release'
                 res_status = GroupResolution.Status.resolved
             else:
                 release = None
+                res_type_str = 'now'
                 activity_type = Activity.SET_RESOLVED
                 activity_data = {}
                 status_details = {}
@@ -577,11 +604,18 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         if not is_bulk:
                             activity.send_notification()
 
-                issue_resolved_in_release.send(
+                issue_resolved_in_release.send_robust(
                     group=group,
                     project=project,
-                    sender=acting_user,
+                    user=acting_user,
+                    resolution_type=res_type_str,
+                    sender=self.__class__,
                 )
+
+                kick_off_status_syncs.apply_async(kwargs={
+                    'project_id': group.project_id,
+                    'group_id': group.id,
+                })
 
             result.update({
                 'status': 'resolved',
@@ -679,6 +713,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         'ignoreWindow': ignore_window,
                     }
 
+                issue_ignored.send_robust(
+                    project=project,
+                    user=acting_user,
+                    group_list=group_list,
+                    activity_data=activity_data,
+                    sender=self.__class__)
+
                 for group in group_list:
                     group.status = new_status
 
@@ -700,19 +741,21 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                             )
                         activity.send_notification()
 
-        if 'assignedTo' in result:
-            if result['assignedTo']:
-                for group in group_list:
-                    GroupAssignee.objects.assign(
-                        group, result['assignedTo'], acting_user)
+                    if new_status == GroupStatus.UNRESOLVED:
+                        kick_off_status_syncs.apply_async(kwargs={
+                            'project_id': group.project_id,
+                            'group_id': group.id,
+                        })
 
-                    if 'isSubscribed' not in result or result['assignedTo'] != request.user:
-                        GroupSubscription.objects.subscribe(
-                            group=group,
-                            user=result['assignedTo'],
-                            reason=GroupSubscriptionReason.assigned,
-                        )
-                result['assignedTo'] = serialize(result['assignedTo'])
+        if 'assignedTo' in result:
+            assigned_actor = result['assignedTo']
+            if assigned_actor:
+                for group in group_list:
+                    resolved_actor = assigned_actor.resolve()
+
+                    GroupAssignee.objects.assign(group, resolved_actor, acting_user)
+                result['assignedTo'] = serialize(
+                    assigned_actor.resolve(), acting_user, ActorSerializer())
             else:
                 for group in group_list:
                     GroupAssignee.objects.deassign(group, acting_user)
@@ -815,19 +858,33 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         # XXX(dcramer): this feels a bit shady like it should be its own
         # endpoint
         if result.get('merge') and len(group_list) > 1:
-            primary_group = sorted(group_list, key=lambda x: -x.times_seen)[0]
-            children = []
+            group_list_by_times_seen = sorted(
+                group_list,
+                key=lambda g: (g.times_seen, g.id),
+                reverse=True,
+            )
+            primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
+
+            group_ids_to_merge = [g.id for g in groups_to_merge]
+            eventstream_state = eventstream.start_merge(
+                primary_group.project_id,
+                group_ids_to_merge,
+                primary_group.id
+            )
+
+            Group.objects.filter(
+                id__in=group_ids_to_merge
+            ).update(
+                status=GroupStatus.PENDING_MERGE
+            )
+
             transaction_id = uuid4().hex
-            for group in group_list:
-                if group == primary_group:
-                    continue
-                children.append(group)
-                group.update(status=GroupStatus.PENDING_MERGE)
-                merge_group.delay(
-                    from_object_id=group.id,
-                    to_object_id=primary_group.id,
-                    transaction_id=transaction_id,
-                )
+            merge_groups.delay(
+                from_object_ids=group_ids_to_merge,
+                to_object_id=primary_group.id,
+                transaction_id=transaction_id,
+                eventstream_state=eventstream_state,
+            )
 
             Activity.objects.create(
                 project=primary_group.project,
@@ -837,13 +894,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 data={
                     'issues': [{
                         'id': c.id
-                    } for c in children],
+                    } for c in groups_to_merge],
                 },
             )
 
             result['merge'] = {
                 'parent': six.text_type(primary_group.id),
-                'children': [six.text_type(g.id) for g in children],
+                'children': [six.text_type(g.id) for g in groups_to_merge],
             }
 
         return Response(result)
@@ -885,19 +942,33 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 )
             )
         else:
-            # missing any kind of filter
-            return Response(
-                {"detail": "You must specify a list of IDs for this operation"}, status=400
-            )
+            try:
+                # bulk mutations are limited to 1000 items
+                # TODO(dcramer): it'd be nice to support more than this, but its
+                # a bit too complicated right now
+                cursor_result, _ = self._search(request, project, {
+                    'limit': 1000,
+                    'paginator_options': {'max_limit': 1000},
+                })
+            except ValidationError as exc:
+                return Response({'detail': six.text_type(exc)}, status=400)
+
+            group_list = list(cursor_result)
 
         if not group_list:
             return Response(status=204)
 
-        self._delete_groups(request, project, group_list)
+        self._delete_groups(request, project, group_list, delete_type='delete')
 
         return Response(status=204)
 
-    def _delete_groups(self, request, project, group_list):
+    def _delete_groups(self, request, project, group_list, delete_type):
+        if not group_list:
+            return
+
+        # deterministic sort for sanity, and for very large deletions we'll
+        # delete the "smaller" groups first
+        group_list.sort(key=lambda g: (g.times_seen, g.id))
         group_ids = [g.id for g in group_list]
 
         Group.objects.filter(
@@ -906,19 +977,26 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             GroupStatus.PENDING_DELETION,
             GroupStatus.DELETION_IN_PROGRESS,
         ]).update(status=GroupStatus.PENDING_DELETION)
-        GroupHash.objects.filter(group__id__in=group_ids).delete()
+
+        eventstream_state = eventstream.start_delete_groups(project.id, group_ids)
+
+        GroupHashTombstone.tombstone_groups(
+            project_id=project.id,
+            group_ids=group_ids,
+        )
 
         transaction_id = uuid4().hex
 
-        for group in group_list:
-            delete_group.apply_async(
-                kwargs={
-                    'object_id': group.id,
-                    'transaction_id': transaction_id,
-                },
-                countdown=3600,
-            )
+        delete_groups.apply_async(
+            kwargs={
+                'object_ids': group_ids,
+                'transaction_id': transaction_id,
+                'eventstream_state': eventstream_state,
+            },
+            countdown=3600,
+        )
 
+        for group in group_list:
             self.create_audit_entry(
                 request=request,
                 organization_id=project.organization_id,
@@ -934,3 +1012,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     'model': type(group).__name__,
                 }
             )
+
+            issue_deleted.send_robust(
+                group=group,
+                user=request.user,
+                delete_type=delete_type,
+                sender=self.__class__)
