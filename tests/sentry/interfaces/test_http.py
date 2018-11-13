@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from exam import fixture
 
-from sentry.interfaces.base import InterfaceValidationError, Meta
+from sentry.interfaces.base import Meta
 from sentry.interfaces.http import Http
 from sentry.testutils import TestCase
 
