@@ -1069,7 +1069,7 @@ class Exception(Interface):
         # while others may not and we ALWAYS want stacktraces over values
         output = []
         for value in self.values:
-            if not value.stacktrace:
+            if not value or not value.stacktrace:
                 continue
             stack_hash = value.stacktrace.get_hash(
                 platform=platform,
@@ -1081,15 +1081,16 @@ class Exception(Interface):
 
         if not output:
             for value in self.values:
-                output.extend(value.get_hash(platform=platform))
+                if value:
+                    output.extend(value.get_hash(platform=platform))
 
         return output
 
     def get_api_context(self, is_public=False):
         return {
-            'values': [v.get_api_context(is_public=is_public) for v in self.values],
+            'values': [v.get_api_context(is_public=is_public) for v in self.values if v],
             'hasSystemFrames':
-            any(v.stacktrace.get_has_system_frames() for v in self.values if v.stacktrace),
+            any(v.stacktrace.get_has_system_frames() for v in self.values if v and v.stacktrace),
             'excOmitted':
             self.exc_omitted,
         }
@@ -1127,7 +1128,7 @@ class Exception(Interface):
         return ''
 
     def iter_tags(self):
-        if not self.values:
+        if not self.values or not self.values[0]:
             return
 
         mechanism = self.values[0].mechanism

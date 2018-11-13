@@ -203,7 +203,7 @@ def generate_culprit(data, platform=None):
     try:
         stacktraces = [
             e['stacktrace'] for e in data['sentry.interfaces.Exception']['values']
-            if e.get('stacktrace')
+            if e and e.get('stacktrace')
         ]
     except KeyError:
         stacktrace = data.get('sentry.interfaces.Stacktrace')
@@ -633,7 +633,7 @@ class EventManager(object):
         if exception:
             sdk_info = get_sdk_from_event(data)
             for ex in exception['values']:
-                if 'mechanism' in ex:
+                if ex is not None and 'mechanism' in ex:
                     normalize_mechanism_meta(ex['mechanism'], sdk_info)
 
         # If there is no User ip_addres, update it either from the Http interface
@@ -689,6 +689,8 @@ class EventManager(object):
         for exception_interface in self._data.get(
             'sentry.interfaces.Exception', {}
         ).get('values', []):
+            if exception_interface is None:
+                continue
             message = u': '.join(
                 filter(None, map(exception_interface.get, ['type', 'value']))
             )

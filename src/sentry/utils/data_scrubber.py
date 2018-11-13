@@ -79,7 +79,7 @@ class SensitiveDataFilter(object):
 
         if 'sentry.interfaces.Exception' in data:
             for exc in data['sentry.interfaces.Exception']['values']:
-                if exc.get('stacktrace'):
+                if exc is not None and exc.get('stacktrace'):
                     self.filter_stacktrace(exc['stacktrace'])
 
         if 'sentry.interfaces.Breadcrumbs' in data:
