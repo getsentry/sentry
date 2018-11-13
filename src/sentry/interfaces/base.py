@@ -46,6 +46,9 @@ def get_interfaces(data):
         if not value:
             continue
 
+        if value.has_errors():
+            continue
+
         result.append((key, value))
 
     return OrderedDict(
