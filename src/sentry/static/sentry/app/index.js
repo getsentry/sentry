@@ -25,6 +25,11 @@ import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
 
+// Used for operational metrics to determine that the application js
+// bundle was loaded by browser
+window.__sentryMetrics = window.__sentryMetrics || {};
+window.__sentryMetrics.sentryAppInit = +new Date();
+
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
   //jQuery won't allow using the ajaxCsrfSetup function directly
