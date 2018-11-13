@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.integration import IntegrationEndpoint
 from rest_framework.response import Response
 
 from sentry.models import Integration
 
 
-class VstsSearchEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationPermission, )
+class VstsSearchEndpoint(IntegrationEndpoint):
 
     def get(self, request, organization, integration_id):
         try:
