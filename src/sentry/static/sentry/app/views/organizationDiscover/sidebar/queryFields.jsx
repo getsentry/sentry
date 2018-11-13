@@ -62,7 +62,7 @@ export default class QueryFields extends React.Component {
         {savedQuery && (
           <Fieldset>
             <React.Fragment>
-              <SidebarLabel htmlFor="name" className="ciontrol-label">
+              <SidebarLabel htmlFor="name" className="control-label">
                 {t('Name')}
               </SidebarLabel>
               <TextField
