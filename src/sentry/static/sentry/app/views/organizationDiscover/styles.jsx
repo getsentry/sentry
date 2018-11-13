@@ -182,6 +182,7 @@ export const SavedQueryWrapper = styled('div')`
 export const SavedQueryList = styled(Panel)`
   margin: 0;
   border: 0;
+  overflow: hidden;
 `;
 
 export const SavedQueryListItem = styled(({isActive, ...props}) => (
