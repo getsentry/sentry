@@ -732,8 +732,8 @@ class EventManager(object):
         if not self._for_store and not data.get('errors'):
             self._data.pop('errors')
 
-        if meta.get():
-            data['_meta'] = meta.get()
+        if meta.raw():
+            data['_meta'] = meta.raw()
         elif '_meta' in data:
             del data['_meta']
 

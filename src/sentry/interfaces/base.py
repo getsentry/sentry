@@ -64,11 +64,14 @@ class Meta(object):
     def enter(self, *path):
         return Meta(self._meta, path=self._path + map(six.text_type, path))
 
-    def get(self):
+    def raw(self):
         meta = self._meta
         for key in self._path:
             meta = meta.get(key, {})
-        return meta.get('', {})
+        return meta
+
+    def get(self):
+        return self.raw().get('', {})
 
     def has_errors(self):
         bool(self.get().get('err'))
