@@ -118,7 +118,7 @@ def get_hashes_for_event_with_reason(event):
         result = interface.compute_hashes(event.platform)
         if not result:
             continue
-        return (interface.get_path(), result)
+        return (interface.path, result)
 
     return ('no_interfaces', [''])
 
@@ -415,7 +415,7 @@ class EventManager(object):
                 'logger': 'csp',
                 'message': instance.get_message(),
                 'culprit': instance.get_culprit(),
-                instance.get_path(): instance.to_json(),
+                instance.path: instance.to_json(),
                 'tags': instance.get_tags(),
                 'errors': [],
                 'user': {'ip_address': self._client_ip},
@@ -554,7 +554,7 @@ class EventManager(object):
 
             try:
                 inst = interface.to_python(value)
-                data[inst.get_path()] = inst.to_json()
+                data[inst.path] = inst.to_json()
             except Exception as e:
                 log = logger.debug if isinstance(
                     e, InterfaceValidationError) else logger.error
@@ -849,7 +849,7 @@ class EventManager(object):
                 tags[k] = v
             # Get rid of ephemeral interface data
             if iface.ephemeral:
-                data.pop(iface.get_path(), None)
+                data.pop(iface.path, None)
 
         # tags are stored as a tuple
         tags = tags.items()

@@ -53,9 +53,6 @@ class Template(Interface):
         }
         return cls(**kwargs)
 
-    def get_path(self):
-        return 'template'
-
     def get_hash(self):
         return [self.filename, self.context_line]
 

@@ -130,9 +130,6 @@ class User(Interface):
             'data': meta.get('data'),
         }
 
-    def get_path(self):
-        return 'user'
-
     def get_hash(self):
         return []
 

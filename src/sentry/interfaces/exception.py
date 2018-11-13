@@ -732,8 +732,6 @@ class Mechanism(Interface):
     >>> }
     """
 
-    path = 'mechanism'
-
     @classmethod
     def to_python(cls, data):
         data = upgrade_legacy_mechanism(data)
@@ -794,9 +792,6 @@ class Mechanism(Interface):
             'data': self.data,
             'meta': prune_empty_keys(self.meta),
         })
-
-    def get_path(self):
-        return self.path
 
     def iter_tags(self):
         yield (self.path, self.type)
@@ -949,9 +944,6 @@ class SingleException(Interface):
             'stacktrace': stacktrace_meta,
         }
 
-    def get_path(self):
-        return 'exception'
-
     def get_hash(self, platform=None):
         output = None
         if self.stacktrace:
@@ -1043,9 +1035,6 @@ class Exception(Interface):
             'values': [v and v.to_json() for v in self.values],
             'exc_omitted': self.exc_omitted,
         }
-
-    def get_path(self):
-        return 'exception'
 
     def compute_hashes(self, platform):
         system_hash = self.get_hash(platform, system_frames=True)
