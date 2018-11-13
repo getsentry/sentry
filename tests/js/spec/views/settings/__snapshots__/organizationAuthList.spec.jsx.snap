@@ -64,8 +64,26 @@ exports[`OrganizationAuthList renders 1`] = `
         <ProviderItem
           key="dummy"
           onConfigure={[Function]}
-          providerKey="dummy"
-          providerName="Dummy"
+          provider={
+            Object {
+              "disables2FA": false,
+              "key": "dummy",
+              "name": "Dummy",
+              "requiredFeature": "organizations:sso-basic",
+            }
+          }
+        />
+        <ProviderItem
+          key="dummy"
+          onConfigure={[Function]}
+          provider={
+            Object {
+              "disables2FA": true,
+              "key": "dummy",
+              "name": "Dummy",
+              "requiredFeature": "organizations:sso-saml2",
+            }
+          }
         />
       </form>
     </PanelBody>
@@ -134,17 +152,10 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
           type="hidden"
           value="1"
         />
+        <EmptyMessage>
+          No authentication providers are available.
+        </EmptyMessage>
       </form>
-      <EmptyMessage
-        style={
-          Object {
-            "padding": 50,
-            "textAlign": "center",
-          }
-        }
-      >
-        No authentication providers are available.
-      </EmptyMessage>
     </PanelBody>
   </Panel>
 </div>

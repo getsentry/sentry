@@ -9,12 +9,10 @@ import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
-import SentryTypes from 'app/sentryTypes';
 import Tag from 'app/views/settings/components/tag';
 
 export default class ProviderItem extends React.PureComponent {
   static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
     provider: PropTypes.object.isRequired,
     onConfigure: PropTypes.func.isRequired,
   };
@@ -43,7 +41,7 @@ export default class ProviderItem extends React.PureComponent {
   );
 
   render() {
-    const {provider, organization} = this.props;
+    const {provider} = this.props;
 
     return (
       <Feature
@@ -51,7 +49,7 @@ export default class ProviderItem extends React.PureComponent {
         renderDisabled={({children, ...props}) =>
           children({...props, renderDisabled: this.renderDisabledLock})}
       >
-        {({hasFeature, features, renderDisabled, renderInstallButton}) => (
+        {({hasFeature, features, organization, renderDisabled, renderInstallButton}) => (
           <PanelItem align="center">
             <Flex flex={1}>
               <ProviderLogo className={`provider-logo ${provider.name.toLowerCase()}`} />

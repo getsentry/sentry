@@ -24,12 +24,12 @@ class OrganizationAuthList extends React.Component {
 
   render() {
     const {organization} = this.context;
+    const features = organization.features;
 
     // Sort feature-flagged integrations last
     const providerList = (this.props.providerList || []).sort((a, b) => {
-      const feats = organization.features;
-      const aEnabled = feats.includes(descopeFeatureName(a.requiredFeature));
-      const bEnabled = feats.includes(descopeFeatureName(b.requiredFeature));
+      const aEnabled = features.includes(descopeFeatureName(a.requiredFeature));
+      const bEnabled = features.includes(descopeFeatureName(b.requiredFeature));
 
       if (aEnabled !== bEnabled) {
         return aEnabled ? -1 : 1;
@@ -39,7 +39,11 @@ class OrganizationAuthList extends React.Component {
     });
 
     const warn2FADisable =
-      organization.require2FA && providerList.some(({disables2FA}) => disables2FA);
+      organization.require2FA &&
+      providerList.some(
+        ({requiredFeature, disables2FA}) =>
+          disables2FA && features.includes(descopeFeatureName(requiredFeature))
+      );
 
     return (
       <div className="sso">
@@ -77,11 +81,7 @@ class OrganizationAuthList extends React.Component {
               <input type="hidden" name="init" value="1" />
 
               {providerList.map(provider => (
-                <ProviderItem
-                  key={provider.key}
-                  organization={organization}
-                  provider={provider}
-                />
+                <ProviderItem key={provider.key} provider={provider} />
               ))}
               {providerList.length === 0 && (
                 <EmptyMessage>
