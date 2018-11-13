@@ -2,19 +2,21 @@ from __future__ import absolute_import
 
 from six.moves.urllib.parse import urlencode
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 
 
-class OrganizationEventsTest(APITestCase, SnubaTestCase):
+class OrganizationEventsTestBase(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsTest, self).setUp()
+        super(OrganizationEventsTestBase, self).setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
         self.day_ago = timezone.now() - timedelta(days=1)
 
+
+class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
     def assert_events_in_response(self, response, event_ids):
         assert sorted(map(lambda x: x['eventID'], response.data)) == sorted(event_ids)
 
@@ -443,3 +445,65 @@ class OrganizationEventsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_2.event_id])
+
+
+class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
+    def test_simple(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        project2 = self.create_project()
+        group = self.create_group(project=project)
+        group2 = self.create_group(project=project2)
+        self.create_event(
+            'a' * 32,
+            group=group,
+            datetime=datetime(
+                2018,
+                11,
+                1,
+                10,
+                59,
+                00,
+                tzinfo=timezone.utc))
+        self.create_event(
+            'b' * 32,
+            group=group2,
+            datetime=datetime(
+                2018,
+                11,
+                1,
+                11,
+                30,
+                00,
+                tzinfo=timezone.utc))
+        self.create_event(
+            'c' * 32,
+            group=group2,
+            datetime=datetime(
+                2018,
+                11,
+                1,
+                11,
+                45,
+                00,
+                tzinfo=timezone.utc))
+
+        url = reverse(
+            'sentry-api-0-organization-events-stats',
+            kwargs={
+                'organization_slug': project.organization.slug,
+            }
+        )
+        response = self.client.get('%s?%s' % (url, urlencode({
+            'start': '2018-11-01T10:00:00',
+            'end': '2018-11-01T11:59:00',
+            'interval': '1h',
+        })), format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['data'] == [
+            (1541062800, []),
+            (1541066400, [{'count': 1}]),
+            (1541070000, [{'count': 2}]),
+        ]
