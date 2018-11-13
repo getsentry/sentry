@@ -33,6 +33,7 @@ class AuthProviderSettingsForm(forms.Form):
         help_text=_('Require members use a valid linked SSO account to access this organization'),
         required=False,
     )
+
     default_role = forms.ChoiceField(
         label=_('Default Role'),
         choices=roles.get_choices(),
@@ -156,16 +157,6 @@ class OrganizationAuthSettingsView(OrganizationView):
 
     @transaction.atomic
     def handle(self, request, organization):
-        if not features.has('organizations:sso-basic', organization, actor=request.user):
-            messages.add_message(
-                request,
-                messages.ERROR,
-                ERR_NO_SSO,
-            )
-            return HttpResponseRedirect(
-                reverse('sentry-organization-home', args=[organization.slug])
-            )
-
         try:
             auth_provider = AuthProvider.objects.get(
                 organization=organization,
@@ -173,6 +164,20 @@ class OrganizationAuthSettingsView(OrganizationView):
         except AuthProvider.DoesNotExist:
             pass
         else:
+            provider = auth_provider.get_provider()
+            requires_feature = provider.required_feature
+
+            # Provider is not enabled
+            if requires_feature and not features.has(
+                    requires_feature,
+                    organization,
+                    actor=request.user
+            ):
+                home_url = reverse('sentry-organization-home', args=[organization.slug])
+                messages.add_message(request, messages.ERROR, ERR_NO_SSO)
+
+                return HttpResponseRedirect(home_url)
+
             return self.handle_existing_provider(
                 request=request,
                 organization=organization,

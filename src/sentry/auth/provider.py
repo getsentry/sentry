@@ -25,7 +25,9 @@ class Provider(object):
     including its configuration and basic identity management.
     """
     name = None
-    required_feature = None
+
+    # All auth providers by default require the sso-basic feature
+    required_feature = 'organizations:sso-basic'
 
     def __init__(self, key, **config):
         self.key = key
