@@ -66,7 +66,7 @@ class NotificationPlugin(Plugin):
 
     def notify(self, notification):
         event = notification.event
-        return self.notify_users(event.group, event, [r.label for r in notification.rules])
+        return self.notify_users(event.group, event, map(lambda r: r.label, notification.rules))
 
     def rule_notify(self, event, futures):
         rules = []
