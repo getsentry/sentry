@@ -66,7 +66,7 @@ class NotificationPlugin(Plugin):
 
     def notify(self, notification):
         event = notification.event
-        return self.notify_users(event.group, event, map(lambda r: r.label, notification.rules))
+        return self.notify_users(event.group, event)
 
     def rule_notify(self, event, futures):
         rules = []
@@ -117,7 +117,7 @@ class NotificationPlugin(Plugin):
 
         self.logger.info('notification.%s' % log_event, extra=extra)
 
-    def notify_users(self, group, event, triggering_rules, fail_silently=False):
+    def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
 
     def notify_about_activity(self, activity):
