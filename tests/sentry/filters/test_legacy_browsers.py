@@ -205,7 +205,7 @@ class LegacyBrowsersFilterTest(TestCase):
     filter_cls = LegacyBrowsersFilter
 
     def apply_filter(self, data):
-        return CanonicalKeyView(self.filter_cls(self.project)).test(data)
+        return self.filter_cls(self.project).test(CanonicalKeyView(data))
 
     def get_mock_data(self, user_agent):
         return {
