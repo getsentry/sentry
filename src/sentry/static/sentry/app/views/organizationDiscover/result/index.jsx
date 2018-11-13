@@ -16,8 +16,10 @@ import {getChartData, getChartDataByDay, downloadAsCsv, getRowsPageRange} from '
 import Table from './table';
 import Pagination from './pagination';
 import {
+  ResultTitle,
   Heading,
   ResultSummary,
+  ResultViewButtons,
   ResultContainer,
   ResultInnerContainer,
   ChartWrapper,
@@ -84,8 +86,8 @@ export default class Result extends React.Component {
     const linkClasses = 'btn btn-default btn-sm';
 
     return (
-      <Flex flex="1" justify="flex-end">
-        <div className="btn-group">
+      <Flex justify="flex-end">
+        <ResultViewButtons className="btn-group">
           {options.map(opt => {
             const active = opt.id === this.state.view;
             return (
@@ -100,7 +102,7 @@ export default class Result extends React.Component {
               </a>
             );
           })}
-        </div>
+        </ResultViewButtons>
         <Box ml={1}>
           <Link className={linkClasses} onClick={() => downloadAsCsv(baseQuery.data)}>
             {t('Export CSV')}
@@ -178,9 +180,9 @@ export default class Result extends React.Component {
     return (
       <ResultContainer>
         <Flex align="center" mb={space(2)}>
-          <Box flex="1">
+          <ResultTitle>
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
-          </Box>
+          </ResultTitle>
           {this.renderToggle()}
         </Flex>
         <ResultInnerContainer innerRef={ref => (this.container = ref)}>

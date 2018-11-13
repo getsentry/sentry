@@ -38,6 +38,16 @@ export const PageTitle = styled.h2`
   height: ${HEADER_HEIGHT}px;
 `;
 
+export const ResultTitle = styled(Flex)`
+  flex: 1;
+  min-width: 70px;
+`;
+
+//TODO: Add @media for responsiveness
+export const ResultViewButtons = styled('div')`
+  flex: flex-end;
+`;
+
 export const Sidebar = styled(props => (
   <Flex {...props} direction="column" w={[320, 320, 320, 380]} />
 ))`
