@@ -1,12 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import classNames from 'classnames';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
 import styled from 'react-emotion';
 import theme from 'app/utils/theme';
 
-class VisualizationsDropdown extends React.PureComponent {
+import {ResultViewButtons, ResultViewDropdownButtons} from '../styles';
+
+class VisualizationsToggle extends React.PureComponent {
   static propTypes = {
     options: PropTypes.arrayOf(
       PropTypes.shape({
@@ -31,7 +34,20 @@ class VisualizationsDropdown extends React.PureComponent {
     );
   };
 
-  getLabel = key => {
+  getButtonItems = opt => {
+    const active = opt.id === this.props.visualization;
+    return (
+      <a
+        key={opt.id}
+        className={classNames('btn btn-default btn-sm', {active})}
+        onClick={() => this.props.handleChange(opt.id)}
+      >
+        {opt.name}
+      </a>
+    );
+  };
+
+  getName = key => {
     switch (key) {
       case 'table':
         return t('Table');
@@ -51,24 +67,30 @@ class VisualizationsDropdown extends React.PureComponent {
   render() {
     const {options} = this.props;
     let dropdownTitle = (
-      <Title>{t(`View: ${this.getLabel(this.props.visualization)}`)}</Title>
+      <Title>{t(`View: ${this.getName(this.props.visualization)}`)}</Title>
     );
 
-    if (options.length > 1) {
-      return (
-        <DropdownLink
-          btnGroup={true}
-          title={dropdownTitle}
-          className={'btn btn-default btn-sm'}
-        >
+    return (
+      <React.Fragment>
+        <ResultViewButtons className="btn-group">
           {options.map(opt => {
-            return this.getMenuItem(opt);
+            return this.getButtonItems(opt);
           })}
-        </DropdownLink>
-      );
-    } else {
-      return null;
-    }
+        </ResultViewButtons>
+        <ResultViewDropdownButtons>
+          <DropdownLink
+            btnGroup={true}
+            title={dropdownTitle}
+            className={'btn btn-default btn-sm'}
+            disabled={options.length <= 1}
+          >
+            {options.map(opt => {
+              return this.getMenuItem(opt);
+            })}
+          </DropdownLink>
+        </ResultViewDropdownButtons>
+      </React.Fragment>
+    );
   }
 }
 
@@ -76,4 +98,4 @@ const Title = styled('span')`
   color: ${theme.textColor};
 `;
 
-export default VisualizationsDropdown;
+export default VisualizationsToggle;
