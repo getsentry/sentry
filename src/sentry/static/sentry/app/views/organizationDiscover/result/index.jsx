@@ -15,7 +15,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import {getChartData, getChartDataByDay, downloadAsCsv, getRowsPageRange} from './utils';
 import Table from './table';
 import Pagination from './pagination';
-import ViewsDropdown from './viewsDropdown';
+import VisualizationsDropdown from './vizualizationsDropdown';
 
 import {
   ResultTitle,
@@ -70,7 +70,7 @@ export default class Result extends React.Component {
     });
   }
 
-  handleViews = opt => {
+  handleToggleVisualizations = opt => {
     this.setState({
       view: opt,
     });
@@ -93,7 +93,6 @@ export default class Result extends React.Component {
     }
 
     const linkClasses = 'btn btn-default btn-sm';
-
     return (
       <Flex justify="flex-end">
         <ResultViewButtons className="btn-group">
@@ -113,10 +112,10 @@ export default class Result extends React.Component {
           })}
         </ResultViewButtons>
         <ResultViewDropdownButtons>
-          <ViewsDropdown
+          <VisualizationsDropdown
             options={options}
-            handleChange={this.handleViews}
-            view={this.state.view}
+            handleChange={this.handleToggleVisualizations}
+            visualization={this.state.view}
           />
         </ResultViewDropdownButtons>
         <Box ml={1}>

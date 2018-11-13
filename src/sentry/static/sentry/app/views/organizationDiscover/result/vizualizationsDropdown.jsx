@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import styled from 'react-emotion';
 import theme from 'app/utils/theme';
 
-class ViewsDropdown extends React.PureComponent {
+class VisualizationsDropdown extends React.PureComponent {
   static propTypes = {
     options: PropTypes.arrayOf(
       PropTypes.shape({
@@ -15,14 +15,11 @@ class ViewsDropdown extends React.PureComponent {
       })
     ).isRequired,
     handleChange: PropTypes.func.isRequired,
-    view: PropTypes.string.isRequired,
+    visualization: PropTypes.string.isRequired,
   };
 
   constructor() {
     super();
-    this.state = {
-      view: 'table',
-    };
   }
 
   getMenuItem = opt => {
@@ -31,20 +28,43 @@ class ViewsDropdown extends React.PureComponent {
         key={opt.id}
         onSelect={this.props.handleChange}
         eventKey={opt.id}
-        isActive={opt.id === this.props.view}
+        isActive={opt.id === this.props.visualization}
       >
         {opt.name}
       </MenuItem>
     );
   };
 
+  getLabel = key => {
+    switch (key) {
+      case 'table':
+        return t('Table');
+      case 'line':
+        return t('Line');
+      case 'bar':
+        return t('Bar');
+      case 'line-by-day':
+        return t('Line by Day');
+      case 'bar-by-day':
+        return t('Bar by Day');
+      default:
+        return t('Table');
+    }
+  };
+
   render() {
     const {options} = this.props;
-    let dropdownTitle = <Title>{t('Views')}</Title>;
+    let dropdownTitle = (
+      <Title>{t(`View: ${this.getLabel(this.props.visualization)}`)}</Title>
+    );
 
     if (options.length > 1) {
       return (
-        <DropdownLink btnGroup={true} title={dropdownTitle}>
+        <DropdownLink
+          btnGroup={true}
+          title={dropdownTitle}
+          className={'btn btn-default btn-sm'}
+        >
           {options.map(opt => {
             return this.getMenuItem(opt);
           })}
@@ -60,4 +80,4 @@ const Title = styled('span')`
   color: ${theme.textColor};
 `;
 
-export default ViewsDropdown;
+export default VisualizationsDropdown;

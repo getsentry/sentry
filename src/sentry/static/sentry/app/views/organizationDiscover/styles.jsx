@@ -8,6 +8,7 @@ import space from 'app/styles/space';
 import {Panel, PanelItem} from 'app/components/panels';
 import NavTabs from 'app/components/navTabs';
 import Link from 'app/components/link';
+import theme from 'app/utils/theme';
 
 const HEADER_HEIGHT = 60;
 
@@ -44,15 +45,15 @@ export const ResultTitle = styled(Box)`
 `;
 
 export const ResultViewButtons = styled(Flex)`
-  @media (max-width: 950px) {
+  @media (max-width: ${theme.breakpoints[2]}) {
     display: none;
   }
 `;
 
 export const ResultViewDropdownButtons = styled('div')`
   display: none;
-  @media (max-width: 950px) {
-    display: contents;
+  @media (max-width: ${theme.breakpoints[2]}) {
+    display: block;
   }
 `;
 
