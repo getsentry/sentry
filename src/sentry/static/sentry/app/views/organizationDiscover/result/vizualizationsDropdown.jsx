@@ -18,10 +18,6 @@ class VisualizationsDropdown extends React.PureComponent {
     visualization: PropTypes.string.isRequired,
   };
 
-  constructor() {
-    super();
-  }
-
   getMenuItem = opt => {
     return (
       <MenuItem
