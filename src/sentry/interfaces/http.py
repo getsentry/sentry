@@ -118,7 +118,7 @@ class Http(Interface):
     """
     display_score = 1000
     score = 800
-    path = 'sentry.interfaces.Http'
+    path = 'request'
 
     FORM_TYPE = 'application/x-www-form-urlencoded'
 
@@ -213,9 +213,6 @@ class Http(Interface):
 
         return cls(**kwargs)
 
-    def get_path(self):
-        return self.path
-
     @property
     def full_url(self):
         url = self.url
@@ -236,9 +233,6 @@ class Http(Interface):
                 'fragment': self.fragment,
             }
         )
-
-    def get_alias(self):
-        return 'request'
 
     def get_title(self):
         return _('Request')

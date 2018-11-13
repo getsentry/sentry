@@ -23,7 +23,7 @@ class ErrorEvent(BaseEvent):
 
     def has_metadata(self):
         try:
-            exception = self.data['sentry.interfaces.Exception']['values'][-1]
+            exception = self.data['exception']['values'][-1]
             exception['type']
             exception['value']
             return True
@@ -31,7 +31,7 @@ class ErrorEvent(BaseEvent):
             return False
 
     def get_metadata(self):
-        exception = self.data['sentry.interfaces.Exception']['values'][-1]
+        exception = self.data['exception']['values'][-1]
 
         # in some situations clients are submitting non-string data for these
         rv = {

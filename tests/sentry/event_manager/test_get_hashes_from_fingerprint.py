@@ -16,13 +16,13 @@ def test_stacktrace_wins_over_http(http_comp_hash, stack_comp_hash):
     stack_comp_hash.return_value = [['foo', 'bar']]
     event = Event(
         data={
-            'sentry.interfaces.Stacktrace': {
+            'stacktrace': {
                 'frames': [{
                     'lineno': 1,
                     'filename': 'foo.py',
                 }],
             },
-            'sentry.interfaces.Http': {
+            'request': {
                 'url': 'http://example.com'
             },
         },

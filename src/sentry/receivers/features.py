@@ -73,7 +73,7 @@ def record_event_processed(project, group, event, **kwargs):
         feature_slugs.append('environment_tracking')
 
     # User Tracking
-    user_context = event.data.get('sentry.interfaces.User')
+    user_context = event.data.get('user')
     # We'd like them to tag with id or email.
     # Certain SDKs automatically tag with ip address.
     # Check to make sure more the ip address is being sent.
@@ -91,7 +91,7 @@ def record_event_processed(project, group, event, **kwargs):
         feature_slugs.append('source_maps')
 
     # Breadcrumbs
-    if event.data.get('sentry.interfaces.Breadcrumbs'):
+    if event.data.get('breadcrumbs'):
         feature_slugs.append('breadcrumbs')
 
     if not feature_slugs:

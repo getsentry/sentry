@@ -65,7 +65,7 @@ class EventCompatibilityProxyTest(TestCase):
         event = self.create_event(
             message='biz baz',
             data={
-                'sentry.interfaces.Message': {
+                'logentry': {
                     'message': 'foo %s',
                     'formatted': 'foo bar',
                     'params': ['bar'],

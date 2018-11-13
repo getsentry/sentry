@@ -65,7 +65,7 @@ class BasicResolvingFileTest(TestCase):
     )
     def test_frame_resolution(self):
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -97,7 +97,7 @@ class BasicResolvingFileTest(TestCase):
                 "sdk_info":
                 SDK_INFO,
             },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         "stacktrace": {
@@ -178,7 +178,7 @@ class BasicResolvingFileTest(TestCase):
         event_data = process_stacktraces(
             event_data, make_processors=make_processors)
 
-        bt = event_data['sentry.interfaces.Exception']['values'][0]['stacktrace']
+        bt = event_data['exception']['values'][0]['stacktrace']
         frames = bt['frames']
 
         assert frames[0]['function'] == '<redacted>'

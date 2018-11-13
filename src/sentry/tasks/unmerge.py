@@ -465,7 +465,7 @@ def collect_tsdb_data(caches, project, events):
 
         counters[event.datetime][tsdb.models.group][(event.group_id, environment.id)] += 1
 
-        user = event.data.get('sentry.interfaces.User')
+        user = event.data.get('user')
         if user:
             sets[event.datetime][tsdb.models.users_affected_by_group][(event.group_id, environment.id)].add(
                 get_event_user_from_interface(user).tag_value,

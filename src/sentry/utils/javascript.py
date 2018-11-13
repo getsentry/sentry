@@ -13,9 +13,9 @@ def has_sourcemap(event):
         return False
     data = event.data
 
-    if 'sentry.interfaces.Exception' not in data:
+    if 'exception' not in data:
         return False
-    exception = data['sentry.interfaces.Exception']
+    exception = data['exception']
     for value in exception['values']:
         stacktrace = value.get('stacktrace', {})
         for frame in stacktrace.get('frames', []):

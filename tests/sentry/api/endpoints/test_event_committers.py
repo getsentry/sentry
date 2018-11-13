@@ -102,7 +102,7 @@ class EventCommittersTest(APITestCase):
             data={
                 'environment': 'production',
                 'type': 'default',
-                'sentry.interfaces.Exception': {
+                'exception': {
                     'values': [
                         {
                             'type': 'ValueError',

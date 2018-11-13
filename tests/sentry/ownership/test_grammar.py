@@ -64,7 +64,7 @@ def test_load_schema():
 
 def test_matcher_test_url():
     data = {
-        'sentry.interfaces.Http': {
+        'request': {
             'url': 'http://example.com/foo.js',
         }
     }
@@ -79,7 +79,7 @@ def test_matcher_test_url():
 
 def test_matcher_test_exception():
     data = {
-        'sentry.interfaces.Exception': {
+        'exception': {
             'values': [{
                 'stacktrace': {
                     'frames': [
@@ -102,7 +102,7 @@ def test_matcher_test_exception():
 
 def test_matcher_test_stacktrace():
     data = {
-        'sentry.interfaces.Stacktrace': {
+        'stacktrace': {
             'frames': [
                 {'filename': 'foo/file.py'},
                 {'abs_path': '/usr/local/src/other/app.py'},

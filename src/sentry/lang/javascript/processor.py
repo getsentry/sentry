@@ -491,14 +491,14 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
     def get_stacktraces(self, data):
         try:
             stacktraces = [
-                e['stacktrace'] for e in data['sentry.interfaces.Exception']['values']
+                e['stacktrace'] for e in data['exception']['values']
                 if e.get('stacktrace')
             ]
         except KeyError:
             stacktraces = []
 
-        if 'sentry.interfaces.Stacktrace' in data:
-            stacktraces.append(data['sentry.interfaces.Stacktrace'])
+        if 'stacktrace' in data:
+            stacktraces.append(data['stacktrace'])
 
         return [(s, Stacktrace.to_python(s)) for s in stacktraces]
 

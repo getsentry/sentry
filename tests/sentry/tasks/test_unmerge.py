@@ -39,7 +39,7 @@ def test_get_fingerprint():
     assert get_fingerprint(
         Event(
             data={
-                'sentry.interfaces.Message': {
+                'logentry': {
                     'message': 'Hello world',
                 },
             },
@@ -50,7 +50,7 @@ def test_get_fingerprint():
         Event(
             data={
                 'fingerprint': ['Not hello world'],
-                'sentry.interfaces.Message': {
+                'logentry': {
                     'message': 'Hello world',
                 },
             },
@@ -246,12 +246,12 @@ class UnmergeTestCase(TestCase):
                     'metadata': {
                         'title': template % parameters,
                     },
-                    'sentry.interfaces.Message': {
+                    'logentry': {
                         'message': template,
                         'params': parameters,
                         'formatted': template % parameters,
                     },
-                    'sentry.interfaces.User': next(user_values),
+                    'user': next(user_values),
                     'tags': tags,
                 },
             )
@@ -645,7 +645,7 @@ class UnmergeTestCase(TestCase):
             aggregate = aggregate if aggregate is not None else set()
             aggregate.add(
                 get_event_user_from_interface(
-                    event.data['sentry.interfaces.User'],
+                    event.data['user'],
                 ).tag_value,
             )
             return aggregate

@@ -195,6 +195,3 @@ class Contexts(Interface):
         for inst in self.iter_contexts():
             for tag in inst.iter_tags():
                 yield tag
-
-    def get_path(self):
-        return 'contexts'

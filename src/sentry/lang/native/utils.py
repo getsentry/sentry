@@ -41,13 +41,13 @@ def find_all_stacktraces(data):
             if processed is not None:
                 rv.append((processed, container))
 
-    exc_container = data.get('sentry.interfaces.Exception')
+    exc_container = data.get('exception')
     if exc_container:
         for exc in exc_container['values']:
             _probe_for_stacktrace(exc)
 
     # The legacy stacktrace interface does not support raw stacktraces
-    stacktrace = data.get('sentry.interfaces.Stacktrace')
+    stacktrace = data.get('stacktrace')
     if stacktrace:
         rv.append((stacktrace, None))
 

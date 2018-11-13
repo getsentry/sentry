@@ -76,7 +76,7 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'hello world'
-        event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
+        event.interfaces = {'stacktrace': stacktrace}
 
         notification = Notification(event=event)
 
@@ -103,7 +103,7 @@ class MailPluginTest(TestCase):
         event.group = group
         event.project = self.project
         event.message = 'Soubor ji\xc5\xbe existuje'
-        event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
+        event.interfaces = {'stacktrace': stacktrace}
 
         notification = Notification(event=event)
 
@@ -532,7 +532,7 @@ class MailPluginOwnersTest(TestCase):
     def make_event_data(self, filename, url='http://example.com'):
         data = {
             'tags': [('level', 'error')],
-            'sentry.interfaces.Stacktrace': {
+            'stacktrace': {
                 'frames': [
                     {
                         'lineno': 1,
@@ -540,7 +540,7 @@ class MailPluginOwnersTest(TestCase):
                     },
                 ],
             },
-            'sentry.interfaces.Http': {
+            'request': {
                 'url': url
             },
         }

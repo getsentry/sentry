@@ -53,12 +53,6 @@ class Template(Interface):
         }
         return cls(**kwargs)
 
-    def get_alias(self):
-        return 'template'
-
-    def get_path(self):
-        return 'sentry.interfaces.Template'
-
     def get_hash(self):
         return [self.filename, self.context_line]
 

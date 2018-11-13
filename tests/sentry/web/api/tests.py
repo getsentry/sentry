@@ -234,10 +234,10 @@ class StoreViewTest(TestCase):
         body = {
             "release": "abcdefg",
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {
@@ -253,10 +253,10 @@ class StoreViewTest(TestCase):
         body = {
             "release": "abcdefg",
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {
@@ -272,10 +272,10 @@ class StoreViewTest(TestCase):
         body = {
             "release": "abcdefg",
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {
@@ -291,10 +291,10 @@ class StoreViewTest(TestCase):
         body = {
             "release": "1.3.2",
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {
@@ -310,10 +310,10 @@ class StoreViewTest(TestCase):
         body = {
             "release": "1.3.2",
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {
@@ -329,10 +329,10 @@ class StoreViewTest(TestCase):
         body = {
             "release": "2.1.3",
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {
@@ -349,17 +349,17 @@ class StoreViewTest(TestCase):
         )
         body = {
             "release": "abcdefg",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {
                     "REMOTE_ADDR": "127.0.0.1"
                 }
             },
-            "sentry.interfaces.Message": {
+            "logentry": {
                 "formatted": "ZeroDivisionError: integer division or modulo by zero",
                 "message": "%s: integer division or modulo by zero",
             },
@@ -374,17 +374,17 @@ class StoreViewTest(TestCase):
         )
         body = {
             "release": "abcdefg",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {
                     "REMOTE_ADDR": "127.0.0.1"
                 }
             },
-            "sentry.interfaces.Message": {
+            "logentry": {
                 "message": "ZeroDivisionError: integer division or modulo by zero",
                 "formatted": "",
             },
@@ -402,10 +402,10 @@ class StoreViewTest(TestCase):
                 "version": "3.23.3",
                 "client_ip": "127.0.0.1"
             },
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {
@@ -417,8 +417,8 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert not call_data['sentry.interfaces.User'].get('ip_address')
-        assert not call_data['sentry.interfaces.Http']['env'].get('REMOTE_ADDR')
+        assert not call_data['user'].get('ip_address')
+        assert not call_data['request']['env'].get('REMOTE_ADDR')
         assert not call_data['sdk'].get('client_ip')
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
@@ -427,10 +427,10 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_ip_address', False)
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "env": {
@@ -442,8 +442,8 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert not call_data['sentry.interfaces.User'].get('ip_address')
-        assert not call_data['sentry.interfaces.Http']['env'].get('REMOTE_ADDR')
+        assert not call_data['user'].get('ip_address')
+        assert not call_data['request']['env'].get('REMOTE_ADDR')
 
     @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database')
     def test_scrub_data_off(self, mock_insert_data_to_database):
@@ -451,10 +451,10 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_defaults', False)
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "data": "password=lol&foo=1&bar=2&baz=3"
@@ -464,7 +464,7 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'] == {
+        assert call_data['request']['data'] == {
             'password': ['lol'],
             'foo': ['1'],
             'bar': ['2'],
@@ -477,10 +477,10 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_defaults', False)
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "data": "password=lol&foo=1&bar=2&baz=3"
@@ -490,7 +490,7 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'] == {
+        assert call_data['request']['data'] == {
             'password': ['lol'],
             'foo': ['1'],
             'bar': ['2'],
@@ -503,10 +503,10 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_defaults', True)
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "data": "password=lol&foo=1&bar=2&baz=3"
@@ -516,7 +516,7 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'] == {
+        assert call_data['request']['data'] == {
             'password': ['[Filtered]'],
             'foo': ['1'],
             'bar': ['2'],
@@ -530,10 +530,10 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:sensitive_fields', ['foo', 'bar'])
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "data": "password=lol&foo=1&bar=2&baz=3"
@@ -543,7 +543,7 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'] == {
+        assert call_data['request']['data'] == {
             'password': ['[Filtered]'],
             'foo': ['[Filtered]'],
             'bar': ['[Filtered]'],
@@ -558,10 +558,10 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:scrub_defaults', False)
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "data": "password=lol&foo=1&bar=2&baz=3"
@@ -571,7 +571,7 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'] == {
+        assert call_data['request']['data'] == {
             'password': ['[Filtered]'],
             'foo': ['1'],
             'bar': ['2'],
@@ -586,10 +586,10 @@ class StoreViewTest(TestCase):
         self.project.update_option('sentry:sensitive_fields', ['foo', 'bar'])
         body = {
             "message": "foo bar",
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "127.0.0.1"
             },
-            "sentry.interfaces.Http": {
+            "request": {
                 "method": "GET",
                 "url": "http://example.com/",
                 "data": "password=lol&foo=1&bar=2&baz=3"
@@ -599,7 +599,7 @@ class StoreViewTest(TestCase):
         assert resp.status_code == 200, (resp.status_code, resp.content)
 
         call_data = mock_insert_data_to_database.call_args[0][0]
-        assert call_data['sentry.interfaces.Http']['data'] == {
+        assert call_data['request']['data'] == {
             'password': ['[Filtered]'],
             'foo': ['[Filtered]'],
             'bar': ['[Filtered]'],
@@ -626,7 +626,7 @@ class StoreViewTest(TestCase):
 
         event_accepted.connect(mock_event_accepted)
 
-        resp = self._postWithHeader({'sentry.interfaces.Message': {'message': u'hello'}})
+        resp = self._postWithHeader({'logentry': {'message': u'hello'}})
 
         assert resp.status_code == 200, resp.content
 
@@ -646,7 +646,7 @@ class StoreViewTest(TestCase):
 
         event_dropped.connect(mock_event_dropped)
 
-        resp = self._postWithHeader({'sentry.interfaces.Message': {'message': u'hello'}})
+        resp = self._postWithHeader({'logentry': {'message': u'hello'}})
 
         assert resp.status_code == 429, resp.content
 
@@ -666,7 +666,7 @@ class StoreViewTest(TestCase):
 
         event_filtered.connect(mock_event_filtered)
 
-        resp = self._postWithHeader({'sentry.interfaces.Message': {'message': u'hello'}})
+        resp = self._postWithHeader({'logentry': {'message': u'hello'}})
 
         assert resp.status_code == 403, resp.content
 

@@ -87,7 +87,7 @@ def test_get_interface_does_not_let_through_disallowed_name():
 
 def test_get_interface_allows_http():
     from sentry.interfaces.http import Http
-    result = get_interface('sentry.interfaces.Http')
+    result = get_interface('request')
     assert result is Http
     result = get_interface('request')
     assert result is Http

@@ -38,6 +38,8 @@ class Message(Interface):
     """
     score = 0
     display_score = 2050
+    path = 'logentry'
+    external_type = 'message'
 
     @classmethod
     def to_python(cls, data):
@@ -89,9 +91,6 @@ class Message(Interface):
             kwargs['formatted'] = None
 
         return cls(**kwargs)
-
-    def get_path(self):
-        return 'sentry.interfaces.Message'
 
     def get_hash(self):
         return [self.message]

@@ -56,7 +56,7 @@ class TagStorageTest(SnubaTestCase):
                     'sentry:release': 100 * r,
                     'sentry:user': u"id:user{}".format(r),
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     'id': u"user{}".format(r),
                     'email': u"user{}@sentry.io".format(r)
                 }
@@ -76,7 +76,7 @@ class TagStorageTest(SnubaTestCase):
                     'environment': self.proj1env1.name,
                     'sentry:user': "id:user1",
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     'id': "user1"
                 }
             },

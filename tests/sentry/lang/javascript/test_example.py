@@ -45,7 +45,7 @@ class ExampleTestCase(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -62,7 +62,7 @@ class ExampleTestCase(TestCase):
 
         event = Event.objects.get()
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         assert len(frame_list) == 4

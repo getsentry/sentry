@@ -12,7 +12,7 @@ class WebCrawlersFilterTest(TestCase):
 
     def get_mock_data(self, user_agent):
         return {
-            'sentry.interfaces.Http': {
+            'request': {
                 'url': 'http://example.com',
                 'method': 'GET',
                 'headers': [

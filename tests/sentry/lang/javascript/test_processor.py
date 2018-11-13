@@ -539,7 +539,7 @@ def test_get_culprit_is_patched():
     data = {
         'message': 'hello',
         'platform': 'javascript',
-        'sentry.interfaces.Exception': {
+        'exception': {
             'values': [
                 {
                     'type': 'Error',
@@ -575,7 +575,7 @@ def test_ensure_module_names():
     data = {
         'message': 'hello',
         'platform': 'javascript',
-        'sentry.interfaces.Exception': {
+        'exception': {
             'values': [
                 {
                     'type': 'Error',
@@ -601,7 +601,7 @@ def test_ensure_module_names():
         }
     }
     generate_modules(data)
-    exc = data['sentry.interfaces.Exception']['values'][0]
+    exc = data['exception']['values'][0]
     assert exc['stacktrace']['frames'][1]['module'] == 'foo/bar'
 
 
@@ -624,7 +624,7 @@ class ErrorMappingTest(TestCase):
         for x in range(3):
             data = {
                 'platform': 'javascript',
-                'sentry.interfaces.Exception': {
+                'exception': {
                     'values': [
                         {
                             'type':
@@ -659,7 +659,7 @@ class ErrorMappingTest(TestCase):
 
             assert rewrite_exception(data)
 
-            assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+            assert data['exception']['values'][0]['value'] == (
                 'Component.render(): A valid React element (or null) must be '
                 'returned. You may have returned undefined, an array or '
                 'some other invalid object.'
@@ -680,7 +680,7 @@ class ErrorMappingTest(TestCase):
 
         data = {
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type':
@@ -709,7 +709,7 @@ class ErrorMappingTest(TestCase):
 
         assert rewrite_exception(data)
 
-        assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+        assert data['exception']['values'][0]['value'] == (
             'Component.getChildContext(): key "" is not defined in '
             'childContextTypes.'
         )
@@ -729,7 +729,7 @@ class ErrorMappingTest(TestCase):
 
         data = {
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type':
@@ -755,7 +755,7 @@ class ErrorMappingTest(TestCase):
 
         assert rewrite_exception(data)
 
-        assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+        assert data['exception']['values'][0]['value'] == (
             '<redacted>.getChildContext(): key "<redacted>" is not defined in '
             'childContextTypes.'
         )

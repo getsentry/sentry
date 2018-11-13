@@ -34,7 +34,7 @@ def generate_modules(data):
 
 
 def fix_culprit(data):
-    exc = data.get('sentry.interfaces.Exception')
+    exc = data.get('exception')
     if not exc:
         return
 
@@ -43,7 +43,7 @@ def fix_culprit(data):
 
 
 def parse_user_agent(data):
-    http = data.get('sentry.interfaces.Http')
+    http = data.get('request')
     if not http:
         return None
 

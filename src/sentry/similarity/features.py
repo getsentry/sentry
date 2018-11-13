@@ -37,7 +37,7 @@ class ExceptionFeature(object):
 
     def extract(self, event):
         try:
-            interface = event.interfaces['sentry.interfaces.Exception']
+            interface = event.interfaces['exception']
         except KeyError:
             raise InterfaceDoesNotExist()
         return self.function(interface.values[0])
@@ -49,7 +49,7 @@ class MessageFeature(object):
 
     def extract(self, event):
         try:
-            interface = event.interfaces['sentry.interfaces.Message']
+            interface = event.interfaces['logentry']
         except KeyError:
             raise InterfaceDoesNotExist()
         return self.function(interface)

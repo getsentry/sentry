@@ -732,8 +732,6 @@ class Mechanism(Interface):
     >>> }
     """
 
-    path = 'mechanism'
-
     @classmethod
     def to_python(cls, data):
         data = upgrade_legacy_mechanism(data)
@@ -795,9 +793,6 @@ class Mechanism(Interface):
             'meta': prune_empty_keys(self.meta),
         })
 
-    def get_path(self):
-        return self.path
-
     def iter_tags(self):
         yield (self.path, self.type)
 
@@ -812,7 +807,7 @@ class SingleException(Interface):
     module namespace. Either ``type`` or ``value`` must be present.
 
     You can also optionally bind a stacktrace interface to an exception. The
-    spec is identical to ``sentry.interfaces.Stacktrace``.
+    spec is identical to ``stacktrace``.
 
     >>> {
     >>>     "type": "ValueError",
@@ -820,12 +815,12 @@ class SingleException(Interface):
     >>>     "module": "__builtins__",
     >>>     "mechanism": {},
     >>>     "stacktrace": {
-    >>>         # see sentry.interfaces.Stacktrace
+    >>>         # see stacktrace
     >>>     }
     >>> }
     """
     score = 2000
-    path = 'sentry.interfaces.Exception'
+    path = 'exception'
 
     @classmethod
     def to_python(cls, data, slim_frames=True):
@@ -949,12 +944,6 @@ class SingleException(Interface):
             'stacktrace': stacktrace_meta,
         }
 
-    def get_alias(self):
-        return 'exception'
-
-    def get_path(self):
-        return self.path
-
     def get_hash(self, platform=None):
         output = None
         if self.stacktrace:
@@ -976,7 +965,7 @@ class Exception(Interface):
     namespace.
 
     You can also optionally bind a stacktrace interface to an exception. The
-    spec is identical to ``sentry.interfaces.Stacktrace``.
+    spec is identical to ``stacktrace``.
 
     >>> {
     >>>     "values": [{
@@ -987,7 +976,7 @@ class Exception(Interface):
     >>>             # see sentry.interfaces.Mechanism
     >>>         },
     >>>         "stacktrace": {
-    >>>             # see sentry.interfaces.Stacktrace
+    >>>             # see stacktrace
     >>>         }
     >>>     }]
     >>> }
@@ -1046,12 +1035,6 @@ class Exception(Interface):
             'values': [v and v.to_json() for v in self.values],
             'exc_omitted': self.exc_omitted,
         }
-
-    def get_alias(self):
-        return 'exception'
-
-    def get_path(self):
-        return 'sentry.interfaces.Exception'
 
     def compute_hashes(self, platform):
         system_hash = self.get_hash(platform, system_frames=True)

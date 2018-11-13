@@ -44,15 +44,13 @@ def test_interface_is_relabeled():
     data = manager.get_data()
 
     assert data['user'] == {'id': '1'}
-    # data is a CanonicalKeyDict, so we need to check .keys() explicitly
-    assert 'sentry.interfaces.User' not in data.keys()
 
 
 def test_does_default_ip_address_to_user():
     manager = EventManager(
         make_event(
             **{
-                'sentry.interfaces.Http': {
+                'request': {
                     'url': 'http://example.com',
                     'env': {
                         'REMOTE_ADDR': '127.0.0.1',
@@ -64,7 +62,7 @@ def test_does_default_ip_address_to_user():
     manager.normalize()
     data = manager.get_data()
 
-    assert data['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+    assert data['user']['ip_address'] == '127.0.0.1'
 
 
 @mock.patch('sentry.interfaces.geo.Geo.from_ip_address')
@@ -81,7 +79,7 @@ def test_does_geo_from_ip(from_ip_address_mock):
     manager = EventManager(
         make_event(
             **{
-                'sentry.interfaces.User': {
+                'user': {
                     'ip_address': '192.168.0.1',
                 },
             }
@@ -90,8 +88,8 @@ def test_does_geo_from_ip(from_ip_address_mock):
 
     manager.normalize()
     data = manager.get_data()
-    assert data['sentry.interfaces.User']['ip_address'] == '192.168.0.1'
-    assert data['sentry.interfaces.User']['geo'] == geo
+    assert data['user']['ip_address'] == '192.168.0.1'
+    assert data['user']['geo'] == geo
 
 
 @mock.patch('sentry.interfaces.geo.geo_by_addr')
@@ -101,7 +99,7 @@ def test_skips_geo_with_no_result(geo_by_addr_mock):
     manager = EventManager(
         make_event(
             **{
-                'sentry.interfaces.User': {
+                'user': {
                     'ip_address': '127.0.0.1',
                 },
             }
@@ -109,21 +107,21 @@ def test_skips_geo_with_no_result(geo_by_addr_mock):
     )
     manager.normalize()
     data = manager.get_data()
-    assert data['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
-    assert 'geo' not in data['sentry.interfaces.User']
+    assert data['user']['ip_address'] == '127.0.0.1'
+    assert 'geo' not in data['user']
 
 
 def test_does_default_ip_address_if_present():
     manager = EventManager(
         make_event(
             **{
-                'sentry.interfaces.Http': {
+                'request': {
                     'url': 'http://example.com',
                     'env': {
                         'REMOTE_ADDR': '127.0.0.1',
                     }
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     'ip_address': '192.168.0.1',
                 },
             }
@@ -131,7 +129,7 @@ def test_does_default_ip_address_if_present():
     )
     manager.normalize()
     data = manager.get_data()
-    assert data['sentry.interfaces.User']['ip_address'] == '192.168.0.1'
+    assert data['user']['ip_address'] == '192.168.0.1'
 
 
 def test_long_culprit():
@@ -160,7 +158,7 @@ def test_long_message():
     )
     manager.normalize()
     data = manager.get_data()
-    assert len(data['sentry.interfaces.Message']['message']) == \
+    assert len(data['logentry']['message']) == \
         settings.SENTRY_MAX_MESSAGE_LENGTH
 
 
@@ -195,8 +193,8 @@ def test_bad_interfaces_no_exception():
     manager = EventManager(
         make_event(
             **{
-                'sentry.interfaces.User': None,
-                'sentry.interfaces.Http': None,
+                'user': None,
+                'request': None,
                 'sdk': 'A string for sdk is not valid'
             }
         ),
@@ -208,7 +206,7 @@ def test_bad_interfaces_no_exception():
         make_event(
             **{
                 'errors': {},
-                'sentry.interfaces.Http': {},
+                'request': {},
             }
         )
     )

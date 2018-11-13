@@ -86,9 +86,6 @@ class Threads(Interface):
         else:
             return meta
 
-    def get_path(self):
-        return 'threads'
-
     def get_hash(self):
         if len(self.values) != 1:
             return []

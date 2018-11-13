@@ -8,13 +8,13 @@ class CspEvent(BaseEvent):
 
     def has_metadata(self):
         # TODO(alexh) also look for 'csp' ?
-        return 'sentry.interfaces.Csp' in self.data
+        return 'csp' in self.data
 
     def get_metadata(self):
         from sentry.interfaces.security import Csp
         # TODO(dcramer): pull get message into here to avoid instantiation
         # or ensure that these get interfaces passed instead of raw data
-        csp = Csp.to_python(self.data['sentry.interfaces.Csp'])
+        csp = Csp.to_python(self.data['csp'])
 
         return {
             'directive': csp.effective_directive,

@@ -21,7 +21,7 @@ class CspTest(TestCase):
         )
 
     def test_path(self):
-        assert self.interface.get_path() == 'sentry.interfaces.Csp'
+        assert self.interface.get_path() == 'csp'
 
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())

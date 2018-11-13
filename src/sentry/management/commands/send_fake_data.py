@@ -50,7 +50,7 @@ def funcs():
                 data={
                     'logger': six.next(loggers),
                     'site': 'web',
-                    'sentry.interfaces.User': {
+                    'user': {
                         'id': email,
                         'email': email,
                     }

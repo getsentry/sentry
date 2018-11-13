@@ -135,7 +135,7 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
 
     data['platform'] = platform
     data['message'] = 'This is an example %s exception' % (sample_name or platform, )
-    data['sentry.interfaces.User'] = generate_user(
+    data['user'] = generate_user(
         ip_address='127.0.0.1',
         username='sentry',
         id=1,
@@ -155,7 +155,7 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     data['modules'] = {
         'my.package': '1.0.0',
     }
-    data['sentry.interfaces.Http'] = {
+    data['request'] = {
         "cookies": 'foo=bar;biz=baz',
         "url": "http://example.com/foo",
         "headers": {
@@ -182,7 +182,7 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
             pass
 
     # Make breadcrumb timestamps relative to right now so they make sense
-    breadcrumbs = data.get('sentry.interfaces.Breadcrumbs')
+    breadcrumbs = data.get('breadcrumbs')
     if breadcrumbs is not None:
         duration = 1000
         # At this point, breadcrumbs are not normalized. They can either be a

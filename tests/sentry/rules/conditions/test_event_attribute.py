@@ -13,17 +13,17 @@ class EventAttributeConditionTest(RuleTestCase):
             platform='php',
             data={
                 'type': 'error',
-                'sentry.interfaces.Http': {
+                'request': {
                     'method': 'GET',
                     'url': 'http://example.com',
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     'id': '1',
                     'ip_address': '127.0.0.1',
                     'email': 'foo@example.com',
                     'username': 'foo',
                 },
-                'sentry.interfaces.Exception': {
+                'exception': {
                     'values': [
                         {
                             'type': 'SyntaxError',

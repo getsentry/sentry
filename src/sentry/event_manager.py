@@ -71,7 +71,7 @@ HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 ALLOWED_FUTURE_DELTA = timedelta(minutes=1)
 SECURITY_REPORT_INTERFACES = (
-    "sentry.interfaces.Csp",
+    "csp",
     "hpkp",
     "expectct",
     "expectstaple",
@@ -118,7 +118,7 @@ def get_hashes_for_event_with_reason(event):
         result = interface.compute_hashes(event.platform)
         if not result:
             continue
-        return (interface.get_path(), result)
+        return (interface.path, result)
 
     return ('no_interfaces', [''])
 
@@ -202,19 +202,19 @@ def generate_culprit(data, platform=None):
     culprit = ''
     try:
         stacktraces = [
-            e['stacktrace'] for e in data['sentry.interfaces.Exception']['values']
+            e['stacktrace'] for e in data['exception']['values']
             if e.get('stacktrace')
         ]
     except KeyError:
-        stacktrace = data.get('sentry.interfaces.Stacktrace')
+        stacktrace = data.get('stacktrace')
         if stacktrace:
             stacktraces = [stacktrace]
         else:
             stacktraces = None
 
     if not stacktraces:
-        if 'sentry.interfaces.Http' in data:
-            culprit = data['sentry.interfaces.Http'].get('url', '')
+        if 'request' in data:
+            culprit = data['request'].get('url', '')
     else:
         from sentry.interfaces.stacktrace import Stacktrace
         culprit = Stacktrace.to_python(stacktraces[-1]).get_culprit_string(
@@ -415,16 +415,16 @@ class EventManager(object):
                 'logger': 'csp',
                 'message': instance.get_message(),
                 'culprit': instance.get_culprit(),
-                instance.get_path(): instance.to_json(),
+                instance.path: instance.to_json(),
                 'tags': instance.get_tags(),
                 'errors': [],
-                'sentry.interfaces.User': {'ip_address': self._client_ip},
+                'user': {'ip_address': self._client_ip},
                 # Construct a faux Http interface based on the little information we have
                 # This is a bit weird, since we don't have nearly enough
                 # information to create an Http interface, but
                 # this automatically will pick up tags for the User-Agent
                 # which is actually important here for CSP
-                'sentry.interfaces.Http': {
+                'request': {
                     'url': instance.get_origin(),
                     'headers': clean(
                         {
@@ -513,14 +513,14 @@ class EventManager(object):
 
         # Fill in ip addresses marked as {{auto}}
         if self._client_ip:
-            if get_path(data, ['sentry.interfaces.Http', 'env', 'REMOTE_ADDR']) == '{{auto}}':
-                data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = self._client_ip
+            if get_path(data, ['request', 'env', 'REMOTE_ADDR']) == '{{auto}}':
+                data['request']['env']['REMOTE_ADDR'] = self._client_ip
 
             if get_path(data, ['request', 'env', 'REMOTE_ADDR']) == '{{auto}}':
                 data['request']['env']['REMOTE_ADDR'] = self._client_ip
 
-            if get_path(data, ['sentry.interfaces.User', 'ip_address']) == '{{auto}}':
-                data['sentry.interfaces.User']['ip_address'] = self._client_ip
+            if get_path(data, ['user', 'ip_address']) == '{{auto}}':
+                data['user']['ip_address'] = self._client_ip
 
             if get_path(data, ['user', 'ip_address']) == '{{auto}}':
                 data['user']['ip_address'] = self._client_ip
@@ -554,7 +554,7 @@ class EventManager(object):
 
             try:
                 inst = interface.to_python(value)
-                data[inst.get_path()] = inst.to_json()
+                data[inst.path] = inst.to_json()
             except Exception as e:
                 log = logger.debug if isinstance(
                     e, InterfaceValidationError) else logger.error
@@ -619,11 +619,11 @@ class EventManager(object):
         data['type'] = eventtypes.infer(data).key
         data['version'] = self.version
 
-        exception = data.get('sentry.interfaces.Exception')
-        stacktrace = data.get('sentry.interfaces.Stacktrace')
+        exception = data.get('exception')
+        stacktrace = data.get('stacktrace')
         if exception and len(exception['values']) == 1 and stacktrace:
             exception['values'][0]['stacktrace'] = stacktrace
-            del data['sentry.interfaces.Stacktrace']
+            del data['stacktrace']
 
         # Exception mechanism needs SDK information to resolve proper names in
         # exception meta (such as signal names). "SDK Information" really means
@@ -641,11 +641,11 @@ class EventManager(object):
         is_public = self._auth and self._auth.is_public
         add_ip_platforms = ('javascript', 'cocoa', 'objc')
 
-        http_ip = data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR')
+        http_ip = data.get('request', {}).get('env', {}).get('REMOTE_ADDR')
         if http_ip:
-            data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', http_ip)
+            data.setdefault('user', {}).setdefault('ip_address', http_ip)
         elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
-            data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', self._client_ip)
+            data.setdefault('user', {}).setdefault('ip_address', self._client_ip)
 
         # Trim values
         data['logger'] = trim(data['logger'].strip(), 64)
@@ -679,7 +679,7 @@ class EventManager(object):
         if release and not is_valid_release(self._project, release):
             return (True, FilterStatKeys.RELEASE_VERSION)
 
-        message_interface = self._data.get('sentry.interfaces.Message', {})
+        message_interface = self._data.get('logentry', {})
         error_message = message_interface.get('formatted', '') or message_interface.get(
             'message', ''
         )
@@ -687,7 +687,7 @@ class EventManager(object):
             return (True, FilterStatKeys.ERROR_MESSAGE)
 
         for exception_interface in self._data.get(
-            'sentry.interfaces.Exception', {}
+            'exception', {}
         ).get('values', []):
             message = u': '.join(
                 filter(None, map(exception_interface.get, ['type', 'value']))
@@ -849,7 +849,7 @@ class EventManager(object):
                 tags[k] = v
             # Get rid of ephemeral interface data
             if iface.ephemeral:
-                data.pop(iface.get_path(), None)
+                data.pop(iface.path, None)
 
         # tags are stored as a tuple
         tags = tags.items()
@@ -883,11 +883,11 @@ class EventManager(object):
         # index components into ``Event.message``
         # See GH-3248
         if event_type.key != 'default':
-            if 'sentry.interfaces.Message' in data and \
-                    data['sentry.interfaces.Message']['message'] != message:
+            if 'logentry' in data and \
+                    data['logentry']['message'] != message:
                 message = u'{} {}'.format(
                     message,
-                    data['sentry.interfaces.Message']['message'],
+                    data['logentry']['message'],
                 )
 
         if not message:
@@ -1158,7 +1158,7 @@ class EventManager(object):
         return event
 
     def _get_event_user(self, project, data):
-        user_data = data.get('sentry.interfaces.User')
+        user_data = data.get('user')
         if not user_data:
             return
 
