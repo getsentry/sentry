@@ -732,6 +732,11 @@ class EventManager(object):
         if not self._for_store and not data.get('errors'):
             self._data.pop('errors')
 
+        if meta.get():
+            data['_meta'] = meta.get()
+        elif '_meta' in data:
+            del data['_meta']
+
         self._data = data
 
     def should_filter(self):
