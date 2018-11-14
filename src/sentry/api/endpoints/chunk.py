@@ -12,11 +12,11 @@ from django.conf import settings
 
 from sentry import options
 from sentry.models import FileBlob
-from sentry.models.file import DEFAULT_BLOB_SIZE
 from sentry.api.bases.organization import (OrganizationEndpoint,
                                            OrganizationReleasePermission)
 
 
+DEFAULT_BLOB_SIZE = 10 * 1024 * 1024  # ten mb
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 4
