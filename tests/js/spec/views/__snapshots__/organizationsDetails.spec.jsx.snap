@@ -19,6 +19,8 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
           <div
             class="css-1d9hpgj-SidebarDropdownActor e1fowdfw7"
             data-test-id="sidebar-dropdown"
+            style="outline:none"
+            tabindex="-1"
           >
             <div
               style="display:flex;align-items:flex-start"
@@ -283,6 +285,8 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
         >
           <div
             class="css-d4wreg-HelpActor e1q2bb9t1"
+            style="outline:none"
+            tabindex="-1"
           >
             <a
               class="css-1l9toro-StyledSidebarItem e1qdnaq70"
@@ -456,6 +460,8 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
           <div
             class="css-1d9hpgj-SidebarDropdownActor e1fowdfw7"
             data-test-id="sidebar-dropdown"
+            style="outline:none"
+            tabindex="-1"
           >
             <div
               style="display:flex;align-items:flex-start"
@@ -720,6 +726,8 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         >
           <div
             class="css-d4wreg-HelpActor e1q2bb9t1"
+            style="outline:none"
+            tabindex="-1"
           >
             <a
               class="css-1l9toro-StyledSidebarItem e1qdnaq70"
@@ -920,6 +928,8 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
           <div
             class="css-1d9hpgj-SidebarDropdownActor e1fowdfw7"
             data-test-id="sidebar-dropdown"
+            style="outline:none"
+            tabindex="-1"
           >
             <div
               style="display:flex;align-items:flex-start"
@@ -1184,6 +1194,8 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         >
           <div
             class="css-d4wreg-HelpActor e1q2bb9t1"
+            style="outline:none"
+            tabindex="-1"
           >
             <a
               class="css-1l9toro-StyledSidebarItem e1qdnaq70"

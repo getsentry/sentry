@@ -2,13 +2,21 @@
 
 exports[`DropdownMenu renders 1`] = `
 <DropdownMenu
+  closeOnEscape={true}
   keepMenuOpen={false}
 >
   <span>
     <button
       onClick={[Function]}
+      onKeyDown={[Function]}
       onMouseEnter={[Function]}
       onMouseLeave={[Function]}
+      style={
+        Object {
+          "outline": "none",
+        }
+      }
+      tabIndex={-1}
     >
       Open Dropdown
     </button>

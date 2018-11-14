@@ -57,6 +57,40 @@ describe('DropdownMenu', function() {
     expect(wrapper.find('ul')).toHaveLength(0);
   });
 
+  it('closes dropdown when pressing escape', function() {
+    wrapper.find('button').simulate('click');
+    expect(wrapper.state('isOpen')).toBe(true);
+    wrapper.simulate('keyDown', {key: 'Escape'});
+    wrapper.find('button').simulate('keyDown', {key: 'Escape'});
+    expect(wrapper.state('isOpen')).toBe(false);
+    expect(wrapper.find('ul')).toHaveLength(0);
+  });
+
+  it('ignores "Escape" key if `closeOnEscape` is false', function() {
+    wrapper = mount(
+      <DropdownMenu closeOnEscape={false}>
+        {({getRootProps, getActorProps, getMenuProps, isOpen}) => {
+          return (
+            <span {...getRootProps({})}>
+              <button {...getActorProps({})}>Open Dropdown</button>
+              {isOpen && (
+                <ul {...getMenuProps({})}>
+                  <li>Dropdown Menu Item 1</li>
+                </ul>
+              )}
+            </span>
+          );
+        }}
+      </DropdownMenu>
+    );
+
+    wrapper.find('button').simulate('click');
+    expect(wrapper.state('isOpen')).toBe(true);
+    wrapper.find('button').simulate('keyDown', {key: 'Escape'});
+    expect(wrapper.find('ul')).toHaveLength(1);
+    expect(wrapper.state('isOpen')).toBe(true);
+  });
+
   it('keeps dropdown open when clicking on anything in menu with `keepMenuOpen` prop', function() {
     wrapper = mount(
       <DropdownMenu keepMenuOpen>

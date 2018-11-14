@@ -209,6 +209,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
       >
         <DropdownMenu
           alwaysRenderMenu={true}
+          closeOnEscape={true}
           keepMenuOpen={false}
         >
           <span
@@ -217,8 +218,15 @@ exports[`ResolveActions with confirmation step renders 1`] = `
             <a
               className="dropdown-actor btn btn-default btn-sm dropdown-toggle"
               onClick={[Function]}
+              onKeyDown={[Function]}
               onMouseEnter={[Function]}
               onMouseLeave={[Function]}
+              style={
+                Object {
+                  "outline": "none",
+                }
+              }
+              tabIndex={-1}
             >
               <div
                 className="dropdown-actor-title"
@@ -598,6 +606,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
       >
         <DropdownMenu
           alwaysRenderMenu={true}
+          closeOnEscape={true}
           keepMenuOpen={false}
         >
           <span
@@ -606,8 +615,15 @@ exports[`ResolveActions without confirmation renders 1`] = `
             <a
               className="dropdown-actor btn btn-default btn-sm dropdown-toggle"
               onClick={[Function]}
+              onKeyDown={[Function]}
               onMouseEnter={[Function]}
               onMouseLeave={[Function]}
+              style={
+                Object {
+                  "outline": "none",
+                }
+              }
+              tabIndex={-1}
             >
               <div
                 className="dropdown-actor-title"
