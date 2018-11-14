@@ -113,7 +113,7 @@ class Hovercard extends React.Component {
 }
 
 const translateX = x => `translateX(${x === 'middle' ? '-50%' : 0})`;
-const slideTranslateY = y => `translateY(${(y === 'top' ? 1 : -1) * 14}px)`;
+const slideTranslateY = y => `translateY(${(y === 'top' ? -1 : 1) * 14}px)`;
 
 const slideIn = p => keyframes`
   from {
