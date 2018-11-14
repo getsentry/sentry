@@ -4,10 +4,26 @@ import six
 
 from datetime import datetime
 from django.utils import timezone
-
 from semaphore import meta_with_chunks
-from sentry.api.serializers import Serializer, register
-from sentry.models import Event, EventError
+
+from sentry.api.serializers import Serializer, register, serialize
+from sentry.models import Event, EventError, EventAttachment
+
+
+CRASH_FILE_TYPES = set(['event.minidump'])
+
+
+def get_crash_files(events):
+    event_ids = [x.event_id for x in events if x.platform == 'native']
+    rv = {}
+    if event_ids:
+        attachments = EventAttachment.objects.filter(
+            event_id__in=event_ids,
+        ).select_related('file')
+        for attachment in attachments:
+            if attachment.file.type in CRASH_FILE_TYPES:
+                rv[attachment.event_id] = attachment
+    return rv
 
 
 @register(Event)
@@ -110,6 +126,7 @@ class EventSerializer(Serializer):
     def get_attrs(self, item_list, user, is_public=False):
         Event.objects.bind_nodes(item_list, 'data')
 
+        crash_files = get_crash_files(item_list)
         results = {}
         for item in item_list:
             # TODO(dcramer): convert to get_api_context
@@ -119,11 +136,14 @@ class EventSerializer(Serializer):
 
             (entries, entries_meta) = self._get_entries(item, user, is_public=is_public)
 
+            crash_file = crash_files.get(item.event_id)
+
             results[item] = {
                 'entries': entries,
                 'user': user_data,
                 'contexts': contexts_data or {},
                 'sdk': sdk_data,
+                'crash_file': serialize(crash_file, user=user),
                 '_meta': {
                     'entries': entries_meta,
                     'user': user_meta,
@@ -177,6 +197,7 @@ class EventSerializer(Serializer):
             'message': message,
             'user': attrs['user'],
             'contexts': attrs['contexts'],
+            'crashFile': attrs['crash_file'],
             'sdk': attrs['sdk'],
             # TODO(dcramer): move into contexts['extra']
             'context': context,
