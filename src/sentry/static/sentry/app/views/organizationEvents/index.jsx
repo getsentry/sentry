@@ -222,5 +222,5 @@ const Body = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: ${space(3)};
+  padding: ${space(3)} ${space(4)};
 `;
