@@ -30,8 +30,9 @@ function getFormatter({filter, isGroupedByDate, truncate}) {
         .filter(getFilter)
         .map(
           s =>
-            `<div>${s.marker} ${truncate ? truncationFormatter(s.seriesName, truncate) : s.seriesName}:  ${s
-              .data[1]}</div>`
+            `<div>${s.marker} ${truncate
+              ? truncationFormatter(s.seriesName, truncate)
+              : s.seriesName}:  ${s.data[1]}</div>`
         )
         .join(''),
     ].join('');
