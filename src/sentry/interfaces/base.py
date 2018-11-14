@@ -73,9 +73,6 @@ class Meta(object):
     def get(self):
         return self.raw().get('') or {}
 
-    def get_errors(self):
-        self.get().get('err') or []
-
     def create(self):
         meta = self._meta
         for key in self._path + ['']:
@@ -96,6 +93,9 @@ class Meta(object):
 
         if err and other.get('err'):
             meta['err'] = err + other['err']
+
+    def get_errors(self):
+        self.get().get('err') or []
 
     def add_error(self, error, value=None):
         meta = self.create()
