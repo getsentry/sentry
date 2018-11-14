@@ -7,10 +7,10 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry import options
 from sentry.models import ApiToken, FileBlob
-from sentry.models.file import DEFAULT_BLOB_SIZE
 from sentry.testutils import APITestCase
 from sentry.api.endpoints.chunk import (MAX_CHUNKS_PER_REQUEST, MAX_CONCURRENCY,
-                                        HASH_ALGORITHM, MAX_REQUEST_SIZE)
+                                        HASH_ALGORITHM, MAX_REQUEST_SIZE,
+                                        DEFAULT_BLOB_SIZE)
 
 
 class ChunkUploadTest(APITestCase):
