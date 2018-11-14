@@ -176,7 +176,10 @@ class Interface(object):
             meta = Meta()
 
         try:
-            instance = cls._to_python(data, meta, **kwargs)
+            if meta.get_errors():
+                instance = cls()
+            else:
+                instance = cls._to_python(data, meta, **kwargs)
         except Exception as e:
             # TODO(ja): Remove this after switching to Rust normalization
             if not isinstance(e, InterfaceValidationError):
