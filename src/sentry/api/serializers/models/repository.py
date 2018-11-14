@@ -9,7 +9,7 @@ from sentry.models import Repository
 @register(Repository)
 class RepositorySerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        external_id = None
+        external_slug = None
         integration_id = None
         if obj.integration_id:
             integration_id = six.text_type(obj.integration_id)
@@ -19,7 +19,7 @@ class RepositorySerializer(Serializer):
                 'id': obj.provider,
                 'name': repo_provider.name,
             }
-            external_id = repo_provider.repository_external_id(obj)
+            external_slug = repo_provider.repository_external_slug(obj)
         else:
             provider = {
                 'id': 'unknown',
@@ -33,5 +33,5 @@ class RepositorySerializer(Serializer):
             'status': obj.get_status_display(),
             'dateCreated': obj.date_added,
             'integrationId': integration_id,
-            'externalId': external_id
+            'externalSlug': external_slug
         }

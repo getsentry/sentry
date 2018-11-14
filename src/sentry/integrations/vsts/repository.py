@@ -119,5 +119,5 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
             } for c in commit_list
         ]
 
-    def repository_external_id(self, repo):
+    def repository_external_slug(self, repo):
         return repo.external_id

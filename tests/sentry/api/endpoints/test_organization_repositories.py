@@ -56,7 +56,7 @@ class OrganizationRepositoriesListTest(APITestCase):
             'id': 'dummy',
             'name': 'Example'
         }
-        assert first_row['externalId'] == six.text_type(repo.external_id)
+        assert first_row['externalSlug'] == six.text_type(repo.external_id)
 
     def test_status_unmigratable(self):
         self.url = self.url + '?status=unmigratable'

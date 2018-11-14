@@ -104,7 +104,7 @@ describe('IntegrationRepos', function() {
         body: [
           TestStubs.Repository({
             integrationId: null,
-            externalId: 'example/repo-name',
+            externalSlug: 'example/repo-name',
             provider: {
               id: 'integrations:github',
               name: 'GitHub',
@@ -137,12 +137,12 @@ describe('IntegrationRepos', function() {
       );
     });
 
-    it('uses externalId not name for comparison', () => {
+    it('uses externalSlug not name for comparison', () => {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
         body: [
-          TestStubs.Repository({name: 'Repo Name', externalId: 'example/repo-name'}),
+          TestStubs.Repository({name: 'Repo Name', externalSlug: 'example/repo-name'}),
         ],
       });
       const getItems = Client.addMockResponse({

@@ -98,10 +98,10 @@ export default class IntegrationRepos extends AsyncComponent {
     this.setState({adding: true});
 
     let migratableRepo = itemList.filter(item => {
-      if (!(selection.value && item.externalId)) {
+      if (!(selection.value && item.externalSlug)) {
         return false;
       }
-      return selection.value == item.externalId;
+      return selection.value == item.externalSlug;
     })[0];
 
     let promise;
@@ -133,7 +133,7 @@ export default class IntegrationRepos extends AsyncComponent {
       );
     }
     const repositories = new Set(
-      this.state.itemList.filter(item => item.integrationId).map(i => i.externalId)
+      this.state.itemList.filter(item => item.integrationId).map(i => i.externalSlug)
     );
     let repositoryOptions = (this.state.integrationRepos.repos || []).filter(
       repo => !repositories.has(repo.identifier)

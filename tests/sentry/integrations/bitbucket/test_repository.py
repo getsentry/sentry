@@ -125,6 +125,6 @@ class BitbucketRepositoryProviderTest(TestCase):
             }
         }
 
-    def test_repository_external_id(self):
-        result = self.provider.repository_external_id(self.repo)
+    def test_repository_external_slug(self):
+        result = self.provider.repository_external_slug(self.repo)
         assert result == self.repo.name

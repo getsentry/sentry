@@ -127,5 +127,5 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             else:
                 return self._format_commits(repo, res)
 
-    def repository_external_id(self, repo):
+    def repository_external_slug(self, repo):
         return repo.name

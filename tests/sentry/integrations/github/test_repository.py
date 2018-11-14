@@ -157,6 +157,6 @@ class GitHubAppsProviderTest(PluginTestCase):
         result = self.provider.pull_request_url(self.repository, pull)
         assert result == 'https://github.com/getsentry/example-repo/pulls/99'
 
-    def test_repository_external_id(self):
-        result = self.provider.repository_external_id(self.repository)
+    def test_repository_external_slug(self):
+        result = self.provider.repository_external_slug(self.repository)
         assert result == self.repository.config['name']

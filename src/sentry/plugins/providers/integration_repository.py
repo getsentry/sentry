@@ -143,9 +143,9 @@ class IntegrationRepositoryProvider(object):
         """
         return None
 
-    def repository_external_id(self, repo):
+    def repository_external_slug(self, repo):
         """
-        Generate the public facing 'external_id' for a repository
+        Generate the public facing 'external_slug' for a repository
         The shape of this id must match the `identifier` returned by
         the integration's Integration.get_repositories() method
         """
