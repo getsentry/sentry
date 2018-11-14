@@ -20,6 +20,7 @@ export default class NewQuery extends React.Component {
     onReset: PropTypes.func.isRequired,
     onUpdateField: PropTypes.func.isRequired,
     isFetchingQuery: PropTypes.bool.isRequired,
+    isLoading: PropTypes.bool.isRequired,
   };
 
   saveQuery() {
@@ -48,12 +49,14 @@ export default class NewQuery extends React.Component {
       onReset,
       isFetchingQuery,
       onUpdateField,
+      isLoading,
     } = this.props;
     return (
       <QueryFieldsContainer>
         <QueryFields
           queryBuilder={queryBuilder}
           onUpdateField={onUpdateField}
+          isLoading={isLoading}
           actions={
             <Flex justify="space-between">
               <Flex>
