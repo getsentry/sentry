@@ -218,7 +218,7 @@ const ProjectDebugSymbols = createReactClass({
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.debugFiles.length > 0) body = this.renderDsyms();
-    else if (this.state.query && this.state.query !== '')
+    else if (this.state.query && this.state.query.query !== '')
       body = this.renderNoQueryResults();
     else body = this.renderEmpty();
 

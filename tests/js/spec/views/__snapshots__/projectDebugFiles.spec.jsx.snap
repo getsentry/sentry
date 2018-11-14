@@ -198,7 +198,7 @@ exports[`ProjectDebugFiles renders 1`] = `
                     />
                   </Icon>
                   <p>
-                    Sorry, no releases match your filters.
+                    There are no debug symbols for this project.
                   </p>
                 </div>
               </EmptyStreamWrapper>
