@@ -13,8 +13,7 @@ const validHookNames = new Set([
   'analytics:log-experiment',
 
   // Operational metrics
-  'metrics:gauge',
-  'metrics:increment',
+  'metrics:event',
 
   // Specific component customizations
   'component:org-auth-view',
