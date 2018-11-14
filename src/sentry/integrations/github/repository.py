@@ -142,7 +142,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         return changes
 
     def pull_request_url(self, repo, pull_request):
-        return u'{}/pulls/{}'.format(repo.url, pull_request.key)
+        return u'{}/pull/{}'.format(repo.url, pull_request.key)
 
     def repository_external_slug(self, repo):
         return repo.name
