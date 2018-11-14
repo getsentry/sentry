@@ -36,26 +36,6 @@ describe('Result', function() {
       MockApiClient.clearMockResponses();
     });
 
-    describe('Basic query', function() {
-      it('displays options', function() {
-        const buttons = wrapper.find('.btn-group').find('a');
-        expect(buttons).toHaveLength(3);
-      });
-
-      it('toggles', function() {
-        expect(wrapper.find('ResultTable')).toHaveLength(1);
-        expect(wrapper.find('LineChart')).toHaveLength(0);
-        wrapper
-          .find('.btn-group')
-          .find('a')
-          .at('1')
-          .simulate('click');
-        wrapper.update();
-        expect(wrapper.find('ResultTable')).toHaveLength(0);
-        expect(wrapper.find('LineChart')).toHaveLength(1);
-      });
-    });
-
     describe('Render Summary', function() {
       it('shows correct range for pagination in summary', async function() {
         const data = {
@@ -156,6 +136,53 @@ describe('Result', function() {
             .text()
         ).toBe('query time: 15 ms, 0 rows');
       });
+    });
+  });
+
+  describe('Basic query', function() {
+    let wrapper;
+    beforeEach(function() {
+      const organization = TestStubs.Organization();
+
+      const data = {
+        baseQuery: {
+          data: {data: [], meta: [], timing: {duration_ms: 15}},
+          query: {
+            aggregations: [['count()', null, 'count']],
+            conditions: [],
+          },
+        },
+        byDayQuery: {
+          query: null,
+          data: null,
+        },
+      };
+      wrapper = mount(
+        <Result data={data} organization={organization} onFetchPage={jest.fn()} />,
+        {
+          context: {organization},
+          disableLifecycleMethods: false,
+        }
+      );
+    });
+
+    it('displays options', function() {
+      const buttons = wrapper.find('.btn-group').find('a');
+      expect(buttons).toHaveLength(3);
+    });
+
+    it('toggles', function() {
+      expect(wrapper.find('ResultTable')).toHaveLength(1);
+      expect(wrapper.find('LineChart')).toHaveLength(0);
+      wrapper
+        .find('.btn-group')
+        .at('2')
+        .find('a')
+        .at('1')
+        .simulate('click');
+      wrapper.update();
+      expect(wrapper.find('ResultTable')).toHaveLength(0);
+      expect(wrapper.find('LineChart')).toHaveLength(1);
     });
   });
 

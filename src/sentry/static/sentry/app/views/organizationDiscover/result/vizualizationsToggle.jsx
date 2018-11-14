@@ -9,7 +9,7 @@ import theme from 'app/utils/theme';
 
 import {ResultViewButtons, ResultViewDropdownButtons} from '../styles';
 
-class VisualizationsToggle extends React.PureComponent {
+class VisualizationsToggle extends React.Component {
   static propTypes = {
     options: PropTypes.arrayOf(
       PropTypes.shape({
@@ -82,7 +82,6 @@ class VisualizationsToggle extends React.PureComponent {
             btnGroup={true}
             title={dropdownTitle}
             className={'btn btn-default btn-sm'}
-            disabled={options.length <= 1}
           >
             {options.map(opt => {
               return this.getMenuItem(opt);
