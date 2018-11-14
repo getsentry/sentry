@@ -14,6 +14,7 @@ class Creator(Mediator):
     scopes = Param(Iterable)
     webhook_url = Param(six.string_types)
     redirect_url = Param(six.string_types, required=False)
+    is_alertable = Param(bool, default=False)
     overview = Param(six.string_types, required=False)
 
     def call(self):
@@ -42,5 +43,6 @@ class Creator(Mediator):
             scope_list=self.scopes,
             webhook_url=self.webhook_url,
             redirect_url=self.redirect_url,
+            is_alertable=self.is_alertable,
             overview=self.overview,
         )

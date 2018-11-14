@@ -1,3 +1,6 @@
+import React from 'react';
+import {tct} from 'app/locale';
+
 const forms = [
   {
     // Form "section"/"panel"
@@ -8,7 +11,6 @@ const forms = [
         type: 'string',
         required: true,
         placeholder: 'e.g. My Application',
-        // additional data/props that is related to rendering of form field rather than data
         label: 'Name',
         help: 'Human readable name of your application.',
       },
@@ -26,6 +28,19 @@ const forms = [
         label: 'Redirect URL',
         placeholder: 'e.g. https://example.com/sentry/setup/',
         help: 'The URL Sentry will redirect users to after installation.',
+      },
+      {
+        name: 'isAlertable',
+        type: 'boolean',
+        label: 'Alert Rule Action',
+        help: tct(
+          'If enabled, this application will be an action under alert rules in Sentry. The notification destination is the Webhook URL specified above. More on actions [learn_more:Here].',
+          {
+            learn_more: (
+              <a href="https://docs.sentry.io/product/notifications/#actions" />
+            ),
+          }
+        ),
       },
       {
         name: 'overview',

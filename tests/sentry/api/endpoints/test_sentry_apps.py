@@ -64,6 +64,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'uuid': self.published_app.uuid,
             'webhookUrl': self.published_app.webhook_url,
             'redirectUrl': self.published_app.redirect_url,
+            'isAlertable': self.published_app.is_alertable,
             'clientId': self.published_app.application.client_id,
             'clientSecret': self.published_app.application.client_secret,
             'overview': self.published_app.overview,
@@ -84,6 +85,7 @@ class GetSentryAppsTest(SentryAppsTest):
             'uuid': self.unpublished_app.uuid,
             'webhookUrl': self.unpublished_app.webhook_url,
             'redirectUrl': self.unpublished_app.redirect_url,
+            'isAlertable': self.unpublished_app.is_alertable,
             'clientId': self.unpublished_app.application.client_id,
             'clientSecret': self.unpublished_app.application.client_secret,
             'overview': self.unpublished_app.overview,
@@ -160,6 +162,7 @@ class PostSentryAppsTest(SentryAppsTest):
             'organization': self.org.slug,
             'scopes': ('project:read', 'project:write'),
             'webhookUrl': 'https://example.com',
+            'isAlertable': False,
         }
 
         body.update(**kwargs)

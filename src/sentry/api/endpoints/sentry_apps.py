@@ -25,7 +25,6 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
     @requires_feature('organizations:internal-catchall', any_org=True)
     def post(self, request, organization):
         serializer = SentryAppSerializer(data=request.json_body)
-
         if not serializer.is_valid():
             return Response({'errors': serializer.errors}, status=422)
 
@@ -35,6 +34,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             scopes=request.json_body.get('scopes'),
             webhook_url=request.json_body.get('webhookUrl'),
             redirect_url=request.json_body.get('redirectUrl'),
+            is_alertable=request.json_body.get('isAlertable'),
             overview=request.json_body.get('overview'),
         )
 

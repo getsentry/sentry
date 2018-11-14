@@ -45,3 +45,18 @@ class TestUpdater(TestCase):
         self.updater.webhook_url = 'http://example.com/hooks'
         self.updater.call()
         assert self.sentry_app.webhook_url == 'http://example.com/hooks'
+
+    def test_updates_redirect_url(self):
+        self.updater.redirect_url = 'http://example.com/finish-setup'
+        self.updater.call()
+        assert self.sentry_app.redirect_url == 'http://example.com/finish-setup'
+
+    def test_updates_is_alertable(self):
+        self.updater.is_alertable = True
+        self.updater.call()
+        assert self.sentry_app.is_alertable
+
+    def test_updates_overview(self):
+        self.updater.overview = 'Description of my very cool application'
+        self.updater.call()
+        assert self.updater.overview == 'Description of my very cool application'

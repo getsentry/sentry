@@ -16,6 +16,7 @@ class Updater(Mediator):
     scopes = Param(Iterable, required=False)
     webhook_url = Param(six.string_types, required=False)
     redirect_url = Param(six.string_types, required=False)
+    is_alertable = Param(bool, required=False)
     overview = Param(six.string_types, required=False)
 
     def call(self):
@@ -23,6 +24,7 @@ class Updater(Mediator):
         self._update_scopes()
         self._update_webhook_url()
         self._update_redirect_url()
+        self._update_is_alertable()
         self._update_overview()
         self.sentry_app.save()
         return self.sentry_app
@@ -44,6 +46,10 @@ class Updater(Mediator):
     @if_param('redirect_url')
     def _update_redirect_url(self):
         self.sentry_app.redirect_url = self.redirect_url
+
+    @if_param('is_alertable')
+    def _update_is_alertable(self):
+        self.sentry_app.is_alertable = self.is_alertable
 
     @if_param('overview')
     def _update_overview(self):
