@@ -50,7 +50,7 @@ describe('Sentry Application Details', function() {
           .at(2)
           .simulate('change', {target: {value: 'https://webhook.com/setup'}});
         wrapper
-          .find('.switch-lg')
+          .find('[data-test-id="switch"]')
           .last()
           .simulate('click');
         wrapper.find('form').simulate('submit');
