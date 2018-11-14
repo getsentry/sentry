@@ -74,7 +74,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         return list(environments)
 
-    def get_snuba_query_args(self, request, organization):
+    def get_filter_params(self, request, organization):
+        # get the top level params -- projects, time range, and environment
+        # from the request
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as exc:
@@ -94,6 +96,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if environments:
             params['environment'] = environments
 
+        return params
+
+    def get_snuba_query_args(self, request, organization):
+        params = self.get_filter_params(request, organization)
         try:
             return get_snuba_query_args(query=request.GET.get('query'), params=params)
         except InvalidSearchQuery as exc:
