@@ -114,6 +114,19 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400, response.content
 
+    def test_invalid_aggregation_function(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['message', 'platform'],
+                'aggregations': [['test', 'test', 'test']],
+                'range': '14d',
+                'orderby': '-timestamp',
+            })
+
+        assert response.status_code == 400, response.content
+
     def test_boolean_condition(self):
         with self.feature('organizations:discover'):
             url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])

@@ -129,6 +129,19 @@ class DiscoverQuerySerializer(serializers.Serializer):
             attrs[source] = conditions
         return attrs
 
+    def validate_aggregations(self, attrs, source):
+        valid_functions = set(['count()', 'uniq', 'avg'])
+        requested_functions = set(agg[0] for agg in attrs[source])
+
+        if not requested_functions.issubset(valid_functions):
+            invalid_functions = ', '.join((requested_functions - valid_functions))
+
+            raise serializers.ValidationError(
+                u'Invalid aggregate function - {}'.format(invalid_functions)
+            )
+
+        return attrs
+
     def get_array_field(self, field):
         pattern = r"^(error|stack)\..+"
         return re.search(pattern, field)
