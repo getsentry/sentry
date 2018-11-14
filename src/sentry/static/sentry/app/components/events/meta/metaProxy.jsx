@@ -1,6 +1,7 @@
 import _ from 'lodash';
 
 const GET_META = Symbol('GET_META');
+const IS_PROXY = Symbol('IS_PROXY');
 
 function isAnnotated(meta) {
   if (_.isEmpty(meta)) return false;
@@ -15,7 +16,7 @@ export class MetaProxy {
     this.local = !local ? root : local;
   }
 
-  get(obj, prop) {
+  get(obj, prop, receiver) {
     // trap calls to `getMeta` to return meta object
     if (prop === GET_META) {
       return key => {
@@ -29,34 +30,50 @@ export class MetaProxy {
       };
     }
 
+    // this is how  we can determine if current `obj` is a proxy
+    if (prop === IS_PROXY) {
+      return true;
+    }
+
+    const value = Reflect.get(obj, prop, receiver);
     if (
-      !obj.hasOwnProperty(prop) ||
-      typeof obj[prop] !== 'object' ||
-      _.isNull(obj[prop])
+      !Reflect.has(obj, prop, receiver) ||
+      typeof value !== 'object' ||
+      _.isNull(value)
     ) {
-      return obj[prop];
+      return value;
+    }
+
+    // This is so we don't create a new Proxy from an object that is
+    // already a proxy. Otherwise we can get into very deep recursive calls
+    if (Reflect.get(obj, IS_PROXY, receiver)) {
+      return value;
     }
 
     // Make sure we apply proxy to all children (objects and arrays)
     // Do we need to check for annotated inside of objects?
-    return new Proxy(
-      obj[prop],
-      new MetaProxy(this._meta, this.local && this.local[prop])
-    );
+    return new Proxy(value, new MetaProxy(this._meta, this.local && this.local[prop]));
   }
 }
 
 export function withMeta(event) {
-  if (!event) return null;
+  if (!event) {
+    return null;
+  }
 
   // Return unproxied `event` if browser does not support `Proxy`
-  if (typeof window.Proxy === 'undefined') return event;
+  if (typeof window.Proxy === 'undefined' || typeof window.Reflect === 'undefined') {
+    return event;
+  }
 
   let _meta = event._meta;
   return new Proxy(event, new MetaProxy(_meta));
 }
 
 export function getMeta(obj, prop) {
-  if (typeof obj[GET_META] !== 'function') return null;
+  if (typeof obj[GET_META] !== 'function') {
+    return null;
+  }
+
   return obj[GET_META](prop);
 }
