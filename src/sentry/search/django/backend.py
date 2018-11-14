@@ -210,7 +210,7 @@ class DjangoSearchBackend(SearchBackend):
     def query(self, project, tags=None, environment=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
 
-        from sentry.models import Group, GroupStatus, GroupSubscription, Release
+        from sentry.models import Group, GroupAssignee, GroupStatus, GroupSubscription, Release
 
         if paginator_options is None:
             paginator_options = {}
@@ -247,8 +247,10 @@ class DjangoSearchBackend(SearchBackend):
                 functools.partial(assigned_to_filter, project=project),
             ),
             'unassigned': CallbackCondition(
-                lambda queryset, unassigned: queryset.filter(
-                    assignee_set__isnull=unassigned,
+                lambda queryset, unassigned: (queryset.exclude if unassigned else queryset.filter)(
+                    id__in=GroupAssignee.objects.filter(
+                        project_id=project.id,
+                    ).values_list('group_id', flat=True),
                 ),
             ),
             'subscribed_by': CallbackCondition(
