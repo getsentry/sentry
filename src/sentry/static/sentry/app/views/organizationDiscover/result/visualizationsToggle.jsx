@@ -54,9 +54,7 @@ class VisualizationsToggle extends React.Component {
 
   render() {
     const {options} = this.props;
-    let dropdownTitle = (
-      <Title>{t(`View: ${this.getName(this.props.visualization)}`)}</Title>
-    );
+    const dropdownTitle = t(`View: ${this.getName(this.props.visualization)}`);
 
     return (
       <React.Fragment>
@@ -79,9 +77,5 @@ class VisualizationsToggle extends React.Component {
     );
   }
 }
-
-const Title = styled('span')`
-  color: ${theme.textColor};
-`;
 
 export default VisualizationsToggle;
