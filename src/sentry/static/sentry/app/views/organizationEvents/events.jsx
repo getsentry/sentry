@@ -31,9 +31,10 @@ class OrganizationEvents extends AsyncView {
       return true;
     }
 
-    const isDiff = ['path', 'query', 'search'].find(
-      key => !isEqual(this.props[key], nextProps[key])
+    const isDiff = ['path', 'search'].find(
+      key => !isEqual(this.props.location[key], nextProps.location[key])
     );
+
     if (isDiff) {
       return true;
     }
