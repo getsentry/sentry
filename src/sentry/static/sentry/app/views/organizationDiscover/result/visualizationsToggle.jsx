@@ -49,7 +49,7 @@ class VisualizationsToggle extends React.Component {
 
   getName = key => {
     const {options} = this.props;
-    return options.filter(opt => opt.id === key)[0].name;
+    return options.find(opt => {return opt.id === key;}).name;
   };
 
   render() {

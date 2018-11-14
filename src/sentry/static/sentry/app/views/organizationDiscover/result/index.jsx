@@ -14,7 +14,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import {getChartData, getChartDataByDay, downloadAsCsv, getRowsPageRange} from './utils';
 import Table from './table';
 import Pagination from './pagination';
-import Visualizations from './vizualizationsToggle';
+import VisualizationsToggle from './visualizationsToggle';
 import {
   ResultTitle,
   Heading,
@@ -92,7 +92,7 @@ export default class Result extends React.Component {
 
     return (
       <Flex justify="flex-end">
-        <Visualizations
+        <VisualizationsToggle
           options={options}
           handleChange={this.handleToggleVisualizations}
           visualization={this.state.view}
