@@ -14,6 +14,7 @@ export default class Aggregations extends React.Component {
     value: PropTypes.array.isRequired,
     onChange: PropTypes.func.isRequired,
     columns: PropTypes.array,
+    disabled: PropTypes.bool,
   };
 
   addRow() {
@@ -35,15 +36,17 @@ export default class Aggregations extends React.Component {
   }
 
   render() {
-    const {value, columns} = this.props;
+    const {value, columns, disabled} = this.props;
 
     return (
       <div>
         <div>
           <SidebarLabel>{t('Aggregation')}</SidebarLabel>
-          <AddText>
-            (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
-          </AddText>
+          {!disabled && (
+            <AddText>
+              (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
+            </AddText>
+          )}
         </div>
         {!value.length && (
           <PlaceholderText>{t('None, showing raw event data')}</PlaceholderText>
@@ -54,6 +57,7 @@ export default class Aggregations extends React.Component {
               value={aggregation}
               onChange={val => this.handleChange(val, idx)}
               columns={columns}
+              disabled={disabled}
             />
             <Box ml={1}>
               <a onClick={() => this.removeRow(idx)}>

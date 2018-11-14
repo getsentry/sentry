@@ -36,6 +36,7 @@ describe('Discover', function() {
           savedQuery={TestStubs.DiscoverSavedQuery()}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -53,6 +54,7 @@ describe('Discover', function() {
           organization={organization}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -71,6 +73,7 @@ describe('Discover', function() {
           updateSavedQueryData={jest.fn()}
           location={{search: ''}}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -113,6 +116,7 @@ describe('Discover', function() {
           params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext()
       );
@@ -171,6 +175,7 @@ describe('Discover', function() {
           organization={organization}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext()
       );
@@ -239,6 +244,7 @@ describe('Discover', function() {
           organization={organization}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext()
       );
@@ -281,6 +287,7 @@ describe('Discover', function() {
             location={{location: '?fields=something'}}
             updateSavedQueryData={jest.fn()}
             toggleEditMode={jest.fn()}
+            isLoading={false}
           />,
           TestStubs.routerContext()
         );
@@ -351,6 +358,7 @@ describe('Discover', function() {
           view="saved"
           location={{search: ''}}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext()
       );
@@ -431,6 +439,7 @@ describe('Discover', function() {
           location={{location: '?fields=something'}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext()
       );
@@ -472,6 +481,7 @@ describe('Discover', function() {
           location={{location: ''}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext()
       );
@@ -506,6 +516,7 @@ describe('Discover', function() {
           organization={organization}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext([{organization}])
       );

@@ -13,6 +13,7 @@ export default class Aggregation extends React.Component {
     value: PropTypes.array.isRequired,
     onChange: PropTypes.func.isRequired,
     columns: PropTypes.array.isRequired,
+    disabled: PropTypes.bool,
   };
 
   constructor(props) {
@@ -123,6 +124,7 @@ export default class Aggregation extends React.Component {
           inputRenderer={this.inputRenderer}
           valueRenderer={this.valueRenderer}
           onInputChange={this.handleInputChange}
+          disabled={this.props.disabled}
         />
       </Box>
     );

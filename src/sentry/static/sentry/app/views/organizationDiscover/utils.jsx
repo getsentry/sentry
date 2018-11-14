@@ -85,7 +85,19 @@ export function getOrderByOptions(queryBuilder) {
   return [...columnOptions, ...aggregationOptions];
 }
 
-export function getView(requestedView) {
+/**
+ * Takes the params object and the requested view querystring and returns the
+ * correct view to be displayed
+ *
+ * @param {Object} params
+ * @param {String} reqeustedView
+ * @returns {String} View
+ */
+export function getView(params, requestedView) {
+  if (typeof params.savedQueryId !== 'undefined') {
+    requestedView = 'saved';
+  }
+
   switch (requestedView) {
     case 'saved':
       return 'saved';
