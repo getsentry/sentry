@@ -137,70 +137,70 @@ describe('Result', function() {
         ).toBe('query time: 15 ms, 0 rows');
       });
     });
-  });
+    describe('Toggles Visualizations', function() {
+      beforeEach(function() {
+        const organization = TestStubs.Organization();
 
-  describe('Basic query', function() {
-    let wrapper;
-    beforeEach(function() {
-      const organization = TestStubs.Organization();
-
-      const data = {
-        baseQuery: {
-          data: {data: [], meta: [], timing: {duration_ms: 15}},
-          query: {
-            aggregations: [['count()', null, 'count']],
-            conditions: [],
+        const data = {
+          baseQuery: {
+            data: {data: [], meta: [], timing: {duration_ms: 15}},
+            query: {
+              aggregations: [['count()', null, 'count']],
+              conditions: [],
+            },
           },
-        },
-        byDayQuery: {
-          query: null,
-          data: null,
-        },
-      };
-      wrapper = mount(
-        <Result data={data} organization={organization} onFetchPage={jest.fn()} />,
-        {
-          context: {organization},
-          disableLifecycleMethods: false,
-        }
-      );
+          byDayQuery: {
+            query: null,
+            data: null,
+          },
+        };
+        wrapper = mount(
+          <Result data={data} organization={organization} onFetchPage={jest.fn()} />,
+          {
+            context: {organization},
+            disableLifecycleMethods: false,
+          }
+        );
+      });
+
+      it('displays options', function() {
+        const buttons = wrapper.find('.btn-group').find('a');
+        expect(buttons).toHaveLength(3);
+      });
+
+      it('toggles', function() {
+        expect(wrapper.find('ResultTable')).toHaveLength(1);
+        expect(wrapper.find('LineChart')).toHaveLength(0);
+
+        wrapper
+          .find('.btn-group')
+          .at('2')
+          .find('a')
+          .at('1')
+          .simulate('click');
+        wrapper.update();
+
+        expect(wrapper.find('ResultTable')).toHaveLength(0);
+        expect(wrapper.find('LineChart')).toHaveLength(1);
+      });
+
+      it('toggles dropdown', function() {
+        expect(wrapper.find('ResultTable')).toHaveLength(1);
+        expect(wrapper.find('LineChart')).toHaveLength(0);
+
+        wrapper
+          .find('DropdownLink')
+          .find('a')
+          .at(2)
+          .simulate('click');
+
+        expect(wrapper.find('ResultTable')).toHaveLength(0);
+        expect(wrapper.find('LineChart')).toHaveLength(1);
+      });
     });
 
-    it('displays options', function() {
-      const buttons = wrapper.find('.btn-group').find('a');
-      expect(buttons).toHaveLength(3);
-    });
-
-    it('toggles', function() {
-      expect(wrapper.find('ResultTable')).toHaveLength(1);
-      expect(wrapper.find('LineChart')).toHaveLength(0);
-
-      wrapper
-        .find('.btn-group')
-        .at('2')
-        .find('a')
-        .at('1')
-        .simulate('click');
-      wrapper.update();
-
-      expect(wrapper.find('ResultTable')).toHaveLength(0);
-      expect(wrapper.find('LineChart')).toHaveLength(1);
-    });
-
-    it('toggles dropdown', function() {
-      expect(wrapper.find('ResultTable')).toHaveLength(1);
-      expect(wrapper.find('LineChart')).toHaveLength(0);
-
-      wrapper
-        .find('DropdownLink')
-        .find('a')
-        .at(2)
-        .simulate('click');
-
-      expect(wrapper.find('ResultTable')).toHaveLength(0);
-      expect(wrapper.find('LineChart')).toHaveLength(1);
-    });
   });
+
 
   describe('Saved query', function() {
     let wrapper, queryBuilder;
