@@ -110,7 +110,8 @@ class SnubaTagStorage(TagStorage):
             orderby='-count', limit=limit, totals=True,
             referrer='tagstore.__get_tag_key_and_top_values'
         )
-        if raise_on_empty and (result is None or totals['count'] == 0):
+
+        if raise_on_empty and (not result or totals.get('count', 0) == 0):
             raise TagKeyNotFound if group_id is None else GroupTagKeyNotFound
         else:
             if group_id is None:
@@ -132,8 +133,8 @@ class SnubaTagStorage(TagStorage):
 
             return key_ctor(
                 key=key,
-                values_seen=totals['values_seen'],
-                count=totals['count'],
+                values_seen=totals.get('values_seen', 0),
+                count=totals.get('count', 0),
                 top_values=top_values
             )
 
