@@ -703,8 +703,8 @@ const Stream = createReactClass({
     let project = this.getProject();
 
     if (project.firstEvent) {
-      ConfigStore.set('sentFirstEvent', project.firstEvent)
-    };
+      ConfigStore.set('sentFirstEvent', project.firstEvent);
+    }
 
     if (this.state.dataLoading) {
       body = this.renderLoading();
