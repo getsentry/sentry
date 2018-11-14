@@ -331,7 +331,6 @@ class FormModel {
   saveForm() {
     this.validateForm();
     if (this.isError) return null;
-
     let saveSnapshot = this.createSnapshot();
 
     let request = this.doApiRequest({
@@ -339,7 +338,6 @@ class FormModel {
     });
 
     this.formState = FormState.SAVING;
-
     request
       .then(resp => {
         // save snapshot

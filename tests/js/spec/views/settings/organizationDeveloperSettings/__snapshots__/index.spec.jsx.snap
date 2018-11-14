@@ -222,6 +222,7 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                       Object {
                         "clientId": "client-id",
                         "clientSecret": "client-secret",
+                        "isAlertable": false,
                         "name": "Sample App",
                         "overview": "This is an app.",
                         "redirectUrl": "https://example/com/setup",
@@ -257,6 +258,7 @@ exports[`Organization Developer Settings renders developer settings it lists sen
                                     Object {
                                       "clientId": "client-id",
                                       "clientSecret": "client-secret",
+                                      "isAlertable": false,
                                       "name": "Sample App",
                                       "overview": "This is an app.",
                                       "redirectUrl": "https://example/com/setup",
