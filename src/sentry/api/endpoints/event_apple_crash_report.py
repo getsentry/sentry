@@ -14,6 +14,7 @@ from sentry.api.bases.group import GroupPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Event
 from sentry.lang.native.applecrashreport import AppleCrashReport
+from sentry.utils.safe import get_valid
 
 
 class EventAppleCrashReportEndpoint(Endpoint):
@@ -45,22 +46,15 @@ class EventAppleCrashReportEndpoint(Endpoint):
                 }, status=403
             )
 
-        threads = (event.data.get('threads') or {}).get('values')
-        exceptions = (event.data.get(
-            'exception') or {}).get('values')
-
         symbolicated = (request.GET.get('minified') not in ('1', 'true'))
-        debug_images = None
-        if (event.data.get('debug_meta') and event.data.get('debug_meta').get('images')):
-            debug_images = event.data.get('debug_meta').get('images')
 
         apple_crash_report_string = six.text_type(
             AppleCrashReport(
-                threads=threads,
-                context=event.data.get('contexts'),
-                debug_images=debug_images,
+                threads=get_valid(event.data, 'threads', 'values'),
+                context=get_valid(event.data, 'contexts'),
+                debug_images=get_valid(event.data, 'debug_meta', 'imags'),
+                exceptions=get_valid(event.data, 'exception', 'values'),
                 symbolicated=symbolicated,
-                exceptions=exceptions
             )
         )
 
