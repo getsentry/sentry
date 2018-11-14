@@ -94,6 +94,7 @@ from .endpoints.organization_repository_commits import OrganizationRepositoryCom
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
+from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
@@ -646,6 +647,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/teams/$',
         OrganizationTeamsEndpoint.as_view(),
         name='sentry-api-0-organization-teams'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/tags/$',
+        OrganizationTagsEndpoint.as_view(),
+        name='sentry-api-0-organization-tags'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/tags/(?P<key>[^/]+)/values/$',
