@@ -162,3 +162,29 @@ def get_valid(data, meta=None, *path):
         data = data[key]
 
     return data
+
+
+def get_all_valid(data, meta=None, *path):
+    """
+    Safely resolves a list of valid data from a dictionary with attached meta
+    data. This is similar to `get_valid`, except that it assumes the resolved
+    value is a list which it filters for valid elements.
+
+    This function extracts meta data from the "_meta" key in the top level
+    dictionary. For the use in nested data structures with out-of-place meta
+    data, pass a ``meta=Meta(...)`` argument manually.
+
+    If the path does not exist or contains errors, ``None`` is returned. If the
+    resolved value is not a list, the original value is returned.
+    """
+    items = get_valid(data, meta=meta, *path)
+    if not items or not isinstance(items, collections.Sequence):
+        return items
+
+    results = []
+    meta = meta.enter(*path)
+    for index, item in enumerate(items):
+        if not meta.enter(index).get_errors():
+            results.append(item)
+
+    return results

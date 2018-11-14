@@ -60,7 +60,7 @@ from sentry.utils.data_filters import (
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
-from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
+from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, get_valid, get_all_valid
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
@@ -221,13 +221,11 @@ else:
 
 
 def generate_culprit(data, platform=None):
-    try:
-        stacktraces = [
-            e['stacktrace'] for e in data['exception']['values']
-            if e and e.get('stacktrace')
-        ]
-    except KeyError:
-        stacktrace = data.get('stacktrace')
+    exceptions = get_all_valid(data, 'exception', 'values')
+    if exceptions is not None:
+        stacktraces = [e['stacktrace'] for e in exceptions if e.get('stacktrace')]
+    else:
+        stacktrace = get_valid(data, 'stacktrace')
         if stacktrace:
             stacktraces = [stacktrace]
         else:
@@ -242,7 +240,7 @@ def generate_culprit(data, platform=None):
         )
 
     if not culprit and 'request' in data:
-        culprit = data['request'].get('url', '')
+        culprit = get_valid(data, 'request', 'url')
 
     return truncatechars(culprit or '', MAX_CULPRIT_LENGTH)
 
@@ -673,21 +671,22 @@ class EventManager(object):
             data['type'] = eventtypes.infer(data).key
             data['version'] = self.version
 
-        exception = data.get('exception')
-        stacktrace = data.get('stacktrace')
-        if exception and len(exception['values']) == 1 and stacktrace:
-            exception['values'][0]['stacktrace'] = stacktrace
-            del data['stacktrace']
+        exceptions = get_all_valid(data, 'exception', 'values')
+        stacktrace = get_valid(data, 'stacktrace')
+        if stacktrace and exceptions and len(exceptions) == 1:
+            exceptions[0]['stacktrace'] = stacktrace
+            stacktrace_meta = meta.enter('stacktrace')
+            meta.enter('exception', 'values', 0, 'stacktrace').merge(stacktrace_meta)
 
         # Exception mechanism needs SDK information to resolve proper names in
         # exception meta (such as signal names). "SDK Information" really means
         # the operating system version the event was generated on. Some
         # normalization still works without sdk_info, such as mach_exception
         # names (they can only occur on macOS).
-        if exception:
+        if exceptions:
             sdk_info = get_sdk_from_event(data)
-            for ex in exception['values']:
-                if ex is not None and 'mechanism' in ex:
+            for ex in exceptions:
+                if 'mechanism' in ex:
                     normalize_mechanism_meta(ex['mechanism'], sdk_info)
 
         # Please note that we eventually remove this check after we validated that it
@@ -707,7 +706,7 @@ class EventManager(object):
         is_public = self._auth and self._auth.is_public
         add_ip_platforms = ('javascript', 'cocoa', 'objc')
 
-        http_ip = data.get('request', {}).get('env', {}).get('REMOTE_ADDR')
+        http_ip = get_valid(data, 'request', 'env', 'REMOTE_ADDR')
         if http_ip:
             data.setdefault('user', {}).setdefault('ip_address', http_ip)
         elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
@@ -758,18 +757,14 @@ class EventManager(object):
         if release and not is_valid_release(self._project, release):
             return (True, FilterStatKeys.RELEASE_VERSION)
 
-        message_interface = self._data.get('logentry', {})
-        error_message = message_interface.get('formatted', '') or message_interface.get(
-            'message', ''
-        )
+        message_interface = get_valid(self._data, 'logentry')
+        error_message = message_interface.get('formatted', '') \
+            or message_interface.get('message') \
+            or ''
         if error_message and not is_valid_error_message(self._project, error_message):
             return (True, FilterStatKeys.ERROR_MESSAGE)
 
-        for exception_interface in self._data.get(
-            'exception', {}
-        ).get('values', []):
-            if exception_interface is None:
-                continue
+        for exception_interface in get_all_valid(self._data, 'exception', 'values') or []:
             message = u': '.join(
                 filter(None, map(exception_interface.get, ['type', 'value']))
             )
@@ -814,7 +809,7 @@ class EventManager(object):
         """
         message = ''
 
-        if 'logentry' in data:
+        if get_valid(data, 'logentry'):
             message += (data['logentry'].get('formatted') or
                         data['logentry'].get('message') or '')
 
@@ -1236,17 +1231,17 @@ class EventManager(object):
         return event
 
     def _get_event_user(self, project, data):
-        user_data = data.get('user')
+        user_data = get_valid(data, 'user')
         if not user_data:
             return
 
         euser = EventUser(
             project_id=project.id,
-            ident=user_data.get('id'),
-            email=user_data.get('email'),
-            username=user_data.get('username'),
-            ip_address=user_data.get('ip_address'),
-            name=user_data.get('name'),
+            ident=get_valid(data, 'user', 'id'),
+            email=get_valid(data, 'user', 'email'),
+            username=get_valid(data, 'user', 'username'),
+            ip_address=get_valid(data, 'user', 'ip_address'),
+            name=get_valid(data, 'user', 'name'),
         )
         euser.set_hash()
         if not euser.hash:
