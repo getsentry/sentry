@@ -33,7 +33,7 @@ class EventSerializer(Serializer):
 
             entry = {
                 'data': data,
-                'type': interface.get_alias(),
+                'type': interface.external_type,
             }
 
             api_meta = None
@@ -238,6 +238,7 @@ class SnubaEvent(object):
         'message',
         'user_id',
         'username',
+        'ip_address',
         'email',
         'timestamp',
     ]
@@ -265,5 +266,6 @@ class SnubaEventSerializer(Serializer):
                 'id': obj.user_id,
                 'email': obj.email,
                 'username': obj.username,
+                'ipAddress': obj.ip_address,
             }
         }

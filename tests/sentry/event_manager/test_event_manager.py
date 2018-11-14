@@ -107,20 +107,6 @@ class EventManagerTest(TransactionTestCase):
             event_id=event_id,
         ).exists()
 
-    def test_platform_is_saved(self):
-        manager = EventManager(
-            make_event(
-                **{'sentry.interfaces.AppleCrashReport': {
-                    'crash': {},
-                    'binary_images': []
-                }}
-            )
-        )
-        manager.normalize()
-        event = manager.save(1)
-
-        assert 'sentry.interfacse.AppleCrashReport' not in event.interfaces
-
     def test_ephemral_interfaces_removed_on_save(self):
         manager = EventManager(make_event(platform='python'))
         event = manager.save(1)
@@ -705,7 +691,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(make_event(
             event_id='a',
             environment='totally unique environment',
-            **{'sentry.interfaces.User': {
+            **{'user': {
                 'id': '1',
             }}
         ))
@@ -766,7 +752,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(
             make_event(
                 event_id='b',
-                **{'sentry.interfaces.User': {
+                **{'user': {
                     'id': '1',
                     'name': 'jane',
                 }}
@@ -782,7 +768,7 @@ class EventManagerTest(TransactionTestCase):
         assert euser.ident == '1'
 
     def test_event_user_unicode_identifier(self):
-        manager = EventManager(make_event(**{'sentry.interfaces.User': {'username': u'foô'}}))
+        manager = EventManager(make_event(**{'user': {'username': u'foô'}}))
         manager.normalize()
         with self.tasks():
             manager.save(self.project.id)
@@ -914,7 +900,7 @@ class EventManagerTest(TransactionTestCase):
             make_event(
                 **{
                     'message': '',
-                    'sentry.interfaces.Message': {
+                    'logentry': {
                         'formatted': 'foo bar',
                         'message': 'foo %s',
                         'params': ['bar'],
@@ -936,7 +922,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(
             make_event(
                 **{
-                    'sentry.interfaces.Exception': {
+                    'exception': {
                         'values': [{
                             'type': 'Foo',
                             'value': 'bar',
@@ -960,7 +946,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(
             make_event(
                 **{
-                    'sentry.interfaces.Csp': {
+                    'csp': {
                         'effective_directive': 'script-src',
                         'blocked_uri': 'http://example.com',
                     },
@@ -1002,7 +988,7 @@ class EventManagerTest(TransactionTestCase):
             make_event(
                 **{
                     'message': None,
-                    'sentry.interfaces.Message': {
+                    'logentry': {
                         'message': 'hello world',
                     },
                 }
@@ -1022,7 +1008,7 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
 
         assert event.message == '1234'
-        assert event.data['sentry.interfaces.Message'] == {
+        assert event.data['logentry'] == {
             'message': '1234',
         }
 
@@ -1032,19 +1018,19 @@ class EventManagerTest(TransactionTestCase):
         }))
         manager.normalize()
         event = manager.save(self.project.id)
-        assert event.data['sentry.interfaces.Message'] == {
+        assert event.data['logentry'] == {
             'message': 'hello world',
         }
 
     def test_message_attribute_goes_to_formatted(self):
-        # The combining of 'message' and 'sentry.interfaces.Message' is a bit
+        # The combining of 'message' and 'logentry' is a bit
         # of a compatibility hack, and ideally we would just enforce a stricter
         # schema instead of combining them like this.
         manager = EventManager(
             make_event(
                 **{
                     'message': 'world hello',
-                    'sentry.interfaces.Message': {
+                    'logentry': {
                         'message': 'hello world',
                     },
                 }
@@ -1052,7 +1038,7 @@ class EventManagerTest(TransactionTestCase):
         )
         manager.normalize()
         event = manager.save(self.project.id)
-        assert event.data['sentry.interfaces.Message'] == {
+        assert event.data['logentry'] == {
             'message': 'hello world',
             'formatted': 'world hello',
         }
@@ -1061,14 +1047,14 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(
             make_event(
                 **{
-                    'sentry.interfaces.Message': 'a plain string',
+                    'logentry': 'a plain string',
                     'message': 'another string',
                 }
             )
         )
         manager.normalize()
         event = manager.save(self.project.id)
-        assert event.data['sentry.interfaces.Message'] == {
+        assert event.data['logentry'] == {
             'message': 'a plain string',
             'formatted': 'another string',
         }
@@ -1181,7 +1167,7 @@ class EventManagerTest(TransactionTestCase):
         ]
 
         data = {
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [item.value for item in items]
             },
         }

@@ -15,7 +15,6 @@ import GroupState from 'app/mixins/groupState';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import IgnoreActions from 'app/components/actions/ignore';
 import IndicatorStore from 'app/stores/indicatorStore';
-import IssuePluginActions from 'app/components/group/issuePluginActions';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 import MenuItem from 'app/components/menuItem';
 import ResolveActions from 'app/components/actions/resolve';
@@ -35,7 +34,7 @@ class DeleteActions extends React.Component {
     children({
       ...props,
       renderDisabled: ({features}) => (
-        <FeatureDisabled alert featureName="Discard and Delete" feature={features[0]} />
+        <FeatureDisabled alert featureName="Discard and Delete" features={features} />
       ),
     });
 
@@ -281,37 +280,6 @@ const GroupDetailsActions = createReactClass({
             />
           </div>
         )}
-
-        {group.pluginActions.length > 1 && !orgFeatures.has('new-issue-ui') ? (
-          <div className="btn-group more">
-            <DropdownLink className="btn btn-default btn-sm" title={t('More')}>
-              {group.pluginActions.map((action, actionIdx) => {
-                return (
-                  <MenuItem key={actionIdx} href={action[1]}>
-                    {action[0]}
-                  </MenuItem>
-                );
-              })}
-            </DropdownLink>
-          </div>
-        ) : (
-          group.pluginActions.length !== 0 &&
-          !orgFeatures.has('new-issue-ui') &&
-          group.pluginActions.map((action, actionIdx) => {
-            return (
-              <div className="btn-group" key={actionIdx}>
-                <a className="btn btn-default btn-sm" href={action[1]}>
-                  {action[0]}
-                </a>
-              </div>
-            );
-          })
-        )}
-        {group.pluginIssues &&
-          !orgFeatures.has('new-issue-ui') &&
-          group.pluginIssues.map(plugin => {
-            return <IssuePluginActions key={plugin.slug} plugin={plugin} />;
-          })}
       </div>
     );
   },

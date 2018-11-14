@@ -343,7 +343,7 @@ class FeatureAdoptionTest(TestCase):
                 "extra": {
                     "session:duration": 40364
                 },
-                "sentry.interfaces.Exception": {
+                "exception": {
                     "exc_omitted": null,
                     "values": [{
                         "stacktrace": {
@@ -374,18 +374,18 @@ class FeatureAdoptionTest(TestCase):
                         "module": null
                     }]
                 },
-                "sentry.interfaces.Http": {
+                "request": {
                     "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
                     "headers": [
                         ["Referer", "https://sentry.io/welcome/"],
                         ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
                     ]
                 },
-                "sentry.interfaces.User": {
+                "user": {
                     "ip_address": "0.0.0.0"
                 },
                 "version": "7",
-                "sentry.interfaces.Breadcrumbs": {
+                "breadcrumbs": {
                     "values": [
                         {
                             "category": "xhr",
@@ -443,7 +443,7 @@ class FeatureAdoptionTest(TestCase):
                 "extra": {
                     "session:duration": 40364
                 },
-                "sentry.interfaces.Exception": {
+                "exception": {
                     "exc_omitted": null,
                     "values": [{
                         "stacktrace": {
@@ -474,18 +474,18 @@ class FeatureAdoptionTest(TestCase):
                         "module": null
                     }]
                 },
-                "sentry.interfaces.Http": {
+                "request": {
                     "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
                     "headers": [
                         ["Referer", "https://sentry.io/welcome/"],
                         ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
                     ]
                 },
-                "sentry.interfaces.User": {
+                "user": {
                     "ip_address": "0.0.0.0"
                 },
                 "version": "7",
-                "sentry.interfaces.Breadcrumbs": {
+                "breadcrumbs": {
                     "values": [
                         {
                             "category": "xhr",

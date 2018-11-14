@@ -383,6 +383,7 @@ class StoreView(APIView):
             auth=auth,
             client_ip=remote_addr,
             user_agent=helper.context.agent,
+            version=auth.version,
             content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
         )
         del data
@@ -790,7 +791,7 @@ class SecurityReportView(StoreView):
 
     def security_report_type(self, body):
         report_type_for_key = {
-            'csp-report': 'sentry.interfaces.Csp',
+            'csp-report': 'csp',
             'expect-ct-report': 'expectct',
             'expect-staple-report': 'expectstaple',
             'known-pins': 'hpkp',

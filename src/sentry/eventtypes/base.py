@@ -29,7 +29,7 @@ class DefaultEvent(BaseEvent):
     def get_metadata(self):
         # See GH-3248
         message_interface = self.data.get(
-            'sentry.interfaces.Message', {
+            'logentry', {
                 'message': self.data.get('message', ''),
             }
         )

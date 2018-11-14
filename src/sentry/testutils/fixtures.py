@@ -26,6 +26,7 @@ from uuid import uuid4
 
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Creator as SentryAppCreator
+from sentry.mediators.service_hooks import Creator as ServiceHookCreator
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
@@ -61,7 +62,7 @@ DEFAULT_EVENT_DATA = {
     'modules': {
         'raven': '3.1.13'
     },
-    'sentry.interfaces.Http': {
+    'request': {
         'cookies': {},
         'data': {},
         'env': {},
@@ -70,7 +71,7 @@ DEFAULT_EVENT_DATA = {
         'query_string': '',
         'url': 'http://example.com',
     },
-    'sentry.interfaces.Stacktrace': {
+    'stacktrace': {
         'frames': [
             {
                 'abs_path':
@@ -89,12 +90,12 @@ DEFAULT_EVENT_DATA = {
                 'raven.base',
                 'post_context': [
                     '                },', '            })', '',
-                    "        if 'sentry.interfaces.Stacktrace' in data:",
+                    "        if 'stacktrace' in data:",
                     '            if self.include_paths:'
                 ],
                 'pre_context': [
                     '', '            data.update({',
-                    "                'sentry.interfaces.Stacktrace': {",
+                    "                'stacktrace': {",
                     "                    'frames': get_stack_info(frames,",
                     '                        list_max_length=self.list_max_length,'
                 ],
@@ -105,10 +106,10 @@ DEFAULT_EVENT_DATA = {
                     'event_type': 'raven.events.Message',
                     'frames': '<generator object iter_stack_frames at 0x103fef050>',
                     'handler': '<raven.events.Message object at 0x103feb710>',
-                    'k': 'sentry.interfaces.Message',
+                    'k': 'logentry',
                     'public_key': None,
                     'result': {
-                        'sentry.interfaces.Message':
+                        'logentry':
                         "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
                     },
                     'self': '<raven.base.Client object at 0x104397f10>',
@@ -134,12 +135,12 @@ DEFAULT_EVENT_DATA = {
                 'raven.base',
                 'post_context': [
                     '                },', '            })', '',
-                    "        if 'sentry.interfaces.Stacktrace' in data:",
+                    "        if 'stacktrace' in data:",
                     '            if self.include_paths:'
                 ],
                 'pre_context': [
                     '', '            data.update({',
-                    "                'sentry.interfaces.Stacktrace': {",
+                    "                'stacktrace': {",
                     "                    'frames': get_stack_info(frames,",
                     '                        list_max_length=self.list_max_length,'
                 ],
@@ -150,10 +151,10 @@ DEFAULT_EVENT_DATA = {
                     'event_type': 'raven.events.Message',
                     'frames': '<generator object iter_stack_frames at 0x103fef050>',
                     'handler': '<raven.events.Message object at 0x103feb710>',
-                    'k': 'sentry.interfaces.Message',
+                    'k': 'logentry',
                     'public_key': None,
                     'result': {
-                        'sentry.interfaces.Message':
+                        'logentry':
                         "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
                     },
                     'self': '<raven.base.Client object at 0x104397f10>',
@@ -471,7 +472,7 @@ class Fixtures(object):
             kwargs['data']['tags'] = tags
         if kwargs.get('stacktrace'):
             stacktrace = kwargs.pop('stacktrace')
-            kwargs['data']['sentry.interfaces.Stacktrace'] = stacktrace
+            kwargs['data']['stacktrace'] = stacktrace
 
         kwargs['data'].setdefault(
             'errors', [{
@@ -482,8 +483,8 @@ class Fixtures(object):
 
         # maintain simple event fixtures by supporting the legacy message
         # parameter just like our API would
-        if 'sentry.interfaces.Message' not in kwargs['data']:
-            kwargs['data']['sentry.interfaces.Message'] = {
+        if 'logentry' not in kwargs['data']:
+            kwargs['data']['logentry'] = {
                 'message': kwargs.get('message') or '<unlabeled event>',
             }
 
@@ -492,7 +493,7 @@ class Fixtures(object):
                 {
                     'type': 'default',
                     'metadata': {
-                        'title': kwargs['data']['sentry.interfaces.Message']['message'],
+                        'title': kwargs['data']['logentry']['message'],
                     },
                 }
             )
@@ -537,7 +538,7 @@ class Fixtures(object):
                 "extra": {
                     "session:duration": 40364
                 },
-                "sentry.interfaces.Exception": {
+                "exception": {
                     "exc_omitted": null,
                     "values": [{
                         "stacktrace": {
@@ -568,20 +569,20 @@ class Fixtures(object):
                         "module": null
                     }]
                 },
-                "sentry.interfaces.Http": {
+                "request": {
                     "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
                     "headers": [
                         ["Referer", "https://sentry.io/welcome/"],
                         ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
                     ]
                 },
-                "sentry.interfaces.User": {
+                "user": {
                     "ip_address": "0.0.0.0",
                     "id": "41656",
                     "email": "test@example.com"
                 },
                 "version": "7",
-                "sentry.interfaces.Breadcrumbs": {
+                "breadcrumbs": {
                     "values": [
                         {
                             "category": "xhr",
@@ -723,3 +724,22 @@ class Fixtures(object):
             app.update(status=SentryAppStatus.PUBLISHED)
 
         return app
+
+    def create_service_hook(self, actor=None, project=None, events=None, url=None, **kwargs):
+        if not actor:
+            actor = self.create_user()
+        if not project:
+            org = self.create_organization(owner=actor)
+            project = self.create_project(organization=org)
+        if not events:
+            events = ('event.created',)
+        if not url:
+            url = 'https://example/sentry/webhook'
+
+        return ServiceHookCreator.run(
+            actor=actor,
+            project=project,
+            events=events,
+            url=url,
+            **kwargs
+        )

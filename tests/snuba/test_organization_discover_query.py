@@ -31,7 +31,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             datetime=one_second_ago,
             tags={'environment': 'production'},
             data={
-                'sentry.interfaces.Exception': {
+                'exception': {
                     'values': [
                         {
                             'type': 'ValidationError',

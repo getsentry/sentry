@@ -130,9 +130,6 @@ class User(Interface):
             'data': meta.get('data'),
         }
 
-    def get_path(self):
-        return 'sentry.interfaces.User'
-
     def get_hash(self):
         return []
 

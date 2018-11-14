@@ -12,7 +12,7 @@ import {isValidAggregation} from './aggregations/utils';
 
 const DEFAULTS = {
   projects: [],
-  fields: ['event_id', 'project_name', 'platform', 'timestamp'],
+  fields: ['event_id', 'issue', 'project_name', 'platform', 'timestamp'],
   conditions: [],
   aggregations: [],
   range: DEFAULT_STATS_PERIOD,
@@ -70,11 +70,14 @@ export default function createQueryBuilder(initial = {}, organization) {
       .then(res => {
         tags = res.data.map(tag => {
           const type = SPECIAL_TAGS[tags.tags_key] || 'string';
-          return {name: `tags[${tag.tags_key}]`, type};
+          return {name: tag.tags_key, type};
         });
       })
       .catch(err => {
-        tags = PROMOTED_TAGS;
+        tags = PROMOTED_TAGS.map(tag => {
+          const type = SPECIAL_TAGS[tag] || 'string';
+          return {name: tag, type};
+        });
       });
   }
 

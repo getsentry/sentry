@@ -29,10 +29,7 @@ class ProjectOwnership extends AsyncView {
 
   getEndpoints() {
     let {organization, project} = this.props;
-    return [
-      ['project', `/projects/${organization.slug}/${project.slug}/`],
-      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
-    ];
+    return [['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`]];
   }
 
   renderBody() {

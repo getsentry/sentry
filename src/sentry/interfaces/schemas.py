@@ -256,25 +256,6 @@ GEO_INTERFACE_SCHEMA = {
     'additionalProperties': False,
 }
 
-DEVICE_INTERFACE_SCHEMA = {
-    'type': 'object',
-    'properties': {
-        'name': {
-            'type': 'string',
-            'minLength': 1,
-        },
-        'version': {
-            'type': 'string',
-            'minLength': 1,
-        },
-        'build': {},
-        'data': {
-            'type': 'object',
-            'default': {},
-        },
-    },
-}
-
 TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out
 MESSAGE_INTERFACE_SCHEMA = {'type': 'object'}
 
@@ -684,6 +665,7 @@ then be transformed into the requisite interface.
 """
 INPUT_SCHEMAS = {
     'sentry.interfaces.Csp': CSP_SCHEMA,
+    'csp': CSP_SCHEMA,
     'hpkp': HPKP_SCHEMA,
     'expectct': EXPECT_CT_SCHEMA,
     'expectstaple': EXPECT_STAPLE_SCHEMA,
@@ -709,11 +691,11 @@ INTERFACE_SCHEMAS = {
     'sentry.interfaces.Message': MESSAGE_INTERFACE_SCHEMA,
     'template': TEMPLATE_INTERFACE_SCHEMA,
     'sentry.interfaces.Template': TEMPLATE_INTERFACE_SCHEMA,
-    'device': DEVICE_INTERFACE_SCHEMA,
     'geo': GEO_INTERFACE_SCHEMA,
 
     # Security reports
     'sentry.interfaces.Csp': CSP_INTERFACE_SCHEMA,
+    'csp': CSP_INTERFACE_SCHEMA,
     'hpkp': HPKP_INTERFACE_SCHEMA,
     'expectct': EXPECT_CT_INTERFACE_SCHEMA,
     'expectstaple': EXPECT_STAPLE_INTERFACE_SCHEMA,

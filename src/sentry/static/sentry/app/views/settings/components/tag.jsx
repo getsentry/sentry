@@ -1,7 +1,9 @@
+import {Box} from 'grid-emotion';
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import PropTypes from 'prop-types';
-import {Box} from 'grid-emotion';
+
+import InlineSvg from 'app/components/inlineSvg';
 
 const getMarginLeft = p => {
   if (!p.inline) return '';
@@ -16,7 +18,7 @@ const getBorder = p =>
     : '';
 
 const TagTextStyled = styled(({priority, size, border, ...props}) => <Box {...props} />)`
-  display: inline;
+  display: inline-flex;
   padding: ${p => (p.size == 'small' ? '0.1em 0.4em 0.2em' : '0.35em 0.8em 0.4em')};
   font-size: 75%;
   line-height: 1;
@@ -33,8 +35,9 @@ const TagTextStyled = styled(({priority, size, border, ...props}) => <Box {...pr
   ${p => getMarginLeft(p)};
 `;
 
-const Tag = ({children, priority, size, border, ...props}) => (
+const Tag = ({children, icon, priority, size, border, ...props}) => (
   <TagTextStyled priority={priority} size={size} border={border} {...props}>
+    {icon && <StyledInlineSvg src={icon} size="12px" />}
     {children}
   </TagTextStyled>
 );
@@ -43,6 +46,11 @@ Tag.propTypes = {
   priority: PropTypes.string,
   size: PropTypes.string,
   border: PropTypes.bool,
+  icon: PropTypes.string,
 };
+
+const StyledInlineSvg = styled(InlineSvg)`
+  margin-right: 4px;
+`;
 
 export default Tag;

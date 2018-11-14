@@ -192,7 +192,7 @@ class GetPersonalizedDigestsTestCase(TestCase):
     def create_event_data(self, filename, url='http://example.com'):
         data = {
             'tags': [('level', 'error')],
-            'sentry.interfaces.Stacktrace': {
+            'stacktrace': {
                 'frames': [
                     {
                         'lineno': 1,
@@ -200,7 +200,7 @@ class GetPersonalizedDigestsTestCase(TestCase):
                     },
                 ],
             },
-            'sentry.interfaces.Http': {
+            'request': {
                 'url': url
             },
         }

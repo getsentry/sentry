@@ -18,12 +18,12 @@ class GitLabApiClientPath(object):
     compare = u'/projects/{project}/repository/compare'
     diff = u'/projects/{project}/repository/commits/{sha}/diff'
     group = u'/groups/{group}'
-    group_issues = u'/groups/{group}/issues'
     group_projects = u'/groups/{group}/projects'
     hooks = u'/hooks'
     issue = u'/projects/{project}/issues/{issue}'
     issues = u'/projects/{project}/issues'
     project = u'/projects/{project}'
+    project_issues = u'/projects/{project}/issues'
     project_hooks = u'/projects/{project}/hooks'
     project_hook = u'/projects/{project}/hooks/{hook_id}'
     user = u'/user'
@@ -183,16 +183,17 @@ class GitLabApiClient(ApiClient):
             data=data,
         )
 
-    def search_group_issues(self, group_id, query):
-        """Search issues in a group
+    def search_project_issues(self, project_id, query, iids=None):
+        """Search issues in a project
 
-        See https://docs.gitlab.com/ee/api/issues.html#list-group-issues
+        See https://docs.gitlab.com/ee/api/issues.html#list-project-issues
         """
-        path = GitLabApiClientPath.group_issues.format(group=group_id)
+        path = GitLabApiClientPath.project_issues.format(project=project_id)
 
         return self.get(path, params={
             'scope': 'all',
-            'search': query
+            'search': query,
+            'iids': iids,
         })
 
     def create_project_webhook(self, project_id):

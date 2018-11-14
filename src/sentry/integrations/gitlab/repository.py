@@ -151,3 +151,6 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
                 })
 
         return file_changes
+
+    def pull_request_url(self, repo, pull_request):
+        return u'{}/merge_requests/{}'.format(repo.url, pull_request.key)

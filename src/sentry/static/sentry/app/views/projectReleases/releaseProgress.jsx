@@ -3,16 +3,34 @@ import React from 'react';
 import {t} from 'app/locale';
 import styled from 'react-emotion';
 
+import {analytics} from 'app/utils/analytics';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {PanelItem} from 'app/components/panels';
 import {promptsUpdate} from 'app/actionCreators/prompts';
+import ProgressBar from 'app/views/projectReleases/progressBar';
 
 const STEPS = {
-  tag: t('Tag an error'),
-  repo: t('Link to a repo'),
-  commit: t('Associate commits'),
-  deploy: t('Tell sentry about a deploy'),
+  tag: {
+    desc: t('Tag an error'),
+    url: 'tag-errors',
+    msg: 'knowing which errors were introduced in a release, ',
+  },
+  repo: {
+    desc: t('Link to a repo'),
+    url: 'link-repository',
+    msg: 'determining which commit caused an error, ',
+  },
+  commit: {
+    desc: t('Associate commits'),
+    url: 'b-associate-commits-with-a-release',
+    msg: 'determining which commit caused an error, ',
+  },
+  deploy: {
+    desc: t('Tell sentry about a deploy'),
+    url: 'create-deploy',
+    msg: 'receiving notifications when your code gets deployed, ',
+  },
 };
 
 class ReleaseProgress extends AsyncComponent {
@@ -45,15 +63,37 @@ class ReleaseProgress extends AsyncComponent {
     }
   }
 
+  buildMessage(remainingSteps) {
+    let keys = remainingSteps.map(step => step.step);
+    let message = "You're missing out on ";
+
+    if (keys.includes('tag')) {
+      message += STEPS.tag.msg;
+    }
+    if (keys.includes('repo') || keys.includes('commit')) {
+      message += STEPS.repo.msg;
+    }
+    if (keys.includes('deploy')) {
+      message += STEPS.deploy.msg;
+    }
+
+    message += 'and more!';
+
+    this.setState({message});
+  }
+
   getRemainingSteps(setupStatus) {
     let remainingSteps;
     if (setupStatus) {
-      remainingSteps = setupStatus
-        .filter(step => step.complete === false)
-        .map(displayStep => STEPS[displayStep.step]);
-
+      remainingSteps = setupStatus.filter(step => step.complete === false);
+      this.buildMessage(remainingSteps);
       this.setState({
-        remainingSteps,
+        remainingSteps: Object.keys(remainingSteps).length,
+        nextStep: remainingSteps[0] && STEPS[remainingSteps[0].step],
+      });
+
+      this.recordAnalytics('viewed', {
+        steps: setupStatus,
       });
     }
   }
@@ -84,32 +124,65 @@ class ReleaseProgress extends AsyncComponent {
       status: action,
     };
     promptsUpdate(this.api, params).then(this.setState({showBar: false}));
+    this.recordAnalytics('closed', {
+      action,
+    });
+  }
+
+  recordAnalytics(action, data) {
+    let {project, organization} = this.context;
+
+    data.org_id = parseInt(organization.id, 10);
+    data.project_id = parseInt(project.id, 10);
+
+    if (action === 'next') {
+      analytics('releases.progress_bar_clicked_next', data);
+    } else if (action === 'closed') {
+      analytics('releases.progress_bar_closed', data);
+    } else if (action === 'viewed') {
+      analytics('releases.progress_bar_viewed', data);
+    }
+  }
+
+  getWidth() {
+    let {remainingSteps} = this.state;
+    let width =
+      100 * (Object.keys(STEPS).length - remainingSteps) / Object.keys(STEPS).length;
+
+    return width === 0 ? 25 : width;
   }
 
   renderBody() {
-    let {remainingSteps, showBar} = this.state;
-    if (!remainingSteps || remainingSteps.length === 0 || !showBar) {
+    let {remainingSteps, showBar, nextStep, message} = this.state;
+
+    if (!remainingSteps || remainingSteps === 0 || !showBar) {
       return null;
     }
+
     return (
       <PanelItem>
-        <div className="col-sm-6">
+        <div className="col-sm-8">
           <div>
-            <h4 className="text-light"> {t("Releases aren't 100% set up")}</h4>
-            <StyledBar>
-              <StyledSlider />
-            </StyledBar>
-            <a href="https://docs.sentry.io/learn/releases/">{t('Next steps:')}</a>
-
-            <ul>
-              {this.state.remainingSteps.map((step, i) => {
-                return <li key={i}>{step}</li>;
-              })}
-            </ul>
+            <StyledDiv className="row">
+              <span className="pull-right">
+                {t('Next step: ')}
+                <a
+                  href={`https://docs.sentry.io/learn/releases/#${nextStep.url}`}
+                  onClick={() => this.recordAnalytics('next', {cta: nextStep.desc})}
+                >
+                  {t(`${nextStep.desc}`)}
+                </a>
+              </span>
+              <h4 className="text-light"> {t("Releases aren't 100% set up")}</h4>
+            </StyledDiv>
+            <div className="row">
+              <ProgressBar width={this.getWidth()} />
+              <p>{t(`${message}`)}</p>
+            </div>
           </div>
         </div>
 
-        <div className="col-sm-6">
+        <div className="col-sm-4">
           <div className="pull-right">
             <StyledButton
               className="text-light"
@@ -138,26 +211,8 @@ const StyledButton = styled(Button)`
   margin: 5px;
 `;
 
-const StyledBar = styled.div`
-  background: #767676;
-  width: 100%;
-  height: 15px;
-  float: right;
-  margin-right: 0px;
+const StyledDiv = styled('div')`
   margin-bottom: 10px;
-  border-radius: 20px;
-  position: relative;
 `;
 
-const StyledSlider = styled.div`
-  height: 100%;
-  width: 50%;
-  background: #7ccca5;
-  padding-right: 0;
-  border-radius: inherit;
-  box-shadow: 0 2px 1px rgba(0, 0, 0, 0.08);
-  position: absolute;
-  bottom: 0;
-  left: 0;
-`;
 export default ReleaseProgress;

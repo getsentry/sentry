@@ -167,6 +167,7 @@ CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
     'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
     'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id', '_meta',
+    'applecrashreport', 'device', 'repos', 'query',
 )
 
 # XXX: Must be all lowercase

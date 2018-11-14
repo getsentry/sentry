@@ -18,6 +18,7 @@ import json
 from subprocess import check_output, Popen
 
 os.environ['PYFLAKES_NODOCTEST'] = '1'
+os.environ['SENTRY_PRECOMMIT'] = '1'
 
 
 def get_project_root():
@@ -256,7 +257,7 @@ def js_test(file_list=None):
 
     has_errors = False
     if js_file_list:
-        status = Popen([jest_path, '--bail', '--findRelatedTests'] + js_file_list).wait()
+        status = Popen(['yarn', 'test-precommit'] + js_file_list).wait()
         has_errors = status != 0
 
     return has_errors

@@ -29,6 +29,16 @@ MAX_ISSUES = 500
 MAX_HASHES = 5000
 
 SENTRY_SNUBA_MAP = {
+    # general
+    'event_id': 'event_id',
+    'project_id': 'project_id',
+    'platform': 'platform',
+    'message': 'message',
+    'issue': 'issue',
+    'timestamp': 'timestamp',
+    'time': 'time',
+    'type': 'type',
+    'version': 'version',
     # user
     'user.id': 'user_id',
     'user.email': 'email',
@@ -55,7 +65,10 @@ SENTRY_SNUBA_MAP = {
     'device.simulator': 'device_orientation',
     'device.online': 'device_online',
     'device.charging': 'device_charging',
-
+    # geo
+    'geo.country_code': 'geo_country_code',
+    'geo.region': 'geo_region',
+    'geo.city': 'geo_city',
     # error, stack
     'error.type': 'exception_stacks.type',
     'error.value': 'exception_stacks.value',
@@ -70,6 +83,15 @@ SENTRY_SNUBA_MAP = {
     'stack.colno': 'exception_frames.colno',
     'stack.lineno': 'exception_frames.lineno',
     'stack.stack_level': 'exception_frames.stack_level',
+    # tags, contexts
+    'tags.key': 'tags.key',
+    'tags.value': 'tags.value',
+    'tags_key': 'tags_key',
+    'tags_value': 'tags_value',
+    'contexts.key': 'contexts.key',
+    'contexts.value': 'contexts.value',
+    # misc
+    'release': 'tags[sentry:release]',
 }
 
 
@@ -94,12 +116,29 @@ def timer(name, prefix='snuba.client'):
         metrics.timing(u'{}.{}'.format(prefix, name), time.time() - t)
 
 
-_snuba_pool = urllib3.connectionpool.connection_from_url(
+def connection_from_url(url, **kw):
+    if url[:1] == '/':
+        from sentry.net.http import UnixHTTPConnectionPool
+        return UnixHTTPConnectionPool(url, **kw)
+    return urllib3.connectionpool.connection_from_url(url, **kw)
+
+
+_snuba_pool = connection_from_url(
     settings.SENTRY_SNUBA,
     retries=False,
     timeout=30,
     maxsize=10,
 )
+
+
+def get_snuba_column_name(name):
+    """
+    Get corresponding Snuba column name from Sentry snuba map, if not found
+    the column is assumed to be a tag. If name is falsy, leave unchanged.
+    """
+    if not name:
+        return name
+    return SENTRY_SNUBA_MAP.get(name, u'tags[{}]'.format(name))
 
 
 def transform_aliases_and_query(**kwargs):
@@ -116,6 +155,7 @@ def transform_aliases_and_query(**kwargs):
     }
 
     translated_columns = {}
+    derived_columns = set()
 
     selected_columns = kwargs['selected_columns']
     groupby = kwargs['groupby']
@@ -123,20 +163,18 @@ def transform_aliases_and_query(**kwargs):
     conditions = kwargs['conditions'] or []
 
     for (idx, col) in enumerate(selected_columns):
-        match = SENTRY_SNUBA_MAP.get(col)
-        if match:
-            selected_columns[idx] = match
-            translated_columns[match] = col
+        name = get_snuba_column_name(col)
+        selected_columns[idx] = name
+        translated_columns[name] = col
 
     for (idx, col) in enumerate(groupby):
-        match = SENTRY_SNUBA_MAP.get(col)
-        if match:
-            groupby[idx] = match
-            translated_columns[match] = col
+        name = get_snuba_column_name(col)
+        groupby[idx] = name
+        translated_columns[name] = col
 
     for aggregation in aggregations or []:
-        if len(aggregation) and SENTRY_SNUBA_MAP.get(aggregation[1]):
-            aggregation[1] = SENTRY_SNUBA_MAP[aggregation[1]]
+        derived_columns.add(aggregation[2])
+        aggregation[1] = get_snuba_column_name(aggregation[1])
 
     def handle_condition(cond):
         if isinstance(cond, (list, tuple)) and len(cond):
@@ -144,10 +182,10 @@ def transform_aliases_and_query(**kwargs):
                 cond[0] = handle_condition(cond[0])
             elif len(cond) == 3:
                 # map column name
-                cond[0] = SENTRY_SNUBA_MAP.get(cond[0], cond[0])
-            elif len(cond) == 2:
-                # map function arguments
-                cond[1] = [SENTRY_SNUBA_MAP.get(arg, arg) for arg in cond[1]]
+                cond[0] = get_snuba_column_name(cond[0])
+            elif len(cond) == 2 and cond[0] == "has":
+                # first function argument is the column if function is "has"
+                cond[1][0] = get_snuba_column_name(cond[1][0])
         return cond
 
     kwargs['conditions'] = [handle_condition(condition) for condition in conditions]
@@ -155,7 +193,8 @@ def transform_aliases_and_query(**kwargs):
     order_by_column = kwargs['orderby'].lstrip('-')
     kwargs['orderby'] = u'{}{}'.format(
         '-' if kwargs['orderby'].startswith('-') else '',
-        SENTRY_SNUBA_MAP.get(order_by_column, order_by_column)
+        order_by_column if order_by_column in derived_columns else get_snuba_column_name(
+            order_by_column)
     ) or None
 
     kwargs['arrayjoin'] = arrayjoin_map.get(kwargs['arrayjoin'], kwargs['arrayjoin'])
@@ -215,7 +254,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
     if 'project_id' in filter_keys:
         # If we are given a set of project ids, use those directly.
-        project_ids = filter_keys['project_id']
+        project_ids = list(set(filter_keys['project_id']))
     elif filter_keys:
         # Otherwise infer the project_ids from any related models
         with timer('get_related_project_ids'):
@@ -226,7 +265,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
     for col, keys in six.iteritems(forward(filter_keys.copy())):
         if keys:
-            if len(keys) == 1 and keys[0] is None:
+            if len(keys) == 1 and None in keys:
                 conditions.append((col, 'IS NULL', None))
             else:
                 conditions.append((col, 'IN', keys))

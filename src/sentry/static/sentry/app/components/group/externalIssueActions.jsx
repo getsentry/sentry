@@ -179,7 +179,7 @@ class ExternalIssueForm extends AsyncComponent {
       >
         {config.map(field => (
           <FieldFromConfig
-            key={field.default || field.name}
+            key={`${field.name}-${field.default}`}
             field={field}
             inline={false}
             stacked

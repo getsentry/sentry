@@ -16,6 +16,7 @@ import {getChartData, getChartDataByDay, downloadAsCsv, getRowsPageRange} from '
 import Table from './table';
 import Pagination from './pagination';
 import {
+  ResultTitle,
   Heading,
   ResultSummary,
   ResultContainer,
@@ -84,8 +85,8 @@ export default class Result extends React.Component {
     const linkClasses = 'btn btn-default btn-sm';
 
     return (
-      <Flex flex="1" justify="flex-end">
-        <div className="btn-group">
+      <Flex justify="flex-end">
+        <Flex className="btn-group">
           {options.map(opt => {
             const active = opt.id === this.state.view;
             return (
@@ -100,7 +101,7 @@ export default class Result extends React.Component {
               </a>
             );
           })}
-        </div>
+        </Flex>
         <Box ml={1}>
           <Link className={linkClasses} onClick={() => downloadAsCsv(baseQuery.data)}>
             {t('Export CSV')}
@@ -117,7 +118,12 @@ export default class Result extends React.Component {
       ? baseQuery.data
       : byDayQuery.data;
 
-    const summary = [`query time: ${summaryData.timing.duration_ms} ms`];
+    const summary = [
+      `query time: ${getDynamicText({
+        value: summaryData.timing.duration_ms,
+        fixed: '10',
+      })} ms`,
+    ];
     if (this.state.view === 'table') {
       summary.push(getRowsPageRange(baseQuery));
     }
@@ -173,9 +179,9 @@ export default class Result extends React.Component {
     return (
       <ResultContainer>
         <Flex align="center" mb={space(2)}>
-          <Box flex="1">
+          <ResultTitle>
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
-          </Box>
+          </ResultTitle>
           {this.renderToggle()}
         </Flex>
         <ResultInnerContainer innerRef={ref => (this.container = ref)}>
@@ -193,6 +199,7 @@ export default class Result extends React.Component {
                 height={300}
                 tooltip={tooltipOptions}
                 legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
+                xAxis={{truncate: 80}}
                 renderer="canvas"
               />
             </ChartWrapper>
@@ -204,6 +211,7 @@ export default class Result extends React.Component {
                 height={300}
                 tooltip={tooltipOptions}
                 legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
+                xAxis={{truncate: 80}}
                 renderer="canvas"
               />
             </ChartWrapper>

@@ -11,7 +11,7 @@ describe('Query Builder', function() {
 
       expect(external.projects).toEqual([2]);
       expect(external.fields).toEqual(expect.arrayContaining([expect.any(String)]));
-      expect(external.fields).toHaveLength(4);
+      expect(external.fields).toHaveLength(5);
       expect(external.conditions).toHaveLength(0);
       expect(external.aggregations).toHaveLength(0);
       expect(external.orderby).toBe('-timestamp');
@@ -52,15 +52,15 @@ describe('Query Builder', function() {
       );
 
       expect(queryBuilder.getColumns()).toContainEqual({
-        name: 'tags[tag1]',
+        name: 'tag1',
         type: 'string',
       });
       expect(queryBuilder.getColumns()).toContainEqual({
-        name: 'tags[tag2]',
+        name: 'tag2',
         type: 'string',
       });
       expect(queryBuilder.getColumns()).not.toContainEqual({
-        name: 'tags[environment]',
+        name: 'environment',
         type: 'string',
       });
     });
@@ -79,11 +79,11 @@ describe('Query Builder', function() {
       expect(discoverMock).toHaveBeenCalled();
 
       expect(queryBuilder.getColumns()).toContainEqual({
-        name: 'tags[environment]',
+        name: 'environment',
         type: 'string',
       });
       expect(queryBuilder.getColumns()).not.toContainEqual({
-        name: 'tags[tag1]',
+        name: 'tag1',
         type: 'string',
       });
     });
