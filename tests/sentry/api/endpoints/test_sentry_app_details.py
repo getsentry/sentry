@@ -108,11 +108,19 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             },
             format='json',
         )
-        assert response.data['name'] == 'NewName'
-        assert response.data['uuid'] == self.published_app.uuid
-        assert response.data['webhookUrl'] == 'https://newurl.com'
-        assert response.data['redirectUrl'] == 'https://newredirecturl.com'
-        assert response.data['isAlertable']
+        assert response.data == {
+            'name': 'NewName',
+            'slug': self.published_app.slug,
+            'scopes': [],
+            'status': self.published_app.get_status_display(),
+            'uuid': self.published_app.uuid,
+            'webhookUrl': 'https://newurl.com',
+            'redirectUrl': 'https://newredirecturl.com',
+            'isAlertable': True,
+            'clientId': self.published_app.application.client_id,
+            'clientSecret': self.published_app.application.client_secret,
+            'overview': self.published_app.overview,
+        }
 
     @with_feature('organizations:internal-catchall')
     def test_update_unpublished_app(self):
