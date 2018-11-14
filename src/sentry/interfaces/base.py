@@ -67,21 +67,23 @@ class Meta(object):
     def raw(self):
         meta = self._meta
         for key in self._path:
-            meta = meta.get(key, {})
+            meta = meta.get(key) or {}
         return meta
 
     def get(self):
-        return self.raw().get('', {})
+        return self.raw().get('') or {}
 
-    def has_errors(self):
-        bool(self.get().get('err'))
+    def get_errors(self):
+        self.get().get('err') or []
 
     def create(self):
         meta = self._meta
-        for key in self._path:
-            meta = meta.setdefault(key, {})
+        for key in self._path + ['']:
+            if key not in meta or meta[key] is None:
+                meta[key] = {}
+            meta = meta[key]
 
-        return meta.setdefault('', {})
+        return meta
 
     def merge(self, other):
         other = other.get()
@@ -97,7 +99,9 @@ class Meta(object):
 
     def add_error(self, error, value=None):
         meta = self.create()
-        meta.setdefault('err', []).append(six.text_type(error))
+        if 'err' not in meta or meta['err'] is None:
+            meta['err'] = []
+        meta['err'].append(six.text_type(error))
 
         if value is not None:
             meta['val'] = value
