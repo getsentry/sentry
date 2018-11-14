@@ -42,7 +42,7 @@ class GitHubAppsProviderTest(PluginTestCase):
             external_id='654321',
         )
         return Repository.objects.create(
-            name='example-repo',
+            name='getsentry/example-repo',
             provider='integrations:github',
             organization_id=organization.id,
             integration_id=integration.id,
@@ -156,3 +156,7 @@ class GitHubAppsProviderTest(PluginTestCase):
         pull = PullRequest(key=99)
         result = self.provider.pull_request_url(self.repository, pull)
         assert result == 'https://github.com/getsentry/example-repo/pulls/99'
+
+    def test_repository_external_id(self):
+        result = self.provider.repository_external_id(self.repository)
+        assert result == self.repository.config['name']

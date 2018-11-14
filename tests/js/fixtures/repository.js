@@ -5,6 +5,7 @@ export function Repository(params = {}) {
     provider: 'github',
     url: 'https://github.com/example/repo-name',
     status: 'active',
+    externalId: 'example/repo-name',
     ...params,
   };
 }

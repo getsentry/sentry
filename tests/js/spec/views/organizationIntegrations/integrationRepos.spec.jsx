@@ -104,6 +104,7 @@ describe('IntegrationRepos', function() {
         body: [
           TestStubs.Repository({
             integrationId: null,
+            externalId: 'example/repo-name',
             provider: {
               id: 'integrations:github',
               name: 'GitHub',
@@ -136,11 +137,13 @@ describe('IntegrationRepos', function() {
       );
     });
 
-    it('compares case-insensitive', () => {
+    it('uses externalId not name for comparison', () => {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
-        body: [TestStubs.Repository({name: 'Example/repo-name'})],
+        body: [
+          TestStubs.Repository({name: 'Repo Name', externalId: 'example/repo-name'}),
+        ],
       });
       const getItems = Client.addMockResponse({
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,

@@ -126,3 +126,6 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 installation.raise_error(e)
             else:
                 return self._format_commits(repo, res)
+
+    def repository_external_id(self, repo):
+        return repo.name

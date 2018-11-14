@@ -307,3 +307,11 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         pull = PullRequest(key=99)
         result = self.provider.pull_request_url(repo, pull)
         assert result == 'https://example.gitlab.com/getsentry/projects/example-repo/merge_requests/99'
+
+    @responses.activate
+    def test_repository_external_id(self):
+        response = self.create_repository(self.default_repository_config,
+                                          self.integration.id)
+        repo = Repository.objects.get(pk=response.data['id'])
+        result = self.provider.repository_external_id(repo)
+        assert result == repo.config['project_id']
