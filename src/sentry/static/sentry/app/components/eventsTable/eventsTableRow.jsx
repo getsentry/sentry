@@ -42,7 +42,7 @@ class EventsTableRow extends React.Component {
       .minidump.id}/?download=1`;
     return (
       <small>
-        minidump: <a href={url}>{event.minidump.name}</a> (<FileSize bytes={event.minidump.size} />)
+        Minidump: <a href={url}>{event.minidump.name}</a> (<FileSize bytes={event.minidump.size} />)
       </small>
     );
   }
