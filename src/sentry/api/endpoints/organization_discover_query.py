@@ -134,7 +134,11 @@ class DiscoverQuerySerializer(serializers.Serializer):
         requested_functions = set(agg[0] for agg in attrs[source])
 
         if not requested_functions.issubset(valid_functions):
-            raise serializers.ValidationError('Invalid aggregate function')
+            invalid_functions = ', '.join((requested_functions - valid_functions))
+
+            raise serializers.ValidationError(
+                u'Invalid aggregate function - {}'.format(invalid_functions)
+            )
 
         return attrs
 
