@@ -35,7 +35,7 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(repo.id)
-        assert response.data[0]['externalId'] is None
+        assert response.data[0]['externalSlug'] is None
 
     def test_get_integration_repository(self):
         repo = Repository.objects.create(
