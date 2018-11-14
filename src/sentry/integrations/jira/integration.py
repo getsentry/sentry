@@ -298,7 +298,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def search_issues(self, query):
         try:
             return self.get_client().search_issues(query)
-        except Exception as e:
+        except ApiError as e:
             self.raise_error(e)
 
     def make_choices(self, x):
