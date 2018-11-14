@@ -33,16 +33,18 @@ class EventsTableRow extends React.Component {
     }
   };
 
-  renderMinidumpDownloadLink() {
+  renderCrashFileLink() {
     let {orgId, event, projectId} = this.props;
-    if (!event.minidump) {
+    if (!event.crashFile) {
       return null;
     }
     let url = `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${event
-      .minidump.id}/?download=1`;
+      .crashFile.id}/?download=1`;
+    let crashFileType =
+      event.crashFile.type === 'event.minidump' ? 'Minidump' : 'Crash file';
     return (
       <small>
-        Minidump: <a href={url}>{event.minidump.name}</a> (<FileSize bytes={event.minidump.size} />)
+        {crashFileType}: <a href={url}>{event.crashFile.name}</a> (<FileSize bytes={event.crashFile.size} />)
       </small>
     );
   }
@@ -62,7 +64,7 @@ class EventsTableRow extends React.Component {
               <DateTime date={event.dateCreated} />
             </Link>
             <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
-            {this.renderMinidumpDownloadLink()}
+            {this.renderCrashFileLink()}
           </h5>
         </td>
 
