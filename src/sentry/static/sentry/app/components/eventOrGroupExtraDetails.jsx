@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 
 import ProjectState from 'app/mixins/projectState';
@@ -150,7 +150,7 @@ const CommentsLink = styled(Link)`
 const Times = styled('div')`
   margin-right: ${space(2)};
   flex-shrink: 1;
-  min-width: 0; /* flex-hack for overflow-ellipsed children */
+  min-width: 0; /* flex-hack for overflow-ellipsised children */
 `;
 
 const GroupShortId = styled(ShortId)`
@@ -168,7 +168,7 @@ const GroupExtraIcon = styled(InlineSvg)`
 
 const GroupTimeIcon = styled(GroupExtraIcon)`
   /* this is solely for optics, since TimeSince always begins
-  with a number, and numbers do not have decenders */
+  with a number, and numbers do not have descenders */
   transform: translateY(-1px);
 `;
 
