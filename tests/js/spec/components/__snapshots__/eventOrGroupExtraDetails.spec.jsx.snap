@@ -4,17 +4,10 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
 <GroupExtra
   align="center"
 >
-  <Box
-    mr={2}
-  >
-    <GroupShortId
-      shortId="shortId"
-    />
-  </Box>
-  <Flex
-    align="center"
-    mr={2}
-  >
+  <GroupShortId
+    shortId="shortId"
+  />
+  <Times>
     <div
       className="css-77t6iv"
     >
@@ -36,15 +29,13 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
         suffix="old"
       />
     </div>
-  </Flex>
+  </Times>
   <GroupExtraCommentsAndLogger>
     <Box
       mr={2}
     >
-      <Link
+      <CommentsLink
         className="comments"
-        onlyActiveOnIndex={false}
-        style={Object {}}
         to="/orgId/projectId/issues/groupId/activity/"
       >
         <GroupExtraIcon
@@ -54,7 +45,7 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
         <span>
           14
         </span>
-      </Link>
+      </CommentsLink>
     </Box>
     <Box
       className="event-annotation"
@@ -101,17 +92,10 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
 <GroupExtra
   align="center"
 >
-  <Box
-    mr={2}
-  >
-    <GroupShortId
-      shortId="shortId"
-    />
-  </Box>
-  <Flex
-    align="center"
-    mr={2}
-  >
+  <GroupShortId
+    shortId="shortId"
+  />
+  <Times>
     <div
       className="css-77t6iv"
     >
@@ -133,15 +117,13 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
         suffix="old"
       />
     </div>
-  </Flex>
+  </Times>
   <GroupExtraCommentsAndLogger>
     <Box
       mr={2}
     >
-      <Link
+      <CommentsLink
         className="comments"
-        onlyActiveOnIndex={false}
-        style={Object {}}
         to="/orgId/projectId/issues/groupId/activity/"
       >
         <GroupExtraIcon
@@ -150,7 +132,7 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
         <span>
           14
         </span>
-      </Link>
+      </CommentsLink>
     </Box>
     <Box
       className="event-annotation"
@@ -197,17 +179,10 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
 <GroupExtra
   align="center"
 >
-  <Box
-    mr={2}
-  >
-    <GroupShortId
-      shortId="shortId"
-    />
-  </Box>
-  <Flex
-    align="center"
-    mr={2}
-  >
+  <GroupShortId
+    shortId="shortId"
+  />
+  <Times>
     <div
       className="css-77t6iv"
     >
@@ -229,15 +204,13 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
         suffix="old"
       />
     </div>
-  </Flex>
+  </Times>
   <GroupExtraCommentsAndLogger>
     <Box
       mr={2}
     >
-      <Link
+      <CommentsLink
         className="comments"
-        onlyActiveOnIndex={false}
-        style={Object {}}
         to="/orgId/projectId/issues/groupId/activity/"
       >
         <GroupExtraIcon
@@ -246,7 +219,7 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
         <span>
           14
         </span>
-      </Link>
+      </CommentsLink>
     </Box>
     <Box
       className="event-annotation"
@@ -309,10 +282,7 @@ exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
 <GroupExtra
   align="center"
 >
-  <Flex
-    align="center"
-    mr={2}
-  >
+  <Times>
     <div
       className="css-77t6iv"
     >
@@ -334,7 +304,7 @@ exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
         suffix="old"
       />
     </div>
-  </Flex>
+  </Times>
   <GroupExtraCommentsAndLogger />
 </GroupExtra>
 `;
@@ -343,10 +313,7 @@ exports[`EventOrGroupExtraDetails renders only first seen 1`] = `
 <GroupExtra
   align="center"
 >
-  <Flex
-    align="center"
-    mr={2}
-  >
+  <Times>
     <div
       className="css-77t6iv"
     >
@@ -356,7 +323,7 @@ exports[`EventOrGroupExtraDetails renders only first seen 1`] = `
         suffix="old"
       />
     </div>
-  </Flex>
+  </Times>
   <GroupExtraCommentsAndLogger />
 </GroupExtra>
 `;
@@ -365,10 +332,7 @@ exports[`EventOrGroupExtraDetails renders only last seen 1`] = `
 <GroupExtra
   align="center"
 >
-  <Flex
-    align="center"
-    mr={2}
-  >
+  <Times>
     <div
       className="css-77t6iv"
     >
@@ -380,7 +344,7 @@ exports[`EventOrGroupExtraDetails renders only last seen 1`] = `
         suffix="ago"
       />
     </div>
-  </Flex>
+  </Times>
   <GroupExtraCommentsAndLogger />
 </GroupExtra>
 `;

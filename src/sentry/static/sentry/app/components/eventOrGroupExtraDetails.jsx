@@ -11,6 +11,7 @@ import ShortId from 'app/components/shortId';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t, tct} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
 
 const EventOrGroupExtraDetails = createReactClass({
   displayName: 'EventOrGroupExtraDetails',
@@ -54,12 +55,8 @@ const EventOrGroupExtraDetails = createReactClass({
 
     return (
       <GroupExtra align="center">
-        {shortId && (
-          <Box mr={2}>
-            <GroupShortId shortId={shortId} />
-          </Box>
-        )}
-        <Flex align="center" mr={2}>
+        {shortId && <GroupShortId shortId={shortId} />}
+        <Times>
           <div css={overflowEllipsis}>
             {lastSeen && (
               <React.Fragment>
@@ -77,11 +74,11 @@ const EventOrGroupExtraDetails = createReactClass({
               />
             )}
           </div>
-        </Flex>
+        </Times>
         <GroupExtraCommentsAndLogger>
           {numComments > 0 && (
             <Box mr={2}>
-              <Link
+              <CommentsLink
                 to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}
                 className="comments"
               >
@@ -92,7 +89,7 @@ const EventOrGroupExtraDetails = createReactClass({
                   }
                 />
                 <span>{numComments}</span>
-              </Link>
+              </CommentsLink>
             </Box>
           )}
           {logger && (
@@ -133,6 +130,8 @@ const EventOrGroupExtraDetails = createReactClass({
 const GroupExtra = styled(Flex)`
   color: ${p => p.theme.gray3};
   font-size: 12px;
+  position: relative;
+
   a {
     color: inherit;
   }
@@ -140,6 +139,25 @@ const GroupExtra = styled(Flex)`
 
 const GroupExtraCommentsAndLogger = styled(Flex)`
   color: ${p => p.theme.gray4};
+`;
+
+const CommentsLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+`;
+
+const Times = styled('div')`
+  margin-right: ${space(2)};
+  flex-shrink: 1;
+  min-width: 0; /* flex-hack for overflow-ellipsed children */
+`;
+
+const GroupShortId = styled(ShortId)`
+  margin-right: ${space(2)};
+  flex-shrink: 0;
+  font-size: 12px;
+  color: ${p => p.theme.gray3};
 `;
 
 const GroupExtraIcon = styled(InlineSvg)`
@@ -152,11 +170,6 @@ const GroupTimeIcon = styled(GroupExtraIcon)`
   /* this is solely for optics, since TimeSince always begins
   with a number, and numbers do not have decenders */
   transform: translateY(-1px);
-`;
-
-const GroupShortId = styled(ShortId)`
-  font-size: 12px;
-  color: ${p => p.theme.gray3};
 `;
 
 export default EventOrGroupExtraDetails;
