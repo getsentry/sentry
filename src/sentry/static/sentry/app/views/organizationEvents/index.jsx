@@ -11,6 +11,7 @@ import {getParams} from 'app/views/organizationEvents/utils';
 import EventsContext from 'app/views/organizationEvents/eventsContext';
 import Feature from 'app/components/acl/feature';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
+import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
@@ -169,30 +170,36 @@ class OrganizationEventsContainer extends React.Component {
         >
           <OrganizationEventsContent>
             <Header>
-              <MultipleProjectSelector
-                organization={organization}
-                projects={projects}
-                value={this.state.project}
-                onChange={this.handleChangeProjects}
-                onUpdate={this.handleUpdateProjects}
-              />
+              <HeaderItemPosition>
+                <MultipleProjectSelector
+                  organization={organization}
+                  projects={projects}
+                  value={this.state.project}
+                  onChange={this.handleChangeProjects}
+                  onUpdate={this.handleUpdateProjects}
+                />
+              </HeaderItemPosition>
               <HeaderSeparator />
-              <MultipleEnvironmentSelector
-                organization={organization}
-                value={this.state.environment}
-                onChange={this.handleChangeEnvironments}
-                onUpdate={this.handleUpdateEnvironmments}
-              />
+              <HeaderItemPosition>
+                <MultipleEnvironmentSelector
+                  organization={organization}
+                  value={this.state.environment}
+                  onChange={this.handleChangeEnvironments}
+                  onUpdate={this.handleUpdateEnvironmments}
+                />
+              </HeaderItemPosition>
               <HeaderSeparator />
-              <TimeRangeSelector
-                showAbsolute
-                showRelative
-                relative={period}
-                start={start}
-                end={end}
-                onChange={this.handleChangeTime}
-                onUpdate={this.handleUpdatePeriod}
-              />
+              <HeaderItemPosition>
+                <TimeRangeSelector
+                  showAbsolute
+                  showRelative
+                  relative={period}
+                  start={start}
+                  end={end}
+                  onChange={this.handleChangeTime}
+                  onUpdate={this.handleUpdatePeriod}
+                />
+              </HeaderItemPosition>
               <HeaderSeparator />
             </Header>
             <Body>{children}</Body>
@@ -213,7 +220,8 @@ const OrganizationEventsContent = styled(Flex)`
 `;
 
 const Header = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
+  border-bottom: 1px solid ${p => p.theme.borderDark};
+  box-shadow: ${p => p.theme.dropShadowLight};
   font-size: 18px;
   height: 60px;
 `;

@@ -145,7 +145,6 @@ const StyledProjectSelector = styled(ProjectSelector)`
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
-  width: 300px;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`

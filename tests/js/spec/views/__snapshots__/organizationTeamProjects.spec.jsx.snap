@@ -97,10 +97,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           >
                             <AutoCompleteRoot>
                               <Component
-                                className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+                                className="css-helqaa-AutoCompleteRoot ejumqxq0"
                               >
                                 <div
-                                  className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+                                  className="css-helqaa-AutoCompleteRoot ejumqxq0"
                                 >
                                   <Actor
                                     innerRef={[Function]}
@@ -111,7 +111,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     role="button"
                                   >
                                     <div
-                                      className="css-dy1pax-Actor e53us8t0"
+                                      className="css-17fe80j-Actor e53us8t0"
                                       onClick={[Function]}
                                       onMouseEnter={[Function]}
                                       onMouseLeave={[Function]}

@@ -47,10 +47,10 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
     >
       <AutoCompleteRoot>
         <Component
-          className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+          className="css-helqaa-AutoCompleteRoot ejumqxq0"
         >
           <div
-            className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+            className="css-helqaa-AutoCompleteRoot ejumqxq0"
           >
             Click Me!
             <StyledMenu
@@ -221,10 +221,10 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
     >
       <AutoCompleteRoot>
         <Component
-          className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+          className="css-helqaa-AutoCompleteRoot ejumqxq0"
         >
           <div
-            className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+            className="css-helqaa-AutoCompleteRoot ejumqxq0"
           >
             Click Me!
             <StyledMenu

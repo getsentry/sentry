@@ -460,6 +460,7 @@ const getMenuArrow = ({menuWithArrow, alignMenu}) => {
 const AutoCompleteRoot = styled(({isOpen, ...props}) => <div {...props} />)`
   position: relative;
   display: inline-block;
+  flex: 1;
 `;
 
 const InputLoadingWrapper = styled(Flex)`

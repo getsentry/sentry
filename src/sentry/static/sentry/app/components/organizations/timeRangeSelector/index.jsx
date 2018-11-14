@@ -179,7 +179,7 @@ class TimeRangeSelector extends React.PureComponent {
         keepMenuOpen={true}
       >
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
-          <div {...getRootProps()} style={{position: 'relative'}}>
+          <div {...getRootProps()} style={{position: 'relative', flex: '1'}}>
             <StyledHeaderItem
               icon={<StyledInlineSvg src="icon-calendar" />}
               isOpen={isOpen}
@@ -233,8 +233,6 @@ class TimeRangeSelector extends React.PureComponent {
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
-  min-width: 230px;
-  max-width: 360px;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
