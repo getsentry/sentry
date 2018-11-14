@@ -52,11 +52,11 @@ exports[`ProjectDebugFiles renders 1`] = `
       <div
         className="css-1geyb25-TextBlock ec8ep340"
       >
-
+        
           Here you can find all your uploaded debug information files (dSYMs, ProGuard, Breakpad ...).
           This is used to convert addresses and minified function names from crash dumps
           into function names and locations.
-
+        
       </div>
     </Component>
   </TextBlock>
@@ -220,11 +220,11 @@ exports[`ProjectDebugFiles renders empty 1`] = `
     title="Debug Information Files"
   />
   <TextBlock>
-
+    
           Here you can find all your uploaded debug information files (dSYMs, ProGuard, Breakpad ...).
           This is used to convert addresses and minified function names from crash dumps
           into function names and locations.
-
+        
   </TextBlock>
   <div
     className="row m-b-1"
