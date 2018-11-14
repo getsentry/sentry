@@ -26,14 +26,6 @@ export function amplitude(name, organization_id, data) {
  * @param {Number} value Value to record for this metric
  * @param {Object} tags An additional tags object
  */
-export function gauge(name, value, tags) {
-  HookStore.get('metrics:gauge').forEach(cb => cb(name, value, tags));
-}
-
-/**
- * @param {String} name Metric name
- * @param {Object} tags An additional tags object
- */
-export function increment(name, tags) {
-  HookStore.get('metrics:increment').forEach(cb => cb(name, tags));
+export function metric(name, value, tags) {
+  HookStore.get('metrics:event').forEach(cb => cb(name, value, tags));
 }
