@@ -166,6 +166,8 @@ export default {
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
     ReleaseLanding: require('app/views/projectReleases/releaseLanding').default,
     ReleaseProgress: require('app/views/projectReleases/releaseProgress').default,
+    CreateSampleEvent: require('app/components/createSampleEvent').default,
+    InstallPromptBanner: require('app/components/installPromptBanner').default,
     SentryTypes: require('app/sentryTypes').default,
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
