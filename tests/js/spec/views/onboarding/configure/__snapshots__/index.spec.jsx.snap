@@ -14,7 +14,8 @@ exports[`Configure should render correctly render() should redirect to if no mat
     >
       Configure your application
       <Hook
-        name="component:sample-event"
+        key="header"
+        name="component:create-sample-event"
         params={
           Object {
             "organization": Object {
@@ -113,7 +114,8 @@ exports[`Configure should render correctly render() should render platform docs 
       >
         Configure your application
         <Hook
-          name="component:sample-event"
+          key="header"
+          name="component:create-sample-event"
           params={
             Object {
               "organization": Object {
@@ -690,7 +692,8 @@ exports[`Configure should render correctly render() should render platform docs 
                     </StyledButton>
                   </Button>
                   <Hook
-                    name="component:sample-event"
+                    key="waiting"
+                    name="component:create-sample-event"
                     params={
                       Object {
                         "organization": Object {
@@ -762,7 +765,8 @@ exports[`Configure should render correctly render() shouldn't redirect for a fou
     >
       Configure your application
       <Hook
-        name="component:sample-event"
+        key="header"
+        name="component:create-sample-event"
         params={
           Object {
             "organization": Object {

@@ -43,7 +43,9 @@ class Waiting extends React.Component {
               >
                 {t('All done!')}
               </Button>
-              {!hasEvent && <Hook name="component:sample-event" params={data} />}
+              {!hasEvent && (
+                <Hook name="component:create-sample-event" params={data} key="waiting" />
+              )}
             </div>
           </CenteredButtons>
         </div>

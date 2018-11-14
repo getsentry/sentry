@@ -7,6 +7,7 @@ import styled from 'react-emotion';
 import {analytics} from 'app/utils/analytics';
 import Alert from 'app/components/alert';
 import ConfigStore from 'app/stores/configStore';
+import {getPlatformName} from 'app/views/onboarding/utils';
 import {t} from 'app/locale';
 
 const InstallPromptBanner = createReactClass({
@@ -49,16 +50,16 @@ const InstallPromptBanner = createReactClass({
 
   getUrl() {
     let {organization} = this.props;
-    let url;
-
     // if no projects - redirect back to onboarding flow
-    if (organization.projects.length > 0) {
-      let project = organization.projects.pop();
-      url = `/onboarding/${organization.slug}/${project.slug}/configure/${project.platform}`;
-    } else {
-      url = `/onboarding/${organization.slug}`;
-    }
+    let url = `/onboarding/${organization.slug}`;
 
+    // if project with a valid platform then go straight to instructions
+    let projects = organization.projects;
+    let projectCount = projects.length;
+    if (projectCount > 0 && getPlatformName(projects[projectCount - 1].platform)) {
+      let project = projects[projectCount - 1];
+      url = `/onboarding/${organization.slug}/${project.slug}/configure/${project.platform}`;
+    }
     return url;
   },
 
@@ -108,6 +109,10 @@ const StyledAlert = styled(Alert)`
   padding-right: ${p => p.theme.grid * 4}px;
   a {
     color: #2f2936;
+    border-bottom: 1px dotted black;
+  }
+  use {
+    color: black;
   }
 `;
 

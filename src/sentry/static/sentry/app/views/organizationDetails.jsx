@@ -135,7 +135,11 @@ class OrganizationDetailsBody extends Component {
       }
     return (
       <React.Fragment>
-        <Hook name="component:install-prompt-banner" params={{organization}} />
+        <Hook
+          name="component:install-prompt-banner"
+          params={{organization}}
+          key="banner"
+        />
         <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
       </React.Fragment>

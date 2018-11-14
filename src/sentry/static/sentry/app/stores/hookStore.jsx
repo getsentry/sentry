@@ -20,7 +20,7 @@ const validHookNames = new Set([
   'component:org-auth-view',
   'component:org-members-view',
   'component:releases-tab',
-  'component:sample-event',
+  'component:create-sample-event',
   'component:install-prompt-banner',
 
   // Additional settings
