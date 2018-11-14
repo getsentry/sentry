@@ -4,10 +4,24 @@ import six
 
 from datetime import datetime
 from django.utils import timezone
-
 from semaphore import meta_with_chunks
+
 from sentry.api.serializers import Serializer, register
-from sentry.models import Event, EventError
+from sentry.models import Event, EventError, EventAttachment
+
+
+def get_minidumps(events):
+    from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
+    event_ids = [x.event_id for x in events if x.platform in ('other', 'native')]
+    minidumps = {}
+    if event_ids:
+        attachments = EventAttachment.objects.filter(
+            event_id__in=event_ids,
+        ).select_related('file')
+        for attachment in attachments:
+            if attachment.file.type == MINIDUMP_ATTACHMENT_TYPE:
+                minidumps[attachment.event_id] = attachment
+    return minidumps
 
 
 @register(Event)
@@ -110,6 +124,7 @@ class EventSerializer(Serializer):
     def get_attrs(self, item_list, user, is_public=False):
         Event.objects.bind_nodes(item_list, 'data')
 
+        minidumps = get_minidumps(item_list)
         results = {}
         for item in item_list:
             # TODO(dcramer): convert to get_api_context
@@ -119,11 +134,21 @@ class EventSerializer(Serializer):
 
             (entries, entries_meta) = self._get_entries(item, user, is_public=is_public)
 
+            minidump = minidumps.get(item.event_id)
+
             results[item] = {
                 'entries': entries,
                 'user': user_data,
                 'contexts': contexts_data or {},
                 'sdk': sdk_data,
+                'minidump': {
+                    'id': six.text_type(minidump.id),
+                    'name': minidump.name,
+                    'headers': minidump.file.headers,
+                    'size': minidump.file.size,
+                    'sha1': minidump.file.checksum,
+                    'dateCreated': minidump.file.timestamp,
+                } if minidump else None,
                 '_meta': {
                     'entries': entries_meta,
                     'user': user_meta,
@@ -177,6 +202,7 @@ class EventSerializer(Serializer):
             'message': message,
             'user': attrs['user'],
             'contexts': attrs['contexts'],
+            'minidump': attrs['minidump'],
             'sdk': attrs['sdk'],
             # TODO(dcramer): move into contexts['extra']
             'context': context,

@@ -6,6 +6,7 @@ import CustomPropTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
 import DateTime from 'app/components/dateTime';
 import DeviceName from 'app/components/deviceName';
+import FileSize from 'app/components/fileSize';
 
 class EventsTableRow extends React.Component {
   static propTypes = {
@@ -32,6 +33,20 @@ class EventsTableRow extends React.Component {
     }
   };
 
+  renderMinidumpDownloadLink() {
+    let {orgId, event, projectId} = this.props;
+    if (!event.minidump) {
+      return null;
+    }
+    let url = `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${event
+      .minidump.id}/?download=1`;
+    return (
+      <small>
+        minidump: <a href={url}>{event.minidump.name}</a> (<FileSize bytes={event.minidump.size} />)
+      </small>
+    );
+  }
+
   render() {
     let {className, event, orgId, projectId, groupId, tagList, hasUser} = this.props;
     let tagMap = {};
@@ -47,6 +62,7 @@ class EventsTableRow extends React.Component {
               <DateTime date={event.dateCreated} />
             </Link>
             <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
+            {this.renderMinidumpDownloadLink()}
           </h5>
         </td>
 

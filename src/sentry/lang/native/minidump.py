@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import six
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 
 from symbolic import arch_from_breakpad, ProcessState, id_from_breakpad
@@ -28,8 +29,10 @@ def process_minidump(minidump, cfi=None):
         return ProcessState.from_minidump_buffer(minidump.read(), cfi)
     elif isinstance(minidump, TemporaryUploadedFile):
         return ProcessState.from_minidump(minidump.temporary_file_path(), cfi)
-    else:
+    elif isinstance(minidump, six.binary_type) and minidump.startswith('MDMP'):
         return ProcessState.from_minidump_buffer(minidump, cfi)
+    else:
+        return ProcessState.from_minidump(minidump, cfi)
 
 
 def merge_minidump_event(data, minidump, cfi=None):
