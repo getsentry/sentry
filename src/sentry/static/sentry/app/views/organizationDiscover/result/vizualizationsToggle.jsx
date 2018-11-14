@@ -48,20 +48,8 @@ class VisualizationsToggle extends React.Component {
   };
 
   getName = key => {
-    switch (key) {
-      case 'table':
-        return t('Table');
-      case 'line':
-        return t('Line');
-      case 'bar':
-        return t('Bar');
-      case 'line-by-day':
-        return t('Line by Day');
-      case 'bar-by-day':
-        return t('Bar by Day');
-      default:
-        return t('Table');
-    }
+    const {options} = this.props;
+    return options.filter(opt => opt.id === key)[0].name;
   };
 
   render() {
