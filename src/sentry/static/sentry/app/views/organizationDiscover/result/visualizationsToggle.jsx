@@ -67,7 +67,6 @@ class VisualizationsToggle extends React.Component {
         </ResultViewButtons>
         <ResultViewDropdownButtons>
           <DropdownLink
-            btnGroup={true}
             title={dropdownTitle}
             className={'btn btn-default btn-sm'}
           >
