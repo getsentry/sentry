@@ -224,7 +224,6 @@ class FileBlob(Model):
 
             blob = cls(size=size, checksum=checksum)
             blob.path = cls.generate_unique_path(blob.timestamp)
-
             storage = get_storage()
             storage.save(blob.path, fileobj)
             blob.save()
