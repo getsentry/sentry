@@ -40,7 +40,6 @@ export const COLUMNS = [
   {name: 'message', type: TYPES.STRING},
   {name: 'primary_hash', type: TYPES.STRING},
   {name: 'timestamp', type: TYPES.DATETIME},
-  {name: 'received', type: TYPES.DATETIME},
 
   {name: 'user.id', type: TYPES.STRING},
   {name: 'user.username', type: TYPES.STRING},
