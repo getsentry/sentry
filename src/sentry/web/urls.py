@@ -516,6 +516,7 @@ urlpatterns += patterns(
     ),
     url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
     url(r'^extensions/jira/', include('sentry.integrations.jira.urls')),
+    url(r'^extensions/jira-server/', include('sentry.integrations.jira_server.urls')),
     url(r'^extensions/slack/', include('sentry.integrations.slack.urls')),
     url(r'^extensions/github/', include('sentry.integrations.github.urls')),
     url(r'^extensions/github-enterprise/', include('sentry.integrations.github_enterprise.urls')),
