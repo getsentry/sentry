@@ -255,7 +255,7 @@ SimpleSlider.prototype.valueToRatio = function(value) {
     _ref = this.settings.allowedValues;
     for (idx = _i = 0, _len = _ref.length; _i < _len; idx = ++_i) {
       allowedVal = _ref[idx];
-      if (closest == null || Math.abs(allowedVal - value) < Math.abs(closest - value)) {
+      if (!(typeof closest !== "undefined" && closest !== null) || Math.abs(allowedVal - value) < Math.abs(closest - value)) {
         closest = allowedVal;
         closestIdx = idx;
       }
