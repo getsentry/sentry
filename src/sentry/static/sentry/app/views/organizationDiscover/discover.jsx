@@ -52,6 +52,7 @@ export default class OrganizationDiscover extends React.Component {
     updateSavedQueryData: PropTypes.func.isRequired,
     view: PropTypes.oneOf(['query', 'saved']),
     toggleEditMode: PropTypes.func.isRequired,
+    isLoading: PropTypes.bool.isRequired,
   };
 
   constructor(props) {
@@ -278,7 +279,13 @@ export default class OrganizationDiscover extends React.Component {
   render() {
     const {data, isFetchingQuery, view, resultManager, isEditingSavedQuery} = this.state;
 
-    const {queryBuilder, organization, savedQuery, toggleEditMode} = this.props;
+    const {
+      queryBuilder,
+      organization,
+      savedQuery,
+      toggleEditMode,
+      isLoading,
+    } = this.props;
 
     const currentQuery = queryBuilder.getInternal();
 
@@ -298,7 +305,7 @@ export default class OrganizationDiscover extends React.Component {
           <PageTitle>{t('Discover')}</PageTitle>
           {this.renderSidebarNav()}
           {view === 'saved' && (
-            <SavedQueryWrapper isEditing={isEditingSavedQuery}>
+            <SavedQueryWrapper>
               <SavedQueryList organization={organization} savedQuery={savedQuery} />
             </SavedQueryWrapper>
           )}
@@ -306,10 +313,11 @@ export default class OrganizationDiscover extends React.Component {
             <NewQuery
               organization={organization}
               queryBuilder={queryBuilder}
-              isFetchingQuery={isFetchingQuery}
+              isFetchingQuery={isFetchingQuery || isLoading}
               onUpdateField={this.updateField}
               onRunQuery={this.runQuery}
               onReset={this.reset}
+              isLoading={isLoading}
             />
           )}
           {isEditingSavedQuery &&
@@ -324,6 +332,7 @@ export default class OrganizationDiscover extends React.Component {
                   onReset={this.reset}
                   onDeleteQuery={this.deleteSavedQuery}
                   onSaveQuery={this.updateSavedQuery}
+                  isLoading={isLoading}
                 />
               </QueryPanel>
             )}

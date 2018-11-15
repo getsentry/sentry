@@ -544,6 +544,12 @@ class EventManagerTest(TransactionTestCase):
         assert event1.transaction is None
         assert event1.culprit == 'foobar'
 
+    def test_inferred_culprit_from_empty_stacktrace(self):
+        manager = EventManager(make_event(stacktrace={"frames": []}))
+        manager.normalize()
+        event = manager.save(1)
+        assert event.culprit == ''
+
     def test_transaction_and_culprit(self):
         manager = EventManager(make_event(
             transaction='foobar',

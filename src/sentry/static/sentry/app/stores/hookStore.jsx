@@ -13,14 +13,14 @@ const validHookNames = new Set([
   'analytics:log-experiment',
 
   // Operational metrics
-  'metrics:gauge',
-  'metrics:increment',
+  'metrics:event',
 
   // Specific component customizations
   'component:org-auth-view',
   'component:org-members-view',
   'component:releases-tab',
-  'component:sample-event',
+  'component:create-sample-event',
+  'component:install-prompt-banner',
 
   // Additional settings
   'settings:organization-navigation',

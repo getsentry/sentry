@@ -166,6 +166,8 @@ export default {
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
     ReleaseLanding: require('app/views/projectReleases/releaseLanding').default,
     ReleaseProgress: require('app/views/projectReleases/releaseProgress').default,
+    CreateSampleEvent: require('app/components/createSampleEvent').default,
+    InstallPromptBanner: require('app/components/installPromptBanner').default,
     SentryTypes: require('app/sentryTypes').default,
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
@@ -181,6 +183,7 @@ export default {
     U2fSign: require('app/components/u2fsign').default,
     Waiting: require('app/views/onboarding/configure/waiting').default,
     Badge: require('app/components/badge').default,
+    Tag: require('app/views/settings/components/tag').default,
     Switch: require('app/components/switch').default,
     GlobalModal: require('app/components/globalModal').default,
     SetupWizard: require('app/components/setupWizard').default,

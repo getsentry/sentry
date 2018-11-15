@@ -6,6 +6,7 @@ import CustomPropTypes from 'app/sentryTypes';
 import Avatar from 'app/components/avatar';
 import DateTime from 'app/components/dateTime';
 import DeviceName from 'app/components/deviceName';
+import FileSize from 'app/components/fileSize';
 
 class EventsTableRow extends React.Component {
   static propTypes = {
@@ -32,6 +33,22 @@ class EventsTableRow extends React.Component {
     }
   };
 
+  renderCrashFileLink() {
+    let {orgId, event, projectId} = this.props;
+    if (!event.crashFile) {
+      return null;
+    }
+    let url = `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${event
+      .crashFile.id}/?download=1`;
+    let crashFileType =
+      event.crashFile.type === 'event.minidump' ? 'Minidump' : 'Crash file';
+    return (
+      <small>
+        {crashFileType}: <a href={url}>{event.crashFile.name}</a> (<FileSize bytes={event.crashFile.size} />)
+      </small>
+    );
+  }
+
   render() {
     let {className, event, orgId, projectId, groupId, tagList, hasUser} = this.props;
     let tagMap = {};
@@ -47,6 +64,7 @@ class EventsTableRow extends React.Component {
               <DateTime date={event.dateCreated} />
             </Link>
             <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
+            {this.renderCrashFileLink()}
           </h5>
         </td>
 

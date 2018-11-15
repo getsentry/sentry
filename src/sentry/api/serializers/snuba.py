@@ -239,6 +239,9 @@ class BaseSnubaSerializer(object):
         self.user = user
 
     def get_attrs(self, item_list):
+        if self.lookup is None:
+            return item_list
+
         return self.lookup.serializer(
             self.organization, item_list, self.user)
 
@@ -296,22 +299,28 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             (key, list(group))
             for key, group in itertools.groupby(result.data['data'], key=lambda r: r['time'])
         ]
-        attrs = self.get_attrs([
-            value_from_row(r, self.lookup.columns)
-            for _, v in data
-            for r in v
-        ])
+        if self.lookup:
+            attrs = self.get_attrs([
+                value_from_row(r, self.lookup.columns)
+                for _, v in data
+                for r in v
+            ])
         rv = []
         for k, v in data:
             row = []
             for r in v:
-                value = value_from_row(r, self.lookup.columns)
-                row.append({
-                    'count': r['count'],
-                    self.lookup.name: attrs.get(value),
-                })
+                item = {'count': r['count']}
+                if self.lookup:
+                    value = value_from_row(r, self.lookup.columns)
+                    item[self.lookup.name] = attrs.get(value),
+                row.append(item)
             rv.append((k, row))
-        return {
+
+        res = {
             'data': zerofill(rv, result.start, result.end, result.rollup),
-            'totals': {'count': result.data['totals']['count']},
         }
+
+        if result.data.get('totals'):
+            res['totals'] = {'count': result.data['totals']['count']}
+
+        return res

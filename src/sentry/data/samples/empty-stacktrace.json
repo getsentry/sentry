@@ -1,0 +1,36 @@
+{
+    "level": "error",
+    "modules": {
+        "certifi": "2018.4.16",
+        "pip": "18.0",
+        "python": "2.7.15",
+        "sentry-sdk": "0.3.1",
+        "setuptools": "40.0.0",
+        "urllib3": "1.23",
+        "wheel": "0.31.1",
+        "wsgiref": "0.1.2"
+    },
+    "platform": "python",
+    "server_name": "mcbk.local",
+    "stacktrace": {
+        "frames": []
+    },
+    "sdk": {
+        "name": "sentry.python",
+        "version": "0.1",
+        "integrations": [
+            "logging",
+            "stdlib",
+            "excepthook",
+            "dedupe",
+            "atexit",
+            "modules"
+        ],
+        "packages": [
+            {
+                "name": "pypi:sentry-sdk",
+                "version": "0.1"
+            }
+        ]
+    }
+}

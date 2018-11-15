@@ -52,8 +52,8 @@ describe('Conditions', function() {
     });
 
     // datetime fields are expanded
-    const expected = ['received', '=', '2018-05-05T00:00:00'];
-    expect(getExternal('received = 2018-05-05', COLUMNS)).toEqual(expected);
+    const expected = ['timestamp', '=', '2018-05-05T00:00:00'];
+    expect(getExternal('timestamp = 2018-05-05', COLUMNS)).toEqual(expected);
   });
 
   it('getInternal()', function() {

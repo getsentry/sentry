@@ -15,6 +15,7 @@ export default class Condition extends React.Component {
     columns: PropTypes.arrayOf(
       PropTypes.shape({name: PropTypes.string, type: PropTypes.string})
     ).isRequired,
+    disabled: PropTypes.bool,
   };
 
   constructor(props) {
@@ -177,6 +178,7 @@ export default class Condition extends React.Component {
           creatable={true}
           promptTextCreator={text => text}
           shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
+          disabled={this.props.disabled}
         />
       </Box>
     );

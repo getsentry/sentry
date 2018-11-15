@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-import six
-
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import serialize
 from sentry.models import Event, EventAttachment
 
 
@@ -21,7 +20,8 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         :pparam string event_id: the id of the event.
         :auth: required
         """
-        if not features.has('organizations:event-attachments', project.organization, actor=request.user):
+        if not features.has('organizations:event-attachments',
+                            project.organization, actor=request.user):
             return self.respond(status=404)
 
         try:
@@ -41,13 +41,6 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
             request=request,
             queryset=queryset,
             order_by='name',
+            on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
-            on_results=lambda attachments: [{
-                'id': six.text_type(a.id),
-                'name': a.name,
-                'headers': a.file.headers,
-                'size': a.file.size,
-                'sha1': a.file.checksum,
-                'dateCreated': a.file.timestamp,
-            } for a in attachments],
         )

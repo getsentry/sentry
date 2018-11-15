@@ -21,6 +21,7 @@ export default class EditSavedQuery extends React.Component {
     onDeleteQuery: PropTypes.func.isRequired,
     onSaveQuery: PropTypes.func.isRequired,
     isFetchingQuery: PropTypes.bool.isRequired,
+    isLoading: PropTypes.bool.isRequired,
   };
 
   constructor(props) {
@@ -52,6 +53,7 @@ export default class EditSavedQuery extends React.Component {
       onRunQuery,
       onDeleteQuery,
       onSaveQuery,
+      isLoading,
     } = this.props;
 
     const {savedQueryName} = this.state;
@@ -60,6 +62,7 @@ export default class EditSavedQuery extends React.Component {
       <QueryFields
         queryBuilder={queryBuilder}
         onUpdateField={onUpdateField}
+        isLoading={isLoading}
         savedQuery={savedQuery}
         savedQueryName={this.state.savedQueryName}
         onUpdateName={name => this.handleUpdateName(name)}

@@ -216,18 +216,16 @@ class ProjectDebugFile(Model):
                 # Explicitly select referencing caches and delete them. Using
                 # the backref does not work, since `dif.id` is None after the
                 # delete.
-                symcache = ProjectSymCacheFile.objects \
+                symcaches = ProjectSymCacheFile.objects \
                     .filter(debug_file_id=dif_id) \
-                    .select_related('cache_file') \
-                    .first()
-                if symcache:
+                    .select_related('cache_file')
+                for symcache in symcaches:
                     symcache.delete()
 
-                cficache = ProjectCfiCacheFile.objects \
+                cficaches = ProjectCfiCacheFile.objects \
                     .filter(debug_file_id=dif_id) \
-                    .select_related('cache_file') \
-                    .first()
-                if cficache:
+                    .select_related('cache_file')
+                for cficache in cficaches:
                     cficache.delete()
 
         self.file.delete()

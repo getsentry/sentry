@@ -4,25 +4,20 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
-from itertools import chain
-from operator import or_
 import pytz
 import six
 import time
 import urllib3
 
 from django.conf import settings
-from django.db.models import Q
 
-from sentry import quotas, options
-from sentry.event_manager import HASH_RE
+from sentry import quotas
 from sentry.models import (
-    Environment, Group, GroupHash, GroupHashTombstone, GroupRelease,
+    Environment, Group, GroupRelease,
     Organization, Project, Release, ReleaseProject
 )
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
-from functools import reduce
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
@@ -283,20 +278,6 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         if start > end:
             raise QueryOutsideRetentionError
 
-    use_group_id_column = options.get('snuba.use_group_id_column')
-    issues = None
-    if not use_group_id_column:
-        # If the grouping, aggregation, or any of the conditions reference `issue`
-        # we need to fetch the issue definitions (issue -> fingerprint hashes)
-        aggregate_cols = [a[1] for a in aggregations]
-        condition_cols = all_referenced_columns(conditions)
-        all_cols = groupby + aggregate_cols + condition_cols + selected_columns
-        get_issues = 'issue' in all_cols
-
-        if get_issues:
-            with timer('get_project_issues'):
-                issues = get_project_issues(project_ids, filter_keys.get('issue'))
-
     start, end = shrink_time_window(filter_keys.get('issue'), start, end)
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
@@ -315,8 +296,6 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'project': project_ids,
         'aggregations': aggregations,
         'granularity': rollup,
-        'use_group_id_column': use_group_id_column,
-        'issues': issues,
         'arrayjoin': arrayjoin,
         'limit': limit,
         'offset': offset,
@@ -369,7 +348,10 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
             referrer=referrer, is_grouprelease=is_grouprelease, totals=totals, limitby=limitby
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
-        return OrderedDict()
+        if totals:
+            return OrderedDict(), {}
+        else:
+            return OrderedDict()
 
     # Validate and scrub response, and translate snuba keys back to IDs
     aggregate_cols = [a[2] for a in aggregations]
@@ -406,34 +388,6 @@ def nest_groups(data, groups, aggregate_cols):
             (k, nest_groups(v, rest, aggregate_cols)) for k, v in six.iteritems(inter)
         )
 
-
-def is_condition(cond_or_list):
-    # A condition is a 3-tuple, where the middle element is an operator string,
-    # eg ">=" or "IN". We should possibly validate that it is one of the
-    # allowed operators.
-    return len(cond_or_list) == 3 and isinstance(cond_or_list[1], six.string_types)
-
-
-def all_referenced_columns(conditions):
-    # Get the set of colummns that are represented by an entire set of conditions
-
-    # First flatten to remove the AND/OR nesting.
-    flat_conditions = list(chain(*[[c] if is_condition(c) else c for c in conditions]))
-    return list(set(chain(*[columns_in_expr(c[0]) for c in flat_conditions])))
-
-
-def columns_in_expr(expr):
-    # Get the set of columns that are referenced by a single column expression.
-    # Either it is a simple string with the column name, or a nested function
-    # that could reference multiple columns
-    cols = []
-    if isinstance(expr, six.string_types):
-        cols.append(expr)
-    elif (isinstance(expr, (list, tuple)) and len(expr) >= 2
-          and isinstance(expr[1], (list, tuple))):
-        for func_arg in expr[1]:
-            cols.extend(columns_in_expr(func_arg))
-    return cols
 
 # The following are functions for resolving information from sentry models
 # about projects, environments, and issues (groups). Having this snuba
@@ -540,55 +494,6 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     )
 
     return (forward, reverse)
-
-
-def get_project_issues(project_ids, issue_ids=None):
-    """
-    Get a list of issues and associated fingerprint hashes for a list of
-    project ids. If issue_ids is set, then return only those issues.
-
-    Returns a list: [(group_id, project_id, [(hash1, tomestone_date), ...]), ...]
-    """
-    if issue_ids:
-        issue_ids = issue_ids[:MAX_ISSUES]
-        hashes = GroupHash.objects.filter(
-            group_id__in=issue_ids
-        )[:MAX_HASHES]
-    else:
-        hashes = GroupHash.objects.filter(
-            project__in=project_ids,
-            group_id__isnull=False,
-        )[:MAX_HASHES]
-
-    hashes = [h for h in hashes if HASH_RE.match(h.hash)]
-    if not hashes:
-        return []
-
-    hashes_by_project = {}
-    for h in hashes:
-        hashes_by_project.setdefault(h.project_id, []).append(h.hash)
-
-    tombstones = GroupHashTombstone.objects.filter(
-        reduce(or_, (Q(project_id=pid, hash__in=hshes)
-                     for pid, hshes in six.iteritems(hashes_by_project)))
-    )
-
-    tombstones_by_project = {}
-    for tombstone in tombstones:
-        tombstones_by_project.setdefault(
-            tombstone.project_id, {}
-        )[tombstone.hash] = tombstone.deleted_at
-
-    # return [(gid, pid, [(hash, tombstone_date), (hash, tombstone_date), ...]), ...]
-    result = {}
-    for h in hashes:
-        tombstone_date = tombstones_by_project.get(h.project_id, {}).get(h.hash, None)
-        pair = (
-            h.hash,
-            tombstone_date.strftime("%Y-%m-%d %H:%M:%S") if tombstone_date else None
-        )
-        result.setdefault((h.group_id, h.project_id), []).append(pair)
-    return [k + (v,) for k, v in result.items()][:MAX_ISSUES]
 
 
 def get_related_project_ids(column, ids):
