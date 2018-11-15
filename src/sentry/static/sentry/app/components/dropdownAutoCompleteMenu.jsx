@@ -460,7 +460,6 @@ const getMenuArrow = ({menuWithArrow, alignMenu}) => {
 const AutoCompleteRoot = styled(({isOpen, ...props}) => <div {...props} />)`
   position: relative;
   display: inline-block;
-  flex: 1;
 `;
 
 const InputLoadingWrapper = styled(Flex)`
@@ -507,7 +506,7 @@ const AutoCompleteItem = styled('div')`
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
   padding: ${p => getItemPaddingForSize(p.size)};
   cursor: pointer;
-  border-bottom: 1px solid ${p => p.theme.borderLighter};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
 
   &:last-child {
     border-bottom: none;
@@ -541,7 +540,7 @@ const GroupLabel = styled('div')`
 
 const StyledMenu = styled('div')`
   background: #fff;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: calc(100% - 1px);
   min-width: 250px;
@@ -572,4 +571,4 @@ const EmptyMessage = styled('div')`
 
 export default DropdownAutoCompleteMenu;
 
-export {StyledMenu};
+export {StyledMenu, AutoCompleteRoot};
