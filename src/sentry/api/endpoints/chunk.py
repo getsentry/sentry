@@ -96,7 +96,8 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                             status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            FileBlob.from_files(izip(files, checksums))
+            FileBlob.from_files(izip(files, checksums),
+                                organization=organization)
         except IOError as err:
             return Response({'error': six.text_type(err)},
                             status=status.HTTP_400_BAD_REQUEST)

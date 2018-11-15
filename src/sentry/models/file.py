@@ -137,8 +137,7 @@ class FileBlob(Model):
             storage.save(blob.path, fileobj)
             blobs_to_save.append((blob, lock))
 
-        def _save_blob(blob):
-            blob.save()
+        def _ensure_blob_owned(blob):
             if organization is None:
                 return
             try:
@@ -149,6 +148,10 @@ class FileBlob(Model):
                     )
             except IntegrityError:
                 pass
+
+        def _save_blob(blob):
+            blob.save()
+            _ensure_blob_owned(blob)
 
         def _flush_blobs():
             while 1:
@@ -186,6 +189,7 @@ class FileBlob(Model):
                     if existing is not None:
                         lock.__exit__(None, None, None)
                         blobs_created.append(existing)
+                        _ensure_blob_owned(existing)
                         continue
 
                     # Remember the lock to force unlock all at the end if we

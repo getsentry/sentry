@@ -8,7 +8,7 @@ from django.core.files.base import ContentFile
 
 from sentry.testutils import TestCase
 from sentry.tasks.assemble import assemble_dif, assemble_file
-from sentry.models import FileBlob
+from sentry.models import FileBlob, FileBlobOwner
 from sentry.models.file import ChunkFileState
 from sentry.models.debugfile import get_assemble_status, ProjectDebugFile
 
@@ -89,6 +89,10 @@ class AssembleTest(TestCase):
             blob = FileBlob.objects.get(checksum=checksum)
             ref_bytes = reference.getvalue()
             assert blob.getfile().read(len(ref_bytes)) == ref_bytes
+            FileBlobOwner.objects.filter(
+                blob=blob,
+                organization=self.organization
+            ).get()
 
         rv = assemble_file(
             self.project, 'testfile', file_checksum.hexdigest(),
