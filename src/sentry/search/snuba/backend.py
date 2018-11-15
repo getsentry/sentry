@@ -16,6 +16,7 @@ from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.models import Release, Group, GroupEnvironment
 from sentry.search.django import backend as ds
 from sentry.utils import snuba, metrics
+from sentry.utils.cache import cache
 from sentry.utils.dates import to_timestamp
 
 
@@ -240,17 +241,38 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
         assert start < end
 
-        # maximum number of Group IDs to send down to Snuba,
-        # if more Group ID candidates are found, a "bare" Snuba
-        # search is performed and the result groups are then
-        # post-filtered via queries to the Sentry DB
-        max_pre_snuba_candidates = options.get('snuba.search.max-pre-snuba-candidates')
+        # num_candidates is the number of Group IDs to send down to Snuba, if
+        # more Group ID candidates are found, a "bare" Snuba search is performed
+        # and the result groups are then post-filtered via queries to the Sentry DB
+        optimizer_enabled = options.get('snuba.search.pre-snuba-candidates-optimizer')
+        if optimizer_enabled:
+            key = 'snuba.search:project.group.count:%s' % project.id
+            project_group_count = cache.get(key)
+            if not project_group_count:
+                project_group_count = Group.objects.filter(project=project).count()
+                cache.set(key, project_group_count, options.get(
+                    'snuba.search.project-group-count-cache-time')
+                )
+
+            min_candidates = options.get('snuba.search.min-pre-snuba-candidates')
+            max_candidates = options.get('snuba.search.max-pre-snuba-candidates')
+            candidates_percentage = options.get('snuba.search.pre-snuba-candidates-percentage')
+
+            num_candidates = max(
+                min_candidates,
+                min(
+                    max_candidates,
+                    project_group_count * candidates_percentage
+                )
+            )
+        else:
+            num_candidates = options.get('snuba.search.min-pre-snuba-candidates')
 
         # pre-filter query
         candidate_ids = None
-        if max_pre_snuba_candidates and limit <= max_pre_snuba_candidates:
+        if num_candidates and limit <= num_candidates:
             candidate_ids = list(
-                group_queryset.values_list('id', flat=True)[:max_pre_snuba_candidates + 1]
+                group_queryset.values_list('id', flat=True)[:num_candidates + 1]
             )
             metrics.timing('snuba.search.num_candidates', len(candidate_ids))
 
@@ -258,12 +280,12 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 # no matches could possibly be found from this point on
                 metrics.incr('snuba.search.no_candidates')
                 return Paginator(Group.objects.none()).get_result()
-            elif len(candidate_ids) > max_pre_snuba_candidates:
+            elif len(candidate_ids) > num_candidates:
                 # If the pre-filter query didn't include anything to significantly
                 # filter down the number of results (from 'first_release', 'query',
                 # 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
                 # 'subscribed_by', 'active_at_from', or 'active_at_to') then it
-                # might have surpassed the `max_pre_snuba_candidates`. In this case,
+                # might have surpassed the `num_candidates`. In this case,
                 # we *don't* want to pass candidates down to Snuba, and instead we
                 # want Snuba to do all the filtering/sorting it can and *then* apply
                 # this queryset to the results from Snuba, which we call
