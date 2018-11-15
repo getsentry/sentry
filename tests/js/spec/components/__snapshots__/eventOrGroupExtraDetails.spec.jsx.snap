@@ -4,59 +4,48 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
 <GroupExtra
   align="center"
 >
-  <Box
-    mr={2}
-  >
-    <GroupShortId
-      shortId="shortId"
-    />
-  </Box>
-  <Flex
-    align="center"
-    mr={2}
-  >
-    <GroupExtraIcon
-      className="icon icon-clock"
-    />
-    <TimeSince
-      date="2017-07-25T22:56:12Z"
-      suffix="ago"
-    />
-    <span
-      className="hidden-xs hidden-sm"
+  <GroupShortId
+    shortId="shortId"
+  />
+  <Times>
+    <div
+      className="css-77t6iv"
     >
-       — 
-    </span>
-    <TimeSince
-      className="hidden-xs hidden-sm"
-      date="2017-07-01T02:06:02Z"
-      suffix="old"
-    />
-  </Flex>
+      <GroupTimeIcon
+        src="icon-clock-sm"
+      />
+      <TimeSince
+        date="2017-07-25T22:56:12Z"
+        suffix="ago"
+      />
+      <span
+        className="hidden-xs hidden-sm"
+      >
+         — 
+      </span>
+      <TimeSince
+        className="hidden-xs hidden-sm"
+        date="2017-07-01T02:06:02Z"
+        suffix="old"
+      />
+    </div>
+  </Times>
   <GroupExtraCommentsAndLogger>
     <Box
       mr={2}
     >
-      <Link
+      <CommentsLink
         className="comments"
-        onlyActiveOnIndex={false}
-        style={Object {}}
         to="/orgId/projectId/issues/groupId/activity/"
       >
         <GroupExtraIcon
-          className="icon icon-comments"
-          style={
-            Object {
-              "color": "#57be8c",
-            }
-          }
+          mentioned={true}
+          src="icon-comment-sm"
         />
-        <GroupExtraIcon
-          className="tag-count"
-        >
+        <span>
           14
-        </GroupExtraIcon>
-      </Link>
+        </span>
+      </CommentsLink>
     </Box>
     <Box
       className="event-annotation"
@@ -78,7 +67,7 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
       </Link>
     </Box>
   </GroupExtraCommentsAndLogger>
-  <Box
+  <div
     className="event-annotation"
     dangerouslySetInnerHTML={
       Object {
@@ -87,7 +76,7 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
     }
     key="0"
   />
-  <Box
+  <div
     className="event-annotation"
     dangerouslySetInnerHTML={
       Object {
@@ -103,55 +92,47 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
 <GroupExtra
   align="center"
 >
-  <Box
-    mr={2}
-  >
-    <GroupShortId
-      shortId="shortId"
-    />
-  </Box>
-  <Flex
-    align="center"
-    mr={2}
-  >
-    <GroupExtraIcon
-      className="icon icon-clock"
-    />
-    <TimeSince
-      date="2017-07-25T22:56:12Z"
-      suffix="ago"
-    />
-    <span
-      className="hidden-xs hidden-sm"
+  <GroupShortId
+    shortId="shortId"
+  />
+  <Times>
+    <div
+      className="css-77t6iv"
     >
-       — 
-    </span>
-    <TimeSince
-      className="hidden-xs hidden-sm"
-      date="2017-07-01T02:06:02Z"
-      suffix="old"
-    />
-  </Flex>
+      <GroupTimeIcon
+        src="icon-clock-sm"
+      />
+      <TimeSince
+        date="2017-07-25T22:56:12Z"
+        suffix="ago"
+      />
+      <span
+        className="hidden-xs hidden-sm"
+      >
+         — 
+      </span>
+      <TimeSince
+        className="hidden-xs hidden-sm"
+        date="2017-07-01T02:06:02Z"
+        suffix="old"
+      />
+    </div>
+  </Times>
   <GroupExtraCommentsAndLogger>
     <Box
       mr={2}
     >
-      <Link
+      <CommentsLink
         className="comments"
-        onlyActiveOnIndex={false}
-        style={Object {}}
         to="/orgId/projectId/issues/groupId/activity/"
       >
         <GroupExtraIcon
-          className="icon icon-comments"
-          style={Object {}}
+          src="icon-comment-sm"
         />
-        <GroupExtraIcon
-          className="tag-count"
-        >
+        <span>
           14
-        </GroupExtraIcon>
-      </Link>
+        </span>
+      </CommentsLink>
     </Box>
     <Box
       className="event-annotation"
@@ -173,7 +154,7 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
       </Link>
     </Box>
   </GroupExtraCommentsAndLogger>
-  <Box
+  <div
     className="event-annotation"
     dangerouslySetInnerHTML={
       Object {
@@ -182,7 +163,7 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
     }
     key="0"
   />
-  <Box
+  <div
     className="event-annotation"
     dangerouslySetInnerHTML={
       Object {
@@ -198,55 +179,47 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
 <GroupExtra
   align="center"
 >
-  <Box
-    mr={2}
-  >
-    <GroupShortId
-      shortId="shortId"
-    />
-  </Box>
-  <Flex
-    align="center"
-    mr={2}
-  >
-    <GroupExtraIcon
-      className="icon icon-clock"
-    />
-    <TimeSince
-      date="2017-07-25T22:56:12Z"
-      suffix="ago"
-    />
-    <span
-      className="hidden-xs hidden-sm"
+  <GroupShortId
+    shortId="shortId"
+  />
+  <Times>
+    <div
+      className="css-77t6iv"
     >
-       — 
-    </span>
-    <TimeSince
-      className="hidden-xs hidden-sm"
-      date="2017-07-01T02:06:02Z"
-      suffix="old"
-    />
-  </Flex>
+      <GroupTimeIcon
+        src="icon-clock-sm"
+      />
+      <TimeSince
+        date="2017-07-25T22:56:12Z"
+        suffix="ago"
+      />
+      <span
+        className="hidden-xs hidden-sm"
+      >
+         — 
+      </span>
+      <TimeSince
+        className="hidden-xs hidden-sm"
+        date="2017-07-01T02:06:02Z"
+        suffix="old"
+      />
+    </div>
+  </Times>
   <GroupExtraCommentsAndLogger>
     <Box
       mr={2}
     >
-      <Link
+      <CommentsLink
         className="comments"
-        onlyActiveOnIndex={false}
-        style={Object {}}
         to="/orgId/projectId/issues/groupId/activity/"
       >
         <GroupExtraIcon
-          className="icon icon-comments"
-          style={Object {}}
+          src="icon-comment-sm"
         />
-        <GroupExtraIcon
-          className="tag-count"
-        >
+        <span>
           14
-        </GroupExtraIcon>
-      </Link>
+        </span>
+      </CommentsLink>
     </Box>
     <Box
       className="event-annotation"
@@ -268,7 +241,7 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
       </Link>
     </Box>
   </GroupExtraCommentsAndLogger>
-  <Box
+  <div
     className="event-annotation"
     dangerouslySetInnerHTML={
       Object {
@@ -277,7 +250,7 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
     }
     key="0"
   />
-  <Box
+  <div
     className="event-annotation"
     dangerouslySetInnerHTML={
       Object {
@@ -286,7 +259,7 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
     }
     key="1"
   />
-  <Box>
+  <div>
     <span
       key="4"
     >
@@ -301,7 +274,7 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
         Assignee Name
       </span>
     </span>
-  </Box>
+  </div>
 </GroupExtra>
 `;
 
@@ -309,28 +282,29 @@ exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
 <GroupExtra
   align="center"
 >
-  <Flex
-    align="center"
-    mr={2}
-  >
-    <GroupExtraIcon
-      className="icon icon-clock"
-    />
-    <TimeSince
-      date="2017-07-25T22:56:12Z"
-      suffix="ago"
-    />
-    <span
-      className="hidden-xs hidden-sm"
+  <Times>
+    <div
+      className="css-77t6iv"
     >
-       — 
-    </span>
-    <TimeSince
-      className="hidden-xs hidden-sm"
-      date="2017-07-01T02:06:02Z"
-      suffix="old"
-    />
-  </Flex>
+      <GroupTimeIcon
+        src="icon-clock-sm"
+      />
+      <TimeSince
+        date="2017-07-25T22:56:12Z"
+        suffix="ago"
+      />
+      <span
+        className="hidden-xs hidden-sm"
+      >
+         — 
+      </span>
+      <TimeSince
+        className="hidden-xs hidden-sm"
+        date="2017-07-01T02:06:02Z"
+        suffix="old"
+      />
+    </div>
+  </Times>
   <GroupExtraCommentsAndLogger />
 </GroupExtra>
 `;
@@ -339,16 +313,17 @@ exports[`EventOrGroupExtraDetails renders only first seen 1`] = `
 <GroupExtra
   align="center"
 >
-  <Flex
-    align="center"
-    mr={2}
-  >
-    <TimeSince
-      className="hidden-xs hidden-sm"
-      date="2017-07-01T02:06:02Z"
-      suffix="old"
-    />
-  </Flex>
+  <Times>
+    <div
+      className="css-77t6iv"
+    >
+      <TimeSince
+        className="hidden-xs hidden-sm"
+        date="2017-07-01T02:06:02Z"
+        suffix="old"
+      />
+    </div>
+  </Times>
   <GroupExtraCommentsAndLogger />
 </GroupExtra>
 `;
@@ -357,18 +332,19 @@ exports[`EventOrGroupExtraDetails renders only last seen 1`] = `
 <GroupExtra
   align="center"
 >
-  <Flex
-    align="center"
-    mr={2}
-  >
-    <GroupExtraIcon
-      className="icon icon-clock"
-    />
-    <TimeSince
-      date="2017-07-25T22:56:12Z"
-      suffix="ago"
-    />
-  </Flex>
+  <Times>
+    <div
+      className="css-77t6iv"
+    >
+      <GroupTimeIcon
+        src="icon-clock-sm"
+      />
+      <TimeSince
+        date="2017-07-25T22:56:12Z"
+        suffix="ago"
+      />
+    </div>
+  </Times>
   <GroupExtraCommentsAndLogger />
 </GroupExtra>
 `;
