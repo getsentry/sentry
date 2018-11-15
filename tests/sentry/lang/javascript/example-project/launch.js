@@ -4,8 +4,8 @@ const stacktraceParser = require('stacktrace-parser');
 
 function convertStack(frames) {
   return frames.map((item) => {
-    const match = item.file.match(/^.*\/(.*?)$/);
-    let fileName, absPath;
+    var match = item.file.match(/^.*\/(.*?)$/);
+    var fileName, absPath;
     if (match && match[1]) {
       fileName = match[1];
       absPath = 'http://example.com/' + fileName;
