@@ -179,7 +179,7 @@ class TimeRangeSelector extends React.PureComponent {
         keepMenuOpen={true}
       >
         {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
-          <div {...getRootProps()} style={{position: 'relative', flex: '1'}}>
+          <TimeRangeRoot {...getRootProps()}>
             <StyledHeaderItem
               icon={<StyledInlineSvg src="icon-calendar" />}
               isOpen={isOpen}
@@ -224,12 +224,16 @@ class TimeRangeSelector extends React.PureComponent {
                 )}
               </Menu>
             )}
-          </div>
+          </TimeRangeRoot>
         )}
       </DropdownMenu>
     );
   }
 }
+
+const TimeRangeRoot = styled.div`
+  position: relative;
+`;
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
@@ -266,3 +270,5 @@ const SelectorList = styled(({isAbsoluteSelected, ...props}) => <Flex {...props}
 `;
 
 export default TimeRangeSelector;
+
+export {TimeRangeRoot};
