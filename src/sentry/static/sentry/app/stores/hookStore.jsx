@@ -1,6 +1,8 @@
 import Reflux from 'reflux';
 import _ from 'lodash';
 
+import sdk from 'app/utils/sdk';
+
 const validHookNames = new Set([
   // Additional routes
   'routes',
@@ -63,6 +65,9 @@ const HookStore = Reflux.createStore({
     if (!validHookNames.has(hookName)) {
       // eslint-disable-next-line no-console
       console.error('Invalid hook name: ' + hookName);
+      sdk.captureException(new Error('Invalid hook name'), {
+        extra: {hookName},
+      });
     }
     if (_.isUndefined(this.hooks[hookName])) {
       this.hooks[hookName] = [];
