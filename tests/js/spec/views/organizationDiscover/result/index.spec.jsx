@@ -152,15 +152,14 @@ describe('Result', function() {
         expect(buttons).toHaveLength(3);
       });
 
-      it('toggles', function() {
+      it('toggles buttons', function() {
         expect(wrapper.find('ResultTable')).toHaveLength(1);
         expect(wrapper.find('LineChart')).toHaveLength(0);
 
         wrapper
-          .find('.btn-group')
-          .at('2')
+          .find('ResultViewButtons')
           .find('a')
-          .at('1')
+          .at(1)
           .simulate('click');
         wrapper.update();
 
@@ -173,9 +172,9 @@ describe('Result', function() {
         expect(wrapper.find('LineChart')).toHaveLength(0);
 
         wrapper
-          .find('DropdownLink')
+          .find('ul.dropdown-menu')
           .find('a')
-          .at(2)
+          .at(1)
           .simulate('click');
 
         expect(wrapper.find('ResultTable')).toHaveLength(0);
