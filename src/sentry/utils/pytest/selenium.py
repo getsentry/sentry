@@ -173,9 +173,7 @@ class Browser(object):
 
     def snapshot(self, name):
         """
-        Capture a screenshot of the current state of the page. Screenshots
-        are captured both locally (in ``cls.screenshots_path``) as well as
-        with Percy (when enabled).
+        Capture a screenshot of the current state of the page.
         """
         # TODO(dcramer): ideally this would take the executing test package
         # into account for duplicate names

@@ -7,6 +7,7 @@ import createReactClass from 'create-react-class';
 
 import ConfigStore from 'app/stores/configStore';
 import SentryTypes from 'app/sentryTypes';
+import getDynamicText from 'app/utils/getDynamicText';
 import DateTime from 'app/components/dateTime';
 import FileSize from 'app/components/fileSize';
 import Tooltip from 'app/components/tooltip';
@@ -170,7 +171,10 @@ let GroupEventToolbar = createReactClass({
         <span>
           <Tooltip title={this.getDateTooltip()} tooltipOptions={{html: true}}>
             <span>
-              <DateTime date={evt.dateCreated} style={style} />
+              <DateTime
+                date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
+                style={style}
+              />
               {isOverLatencyThreshold && <span className="icon-alert" />}
             </span>
           </Tooltip>

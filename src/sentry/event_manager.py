@@ -199,11 +199,10 @@ else:
 
 
 def generate_culprit(data, platform=None):
-    culprit = ''
     try:
         stacktraces = [
             e['stacktrace'] for e in data['exception']['values']
-            if e.get('stacktrace')
+            if e and e.get('stacktrace')
         ]
     except KeyError:
         stacktrace = data.get('stacktrace')
@@ -212,16 +211,18 @@ def generate_culprit(data, platform=None):
         else:
             stacktraces = None
 
-    if not stacktraces:
-        if 'request' in data:
-            culprit = data['request'].get('url', '')
-    else:
+    culprit = None
+
+    if not culprit and stacktraces:
         from sentry.interfaces.stacktrace import Stacktrace
         culprit = Stacktrace.to_python(stacktraces[-1]).get_culprit_string(
             platform=platform,
         )
 
-    return truncatechars(culprit, MAX_CULPRIT_LENGTH)
+    if not culprit and 'request' in data:
+        culprit = data['request'].get('url', '')
+
+    return truncatechars(culprit or '', MAX_CULPRIT_LENGTH)
 
 
 def plugin_is_regression(group, event):
@@ -633,7 +634,7 @@ class EventManager(object):
         if exception:
             sdk_info = get_sdk_from_event(data)
             for ex in exception['values']:
-                if 'mechanism' in ex:
+                if ex is not None and 'mechanism' in ex:
                     normalize_mechanism_meta(ex['mechanism'], sdk_info)
 
         # If there is no User ip_addres, update it either from the Http interface
@@ -689,6 +690,8 @@ class EventManager(object):
         for exception_interface in self._data.get(
             'exception', {}
         ).get('values', []):
+            if exception_interface is None:
+                continue
             message = u': '.join(
                 filter(None, map(exception_interface.get, ['type', 'value']))
             )
@@ -783,11 +786,10 @@ class EventManager(object):
         data = event.data.data
         self._data = None
 
-        if not culprit:
-            if transaction_name:
-                culprit = transaction_name
-            else:
-                culprit = generate_culprit(data, platform=platform)
+        culprit = culprit or \
+            transaction_name or \
+            generate_culprit(data, platform=platform) or \
+            ''
 
         culprit = force_text(culprit)
         if transaction_name:

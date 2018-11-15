@@ -175,6 +175,8 @@ def find_stacktraces_in_data(data, include_raw=False):
     exc_container = data.get('exception')
     if exc_container:
         for exc in exc_container['values']:
+            if not exc:
+                continue
             stacktrace = exc.get('stacktrace')
             if stacktrace:
                 _report_stack(stacktrace, exc)

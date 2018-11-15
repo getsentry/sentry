@@ -135,7 +135,6 @@ STACKTRACE_INTERFACE_SCHEMA = {
             'type': 'array',
             # To validate individual frames use FRAME_INTERFACE_SCHEMA
             'items': {},
-            'minItems': 1,
         },
         'frames_omitted': {
             'type': 'array',
@@ -145,7 +144,7 @@ STACKTRACE_INTERFACE_SCHEMA = {
         },
         'registers': {'type': 'object'},
     },
-    'required': ['frames'],
+    'required': [],
     # `additionalProperties: {'not': {}}` forces additional properties to
     # individually fail with errors that identify the key, so they can be deleted.
     'additionalProperties': {'not': {}},
@@ -227,9 +226,6 @@ EXCEPTION_INTERFACE_SCHEMA = {
             # To validate stacktraces use STACKTRACE_INTERFACE_SCHEMA
             'type': 'object',
             'properties': {
-                # The code allows for the possibility of an empty
-                # {"frames":[]} object, this sucks and should go.
-                # STACKTRACE_INTERFACE_SCHEMA enforces at least 1
                 'frames': {'type': 'array'},
             },
         },

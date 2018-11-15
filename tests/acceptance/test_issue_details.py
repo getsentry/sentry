@@ -26,8 +26,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             platform=platform,
             default=default,
             sample_name=sample_name,
-            event_id='d964fdbd649a4cf8bfc35d18082b6b0e',
-            timestamp=1452683305,
+            event_id='d964fdbd649a4cf8bfc35d18082b6b0e'
         )
         event.group.update(
             first_seen=datetime(2015, 8, 13, 3, 8, 25, tzinfo=timezone.utc),
@@ -132,6 +131,28 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details pii stripped')
+
+    def test_empty_exception(self):
+        event = self.create_sample_event(
+            platform='empty-exception'
+        )
+
+        self.browser.get(
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+        )
+        self.browser.wait_until('.entries')
+        self.browser.snapshot('issue details empty exception')
+
+    def test_empty_stacktrace(self):
+        event = self.create_sample_event(
+            platform='empty-stacktrace'
+        )
+
+        self.browser.get(
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+        )
+        self.browser.wait_until('.entries')
+        self.browser.snapshot('issue details empty stacktrace')
 
     def test_activity_page(self):
         event = self.create_sample_event(
