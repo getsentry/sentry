@@ -6,11 +6,11 @@ import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
 describe('Result', function() {
   describe('New query', function() {
-    let wrapper;
+    let wrapper, data, organization;
     beforeEach(function() {
-      const organization = TestStubs.Organization();
+      organization = TestStubs.Organization();
 
-      const data = {
+      data = {
         baseQuery: {
           data: {data: [], meta: [], timing: {duration_ms: 15}},
           query: {
@@ -38,7 +38,7 @@ describe('Result', function() {
 
     describe('Render Summary', function() {
       it('shows correct range for pagination in summary', async function() {
-        const data = {
+        data = {
           data: {
             baseQuery: {
               query: {
@@ -73,7 +73,7 @@ describe('Result', function() {
       });
 
       it('shows correct number of results shown when going to next page (next page function mocked on click)', async function() {
-        const data = {
+        data = {
           data: {
             baseQuery: {
               query: {
@@ -139,26 +139,10 @@ describe('Result', function() {
     });
     describe('Toggles Visualizations', function() {
       beforeEach(function() {
-        const organization = TestStubs.Organization();
-
-        const data = {
-          baseQuery: {
-            data: {data: [], meta: [], timing: {duration_ms: 15}},
-            query: {
-              aggregations: [['count()', null, 'count']],
-              conditions: [],
-            },
-          },
-          byDayQuery: {
-            query: null,
-            data: null,
-          },
-        };
         wrapper = mount(
           <Result data={data} organization={organization} onFetchPage={jest.fn()} />,
           {
             context: {organization},
-            disableLifecycleMethods: false,
           }
         );
       });
