@@ -74,15 +74,14 @@ class JiraServerIntegrationProvider(IntegrationProvider):
         return []
 
     def build_integration(self, state):
+        # TODO(lb): This is wrong. Not currently operational.
+        # this should be implemented.
+        user = state['identity']['data']
         return {
             'provider': 'jira_server',
-            'external_id': state['clientKey'],
-            'name': 'Jira Server',  # TODO(lb): definitely wrong
-            'metadata': {
-                'oauth_client_id': state['oauthClientId'],
-                'public_key': state['publicKey'],
-                'shared_secret': state['sharedSecret'],
-                'base_url': state['baseUrl'],
-                'domain_name': state['baseUrl'].replace('https://', ''),
-            },
+            'external_id': '%s:%s' % (state['base_url'], state['id']),
+            'user_identity': {
+                'type': 'jira_server',
+                'external_id': '%s:%s' % (state['base_url'], user['id'])
+            }
         }
