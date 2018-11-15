@@ -6,6 +6,7 @@ from mock import patch
 
 from django.core.urlresolvers import reverse
 
+from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.jira import JiraIntegration
 from sentry.models import Integration
 from sentry.testutils import APITestCase
@@ -51,7 +52,27 @@ class JiraSearchEndpointTest(APITestCase):
         path = reverse('sentry-extensions-jira-search', args=[org.slug, integration.id])
 
         resp = self.client.get('%s?field=externalIssue&query=test' % (path,))
+        assert resp.status_code == 200
         assert resp.data == [
             {'label': '(HSP-1) this is a test issue summary', 'value': 'HSP-1'}
         ]
+        mock_search_issues.assert_called_with('test')
+
+    @patch.object(JiraIntegration, 'search_issues',
+                  side_effect=IntegrationError('Oh no, something went wrong'))
+    def test_error(self, mock_search_issues):
+        org = self.organization
+        self.login_as(self.user)
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org, self.user)
+
+        path = reverse('sentry-extensions-jira-search', args=[org.slug, integration.id])
+
+        resp = self.client.get('%s?field=externalIssue&query=test' % (path,))
+        assert resp.status_code == 400
+        assert resp.data == {'detail': 'Oh no, something went wrong'}
         mock_search_issues.assert_called_with('test')
