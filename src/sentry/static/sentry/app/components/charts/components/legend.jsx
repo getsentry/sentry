@@ -4,7 +4,7 @@ import {truncationFormatter} from '../utils';
 
 export default function Legend({truncate, ...props} = {}) {
   const formatter = value => {
-    return truncate ? truncationFormatter(value, truncate) : value;
+    return truncationFormatter(value, truncate);
   };
 
   return {

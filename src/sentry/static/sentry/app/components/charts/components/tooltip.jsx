@@ -25,14 +25,13 @@ function getFormatter({filter, isGroupedByDate, truncate}) {
       seriesParams.length &&
       formatAxisLabel(seriesParams[0].axisValueLabel, isGroupedByDate);
     return [
-      `<div>${truncate ? truncationFormatter(label, truncate) : label}</div>`,
+      `<div>${truncationFormatter(label, truncate)}</div>`,
       seriesParams
         .filter(getFilter)
         .map(
           s =>
-            `<div>${s.marker} ${truncate
-              ? truncationFormatter(s.seriesName, truncate)
-              : s.seriesName}:  ${s.data[1]}</div>`
+            `<div>${s.marker} ${truncationFormatter(s.seriesName, truncate)}:  ${s
+              .data[1]}</div>`
         )
         .join(''),
     ].join('');
