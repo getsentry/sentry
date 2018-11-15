@@ -1,7 +1,7 @@
+import {Flex} from 'grid-emotion';
 import {isEqual} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
-import {Flex} from 'grid-emotion';
 
 import {Panel} from 'app/components/panels';
 import {getParams} from 'app/views/organizationEvents/utils';
@@ -10,9 +10,10 @@ import AsyncView from 'app/views/asyncView';
 import EventsChart from 'app/views/organizationEvents/eventsChart';
 import EventsTable from 'app/views/organizationEvents/eventsTable';
 import Pagination from 'app/components/pagination';
+import PreviewFeature from 'app/components/previewFeature';
+import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
-import PreviewFeature from 'app/components/previewFeature';
 
 class OrganizationEvents extends AsyncView {
   static propTypes = {
@@ -54,7 +55,7 @@ class OrganizationEvents extends AsyncView {
         `/organizations/${organization.slug}/events/`,
         {
           query: getParams({
-            period: statsPeriod,
+            statsPeriod,
             ...query,
           }),
         },
@@ -66,15 +67,30 @@ class OrganizationEvents extends AsyncView {
     return `Events - ${this.props.organization.slug}`;
   }
 
+  handleSearch = query => {
+    let {router, location} = this.props;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...(location.query || {}),
+        query,
+      },
+    });
+  };
+
   renderBody() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
     const {reloading, events, eventsPageLinks} = this.state;
 
     return (
       <React.Fragment>
         <Flex align="center" justify="space-between" mb={2}>
           <HeaderTitle>{t('Events')}</HeaderTitle>
-          {this.renderSearchInput({debounceWait: 1000})}
+          <StyledSearchBar
+            query={location.query && location.query.query}
+            placeholder={t('Search for events, users, tags, and everything else.')}
+            onSearch={this.handleSearch}
+          />
         </Flex>
 
         <PreviewFeature type="info" />
@@ -92,7 +108,12 @@ class OrganizationEvents extends AsyncView {
 }
 
 const HeaderTitle = styled('h4')`
+  flex: 1;
   margin: 0;
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex: 1;
 `;
 
 export default withOrganization(OrganizationEvents);
