@@ -4,8 +4,6 @@ import classNames from 'classnames';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
-import styled from 'react-emotion';
-import theme from 'app/utils/theme';
 
 import {ResultViewButtons, ResultViewDropdownButtons} from '../styles';
 
@@ -47,14 +45,10 @@ class VisualizationsToggle extends React.Component {
     );
   };
 
-  getName = key => {
-    const {options} = this.props;
-    return options.find(opt => {return opt.id === key;}).name;
-  };
-
   render() {
-    const {options} = this.props;
-    const dropdownTitle = t(`View: ${this.getName(this.props.visualization)}`);
+    const {options, visualization} = this.props;
+    const name = options.find(opt => opt.id === visualization).name;
+    const dropdownTitle = t(`View: ${name}`);
 
     return (
       <React.Fragment>
@@ -64,10 +58,7 @@ class VisualizationsToggle extends React.Component {
           })}
         </ResultViewButtons>
         <ResultViewDropdownButtons>
-          <DropdownLink
-            title={dropdownTitle}
-            className={'btn btn-default btn-sm'}
-          >
+          <DropdownLink title={dropdownTitle} className={'btn btn-default btn-sm'}>
             {options.map(opt => {
               return this.getMenuItem(opt);
             })}
