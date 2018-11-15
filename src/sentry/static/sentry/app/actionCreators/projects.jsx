@@ -49,21 +49,23 @@ export function loadStats(api, params) {
 // Will be cleared when debounced function fires
 let _projectStatsToFetch = new Set();
 
-// Max projects to query at a time
-const MAX_PROJECTS_TO_FETCH = 7;
+// Max projects to query at a time, otherwise if we fetch too many in the same request
+// it can timeout
+const MAX_PROJECTS_TO_FETCH = 10;
 
-const query = (api, projects, orgId) => {
+const _queryForStats = (api, projects, orgId) => {
   let idQueryParams = projects.map(project => `id:${project}`).join(' ');
   let endpoint = `/organizations/${orgId}/projects/`;
 
-  console.log('query', projects.length);
   return api.requestPromise(endpoint, {
-    statsPeriod: '24h',
-    query: {query: idQueryParams},
+    query: {
+      statsPeriod: '24h',
+      query: idQueryParams,
+    },
   });
 };
 
-const _debouncedLoadStats = debounce((api, projectSet, params) => {
+export const _debouncedLoadStats = debounce((api, projectSet, params) => {
   let existingProjectStats = Object.values(ProjectsStatsStore.getAll()).map(({id}) => id);
   let projects = Array.from(projectSet).filter(
     project => !existingProjectStats.includes(project)
@@ -74,18 +76,21 @@ const _debouncedLoadStats = debounce((api, projectSet, params) => {
     return;
   }
 
-  console.log('projects', projects.length);
   const queries = [
     ...Array(Math.ceil(projects.length / MAX_PROJECTS_TO_FETCH)),
   ].map((val, index) => {
     const start = index * MAX_PROJECTS_TO_FETCH;
-    return query(api, projects.slice(start, start + MAX_PROJECTS_TO_FETCH), params.orgId);
+    return _queryForStats(
+      api,
+      projects.slice(start, start + MAX_PROJECTS_TO_FETCH),
+      params.orgId
+    );
   });
 
   Promise.all(queries)
     .then(results => {
       ProjectActions.loadStatsForProjectSuccess(
-        results.reduce((acc, result) => [...acc, result], [])
+        results.reduce((acc, result) => [...acc, ...result], [])
       );
     })
     .catch(err => {
