@@ -35,6 +35,7 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
           orgId="org-slug"
           repository={
             Object {
+              "externalSlug": "example/repo-name",
               "id": "4",
               "name": "example/repo-name",
               "provider": "github",

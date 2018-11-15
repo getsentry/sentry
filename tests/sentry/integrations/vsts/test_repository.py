@@ -117,3 +117,11 @@ class VisualStudioRepositoryProviderTest(TestCase):
             },
             'integration_id': integration.id,
         }
+
+    def test_repository_external_slug(self):
+        repo = Repository(
+            name='MyFirstProject',
+            url='https://mbittker.visualstudio.com/_git/MyFirstProject/',
+            external_id=self.vsts_external_id)
+        result = self.provider.repository_external_slug(repo)
+        assert result == repo.external_id
