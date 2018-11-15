@@ -337,6 +337,7 @@ describe('OrganizationDashboard', function() {
       );
       jest.useRealTimers();
       await tick();
+      await tick();
       wrapper.update();
       expect(wrapper.find('LoadingCard')).toHaveLength(0);
       expect(wrapper.find('Chart')).toHaveLength(9);
