@@ -16,7 +16,8 @@ from sentry.api.bases.organization import (OrganizationEndpoint,
                                            OrganizationReleasePermission)
 
 
-DEFAULT_BLOB_SIZE = 8 * 1024 * 1024  # eight mb
+# The blob size must be a power of two
+DEFAULT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 4
