@@ -45,7 +45,7 @@ const ProjectDebugSymbols = createReactClass({
       loading: true,
       error: false,
       debugFiles: [],
-      query: '',
+      query: {query: ''},
       pageLinks: '',
     };
   },
@@ -64,7 +64,7 @@ const ProjectDebugSymbols = createReactClass({
       const queryParams = nextProps.location.query;
       this.setState(
         {
-          query: queryParams.query,
+          query: queryParams,
         },
         this.fetchData
       );
@@ -73,10 +73,9 @@ const ProjectDebugSymbols = createReactClass({
 
   fetchData() {
     const {orgId, projectId} = this.props.params;
-
     const query = {
       per_page: 20,
-      query: this.state.query,
+      ...this.state.query,
     };
 
     this.setState({
@@ -219,7 +218,7 @@ const ProjectDebugSymbols = createReactClass({
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.debugFiles.length > 0) body = this.renderDsyms();
-    else if (this.state.query && this.state.query !== '')
+    else if (this.state.query && this.state.query.query !== '')
       body = this.renderNoQueryResults();
     else body = this.renderEmpty();
 
@@ -246,7 +245,7 @@ const ProjectDebugSymbols = createReactClass({
             <SearchBar
               defaultQuery=""
               placeholder={t('Search for a DIF')}
-              query={this.state.query}
+              query={this.state.query.query}
               onSearch={this.onSearch}
             />
           </div>
