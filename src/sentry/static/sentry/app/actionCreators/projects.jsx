@@ -1,4 +1,4 @@
-import {debounce} from 'lodash';
+import {chunk, debounce} from 'lodash';
 
 import {
   addLoadingMessage,
@@ -76,16 +76,11 @@ export const _debouncedLoadStats = debounce((api, projectSet, params) => {
     return;
   }
 
-  const queries = [
-    ...Array(Math.ceil(projects.length / MAX_PROJECTS_TO_FETCH)),
-  ].map((val, index) => {
-    const start = index * MAX_PROJECTS_TO_FETCH;
-    return _queryForStats(
-      api,
-      projects.slice(start, start + MAX_PROJECTS_TO_FETCH),
-      params.orgId
-    );
-  });
+  // Split projects into more manageable chunks to query, otherwise we can
+  // potentially face server timeouts
+  const queries = chunk(projects, MAX_PROJECTS_TO_FETCH).map(chunkedProjects =>
+    _queryForStats(api, chunkedProjects, params.orgId)
+  );
 
   Promise.all(queries)
     .then(results => {
