@@ -72,14 +72,14 @@ class OrganizationEvents extends AsyncView {
     router.push({
       pathname: location.pathname,
       query: {
-        ...this.state.query,
+        ...(location.query || {}),
         query,
       },
     });
   };
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
     const {reloading, events, eventsPageLinks} = this.state;
 
     return (
@@ -87,6 +87,7 @@ class OrganizationEvents extends AsyncView {
         <Flex align="center" justify="space-between" mb={2}>
           <HeaderTitle>{t('Events')}</HeaderTitle>
           <StyledSearchBar
+            query={location.query && location.query.query}
             placeholder={t('Search for events, users, tags, and everything else.')}
             onSearch={this.handleSearch}
           />
