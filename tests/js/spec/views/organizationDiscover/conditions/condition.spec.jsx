@@ -45,19 +45,22 @@ describe('Condition', function() {
     });
 
     it('renders operator options for string column', function() {
-      const options = wrapper.instance().filterOptions([], 'col1');
+      wrapper.setState({inputValue: 'col1'});
+      const options = wrapper.instance().filterOptions([]);
       expect(options).toHaveLength(6);
       expect(options[0]).toEqual({value: 'col1 =', label: 'col1 ='});
     });
 
     it('renders operator options for number column', function() {
-      const options = wrapper.instance().filterOptions([], 'col2');
+      wrapper.setState({inputValue: 'col2'});
+      const options = wrapper.instance().filterOptions([]);
       expect(options).toHaveLength(8);
       expect(options[0]).toEqual({value: 'col2 >', label: 'col2 >'});
     });
 
     it('renders operator options for datetime column', function() {
-      const options = wrapper.instance().filterOptions([], 'col3');
+      wrapper.setState({inputValue: 'col3'});
+      const options = wrapper.instance().filterOptions([]);
       expect(options).toHaveLength(8);
       expect(options[0]).toEqual({value: 'col3 >', label: 'col3 >'});
       expect(options[1]).toEqual({value: 'col3 <', label: 'col3 <'});
@@ -70,7 +73,8 @@ describe('Condition', function() {
     });
 
     it('limits operators to = and != for array fields', function() {
-      const options = wrapper.instance().filterOptions([], 'error.type');
+      wrapper.setState({inputValue: 'error.type'});
+      const options = wrapper.instance().filterOptions([]);
       expect(options).toHaveLength(2);
       expect(options[0].value).toEqual('error.type =');
       expect(options[1].value).toEqual('error.type !=');

@@ -4,7 +4,7 @@ import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
-import {getInternal, getExternal, isValidCondition} from './utils';
+import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
 import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
 import {PlaceholderText} from '../styles';
 
@@ -86,8 +86,8 @@ export default class Condition extends React.Component {
     });
   }
 
-  filterOptions = (options, input) => {
-    input = input || this.state.inputValue;
+  filterOptions = options => {
+    const input = this.state.inputValue;
 
     let optionList = options;
     const external = getExternal(input, this.props.columns);
@@ -122,6 +122,7 @@ export default class Condition extends React.Component {
   };
 
   isValidNewOption = ({label}) => {
+    label = ignoreCase(label);
     return isValidCondition(getExternal(label, this.props.columns), this.props.columns);
   };
 
@@ -148,10 +149,18 @@ export default class Condition extends React.Component {
 
   handleInputChange = value => {
     this.setState({
-      inputValue: value,
+      inputValue: ignoreCase(value),
     });
 
     return value;
+  };
+
+  newOptionCreator = ({label, labelKey, valueKey}) => {
+    label = ignoreCase(label);
+    return {
+      [valueKey]: label,
+      [labelKey]: label,
+    };
   };
 
   render() {
@@ -179,6 +188,7 @@ export default class Condition extends React.Component {
           promptTextCreator={text => text}
           shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
           disabled={this.props.disabled}
+          newOptionCreator={this.newOptionCreator}
         />
       </Box>
     );

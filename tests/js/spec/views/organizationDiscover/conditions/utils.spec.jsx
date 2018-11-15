@@ -2,6 +2,7 @@ import {
   getInternal,
   getExternal,
   isValidCondition,
+  ignoreCase,
 } from 'app/views/organizationDiscover/conditions/utils';
 
 import {COLUMNS} from 'app/views/organizationDiscover/data';
@@ -78,6 +79,37 @@ describe('Conditions', function() {
         true
       );
       expect(isValidCondition(['device_name', 'iS', '%something%'], COLUMNS)).toBe(false);
+    });
+  });
+
+  describe('ignoreCase()', function() {
+    const conditionCases = [
+      {
+        input: '',
+        output: '',
+      },
+      {
+        input: 'event_id like %test%',
+        output: 'event_id LIKE %test%',
+      },
+      {
+        input: 'event_id IS Nul',
+        output: 'event_id IS NUL',
+      },
+      {
+        input: 'event_id = asdf',
+        output: 'event_id = asdf',
+      },
+      {
+        input: 'event_id IS not null',
+        output: 'event_id IS NOT NULL',
+      },
+    ];
+
+    it('uppercases condition operators', function() {
+      conditionCases.forEach(({input, output}) => {
+        expect(ignoreCase(input)).toBe(output);
+      });
     });
   });
 });

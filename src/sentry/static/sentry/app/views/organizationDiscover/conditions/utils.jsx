@@ -107,3 +107,35 @@ export function getExternal(internal, columns) {
 
   return external;
 }
+
+/**
+* Transform casing of condition operators to uppercase. Applies to the operators
+* IS NULL, IS NOT NULL, LIKE and NOT LIKE
+*
+* @param {String} input Condition string as input by user
+* @returns {String}
+*/
+
+export function ignoreCase(input = '') {
+  const colName = input.split(' ')[0];
+
+  // Strip column name from the start
+  const match = input.match(/^[\w._]+\s(.*)/);
+  let remaining = match ? match[1] : null;
+
+  if (!remaining) {
+    return input;
+  }
+
+  for (let i = 0; i < CONDITION_OPERATORS.length; i++) {
+    const operator = CONDITION_OPERATORS[i];
+
+    if (operator.startsWith(remaining.toUpperCase())) {
+      return `${colName} ${remaining.toUpperCase()}`;
+    } else if (remaining.toUpperCase().startsWith(operator)) {
+      return `${colName} ${operator} ${remaining.slice(operator.length + 1)}`;
+    }
+  }
+
+  return input;
+}
