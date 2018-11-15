@@ -141,15 +141,13 @@ describe('IntegrationRepos', function() {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
-        body: [
-          TestStubs.Repository({name: 'Repo Name', externalSlug: 'example/repo-name'}),
-        ],
+        body: [TestStubs.Repository({name: 'repo-name', externalSlug: 9876})],
       });
       const getItems = Client.addMockResponse({
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
         method: 'GET',
         body: {
-          repos: [{identifier: 'example/repo-name', name: 'repo-name'}],
+          repos: [{identifier: 9876, name: 'repo-name'}],
         },
       });
       const updateRepo = Client.addMockResponse({

@@ -23,7 +23,7 @@ class RepositoryMixin(object):
 
         The shape of the `identifier` should match the data
         returned by the integration's
-        IntegrationRepositoryProvider.repository_external_id()
+        IntegrationRepositoryProvider.repository_external_slug()
         """
         raise NotImplementedError
 
