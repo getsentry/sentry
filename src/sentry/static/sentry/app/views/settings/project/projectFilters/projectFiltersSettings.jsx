@@ -181,9 +181,9 @@ class ProjectFiltersSettings extends AsyncComponent {
 
   renderDisabledCustomFilters = p => (
     <FeatureDisabled
+      featureName={t('Custom Inbound Filters')}
       features={p.features}
       alert={PanelAlert}
-      name={t('Custom Inbound Filters')}
       message={t(
         'Release and Error Message filtering are not enabled on your Sentry installation'
       )}
