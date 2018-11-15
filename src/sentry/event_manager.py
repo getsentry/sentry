@@ -34,7 +34,7 @@ from sentry.coreapi import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
+    Activity, Environment, Event, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
     ReleaseProjectEnvironment, UserReport
@@ -55,7 +55,6 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
 from sentry.utils.safe import safe_execute, trim
 from sentry.utils.strings import truncatechars
-from sentry.utils.validators import is_float
 from sentry.utils.geo import rust_geoip
 from sentry.stacktraces import normalize_in_app
 
@@ -65,7 +64,8 @@ logger = logging.getLogger("sentry.events")
 
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
-ALLOWED_FUTURE_DELTA = timedelta(minutes=1)
+MAX_SECS_IN_FUTURE = 60
+MAX_SECS_IN_PAST = 2592000  # 30 days
 SECURITY_REPORT_INTERFACES = (
     "csp",
     "hpkp",
@@ -230,41 +230,6 @@ def plugin_is_regression(group, event):
         if result is not None:
             return result
     return True
-
-
-def process_timestamp(value, current_datetime=None):
-    if is_float(value):
-        try:
-            value = datetime.fromtimestamp(float(value))
-        except Exception:
-            raise InvalidTimestamp(EventError.INVALID_DATA)
-    elif not isinstance(value, datetime):
-        # all timestamps are in UTC, but the marker is optional
-        if value.endswith('Z'):
-            value = value[:-1]
-        if '.' in value:
-            # Python doesn't support long microsecond values
-            # https://github.com/getsentry/sentry/issues/1610
-            ts_bits = value.split('.', 1)
-            value = '%s.%s' % (ts_bits[0], ts_bits[1][:2])
-            fmt = '%Y-%m-%dT%H:%M:%S.%f'
-        else:
-            fmt = '%Y-%m-%dT%H:%M:%S'
-        try:
-            value = datetime.strptime(value, fmt)
-        except Exception:
-            raise InvalidTimestamp(EventError.INVALID_DATA)
-
-    if current_datetime is None:
-        current_datetime = datetime.now()
-
-    if value > current_datetime + ALLOWED_FUTURE_DELTA:
-        raise InvalidTimestamp(EventError.FUTURE_TIMESTAMP)
-
-    if value < current_datetime - timedelta(days=30):
-        raise InvalidTimestamp(EventError.PAST_TIMESTAMP)
-
-    return float(value.strftime('%s'))
 
 
 class HashDiscarded(Exception):
@@ -445,7 +410,9 @@ class EventManager(object):
             key_id=self._key.id if self._key else None,
             protocol_version=self.version,
             stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
-            valid_platforms=list(VALID_PLATFORMS)
+            valid_platforms=list(VALID_PLATFORMS),
+            max_secs_in_future=MAX_SECS_IN_FUTURE,
+            max_secs_in_past=MAX_SECS_IN_PAST
         )
 
         self._data = rust_normalizer.normalize_event(dict(self._data))
