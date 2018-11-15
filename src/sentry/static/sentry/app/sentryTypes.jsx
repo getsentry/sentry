@@ -300,6 +300,13 @@ export const PluginsStore = PropTypes.shape({
   pageLinks: PropTypes.any,
 });
 
+export const AuthProvider = PropTypes.shape({
+  key: PropTypes.string,
+  name: PropTypes.string,
+  requiredFeature: PropTypes.string,
+  disables2FA: PropTypes.bool,
+});
+
 export const ProjectDsn = {
   secret: PropTypes.string,
   minidump: PropTypes.string,
@@ -835,6 +842,7 @@ let SentryTypes = {
     id: PropTypes.string.isRequired,
   }),
   Actor,
+  AuthProvider,
   Config,
   Deploy,
   DiscoverSavedQuery,
