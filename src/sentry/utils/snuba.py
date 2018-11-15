@@ -25,11 +25,11 @@ MAX_HASHES = 5000
 
 SENTRY_SNUBA_MAP = {
     # general
-    'event_id': 'event_id',
-    'project_id': 'project_id',
+    'id': 'event_id',
+    'project.id': 'project_id',
     'platform': 'platform',
     'message': 'message',
-    'issue': 'issue',
+    'issue.id': 'issue',
     'timestamp': 'timestamp',
     'time': 'time',
     'type': 'type',

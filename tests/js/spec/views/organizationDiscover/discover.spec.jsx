@@ -22,7 +22,7 @@ describe('Discover', function() {
     beforeEach(function() {
       mockResponse = {
         timing: {},
-        data: [{foo: 'bar', project_id: project.id}],
+        data: [{foo: 'bar', 'project.id': project.id}],
         meta: [{name: 'foo'}],
       };
       queryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
@@ -183,7 +183,7 @@ describe('Discover', function() {
 
     it('runs basic query', async function() {
       const query = {...queryBuilder.getExternal()};
-      query.fields = [...queryBuilder.getExternal().fields, 'project_id'];
+      query.fields = [...queryBuilder.getExternal().fields, 'project.id'];
 
       wrapper.instance().runQuery();
       await tick();
@@ -192,14 +192,14 @@ describe('Discover', function() {
       expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
     });
 
-    it('always requests event_id and project_id for basic queries', async function() {
+    it('always requests id and project.id for basic queries', async function() {
       queryBuilder.updateField('fields', ['message']);
       wrapper.instance().runQuery();
       await tick();
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
       expect(queryBuilder.fetch).toHaveBeenCalledWith(
         expect.objectContaining({
-          fields: ['message', 'event_id', 'project_id'],
+          fields: ['message', 'id', 'project.id'],
         })
       );
       expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
@@ -293,7 +293,7 @@ describe('Discover', function() {
         );
 
         wrapper.instance().updateField('fields', ['message']);
-        wrapper.instance().updateField('orderby', 'event_id');
+        wrapper.instance().updateField('orderby', 'id');
         wrapper.instance().updateField('limit', 5);
 
         wrapper.instance().runQuery();
@@ -315,11 +315,11 @@ describe('Discover', function() {
         expect(fields.text()).toContain('message');
         wrapper.instance().reset();
         expect(fields.text()).not.toContain('message');
-        expect(fields.text()).toContain('event_id');
+        expect(fields.text()).toContain('id');
       });
 
       it('resets "orderby"', function() {
-        expect(wrapper.find('SelectControl[name="orderby"]').text()).toBe('event_id asc');
+        expect(wrapper.find('SelectControl[name="orderby"]').text()).toBe('id asc');
         wrapper.instance().reset();
         wrapper.update();
         expect(wrapper.find('SelectControl[name="orderby"]').text()).toBe(
@@ -458,7 +458,7 @@ describe('Discover', function() {
         .simulate('click');
 
       const query = queryBuilder.getInternal();
-      expect(query.fields).toEqual(['event_id']);
+      expect(query.fields).toEqual(['id']);
       expect(query.limit).toEqual(10);
     });
   });
