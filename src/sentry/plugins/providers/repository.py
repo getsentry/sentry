@@ -127,6 +127,20 @@ class RepositoryProvider(ProviderMixin):
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
         raise NotImplementedError
 
+    def pull_request_url(self, repo, pull_request):
+        """
+        Generate a URL to a pull request on the repository provider.
+        """
+        return None
+
+    def repository_external_slug(self, repo):
+        """
+        Generate the public facing 'external_slug' for a repository
+        The shape of this id must match the `identifier` returned by
+        the Plugin's get repositories method
+        """
+        return None
+
     @staticmethod
     def should_ignore_commit(message):
         return '#skipsentry' in message
