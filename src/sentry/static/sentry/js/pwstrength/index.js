@@ -19,7 +19,7 @@ module.exports = (function() {
 
   var setStrength = function(score, $bar, $label) {
     if (score > -1 && score <= MAX) {
-      var scoreRatio = score === 0 ? 0 : score / MAX;
+      var scoreRatio = score / MAX;
       var percent = Math.round(scoreRatio * 100);
       var color = colors[score] || 'transparent';
       var label = labels[score] || '';
