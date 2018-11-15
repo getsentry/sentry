@@ -9,11 +9,12 @@ import Button from 'app/components/button';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Hovercard from 'app/components/hovercard';
+import SentryTypes from 'app/sentryTypes';
 import Tag from 'app/views/settings/components/tag';
 
 export default class ProviderItem extends React.PureComponent {
   static propTypes = {
-    provider: PropTypes.object.isRequired,
+    provider: SentryTypes.AuthProvider.isRequired,
     onConfigure: PropTypes.func.isRequired,
   };
 

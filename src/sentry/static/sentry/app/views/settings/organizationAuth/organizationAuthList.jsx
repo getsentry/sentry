@@ -19,7 +19,7 @@ class OrganizationAuthList extends React.Component {
   };
 
   static propTypes = {
-    providerList: PropTypes.array,
+    providerList: PropTypes.arrayOf(SentryTypes.AuthProvider).isRequired,
   };
 
   render() {
