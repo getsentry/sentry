@@ -185,4 +185,33 @@ describe('OrganizationEvents', function() {
       },
     });
   });
+
+  it('changes to absolute time', async function() {
+    const start = new Date('2017-10-01T04:00:00.000Z');
+    const end = new Date('2017-10-02T03:59:59.000Z');
+
+    wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+    await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+
+    // Oct 1st
+    wrapper
+      .find('DayCell')
+      .at(0)
+      .simulate('mouseUp');
+
+    expect(wrapper.state('period')).toEqual(null);
+    expect(wrapper.state('start')).toEqual(start);
+    expect(wrapper.state('end')).toEqual(end);
+
+    wrapper.find('TimeRangeSelector StyledChevron').simulate('click');
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {
+        start: '2017-10-01T04:00:00',
+        end: '2017-10-02T03:59:59',
+      },
+    });
+  });
 });
