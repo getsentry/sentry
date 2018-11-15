@@ -90,7 +90,7 @@ export const _debouncedLoadStats = debounce((api, projectSet, params) => {
   Promise.all(queries)
     .then(results => {
       ProjectActions.loadStatsForProjectSuccess(
-        results.reduce((acc, result) => [...acc, ...result], [])
+        results.reduce((acc, result) => acc.concat(result), [])
       );
     })
     .catch(err => {
