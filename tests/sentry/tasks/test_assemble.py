@@ -82,7 +82,7 @@ class AssembleTest(TestCase):
             files.append((io.BytesIO(blob), hash))
 
         # upload all blobs
-        FileBlob.from_files(files)
+        FileBlob.from_files(files, organization=self.organization)
 
         # find all blobs
         for reference, checksum in files:
@@ -98,3 +98,14 @@ class AssembleTest(TestCase):
         f, tmp = rv
         assert f.checksum == file_checksum.hexdigest()
         assert f.type == 'dummy.type'
+
+        # upload all blobs a second time
+        for f, _ in files:
+            f.seek(0)
+        FileBlob.from_files(files, organization=self.organization)
+
+        # assemble a second time
+        f = assemble_file(
+            self.project, 'testfile', file_checksum.hexdigest(),
+            [x[1] for x in files], 'dummy.type')[0]
+        assert f.checksum == file_checksum.hexdigest()
