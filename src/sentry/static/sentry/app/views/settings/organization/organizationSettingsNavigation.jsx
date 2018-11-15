@@ -13,6 +13,15 @@ const OrganizationSettingsNavigation = createReactClass({
   mixins: [OrganizationState, Reflux.listenTo(HookStore, 'handleHooks')],
 
   getInitialState() {
+    return this.getHooks();
+  },
+
+  componentDidMount() {
+    // eslint-disable-next-line react/no-did-mount-set-state
+    this.setState(this.getHooks());
+  },
+
+  getHooks() {
     // Allow injection via getsentry et all
     let org = this.getOrganization();
 
@@ -36,6 +45,7 @@ const OrganizationSettingsNavigation = createReactClass({
     let access = this.getAccess();
     let features = this.getFeatures();
     let org = this.getOrganization();
+    let {hooks, hookConfigs} = this.state;
 
     return (
       <SettingsNavigation
@@ -43,8 +53,8 @@ const OrganizationSettingsNavigation = createReactClass({
         access={access}
         features={features}
         organization={org}
-        hooks={this.state.hooks}
-        hookConfigs={this.state.hookConfigs}
+        hooks={hooks}
+        hookConfigs={hookConfigs}
       />
     );
   },
