@@ -5,7 +5,7 @@ import {
   addErrorMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-import {tct} from 'app/locale';
+import {t, tct} from 'app/locale';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 
@@ -49,6 +49,20 @@ export function loadStats(api, params) {
 // Will be cleared when debounced function fires
 let _projectStatsToFetch = new Set();
 
+// Max projects to query at a time
+const MAX_PROJECTS_TO_FETCH = 7;
+
+const query = (api, projects, orgId) => {
+  let idQueryParams = projects.map(project => `id:${project}`).join(' ');
+  let endpoint = `/organizations/${orgId}/projects/`;
+
+  console.log('query', projects.length);
+  return api.requestPromise(endpoint, {
+    statsPeriod: '24h',
+    query: {query: idQueryParams},
+  });
+};
+
 const _debouncedLoadStats = debounce((api, projectSet, params) => {
   let existingProjectStats = Object.values(ProjectsStatsStore.getAll()).map(({id}) => id);
   let projects = Array.from(projectSet).filter(
@@ -60,19 +74,23 @@ const _debouncedLoadStats = debounce((api, projectSet, params) => {
     return;
   }
 
-  let idQueryParams = projects.map(project => `id:${project}`).join(' ');
-  let endpoint = `/organizations/${params.orgId}/projects/`;
-
-  api.request(endpoint, {
-    query: {
-      statsPeriod: '24h',
-      query: idQueryParams,
-    },
-    success: data => {
-      ProjectActions.loadStatsForProjectSuccess(data);
-    },
-    error: data => {},
+  console.log('projects', projects.length);
+  const queries = [
+    ...Array(Math.ceil(projects.length / MAX_PROJECTS_TO_FETCH)),
+  ].map((val, index) => {
+    const start = index * MAX_PROJECTS_TO_FETCH;
+    return query(api, projects.slice(start, start + MAX_PROJECTS_TO_FETCH), params.orgId);
   });
+
+  Promise.all(queries)
+    .then(results => {
+      ProjectActions.loadStatsForProjectSuccess(
+        results.reduce((acc, result) => [...acc, result], [])
+      );
+    })
+    .catch(err => {
+      addErrorMessage(t('Unable to fetch all project stats'));
+    });
 
   // Reset projects list
   _projectStatsToFetch.clear();
