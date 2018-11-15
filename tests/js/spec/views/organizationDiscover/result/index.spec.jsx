@@ -6,11 +6,11 @@ import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
 describe('Result', function() {
   describe('New query', function() {
-    let wrapper;
+    let wrapper, data, organization;
     beforeEach(function() {
-      const organization = TestStubs.Organization();
+      organization = TestStubs.Organization();
 
-      const data = {
+      data = {
         baseQuery: {
           data: {data: [], meta: [], timing: {duration_ms: 15}},
           query: {
@@ -36,29 +36,9 @@ describe('Result', function() {
       MockApiClient.clearMockResponses();
     });
 
-    describe('Basic query', function() {
-      it('displays options', function() {
-        const buttons = wrapper.find('.btn-group').find('a');
-        expect(buttons).toHaveLength(3);
-      });
-
-      it('toggles', function() {
-        expect(wrapper.find('ResultTable')).toHaveLength(1);
-        expect(wrapper.find('LineChart')).toHaveLength(0);
-        wrapper
-          .find('.btn-group')
-          .find('a')
-          .at('1')
-          .simulate('click');
-        wrapper.update();
-        expect(wrapper.find('ResultTable')).toHaveLength(0);
-        expect(wrapper.find('LineChart')).toHaveLength(1);
-      });
-    });
-
     describe('Render Summary', function() {
       it('shows correct range for pagination in summary', async function() {
-        const data = {
+        data = {
           data: {
             baseQuery: {
               query: {
@@ -93,7 +73,7 @@ describe('Result', function() {
       });
 
       it('shows correct number of results shown when going to next page (next page function mocked on click)', async function() {
-        const data = {
+        data = {
           data: {
             baseQuery: {
               query: {
@@ -157,7 +137,53 @@ describe('Result', function() {
         ).toBe('query time: 15 ms, 0 rows');
       });
     });
+    describe('Toggles Visualizations', function() {
+      beforeEach(function() {
+        wrapper = mount(
+          <Result data={data} organization={organization} onFetchPage={jest.fn()} />,
+          {
+            context: {organization},
+          }
+        );
+      });
+
+      it('displays options', function() {
+        const buttons = wrapper.find('.btn-group').find('a');
+        expect(buttons).toHaveLength(3);
+      });
+
+      it('toggles buttons', function() {
+        expect(wrapper.find('ResultTable')).toHaveLength(1);
+        expect(wrapper.find('LineChart')).toHaveLength(0);
+
+        wrapper
+          .find('ResultViewButtons')
+          .find('a')
+          .at(1)
+          .simulate('click');
+        wrapper.update();
+
+        expect(wrapper.find('ResultTable')).toHaveLength(0);
+        expect(wrapper.find('LineChart')).toHaveLength(1);
+      });
+
+      it('toggles dropdown', function() {
+        expect(wrapper.find('ResultTable')).toHaveLength(1);
+        expect(wrapper.find('LineChart')).toHaveLength(0);
+
+        wrapper
+          .find('ul.dropdown-menu')
+          .find('a')
+          .at(1)
+          .simulate('click');
+
+        expect(wrapper.find('ResultTable')).toHaveLength(0);
+        expect(wrapper.find('LineChart')).toHaveLength(1);
+      });
+    });
+
   });
+
 
   describe('Saved query', function() {
     let wrapper, queryBuilder;
