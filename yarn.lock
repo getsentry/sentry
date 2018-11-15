@@ -11076,7 +11076,7 @@ send@0.16.2:
 
 sentry-dreamy-components@getsentry/dreamy-components:
   version "0.0.1"
-  resolved "https://codeload.github.com/getsentry/dreamy-components/tar.gz/049d950e8e62aa8ebe0b401aceb4b4ebfd0b6f20"
+  resolved "https://codeload.github.com/getsentry/dreamy-components/tar.gz/cfa56b0b784b0ef911de567117470dfb8de67d39"
 
 serialize-javascript@^1.4.0:
   version "1.5.0"
