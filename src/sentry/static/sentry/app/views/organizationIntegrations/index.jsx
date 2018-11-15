@@ -18,6 +18,7 @@ import withOrganization from 'app/utils/withOrganization';
 class OrganizationIntegrations extends AsyncComponent {
   // Some integrations require visiting a different website to add them. When
   // we come back to the tab we want to show our integrations as soon as we can.
+  shouldReload = true;
   reloadOnVisible = true;
   shouldReloadOnVisible = true;
 
