@@ -34,7 +34,7 @@ const GroupSidebar = createReactClass({
   mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
-    return {participants: []};
+    return {participants: [], environment: this.props.environment};
   },
 
   componentWillMount() {
@@ -67,11 +67,23 @@ const GroupSidebar = createReactClass({
       },
     });
 
+    this.fetchTagData();
+  },
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.environment !== this.props.environment) {
+      this.setState({environment: nextProps.environment}, this.fetchTagData);
+    }
+  },
+
+  fetchTagData() {
+    let {group} = this.props;
+
     // Fetch the top values for the current group's top tags.
     this.api.request(`/issues/${group.id}/tags/`, {
       query: _.pickBy({
         key: group.tags.map(data => data.key),
-        environment: this.props.environment && this.props.environment.name,
+        environment: this.state.environment && this.state.environment.name,
       }),
       success: data => {
         this.setState({
