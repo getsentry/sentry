@@ -10,6 +10,7 @@ import {getLocalDateObject, getUtcDateString} from 'app/utils/dates';
 import {getParams} from 'app/views/organizationEvents/utils';
 import EventsContext from 'app/views/organizationEvents/eventsContext';
 import Feature from 'app/components/acl/feature';
+import Header from 'app/components/organizations/header';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
@@ -217,13 +218,6 @@ const OrganizationEventsContent = styled(Flex)`
   flex: 1;
   overflow: hidden;
   margin-bottom: -20px; /* <footer> has margin-top: 20px; */
-`;
-
-const Header = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.borderDark};
-  box-shadow: ${p => p.theme.dropShadowLight};
-  font-size: 18px;
-  height: 60px;
 `;
 
 const Body = styled('div')`
