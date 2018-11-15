@@ -120,7 +120,7 @@ export default class MultipleProjectSelector extends React.PureComponent {
           return (
             <StyledHeaderItem
               active={hasSelected || isOpen}
-              icon={<StyledInlineSvg src="icon-stack" />}
+              icon={<StyledInlineSvg src="icon-project" />}
               hasSelected={hasSelected}
               hasChanges={this.state.hasChanges}
               isOpen={isOpen}
@@ -150,4 +150,5 @@ const StyledHeaderItem = styled(HeaderItem)`
 const StyledInlineSvg = styled(InlineSvg)`
   height: 18px;
   width: 18px;
+  transform: translateY(-2px);
 `;
