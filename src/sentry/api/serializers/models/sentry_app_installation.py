@@ -7,19 +7,19 @@ from sentry.models import SentryAppInstallation
 
 @register(SentryAppInstallation)
 class SentryAppInstallationSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, install, attrs, user):
         data = {
             'app': {
-                'uuid': obj.sentry_app.uuid,
-                'slug': obj.sentry_app.slug,
+                'uuid': install.sentry_app.uuid,
+                'slug': install.sentry_app.slug,
             },
             'organization': {
-                'slug': obj.organization.slug,
+                'slug': install.organization.slug,
             },
-            'uuid': obj.uuid,
+            'uuid': install.uuid,
         }
 
-        if 'code' in attrs:
-            data['code'] = attrs['code']
+        if install.is_new:
+            data['code'] = install.api_grant.code
 
         return data
