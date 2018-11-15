@@ -348,7 +348,10 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
             referrer=referrer, is_grouprelease=is_grouprelease, totals=totals, limitby=limitby
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
-        return OrderedDict()
+        if totals:
+            return OrderedDict(), {}
+        else:
+            return OrderedDict()
 
     # Validate and scrub response, and translate snuba keys back to IDs
     aggregate_cols = [a[2] for a in aggregations]
