@@ -786,46 +786,6 @@ function routes() {
           </Route>
 
           <Route
-            path="/organizations/:orgId/health/"
-            componentPromise={() =>
-              import(/*webpackChunkName: "OrganizationHealth"*/ './views/organizationHealth')}
-            component={errorHandler(LazyLoad)}
-          >
-            <IndexRoute
-              componentPromise={() =>
-                import(/*webpackChunkName: "HealthOverview"*/ './views/organizationHealth/overview')}
-              component={errorHandler(LazyLoad)}
-            />
-            <Route
-              path="errors"
-              componentPromise={() =>
-                import(/*webpackChunkName: "HealthErrors"*/ './views/organizationHealth/errors')}
-              component={errorHandler(LazyLoad)}
-            />
-
-            <Route
-              path="transactions"
-              componentPromise={() =>
-                import(/*webpackChunkName: "HealthTransactions"*/ './views/organizationHealth/transactions')}
-              component={errorHandler(LazyLoad)}
-            />
-
-            <Route
-              path="browsers"
-              componentPromise={() =>
-                import(/*webpackChunkName: "HealthBrowsers"*/ './views/organizationHealth/browsers')}
-              component={errorHandler(LazyLoad)}
-            />
-
-            <Route
-              path="devices"
-              componentPromise={() =>
-                import(/*webpackChunkName: "HealthDevices"*/ './views/organizationHealth/devices')}
-              component={errorHandler(LazyLoad)}
-            />
-          </Route>
-
-          <Route
             path="/organizations/:orgId/teams/new/"
             componentPromise={() =>
               import(/*webpackChunkName:"TeamCreate"*/ './views/teamCreate')}
