@@ -8,6 +8,7 @@ import space from 'app/styles/space';
 import {Panel, PanelItem} from 'app/components/panels';
 import NavTabs from 'app/components/navTabs';
 import Link from 'app/components/link';
+import theme from 'app/utils/theme';
 
 const HEADER_HEIGHT = 60;
 
@@ -41,6 +42,19 @@ export const PageTitle = styled.h2`
 export const ResultTitle = styled(Box)`
   flex: 1;
   min-width: 70px;
+`;
+
+export const ResultViewButtons = styled(Flex)`
+  @media (max-width: ${theme.breakpoints[1]}) {
+    display: none;
+  }
+`;
+
+export const ResultViewDropdownButtons = styled('div')`
+  display: none;
+  @media (max-width: ${theme.breakpoints[1]}) {
+    display: block;
+  }
 `;
 
 export const Sidebar = styled(props => (
