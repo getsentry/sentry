@@ -52,7 +52,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        install, _ = Creator.run(
+        install, grant = Creator.run(
             organization=organization,
             slug=serializer.object.get('slug'),
             user=request.user,
