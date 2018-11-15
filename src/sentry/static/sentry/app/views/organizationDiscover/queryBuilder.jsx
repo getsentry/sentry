@@ -66,6 +66,7 @@ export default function createQueryBuilder(initial = {}, organization) {
       aggregations: [['count()', null, 'count']],
       orderby: '-count',
       range: '90d',
+      turbo: true,
     })
       .then(res => {
         tags = res.data.map(tag => {
