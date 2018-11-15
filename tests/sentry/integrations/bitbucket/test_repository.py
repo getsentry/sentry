@@ -124,3 +124,7 @@ class BitbucketRepositoryProviderTest(TestCase):
                 'webhook_id': webhook_id,
             }
         }
+
+    def test_repository_external_slug(self):
+        result = self.provider.repository_external_slug(self.repo)
+        assert result == self.repo.name

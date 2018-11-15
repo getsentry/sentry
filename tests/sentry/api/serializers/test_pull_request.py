@@ -105,7 +105,7 @@ class PullRequestSerializerTest(TestCase):
 
         result = serialize(pull_request, user)
 
-        assert result['externalUrl'] == 'https://github.com/test/test/pulls/9'
+        assert result['externalUrl'] == 'https://github.com/test/test/pull/9'
         assert result['message'] == 'waddap'
         assert result['title'] == 'cool pr'
         assert result['repository']['name'] == 'test/test'

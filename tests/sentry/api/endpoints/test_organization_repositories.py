@@ -35,6 +35,28 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(repo.id)
+        assert response.data[0]['externalSlug'] is None
+
+    def test_get_integration_repository(self):
+        repo = Repository.objects.create(
+            name='getsentry/example',
+            organization_id=self.org.id,
+            external_id=12345,
+            provider='dummy',
+            config={'name': 'getsentry/example'}
+        )
+
+        response = self.client.get(self.url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        first_row = response.data[0]
+        assert first_row['id'] == six.text_type(repo.id)
+        assert first_row['provider'] == {
+            'id': 'dummy',
+            'name': 'Example'
+        }
+        assert first_row['externalSlug'] == six.text_type(repo.external_id)
 
     def test_status_unmigratable(self):
         self.url = self.url + '?status=unmigratable'

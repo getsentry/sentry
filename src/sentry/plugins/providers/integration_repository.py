@@ -143,6 +143,14 @@ class IntegrationRepositoryProvider(object):
         """
         return None
 
+    def repository_external_slug(self, repo):
+        """
+        Generate the public facing 'external_slug' for a repository
+        The shape of this id must match the `identifier` returned by
+        the integration's Integration.get_repositories() method
+        """
+        return repo.name
+
     @staticmethod
     def should_ignore_commit(message):
         return '#skipsentry' in message

@@ -118,3 +118,6 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'patch_set': c.get('patch_set'),
             } for c in commit_list
         ]
+
+    def repository_external_slug(self, repo):
+        return repo.external_id
