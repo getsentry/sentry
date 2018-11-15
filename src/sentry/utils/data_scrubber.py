@@ -79,7 +79,7 @@ class SensitiveDataFilter(object):
 
         if 'exception' in data:
             for exc in data['exception']['values']:
-                if exc.get('stacktrace'):
+                if exc is not None and exc.get('stacktrace'):
                     self.filter_stacktrace(exc['stacktrace'])
 
         if 'breadcrumbs' in data:
