@@ -157,7 +157,7 @@ def get_all_valid(data, *path, **kwargs):
     results = []
     meta = meta.enter(*path)
     for index, item in enumerate(items):
-        if not meta.enter(index).get_errors():
+        if item is not None and not meta.enter(index).get_errors():
             results.append(item)
 
     return results
