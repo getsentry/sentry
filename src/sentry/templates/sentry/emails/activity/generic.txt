@@ -7,7 +7,7 @@
 
 ## Issue Details
 
-{{ group.message_short }}
+{{ group.title }}
 
 {{ link }}
 {% if unsubscribe_link %}
