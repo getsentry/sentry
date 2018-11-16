@@ -260,7 +260,7 @@ export default class OrganizationDiscover extends React.Component {
   renderSidebarNav() {
     const {view} = this.state;
     const views = [
-      {id: 'query', title: t('Query')},
+      {id: 'query', title: t('New Query')},
       {id: 'saved', title: t('Saved queries')},
     ];
 
@@ -302,44 +302,6 @@ export default class OrganizationDiscover extends React.Component {
 
     return (
       <DiscoverContainer>
-        <Sidebar>
-          <Header>
-            <PageTitle>{t('Discover')}</PageTitle>
-          </Header>
-          {this.renderSidebarNav()}
-          {view === 'saved' && (
-            <SavedQueryWrapper>
-              <SavedQueryList organization={organization} savedQuery={savedQuery} />
-            </SavedQueryWrapper>
-          )}
-          {view === 'query' && (
-            <NewQuery
-              organization={organization}
-              queryBuilder={queryBuilder}
-              isFetchingQuery={isFetchingQuery || isLoading}
-              onUpdateField={this.updateField}
-              onRunQuery={this.runQuery}
-              onReset={this.reset}
-              isLoading={isLoading}
-            />
-          )}
-          {isEditingSavedQuery &&
-            savedQuery && (
-              <QueryPanel title={t('Edit Query')} onClose={toggleEditMode}>
-                <EditSavedQuery
-                  savedQuery={savedQuery}
-                  queryBuilder={queryBuilder}
-                  isFetchingQuery={isFetchingQuery}
-                  onUpdateField={this.updateField}
-                  onRunQuery={this.runQuery}
-                  onReset={this.reset}
-                  onDeleteQuery={this.deleteSavedQuery}
-                  onSaveQuery={this.updateSavedQuery}
-                  isLoading={isLoading}
-                />
-              </QueryPanel>
-            )}
-        </Sidebar>
         <Body>
           <Header>
             <HeaderItemPosition>
@@ -378,6 +340,41 @@ export default class OrganizationDiscover extends React.Component {
             <EarlyAdopterMessage />
           </BodyContent>
         </Body>
+        <Sidebar>
+          {this.renderSidebarNav()}
+          {view === 'saved' && (
+            <SavedQueryWrapper>
+              <SavedQueryList organization={organization} savedQuery={savedQuery} />
+            </SavedQueryWrapper>
+          )}
+          {view === 'query' && (
+            <NewQuery
+              organization={organization}
+              queryBuilder={queryBuilder}
+              isFetchingQuery={isFetchingQuery || isLoading}
+              onUpdateField={this.updateField}
+              onRunQuery={this.runQuery}
+              onReset={this.reset}
+              isLoading={isLoading}
+            />
+          )}
+          {isEditingSavedQuery &&
+            savedQuery && (
+              <QueryPanel title={t('Edit Query')} onClose={toggleEditMode}>
+                <EditSavedQuery
+                  savedQuery={savedQuery}
+                  queryBuilder={queryBuilder}
+                  isFetchingQuery={isFetchingQuery}
+                  onUpdateField={this.updateField}
+                  onRunQuery={this.runQuery}
+                  onReset={this.reset}
+                  onDeleteQuery={this.deleteSavedQuery}
+                  onSaveQuery={this.updateSavedQuery}
+                  isLoading={isLoading}
+                />
+              </QueryPanel>
+            )}
+        </Sidebar>
       </DiscoverContainer>
     );
   }

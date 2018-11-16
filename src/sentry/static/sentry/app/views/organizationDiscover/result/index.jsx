@@ -11,7 +11,7 @@ import LineChart from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import InlineSvg from 'app/components/inlineSvg';
 
-import {getChartData, getChartDataByDay, downloadAsCsv, getRowsPageRange} from './utils';
+import {getChartData, getChartDataByDay, getRowsPageRange} from './utils';
 import Table from './table';
 import Pagination from './pagination';
 import VisualizationsToggle from './visualizationsToggle';
@@ -88,21 +88,14 @@ export default class Result extends React.Component {
       );
     }
 
-    const linkClasses = 'btn btn-default btn-sm';
-
     return (
-      <Flex justify="flex-end">
+      <div>
         <VisualizationsToggle
           options={options}
           handleChange={this.handleToggleVisualizations}
           visualization={this.state.view}
         />
-        <Box ml={1}>
-          <Link className={linkClasses} onClick={() => downloadAsCsv(baseQuery.data)}>
-            {t('Export CSV')}
-          </Link>
-        </Box>
-      </Flex>
+      </div>
     );
   }
 
@@ -173,12 +166,12 @@ export default class Result extends React.Component {
 
     return (
       <ResultContainer>
-        <Flex align="center" mb={space(2)}>
+        <Box mb={space(2)}>
           <ResultTitle>
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
           </ResultTitle>
           {this.renderToggle()}
-        </Flex>
+        </Box>
         <ResultInnerContainer innerRef={ref => (this.container = ref)}>
           {view === 'table' && (
             <Table
