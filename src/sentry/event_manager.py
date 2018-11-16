@@ -491,10 +491,17 @@ class EventManager(object):
                     errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
                     del data[c]
 
-        # raw 'message' is coerced to the Message interface, as its used for pure index of
-        # searchable strings. If both a raw 'message' and a Message interface exist, try and
-        # add the former as the 'formatted' attribute of the latter.
-        # See GH-3248
+        # raw 'message' is coerced to the Message interface.  Longer term
+        # we want to treat 'message' as a pure alias for 'logentry' but
+        # for now that won't be the case.
+        #
+        # TODO(mitsuhiko): the logic we want to apply here long term is
+        # to
+        #
+        # 1. make logentry.message optional
+        # 2. make logentry.formatted the primary value
+        # 3. always treat a string as an alias for `logentry.formatted`
+        # 4. remove the custom coercion logic here
         msg_str = data.pop('message', None)
         if msg_str:
             msg_if = data.get('logentry')
@@ -729,6 +736,29 @@ class EventManager(object):
             platform=platform
         )
 
+    def get_search_message(self, data, event_metadata=None, culprit=None):
+        """This generates the internal event.message attribute which is used
+        for search purposes.  It adds a bunch of data from the metadata and
+        the culprit.
+        """
+        message = ''
+
+        if 'logentry' in data:
+            message += (data['logentry'].get('formatted') or
+                        data['logentry'].get('message') or '')
+
+        if event_metadata:
+            for value in six.itervalues(event_metadata):
+                value_u = force_text(value, errors='replace')
+                if value_u not in message:
+                    message = u'{} {}'.format(message, value_u)
+
+        if culprit and culprit not in message:
+            culprit_u = force_text(culprit, errors='replace')
+            message = u'{} {}'.format(message, culprit_u)
+
+        return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
+
     def save(self, project_id, raw=False):
         from sentry.tasks.post_process import index_event_tags
 
@@ -774,8 +804,10 @@ class EventManager(object):
         environment = data.pop('environment', None)
         recorded_timestamp = data.get("timestamp")
 
-        # unused
-        message = data.pop('message', '')
+        # old events had a small chance of having a legacy message
+        # attribute show up here.  In all reality this is being coerced
+        # into logentry for more than two years at this point (2018).
+        data.pop('message', None)
 
         event = self._get_event_instance(project_id=project_id)
         event._project_cache = project
@@ -872,46 +904,19 @@ class EventManager(object):
         else:
             hashes = [md5_from_hash(h) for h in get_hashes_for_event(event)]
 
-        # TODO(dcramer): temp workaround for complexity
-        data['message'] = message
         event_type = eventtypes.get(data.get('type', 'default'))(data)
         event_metadata = event_type.get_metadata()
-        # TODO(dcramer): temp workaround for complexity
-        del data['message']
 
         data['type'] = event_type.key
         data['metadata'] = event_metadata
 
         # index components into ``Event.message``
         # See GH-3248
-        if event_type.key != 'default':
-            if 'logentry' in data and \
-                    data['logentry']['message'] != message:
-                message = u'{} {}'.format(
-                    message,
-                    data['logentry']['message'],
-                )
+        event.message = self.get_search_message(data, event_metadata, culprit)
 
-        if not message:
-            message = ''
-        elif not isinstance(message, six.string_types):
-            message = force_text(message)
-
-        for value in six.itervalues(event_metadata):
-            value_u = force_text(value, errors='replace')
-            if value_u not in message:
-                message = u'{} {}'.format(message, value_u)
-
-        if culprit and culprit not in message:
-            culprit_u = force_text(culprit, errors='replace')
-            message = u'{} {}'.format(message, culprit_u)
-
-        message = trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
-
-        event.message = message
         kwargs = {
             'platform': platform,
-            'message': message
+            'message': event.message
         }
 
         received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
