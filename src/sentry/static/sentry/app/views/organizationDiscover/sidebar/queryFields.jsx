@@ -11,6 +11,7 @@ import Aggregations from '../aggregations';
 import Conditions from '../conditions';
 import {getOrderByOptions} from '../utils';
 import {Fieldset, PlaceholderText, SidebarLabel} from '../styles';
+import {NON_CONDITIONS_FIELDS} from '../data';
 
 export default class QueryFields extends React.Component {
   static propTypes = {
@@ -47,9 +48,9 @@ export default class QueryFields extends React.Component {
 
     const currentQuery = queryBuilder.getInternal();
     const columns = queryBuilder.getColumns();
-    // Do not allow conditions on project.id or project.name fields
+    // Do not allow conditions on certain fields
     const columnsForConditions = columns.filter(
-      ({name}) => !['project.id', 'project.name'].includes(name)
+      ({name}) => !NON_CONDITIONS_FIELDS.includes(name)
     );
 
     const fieldOptions = columns.map(({name}) => ({

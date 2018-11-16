@@ -1,6 +1,7 @@
 import moment from 'moment';
 import {Client} from 'app/api';
 import {isValidAggregation} from './aggregations/utils';
+import {NON_SNUBA_FIELDS} from './data';
 
 export function getQueryFromQueryString(queryString) {
   const validQueryKeys = new Set([
@@ -59,8 +60,8 @@ export function getOrderByOptions(queryBuilder) {
       }
     }
 
-    // Never allow ordering by project.name since this can't be done in Snuba
-    if (name === 'project.name') {
+    // Never allow ordering by project.name or issue.id since this can't be done in Snuba
+    if (NON_SNUBA_FIELDS.includes(name)) {
       return acc;
     }
 
