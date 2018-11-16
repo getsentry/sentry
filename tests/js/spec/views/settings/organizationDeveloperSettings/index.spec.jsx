@@ -118,6 +118,7 @@ describe('Organization Developer Settings', function() {
       });
 
       it('redirects the user to the App when a redirectUrl is set', () => {
+        window.location.assign = jest.fn();
         Client.addMockResponse({
           url: `/organizations/${org.slug}/sentry-apps/`,
           body: [sentryApp],
@@ -135,12 +136,13 @@ describe('Organization Developer Settings', function() {
 
         wrapper.find('StyledInstallButton').simulate('click');
 
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(window.location.assign).toHaveBeenCalledWith(
           `${sentryApp.redirectUrl}?code=${install.code}&installationId=${install.uuid}`
         );
       });
 
       it('handles a redirectUrl with pre-existing query params', () => {
+        window.location.assign = jest.fn();
         const sentryAppWithQuery = TestStubs.SentryApp({
           redirectUrl: 'https://example.com/setup?hello=1',
         });
@@ -162,7 +164,7 @@ describe('Organization Developer Settings', function() {
 
         wrapper.find('StyledInstallButton').simulate('click');
 
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(window.location.assign).toHaveBeenCalledWith(
           `https://example.com/setup?code=${install.code}&hello=1&installationId=${install.uuid}`
         );
       });
