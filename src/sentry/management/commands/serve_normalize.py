@@ -48,7 +48,60 @@ def process_event(data, meta):
     }
 
 
-p = multiprocessing.Pool(processes=4)
+def decode(message):
+    meta, data_encoded = json.loads(message)
+    data = base64.b64decode(data_encoded)
+    return data, meta
+
+
+def encode(data):
+    # Normalized data should be serializable
+    return json.dumps(data)
+
+
+def handle_data(pipe, data):
+    @catch_errors
+    def inner(data):
+        mc = MetricCollector()
+
+        metrics_before = mc.collect_metrics()
+        data, meta = decode(data)
+        rv = process_event(data, meta)
+        metrics_after = mc.collect_metrics()
+
+        return {
+            'result': rv,
+            'metrics': {'before': metrics_before, 'after': metrics_after},
+            'error': None
+        }
+
+    pipe.send(inner(data))
+
+
+def catch_errors(f):
+    error = None
+    try:
+        return f()
+    except Exception as e:
+        error = force_str(e.message) + ' ' + force_str(traceback.format_exc())
+
+    try:
+        return encode({
+            'result': None,
+            'error': error,
+            'metrics': None
+        })
+    except (ValueError, TypeError) as e:
+        try:
+            # Encoding error, try to send the exception instead
+            return encode({
+                'result': None,
+                'error': force_str(e.message) + ' ' + force_str(traceback.format_exc()),
+                'metrics': None,
+                'encoding_error': True,
+            })
+        except Exception:
+            return b'{}'
 
 
 class MetricCollector(object):
@@ -106,51 +159,17 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
         self.request.sendall(response)
         self.request.close()
 
-    def encode(self, data):
-        # Normalized data should be serializable
-        return json.dumps(data)
-
-    def decode(self, message):
-        meta, data_encoded = json.loads(message)
-        data = base64.b64decode(data_encoded)
-        return data, meta
-
-    def process_event(self, data, meta):
-        return p.apply(process_event, (data, meta))
-
     def handle_data(self):
-        result = None
-        error = None
-        metrics = None
-        mc = MetricCollector()
-        try:
-            data, meta = self.decode(self.data)
+        @catch_errors
+        def inner():
+            parent_conn, child_conn = multiprocessing.Pipe()
+            p = multiprocessing.Process(target=handle_data, args=(child_conn, self.data,))
+            p.start()
+            p.join()
+            assert parent_conn.poll(), "Process crashed"
+            return parent_conn.recv()
 
-            metrics_before = mc.collect_metrics()
-            result = self.process_event(data, meta)
-            metrics_after = mc.collect_metrics()
-
-            metrics = {'before': metrics_before, 'after': metrics_after}
-        except Exception as e:
-            error = force_str(e.message) + ' ' + force_str(traceback.format_exc())
-
-        try:
-            return self.encode({
-                'result': result,
-                'error': error,
-                'metrics': metrics
-            })
-        except (ValueError, TypeError) as e:
-            try:
-                # Encoding error, try to send the exception instead
-                return self.encode({
-                    'result': result,
-                    'error': force_str(e.message) + ' ' + force_str(traceback.format_exc()),
-                    'metrics': metrics,
-                    'encoding_error': True,
-                })
-            except Exception:
-                return b'{}'
+        return inner()
 
 
 class Command(BaseCommand):
