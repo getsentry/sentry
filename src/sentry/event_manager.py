@@ -36,7 +36,7 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
-from sentry.interfaces.base import Meta, get_interface
+from sentry.interfaces.base import get_interface
 from sentry.interfaces.exception import normalize_mechanism_meta
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.lang.native.utils import get_sdk_from_event
@@ -60,7 +60,8 @@ from sentry.utils.data_filters import (
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
-from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, get_valid, get_all_valid
+from sentry.utils.meta import Meta, get_valid, get_all_valid
+from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
@@ -757,7 +758,7 @@ class EventManager(object):
         if release and not is_valid_release(self._project, release):
             return (True, FilterStatKeys.RELEASE_VERSION)
 
-        message_interface = get_valid(self._data, 'logentry')
+        message_interface = get_valid(self._data, 'logentry') or {}
         error_message = message_interface.get('formatted', '') \
             or message_interface.get('message') \
             or ''
