@@ -132,7 +132,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
                     condition, list)]
             if invalid_functions:
                 raise serializers.ValidationError(
-                    u'Invalid condition function, must be list of lists - {}'.format(
+                    u'Invalid condition function, must be list of lists (of length 3) - {}'.format(
                         invalid_functions)
                 )
             attrs[source] = conditions
@@ -156,6 +156,11 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return re.search(pattern, field)
 
     def get_condition(self, condition):
+        if len(condition) != 3:
+            raise serializers.ValidationError(
+                u'Invalid condition function, must be list containing lists of length 3 - {}'.format(
+                    condition)
+            )
         array_field = self.get_array_field(condition[0])
         has_equality_operator = condition[1] in ('=', '!=')
 

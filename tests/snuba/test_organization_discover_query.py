@@ -187,12 +187,25 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 0
 
-    def test_array_condition_not_valid(self):
+    def test_array_condition_not_valid_list(self):
         with self.feature('organizations:discover'):
             url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
-                'conditions': ['ValidationError'],
+                'conditions': ['error.type != ValidationError'],
+                'fields': ['message'],
+                'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
+                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
+                'orderby': '-timestamp',
+            })
+        assert response.status_code == 400, response.content
+
+    def test_array_condition_not_correct_format(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'conditions': [['error.type != ValidationError']],
                 'fields': ['message'],
                 'start': (datetime.now() - timedelta(seconds=10)).strftime('%Y-%m-%dT%H:%M:%S'),
                 'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
