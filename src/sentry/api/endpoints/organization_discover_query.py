@@ -127,6 +127,14 @@ class DiscoverQuerySerializer(serializers.Serializer):
         # Handle error (exception_stacks), stack(exception_frames)
         if attrs.get(source):
             conditions = [self.get_condition(condition) for condition in attrs[source]]
+            invalid_functions = [
+                condition for condition in conditions if not isinstance(
+                    condition, list)]
+            if invalid_functions:
+                raise serializers.ValidationError(
+                    u'Invalid condition function, must be list of lists - {}'.format(
+                        invalid_functions)
+                )
             attrs[source] = conditions
         return attrs
 
