@@ -168,9 +168,9 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
             parent_conn, child_conn = multiprocessing.Pipe()
             p = multiprocessing.Process(target=handle_data, args=(child_conn, self.data,))
             p.start()
-            p.join()
+            p.join(1)
             assert parent_conn.poll(), "Process crashed"
-            return parent_conn.recv()
+            return parent_conn.recv(1)
 
         return inner()
 
