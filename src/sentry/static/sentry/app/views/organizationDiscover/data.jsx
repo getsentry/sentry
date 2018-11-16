@@ -32,10 +32,10 @@ export const SPECIAL_TAGS = {
 };
 
 export const COLUMNS = [
-  {name: 'event_id', type: TYPES.STRING},
-  {name: 'issue', type: TYPES.STRING},
-  {name: 'project_id', type: TYPES.STRING},
-  {name: 'project_name', type: TYPES.STRING}, // Not a snuba column
+  {name: 'id', type: TYPES.STRING},
+  {name: 'issue.id', type: TYPES.STRING},
+  {name: 'project.id', type: TYPES.STRING},
+  {name: 'project.name', type: TYPES.STRING}, // Not a snuba column
   {name: 'platform', type: TYPES.STRING},
   {name: 'message', type: TYPES.STRING},
   {name: 'primary_hash', type: TYPES.STRING},
