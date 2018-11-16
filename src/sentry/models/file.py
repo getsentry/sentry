@@ -35,6 +35,8 @@ from sentry.utils.retries import TimedRetryPolicy
 
 ONE_DAY = 60 * 60 * 24
 
+UPLOAD_RETRY_TIME = 60  # 1min
+
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
 CHUNK_STATE_HEADER = '__state'
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
@@ -68,8 +70,8 @@ def _get_size_and_checksum(fileobj):
 
 @contextmanager
 def _locked_blob(checksum):
-    lock = locks.get(u'fileblob:upload:{}'.format(checksum), duration=60 * 10)
-    with TimedRetryPolicy(60)(lock.acquire):
+    lock = locks.get(u'fileblob:upload:{}'.format(checksum), duration=UPLOAD_RETRY_TIME)
+    with TimedRetryPolicy(UPLOAD_RETRY_TIME)(lock.acquire):
         # test for presence
         try:
             existing = FileBlob.objects.get(checksum=checksum)
@@ -242,8 +244,8 @@ class FileBlob(Model):
         return u'/'.join(pieces)
 
     def delete(self, *args, **kwargs):
-        lock = locks.get(u'fileblob:upload:{}'.format(self.checksum), duration=60 * 10)
-        with TimedRetryPolicy(60)(lock.acquire):
+        lock = locks.get(u'fileblob:upload:{}'.format(self.checksum), duration=UPLOAD_RETRY_TIME)
+        with TimedRetryPolicy(UPLOAD_RETRY_TIME)(lock.acquire):
             super(FileBlob, self).delete(*args, **kwargs)
         if self.path:
             self.deletefile(commit=False)
