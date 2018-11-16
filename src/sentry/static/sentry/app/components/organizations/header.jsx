@@ -4,7 +4,7 @@ import {Flex} from 'grid-emotion';
 const Header = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.borderDark};
   box-shadow: ${p => p.theme.dropShadowLight};
-  font-size: 18px;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   height: 60px;
 `;
 
