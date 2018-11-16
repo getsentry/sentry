@@ -116,17 +116,8 @@ class Event(Model):
 
         See ``sentry.eventtypes``.
         """
-        etype = self.data.get('type', 'default')
-
-        # XXX: this code does not actually happen in practice for two
-        # years now but it's still being relied on in the testsuite.
-        if 'metadata' not in self.data:
-            data = dict(self.data or {})
-            data['logentry'] = {'formatted': self.message}
-            data = CanonicalKeyView(data)
-            return eventtypes.get(etype)(data).get_metadata()
-
-        return self.data['metadata']
+        from sentry.event_manager import get_event_metadata_compat
+        return get_event_metadata_compat(self.data, self.message)
 
     @property
     def title(self):
