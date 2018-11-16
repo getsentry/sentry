@@ -16,9 +16,38 @@ import time
 import traceback
 import json
 import resource
+import multiprocessing
 
 from django.core.management.base import BaseCommand, CommandError, make_option
 from django.utils.encoding import force_str
+
+p = multiprocessing.Pool(processes=4)
+
+
+# Here's where the normalization itself happens
+def process_event(data, meta):
+    from sentry.event_manager import EventManager, get_hashes_for_event
+    from sentry.tasks.store import should_process
+
+    event_manager = EventManager(
+        data,
+        client_ip=meta.get('REMOTE_ADDR'),
+        user_agent=meta.get('HTTP_USER_AGENT'),
+        auth=None,
+        key=None,
+        content_encoding=meta.get('HTTP_CONTENT_ENCODING')
+    )
+    event_manager.normalize()
+
+    event = event_manager.get_data()
+    group_hash = None
+
+    if not should_process(event):
+        group_hash = get_hashes_for_event(event_manager._get_event_instance(project_id=1))
+    return {
+        "event": dict(event),
+        "group_hash": group_hash,
+    }
 
 
 class MetricCollector(object):
@@ -85,30 +114,8 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
         data = base64.b64decode(data_encoded)
         return data, meta
 
-    # Here's where the normalization itself happens
     def process_event(self, data, meta):
-        from sentry.event_manager import EventManager, get_hashes_for_event
-        from sentry.tasks.store import should_process
-
-        event_manager = EventManager(
-            data,
-            client_ip=meta.get('REMOTE_ADDR'),
-            user_agent=meta.get('HTTP_USER_AGENT'),
-            auth=None,
-            key=None,
-            content_encoding=meta.get('HTTP_CONTENT_ENCODING')
-        )
-        event_manager.normalize()
-
-        event = event_manager.get_data()
-        group_hash = None
-
-        if not should_process(event):
-            group_hash = get_hashes_for_event(event_manager._get_event_instance(project_id=1))
-        return {
-            "event": dict(event),
-            "group_hash": group_hash,
-        }
+        return p.apply(process_event, data, meta)
 
     def handle_data(self):
         result = None

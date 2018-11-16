@@ -462,7 +462,7 @@ class EventManager(object):
                 max_secs_in_past=MAX_SECS_IN_PAST
             )
 
-            self._data = rust_normalizer.normalize_event(dict(self._data))
+            self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
             return
 
         data = self._data
