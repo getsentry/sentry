@@ -170,7 +170,7 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
             p.start()
             p.join(1)
             assert parent_conn.poll(), "Process crashed"
-            return parent_conn.recv(1)
+            return parent_conn.recv()
 
         return inner()
 
