@@ -23,7 +23,6 @@ TOP_VALUES_DEFAULT_LIMIT = 9
 
 # These tags are special and are used in pairing with `sentry:{}`
 # they should not be allowed to be set via data ingest due to ambiguity
-# TODO(markus): Remove. Duplicated in Rust
 INTERNAL_TAG_KEYS = frozenset(
     ('release', 'dist', 'user', 'filename', 'function'))
 

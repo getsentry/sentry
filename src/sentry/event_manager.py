@@ -7,6 +7,7 @@ sentry.event_manager
 from __future__ import absolute_import, print_function
 
 import logging
+import os
 import re
 import six
 import jsonschema
@@ -22,7 +23,10 @@ from hashlib import md5
 from semaphore.processing import StoreNormalizer
 
 from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
-from sentry.constants import MAX_CULPRIT_LENGTH, VALID_PLATFORMS
+from sentry.constants import (
+    CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
+    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS
+)
 from sentry.coreapi import (
     APIError,
     APIForbidden,
@@ -32,9 +36,12 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
-from sentry.interfaces.base import get_interface
+from sentry.interfaces.base import get_interface, InterfaceValidationError
+from sentry.interfaces.exception import normalize_mechanism_meta
+from sentry.interfaces.schemas import validate_and_default_interface
+from sentry.lang.native.utils import get_sdk_from_event
 from sentry.models import (
-    Activity, Environment, Event, EventMapping, EventUser, Group,
+    Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
     ReleaseProjectEnvironment, UserReport
@@ -53,9 +60,10 @@ from sentry.utils.data_filters import (
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
-from sentry.utils.safe import safe_execute, trim
+from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
+from sentry.utils.validators import is_float
 from sentry.stacktraces import normalize_in_app
 
 
@@ -65,6 +73,7 @@ logger = logging.getLogger("sentry.events")
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 MAX_SECS_IN_FUTURE = 60
+ALLOWED_FUTURE_DELTA = timedelta(seconds=MAX_SECS_IN_FUTURE)
 MAX_SECS_IN_PAST = 2592000  # 30 days
 SECURITY_REPORT_INTERFACES = (
     "csp",
@@ -72,6 +81,8 @@ SECURITY_REPORT_INTERFACES = (
     "expectct",
     "expectstaple",
 )
+
+ENABLE_RUST = os.environ.get("SENTRY_USE_RUST_NORMALIZER", "false").lower() in ("1", "true")
 
 
 def count_limit(count):
@@ -230,6 +241,41 @@ def plugin_is_regression(group, event):
         if result is not None:
             return result
     return True
+
+
+def process_timestamp(value, current_datetime=None):
+    if is_float(value):
+        try:
+            value = datetime.fromtimestamp(float(value))
+        except Exception:
+            raise InvalidTimestamp(EventError.INVALID_DATA)
+    elif not isinstance(value, datetime):
+        # all timestamps are in UTC, but the marker is optional
+        if value.endswith('Z'):
+            value = value[:-1]
+        if '.' in value:
+            # Python doesn't support long microsecond values
+            # https://github.com/getsentry/sentry/issues/1610
+            ts_bits = value.split('.', 1)
+            value = '%s.%s' % (ts_bits[0], ts_bits[1][:2])
+            fmt = '%Y-%m-%dT%H:%M:%S.%f'
+        else:
+            fmt = '%Y-%m-%dT%H:%M:%S'
+        try:
+            value = datetime.strptime(value, fmt)
+        except Exception:
+            raise InvalidTimestamp(EventError.INVALID_DATA)
+
+    if current_datetime is None:
+        current_datetime = datetime.now()
+
+    if value > current_datetime + ALLOWED_FUTURE_DELTA:
+        raise InvalidTimestamp(EventError.FUTURE_TIMESTAMP)
+
+    if value < current_datetime - timedelta(days=30):
+        raise InvalidTimestamp(EventError.PAST_TIMESTAMP)
+
+    return float(value.strftime('%s'))
 
 
 class HashDiscarded(Exception):
@@ -401,21 +447,243 @@ class EventManager(object):
         self._data = data
 
     def normalize(self):
-        rust_normalizer = StoreNormalizer(
-            geoip_lookup=rust_geoip,
-            project_id=self._project.id if self._project else None,
-            client_ip=self._client_ip,
-            client=self._auth.client if self._auth else None,
-            is_public_auth=self._auth.is_public if self._auth else False,
-            key_id=self._key.id if self._key else None,
-            protocol_version=self.version,
-            stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
-            valid_platforms=list(VALID_PLATFORMS),
-            max_secs_in_future=MAX_SECS_IN_FUTURE,
-            max_secs_in_past=MAX_SECS_IN_PAST
-        )
+        if ENABLE_RUST:
+            rust_normalizer = StoreNormalizer(
+                geoip_lookup=rust_geoip,
+                project_id=self._project.id if self._project else None,
+                client_ip=self._client_ip,
+                client=self._auth.client if self._auth else None,
+                is_public_auth=self._auth.is_public if self._auth else False,
+                key_id=self._key.id if self._key else None,
+                protocol_version=self.version,
+                stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
+                valid_platforms=list(VALID_PLATFORMS),
+                max_secs_in_future=MAX_SECS_IN_FUTURE,
+                max_secs_in_past=MAX_SECS_IN_PAST
+            )
 
-        self._data = rust_normalizer.normalize_event(dict(self._data))
+            self._data = rust_normalizer.normalize_event(dict(self._data))
+            return
+
+        data = self._data
+        if self._project is not None:
+            data['project'] = self._project.id
+        if self._key is not None:
+            data['key_id'] = self._key.id
+        if self._auth is not None:
+            data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
+
+        errors = data['errors'] = []
+
+        # Before validating with a schema, attempt to cast values to their desired types
+        # so that the schema doesn't have to take every type variation into account.
+        text = six.text_type
+        fp_types = six.string_types + six.integer_types + (float, )
+
+        def to_values(v):
+            return {'values': v} if v and isinstance(v, (tuple, list)) else v
+
+        def stringify(f):
+            if isinstance(f, float):
+                return text(int(f)) if abs(f) < (1 << 53) else None
+            return text(f)
+
+        casts = {
+            'environment': lambda v: text(v) if v is not None else v,
+            'fingerprint': lambda v: list(x for x in map(stringify, v) if x is not None) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
+            'release': lambda v: text(v) if v is not None else v,
+            'dist': lambda v: text(v).strip() if v is not None else v,
+            'time_spent': lambda v: int(v) if v is not None else v,
+            'tags': lambda v: [(text(v_k).replace(' ', '-').strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
+            'timestamp': lambda v: process_timestamp(v),
+            'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
+            'logentry': lambda v: v if isinstance(v, dict) else {'message': v},
+
+            # These can be sent as lists and need to be converted to {'values': [...]}
+            'exception': to_values,
+            'breadcrumbs': to_values,
+            'threads': to_values,
+        }
+
+        for c in casts:
+            if c in data:
+                try:
+                    data[c] = casts[c](data[c])
+                except InvalidTimestamp as it:
+                    errors.append({'type': it.args[0], 'name': c, 'value': data[c]})
+                    del data[c]
+                except Exception as e:
+                    errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
+                    del data[c]
+
+        # raw 'message' is coerced to the Message interface, as its used for pure index of
+        # searchable strings. If both a raw 'message' and a Message interface exist, try and
+        # add the former as the 'formatted' attribute of the latter.
+        # See GH-3248
+        msg_str = data.pop('message', None)
+        if msg_str:
+            msg_if = data.get('logentry')
+            msg_meta = data.get('_meta', {}).get('message')
+
+            if not msg_if:
+                msg_if = data['logentry'] = {'message': msg_str}
+                if msg_meta:
+                    data.setdefault('_meta', {}).setdefault('logentry', {})['message'] = msg_meta
+
+            if msg_if.get('message') != msg_str:
+                if not msg_if.get('formatted'):
+                    msg_if['formatted'] = msg_str
+                    if msg_meta:
+                        data.setdefault('_meta', {}).setdefault(
+                            'logentry', {})['formatted'] = msg_meta
+
+        # Fill in ip addresses marked as {{auto}}
+        if self._client_ip:
+            if get_path(data, ['request', 'env', 'REMOTE_ADDR']) == '{{auto}}':
+                data['request']['env']['REMOTE_ADDR'] = self._client_ip
+
+            if get_path(data, ['request', 'env', 'REMOTE_ADDR']) == '{{auto}}':
+                data['request']['env']['REMOTE_ADDR'] = self._client_ip
+
+            if get_path(data, ['user', 'ip_address']) == '{{auto}}':
+                data['user']['ip_address'] = self._client_ip
+
+            if get_path(data, ['user', 'ip_address']) == '{{auto}}':
+                data['user']['ip_address'] = self._client_ip
+
+        # Validate main event body and tags against schema.
+        # XXX(ja): jsonschema does not like CanonicalKeyDict, so we need to pass
+        #          in the inner data dict.
+        is_valid, event_errors = validate_and_default_interface(data.data, 'event')
+        errors.extend(event_errors)
+        if 'tags' in data:
+            is_valid, tag_errors = validate_and_default_interface(data['tags'], 'tags', name='tags')
+            errors.extend(tag_errors)
+
+        # Validate interfaces
+        for k in list(iter(data)):
+            if k in CLIENT_RESERVED_ATTRS:
+                continue
+
+            value = data.pop(k)
+
+            if not value:
+                logger.debug('Ignored empty interface value: %s', k)
+                continue
+
+            try:
+                interface = get_interface(k)
+            except ValueError:
+                logger.debug('Ignored unknown attribute: %s', k)
+                errors.append({'type': EventError.INVALID_ATTRIBUTE, 'name': k})
+                continue
+
+            try:
+                inst = interface.to_python(value)
+                data[inst.path] = inst.to_json()
+            except Exception as e:
+                log = logger.debug if isinstance(
+                    e, InterfaceValidationError) else logger.error
+                log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
+                errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
+
+        # Additional data coercion and defaulting
+        level = data.get('level') or DEFAULT_LOG_LEVEL
+        if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
+            level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
+        data['level'] = LOG_LEVELS_MAP.get(level, LOG_LEVELS_MAP[DEFAULT_LOG_LEVEL])
+
+        if data.get('dist') and not data.get('release'):
+            data['dist'] = None
+
+        timestamp = data.get('timestamp')
+        if not timestamp:
+            timestamp = timezone.now()
+
+        # TODO (alex) can this all be replaced by utcnow?
+        # it looks like the only time that this would even be hit is when timestamp
+        # is not defined, as the earlier process_timestamp already converts existing
+        # timestamps to floats.
+        if isinstance(timestamp, datetime):
+            # We must convert date to local time so Django doesn't mess it up
+            # based on TIME_ZONE
+            if settings.TIME_ZONE:
+                if not timezone.is_aware(timestamp):
+                    timestamp = timestamp.replace(tzinfo=timezone.utc)
+            elif timezone.is_aware(timestamp):
+                timestamp = timestamp.replace(tzinfo=None)
+            timestamp = float(timestamp.strftime('%s'))
+
+        data['timestamp'] = timestamp
+        data['received'] = float(timezone.now().strftime('%s'))
+
+        data.setdefault('checksum', None)
+        data.setdefault('culprit', None)
+        data.setdefault('dist', None)
+        data.setdefault('environment', None)
+        data.setdefault('extra', {})
+        data.setdefault('fingerprint', None)
+        data.setdefault('logger', DEFAULT_LOGGER_NAME)
+        data.setdefault('platform', None)
+        data.setdefault('server_name', None)
+        data.setdefault('site', None)
+        data.setdefault('tags', [])
+        data.setdefault('transaction', None)
+
+        # Fix case where legacy apps pass 'environment' as a tag
+        # instead of a top level key.
+        # TODO (alex) save() just reinserts the environment into the tags
+        if not data.get('environment'):
+            tagsdict = dict(data['tags'])
+            if 'environment' in tagsdict:
+                data['environment'] = tagsdict['environment']
+                del tagsdict['environment']
+                data['tags'] = tagsdict.items()
+
+        # the SDKs currently do not describe event types, and we must infer
+        # them from available attributes
+        data['type'] = eventtypes.infer(data).key
+        data['version'] = self.version
+
+        exception = data.get('exception')
+        stacktrace = data.get('stacktrace')
+        if exception and len(exception['values']) == 1 and stacktrace:
+            exception['values'][0]['stacktrace'] = stacktrace
+            del data['stacktrace']
+
+        # Exception mechanism needs SDK information to resolve proper names in
+        # exception meta (such as signal names). "SDK Information" really means
+        # the operating system version the event was generated on. Some
+        # normalization still works without sdk_info, such as mach_exception
+        # names (they can only occur on macOS).
+        if exception:
+            sdk_info = get_sdk_from_event(data)
+            for ex in exception['values']:
+                if ex is not None and 'mechanism' in ex:
+                    normalize_mechanism_meta(ex['mechanism'], sdk_info)
+
+        # If there is no User ip_addres, update it either from the Http interface
+        # or the client_ip of the request.
+        is_public = self._auth and self._auth.is_public
+        add_ip_platforms = ('javascript', 'cocoa', 'objc')
+
+        http_ip = data.get('request', {}).get('env', {}).get('REMOTE_ADDR')
+        if http_ip:
+            data.setdefault('user', {}).setdefault('ip_address', http_ip)
+        elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
+            data.setdefault('user', {}).setdefault('ip_address', self._client_ip)
+
+        # Trim values
+        data['logger'] = trim(data['logger'].strip(), 64)
+        trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
+
+        if data['culprit']:
+            data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
+
+        if data['transaction']:
+            data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
+
+        self._data = data
 
     def should_filter(self):
         '''
@@ -555,8 +823,7 @@ class EventManager(object):
         # convert this to a dict to ensure we're only storing one value per key
         # as most parts of Sentry dont currently play well with multiple values
         tags = dict(data.get('tags') or [])
-        tags['level'] = level
-
+        tags['level'] = LOG_LEVELS[level]
         if logger_name:
             tags['logger'] = logger_name
         if server_name:

@@ -25,6 +25,7 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import InterfaceValidationError
 from sentry.models import EventError
+from sentry.tagstore.base import INTERNAL_TAG_KEYS
 
 
 def iverror(message="Invalid data"):
@@ -267,6 +268,9 @@ TAGS_DICT_SCHEMA = {
         {
             # This is a negative match for all the reserved tags
             'type': 'object',
+            'patternProperties': {
+                '^(%s)$' % '|'.join(INTERNAL_TAG_KEYS): {'not': {}}
+            },
             'additionalProperties': True,
         },
     ],
@@ -284,7 +288,10 @@ TAGS_TUPLES_SCHEMA = {
                 'type': 'string',
                 'pattern': '^[a-zA-Z0-9_\.:-]+$',
                 'minLength': 1,
-                'maxLength': MAX_TAG_KEY_LENGTH
+                'maxLength': MAX_TAG_KEY_LENGTH,
+                'not': {
+                    'pattern': '^(%s)$' % '|'.join(INTERNAL_TAG_KEYS),
+                },
             },
             # Value
             {

@@ -37,10 +37,10 @@ def test_csp_validate_basic():
     assert result['environment'] == 'production'
     assert result['errors'] == []
     assert 'logentry' in result
-    assert result['culprit'] == "img-src 'self'"
+    assert 'culprit' in result
     assert result['tags'] == [
-        ['effective-directive', 'img-src'],
-        ['blocked-uri', 'http://google.com'],
+        ('effective-directive', 'img-src'),
+        ('blocked-uri', 'http://google.com'),
     ]
     assert result['user'] == {'ip_address': '198.51.100.0'}
     assert result['request']['url'] == 'http://45.55.25.245:8123/csp'
@@ -82,9 +82,9 @@ def test_csp_tags_out_of_bounds():
     }
     result = validate_and_normalize(report)
     assert result['tags'] == [
-        ['effective-directive', 'img-src'],
-        ['blocked-uri', 'v' * 197 + '...']
+        ('effective-directive', 'img-src'),
     ]
+    assert len(result['errors']) == 1
 
 
 def test_csp_tag_value():
@@ -105,8 +105,8 @@ def test_csp_tag_value():
     }
     result = validate_and_normalize(report)
     assert result['tags'] == [
-        ['effective-directive', 'img-src'],
-        ['blocked-uri', 'http://google.com'],
+        ('effective-directive', 'img-src'),
+        ('blocked-uri', 'http://google.com'),
     ]
     assert len(result['errors']) == 0
 
@@ -130,18 +130,18 @@ def test_hpkp_validate_basic():
     assert result['release'] == 'abc123'
     assert result['errors'] == []
     assert 'logentry' in result
-    assert not result.get('culprit')
+    assert 'culprit' in result
     assert sorted(result['tags']) == [
-        ['hostname', 'www.example.com'],
-        ['include-subdomains', 'false'],
-        ['port', '443'],
+        ('hostname', 'www.example.com'),
+        ('include-subdomains', 'false'),
+        ('port', '443'),
     ]
     assert result['user'] == {'ip_address': '198.51.100.0'}
     assert result['request'] == {
         'url': 'www.example.com',
-        'headers': {
-            'User-Agent': 'Awesome Browser'
-        }
+        'headers': [
+            ('User-Agent', 'Awesome Browser'),
+        ]
     }
 
 

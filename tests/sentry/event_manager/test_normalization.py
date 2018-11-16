@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import mock
 import logging
 
 from django.conf import settings
@@ -26,7 +27,7 @@ def test_tags_as_list():
     manager.normalize()
     data = manager.get_data()
 
-    assert data['tags'] == [['foo', 'bar']]
+    assert data['tags'] == [('foo', 'bar')]
 
 
 def test_tags_as_dict():
@@ -34,7 +35,7 @@ def test_tags_as_dict():
     manager.normalize()
     data = manager.get_data()
 
-    assert data['tags'] == [['foo', 'bar']]
+    assert data['tags'] == [('foo', 'bar')]
 
 
 def test_interface_is_relabeled():
@@ -64,6 +65,52 @@ def test_does_default_ip_address_to_user():
     assert data['user']['ip_address'] == '127.0.0.1'
 
 
+@mock.patch('sentry.interfaces.geo.Geo.from_ip_address')
+def test_does_geo_from_ip(from_ip_address_mock):
+    from sentry.interfaces.geo import Geo
+
+    geo = {
+        'city': 'San Francisco',
+        'country_code': 'US',
+        'region': 'CA',
+    }
+    from_ip_address_mock.return_value = Geo.to_python(geo)
+
+    manager = EventManager(
+        make_event(
+            **{
+                'user': {
+                    'ip_address': '192.168.0.1',
+                },
+            }
+        )
+    )
+
+    manager.normalize()
+    data = manager.get_data()
+    assert data['user']['ip_address'] == '192.168.0.1'
+    assert data['user']['geo'] == geo
+
+
+@mock.patch('sentry.interfaces.geo.geo_by_addr')
+def test_skips_geo_with_no_result(geo_by_addr_mock):
+    geo_by_addr_mock.return_value = None
+
+    manager = EventManager(
+        make_event(
+            **{
+                'user': {
+                    'ip_address': '127.0.0.1',
+                },
+            }
+        )
+    )
+    manager.normalize()
+    data = manager.get_data()
+    assert data['user']['ip_address'] == '127.0.0.1'
+    assert 'geo' not in data['user']
+
+
 def test_does_default_ip_address_if_present():
     manager = EventManager(
         make_event(
@@ -87,7 +134,7 @@ def test_does_default_ip_address_if_present():
 
 def test_long_culprit():
     manager = EventManager(make_event(
-        culprit='x' * (MAX_CULPRIT_LENGTH + 200),
+        culprit='x' * (MAX_CULPRIT_LENGTH + 1),
     ))
     manager.normalize()
     data = manager.get_data()
@@ -96,7 +143,7 @@ def test_long_culprit():
 
 def test_long_transaction():
     manager = EventManager(make_event(
-        transaction='x' * (MAX_CULPRIT_LENGTH + 200),
+        transaction='x' * (MAX_CULPRIT_LENGTH + 1),
     ))
     manager.normalize()
     data = manager.get_data()
@@ -106,12 +153,12 @@ def test_long_transaction():
 def test_long_message():
     manager = EventManager(
         make_event(
-            message='x' * (settings.SENTRY_MAX_MESSAGE_LENGTH + 300),
+            message='x' * (settings.SENTRY_MAX_MESSAGE_LENGTH + 1),
         )
     )
     manager.normalize()
     data = manager.get_data()
-    assert len(data['logentry']['formatted']) == \
+    assert len(data['logentry']['message']) == \
         settings.SENTRY_MAX_MESSAGE_LENGTH
 
 
@@ -169,10 +216,10 @@ def test_bad_interfaces_no_exception():
 def test_event_pii():
     manager = EventManager(
         make_event(
-            release='foo bar',
-            _meta={'release': {'': {'err': ['invalid']}}},
+            message='foo bar',
+            _meta={'message': {'': {'err': ['invalid']}}},
         )
     )
     manager.normalize()
     data = manager.get_data()
-    assert data['_meta']['release'] == {'': {'err': ['invalid']}}
+    assert data['_meta']['message'] == {'': {'err': ['invalid']}}
