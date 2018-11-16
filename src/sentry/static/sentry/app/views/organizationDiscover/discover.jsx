@@ -3,6 +3,7 @@ import React from 'react';
 import moment from 'moment';
 import {browserHistory} from 'react-router';
 
+import {DEFAULT_USE_UTC} from 'app/constants';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
