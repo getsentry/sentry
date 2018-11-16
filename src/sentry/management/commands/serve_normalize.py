@@ -21,8 +21,6 @@ import multiprocessing
 from django.core.management.base import BaseCommand, CommandError, make_option
 from django.utils.encoding import force_str
 
-p = multiprocessing.Pool(processes=4)
-
 
 # Here's where the normalization itself happens
 def process_event(data, meta):
@@ -48,6 +46,9 @@ def process_event(data, meta):
         "event": dict(event),
         "group_hash": group_hash,
     }
+
+
+p = multiprocessing.Pool(processes=4)
 
 
 class MetricCollector(object):
