@@ -39,6 +39,7 @@ describe('TimeRangeSelector', function() {
       relative: null,
       start: new Date('2017-10-03T02:41:20.000Z'),
       end: new Date('2017-10-17T02:41:20.000Z'),
+      utc: true,
     };
     expect(onChange).toHaveBeenLastCalledWith(newProps);
     wrapper.setProps(newProps);
@@ -78,6 +79,7 @@ describe('TimeRangeSelector', function() {
       relative: null,
       start: new Date('2017-10-10T02:41:20.000Z'),
       end: new Date('2017-10-17T02:41:20.000Z'),
+      utc: true,
     });
 
     wrapper.find('SelectorItem[value="14d"]').simulate('click');
@@ -85,6 +87,7 @@ describe('TimeRangeSelector', function() {
       relative: '14d',
       start: null,
       end: null,
+      utc: true,
     });
 
     wrapper.setProps({relative: '14d', start: null, end: null});
@@ -94,6 +97,7 @@ describe('TimeRangeSelector', function() {
       relative: null,
       start: new Date('2017-10-03T02:41:20.000Z'),
       end: new Date('2017-10-17T02:41:20.000Z'),
+      utc: true,
     });
   });
 

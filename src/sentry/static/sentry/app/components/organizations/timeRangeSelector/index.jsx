@@ -3,7 +3,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {
+  DEFAULT_RELATIVE_PERIODS,
+  DEFAULT_STATS_PERIOD,
+  DEFAULT_USE_UTC,
+} from 'app/constants';
 import {analytics} from 'app/utils/analytics';
 import {getLocalToUtc, getPeriodAgo, getUtcInLocal} from 'app/utils/dates';
 import {parsePeriodToHours} from 'app/utils';
@@ -68,6 +72,7 @@ class TimeRangeSelector extends React.PureComponent {
   static defaultProps = {
     showAbsolute: true,
     showRelative: false,
+    utc: DEFAULT_USE_UTC,
   };
 
   constructor(props) {
