@@ -59,8 +59,8 @@ export function getOrderByOptions(queryBuilder) {
       }
     }
 
-    // Never allow ordering by project_name since this can't be done in Snuba
-    if (name === 'project_name') {
+    // Never allow ordering by project.name since this can't be done in Snuba
+    if (name === 'project.name') {
       return acc;
     }
 

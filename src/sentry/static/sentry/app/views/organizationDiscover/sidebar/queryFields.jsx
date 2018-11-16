@@ -47,9 +47,9 @@ export default class QueryFields extends React.Component {
 
     const currentQuery = queryBuilder.getInternal();
     const columns = queryBuilder.getColumns();
-    // Do not allow conditions on project_id or project_name fields
+    // Do not allow conditions on project.id or project.name fields
     const columnsForConditions = columns.filter(
-      ({name}) => !['project_id', 'project_name'].includes(name)
+      ({name}) => !['project.id', 'project.name'].includes(name)
     );
 
     const fieldOptions = columns.map(({name}) => ({

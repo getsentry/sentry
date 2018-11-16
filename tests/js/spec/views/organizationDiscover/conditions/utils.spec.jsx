@@ -89,20 +89,20 @@ describe('Conditions', function() {
         output: '',
       },
       {
-        input: 'event_id like %test%',
-        output: 'event_id LIKE %test%',
+        input: 'id like %test%',
+        output: 'id LIKE %test%',
       },
       {
-        input: 'event_id IS Nul',
-        output: 'event_id IS NUL',
+        input: 'id IS Nul',
+        output: 'id IS NUL',
       },
       {
-        input: 'event_id = asdf',
-        output: 'event_id = asdf',
+        input: 'id = asdf',
+        output: 'id = asdf',
       },
       {
-        input: 'event_id IS not null',
-        output: 'event_id IS NOT NULL',
+        input: 'id IS not null',
+        output: 'id IS NOT NULL',
       },
     ];
 
