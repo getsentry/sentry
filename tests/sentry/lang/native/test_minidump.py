@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import os
 
-from sentry.lang.native.minidump import merge_minidump_event, is_minidump_event
+from sentry.lang.native.minidump import process_minidump, merge_process_state_event, is_minidump_event
 
 
 def test_is_minidump():
@@ -58,7 +58,8 @@ def test_minidump_linux():
     event = {'release': 'test-1.0.0'}
     minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'linux.dmp')
     with open(minidump, 'rb') as f:
-        merge_minidump_event(event, f.read())
+        state = process_minidump(f.read())
+        merge_process_state_event(event, state)
 
     assert event == {
         'contexts': {
@@ -289,7 +290,8 @@ def test_minidump_macos():
     event = {'release': 'test-1.0.0'}
     minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'macos.dmp')
     with open(minidump, 'rb') as f:
-        merge_minidump_event(event, f.read())
+        state = process_minidump(f.read())
+        merge_process_state_event(event, state)
 
     assert event == {
         'contexts': {
@@ -681,7 +683,8 @@ def test_minidump_windows():
     event = {'release': 'test-1.0.0'}
     minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp')
     with open(minidump, 'rb') as f:
-        merge_minidump_event(event, f.read())
+        state = process_minidump(f.read())
+        merge_process_state_event(event, state)
 
     assert event == {
         'contexts': {
