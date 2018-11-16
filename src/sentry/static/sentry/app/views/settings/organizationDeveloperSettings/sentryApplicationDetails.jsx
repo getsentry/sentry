@@ -61,7 +61,7 @@ class SentryApplicationDetails extends AsyncView {
           apiMethod={method}
           apiEndpoint={endpoint}
           allowUndo
-          initialData={{organization: orgId, ...app}}
+          initialData={{organization: orgId, isAlertable: false, ...app}}
           onSubmitSuccess={this.onSubmitSuccess}
           onSubmitError={err => addErrorMessage(t('Unable to save change'))}
         >

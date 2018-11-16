@@ -28,7 +28,7 @@ class SentryApplicationRow extends React.PureComponent {
     installs: PropTypes.array,
   };
 
-  redirectUrl = install => {
+  redirectUser = install => {
     const {orgId, app} = this.props;
     let redirectUrl = `/settings/${orgId}/integrations/`;
 
@@ -41,9 +41,10 @@ class SentryApplicationRow extends React.PureComponent {
       );
       const query = Object.assign(qs.parse(url.query), installQuery);
       redirectUrl = `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(query)}`;
+      window.location.assign(redirectUrl);
     }
 
-    return redirectUrl;
+    browserHistory.push(redirectUrl);
   };
 
   install = () => {
@@ -51,7 +52,7 @@ class SentryApplicationRow extends React.PureComponent {
 
     const success = install => {
       addSuccessMessage(t(`${app.slug} successfully installed.`));
-      browserHistory.push(this.redirectUrl(install));
+      this.redirectUser(install);
     };
 
     const error = err => {
