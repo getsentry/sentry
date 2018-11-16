@@ -79,29 +79,32 @@ def handle_data(pipe, data):
 
 
 def catch_errors(f):
-    error = None
-    try:
-        return f()
-    except Exception as e:
-        error = force_str(e.message) + ' ' + force_str(traceback.format_exc())
-
-    try:
-        return encode({
-            'result': None,
-            'error': error,
-            'metrics': None
-        })
-    except (ValueError, TypeError) as e:
+    def wrapper(*args, **kwargs):
+        error = None
         try:
-            # Encoding error, try to send the exception instead
+            return f(*args, **kwargs)
+        except Exception as e:
+            error = force_str(e.message) + ' ' + force_str(traceback.format_exc())
+
+        try:
             return encode({
                 'result': None,
-                'error': force_str(e.message) + ' ' + force_str(traceback.format_exc()),
-                'metrics': None,
-                'encoding_error': True,
+                'error': error,
+                'metrics': None
             })
-        except Exception:
-            return b'{}'
+        except (ValueError, TypeError) as e:
+            try:
+                # Encoding error, try to send the exception instead
+                return encode({
+                    'result': None,
+                    'error': force_str(e.message) + ' ' + force_str(traceback.format_exc()),
+                    'metrics': None,
+                    'encoding_error': True,
+                })
+            except Exception:
+                return b'{}'
+
+    return wrapper
 
 
 class MetricCollector(object):
