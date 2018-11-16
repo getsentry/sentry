@@ -94,11 +94,11 @@ class SafeExecuteTest(TestCase):
 
 class GetChainTest(TestCase):
     def test_get_path(self):
-        assert get_path({}, ['a']) is None
-        assert get_path({}, ['a'], 1) == 1
-        assert get_path({'a': 2}, ['a']) == 2
-        assert get_path({'a': 2}, ['b']) is None
-        assert get_path({'a': 2}, ['b'], 1) == 1
-        assert get_path({'a': {'b': []}}, ['a', 'b']) == []
-        assert get_path({'a': []}, ['a', 'b']) is None
-        assert get_path(CanonicalKeyDict({'a': 2}), ['a']) == 2
+        assert get_path({}, 'a') is None
+        assert get_path({}, 'a', default=1) == 1
+        assert get_path({'a': 2}, 'a') == 2
+        assert get_path({'a': 2}, 'b') is None
+        assert get_path({'a': 2}, 'b', default=1) == 1
+        assert get_path({'a': {'b': []}}, 'a', 'b') == []
+        assert get_path({'a': []}, 'a', 'b') is None
+        assert get_path(CanonicalKeyDict({'a': 2}), 'a') == 2

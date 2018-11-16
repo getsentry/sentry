@@ -122,16 +122,17 @@ def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
     return value
 
 
-def get_path(data, path, default=None):
+def get_path(data, *path, **kwargs):
     """
     Looks up a path of properties in a nested dictionary safely.
     Returns the value at the final level, or the default value if
     property lookup failed at any step in the path.
     """
-    if not isinstance(path, (list, tuple)) or len(path) == 0:
-        raise ValueError
     for p in path:
-        if not isinstance(data, collections.Mapping) or p not in data:
-            return default
-        data = data[p]
+        if isinstance(data, collections.Mapping) and p in data:
+            data = data[p]
+        elif isinstance(data, collections.Sequence) and -len(data) <= p < len(data):
+            data = data[p]
+        else:
+            return kwargs.get('default')
     return data
