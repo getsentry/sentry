@@ -126,12 +126,19 @@ def get_valid(data, *path, **kwargs):
     meta = kwargs.pop('meta', None) or Meta(data.get('_meta'))
 
     for key in path:
+        if isinstance(data, collections.Sequence) and key < 0:
+            key = len(data) + key
+
         meta = meta.enter(key)
         if meta.get_errors():
             return None
-        if not isinstance(data, collections.Mapping) or key not in data:
+
+        if isinstance(data, collections.Mapping) and key in data:
+            data = data[key]
+        elif isinstance(data, collections.Sequence) and 0 <= key < len(data):
+            data = data[key]
+        else:
             return None
-        data = data[key]
 
     return data
 
