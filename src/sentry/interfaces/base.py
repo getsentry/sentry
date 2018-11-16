@@ -10,6 +10,7 @@ from django.utils.translation import ugettext as _
 from sentry.utils.canonical import get_canonical_name
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
+from sentry.utils.meta import Meta
 from sentry.utils.safe import safe_execute
 from sentry.utils.decorators import classproperty
 
@@ -54,57 +55,6 @@ def get_interfaces(data):
     return OrderedDict(
         (k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True)
     )
-
-
-class Meta(object):
-    def __init__(self, meta=None, path=None):
-        self._meta = meta or {}
-        self._path = path or []
-
-    def enter(self, *path):
-        return Meta(self._meta, path=self._path + map(six.text_type, path))
-
-    def raw(self):
-        meta = self._meta
-        for key in self._path:
-            meta = meta.get(key) or {}
-        return meta
-
-    def get(self):
-        return self.raw().get('') or {}
-
-    def create(self):
-        meta = self._meta
-        for key in self._path + ['']:
-            if key not in meta or meta[key] is None:
-                meta[key] = {}
-            meta = meta[key]
-
-        return meta
-
-    def merge(self, other):
-        other = other.get()
-        if not other:
-            return
-
-        meta = self.create()
-        err = meta.get('err')
-        meta.update(other)
-
-        if err and other.get('err'):
-            meta['err'] = err + other['err']
-
-    def get_errors(self):
-        self.get().get('err') or []
-
-    def add_error(self, error, value=None):
-        meta = self.create()
-        if 'err' not in meta or meta['err'] is None:
-            meta['err'] = []
-        meta['err'].append(six.text_type(error))
-
-        if value is not None:
-            meta['val'] = value
 
 
 class InterfaceValidationError(Exception):

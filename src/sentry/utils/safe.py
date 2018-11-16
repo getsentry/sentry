@@ -17,7 +17,6 @@ from django.utils.encoding import force_text
 
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
-from sentry.interfaces.base import Meta
 
 
 def safe_execute(func, *args, **kwargs):
@@ -136,55 +135,3 @@ def get_path(data, path, default=None):
             return default
         data = data[p]
     return data
-
-
-def get_valid(data, meta=None, *path):
-    """
-    Safely resolves valid data from a dictionary with attached meta data. A
-    value is only returned if the full path exists and none of the parent
-    objects had errors attached.
-
-    This function extracts meta data from the "_meta" key in the top level
-    dictionary. For the use in nested data structures with out-of-place meta
-    data, pass a ``meta=Meta(...)`` argument manually.
-
-    If the path does not exist or contains errors, ``None`` is returned.
-    """
-    if meta is None:
-        meta = Meta(data.get('_meta'))
-
-    for key in path:
-        meta = meta.enter(key)
-        if meta.get_errors():
-            return None
-        if not isinstance(data, collections.Mapping) or key not in data:
-            return None
-        data = data[key]
-
-    return data
-
-
-def get_all_valid(data, meta=None, *path):
-    """
-    Safely resolves a list of valid data from a dictionary with attached meta
-    data. This is similar to `get_valid`, except that it assumes the resolved
-    value is a list which it filters for valid elements.
-
-    This function extracts meta data from the "_meta" key in the top level
-    dictionary. For the use in nested data structures with out-of-place meta
-    data, pass a ``meta=Meta(...)`` argument manually.
-
-    If the path does not exist or contains errors, ``None`` is returned. If the
-    resolved value is not a list, the original value is returned.
-    """
-    items = get_valid(data, meta=meta, *path)
-    if not items or not isinstance(items, collections.Sequence):
-        return items
-
-    results = []
-    meta = meta.enter(*path)
-    for index, item in enumerate(items):
-        if not meta.enter(index).get_errors():
-            results.append(item)
-
-    return results
