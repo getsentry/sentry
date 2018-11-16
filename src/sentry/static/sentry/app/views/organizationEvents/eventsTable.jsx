@@ -21,6 +21,7 @@ class EventsTable extends React.Component {
     reloading: PropTypes.bool,
     events: PropTypes.array,
     organization: SentryTypes.Organization,
+    utc: PropTypes.bool,
   };
 
   constructor(props) {
@@ -62,7 +63,7 @@ class EventsTable extends React.Component {
   }
 
   render() {
-    const {events, organization, reloading} = this.props;
+    const {events, organization, reloading, utc} = this.props;
     const hasEvents = events && !!events.length;
 
     return (
@@ -103,7 +104,7 @@ class EventsTable extends React.Component {
                   </TableData>
 
                   <TableData>
-                    <StyledDateTime date={new Date(event.dateCreated)} />
+                    <StyledDateTime utc={utc} date={new Date(event.dateCreated)} />
                   </TableData>
                 </TableRow>
               );
