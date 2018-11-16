@@ -465,6 +465,7 @@ class EventManager(object):
 
         casts = {
             'environment': lambda v: text(v) if v is not None else v,
+            'event_id': lambda v: v.lower(),
             'fingerprint': lambda v: list(x for x in map(stringify, v) if x is not None) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
             'release': lambda v: text(v) if v is not None else v,
             'dist': lambda v: text(v).strip() if v is not None else v,
