@@ -18,7 +18,7 @@ class DateTime extends React.Component {
     seconds: true,
   };
 
-  getFormat = ({clock24Hours}, utc) => {
+  getFormat = ({clock24Hours}) => {
     let {dateOnly, seconds, shortDate} = this.props;
 
     // October 26, 2017
@@ -31,12 +31,12 @@ class DateTime extends React.Component {
     }
 
     if (clock24Hours) {
-      return `MMMM D YYYY HH:mm:ss${!utc ? ' z' : ''}`;
+      return 'MMMM D YYYY HH:mm:ss z';
     }
 
     // Oct 26, 2017 11:30:30 AM
     if (seconds) {
-      return `ll LTS${!utc ? ' z' : ''}`;
+      return 'll LTS z';
     }
 
     // Default is Oct 26, 2017 11:30 AM
@@ -52,12 +52,13 @@ class DateTime extends React.Component {
       shortDate,
       // eslint-disable-next-line no-unused-vars
       dateOnly,
+	  // eslint-disable-next-line no-unused-vars
       utc,
       ...carriedProps
     } = this.props;
     let user = ConfigStore.get('user');
     let options = user ? user.options : {};
-    let format = this.getFormat(options, utc);
+    let format = this.getFormat(options);
 
     if (_.isString(date) || _.isNumber(date)) {
       date = new Date(date);
