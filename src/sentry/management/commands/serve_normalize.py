@@ -116,7 +116,7 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
         return data, meta
 
     def process_event(self, data, meta):
-        return p.apply(process_event, data, meta)
+        return p.apply(process_event, (data, meta))
 
     def handle_data(self):
         result = None
