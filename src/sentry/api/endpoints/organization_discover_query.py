@@ -18,7 +18,7 @@ from sentry.api.serializers.rest_framework import ListField
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.models import Project, ProjectStatus, OrganizationMember, OrganizationMemberTeam
+from sentry.models import Project, Group, ProjectStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.utils import snuba
 from sentry import roles
 from sentry import features
@@ -244,6 +244,20 @@ class OrganizationDiscoverQueryEndpoint(OrganizationEndpoint):
                 result['project.name'] = projects[result['project.id']]
                 if 'project.id' not in requested_query['groupby']:
                     del result['project.id']
+
+        if 'issue.id' in (requested_query['selected_columns'] + requested_query['groupby']):
+            for col in snuba_results['meta']:
+                if col['name'] == 'issue.id':
+                    col['type'] = 'String'
+
+        for arr in [requested_query['selected_columns'], requested_query['groupby']]:
+            if 'issue.id' in arr:
+                groups = {k: v for k, v in Group.objects.filter(
+                    id__in=[row['issue.id'] for row in snuba_results['data']]
+                ).values_list('id', 'short_id')}
+
+                for result in snuba_results['data']:
+                    result['issue.id'] = six.text_type(groups.get(result['issue.id']))
 
         # Convert snuba types to json types
         for col in snuba_results['meta']:
