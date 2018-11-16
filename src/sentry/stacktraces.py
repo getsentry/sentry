@@ -7,9 +7,10 @@ from datetime import datetime
 from collections import namedtuple
 
 from sentry.models import Project, Release
-from sentry.utils.safe import safe_execute
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
+from sentry.utils.meta import get_valid, get_all_valid
+from sentry.utils.safe import safe_execute
 
 
 logger = logging.getLogger(__name__)
@@ -172,25 +173,19 @@ def find_stacktraces_in_data(data, include_raw=False):
             platforms.add(frame.get('platform') or data.get('platform'))
         rv.append(StacktraceInfo(stacktrace=stacktrace, container=container, platforms=platforms))
 
-    exc_container = data.get('exception')
-    if exc_container:
-        for exc in exc_container['values']:
-            if not exc:
-                continue
-            stacktrace = exc.get('stacktrace')
-            if stacktrace:
-                _report_stack(stacktrace, exc)
+    for exc in get_all_valid(data, 'exception', 'values') or ():
+        stacktrace = exc.get('stacktrace')
+        if stacktrace:
+            _report_stack(stacktrace, exc)
 
-    stacktrace = data.get('stacktrace')
+    stacktrace = get_valid(data, 'stacktrace')
     if stacktrace:
         _report_stack(stacktrace, None)
 
-    threads = data.get('threads')
-    if threads:
-        for thread in threads['values']:
-            stacktrace = thread.get('stacktrace')
-            if stacktrace:
-                _report_stack(stacktrace, thread)
+    for thread in get_all_valid(data, 'threads', 'values') or ():
+        stacktrace = thread.get('stacktrace')
+        if stacktrace:
+            _report_stack(stacktrace, thread)
 
     if include_raw:
         for stacktrace_info in rv[:]:

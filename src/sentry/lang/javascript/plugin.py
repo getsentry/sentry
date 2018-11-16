@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from sentry.plugins import Plugin2
 from sentry.stacktraces import find_stacktraces_in_data
 from sentry.utils.contexts_normalization import normalize_user_agent
+from sentry.utils.meta import get_valid
 
 from .processor import JavaScriptStacktraceProcessor
 from .errormapping import rewrite_exception
@@ -33,7 +34,7 @@ def generate_modules(data):
 
 
 def fix_culprit(data):
-    exc = data.get('exception')
+    exc = get_valid(data, 'exception')
     if not exc:
         return
 

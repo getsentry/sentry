@@ -5,6 +5,8 @@ import os
 import io
 import re
 
+from sentry.utils.safe import get_path
+
 LOCALES_DIR = os.path.join(os.path.dirname(__file__), '../../data/error-locale')
 TARGET_LOCALE = 'en-US'
 
@@ -87,13 +89,16 @@ def translate_message(original_message):
 
 
 def translate_exception(data):
-    if 'logentry' in data:
-        data['logentry']['message'] = translate_message(
-            data['logentry']['message'])
+    message = get_path(data, 'logentry', 'message')
+    if message:
+        data['logentry']['message'] = translate_message(message)
 
-    if 'exception' in data:
-        for entry in data['exception']['values']:
-            if 'value' in entry:
-                entry['value'] = translate_message(entry['value'])
+    formatted = get_path(data, 'logentry', 'formatted')
+    if formatted:
+        data['logentry']['formatted'] = translate_message(formatted)
+
+    for entry in get_path(data, 'exception', 'values') or ():
+        if 'value' in entry:
+            entry['value'] = translate_message(entry['value'])
 
     return data

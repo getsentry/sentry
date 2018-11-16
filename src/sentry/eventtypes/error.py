@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry.utils.meta import get_valid
 from sentry.utils.safe import trim
 from sentry.utils.strings import truncatechars
 
@@ -22,16 +23,10 @@ class ErrorEvent(BaseEvent):
     key = 'error'
 
     def has_metadata(self):
-        try:
-            exception = self.data['exception']['values'][-1]
-            exception['type']
-            exception['value']
-            return True
-        except Exception:
-            return False
+        return bool(get_valid(self.data, 'exception', 'values', -1))
 
     def get_metadata(self):
-        exception = self.data['exception']['values'][-1]
+        exception = get_valid(self.data, 'exception', 'values', -1)
 
         # in some situations clients are submitting non-string data for these
         rv = {

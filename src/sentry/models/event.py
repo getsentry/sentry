@@ -23,6 +23,7 @@ from sentry.db.models import (
 from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
+from sentry.utils.meta import get_valid
 from sentry.utils.strings import truncatechars
 
 
@@ -97,6 +98,7 @@ class Event(Model):
     project = property(_get_project, _set_project)
 
     def get_legacy_message(self):
+        # TODO(ja): Merge this with GH-10621
         msg_interface = self.data.get('logentry', {
             'message': self.message,
         })
@@ -145,17 +147,13 @@ class Event(Model):
 
     @memoize
     def ip_address(self):
-        user_data = self.data.get('user', self.data.get('user'))
-        if user_data:
-            value = user_data.get('ip_address')
-            if value:
-                return value
+        ip_address = get_valid(self.data, 'user', 'ip_address')
+        if ip_address:
+            return ip_address
 
-        http_data = self.data.get('request', self.data.get('http'))
-        if http_data and 'env' in http_data:
-            value = http_data['env'].get('REMOTE_ADDR')
-            if value:
-                return value
+        remote_addr = get_valid(self.data, 'request', 'env', 'REMOTE_ADDR')
+        if remote_addr:
+            return remote_addr
 
         return None
 

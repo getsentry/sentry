@@ -13,6 +13,8 @@ from sentry.lang.native.utils import parse_addr, rebase_addr
 from sentry.models import Project, ProjectDebugFile
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
+from sentry.utils.meta import get_all_valid
+from sentry.utils.safe import get_path
 
 
 logger = logging.getLogger(__name__)
@@ -169,8 +171,8 @@ class ThreadProcessingHandle(object):
         self.changed = False
 
     def _get_modules(self):
-        modules = (self.data.get('debug_meta') or {}).get('images') or []
-        return ObjectLookup(modules)
+        modules = get_all_valid(self.data, 'debug_meta', 'images')
+        return ObjectLookup(modules or [])
 
     def iter_modules(self):
         """Returns an iterator over all code modules (images) loaded by the
@@ -182,16 +184,15 @@ class ThreadProcessingHandle(object):
         """Returns an iterator over all threads of the process at the time of
         the crash, including the crashing thread. The values are of type
         ``ThreadRef``."""
-        for thread in (self.data.get('threads') or {}).get('values') or []:
+        for thread in get_all_valid(self.data, 'threads', 'values') or []:
             if thread.get('crashed'):
                 # XXX: Assumes that the full list of threads is present in the
                 # original crash report. This is guaranteed by KSCrash and our
                 # minidump utility.
-                exceptions = (self.data.get('exception') or {}).get('values') or []
-                exception = exceptions[0] if exceptions else {}
-                frames = (exception.get('stacktrace') or {}).get('frames')
+                exceptions = get_all_valid(self.data, 'exception', 'values')
+                frames = get_path(exceptions, 0, 'stacktrace', 'frames')
             else:
-                frames = (thread.get('stacktrace') or {}).get('frames')
+                frames = get_path(thread, 'stacktrace', 'frames')
 
             tid = thread.get('id')
             if tid and frames:

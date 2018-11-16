@@ -8,18 +8,16 @@ sentry.utils.javascript
 from __future__ import absolute_import
 
 
+from sentry.utils.meta import get_all_valid
+
+
 def has_sourcemap(event):
     if event.platform not in ('javascript', 'node'):
         return False
-    data = event.data
 
-    if 'exception' not in data:
-        return False
-    exception = data['exception']
-    for value in exception['values']:
-        stacktrace = value.get('stacktrace', {})
-        for frame in stacktrace.get('frames', []):
-            if 'sourcemap' in frame.get('data', {}):
+    for exception, meta in get_all_valid(event.data, 'exception', 'values', with_meta=True) or ():
+        for frame in get_all_valid(exception, 'stacktrace', 'frames', meta=meta) or ():
+            if 'sourcemap' in (frame.get('data') or {}):
                 return True
 
     return False

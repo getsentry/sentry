@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
-
 from symbolic import arch_from_breakpad, ProcessState, id_from_breakpad
+
+from sentry.utils.meta import get_all_valid
+from sentry.utils.safe import get_path
 
 # Attachment type used for minidump files
 MINIDUMP_ATTACHMENT_TYPE = 'event.minidump'
@@ -15,11 +17,8 @@ MINIDUMP_OS_TYPES = {
 
 
 def is_minidump_event(data):
-    exceptions = (data.get('exception') or {}).get('values') or []
-    if not exceptions:
-        return False
-
-    return (exceptions[0].get('mechanism') or {}).get('type') == 'minidump'
+    exceptions = get_all_valid(data, 'exception', 'values')
+    return get_path(exceptions, 0, 'mechanism', 'type') == 'minidump'
 
 
 def process_minidump(minidump, cfi=None):
