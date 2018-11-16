@@ -9,6 +9,7 @@ import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
 import IndicatorStore from 'app/stores/indicatorStore';
 import sdk from 'app/utils/sdk';
+import SentryTypes from 'app/sentryTypes';
 
 const CreateSampleEvent = createReactClass({
   displayName: 'createSampleEvent',
@@ -19,7 +20,7 @@ const CreateSampleEvent = createReactClass({
   },
 
   contextTypes: {
-    organization: PropTypes.object,
+    organization: SentryTypes.Organization.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -28,11 +29,18 @@ const CreateSampleEvent = createReactClass({
     let {projectId} = this.props.params;
     let {organization} = this.context;
     let project = organization.projects.find(proj => proj.slug === projectId);
-    analytics('sample_event.button_viewed', {
+    let data = {
       org_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
       source: this.props.source,
-    });
+    };
+
+    if (!project) {
+      data.project_slug = projectId;
+      analytics('sample_event.button_viewed2', data);
+    } else {
+      data.project_id = parseInt(project.id, 10);
+      analytics('sample_event.button_viewed', data);
+    }
   },
 
   createSampleEvent() {
