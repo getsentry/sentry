@@ -3,6 +3,7 @@ import React from 'react';
 import moment from 'moment';
 import {browserHistory} from 'react-router';
 
+import {DEFAULT_USE_UTC} from 'app/constants';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
@@ -356,7 +357,7 @@ export default class OrganizationDiscover extends React.Component {
               <TimeRangeSelector
                 showAbsolute={true}
                 showRelative={true}
-                useUtc={true}
+                utc={DEFAULT_USE_UTC}
                 start={start}
                 end={end}
                 relative={currentQuery.range}

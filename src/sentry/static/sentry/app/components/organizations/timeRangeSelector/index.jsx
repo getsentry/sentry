@@ -52,7 +52,7 @@ class TimeRangeSelector extends React.PureComponent {
     /**
      * Default initial value for using UTC
      */
-    useUtc: PropTypes.bool,
+    utc: PropTypes.bool,
 
     /**
      * Callback when value changes
@@ -73,7 +73,7 @@ class TimeRangeSelector extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      useUtc: props.useUtc,
+      utc: props.utc,
       isOpen: false,
     };
   }
@@ -114,6 +114,7 @@ class TimeRangeSelector extends React.PureComponent {
         'hours'
       ).toDate(),
       end: new Date(),
+      utc: this.state.utc,
     });
   };
 
@@ -123,6 +124,7 @@ class TimeRangeSelector extends React.PureComponent {
       relative: value,
       start: null,
       end: null,
+      utc: this.state.utc,
     });
     this.handleUpdate();
   };
@@ -134,6 +136,7 @@ class TimeRangeSelector extends React.PureComponent {
       relative: null,
       start,
       end,
+      utc: this.state.utc,
     });
   };
 
@@ -141,19 +144,20 @@ class TimeRangeSelector extends React.PureComponent {
     const {onChange, start, end} = this.props;
 
     this.setState(state => {
-      const useUtc = !state.useUtc;
+      const utc = !state.utc;
       analytics('dateselector.utc_changed', {
-        utc: useUtc,
+        utc,
       });
 
       onChange({
         relative: null,
-        start: useUtc ? getLocalToUtc(start) : getUtcInLocal(start),
-        end: useUtc ? getLocalToUtc(end) : getUtcInLocal(end),
+        start: utc ? getLocalToUtc(start) : getUtcInLocal(start),
+        end: utc ? getLocalToUtc(end) : getUtcInLocal(end),
+        utc,
       });
 
       return {
-        useUtc,
+        utc,
       };
     });
   };
@@ -168,7 +172,7 @@ class TimeRangeSelector extends React.PureComponent {
     const summary = relative ? (
       `${DEFAULT_RELATIVE_PERIODS[relative]}`
     ) : (
-      <DateSummary useUtc={this.state.useUtc} start={start} end={end} />
+      <DateSummary utc={this.state.utc} start={start} end={end} />
     );
 
     return (
@@ -215,7 +219,7 @@ class TimeRangeSelector extends React.PureComponent {
                 {isAbsoluteSelected && (
                   <DateRange
                     showTimePicker
-                    useUtc={this.state.useUtc}
+                    utc={this.state.utc}
                     start={start}
                     end={end}
                     onChange={this.handleSelectDateRange}

@@ -48,7 +48,7 @@ describe('TimeRangeSelector', function() {
   });
 
   it('selects absolute item with utc enabled', async function() {
-    wrapper = createWrapper({useUtc: true});
+    wrapper = createWrapper({utc: true});
     await wrapper.find('HeaderItem').simulate('click');
 
     expect(wrapper.find('[data-test-id="date-range"]')).toHaveLength(0);
@@ -58,6 +58,7 @@ describe('TimeRangeSelector', function() {
       relative: null,
       start: new Date('2017-10-03T02:41:20.000Z'),
       end: new Date('2017-10-17T02:41:20.000Z'),
+      utc: true,
     };
     expect(onChange).toHaveBeenLastCalledWith(newProps);
     wrapper.setProps(newProps);
@@ -99,7 +100,7 @@ describe('TimeRangeSelector', function() {
   it('switches from relative to absolute while maintaining equivalent date range (in utc)', async function() {
     wrapper = createWrapper({
       relative: '7d',
-      useUtc: true,
+      utc: true,
     });
     await wrapper.find('HeaderItem').simulate('click');
 
@@ -108,6 +109,7 @@ describe('TimeRangeSelector', function() {
       relative: null,
       start: new Date('2017-10-10T02:41:20.000Z'),
       end: new Date('2017-10-17T02:41:20.000Z'),
+      utc: true,
     });
 
     wrapper.find('SelectorItem[value="14d"]').simulate('click');
@@ -115,6 +117,7 @@ describe('TimeRangeSelector', function() {
       relative: '14d',
       start: null,
       end: null,
+      utc: true,
     });
 
     wrapper.setProps({relative: '14d', start: null, end: null});
@@ -124,6 +127,7 @@ describe('TimeRangeSelector', function() {
       relative: null,
       start: new Date('2017-10-03T02:41:20.000Z'),
       end: new Date('2017-10-17T02:41:20.000Z'),
+      utc: true,
     });
   });
 
@@ -133,7 +137,7 @@ describe('TimeRangeSelector', function() {
       relative: null,
       start: new Date('2017-10-10T00:00:00.000Z'),
       end: new Date('2017-10-17T23:59:59.000Z'),
-      useUtc: true,
+      utc: true,
     });
     wrapper.find('HeaderItem').simulate('click');
 
@@ -143,6 +147,7 @@ describe('TimeRangeSelector', function() {
       relative: null,
       start: new Date('2017-10-10T04:00:00.000Z'),
       end: new Date('2017-10-18T03:59:59.000Z'),
+      utc: false,
     };
     expect(onChange).toHaveBeenLastCalledWith(state);
     wrapper.setProps(state);
@@ -153,6 +158,7 @@ describe('TimeRangeSelector', function() {
       relative: null,
       start: new Date('2017-10-10T00:00:00.000Z'),
       end: new Date('2017-10-17T23:59:59.000Z'),
+      utc: true,
     };
     expect(onChange).toHaveBeenLastCalledWith(state);
     wrapper.setProps(state);
@@ -163,6 +169,7 @@ describe('TimeRangeSelector', function() {
       relative: null,
       start: new Date('2017-10-10T04:00:00.000Z'),
       end: new Date('2017-10-18T03:59:59.000Z'),
+      utc: false,
     });
   });
 });

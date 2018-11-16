@@ -4,11 +4,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_STATS_PERIOD, DEFAULT_USE_UTC} from 'app/constants';
 import {defined} from 'app/utils';
 import {getLocalDateObject, getUtcDateString} from 'app/utils/dates';
-import {getParams} from 'app/views/organizationEvents/utils';
-import EventsContext from 'app/views/organizationEvents/eventsContext';
 import Feature from 'app/components/acl/feature';
 import Header from 'app/components/organizations/header';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
@@ -20,13 +18,16 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
+import {getParams} from './utils/getParams';
+import EventsContext from './utils/eventsContext';
+
 class OrganizationEventsContainer extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     router: PropTypes.object,
   };
 
-  static getInitialStateFromRouter(props) {
+  static getStateFromRouter(props) {
     const {query} = props.router.location;
     const hasAbsolute = !!query.start && !!query.end;
     let project = [];
@@ -50,17 +51,13 @@ class OrganizationEventsContainer extends React.Component {
       end = getLocalDateObject(end);
     }
 
-    const values = {
+    return {
       project,
       environment,
       period: query.statsPeriod || (hasAbsolute ? null : DEFAULT_STATS_PERIOD),
       start: start || null,
       end: end || null,
-    };
-
-    return {
-      ...values,
-      queryValues: {...values},
+      utc: typeof query.utc !== 'undefined' ? query.utc === 'true' : DEFAULT_USE_UTC,
     };
   }
 
@@ -71,7 +68,25 @@ class OrganizationEventsContainer extends React.Component {
       updateParams: this.updateParams,
     };
 
-    this.state = OrganizationEventsContainer.getInitialStateFromRouter(props);
+    const values = OrganizationEventsContainer.getStateFromRouter(props);
+    this.state = {
+      ...values,
+      queryValues: {
+        ...values,
+      },
+    };
+  }
+
+  componentWillReceiveProps(nextProps, nextState) {
+    if (this.props.location !== nextProps.location) {
+      const values = OrganizationEventsContainer.getStateFromRouter(nextProps);
+
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState({
+        ...values,
+        queryValues: {...values},
+      });
+    }
   }
 
   updateParams = obj => {
@@ -112,14 +127,15 @@ class OrganizationEventsContainer extends React.Component {
     }));
   };
 
-  handleChangeTime = ({start, end, relative}) => {
-    this.setState({start, end, period: relative});
+  handleChangeTime = ({start, end, relative, utc}) => {
+    this.setState({start, end, period: relative, utc});
   };
 
   handleUpdatePeriod = () => {
-    this.setState(({period, start, end, ...state}) => {
+    this.setState(({period, start, end, utc, ...state}) => {
       let newValueObj = {
         ...(defined(period) ? {period} : {start, end}),
+        utc,
       };
 
       this.updateParams(newValueObj);
@@ -159,7 +175,7 @@ class OrganizationEventsContainer extends React.Component {
 
   render() {
     const {organization, children} = this.props;
-    const {period, start, end} = this.state;
+    const {period, start, end, utc} = this.state;
 
     const projects =
       organization.projects && organization.projects.filter(({isMember}) => isMember);
@@ -197,6 +213,7 @@ class OrganizationEventsContainer extends React.Component {
                   relative={period}
                   start={start}
                   end={end}
+                  utc={utc}
                   onChange={this.handleChangeTime}
                   onUpdate={this.handleUpdatePeriod}
                 />

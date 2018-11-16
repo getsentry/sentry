@@ -124,7 +124,7 @@ describe('DateRange', function() {
           start={start}
           end={end}
           showTimePicker
-          useUtc
+          utc
           onChange={onChange}
           onChangeUtc={jest.fn()}
         />,
