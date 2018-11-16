@@ -69,11 +69,11 @@ def handle_data(pipe, data):
         rv = process_event(data, meta)
         metrics_after = mc.collect_metrics()
 
-        return {
+        return encode({
             'result': rv,
             'metrics': {'before': metrics_before, 'after': metrics_after},
             'error': None
-        }
+        })
 
     pipe.send(inner(data))
 
