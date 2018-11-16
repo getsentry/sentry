@@ -117,7 +117,7 @@ const KeyRow = createReactClass({
     let editUrl = recreateRoute(`${data.id}/`, this.props);
     let controls = [
       <Button key="edit" to={editUrl} size="small">
-        {t('Details')}
+        {t('Configure')}
       </Button>,
     ];
 
