@@ -17,7 +17,7 @@ from sentry.api.bases.organization import (OrganizationEndpoint,
 
 
 # The blob size must be a power of two
-DEFAULT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
+CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 4
@@ -52,7 +52,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         return Response(
             {
                 'url': endpoint,
-                'chunkSize': DEFAULT_BLOB_SIZE,
+                'chunkSize': CHUNK_UPLOAD_BLOB_SIZE,
                 'chunksPerRequest': MAX_CHUNKS_PER_REQUEST,
                 'maxRequestSize': MAX_REQUEST_SIZE,
                 'concurrency': MAX_CONCURRENCY,
@@ -82,7 +82,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         size = 0
         for chunk in files:
             size += chunk.size
-            if chunk.size > DEFAULT_BLOB_SIZE:
+            if chunk.size > CHUNK_UPLOAD_BLOB_SIZE:
                 return Response({'error': 'Chunk size too large'},
                                 status=status.HTTP_400_BAD_REQUEST)
             checksums.append(chunk.name)
