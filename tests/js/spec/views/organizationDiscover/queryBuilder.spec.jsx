@@ -113,7 +113,7 @@ describe('Query Builder', function() {
     });
 
     it('makes request', async function() {
-      const data = {projects: [1], fields: ['event_id']};
+      const data = {projects: [1], fields: ['id']};
       await queryBuilder.fetch(data);
       expect(discoverMock).toHaveBeenCalledWith(
         '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
@@ -143,14 +143,14 @@ describe('Query Builder', function() {
 
     it('updates field', function() {
       queryBuilder.updateField('projects', [5]);
-      queryBuilder.updateField('conditions', [['event_id', '=', 'event1']]);
+      queryBuilder.updateField('conditions', [['id', '=', 'event1']]);
 
       const query = queryBuilder.getInternal();
-      expect(query.conditions).toEqual([['event_id', '=', 'event1']]);
+      expect(query.conditions).toEqual([['id', '=', 'event1']]);
     });
 
     it('updates orderby if there is an aggregation and value is not a valid field', function() {
-      queryBuilder.updateField('fields', ['event_id']);
+      queryBuilder.updateField('fields', ['id']);
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
       const query = queryBuilder.getInternal();
@@ -158,7 +158,7 @@ describe('Query Builder', function() {
     });
 
     it('updates orderby if there is no aggregation and value is not a valid field', function() {
-      queryBuilder.updateField('fields', ['event_id']);
+      queryBuilder.updateField('fields', ['id']);
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
       expect(queryBuilder.getInternal().orderby).toBe('-count');
       queryBuilder.updateField('aggregations', []);
