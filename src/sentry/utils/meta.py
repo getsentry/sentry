@@ -121,9 +121,12 @@ def get_valid(data, *path, **kwargs):
     dictionary. For the use in nested data structures with out-of-place meta
     data, pass a ``meta=Meta(...)`` argument manually.
 
-    If the path does not exist or contains errors, ``None`` is returned.
+    If the path does not exist or contains errors, ``None`` is returned. When
+    `with_meta` is specified, a tuple ``value, meta`` is returned instead.
     """
     meta = kwargs.pop('meta', None) or Meta(data.get('_meta'))
+    with_meta = kwargs.get('with_meta', False)
+    root = meta
 
     for key in path:
         if isinstance(data, collections.Sequence) and key < 0:
@@ -131,16 +134,16 @@ def get_valid(data, *path, **kwargs):
 
         meta = meta.enter(key)
         if meta.get_errors():
-            return None
+            return (None, root.enter(*path)) if with_meta else None
 
         if isinstance(data, collections.Mapping) and key in data:
             data = data[key]
         elif isinstance(data, collections.Sequence) and 0 <= key < len(data):
             data = data[key]
         else:
-            return None
+            return (None, root.enter(*path)) if with_meta else None
 
-    return data
+    return (data, meta) if with_meta else data
 
 
 def get_all_valid(data, *path, **kwargs):
@@ -153,18 +156,23 @@ def get_all_valid(data, *path, **kwargs):
     dictionary. For the use in nested data structures with out-of-place meta
     data, pass a ``meta=Meta(...)`` argument manually.
 
-    If the path does not exist or contains errors, ``None`` is returned. If the
-    resolved value is not a list, the original value is returned.
+    If the path does not exist or contains errors, ``None`` is returned. When
+    `with_meta` is specified, a list of tuples ``value, meta`` is returned
+    instead.
+
+    If the resolved value is not a list, the original value is returned.
     """
     meta = kwargs.pop('meta', None) or Meta(data.get('_meta'))
-    items = get_valid(data, *path, meta=meta, **kwargs)
-    if not items or not isinstance(items, collections.Sequence):
-        return items
+    with_meta = kwargs.pop('with_meta', False)
+
+    value, meta = get_valid(data, *path, meta=meta, with_meta=True, **kwargs)
+    if not value or not isinstance(value, collections.Sequence):
+        return (value, meta) if with_meta else value
 
     results = []
-    meta = meta.enter(*path)
-    for index, item in enumerate(items):
-        if item is not None and not meta.enter(index).get_errors():
-            results.append(item)
+    for index, item in enumerate(value):
+        item_meta = meta.enter(index)
+        if item is not None and not item_meta.get_errors():
+            results.append((item, item_meta) if with_meta else item)
 
     return results
