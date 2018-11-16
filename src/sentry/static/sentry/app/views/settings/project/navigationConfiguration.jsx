@@ -36,10 +36,6 @@ export default function getConfiguration({project}) {
           description: t('Manage environments in a project'),
         },
         {
-          path: `${pathPrefix}/release-tracking/`,
-          title: t('Releases'),
-        },
-        {
           path: `${pathPrefix}/ownership/`,
           title: t('Issue Owners'),
           description: t('Manage issue ownership rules for a project'),
@@ -67,14 +63,30 @@ export default function getConfiguration({project}) {
             return project.processingIssues > 99 ? '99+' : project.processingIssues;
           },
         },
+        {
+          path: `${pathPrefix}/filters/`,
+          title: t('Inbound Filters'),
+          description: t(
+            "Configure a project's inbound filters (e.g. browsers, messages)"
+          ),
+        },
       ],
     },
     {
-      name: t('Data'),
+      name: t('SDK Setup'),
       items: [
         {
           path: `${pathPrefix}/install/`,
           title: t('Error Tracking'),
+        },
+        {
+          path: `${pathPrefix}/keys/`,
+          title: t('Client Keys (DSN)'),
+          description: t("View and manage the project's client keys (DSN)"),
+        },
+        {
+          path: `${pathPrefix}/release-tracking/`,
+          title: t('Releases'),
         },
         {
           path: `${pathPrefix}/security-headers/`,
@@ -84,18 +96,6 @@ export default function getConfiguration({project}) {
           path: `${pathPrefix}/user-feedback/`,
           title: t('User Feedback'),
           description: t('Configure user feedback reporting feature'),
-        },
-        {
-          path: `${pathPrefix}/filters/`,
-          title: t('Inbound Filters'),
-          description: t(
-            "Configure a project's inbound filters (e.g. browsers, messages)"
-          ),
-        },
-        {
-          path: `${pathPrefix}/keys/`,
-          title: t('Client Keys (DSN)'),
-          description: t("View and manage the project's client keys (DSN)"),
         },
       ],
     },
