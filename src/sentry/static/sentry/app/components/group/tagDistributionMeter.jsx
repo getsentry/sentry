@@ -65,7 +65,7 @@ const TagDistributionMeter = createReactClass({
       error: false,
     });
 
-      loadDeviceListModule()
+    loadDeviceListModule()
       .then(iOSDeviceList => {
         this.setState({
           iOSDeviceList,
@@ -114,7 +114,7 @@ const TagDistributionMeter = createReactClass({
             '%';
 
           return (
-            <Tooltip key={value.key} title={tooltipHtml} tooltipOptions={{html: true}}>
+            <Tooltip key={value.value} title={tooltipHtml} tooltipOptions={{html: true}}>
               <Link
                 className={className}
                 style={{width: pct + '%'}}

@@ -43,9 +43,23 @@ export default class DeviceName extends React.Component {
   }
 
   componentDidMount() {
+    // This is to handle react's warning on calling setState for unmounted components
+    // Since we can't cancel promises, we need to do this
+    this._isMounted = true;
+
     // This library is very big, so we are codesplitting it based on size and
     // the relatively small utility this library provides
-    loadDeviceListModule().then(iOSDeviceList => this.setState({iOSDeviceList}));
+    loadDeviceListModule().then(iOSDeviceList => {
+      if (!this._isMounted) {
+        return;
+      }
+
+      this.setState({iOSDeviceList});
+    });
+  }
+
+  componentWillUnmount() {
+    this._isMounted = false;
   }
 
   render() {
