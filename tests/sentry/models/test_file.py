@@ -16,7 +16,9 @@ class FileBlobTest(TestCase):
 
         assert my_file1.path
 
+        fileobj.seek(0)
         my_file2 = FileBlob.from_file(fileobj)
+
         # deep check
         assert my_file1.id == my_file2.id
         assert my_file1.checksum == my_file2.checksum
