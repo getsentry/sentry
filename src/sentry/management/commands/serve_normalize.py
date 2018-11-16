@@ -70,7 +70,6 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
             chunks.append(rcvd)
 
         self.data = ''.join(chunks)
-        sys.stdout.write('> Data received, length: {}\n'.format(len(self.data)))
 
         response = self.handle_data()
         self.request.sendall(response)
