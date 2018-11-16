@@ -62,7 +62,7 @@ class ContextType(object):
     def values_for_data(cls, data):
         contexts, meta = get_valid(data, 'contexts', with_meta=True)
         rv = []
-        for key, context in six.iteritems(contexts or ()):
+        for key, context in six.iteritems(contexts or {}):
             if not meta.enter(key).get_errors() and context.get('type') == cls.type:
                 rv.append(context)
         return rv
