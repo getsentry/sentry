@@ -50,8 +50,8 @@ describe('getOrderByOptions()', function() {
   const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
   const queryBuilder = createQueryBuilder({}, organization);
 
-  it('allows ordering by all fields when no aggregations except project.name', function() {
-    expect(getOrderByOptions(queryBuilder)).toHaveLength((COLUMNS.length - 1) * 2);
+  it('allows ordering by all fields when no aggregations except project.name and issue.id', function() {
+    expect(getOrderByOptions(queryBuilder)).toHaveLength((COLUMNS.length - 2) * 2);
   });
 
   it('allows ordering by aggregations with aggregations and no fields', function() {
