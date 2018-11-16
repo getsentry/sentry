@@ -52,7 +52,7 @@ class DateTime extends React.Component {
       shortDate,
       // eslint-disable-next-line no-unused-vars
       dateOnly,
-	  // eslint-disable-next-line no-unused-vars
+	   // eslint-disable-next-line no-unused-vars
       utc,
       ...carriedProps
     } = this.props;
