@@ -116,10 +116,11 @@ class DiscoverQuerySerializer(serializers.Serializer):
             fields = attrs.get('fields')
             aggregations = attrs.get('aggregations')
 
-            if order_by == 'timestamp':  # timestamp query for charts
+            if order_by == 'timestamp' or order_by == 'time':  # timestamp query for charts
                 return attrs
             elif aggregations and fields:
                 aggregations = set(agg[2] for agg in aggregations)
+                print(aggregations, order_by, any(order_by == agg for agg in aggregations))
                 if not any(order_by == agg for agg in aggregations) and not any(order_by == field for field in fields):
                         raise serializers.ValidationError('Invalid OrderBy - Must be in Fields or Aggregations')
             elif aggregations:
