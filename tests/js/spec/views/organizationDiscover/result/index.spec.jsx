@@ -158,7 +158,7 @@ describe('Result', function() {
 
         wrapper
           .find('ResultViewButtons')
-          .find('a')
+          .find('[data-test-id="visualization-button-item"]')
           .at(1)
           .simulate('click');
         wrapper.update();
@@ -172,8 +172,8 @@ describe('Result', function() {
         expect(wrapper.find('LineChart')).toHaveLength(0);
 
         wrapper
-          .find('ul.dropdown-menu')
-          .find('a')
+          .find('[data-test-id="visualization-dropdown-menu"]')
+          .find('[data-test-id="visualization-dropdown-menu-item"]')
           .at(1)
           .simulate('click');
 
@@ -181,9 +181,7 @@ describe('Result', function() {
         expect(wrapper.find('LineChart')).toHaveLength(1);
       });
     });
-
   });
-
 
   describe('Saved query', function() {
     let wrapper, queryBuilder;

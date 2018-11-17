@@ -1,14 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Box, Flex} from 'grid-emotion';
 import classNames from 'classnames';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
-import Link from 'app/components/link';
-import {downloadAsCsv} from './utils';
 import {t} from 'app/locale';
 
-import {ResultViewButtons, ResultViewDropdownButtons, DownloadTab, DownloadTabIcon} from '../styles';
+import {ResultViewButtons, ResultViewDropdownButtons, DownloadCsvButton} from '../styles';
 
 class VisualizationsToggle extends React.Component {
   static propTypes = {
@@ -19,6 +16,7 @@ class VisualizationsToggle extends React.Component {
       })
     ).isRequired,
     handleChange: PropTypes.func.isRequired,
+    handleCsvDownload: PropTypes.func.isRequired,
     visualization: PropTypes.string.isRequired,
   };
 
@@ -46,6 +44,15 @@ class VisualizationsToggle extends React.Component {
     );
   };
 
+  getDownloadCsvButton = () => {
+    const {handleCsvDownload} = this.props;
+    return (
+      <DownloadCsvButton onClick={handleCsvDownload} icon="icon-download" size="xsmall">
+        {t('Export CSV')}
+      </DownloadCsvButton>
+    );
+  };
+
   render() {
     const {options, visualization} = this.props;
     const name = options.find(opt => opt.id === visualization).name;
@@ -57,10 +64,7 @@ class VisualizationsToggle extends React.Component {
           {options.map(opt => {
             return this.getButtonItems(opt);
           })}
-          <DownloadTab onClick={() => downloadAsCsv(baseQuery.data)}>
-            <DownloadTabIcon src="icon-download" />
-            {t('Export CSV')}
-          </DownloadTab>
+          {this.getDownloadCsvButton()}
         </ResultViewButtons>
         <ResultViewDropdownButtons>
           <DropdownLink title={dropdownTitle} className={'btn btn-default btn-sm'}>
@@ -68,11 +72,7 @@ class VisualizationsToggle extends React.Component {
               return this.getMenuItem(opt);
             })}
           </DropdownLink>
-          <Box ml={1}>
-            <Link className='btn btn-default btn-sm' onClick={() => downloadAsCsv(baseQuery.data)}>
-              {t('Export CSV')}
-            </Link>
-          </Box>
+          {this.getDownloadCsvButton()}
         </ResultViewDropdownButtons>
       </React.Fragment>
     );

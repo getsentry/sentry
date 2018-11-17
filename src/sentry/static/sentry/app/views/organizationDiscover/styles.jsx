@@ -2,11 +2,11 @@ import React from 'react';
 import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 import {keyframes} from 'emotion';
-import InlineSvg from 'app/components/inlineSvg';
 
 import space from 'app/styles/space';
 
 import {Panel, PanelItem} from 'app/components/panels';
+import Button from 'app/components/button';
 import NavTabs from 'app/components/navTabs';
 import Link from 'app/components/link';
 import theme from 'app/utils/theme';
@@ -55,18 +55,20 @@ export const ResultViewDropdownButtons = styled('div')`
   display: none;
   @media (max-width: ${theme.breakpoints[1]}) {
     display: flex;
+    margin-bottom: ${space(2)};
   }
 `;
 
-export const DownloadTab = styled('a')`
+export const DownloadCsvButton = styled(Button)`
+  display: inline-block;
   float: right;
-  display: inline-flex;
-  align-items: center;
-  color: ${p => p.theme.gray2};
-`;
+  position: relative;
+  top: -${space(0.5)};
 
-export const DownloadTabIcon = styled(InlineSvg)`
-  margin-right: ${space(0.5)};
+  @media (max-width: ${theme.breakpoints[1]}) {
+    margin-left: ${space(0.5)};
+    top: 0;
+  }
 `;
 
 export const Sidebar = styled(props => (

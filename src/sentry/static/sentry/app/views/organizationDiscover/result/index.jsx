@@ -1,17 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Box, Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
-import Link from 'app/components/link';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import space from 'app/styles/space';
 import InlineSvg from 'app/components/inlineSvg';
+import {Flex} from 'grid-emotion';
 
-import {getChartData, getChartDataByDay, getRowsPageRange} from './utils';
+import {getChartData, getChartDataByDay, getRowsPageRange, downloadAsCsv} from './utils';
 import Table from './table';
 import Pagination from './pagination';
 import VisualizationsToggle from './visualizationsToggle';
@@ -88,11 +86,14 @@ export default class Result extends React.Component {
       );
     }
 
+    const handleCsvDownload = () => downloadAsCsv(baseQuery.data);
+
     return (
       <div>
         <VisualizationsToggle
           options={options}
           handleChange={this.handleToggleVisualizations}
+          handleCsvDownload={handleCsvDownload}
           visualization={this.state.view}
         />
       </div>
@@ -166,12 +167,12 @@ export default class Result extends React.Component {
 
     return (
       <ResultContainer>
-        <Box mb={space(2)}>
+        <div>
           <ResultTitle>
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
           </ResultTitle>
           {this.renderToggle()}
-        </Box>
+        </div>
         <ResultInnerContainer innerRef={ref => (this.container = ref)}>
           {view === 'table' && (
             <Table
