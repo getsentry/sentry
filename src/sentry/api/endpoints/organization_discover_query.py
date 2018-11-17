@@ -110,6 +110,29 @@ class DiscoverQuerySerializer(serializers.Serializer):
 
         return attrs
 
+    def validate_orderby(self, attrs, source):
+        if attrs.get(source):
+            order_by = attrs.get(source).replace('-', '').replace('+', '')
+            fields = attrs.get('fields')
+            aggregations = attrs.get('aggregations')
+
+            if order_by == 'timestamp':  # timestamp query for charts
+                return attrs
+            elif aggregations and fields:
+                aggregations = set(agg[2] for agg in aggregations)
+                if not any(order_by == agg for agg in aggregations) and not any(order_by == field for field in fields):
+                        raise serializers.ValidationError('Invalid OrderBy - Must be in Fields or Aggregations')
+            elif aggregations:
+                aggregations = set(agg[2] for agg in aggregations)
+                if not any(order_by == agg for agg in aggregations):
+                    raise serializers.ValidationError('Invalid OrderBy - a Must be in Fields or Aggregations')
+            elif fields:
+                if not any(order_by == field for field in fields):
+                    raise serializers.ValidationError('Invalid OrderBy - aaa  Must be in Fields or Aggregations')
+
+        return attrs
+
+
     def validate_projects(self, attrs, source):
         organization = self.context['organization']
         member = self.member
