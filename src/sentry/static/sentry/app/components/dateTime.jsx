@@ -11,6 +11,7 @@ class DateTime extends React.Component {
     dateOnly: PropTypes.bool,
     shortDate: PropTypes.bool,
     seconds: PropTypes.bool,
+    utc: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -51,6 +52,8 @@ class DateTime extends React.Component {
       shortDate,
       // eslint-disable-next-line no-unused-vars
       dateOnly,
+      // eslint-disable-next-line no-unused-vars
+      utc,
       ...carriedProps
     } = this.props;
     let user = ConfigStore.get('user');
@@ -62,7 +65,11 @@ class DateTime extends React.Component {
     }
 
     return (
-      <time {...carriedProps}>{moment.tz(date, options.timezone).format(format)}</time>
+      <time {...carriedProps}>
+        {utc
+          ? moment.utc(date).format(format)
+          : moment.tz(date, options.timezone).format(format)}
+      </time>
     );
   }
 }

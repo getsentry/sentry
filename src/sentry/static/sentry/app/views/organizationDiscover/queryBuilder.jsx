@@ -12,7 +12,7 @@ import {isValidAggregation} from './aggregations/utils';
 
 const DEFAULTS = {
   projects: [],
-  fields: ['event_id', 'issue', 'project_name', 'platform', 'timestamp'],
+  fields: ['id', 'issue.id', 'project.name', 'platform', 'timestamp'],
   conditions: [],
   aggregations: [],
   range: DEFAULT_STATS_PERIOD,
@@ -66,6 +66,7 @@ export default function createQueryBuilder(initial = {}, organization) {
       aggregations: [['count()', null, 'count']],
       orderby: '-count',
       range: '90d',
+      turbo: true,
     })
       .then(res => {
         tags = res.data.map(tag => {
@@ -226,7 +227,7 @@ export default function createQueryBuilder(initial = {}, organization) {
       return !originalQuery.aggregations.length && originalQuery.fields.length
         ? {
             ...originalQuery,
-            fields: uniq([...originalQuery.fields, 'event_id', 'project_id']),
+            fields: uniq([...originalQuery.fields, 'id', 'project.id']),
           }
         : originalQuery;
     }

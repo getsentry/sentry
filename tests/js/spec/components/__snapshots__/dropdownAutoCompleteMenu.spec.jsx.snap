@@ -41,6 +41,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
     resetInputOnClose={true}
   >
     <DropdownMenu
+      closeOnEscape={true}
       isOpen={true}
       keepMenuOpen={false}
       onClickOutside={[Function]}
@@ -215,6 +216,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
     resetInputOnClose={true}
   >
     <DropdownMenu
+      closeOnEscape={true}
       isOpen={true}
       keepMenuOpen={false}
       onClickOutside={[Function]}

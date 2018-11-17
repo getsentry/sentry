@@ -49,3 +49,7 @@ class SentryAppInstallation(ParanoidModel):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_sentryappinstallation'
+
+    # Used when first creating an Installation to tell the serializer that the
+    # grant code should be included in the serialization.
+    is_new = False

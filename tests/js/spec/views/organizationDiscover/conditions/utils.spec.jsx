@@ -2,6 +2,7 @@ import {
   getInternal,
   getExternal,
   isValidCondition,
+  ignoreCase,
 } from 'app/views/organizationDiscover/conditions/utils';
 
 import {COLUMNS} from 'app/views/organizationDiscover/data';
@@ -52,8 +53,8 @@ describe('Conditions', function() {
     });
 
     // datetime fields are expanded
-    const expected = ['received', '=', '2018-05-05T00:00:00'];
-    expect(getExternal('received = 2018-05-05', COLUMNS)).toEqual(expected);
+    const expected = ['timestamp', '=', '2018-05-05T00:00:00'];
+    expect(getExternal('timestamp = 2018-05-05', COLUMNS)).toEqual(expected);
   });
 
   it('getInternal()', function() {
@@ -78,6 +79,37 @@ describe('Conditions', function() {
         true
       );
       expect(isValidCondition(['device_name', 'iS', '%something%'], COLUMNS)).toBe(false);
+    });
+  });
+
+  describe('ignoreCase()', function() {
+    const conditionCases = [
+      {
+        input: '',
+        output: '',
+      },
+      {
+        input: 'id like %test%',
+        output: 'id LIKE %test%',
+      },
+      {
+        input: 'id IS Nul',
+        output: 'id IS NUL',
+      },
+      {
+        input: 'id = asdf',
+        output: 'id = asdf',
+      },
+      {
+        input: 'id IS not null',
+        output: 'id IS NOT NULL',
+      },
+    ];
+
+    it('uppercases condition operators', function() {
+      conditionCases.forEach(({input, output}) => {
+        expect(ignoreCase(input)).toBe(output);
+      });
     });
   });
 });

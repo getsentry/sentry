@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import classNames from 'classnames';
 import {Box, Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
@@ -15,6 +14,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import {getChartData, getChartDataByDay, downloadAsCsv, getRowsPageRange} from './utils';
 import Table from './table';
 import Pagination from './pagination';
+import VisualizationsToggle from './visualizationsToggle';
 import {
   ResultTitle,
   Heading,
@@ -66,6 +66,12 @@ export default class Result extends React.Component {
     });
   }
 
+  handleToggleVisualizations = opt => {
+    this.setState({
+      view: opt,
+    });
+  };
+
   renderToggle() {
     const {baseQuery, byDayQuery} = this.props.data;
 
@@ -86,22 +92,11 @@ export default class Result extends React.Component {
 
     return (
       <Flex justify="flex-end">
-        <Flex className="btn-group">
-          {options.map(opt => {
-            const active = opt.id === this.state.view;
-            return (
-              <a
-                key={opt.id}
-                className={classNames('btn btn-default btn-sm', {active})}
-                onClick={() => {
-                  this.setState({view: opt.id});
-                }}
-              >
-                {opt.name}
-              </a>
-            );
-          })}
-        </Flex>
+        <VisualizationsToggle
+          options={options}
+          handleChange={this.handleToggleVisualizations}
+          visualization={this.state.view}
+        />
         <Box ml={1}>
           <Link className={linkClasses} onClick={() => downloadAsCsv(baseQuery.data)}>
             {t('Export CSV')}

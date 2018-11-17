@@ -15,7 +15,16 @@ class OrganizationIntegrationReposEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission, )
 
     def get(self, request, organization, integration_id):
+        """
+        Get the list of repositories available in an integration
+        ````````````````````````````````````````````````````````
 
+        Gets all repositories that an integration makes available,
+        and indicates whether or not you can search repositories
+        by name.
+
+        :qparam string search: Name fragment to search repositories by.
+        """
         try:
             integration = Integration.objects.get(id=integration_id, organizations=organization)
         except Integration.DoesNotExist:

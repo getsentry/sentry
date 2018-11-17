@@ -32,15 +32,14 @@ export const SPECIAL_TAGS = {
 };
 
 export const COLUMNS = [
-  {name: 'event_id', type: TYPES.STRING},
-  {name: 'issue', type: TYPES.STRING},
-  {name: 'project_id', type: TYPES.STRING},
-  {name: 'project_name', type: TYPES.STRING}, // Not a snuba column
+  {name: 'id', type: TYPES.STRING},
+  {name: 'issue.id', type: TYPES.STRING},
+  {name: 'project.id', type: TYPES.STRING},
+  {name: 'project.name', type: TYPES.STRING},
   {name: 'platform', type: TYPES.STRING},
   {name: 'message', type: TYPES.STRING},
   {name: 'primary_hash', type: TYPES.STRING},
   {name: 'timestamp', type: TYPES.DATETIME},
-  {name: 'received', type: TYPES.DATETIME},
 
   {name: 'user.id', type: TYPES.STRING},
   {name: 'user.username', type: TYPES.STRING},
@@ -85,6 +84,10 @@ export const COLUMNS = [
   {name: 'stack.lineno', type: TYPES.STRING},
   {name: 'stack.stack_level', type: TYPES.STRING},
 ];
+
+export const NON_SNUBA_FIELDS = ['issue.id', 'project.name'];
+
+export const NON_CONDITIONS_FIELDS = [...NON_SNUBA_FIELDS, 'project.id'];
 
 export const CONDITION_OPERATORS = [
   '>',

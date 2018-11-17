@@ -156,7 +156,6 @@ class LegacyBrowserFilterRow extends React.Component {
 class ProjectFiltersSettings extends AsyncComponent {
   static propTypes = {
     project: SentryTypes.Project,
-    organization: SentryTypes.Organization,
     params: PropTypes.object,
     features: PropTypes.object,
   };
@@ -181,9 +180,9 @@ class ProjectFiltersSettings extends AsyncComponent {
 
   renderDisabledCustomFilters = p => (
     <FeatureDisabled
+      featureName={t('Custom Inbound Filters')}
       features={p.features}
       alert={PanelAlert}
-      name={t('Custom Inbound Filters')}
       message={t(
         'Release and Error Message filtering are not enabled on your Sentry installation'
       )}
@@ -196,10 +195,9 @@ class ProjectFiltersSettings extends AsyncComponent {
       renderDisabled={({children, ...props}) =>
         children({...props, renderDisabled: this.renderDisabledCustomFilters})}
     >
-      {({hasFeature, renderDisabled, ...featureProps}) => (
+      {({hasFeature, organization, renderDisabled, ...featureProps}) => (
         <React.Fragment>
-          {!hasFeature &&
-            renderDisabled({organization: this.props.organization, ...featureProps})}
+          {!hasFeature && renderDisabled({organization, ...featureProps})}
 
           {customFilterFields.map(field => (
             <FieldFromConfig key={field.name} field={{...field, disabled: !hasFeature}} />

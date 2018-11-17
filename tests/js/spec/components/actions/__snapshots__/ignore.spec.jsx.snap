@@ -359,6 +359,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
       >
         <DropdownMenu
           alwaysRenderMenu={true}
+          closeOnEscape={true}
           keepMenuOpen={false}
         >
           <span
@@ -367,8 +368,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
             <a
               className="dropdown-actor btn btn-default btn-sm dropdown-toggle"
               onClick={[Function]}
+              onKeyDown={[Function]}
               onMouseEnter={[Function]}
               onMouseLeave={[Function]}
+              style={
+                Object {
+                  "outline": "none",
+                }
+              }
+              tabIndex={-1}
             >
               <div
                 className="dropdown-actor-title"
@@ -410,6 +418,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                 >
                   <DropdownMenu
                     alwaysRenderMenu={true}
+                    closeOnEscape={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -419,8 +428,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       <a
                         className="dropdown-actor dropdown-toggle"
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <div
                           className="dropdown-actor-title"
@@ -955,6 +971,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                 >
                   <DropdownMenu
                     alwaysRenderMenu={true}
+                    closeOnEscape={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -964,8 +981,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       <a
                         className="dropdown-actor dropdown-toggle"
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <div
                           className="dropdown-actor-title"
@@ -995,6 +1019,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -1004,8 +1029,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -1395,6 +1427,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -1404,8 +1437,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -1795,6 +1835,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -1804,8 +1845,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -2195,6 +2243,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -2204,8 +2253,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -2595,6 +2651,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -2604,8 +2661,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -2995,6 +3059,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -3004,8 +3069,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -3425,6 +3497,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                 >
                   <DropdownMenu
                     alwaysRenderMenu={true}
+                    closeOnEscape={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -3434,8 +3507,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       <a
                         className="dropdown-actor dropdown-toggle"
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <div
                           className="dropdown-actor-title"
@@ -3465,6 +3545,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -3474,8 +3555,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -3865,6 +3953,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -3874,8 +3963,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -4265,6 +4361,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -4274,8 +4371,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -4665,6 +4769,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -4674,8 +4779,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -5065,6 +5177,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -5074,8 +5187,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -5465,6 +5585,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -5474,8 +5595,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -6185,6 +6313,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
       >
         <DropdownMenu
           alwaysRenderMenu={true}
+          closeOnEscape={true}
           keepMenuOpen={false}
         >
           <span
@@ -6193,8 +6322,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
             <a
               className="dropdown-actor btn btn-default btn-sm dropdown-toggle"
               onClick={[Function]}
+              onKeyDown={[Function]}
               onMouseEnter={[Function]}
               onMouseLeave={[Function]}
+              style={
+                Object {
+                  "outline": "none",
+                }
+              }
+              tabIndex={-1}
             >
               <div
                 className="dropdown-actor-title"
@@ -6236,6 +6372,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                 >
                   <DropdownMenu
                     alwaysRenderMenu={true}
+                    closeOnEscape={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -6245,8 +6382,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       <a
                         className="dropdown-actor dropdown-toggle"
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <div
                           className="dropdown-actor-title"
@@ -6471,6 +6615,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                 >
                   <DropdownMenu
                     alwaysRenderMenu={true}
+                    closeOnEscape={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -6480,8 +6625,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       <a
                         className="dropdown-actor dropdown-toggle"
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <div
                           className="dropdown-actor-title"
@@ -6511,6 +6663,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6520,8 +6673,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -6663,6 +6823,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6672,8 +6833,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -6815,6 +6983,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6824,8 +6993,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -6967,6 +7143,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6976,8 +7153,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -7119,6 +7303,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -7128,8 +7313,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -7271,6 +7463,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -7280,8 +7473,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -7453,6 +7653,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                 >
                   <DropdownMenu
                     alwaysRenderMenu={true}
+                    closeOnEscape={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -7462,8 +7663,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       <a
                         className="dropdown-actor dropdown-toggle"
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <div
                           className="dropdown-actor-title"
@@ -7493,6 +7701,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -7502,8 +7711,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -7645,6 +7861,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -7654,8 +7871,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -7797,6 +8021,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -7806,8 +8031,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -7949,6 +8181,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -7958,8 +8191,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -8101,6 +8341,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -8110,8 +8351,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -8253,6 +8501,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -8262,8 +8511,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"

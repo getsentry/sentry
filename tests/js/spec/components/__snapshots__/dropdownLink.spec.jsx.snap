@@ -14,6 +14,7 @@ exports[`DropdownLink renders and anchors to left by default 1`] = `
 >
   <DropdownMenu
     alwaysRenderMenu={true}
+    closeOnEscape={true}
     keepMenuOpen={false}
     onClose={[Function]}
     onOpen={[Function]}
@@ -24,8 +25,15 @@ exports[`DropdownLink renders and anchors to left by default 1`] = `
       <a
         className="dropdown-actor dropdown-toggle"
         onClick={[Function]}
+        onKeyDown={[Function]}
         onMouseEnter={[Function]}
         onMouseLeave={[Function]}
+        style={
+          Object {
+            "outline": "none",
+          }
+        }
+        tabIndex={-1}
       >
         <div
           className="dropdown-actor-title"
@@ -70,6 +78,7 @@ exports[`DropdownLink renders and anchors to right 1`] = `
 >
   <DropdownMenu
     alwaysRenderMenu={true}
+    closeOnEscape={true}
     keepMenuOpen={false}
     onClose={[Function]}
     onOpen={[Function]}
@@ -80,8 +89,15 @@ exports[`DropdownLink renders and anchors to right 1`] = `
       <a
         className="dropdown-actor dropdown-menu-right dropdown-toggle"
         onClick={[Function]}
+        onKeyDown={[Function]}
         onMouseEnter={[Function]}
         onMouseLeave={[Function]}
+        style={
+          Object {
+            "outline": "none",
+          }
+        }
+        tabIndex={-1}
       >
         <div
           className="dropdown-actor-title"

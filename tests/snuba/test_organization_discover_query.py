@@ -22,7 +22,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             organization=self.org,
         )
 
-        self.group = self.create_group(project=self.project)
+        self.group = self.create_group(project=self.project, short_id=20)
 
         self.event = self.create_event(
             group=self.group,
@@ -192,13 +192,13 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
-                'fields': ['project_name'],
+                'fields': ['project.name'],
                 'range': '14d',
                 'orderby': '-timestamp',
             })
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 1
-        assert(response.data['data'][0]['project_name']) == 'bar'
+        assert(response.data['data'][0]['project.name']) == 'bar'
 
     def test_groupby_project_name(self):
         with self.feature('organizations:discover'):
@@ -206,13 +206,13 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             response = self.client.post(url, {
                 'projects': [self.project.id],
                 'aggregations': [['count()', '', 'count']],
-                'fields': ['project_name'],
+                'fields': ['project.name'],
                 'range': '14d',
                 'orderby': '-count',
             })
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 1
-        assert(response.data['data'][0]['project_name']) == 'bar'
+        assert(response.data['data'][0]['project.name']) == 'bar'
         assert(response.data['data'][0]['count']) == 1
 
     def test_uniq_project_name(self):
@@ -220,7 +220,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
-                'aggregations': [['uniq', 'project_name', 'uniq_project_name']],
+                'aggregations': [['uniq', 'project.name', 'uniq_project_name']],
                 'range': '14d',
                 'orderby': '-uniq_project_name',
             })
@@ -228,19 +228,60 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
         assert len(response.data['data']) == 1
         assert(response.data['data'][0]['uniq_project_name']) == 1
 
+    def test_select_issue_id(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'fields': ['issue.id'],
+                'range': '14d',
+                'orderby': '-timestamp',
+            })
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 1
+        assert(response.data['data'][0]['issue.id']) == '20'
+
+    def test_groupby_issue_id(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'aggregations': [['count()', '', 'count']],
+                'fields': ['issue.id'],
+                'range': '14d',
+                'orderby': '-count',
+            })
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 1
+        assert(response.data['data'][0]['issue.id']) == '20'
+        assert(response.data['data'][0]['count']) == 1
+
+    def test_uniq_issue_id(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'aggregations': [['uniq', 'issue.id', 'uniq_issue_id']],
+                'range': '14d',
+                'orderby': '-uniq_issue_id',
+            })
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 1
+        assert(response.data['data'][0]['uniq_issue_id']) == 1
+
     def test_meta_types(self):
         with self.feature('organizations:discover'):
             url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
             response = self.client.post(url, {
                 'projects': [self.project.id],
-                'fields': ['project_id', 'project_name'],
+                'fields': ['project.id', 'project.name'],
                 'aggregations': [['count()', '', 'count']],
                 'range': '14d',
                 'orderby': '-count',
             })
         assert response.status_code == 200, response.content
         assert response.data['meta'] == [
-            {'name': 'project_id', 'type': 'integer'},
-            {'name': 'project_name', 'type': 'string'},
+            {'name': 'project.id', 'type': 'integer'},
+            {'name': 'project.name', 'type': 'string'},
             {'name': 'count', 'type': 'integer'}
         ]
