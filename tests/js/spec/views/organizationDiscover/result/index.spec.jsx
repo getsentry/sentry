@@ -158,7 +158,7 @@ describe('Result', function() {
 
         wrapper
           .find('ResultViewButtons')
-          .find('[data-test-id="visualization-button-item"]')
+          .find('a')
           .at(1)
           .simulate('click');
         wrapper.update();
@@ -172,8 +172,8 @@ describe('Result', function() {
         expect(wrapper.find('LineChart')).toHaveLength(0);
 
         wrapper
-          .find('[data-test-id="visualization-dropdown-menu"]')
-          .find('[data-test-id="visualization-dropdown-menu-item"]')
+          .find('ul.dropdown-menu')
+          .find('a')
           .at(1)
           .simulate('click');
 
