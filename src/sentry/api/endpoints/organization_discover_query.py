@@ -125,10 +125,10 @@ class DiscoverQuerySerializer(serializers.Serializer):
             elif aggregations:
                 aggregations = set(agg[2] for agg in aggregations)
                 if not any(order_by == agg for agg in aggregations):
-                    raise serializers.ValidationError('Invalid OrderBy - a Must be in Fields or Aggregations')
+                    raise serializers.ValidationError('Invalid OrderBy - Must be in Fields or Aggregations')
             elif fields:
                 if not any(order_by == field for field in fields):
-                    raise serializers.ValidationError('Invalid OrderBy - aaa  Must be in Fields or Aggregations')
+                    raise serializers.ValidationError('Invalid OrderBy - Must be in Fields or Aggregations')
 
         return attrs
 
@@ -155,7 +155,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
                     condition, list)]
             if invalid_functions:
                 raise serializers.ValidationError(
-                    u'Invalid condition function, must be list of lists (of length 3) - {}'.format(
+                    u'Invalid condition function, must be list of lists - {}'.format(
                         invalid_functions)
                 )
             attrs[source] = conditions
