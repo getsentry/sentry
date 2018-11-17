@@ -284,7 +284,7 @@ class MailPlugin(NotificationPlugin):
                 }
             )
 
-            context['unsubscribe_link'] = unsubscribe_link + '?' + '&source=alert_email'
+            context['unsubscribe_link'] = unsubscribe_link + '&source=alert_email'
 
             self._send_mail(
                 subject=subject,
