@@ -207,10 +207,12 @@ class MailPlugin(NotificationPlugin):
 
         link = group.get_absolute_url()
 
+        query_params = {'source': 'alert_email'}
         if environment:
-            link = link + '?' + urlencode({'environment': environment}) + '&source=alert_email'
-        else:
-            link = link + '?' + '&source=alert_email'
+            query_params['environment'] = environment
+
+        link = link + '?' + urlencode(query_params)
+
         template = 'sentry/emails/error.txt'
         html_template = 'sentry/emails/error.html'
 
