@@ -5,7 +5,7 @@ import moment from 'moment';
 import {HealthRequestWithParams} from 'app/views/organizationHealth/util/healthRequest';
 import {t} from 'app/locale';
 import AreaChart from 'app/components/charts/areaChart';
-import EventsContext from 'app/views/organizationEvents/eventsContext';
+import EventsContext from 'app/views/organizationEvents/utils/eventsContext';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 

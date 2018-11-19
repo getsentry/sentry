@@ -55,7 +55,7 @@ class DateRange extends React.Component {
     /**
      * Use UTC
      */
-    useUtc: PropTypes.bool,
+    utc: PropTypes.bool,
 
     /**
      * handle UTC checkbox change
@@ -74,24 +74,24 @@ class DateRange extends React.Component {
     maxPickableDays: MAX_PICKABLE_DAYS,
   };
 
-  static getTimeStringFromDate = (date, useUtc) => {
-    return getFormattedDate(date, 'HH:mm', {local: !useUtc});
+  static getTimeStringFromDate = (date, utc) => {
+    return getFormattedDate(date, 'HH:mm', {local: !utc});
   };
 
   handleSelectDateRange = ({selection}) => {
-    const {useUtc, onChange} = this.props;
+    const {utc, onChange} = this.props;
     const {startDate, endDate} = selection;
 
     let start = startDate;
     let end = endDate;
 
     if (start) {
-      start = setDateToTime(start, DEFAULT_DAY_START_TIME, {local: !useUtc});
+      start = setDateToTime(start, DEFAULT_DAY_START_TIME, {local: !utc});
     }
 
     if (end) {
       end = setDateToTime(end, DEFAULT_DAY_END_TIME, {
-        local: !useUtc,
+        local: !utc,
       });
     }
 
@@ -115,7 +115,7 @@ class DateRange extends React.Component {
     });
 
     onChange({
-      start: setDateToTime(start, startTime, {local: !this.props.useUtc}),
+      start: setDateToTime(start, startTime, {local: !this.props.utc}),
       end,
     });
   };
@@ -131,7 +131,7 @@ class DateRange extends React.Component {
 
     onChange({
       start,
-      end: setDateToTime(end, endTime, {local: !this.props.useUtc}),
+      end: setDateToTime(end, endTime, {local: !this.props.utc}),
     });
   };
 
@@ -139,25 +139,25 @@ class DateRange extends React.Component {
     const {
       className,
       maxPickableDays,
-      useUtc,
+      utc,
       start,
       end,
       showTimePicker,
       onChangeUtc,
     } = this.props;
 
-    const startTime = DateRange.getTimeStringFromDate(new Date(start), useUtc);
-    const endTime = DateRange.getTimeStringFromDate(new Date(end), useUtc);
+    const startTime = DateRange.getTimeStringFromDate(new Date(start), utc);
+    const endTime = DateRange.getTimeStringFromDate(new Date(end), utc);
 
     // Restraints on the time range that you can select
     // Can't select dates in the future b/c we're not fortune tellers (yet)
     const minDate = getCoercedUtcOrLocalDate(
       getStartOfPeriodAgo(maxPickableDays, 'days'),
       {
-        local: !useUtc,
+        local: !utc,
       }
     );
-    const maxDate = getCoercedUtcOrLocalDate(new Date(), {local: !useUtc});
+    const maxDate = getCoercedUtcOrLocalDate(new Date(), {local: !utc});
 
     return (
       <div className={className} data-test-id="date-range">
@@ -165,10 +165,8 @@ class DateRange extends React.Component {
           rangeColors={[theme.purple]}
           ranges={[
             {
-              startDate: start
-                ? getCoercedUtcOrLocalDate(start, {local: !useUtc})
-                : start,
-              endDate: end ? getCoercedUtcOrLocalDate(end, {local: !useUtc}) : end,
+              startDate: start ? getCoercedUtcOrLocalDate(start, {local: !utc}) : start,
+              endDate: end ? getCoercedUtcOrLocalDate(end, {local: !utc}) : end,
               key: 'selection',
             },
           ]}
@@ -188,7 +186,7 @@ class DateRange extends React.Component {
               {t('Use UTC')}
               <Checkbox
                 onChange={onChangeUtc}
-                checked={useUtc}
+                checked={utc}
                 style={{
                   margin: '0 0 0 0.5em',
                 }}
