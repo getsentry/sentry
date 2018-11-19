@@ -9,6 +9,7 @@ import {Panel, PanelItem} from 'app/components/panels';
 import Button from 'app/components/button';
 import NavTabs from 'app/components/navTabs';
 import Link from 'app/components/link';
+import Header from 'app/components/organizations/header';
 import theme from 'app/utils/theme';
 
 const HEADER_HEIGHT = 60;
@@ -27,6 +28,12 @@ export const DiscoverContainer = styled(Flex)`
   .control-group {
     margin-bottom: 0; /* Do not want the global control-group margins  */
   }
+`;
+
+export const DiscoverHeader = styled(Header)`
+  position: absolute;
+  top: 0;
+  left: 0;
 `;
 
 export const PageTitle = styled.h2`
@@ -84,7 +91,6 @@ export const Body = styled(Flex)`
   flex: 1;
   flex-direction: column;
   overflow: hidden;
-  padding-top: ${HEADER_HEIGHT}px;
 `;
 
 export const BodyContent = styled(Flex)`
