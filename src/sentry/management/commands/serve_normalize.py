@@ -16,9 +16,95 @@ import time
 import traceback
 import json
 import resource
+import multiprocessing
 
 from django.core.management.base import BaseCommand, CommandError, make_option
 from django.utils.encoding import force_str
+
+
+# Here's where the normalization itself happens
+def process_event(data, meta):
+    from sentry.event_manager import EventManager, get_hashes_for_event
+    from sentry.tasks.store import should_process
+
+    event_manager = EventManager(
+        data,
+        client_ip=meta.get('REMOTE_ADDR'),
+        user_agent=meta.get('HTTP_USER_AGENT'),
+        auth=None,
+        key=None,
+        content_encoding=meta.get('HTTP_CONTENT_ENCODING')
+    )
+    event_manager.normalize()
+
+    event = event_manager.get_data()
+    group_hash = None
+
+    if not should_process(event):
+        group_hash = get_hashes_for_event(event_manager._get_event_instance(project_id=1))
+    return {
+        "event": dict(event),
+        "group_hash": group_hash,
+    }
+
+
+def decode(message):
+    meta, data_encoded = json.loads(message)
+    data = base64.b64decode(data_encoded)
+    return data, meta
+
+
+def encode(data):
+    # Normalized data should be serializable
+    return json.dumps(data)
+
+
+def handle_data(pipe, data):
+    @catch_errors
+    def inner(data):
+        mc = MetricCollector()
+
+        metrics_before = mc.collect_metrics()
+        data, meta = decode(data)
+        rv = process_event(data, meta)
+        metrics_after = mc.collect_metrics()
+
+        return encode({
+            'result': rv,
+            'metrics': {'before': metrics_before, 'after': metrics_after},
+            'error': None
+        })
+
+    pipe.send(inner(data))
+
+
+def catch_errors(f):
+    def wrapper(*args, **kwargs):
+        error = None
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            error = force_str(e.message) + ' ' + force_str(traceback.format_exc())
+
+        try:
+            return encode({
+                'result': None,
+                'error': error,
+                'metrics': None
+            })
+        except (ValueError, TypeError) as e:
+            try:
+                # Encoding error, try to send the exception instead
+                return encode({
+                    'result': None,
+                    'error': force_str(e.message) + ' ' + force_str(traceback.format_exc()),
+                    'metrics': None,
+                    'encoding_error': True,
+                })
+            except Exception:
+                return b'{}'
+
+    return wrapper
 
 
 class MetricCollector(object):
@@ -75,73 +161,17 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
         self.request.sendall(response)
         self.request.close()
 
-    def encode(self, data):
-        # Normalized data should be serializable
-        return json.dumps(data)
-
-    def decode(self, message):
-        meta, data_encoded = json.loads(message)
-        data = base64.b64decode(data_encoded)
-        return data, meta
-
-    # Here's where the normalization itself happens
-    def process_event(self, data, meta):
-        from sentry.event_manager import EventManager, get_hashes_for_event
-        from sentry.tasks.store import should_process
-
-        event_manager = EventManager(
-            data,
-            client_ip=meta.get('REMOTE_ADDR'),
-            user_agent=meta.get('HTTP_USER_AGENT'),
-            auth=None,
-            key=None,
-            content_encoding=meta.get('HTTP_CONTENT_ENCODING')
-        )
-        event_manager.normalize()
-
-        event = event_manager.get_data()
-        group_hash = None
-
-        if not should_process(event):
-            group_hash = get_hashes_for_event(event_manager._get_event_instance(project_id=1))
-        return {
-            "event": dict(event),
-            "group_hash": group_hash,
-        }
-
     def handle_data(self):
-        result = None
-        error = None
-        metrics = None
-        mc = MetricCollector()
-        try:
-            data, meta = self.decode(self.data)
+        @catch_errors
+        def inner():
+            parent_conn, child_conn = multiprocessing.Pipe()
+            p = multiprocessing.Process(target=handle_data, args=(child_conn, self.data,))
+            p.start()
+            p.join(1)
+            assert parent_conn.poll(), "Process crashed"
+            return parent_conn.recv()
 
-            metrics_before = mc.collect_metrics()
-            result = self.process_event(data, meta)
-            metrics_after = mc.collect_metrics()
-
-            metrics = {'before': metrics_before, 'after': metrics_after}
-        except Exception as e:
-            error = force_str(e.message) + ' ' + force_str(traceback.format_exc())
-
-        try:
-            return self.encode({
-                'result': result,
-                'error': error,
-                'metrics': metrics
-            })
-        except (ValueError, TypeError) as e:
-            try:
-                # Encoding error, try to send the exception instead
-                return self.encode({
-                    'result': result,
-                    'error': force_str(e.message) + ' ' + force_str(traceback.format_exc()),
-                    'metrics': metrics,
-                    'encoding_error': True,
-                })
-            except Exception:
-                return b'{}'
+        return inner()
 
 
 class Command(BaseCommand):
