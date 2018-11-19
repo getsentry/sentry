@@ -345,7 +345,8 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
+    def get_top_group_tag_values(self, project_id, group_id,
+                                 environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
         """
         >>> get_top_group_tag_values(1, 2, 3, 'key1')
         """
@@ -400,14 +401,17 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_keys_and_top_values(self, project_id, group_id, environment_id, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT):
+    def get_group_tag_keys_and_top_values(
+            self, project_id, group_id, environment_id, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT):
 
         # If keys is unspecified, we will grab all tag keys for this group.
         tag_keys = self.get_group_tag_keys(project_id, group_id, environment_id, keys=keys)
 
         for tk in tag_keys:
-            tk.top_values = self.get_top_group_tag_values(project_id, group_id, environment_id, tk.key, limit=value_limit)
+            tk.top_values = self.get_top_group_tag_values(
+                project_id, group_id, environment_id, tk.key, limit=value_limit)
             if tk.count is None:
-                tk.count = self.get_group_tag_value_count(project_id, group_id, environment_id, tk.key)
+                tk.count = self.get_group_tag_value_count(
+                    project_id, group_id, environment_id, tk.key)
 
         return tag_keys
