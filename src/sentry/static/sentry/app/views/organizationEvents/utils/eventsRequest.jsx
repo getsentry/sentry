@@ -111,15 +111,12 @@ class EventsRequestWithParams extends React.Component {
   componentDidUpdate(prevProps) {
     const propNamesToIgnore = ['api', 'children', 'organizations', 'project'];
 
-    const prevPropsToCheck = omitBy(prevProps, (value, key) =>
-      propNamesToIgnore.includes(key)
-    );
+    const omitIgnoredProps = props =>
+      omitBy(props, (value, key) => propNamesToIgnore.includes(key));
 
-    const propsToCheck = omitBy(this.props, (value, key) =>
-      propNamesToIgnore.includes(key)
-    );
-
-    if (isEqual(prevPropsToCheck, propsToCheck)) return;
+    if (isEqual(omitIgnoredProps(prevProps), omitIgnoredProps(this.props))) {
+      return;
+    }
 
     this.fetchData();
   }
