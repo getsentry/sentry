@@ -91,6 +91,7 @@ export const Body = styled(Flex)`
   flex: 1;
   flex-direction: column;
   overflow: hidden;
+  padding-top: ${HEADER_HEIGHT}px;
 `;
 
 export const BodyContent = styled(Flex)`
