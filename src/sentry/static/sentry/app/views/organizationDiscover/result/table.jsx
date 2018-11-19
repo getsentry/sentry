@@ -82,13 +82,11 @@ export default class ResultTable extends React.Component {
   };
 
   getLink = event => {
-    const {slug, projects} = this.context.organization;
-    const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
-      .slug;
+    const {slug} = this.context.organization;
 
     return (
       <Tooltip title={t('Open event')} tooltipOptions={{container: 'body'}}>
-        <Link to={`/${slug}/${projectSlug}/issues/?query=${event.id}`} target="_blank">
+        <Link to={`/${slug}/events/${event.id}/`} target="_blank">
           <InlineSvg src="icon-exit" size="1em" />
         </Link>
       </Tooltip>

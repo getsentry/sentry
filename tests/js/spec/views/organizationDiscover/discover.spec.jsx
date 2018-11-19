@@ -182,8 +182,7 @@ describe('Discover', function() {
     });
 
     it('runs basic query', async function() {
-      const query = {...queryBuilder.getExternal()};
-      query.fields = [...queryBuilder.getExternal().fields, 'project.id'];
+      const query = queryBuilder.getExternal();
 
       wrapper.instance().runQuery();
       await tick();
@@ -192,14 +191,14 @@ describe('Discover', function() {
       expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
     });
 
-    it('always requests id and project.id for basic queries', async function() {
+    it('always requests id for basic queries', async function() {
       queryBuilder.updateField('fields', ['message']);
       wrapper.instance().runQuery();
       await tick();
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
       expect(queryBuilder.fetch).toHaveBeenCalledWith(
         expect.objectContaining({
-          fields: ['message', 'id', 'project.id'],
+          fields: ['message', 'id'],
         })
       );
       expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
