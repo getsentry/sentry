@@ -364,7 +364,6 @@ export default class OrganizationDiscover extends React.Component {
                 onUpdate={this.runQuery}
               />
             </HeaderItemPosition>
-            <HeaderSeparator />
           </Header>
           <BodyContent>
             {shouldDisplayResult && (
