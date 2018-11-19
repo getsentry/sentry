@@ -271,6 +271,14 @@ class EventSearchTest(TestCase):
             'conditions': [['tags[sentry:release]', '!=', '']]
         }
 
+    def test_get_snuba_query_args_array_columns(self):
+        assert get_snuba_query_args('stack.filename:"sentry.utils.safe.py"') == {
+            'conditions': [
+                [['has', ['exception_frames.filename', "'sentry.utils.safe.py'"]], '=', 1],
+            ],
+            'filter_keys': {},
+        }
+
     def test_convert_endpoint_params(self):
         assert convert_endpoint_params({
             'project_id': [1, 2, 3],

@@ -93,6 +93,27 @@ SEARCH_MAP = dict({
 }, **SENTRY_SNUBA_MAP)
 
 
+# TODO(jess): Remove this when Alex adds support for `=` comparison
+# in snuba for array columns
+ARRAY_COLUMNS = {
+    'contexts.key',
+    'contexts.value',
+    'exception_stacks.type',
+    'exception_stacks.value',
+    'exception_stacks.mechanism_type',
+    'exception_stacks.mechanism_handled',
+    'exception_frames.abs_path',
+    'exception_frames.filename',
+    'exception_frames.package',
+    'exception_frames.module',
+    'exception_frames.function',
+    'exception_frames.in_app',
+    'exception_frames.colno',
+    'exception_frames.lineno',
+    'exception_frames.stack_level',
+}
+
+
 class InvalidSearchQuery(Exception):
     pass
 
@@ -275,6 +296,11 @@ def get_snuba_query_args(query=None, params=None):
             kwargs['conditions'].append(
                 [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], '!=', 0]
             )
+
+        # TODO(jess): Remove this when Alex adds support for `=` comparison
+        # in snuba for array columns
+        elif snuba_name in ARRAY_COLUMNS:
+            kwargs['conditions'].append([['has', [snuba_name, "'%s'" % (value,)]], '=', 1])
 
         else:
             if _filter.value.is_wildcard():
