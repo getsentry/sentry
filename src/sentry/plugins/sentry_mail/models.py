@@ -183,10 +183,11 @@ class MailPlugin(NotificationPlugin):
 
         return send_to_list
 
-    def add_unsubscribe_link(self, context, user_id, project):
+    def add_unsubscribe_link(self, context, user_id, project, source=None):
         context['unsubscribe_link'] = generate_signed_link(
             user_id,
             'sentry-account-email-unsubscribe-project',
+            source,
             kwargs={
                 'project_id': project.id,
             }
@@ -278,15 +279,7 @@ class MailPlugin(NotificationPlugin):
         }
 
         for user_id in self.get_send_to(project=project, event=event):
-            unsubscribe_link = generate_signed_link(
-                user_id,
-                'sentry-account-email-unsubscribe-project',
-                kwargs={
-                    'project_id': project.id,
-                }
-            )
-
-            context['unsubscribe_link'] = unsubscribe_link + '&source=alert_email'
+            self.add_unsubscribe_link(context, user_id, project, 'alert_email')
 
             self._send_mail(
                 subject=subject,
