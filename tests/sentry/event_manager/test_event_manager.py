@@ -130,11 +130,13 @@ class EventManagerTest(TransactionTestCase):
         assert Event.objects.count() == 1
 
     def test_updates_group(self):
+        timestamp = time() - 300
         manager = EventManager(
             make_event(
                 message='foo',
                 event_id='a' * 32,
                 checksum='a' * 32,
+                timestamp=timestamp,
             )
         )
         manager.normalize()
@@ -145,6 +147,7 @@ class EventManagerTest(TransactionTestCase):
                 message='foo bar',
                 event_id='b' * 32,
                 checksum='a' * 32,
+                timestamp=timestamp + 2.0,
             )
         )
         manager.normalize()
