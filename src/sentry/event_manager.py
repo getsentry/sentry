@@ -753,7 +753,7 @@ class EventManager(object):
             return (True, FilterStatKeys.RELEASE_VERSION)
 
         message_interface = get_valid(self._data, 'logentry') or {}
-        error_message = message_interface.get('formatted', '') \
+        error_message = message_interface.get('formatted') \
             or message_interface.get('message') \
             or ''
         if error_message and not is_valid_error_message(self._project, error_message):
