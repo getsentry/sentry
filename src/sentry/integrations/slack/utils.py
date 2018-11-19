@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 import logging
 
-from six.moves.urllib.parse import parse_qs, urlencode, urlparse, urlunparse
-
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.utils import json
@@ -63,16 +61,6 @@ def get_assignee(group):
         return format_actor_option(assigned_actor.resolve())
     except assigned_actor.type.DoesNotExist:
         return None
-
-
-# TODO(adhiraj): Remove after updating plugins repo.
-def add_notification_referrer_param(url, provider):
-    parsed_url = urlparse(url)
-    query = parse_qs(parsed_url.query)
-    query['referrer'] = provider
-    url_list = list(parsed_url)
-    url_list[4] = urlencode(query, doseq=True)
-    return urlunparse(url_list)
 
 
 def build_attachment_title(group, event=None):
@@ -278,7 +266,7 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
     return {
         'fallback': u'[{}] {}'.format(group.project.slug, group.title),
         'title': build_attachment_title(group, event),
-        'title_link': group.get_absolute_url(referrer='slack'),
+        'title_link': group.get_absolute_url(params={'referrer': 'slack'}),
         'text': text,
         'fields': fields,
         'mrkdwn_in': ['text'],

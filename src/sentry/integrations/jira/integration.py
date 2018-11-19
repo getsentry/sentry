@@ -260,7 +260,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         output = [
             u'Sentry Issue: [{}|{}]'.format(
                 group.qualified_short_id,
-                absolute_uri(group.get_absolute_url(referrer='jira_integration')),
+                absolute_uri(group.get_absolute_url(params={'referrer': 'jira_integration'})),
             )
         ]
         body = self.get_group_body(group, event)

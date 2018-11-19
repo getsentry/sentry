@@ -138,7 +138,10 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'name': 'comment',
                 'label': 'Comment',
                 'default': u'Sentry issue: [{issue_id}]({url})'.format(
-                    url=absolute_uri(group.get_absolute_url(referrer='github_integration')),
+                    url=absolute_uri(
+                        group.get_absolute_url(
+                            params={
+                                'referrer': 'github_integration'})),
                     issue_id=group.qualified_short_id,
                 ),
                 'type': 'textarea',
