@@ -168,8 +168,6 @@ const KeyStats = createReactClass({
 
 class KeyRateLimitsForm extends React.Component {
   static propTypes = {
-    organization: PropTypes.object.isRequired,
-    project: PropTypes.object.isRequired,
     data: SentryTypes.ProjectKey.isRequired,
   };
 
@@ -192,7 +190,7 @@ class KeyRateLimitsForm extends React.Component {
   };
 
   render() {
-    let {data, project, organization} = this.props;
+    let {data} = this.props;
     let {keyId, orgId, projectId} = this.props.params;
     let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
 
@@ -211,7 +209,7 @@ class KeyRateLimitsForm extends React.Component {
           renderDisabled={({children, ...props}) =>
             children({...props, renderDisabled: disabledAlert})}
         >
-          {({hasFeature, features, renderDisabled}) => (
+          {({hasFeature, features, organization, project, renderDisabled}) => (
             <Panel>
               <PanelHeader>{t('Rate Limits')}</PanelHeader>
 
@@ -296,8 +294,6 @@ const KeySettings = createReactClass({
   displayName: 'KeySettings',
 
   propTypes: {
-    organization: PropTypes.object.isRequired,
-    project: PropTypes.object.isRequired,
     data: SentryTypes.ProjectKey.isRequired,
     onRemove: PropTypes.func.isRequired,
   },
@@ -333,7 +329,7 @@ const KeySettings = createReactClass({
 
   render() {
     let {keyId, orgId, projectId} = this.props.params;
-    let {data, organization, project} = this.props;
+    let {data} = this.props;
     let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
     const loaderLink = getDynamicText({
       value: data.dsn.cdn,
@@ -372,12 +368,7 @@ const KeySettings = createReactClass({
           </Panel>
         </Form>
 
-        <KeyRateLimitsForm
-          params={this.props.params}
-          data={data}
-          organization={organization}
-          project={project}
-        />
+        <KeyRateLimitsForm params={this.props.params} data={data} />
 
         <Feature features={['organizations:js-loader']}>
           <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
@@ -464,11 +455,6 @@ const KeySettings = createReactClass({
 });
 
 export default class ProjectKeyDetails extends AsyncView {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-  };
-
   getTitle() {
     return t('Key Details');
   }
@@ -486,7 +472,6 @@ export default class ProjectKeyDetails extends AsyncView {
   renderBody() {
     let {data} = this.state;
     let {params} = this.props;
-    let {organization, project} = this.context;
 
     return (
       <div className="ref-key-details">
@@ -494,13 +479,7 @@ export default class ProjectKeyDetails extends AsyncView {
 
         <KeyStats params={params} />
 
-        <KeySettings
-          organization={organization}
-          project={project}
-          params={params}
-          data={data}
-          onRemove={this.handleRemove}
-        />
+        <KeySettings params={params} data={data} onRemove={this.handleRemove} />
       </div>
     );
   }

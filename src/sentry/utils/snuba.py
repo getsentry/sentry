@@ -25,11 +25,11 @@ MAX_HASHES = 5000
 
 SENTRY_SNUBA_MAP = {
     # general
-    'event_id': 'event_id',
-    'project_id': 'project_id',
+    'id': 'event_id',
+    'project.id': 'project_id',
     'platform': 'platform',
     'message': 'message',
-    'issue': 'issue',
+    'issue.id': 'issue',
     'timestamp': 'timestamp',
     'time': 'time',
     'type': 'type',
@@ -156,6 +156,7 @@ def transform_aliases_and_query(**kwargs):
     groupby = kwargs['groupby']
     aggregations = kwargs['aggregations']
     conditions = kwargs['conditions'] or []
+    filter_keys = kwargs['filter_keys']
 
     for (idx, col) in enumerate(selected_columns):
         name = get_snuba_column_name(col)
@@ -170,6 +171,10 @@ def transform_aliases_and_query(**kwargs):
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
         aggregation[1] = get_snuba_column_name(aggregation[1])
+
+    for (col, _value) in six.iteritems(filter_keys):
+        name = get_snuba_column_name(col)
+        filter_keys[name] = filter_keys.pop(col)
 
     def handle_condition(cond):
         if isinstance(cond, (list, tuple)) and len(cond):

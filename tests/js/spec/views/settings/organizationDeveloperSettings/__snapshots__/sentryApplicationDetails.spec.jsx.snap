@@ -547,6 +547,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 "snapshots": Array [
                                                                   Map {
                                                                     "organization" => "org-slug",
+                                                                    "isAlertable" => false,
                                                                     "name" => "Sample App",
                                                                     "slug" => "sample-app",
                                                                     "scopes" => Array [
@@ -555,7 +556,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
-                                                                    "isAlertable" => false,
                                                                     "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
@@ -865,6 +865,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             "snapshots": Array [
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
+                                                                                                "isAlertable" => false,
                                                                                                 "name" => "Sample App",
                                                                                                 "slug" => "sample-app",
                                                                                                 "scopes" => Array [
@@ -873,7 +874,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                                "isAlertable" => false,
                                                                                                 "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
@@ -1199,6 +1199,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 "snapshots": Array [
                                                                   Map {
                                                                     "organization" => "org-slug",
+                                                                    "isAlertable" => false,
                                                                     "name" => "Sample App",
                                                                     "slug" => "sample-app",
                                                                     "scopes" => Array [
@@ -1207,7 +1208,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
-                                                                    "isAlertable" => false,
                                                                     "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
@@ -1517,6 +1517,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             "snapshots": Array [
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
+                                                                                                "isAlertable" => false,
                                                                                                 "name" => "Sample App",
                                                                                                 "slug" => "sample-app",
                                                                                                 "scopes" => Array [
@@ -1525,7 +1526,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                                "isAlertable" => false,
                                                                                                 "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
@@ -1842,6 +1842,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 "snapshots": Array [
                                                                   Map {
                                                                     "organization" => "org-slug",
+                                                                    "isAlertable" => false,
                                                                     "name" => "Sample App",
                                                                     "slug" => "sample-app",
                                                                     "scopes" => Array [
@@ -1850,7 +1851,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
-                                                                    "isAlertable" => false,
                                                                     "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
@@ -2158,6 +2158,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             "snapshots": Array [
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
+                                                                                                "isAlertable" => false,
                                                                                                 "name" => "Sample App",
                                                                                                 "slug" => "sample-app",
                                                                                                 "scopes" => Array [
@@ -2166,7 +2167,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                                "isAlertable" => false,
                                                                                                 "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
@@ -2583,6 +2583,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 "snapshots": Array [
                                                                   Map {
                                                                     "organization" => "org-slug",
+                                                                    "isAlertable" => false,
                                                                     "name" => "Sample App",
                                                                     "slug" => "sample-app",
                                                                     "scopes" => Array [
@@ -2591,7 +2592,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
-                                                                    "isAlertable" => false,
                                                                     "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
@@ -2933,6 +2933,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             "snapshots": Array [
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
+                                                                                                "isAlertable" => false,
                                                                                                 "name" => "Sample App",
                                                                                                 "slug" => "sample-app",
                                                                                                 "scopes" => Array [
@@ -2941,7 +2942,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                                "isAlertable" => false,
                                                                                                 "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
@@ -3258,6 +3258,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                 "snapshots": Array [
                                                                   Map {
                                                                     "organization" => "org-slug",
+                                                                    "isAlertable" => false,
                                                                     "name" => "Sample App",
                                                                     "slug" => "sample-app",
                                                                     "scopes" => Array [
@@ -3266,7 +3267,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
-                                                                    "isAlertable" => false,
                                                                     "clientId" => "client-id",
                                                                     "clientSecret" => "client-secret",
                                                                     "overview" => "This is an app.",
@@ -3601,6 +3601,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             "snapshots": Array [
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
+                                                                                                "isAlertable" => false,
                                                                                                 "name" => "Sample App",
                                                                                                 "slug" => "sample-app",
                                                                                                 "scopes" => Array [
@@ -3609,7 +3610,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                                "isAlertable" => false,
                                                                                                 "clientId" => "client-id",
                                                                                                 "clientSecret" => "client-secret",
                                                                                                 "overview" => "This is an app.",
@@ -3905,6 +3905,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                 "snapshots": Array [
                                                   Map {
                                                     "organization" => "org-slug",
+                                                    "isAlertable" => false,
                                                     "name" => "Sample App",
                                                     "slug" => "sample-app",
                                                     "scopes" => Array [
@@ -3913,7 +3914,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "uuid" => "123456123456123456123456",
                                                     "webhookUrl" => "https://example.com/webhook",
                                                     "redirectUrl" => "https://example/com/setup",
-                                                    "isAlertable" => false,
                                                     "clientId" => "client-id",
                                                     "clientSecret" => "client-secret",
                                                     "overview" => "This is an app.",
@@ -5280,6 +5280,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                             "snapshots": Array [
                                                                               Map {
                                                                                 "organization" => "org-slug",
+                                                                                "isAlertable" => false,
                                                                                 "name" => "Sample App",
                                                                                 "slug" => "sample-app",
                                                                                 "scopes" => Array [
@@ -5288,7 +5289,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "uuid" => "123456123456123456123456",
                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                "isAlertable" => false,
                                                                                 "clientId" => "client-id",
                                                                                 "clientSecret" => "client-secret",
                                                                                 "overview" => "This is an app.",
@@ -5600,6 +5600,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                 "snapshots": Array [
                                                   Map {
                                                     "organization" => "org-slug",
+                                                    "isAlertable" => false,
                                                     "name" => "Sample App",
                                                     "slug" => "sample-app",
                                                     "scopes" => Array [
@@ -5608,7 +5609,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "uuid" => "123456123456123456123456",
                                                     "webhookUrl" => "https://example.com/webhook",
                                                     "redirectUrl" => "https://example/com/setup",
-                                                    "isAlertable" => false,
                                                     "clientId" => "client-id",
                                                     "clientSecret" => "client-secret",
                                                     "overview" => "This is an app.",
@@ -5916,6 +5916,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                             "snapshots": Array [
                                                                               Map {
                                                                                 "organization" => "org-slug",
+                                                                                "isAlertable" => false,
                                                                                 "name" => "Sample App",
                                                                                 "slug" => "sample-app",
                                                                                 "scopes" => Array [
@@ -5924,7 +5925,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "uuid" => "123456123456123456123456",
                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                "isAlertable" => false,
                                                                                 "clientId" => "client-id",
                                                                                 "clientSecret" => "client-secret",
                                                                                 "overview" => "This is an app.",
@@ -6192,6 +6192,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                 "snapshots": Array [
                                                   Map {
                                                     "organization" => "org-slug",
+                                                    "isAlertable" => false,
                                                     "name" => "Sample App",
                                                     "slug" => "sample-app",
                                                     "scopes" => Array [
@@ -6200,7 +6201,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "uuid" => "123456123456123456123456",
                                                     "webhookUrl" => "https://example.com/webhook",
                                                     "redirectUrl" => "https://example/com/setup",
-                                                    "isAlertable" => false,
                                                     "clientId" => "client-id",
                                                     "clientSecret" => "client-secret",
                                                     "overview" => "This is an app.",
@@ -6508,6 +6508,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                             "snapshots": Array [
                                                                               Map {
                                                                                 "organization" => "org-slug",
+                                                                                "isAlertable" => false,
                                                                                 "name" => "Sample App",
                                                                                 "slug" => "sample-app",
                                                                                 "scopes" => Array [
@@ -6516,7 +6517,6 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "uuid" => "123456123456123456123456",
                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                 "redirectUrl" => "https://example/com/setup",
-                                                                                "isAlertable" => false,
                                                                                 "clientId" => "client-id",
                                                                                 "clientSecret" => "client-secret",
                                                                                 "overview" => "This is an app.",
@@ -6687,6 +6687,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
           className="form-stacked"
           initialData={
             Object {
+              "isAlertable": false,
               "organization": "org-slug",
             }
           }
@@ -7103,10 +7104,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                 },
                                                                 "fieldState": Object {},
                                                                 "fields": Object {
+                                                                  "isAlertable": false,
                                                                   "organization": "org-slug",
                                                                 },
                                                                 "formState": undefined,
                                                                 "initialData": Object {
+                                                                  "isAlertable": false,
                                                                   "organization": "org-slug",
                                                                 },
                                                                 "options": Object {
@@ -7122,6 +7125,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                 "snapshots": Array [
                                                                   Map {
                                                                     "organization" => "org-slug",
+                                                                    "isAlertable" => false,
                                                                   },
                                                                 ],
                                                               }
@@ -7196,6 +7200,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           id="name"
                                                                                           initialData={
                                                                                             Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             }
                                                                                           }
@@ -7357,10 +7362,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             },
                                                                                             "fieldState": Object {},
                                                                                             "fields": Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             },
                                                                                             "formState": undefined,
                                                                                             "initialData": Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             },
                                                                                             "options": Object {
@@ -7376,6 +7383,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             "snapshots": Array [
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
+                                                                                                "isAlertable" => false,
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -7639,10 +7647,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                 },
                                                                 "fieldState": Object {},
                                                                 "fields": Object {
+                                                                  "isAlertable": false,
                                                                   "organization": "org-slug",
                                                                 },
                                                                 "formState": undefined,
                                                                 "initialData": Object {
+                                                                  "isAlertable": false,
                                                                   "organization": "org-slug",
                                                                 },
                                                                 "options": Object {
@@ -7658,6 +7668,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                 "snapshots": Array [
                                                                   Map {
                                                                     "organization" => "org-slug",
+                                                                    "isAlertable" => false,
                                                                   },
                                                                 ],
                                                               }
@@ -7732,6 +7743,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           id="webhookUrl"
                                                                                           initialData={
                                                                                             Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             }
                                                                                           }
@@ -7893,10 +7905,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             },
                                                                                             "fieldState": Object {},
                                                                                             "fields": Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             },
                                                                                             "formState": undefined,
                                                                                             "initialData": Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             },
                                                                                             "options": Object {
@@ -7912,6 +7926,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             "snapshots": Array [
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
+                                                                                                "isAlertable" => false,
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -8166,10 +8181,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                 },
                                                                 "fieldState": Object {},
                                                                 "fields": Object {
+                                                                  "isAlertable": false,
                                                                   "organization": "org-slug",
                                                                 },
                                                                 "formState": undefined,
                                                                 "initialData": Object {
+                                                                  "isAlertable": false,
                                                                   "organization": "org-slug",
                                                                 },
                                                                 "options": Object {
@@ -8185,6 +8202,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                 "snapshots": Array [
                                                                   Map {
                                                                     "organization" => "org-slug",
+                                                                    "isAlertable" => false,
                                                                   },
                                                                 ],
                                                               }
@@ -8259,6 +8277,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           id="redirectUrl"
                                                                                           initialData={
                                                                                             Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             }
                                                                                           }
@@ -8418,10 +8437,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             },
                                                                                             "fieldState": Object {},
                                                                                             "fields": Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             },
                                                                                             "formState": undefined,
                                                                                             "initialData": Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             },
                                                                                             "options": Object {
@@ -8437,6 +8458,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             "snapshots": Array [
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
+                                                                                                "isAlertable" => false,
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -8791,10 +8813,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                 },
                                                                 "fieldState": Object {},
                                                                 "fields": Object {
+                                                                  "isAlertable": false,
                                                                   "organization": "org-slug",
                                                                 },
                                                                 "formState": undefined,
                                                                 "initialData": Object {
+                                                                  "isAlertable": false,
                                                                   "organization": "org-slug",
                                                                 },
                                                                 "options": Object {
@@ -8810,6 +8834,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                 "snapshots": Array [
                                                                   Map {
                                                                     "organization" => "org-slug",
+                                                                    "isAlertable" => false,
                                                                   },
                                                                 ],
                                                               }
@@ -8899,6 +8924,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           id="isAlertable"
                                                                                           initialData={
                                                                                             Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             }
                                                                                           }
@@ -9077,10 +9103,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             },
                                                                                             "fieldState": Object {},
                                                                                             "fields": Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             },
                                                                                             "formState": undefined,
                                                                                             "initialData": Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             },
                                                                                             "options": Object {
@@ -9096,6 +9124,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             "snapshots": Array [
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
+                                                                                                "isAlertable" => false,
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -9350,10 +9379,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                 },
                                                                 "fieldState": Object {},
                                                                 "fields": Object {
+                                                                  "isAlertable": false,
                                                                   "organization": "org-slug",
                                                                 },
                                                                 "formState": undefined,
                                                                 "initialData": Object {
+                                                                  "isAlertable": false,
                                                                   "organization": "org-slug",
                                                                 },
                                                                 "options": Object {
@@ -9369,6 +9400,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                 "snapshots": Array [
                                                                   Map {
                                                                     "organization" => "org-slug",
+                                                                    "isAlertable" => false,
                                                                   },
                                                                 ],
                                                               }
@@ -9444,6 +9476,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           id="overview"
                                                                                           initialData={
                                                                                             Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             }
                                                                                           }
@@ -9629,10 +9662,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             },
                                                                                             "fieldState": Object {},
                                                                                             "fields": Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             },
                                                                                             "formState": undefined,
                                                                                             "initialData": Object {
+                                                                                              "isAlertable": false,
                                                                                               "organization": "org-slug",
                                                                                             },
                                                                                             "options": Object {
@@ -9648,6 +9683,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             "snapshots": Array [
                                                                                               Map {
                                                                                                 "organization" => "org-slug",
+                                                                                                "isAlertable" => false,
                                                                                               },
                                                                                             ],
                                                                                           }
@@ -9881,10 +9917,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                 },
                                                 "fieldState": Object {},
                                                 "fields": Object {
+                                                  "isAlertable": false,
                                                   "organization": "org-slug",
                                                 },
                                                 "formState": undefined,
                                                 "initialData": Object {
+                                                  "isAlertable": false,
                                                   "organization": "org-slug",
                                                 },
                                                 "options": Object {
@@ -9900,6 +9938,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                 "snapshots": Array [
                                                   Map {
                                                     "organization" => "org-slug",
+                                                    "isAlertable" => false,
                                                   },
                                                 ],
                                               }
@@ -11200,10 +11239,12 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                             },
                                                                             "fieldState": Object {},
                                                                             "fields": Object {
+                                                                              "isAlertable": false,
                                                                               "organization": "org-slug",
                                                                             },
                                                                             "formState": undefined,
                                                                             "initialData": Object {
+                                                                              "isAlertable": false,
                                                                               "organization": "org-slug",
                                                                             },
                                                                             "options": Object {
@@ -11219,6 +11260,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                             "snapshots": Array [
                                                                               Map {
                                                                                 "organization" => "org-slug",
+                                                                                "isAlertable" => false,
                                                                               },
                                                                             ],
                                                                           }
