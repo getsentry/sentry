@@ -22,10 +22,8 @@ export const fields = {
   },
   weeklyReports: {
     name: 'weeklyReports',
-    type: 'boolean',
     label: t('Send Me Weekly Reports'),
     help: t("Reports contain a summary of what's happened within your organization."),
-    disabled: true,
   },
   deployNotifications: {
     name: 'deployNotifications',
