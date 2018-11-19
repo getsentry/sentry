@@ -1,4 +1,5 @@
 import {Flex} from 'grid-emotion';
+import {isEqual} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -61,32 +62,27 @@ class OrganizationEventsContainer extends React.Component {
     };
   }
 
+  static getDerivedStateFromProps(props, state) {
+    const values = OrganizationEventsContainer.getStateFromRouter(props);
+
+    // Update `queryValues` if URL parameters change
+    if (!isEqual(state.queryValues, values)) {
+      return {
+        ...values,
+        queryValues: values,
+      };
+    }
+
+    return null;
+  }
+
   constructor(props) {
     super(props);
 
     this.actions = {
       updateParams: this.updateParams,
     };
-
-    const values = OrganizationEventsContainer.getStateFromRouter(props);
-    this.state = {
-      ...values,
-      queryValues: {
-        ...values,
-      },
-    };
-  }
-
-  componentWillReceiveProps(nextProps, nextState) {
-    if (this.props.location !== nextProps.location) {
-      const values = OrganizationEventsContainer.getStateFromRouter(nextProps);
-
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({
-        ...values,
-        queryValues: {...values},
-      });
-    }
+    this.state = {};
   }
 
   updateParams = obj => {
@@ -116,15 +112,15 @@ class OrganizationEventsContainer extends React.Component {
   };
 
   handleChangeProjects = projects => {
-    this.setState(state => ({
+    this.setState({
       project: projects,
-    }));
+    });
   };
 
   handleChangeEnvironments = environments => {
-    this.setState(state => ({
+    this.setState({
       environment: environments,
-    }));
+    });
   };
 
   handleChangeTime = ({start, end, relative, utc}) => {

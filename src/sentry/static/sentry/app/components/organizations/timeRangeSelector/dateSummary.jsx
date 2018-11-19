@@ -1,8 +1,6 @@
 /**
  * Displays and formats absolute DateTime ranges
  */
-
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -57,7 +55,7 @@ class DateSummary extends React.Component {
       endTimeFormatted !== DEFAULT_DAY_END_TIME;
 
     return (
-      <DateGroupWrapper className={className} align="center" hasTime={shouldShowTimes}>
+      <DateGroupWrapper className={className} hasTime={shouldShowTimes}>
         <DateGroup>
           <Date hasTime={shouldShowTimes}>
             {this.formatDate(start)}
@@ -79,7 +77,9 @@ class DateSummary extends React.Component {
   }
 }
 
-const DateGroupWrapper = styled(Flex)`
+const DateGroupWrapper = styled('div')`
+  display: flex;
+  align-items: center;
   transform: translateY(${p => (p.hasTime ? '-5px' : '0')});
 `;
 
