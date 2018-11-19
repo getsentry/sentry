@@ -183,7 +183,7 @@ class MailPlugin(NotificationPlugin):
 
         return send_to_list
 
-    def add_unsubscribe_link(self, context, user_id, project, source=None):
+    def add_unsubscribe_link(self, context, user_id, project, source):
         context['unsubscribe_link'] = generate_signed_link(
             user_id,
             'sentry-account-email-unsubscribe-project',
