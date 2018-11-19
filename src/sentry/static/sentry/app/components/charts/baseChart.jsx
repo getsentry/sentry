@@ -5,6 +5,7 @@ import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import echarts from 'echarts/lib/echarts';
 
+import {DEFAULT_USE_UTC} from 'app/constants';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 
@@ -127,7 +128,7 @@ class BaseChart extends React.Component {
     yAxis: {},
     isGroupedByDate: false,
     interval: 'day',
-    utc: false,
+    utc: DEFAULT_USE_UTC,
   };
 
   handleChartReady = (...args) => {
