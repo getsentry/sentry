@@ -9,15 +9,15 @@ describe('OrganizationEventsErrors', function() {
   const project = TestStubs.Project({isMember: true});
   const org = TestStubs.Organization({projects: [project]});
   let eventsMock;
-  let healthGraphMock;
+  let eventsStatsMock;
 
   beforeEach(function() {
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: (url, opts) => [TestStubs.OrganizationEvent(opts.query)],
     });
-    healthGraphMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/health/graph/',
+    eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
       body: (url, opts) => {
         return TestStubs.HealthGraph(opts.query);
       },
@@ -31,7 +31,7 @@ describe('OrganizationEventsErrors', function() {
     );
     await tick();
     wrapper.update();
-    expect(healthGraphMock).toHaveBeenCalled();
+    expect(eventsStatsMock).toHaveBeenCalled();
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
     expect(wrapper.find('IdBadge')).toHaveLength(2);
   });

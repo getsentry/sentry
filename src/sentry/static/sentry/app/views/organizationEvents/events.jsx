@@ -4,16 +4,17 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {Panel} from 'app/components/panels';
-import {getParams} from 'app/views/organizationEvents/utils';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import EventsChart from 'app/views/organizationEvents/eventsChart';
-import EventsTable from 'app/views/organizationEvents/eventsTable';
 import Pagination from 'app/components/pagination';
 import PreviewFeature from 'app/components/previewFeature';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
+
+import {getParams} from './utils/getParams';
+import EventsChart from './eventsChart';
+import EventsTable from './eventsTable';
 
 class OrganizationEvents extends AsyncView {
   static propTypes = {
