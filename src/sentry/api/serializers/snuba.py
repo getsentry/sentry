@@ -57,6 +57,9 @@ def geo_by_addr(ip):
 
 
 def serialize_eventusers(organization, item_list, user, lookup):
+    if not item_list:
+        return {}
+
     # We have no reliable way to map the tag value format
     # back into real EventUser rows. EventUser is only unique
     # per-project, and this is an organization aggregate.
