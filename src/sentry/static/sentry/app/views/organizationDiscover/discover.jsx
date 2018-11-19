@@ -37,7 +37,6 @@ import {
   BodyContent,
   Sidebar,
   SidebarTabs,
-  PageTitle,
   SavedQueryWrapper,
 } from './styles';
 
