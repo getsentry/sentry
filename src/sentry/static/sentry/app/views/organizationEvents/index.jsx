@@ -214,7 +214,6 @@ class OrganizationEventsContainer extends React.Component {
                   onUpdate={this.handleUpdatePeriod}
                 />
               </HeaderItemPosition>
-              <HeaderSeparator />
             </Header>
             <Body>{children}</Body>
           </OrganizationEventsContent>
