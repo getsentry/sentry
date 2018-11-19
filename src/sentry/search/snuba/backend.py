@@ -249,7 +249,22 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             key = 'snuba.search:project.group.count:%s' % project.id
             project_group_count = cache.get(key)
             if not project_group_count:
-                project_group_count = Group.objects.filter(project=project).count()
+                project_group_count = snuba.query(
+                    start=max(
+                        filter(None, [
+                            retention_window_start,
+                            now - timedelta(days=90)
+                        ])
+                    ),
+                    end=now,
+                    groupby=[],
+                    filter_keys={
+                        'project_id': [project.id],
+                    },
+                    aggregations=[['uniq', 'group_id', 'group_count']],
+                    referrer='search',
+                )
+
                 cache.set(key, project_group_count, options.get(
                     'snuba.search.project-group-count-cache-time')
                 )
