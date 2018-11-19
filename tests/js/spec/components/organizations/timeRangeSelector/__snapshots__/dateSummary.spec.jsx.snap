@@ -6,31 +6,34 @@ exports[`DateSummary renders 1`] = `
   start={2017-10-14T02:38:00.000Z}
   useUtc={true}
 >
-  <Flex
+  <DateGroupWrapper
     align="center"
+    hasTime={true}
   >
     <Base
       align="center"
-      className="css-5ipae5"
+      className="css-1vodv3z-DateGroupWrapper eyxmd2r0"
+      hasTime={true}
     >
       <div
-        className="css-5ipae5"
+        className="css-1vodv3z-DateGroupWrapper eyxmd2r0"
+        hasTime={true}
         is={null}
       >
         <DateGroup>
           <div
-            className="css-8ah8mg-DateGroup eyxmd2r0"
+            className="css-8ah8mg-DateGroup eyxmd2r1"
           >
             <Date
               hasTime={true}
             >
               <div
-                className="css-1j322kv-Date eyxmd2r1"
+                className="css-1gi0kmy-Date eyxmd2r2"
               >
                 Oct 14, 2017
                 <Time>
                   <div
-                    className="css-101687m-Time eyxmd2r2"
+                    className="css-ul1hyh-Time eyxmd2r3"
                   >
                     02:38
                   </div>
@@ -41,25 +44,25 @@ exports[`DateSummary renders 1`] = `
         </DateGroup>
         <DateRangeDivider>
           <span
-            className="css-1qowu2b-DateRangeDivider eyxmd2r3"
+            className="css-1qowu2b-DateRangeDivider eyxmd2r4"
           >
             to
           </span>
         </DateRangeDivider>
         <DateGroup>
           <div
-            className="css-8ah8mg-DateGroup eyxmd2r0"
+            className="css-8ah8mg-DateGroup eyxmd2r1"
           >
             <Date
               hasTime={true}
             >
               <div
-                className="css-1j322kv-Date eyxmd2r1"
+                className="css-1gi0kmy-Date eyxmd2r2"
               >
                 Oct 17, 2017
                 <Time>
                   <div
-                    className="css-101687m-Time eyxmd2r2"
+                    className="css-ul1hyh-Time eyxmd2r3"
                   >
                     02:38
                   </div>
@@ -70,6 +73,6 @@ exports[`DateSummary renders 1`] = `
         </DateGroup>
       </div>
     </Base>
-  </Flex>
+  </DateGroupWrapper>
 </DateSummary>
 `;
