@@ -1,4 +1,5 @@
 import {Flex} from 'grid-emotion';
+import {isEqual} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -7,8 +8,6 @@ import styled from 'react-emotion';
 import {DEFAULT_STATS_PERIOD, DEFAULT_USE_UTC} from 'app/constants';
 import {defined} from 'app/utils';
 import {getLocalDateObject, getUtcDateString} from 'app/utils/dates';
-import {getParams} from 'app/views/organizationEvents/utils';
-import EventsContext from 'app/views/organizationEvents/utils/eventsContext';
 import Feature from 'app/components/acl/feature';
 import Header from 'app/components/organizations/header';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
@@ -19,6 +18,9 @@ import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
+
+import {getParams} from './utils/getParams';
+import EventsContext from './utils/eventsContext';
 
 class OrganizationEventsContainer extends React.Component {
   static propTypes = {
@@ -60,32 +62,27 @@ class OrganizationEventsContainer extends React.Component {
     };
   }
 
+  static getDerivedStateFromProps(props, state) {
+    const values = OrganizationEventsContainer.getStateFromRouter(props);
+
+    // Update `queryValues` if URL parameters change
+    if (!isEqual(state.queryValues, values)) {
+      return {
+        ...values,
+        queryValues: values,
+      };
+    }
+
+    return null;
+  }
+
   constructor(props) {
     super(props);
 
     this.actions = {
       updateParams: this.updateParams,
     };
-
-    const values = OrganizationEventsContainer.getStateFromRouter(props);
-    this.state = {
-      ...values,
-      queryValues: {
-        ...values,
-      },
-    };
-  }
-
-  componentWillReceiveProps(nextProps, nextState) {
-    if (this.props.location !== nextProps.location) {
-      const values = OrganizationEventsContainer.getStateFromRouter(nextProps);
-
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({
-        ...values,
-        queryValues: {...values},
-      });
-    }
+    this.state = {};
   }
 
   updateParams = obj => {
@@ -115,15 +112,15 @@ class OrganizationEventsContainer extends React.Component {
   };
 
   handleChangeProjects = projects => {
-    this.setState(state => ({
+    this.setState({
       project: projects,
-    }));
+    });
   };
 
   handleChangeEnvironments = environments => {
-    this.setState(state => ({
+    this.setState({
       environment: environments,
-    }));
+    });
   };
 
   handleChangeTime = ({start, end, relative, utc}) => {
