@@ -9,7 +9,7 @@
 
 ## Details
 
-{{ group.message_short }}
+{{ group.title }}
 
 {{ activity_link }}
 

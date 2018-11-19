@@ -9,7 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 # default is no-op
-geo_by_addr = lambda ip: None
+def geo_by_addr(ip):
+    pass
+
+
 rust_geoip = None
 
 

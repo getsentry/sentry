@@ -137,6 +137,7 @@ class EventManagerTest(TransactionTestCase):
                 checksum='a' * 32,
             )
         )
+        manager.normalize()
         event = manager.save(1)
 
         manager = EventManager(
@@ -146,6 +147,8 @@ class EventManagerTest(TransactionTestCase):
                 checksum='a' * 32,
             )
         )
+        manager.normalize()
+
         with self.tasks():
             event2 = manager.save(1)
 

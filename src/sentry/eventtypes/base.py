@@ -27,13 +27,9 @@ class DefaultEvent(BaseEvent):
         return True
 
     def get_metadata(self):
-        # See GH-3248
-        message_interface = self.data.get(
-            'logentry', {
-                'message': self.data.get('message', ''),
-            }
-        )
-        message = strip(message_interface.get('formatted', message_interface['message']))
+        message_interface = self.data.get('logentry') or {}
+        message = strip(message_interface.get('formatted') or
+                        message_interface.get('message'))
         if not message:
             title = '<unlabeled event>'
         else:

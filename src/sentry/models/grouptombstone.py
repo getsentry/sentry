@@ -4,7 +4,6 @@ import logging
 
 from django.db import models
 
-from sentry import eventtypes
 from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model
@@ -48,11 +47,5 @@ class GroupTombstone(Model):
 
         See ``sentry.eventtypes``.
         """
-        etype = self.data.get('type')
-        if etype is None:
-            etype = 'default'
-        if 'metadata' not in self.data:
-            data = self.data.copy() if self.data else {}
-            data['message'] = self.message
-            return eventtypes.get(etype)(data).get_metadata()
-        return self.data['metadata']
+        from sentry.event_manager import get_event_metadata_compat
+        return get_event_metadata_compat(self.data, self.message)

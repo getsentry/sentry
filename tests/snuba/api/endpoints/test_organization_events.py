@@ -102,7 +102,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
             group=group,
             message="Delet the Data",
             datetime=self.min_ago,
-            tags={'user': {'email': 'foo@example.com'}},
+            user={'email': 'foo@example.com'},
         )
 
         url = reverse(
@@ -272,7 +272,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
             'c' * 32, group=group, datetime=self.min_ago, tags={'environment': environment2.name}
         )
         event_4 = self.create_event(
-            'd' * 32, group=group, datetime=self.min_ago, tags={'environment': None}
+            'd' * 32, group=group, datetime=self.min_ago,
         )
 
         base_url = reverse(
@@ -383,11 +383,11 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
             'b' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '4.1.2'}
         )
         event_2 = self.create_event(
-            'c' * 32, group=group, datetime=self.min_ago, tags={'user': {'email': 'foo@example.com'}}
+            'c' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.com'}
         )
 
         self.create_event(
-            'd' * 32, group=group, datetime=self.min_ago, tags={'user': {'email': 'foo@example.commmmmmmm'}}
+            'd' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.commmmmmmm'}
         )
 
         base_url = reverse(
@@ -419,7 +419,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         group = self.create_group(project=project)
 
         event_1 = self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, tags={'user': {'email': 'foo@example.com'}}
+            'a' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.com'},
         )
         event_2 = self.create_event(
             'b' * 32,

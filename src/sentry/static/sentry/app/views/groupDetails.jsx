@@ -188,7 +188,7 @@ const GroupDetails = createReactClass({
       case 'default':
         return group.metadata.title;
       default:
-        return group.message.split('\n')[0];
+        return '';
     }
   },
 
