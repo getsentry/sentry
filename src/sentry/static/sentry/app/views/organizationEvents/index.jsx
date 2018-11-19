@@ -180,7 +180,7 @@ class OrganizationEventsContainer extends React.Component {
       organization.projects && organization.projects.filter(({isMember}) => isMember);
 
     return (
-      <Feature features={['events-stream']} renderDisabled>
+      <Feature features={['global-views']} renderDisabled>
         <EventsContext.Provider
           value={{actions: this.actions, ...this.state.queryValues}}
         >

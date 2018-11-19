@@ -9,7 +9,7 @@ describe('OrganizationEvents', function() {
   let router;
   const project = TestStubs.Project({isMember: true});
   const organization = TestStubs.Organization({
-    features: ['events-stream'],
+    features: ['global-views'],
     projects: [project, TestStubs.Project({isMember: true, slug: 'new-project', id: 3})],
   });
 
