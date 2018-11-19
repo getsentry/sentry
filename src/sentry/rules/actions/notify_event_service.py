@@ -18,6 +18,7 @@ from sentry.utils.safe import safe_execute
 from sentry.utils import metrics
 from sentry.tasks.sentry_apps import notify_sentry_app
 
+
 class PluginService(object):
     def __init__(self, obj):
         self.obj = obj
@@ -46,7 +47,6 @@ class NotifyEventServiceForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         service_choices = [(s.slug, s.title) for s in kwargs.pop('services')]
-        # service_choices = [(plugin.slug, plugin.get_title()) for plugin in kwargs.pop('services')]
 
         super(NotifyEventServiceForm, self).__init__(*args, **kwargs)
 
@@ -105,7 +105,7 @@ class NotifyEventServiceAction(EventAction):
     def get_installs(self):
         sentry_app_ids = SentryAppInstallation.objects.filter(
             organization=self.project.organization_id,
-        ).values_list('sentry_app_id',flat=True)
+        ).values_list('sentry_app_id', flat=True)
 
         apps = SentryApp.objects.filter(id__in=sentry_app_ids, is_alertable=True)
         results = [SentryAppService(app) for app in apps]
@@ -127,10 +127,9 @@ class NotifyEventServiceAction(EventAction):
         return results
 
     def get_services(self):
-        results = []
-        results += self.get_plugins()
-        results += self.get_installs()
-        return results
+        services = self.get_plugins()
+        services += self.get_installs()
+        return services
 
     def get_form_instance(self):
         return self.form_cls(
