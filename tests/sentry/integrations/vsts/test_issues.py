@@ -69,6 +69,9 @@ class VstsIssueBase(TestCase):
 
 class VstsIssueSyncTest(VstsIssueBase):
 
+    def tearDown(self):
+        responses.reset()
+
     @responses.activate
     def test_create_issue(self):
         responses.add(
@@ -163,6 +166,55 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert responses.calls[0].response.status_code == 200
         assert responses.calls[1].request.url == 'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d' % vsts_work_item_id
         assert responses.calls[1].response.status_code == 200
+
+    @responses.activate
+    def test_sync_assignee_outbound_with_paging(self):
+        vsts_work_item_id = 5
+        responses.add(
+            responses.PATCH,
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d' % vsts_work_item_id,
+            body=WORK_ITEM_RESPONSE,
+            content_type='application/json',
+        )
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users',
+            json={
+                'value': [
+                    {'mailAddress': 'example1@example.com'},
+                    {'mailAddress': 'example2@example.com'},
+                    {'mailAddress': 'example3@example.com'},
+                ]
+            },
+            headers={'X-MS-ContinuationToken': 'continuation-token'},
+            match_querystring=True,
+        )
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users?continuationToken=continuation-token',
+            body=GET_USERS_RESPONSE,
+            content_type='application/json',
+            match_querystring=True,
+        )
+
+        user = self.create_user('ftotten@vscsi.us')
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.model.id,
+            key=vsts_work_item_id,
+            title='I\'m a title!',
+            description='I\'m a description.'
+        )
+        self.integration.sync_assignee_outbound(external_issue, user, assign=True)
+        assert len(responses.calls) == 3
+        assert responses.calls[0].request.url == 'https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users'
+        assert responses.calls[0].response.status_code == 200
+
+        assert responses.calls[1].request.url == 'https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users?continuationToken=continuation-token'
+        assert responses.calls[1].response.status_code == 200
+
+        assert responses.calls[2].request.url == 'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d' % vsts_work_item_id
+        assert responses.calls[2].response.status_code == 200
 
     @responses.activate
     def test_sync_status_outbound(self):
