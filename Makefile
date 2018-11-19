@@ -202,3 +202,7 @@ travis-scan-snuba: scan-python
 travis-scan-js: travis-noop
 travis-scan-cli: travis-noop
 travis-scan-dist: travis-noop
+
+travis-uninstall-dependencies:
+	@echo "--> Uninstalling dependencies first to work around Travis caching issues"
+	cat requirements-base.txt | sed -e 's/[<>=#].*//g' | while read req; do pip uninstall -y $$req || true; done
