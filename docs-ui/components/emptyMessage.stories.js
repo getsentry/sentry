@@ -88,7 +88,7 @@ storiesOf('UI|EmptyMessage', module)
   .add(
     'in onboarding/missing functionality panel',
     withInfo('Put this in a panel for maximum effect')(() => (
-      <Panel dottedBorder>
+      <Panel dashedBorder>
         <EmptyMessage
           icon="icon-discover"
           title="You're missing out on crucial functionality!"
