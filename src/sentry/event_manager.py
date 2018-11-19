@@ -483,7 +483,7 @@ class EventManager(object):
 
         data = self._data
 
-        if self.for_store:
+        if self._for_store:
             if self._project is not None:
                 data['project'] = self._project.id
             if self._key is not None:
@@ -616,7 +616,7 @@ class EventManager(object):
                 errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
 
         # Additional data coercion and defaulting we only do for store.
-        if self.for_store:
+        if self._for_store:
             level = data.get('level') or DEFAULT_LOG_LEVEL
             if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
                 level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
@@ -716,7 +716,7 @@ class EventManager(object):
             data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
 
         # Do not add errors unless there are for non store mode
-        if not self.for_store and not data.get('errors'):
+        if not self._for_store and not data.get('errors'):
             self._data.pop('errors')
 
         self._data = data
