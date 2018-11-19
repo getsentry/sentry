@@ -475,6 +475,10 @@ class Fixtures(object):
             stacktrace = kwargs.pop('stacktrace')
             kwargs['data']['stacktrace'] = stacktrace
 
+        user = kwargs.pop('user', None)
+        if user is not None:
+            kwargs['user'] = user
+
         kwargs['data'].setdefault(
             'errors', [{
                 'type': EventError.INVALID_DATA,
