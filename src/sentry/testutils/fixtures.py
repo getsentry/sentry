@@ -494,8 +494,9 @@ class Fixtures(object):
             }
 
         if normalize:
-            manager = EventManager(CanonicalKeyDict(kwargs['data']))
-            manager.normalize(for_store=False)
+            manager = EventManager(CanonicalKeyDict(kwargs['data']),
+                                   for_store=False)
+            manager.normalize()
             kwargs['data'] = manager.get_data()
 
         event = Event(event_id=event_id, **kwargs)
