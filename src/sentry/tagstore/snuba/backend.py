@@ -292,10 +292,13 @@ class SnubaTagStorage(TagStorage):
         # Similar to __get_tag_key_and_top_values except we get the top values
         # for all the keys provided. value_limit in this case means the number
         # of top values for each key, so the total rows returned should be
-        # num_keys * limit.  We also can't use `totals` here to get the number
-        # of "other" values for each key as we only get a single total back,
-        # which will be the total count across all keys.
+        # num_keys * limit.
         start, end = self.get_time_range()
+
+        # First get totals and unique counts by key.
+        keys_with_counts = self.get_group_tag_keys(project_id, group_id, environment_id, keys=keys)
+
+        # Then get the top values with first_seen/last_seen/count for each
         filters = {
             'project_id': [project_id],
         }
@@ -312,42 +315,32 @@ class SnubaTagStorage(TagStorage):
             ['max', SEEN_COLUMN, 'last_seen'],
         ]
 
-        result = snuba.query(
+        values_by_key = snuba.query(
             start, end, ['tags_key', 'tags_value'], None, filters, aggregations,
             orderby='-count', limitby=[value_limit, 'tags_key'],
             referrer='tagstore.__get_tag_keys_and_top_values'
         )
 
+        # Then supplement the key objects with the top values for each.
         if group_id is None:
-            key_ctor = TagKey
             value_ctor = TagValue
         else:
-            key_ctor = functools.partial(GroupTagKey, group_id=group_id)
             value_ctor = functools.partial(GroupTagValue, group_id=group_id)
 
-        return set([
-            key_ctor(
+        for keyobj in keys_with_counts:
+            key = keyobj.key
+            values = values_by_key.get(key, [])
+            keyobj.top_values = [
+                value_ctor(
+                    key=keyobj.key,
+                    value=value,
+                    times_seen=data['count'],
+                    first_seen=parse_datetime(data['first_seen']),
+                    last_seen=parse_datetime(data['last_seen']),
+                ) for value, data in six.iteritems(values)
+            ]
 
-                # TODO we don't know these from the current query, but in the
-                # context of this method, the client usually knows these values
-                # from the result of a previous call to get_group_tag_keys, so
-                # we could fill them in here with another query, but also it
-                # could be a waste of time.
-                values_seen=0,
-                count=0,
-
-                key=key,
-                top_values=[
-                    value_ctor(
-                        key=key,
-                        value=value,
-                        times_seen=data['count'],
-                        first_seen=parse_datetime(data['first_seen']),
-                        last_seen=parse_datetime(data['last_seen']),
-                    ) for value, data in six.iteritems(values)
-                ]
-            ) for key, values in six.iteritems(result)
-        ])
+        return keys_with_counts
 
     def __get_release(self, project_id, group_id, first=True):
         start, end = self.get_time_range()
