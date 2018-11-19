@@ -32,9 +32,7 @@ def process_minidump(minidump, cfi=None):
         return ProcessState.from_minidump_buffer(minidump, cfi)
 
 
-def merge_minidump_event(data, minidump, cfi=None):
-    state = process_minidump(minidump, cfi=cfi)
-
+def merge_process_state_event(data, state, cfi=None):
     data['platform'] = 'native'
     data['level'] = 'fatal' if state.crashed else 'info'
 

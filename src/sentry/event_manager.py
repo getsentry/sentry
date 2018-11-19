@@ -7,6 +7,7 @@ sentry.event_manager
 from __future__ import absolute_import, print_function
 
 import logging
+import os
 import re
 import six
 import jsonschema
@@ -60,6 +61,7 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
+from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
 from sentry.stacktraces import normalize_in_app
 
@@ -69,13 +71,17 @@ logger = logging.getLogger("sentry.events")
 
 HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
-ALLOWED_FUTURE_DELTA = timedelta(minutes=1)
+MAX_SECS_IN_FUTURE = 60
+ALLOWED_FUTURE_DELTA = timedelta(seconds=MAX_SECS_IN_FUTURE)
+MAX_SECS_IN_PAST = 2592000  # 30 days
 SECURITY_REPORT_INTERFACES = (
     "csp",
     "hpkp",
     "expectct",
     "expectstaple",
 )
+
+ENABLE_RUST = os.environ.get("SENTRY_USE_RUST_NORMALIZER", "false").lower() in ("1", "true")
 
 
 def get_event_metadata_compat(data, fallback_message):
@@ -454,6 +460,25 @@ class EventManager(object):
         self._data = data
 
     def normalize(self, for_store=True):
+        if ENABLE_RUST:
+            from semaphore.processing import StoreNormalizer
+            rust_normalizer = StoreNormalizer(
+                geoip_lookup=rust_geoip,
+                project_id=self._project.id if self._project else None,
+                client_ip=self._client_ip,
+                client=self._auth.client if self._auth else None,
+                is_public_auth=self._auth.is_public if self._auth else False,
+                key_id=self._key.id if self._key else None,
+                protocol_version=self.version,
+                stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
+                valid_platforms=list(VALID_PLATFORMS),
+                max_secs_in_future=MAX_SECS_IN_FUTURE,
+                max_secs_in_past=MAX_SECS_IN_PAST
+            )
+
+            self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
+            return
+
         data = self._data
 
         if for_store:

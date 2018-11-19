@@ -18,7 +18,7 @@ export default class Intro extends React.Component {
       {
         description: t('Last 10 event IDs'),
         query: {
-          fields: ['event_id'],
+          fields: ['id'],
           aggregations: [],
           conditions: [],
           limit: 10,
@@ -28,7 +28,7 @@ export default class Intro extends React.Component {
       {
         description: t('Events by project ID'),
         query: {
-          fields: ['project_id'],
+          fields: ['project.id'],
           aggregations: [['count()', null, 'count']],
           conditions: [],
           limit: 1000,

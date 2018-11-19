@@ -448,7 +448,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
     'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
     'sentry.tagstore.tasks', 'sentry.tasks.assemble', 'sentry.tasks.integrations',
-    'sentry.tasks.files',
+    'sentry.tasks.files', 'sentry.tasks.app_platform',
 )
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
@@ -1415,6 +1415,14 @@ SENTRY_RELAY_WHITELIST_PK = []
 # When open registration is not permitted then only relays in the
 # whitelist can register.
 SENTRY_RELAY_OPEN_REGISTRATION = False
+
+# GeoIP
+# Used for looking up IP addresses.
+# For example /usr/local/share/GeoIP/GeoIPCity.dat
+GEOIP_PATH = None
+# Same file but in the newer format. Both are required.
+# For example /usr/local/share/GeoIP/GeoIPCity.mmdb
+GEOIP_PATH_MMDB = None
 
 # CDN
 # If this is an absolute url like e.g.: https://js.sentry-cdn.com/

@@ -13,10 +13,10 @@ export default class PreviewFeature extends Component {
   };
 
   render() {
-    const {type} = this.props;
+    const {type, ...props} = this.props;
 
     return (
-      <Alert type={type} icon="icon-labs">
+      <Alert type={type} icon="icon-labs" {...props}>
         {t(
           'This feature is a preview and may change in the future. Thanks for being an early adopter!'
         )}
