@@ -336,7 +336,7 @@ class MailPlugin(NotificationPlugin):
             group = six.next(iter(counts))
             subject = self.get_digest_subject(group, counts, start)
 
-            self.add_unsubscribe_link(context, user_id, project)
+            self.add_unsubscribe_link(context, user_id, project, 'alert_digest')
             self._send_mail(
                 subject=subject,
                 template='sentry/emails/digests/body.txt',
