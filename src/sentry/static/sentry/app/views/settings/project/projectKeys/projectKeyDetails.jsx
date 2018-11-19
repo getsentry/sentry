@@ -227,6 +227,7 @@ class KeyRateLimitsForm extends React.Component {
                   className="rate-limit-group"
                   name="rateLimit"
                   label={t('Rate Limit')}
+                  disabled={!hasFeature}
                   validate={({id, form, model}) => {
                     let isValid =
                       form &&
