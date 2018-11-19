@@ -98,11 +98,9 @@ class Event(Model):
     project = property(_get_project, _set_project)
 
     def get_legacy_message(self):
-        # TODO(ja): Merge this with GH-10621
-        msg_interface = self.data.get('logentry', {
-            'message': self.message,
-        })
-        return msg_interface.get('formatted', msg_interface['message'])
+        return get_valid(self.data, 'logentry', 'formatted') \
+            or get_valid(self.data, 'logentry', 'message') \
+            or get_valid(self.data, 'message')
 
     def get_event_type(self):
         """

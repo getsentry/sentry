@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.utils.strings import truncatechars, strip
+from sentry.utils.meta import get_valid
 
 
 class BaseEvent(object):
@@ -27,13 +28,14 @@ class DefaultEvent(BaseEvent):
         return True
 
     def get_metadata(self):
-        message_interface = self.data.get('logentry') or {}
-        message = strip(message_interface.get('formatted') or
-                        message_interface.get('message'))
+        message = get_valid(self.data, 'logentry', 'formatted') \
+            or get_valid(self.data, 'logentry', 'message')
+
         if not message:
             title = '<unlabeled event>'
         else:
-            title = truncatechars(message.splitlines()[0], 100)
+            title = truncatechars(strip(message).splitlines()[0], 100)
+
         return {
             'title': title,
         }
