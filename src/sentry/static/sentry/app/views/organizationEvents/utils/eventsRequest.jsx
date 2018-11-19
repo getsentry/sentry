@@ -182,7 +182,7 @@ class EventsRequestWithParams extends React.Component {
   transformPreviousPeriodData = (current, previous) => {
     // Need the current period data array so we can take the timestamp
     // so we can be sure the data lines up
-    if (!previous) return [];
+    if (!previous) return null;
 
     return {
       seriesName: 'Previous Period',

@@ -1,5 +1,5 @@
 import {Flex} from 'grid-emotion';
-import {isEqual} from 'lodash';
+import {isDate, isEqualWith} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -21,6 +21,16 @@ import withOrganization from 'app/utils/withOrganization';
 
 import {getParams} from './utils/getParams';
 import EventsContext from './utils/eventsContext';
+
+// `lodash.isEqual` does not compare date objects properly?
+const dateComparer = (value, other) => {
+  if (isDate(value) && isDate(other)) {
+    return +value === +other;
+  }
+
+  // returning undefined will use default comparator
+  return undefined;
+};
 
 class OrganizationEventsContainer extends React.Component {
   static propTypes = {
@@ -66,7 +76,7 @@ class OrganizationEventsContainer extends React.Component {
     const values = OrganizationEventsContainer.getStateFromRouter(props);
 
     // Update `queryValues` if URL parameters change
-    if (!isEqual(state.queryValues, values)) {
+    if (!isEqualWith(state.queryValues, values, dateComparer)) {
       return {
         ...values,
         queryValues: values,
