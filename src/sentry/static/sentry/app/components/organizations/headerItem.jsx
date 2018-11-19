@@ -73,7 +73,7 @@ class HeaderItem extends React.Component {
 
 const StyledHeaderItem = styled('div')`
   display: flex;
-  padding: 0 ${space(3)};
+  padding: 0 ${space(4)};
   align-items: center;
   cursor: pointer;
   color: ${p => (p.isOpen || p.hasSelected ? p.theme.gray4 : p.theme.gray2)};

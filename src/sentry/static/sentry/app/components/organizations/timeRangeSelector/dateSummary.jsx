@@ -57,7 +57,7 @@ class DateSummary extends React.Component {
       endTimeFormatted !== DEFAULT_DAY_END_TIME;
 
     return (
-      <Flex className={className} align="center">
+      <DateGroupWrapper className={className} align="center" hasTime={shouldShowTimes}>
         <DateGroup>
           <Date hasTime={shouldShowTimes}>
             {this.formatDate(start)}
@@ -74,10 +74,14 @@ class DateSummary extends React.Component {
             </Date>
           </DateGroup>
         </React.Fragment>
-      </Flex>
+      </DateGroupWrapper>
     );
   }
 }
+
+const DateGroupWrapper = styled(Flex)`
+  transform: translateY(${p => (p.hasTime ? '-5px' : '0')});
+`;
 
 const DateGroup = styled('div')`
   display: flex;
@@ -87,15 +91,15 @@ const DateGroup = styled('div')`
 `;
 
 const Date = styled('div')`
-  ${p => p.hasTime && 'margin-top: 10px'};
+  ${p => p.hasTime && 'margin-top: 9px'};
   display: flex;
   flex-direction: column;
   align-items: flex-end;
 `;
 
 const Time = styled('div')`
-  font-size: 0.8em;
-  line-height: 0.8em;
+  font-size: 0.7em;
+  line-height: 0.7em;
   opacity: 0.5;
 `;
 

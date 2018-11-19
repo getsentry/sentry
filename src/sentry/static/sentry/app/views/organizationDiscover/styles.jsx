@@ -35,7 +35,6 @@ export const PageTitle = styled.h2`
   margin: 0;
   align-items: center;
   padding-left: ${space(4)};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
   height: ${HEADER_HEIGHT}px;
 `;
 
@@ -83,11 +82,6 @@ export const LoadingContainer = styled(Flex)`
   flex: 1;
   align-items: center;
   height: 100%;
-`;
-
-export const TopBar = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  height: ${HEADER_HEIGHT}px;
 `;
 
 export const SidebarTabs = styled(props => <NavTabs {...props} underlined={true} />)`

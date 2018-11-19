@@ -6,6 +6,8 @@ import {browserHistory} from 'react-router';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
 import {t, tct} from 'app/locale';
+import Header from 'app/components/organizations/header';
+import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
@@ -33,7 +35,6 @@ import {
   DiscoverContainer,
   Body,
   BodyContent,
-  TopBar,
   Sidebar,
   SidebarTabs,
   PageTitle,
@@ -302,7 +303,9 @@ export default class OrganizationDiscover extends React.Component {
     return (
       <DiscoverContainer>
         <Sidebar>
-          <PageTitle>{t('Discover')}</PageTitle>
+          <Header>
+            <PageTitle>{t('Discover')}</PageTitle>
+          </Header>
           {this.renderSidebarNav()}
           {view === 'saved' && (
             <SavedQueryWrapper>
@@ -338,27 +341,31 @@ export default class OrganizationDiscover extends React.Component {
             )}
         </Sidebar>
         <Body>
-          <TopBar>
-            <MultipleProjectSelector
-              value={currentQuery.projects}
-              organization={organization}
-              projects={projects}
-              onChange={val => this.updateField('projects', val)}
-              onUpdate={this.runQuery}
-            />
+          <Header>
+            <HeaderItemPosition>
+              <MultipleProjectSelector
+                value={currentQuery.projects}
+                organization={organization}
+                projects={projects}
+                onChange={val => this.updateField('projects', val)}
+                onUpdate={this.runQuery}
+              />
+            </HeaderItemPosition>
             <HeaderSeparator />
-            <TimeRangeSelector
-              showAbsolute={true}
-              showRelative={true}
-              useUtc={true}
-              start={start}
-              end={end}
-              relative={currentQuery.range}
-              onChange={this.handleUpdateTime}
-              onUpdate={this.runQuery}
-            />
+            <HeaderItemPosition>
+              <TimeRangeSelector
+                showAbsolute={true}
+                showRelative={true}
+                useUtc={true}
+                start={start}
+                end={end}
+                relative={currentQuery.range}
+                onChange={this.handleUpdateTime}
+                onUpdate={this.runQuery}
+              />
+            </HeaderItemPosition>
             <HeaderSeparator />
-          </TopBar>
+          </Header>
           <BodyContent>
             {shouldDisplayResult && (
               <Result

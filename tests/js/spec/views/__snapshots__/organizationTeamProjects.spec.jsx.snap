@@ -119,7 +119,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     tabIndex={-1}
                                   >
                                     <div
-                                      className="css-dy1pax-Actor e53us8t0"
+                                      className="css-17fe80j-Actor e53us8t0"
                                       onClick={[Function]}
                                       onKeyDown={[Function]}
                                       onMouseEnter={[Function]}

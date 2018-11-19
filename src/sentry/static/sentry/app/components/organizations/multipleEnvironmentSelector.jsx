@@ -241,7 +241,6 @@ const FetchOrganizationEnvironments = withApi(
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
-  width: 250px;
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`

@@ -45,6 +45,7 @@ class DropdownAutoComplete extends React.Component {
 
 const Actor = styled('div')`
   position: relative;
+  width: 100%;
   /* This is needed to be able to cover dropdown menu so that it looks like one unit */
   ${p => p.isOpen && `z-index: ${p.theme.zIndex.dropdownAutocomplete.actor}`};
 `;
