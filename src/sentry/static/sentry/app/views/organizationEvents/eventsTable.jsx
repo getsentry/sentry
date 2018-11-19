@@ -8,12 +8,13 @@ import {t} from 'app/locale';
 import {PanelBody, Panel, PanelHeader} from 'app/components/panels';
 import DateTime from 'app/components/dateTime';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import EventsContext from 'app/views/organizationEvents/eventsContext';
 import IdBadge from 'app/components/idBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+
+import EventsContext from './utils/eventsContext';
 
 class EventsTable extends React.Component {
   static propTypes = {
