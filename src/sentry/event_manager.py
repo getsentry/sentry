@@ -24,7 +24,7 @@ from hashlib import md5
 from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
-    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS
+    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH
 )
 from sentry.coreapi import (
     APIError,
@@ -713,6 +713,7 @@ class EventManager(object):
             data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
 
         if data.get('transaction'):
+            # XXX: This will be trimmed again when inserted into tag values
             data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
 
         # Do not add errors unless there are for non store mode
@@ -892,9 +893,9 @@ class EventManager(object):
         if site:
             tags['site'] = site
         if environment:
-            tags['environment'] = environment
+            tags['environment'] = trim(environment, MAX_TAG_VALUE_LENGTH)
         if transaction_name:
-            tags['transaction'] = transaction_name
+            tags['transaction'] = trim(transaction_name, MAX_TAG_VALUE_LENGTH)
 
         if release:
             # dont allow a conflicting 'release' tag
