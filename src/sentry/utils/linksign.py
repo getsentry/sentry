@@ -14,7 +14,7 @@ def get_signer():
     return signing.TimestampSigner(salt='sentry-link-signature')
 
 
-def generate_signed_link(user, viewname, source=None, args=None, kwargs=None):
+def generate_signed_link(user, viewname, referrer=None, args=None, kwargs=None):
     """This returns an absolute URL where the given user is signed in for
     the given viewname with args and kwargs.  This returns a redirect link
     that if followed sends the user to another URL which carries another
@@ -32,8 +32,8 @@ def generate_signed_link(user, viewname, source=None, args=None, kwargs=None):
     item = '%s|%s|%s' % (options.get('system.url-prefix'), path, base36_encode(user_id))
     signature = ':'.join(get_signer().sign(item).rsplit(':', 2)[1:])
     signed_link = '%s?_=%s:%s' % (absolute_uri(path), base36_encode(user_id), signature, )
-    if source:
-        signed_link = signed_link + '&' + urlencode({'source': source})
+    if referrer:
+        signed_link = signed_link + '&' + urlencode({'referrer': referrer})
     return signed_link
 
 
