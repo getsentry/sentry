@@ -183,10 +183,11 @@ class MailPlugin(NotificationPlugin):
 
         return send_to_list
 
-    def add_unsubscribe_link(self, context, user_id, project):
+    def add_unsubscribe_link(self, context, user_id, project, source):
         context['unsubscribe_link'] = generate_signed_link(
             user_id,
             'sentry-account-email-unsubscribe-project',
+            source,
             kwargs={
                 'project_id': project.id,
             }
@@ -207,8 +208,11 @@ class MailPlugin(NotificationPlugin):
 
         link = group.get_absolute_url()
 
+        query_params = {'source': 'alert_email'}
         if environment:
-            link = link + '?' + urlencode({'environment': environment})
+            query_params['environment'] = environment
+
+        link = link + '?' + urlencode(query_params)
 
         template = 'sentry/emails/error.txt'
         html_template = 'sentry/emails/error.html'
@@ -275,7 +279,8 @@ class MailPlugin(NotificationPlugin):
         }
 
         for user_id in self.get_send_to(project=project, event=event):
-            self.add_unsubscribe_link(context, user_id, project)
+            self.add_unsubscribe_link(context, user_id, project, 'alert_email')
+
             self._send_mail(
                 subject=subject,
                 template=template,
@@ -331,7 +336,7 @@ class MailPlugin(NotificationPlugin):
             group = six.next(iter(counts))
             subject = self.get_digest_subject(group, counts, start)
 
-            self.add_unsubscribe_link(context, user_id, project)
+            self.add_unsubscribe_link(context, user_id, project, 'alert_digest')
             self._send_mail(
                 subject=subject,
                 template='sentry/emails/digests/body.txt',
