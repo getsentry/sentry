@@ -88,10 +88,22 @@ class ProjectReleaseListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]['version'] == release.version
 
-        response = self.client.get(url + '?query=bar', format='json')
+        response = self.client.get(url + '?query=baz', format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='foo.bar-1.0.0',
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
+        )
+        release.add_project(project)
+
+        response = self.client.get(url + '?query=1', format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
 
 
 class ProjectReleaseListEnvironmentsTest(APITestCase):
