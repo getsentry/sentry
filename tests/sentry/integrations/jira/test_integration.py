@@ -406,7 +406,7 @@ class JiraIntegrationTest(APITestCase):
                             'string_max_length=self.string_max_length)\n\nmessage\n{code}'
                             ) % (
                                 group.qualified_short_id,
-                                absolute_uri(group.get_absolute_url()),
+                                absolute_uri(group.get_absolute_url(referrer='jira_integration')),
                 ),
                 'type': 'textarea',
                 'name': 'description',

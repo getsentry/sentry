@@ -262,10 +262,11 @@ class Group(Model):
         )
         super(Group, self).save(*args, **kwargs)
 
-    def get_absolute_url(self):
-        return absolute_uri(
-            reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
-        )
+    def get_absolute_url(self, referrer=None):
+        url = reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
+        if referrer:
+            url = url + '?referrer=%s' % referrer
+        return absolute_uri(url)
 
     @property
     def qualified_short_id(self):

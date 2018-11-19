@@ -65,6 +65,7 @@ def get_assignee(group):
         return None
 
 
+# TODO(adhiraj): Remove after updating plugins repo.
 def add_notification_referrer_param(url, provider):
     parsed_url = urlparse(url)
     query = parse_qs(parsed_url.query)
@@ -277,7 +278,7 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
     return {
         'fallback': u'[{}] {}'.format(group.project.slug, group.title),
         'title': build_attachment_title(group, event),
-        'title_link': add_notification_referrer_param(group.get_absolute_url(), 'slack'),
+        'title_link': group.get_absolute_url(referrer='slack'),
         'text': text,
         'fields': fields,
         'mrkdwn_in': ['text'],

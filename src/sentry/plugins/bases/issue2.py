@@ -62,8 +62,9 @@ class IssueTrackingPlugin2(Plugin):
         return '\n\n'.join(result)
 
     def get_group_description(self, request, group, event):
+        referrer = self.get_conf_key() + '_plugin'
         output = [
-            absolute_uri(group.get_absolute_url()),
+            absolute_uri(group.get_absolute_url(referrer=referrer)),
         ]
         body = self.get_group_body(request, group, event)
         if body:

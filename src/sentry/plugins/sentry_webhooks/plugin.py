@@ -84,7 +84,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             'level': event.get_tag('level'),
             'culprit': group.culprit,
             'message': event.get_legacy_message(),
-            'url': group.get_absolute_url(),
+            'url': group.get_absolute_url(referrer='webhooks_plugin'),
             'triggering_rules': triggering_rules,
         }
         data['event'] = dict(event.data or {})

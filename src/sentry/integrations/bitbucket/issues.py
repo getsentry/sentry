@@ -24,6 +24,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         return ['repo']
 
     def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'bitbucket_integration'
         fields = super(BitbucketIssueBasicMixin, self).get_create_issue_config(group, **kwargs)
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 

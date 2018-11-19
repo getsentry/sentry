@@ -102,7 +102,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                                     'Stacktrace (most recent call last):\n\n  '
                                     'File "sentry/models/foo.py", line 29, in build_msg\n    '
                                     'string_max_length=self.string_max_length)\n\nmessage\n```'
-                                    ) % (group.qualified_short_id, absolute_uri(group.get_absolute_url())),
+                                    ) % (group.qualified_short_id, absolute_uri(group.get_absolute_url(referrer='example_integration'))),
                         'type': 'textarea',
                         'name': 'description',
                         'label': 'Description',

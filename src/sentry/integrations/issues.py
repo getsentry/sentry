@@ -38,7 +38,7 @@ class IssueBasicMixin(object):
         output = [
             u'Sentry Issue: [{}]({})'.format(
                 group.qualified_short_id,
-                absolute_uri(group.get_absolute_url()),
+                absolute_uri(group.get_absolute_url(referrer=kwargs.get('link_referrer'))),
             )
         ]
         body = self.get_group_body(group, event)
