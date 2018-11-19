@@ -186,9 +186,9 @@ describe('OrganizationEvents', function() {
     });
   });
 
-  it('changes to absolute time', async function() {
-    const start = new Date('2017-10-01T04:00:00.000Z');
-    const end = new Date('2017-10-02T03:59:59.000Z');
+  it('changes to absolute time (utc is default)', async function() {
+    const start = new Date('2017-10-01T00:00:00.000Z');
+    const end = new Date('2017-10-01T23:59:59.000Z');
 
     wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
 
@@ -209,8 +209,9 @@ describe('OrganizationEvents', function() {
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/events/',
       query: {
-        start: '2017-10-01T04:00:00',
-        end: '2017-10-02T03:59:59',
+        start: '2017-10-01T00:00:00',
+        end: '2017-10-01T23:59:59',
+        utc: true,
       },
     });
   });

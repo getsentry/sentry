@@ -33,16 +33,16 @@ class DateSummary extends React.Component {
      */
     end: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 
-    useUtc: PropTypes.bool,
+    utc: PropTypes.bool,
   };
 
   formatDate(date) {
-    return getFormattedDate(date, 'll', {local: !this.props.useUtc});
+    return getFormattedDate(date, 'll', {local: !this.props.utc});
   }
 
   formatTime(date, withSeconds = false) {
     return getFormattedDate(date, `HH:mm${withSeconds ? ':ss' : ''}`, {
-      local: !this.props.useUtc,
+      local: !this.props.utc,
     });
   }
 
