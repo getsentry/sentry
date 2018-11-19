@@ -81,8 +81,6 @@ export const doEventsRequest = (
     query,
   }
 ) => {
-  if (!api) return Promise.reject(new Error('API client not available'));
-
   const shouldDoublePeriod = includePrevious;
   const urlQuery = {
     interval,
