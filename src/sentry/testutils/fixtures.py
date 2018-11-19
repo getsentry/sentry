@@ -477,7 +477,7 @@ class Fixtures(object):
 
         user = kwargs.pop('user', None)
         if user is not None:
-            kwargs['user'] = user
+            kwargs['data']['user'] = user
 
         kwargs['data'].setdefault(
             'errors', [{
