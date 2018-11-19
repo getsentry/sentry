@@ -453,16 +453,21 @@ class EventManager(object):
 
         self._data = data
 
-    def normalize(self):
+    def normalize(self, for_store=True):
         data = self._data
-        if self._project is not None:
-            data['project'] = self._project.id
-        if self._key is not None:
-            data['key_id'] = self._key.id
-        if self._auth is not None:
-            data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
 
-        errors = data['errors'] = []
+        if for_store:
+            if self._project is not None:
+                data['project'] = self._project.id
+            if self._key is not None:
+                data['key_id'] = self._key.id
+            if self._auth is not None:
+                data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
+
+        # permit the client to transmit errors as well.
+        errors = data.get('errors')
+        if not errors:
+            errors = data['errors'] = []
 
         # Before validating with a schema, attempt to cast values to their desired types
         # so that the schema doesn't have to take every type variation into account.
@@ -583,63 +588,64 @@ class EventManager(object):
                 log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
                 errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
 
-        # Additional data coercion and defaulting
-        level = data.get('level') or DEFAULT_LOG_LEVEL
-        if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
-            level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
-        data['level'] = LOG_LEVELS_MAP.get(level, LOG_LEVELS_MAP[DEFAULT_LOG_LEVEL])
+        # Additional data coercion and defaulting we only do for store.
+        if for_store:
+            level = data.get('level') or DEFAULT_LOG_LEVEL
+            if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
+                level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
+            data['level'] = LOG_LEVELS_MAP.get(level, LOG_LEVELS_MAP[DEFAULT_LOG_LEVEL])
 
-        if data.get('dist') and not data.get('release'):
-            data['dist'] = None
+            if data.get('dist') and not data.get('release'):
+                data['dist'] = None
 
-        timestamp = data.get('timestamp')
-        if not timestamp:
-            timestamp = timezone.now()
+            timestamp = data.get('timestamp')
+            if not timestamp:
+                timestamp = timezone.now()
 
-        # TODO (alex) can this all be replaced by utcnow?
-        # it looks like the only time that this would even be hit is when timestamp
-        # is not defined, as the earlier process_timestamp already converts existing
-        # timestamps to floats.
-        if isinstance(timestamp, datetime):
-            # We must convert date to local time so Django doesn't mess it up
-            # based on TIME_ZONE
-            if settings.TIME_ZONE:
-                if not timezone.is_aware(timestamp):
-                    timestamp = timestamp.replace(tzinfo=timezone.utc)
-            elif timezone.is_aware(timestamp):
-                timestamp = timestamp.replace(tzinfo=None)
-            timestamp = float(timestamp.strftime('%s'))
+            # TODO (alex) can this all be replaced by utcnow?
+            # it looks like the only time that this would even be hit is when timestamp
+            # is not defined, as the earlier process_timestamp already converts existing
+            # timestamps to floats.
+            if isinstance(timestamp, datetime):
+                # We must convert date to local time so Django doesn't mess it up
+                # based on TIME_ZONE
+                if settings.TIME_ZONE:
+                    if not timezone.is_aware(timestamp):
+                        timestamp = timestamp.replace(tzinfo=timezone.utc)
+                elif timezone.is_aware(timestamp):
+                    timestamp = timestamp.replace(tzinfo=None)
+                timestamp = float(timestamp.strftime('%s'))
 
-        data['timestamp'] = timestamp
-        data['received'] = float(timezone.now().strftime('%s'))
+            data['timestamp'] = timestamp
+            data['received'] = float(timezone.now().strftime('%s'))
 
-        data.setdefault('checksum', None)
-        data.setdefault('culprit', None)
-        data.setdefault('dist', None)
-        data.setdefault('environment', None)
-        data.setdefault('extra', {})
-        data.setdefault('fingerprint', None)
-        data.setdefault('logger', DEFAULT_LOGGER_NAME)
-        data.setdefault('platform', None)
-        data.setdefault('server_name', None)
-        data.setdefault('site', None)
-        data.setdefault('tags', [])
-        data.setdefault('transaction', None)
+            data.setdefault('checksum', None)
+            data.setdefault('culprit', None)
+            data.setdefault('dist', None)
+            data.setdefault('environment', None)
+            data.setdefault('extra', {})
+            data.setdefault('fingerprint', None)
+            data.setdefault('logger', DEFAULT_LOGGER_NAME)
+            data.setdefault('platform', None)
+            data.setdefault('server_name', None)
+            data.setdefault('site', None)
+            data.setdefault('tags', [])
+            data.setdefault('transaction', None)
 
-        # Fix case where legacy apps pass 'environment' as a tag
-        # instead of a top level key.
-        # TODO (alex) save() just reinserts the environment into the tags
-        if not data.get('environment'):
-            tagsdict = dict(data['tags'])
-            if 'environment' in tagsdict:
-                data['environment'] = tagsdict['environment']
-                del tagsdict['environment']
-                data['tags'] = tagsdict.items()
+            # Fix case where legacy apps pass 'environment' as a tag
+            # instead of a top level key.
+            # TODO (alex) save() just reinserts the environment into the tags
+            if not data.get('environment'):
+                tagsdict = dict(data['tags'])
+                if 'environment' in tagsdict:
+                    data['environment'] = tagsdict['environment']
+                    del tagsdict['environment']
+                    data['tags'] = tagsdict.items()
 
-        # the SDKs currently do not describe event types, and we must infer
-        # them from available attributes
-        data['type'] = eventtypes.infer(data).key
-        data['version'] = self.version
+            # the SDKs currently do not describe event types, and we must infer
+            # them from available attributes
+            data['type'] = eventtypes.infer(data).key
+            data['version'] = self.version
 
         exception = data.get('exception')
         stacktrace = data.get('stacktrace')
@@ -670,14 +676,21 @@ class EventManager(object):
             data.setdefault('user', {}).setdefault('ip_address', self._client_ip)
 
         # Trim values
-        data['logger'] = trim(data['logger'].strip(), 64)
-        trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
+        if data.get('logger'):
+            data['logger'] = trim(data['logger'].strip(), 64)
 
-        if data['culprit']:
+        if data.get('extra'):
+            trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
+
+        if data.get('culprit'):
             data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
 
-        if data['transaction']:
+        if data.get('transaction'):
             data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
+
+        # Do not add errors unless there are for non store mode
+        if not for_store and not data.get('errors'):
+            self._data.pop('errors')
 
         self._data = data
 

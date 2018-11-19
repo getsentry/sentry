@@ -24,6 +24,7 @@ from hashlib import sha1
 from loremipsum import Generator
 from uuid import uuid4
 
+from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_apps import Creator as SentryAppCreator
 from sentry.mediators.service_hooks import Creator as ServiceHookCreator
@@ -456,7 +457,7 @@ class Fixtures(object):
 
         return useremail
 
-    def create_event(self, event_id=None, **kwargs):
+    def create_event(self, event_id=None, normalize=True, **kwargs):
         if event_id is None:
             event_id = uuid4().hex
         if 'group' not in kwargs:
@@ -488,17 +489,11 @@ class Fixtures(object):
                 'message': kwargs.get('message') or '<unlabeled event>',
             }
 
-        if 'type' not in kwargs['data']:
-            kwargs['data'].update(
-                {
-                    'type': 'default',
-                    'metadata': {
-                        'title': kwargs['data']['logentry']['message'],
-                    },
-                }
-            )
+        if normalize:
+            manager = EventManager(CanonicalKeyDict(kwargs['data']))
+            manager.normalize(for_store=False)
+            kwargs['data'] = manager.get_data()
 
-        kwargs['data'] = CanonicalKeyDict(kwargs.pop('data'))
         event = Event(event_id=event_id, **kwargs)
         EventMapping.objects.create(
             project_id=event.project.id,
