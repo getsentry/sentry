@@ -155,7 +155,7 @@ class EventManagerTest(TransactionTestCase):
         group = Group.objects.get(id=event.group_id)
 
         assert group.times_seen == 2
-        assert group.last_seen.replace(microsecond=0) == event.datetime.replace(microsecond=0)
+        assert group.last_seen.replace(microsecond=0) == event2.datetime.replace(microsecond=0)
         assert group.message == event2.message
         assert group.data.get('type') == 'default'
         assert group.data.get('metadata') == {
