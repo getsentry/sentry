@@ -798,6 +798,8 @@ SENTRY_FEATURES = {
     'organizations:invite-members': True,
     # Enable gitlab integration currently available to early adopters only.
     'organizations:gitlab-integration': False,
+    # Enable jira server integration currently available to internal users only.
+    'organizations:jira-server-integration': False,
 
     # DEPRECATED: pending removal.
     'organizations:js-loader': False,
@@ -1322,7 +1324,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 
 SENTRY_INTERNAL_INTEGRATIONS = (
     'vsts-extension',
-    'jira_server',
 )
 
 
