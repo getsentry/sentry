@@ -73,7 +73,7 @@ matrix:
         - riak
         - redis-server
       install:
-        - make travis-uninstall-dependencies
+        - make travis-clean-virtualenv
         - pip install -e ".[dev,tests,optional]"
 
     - python: 2.7
@@ -83,7 +83,7 @@ matrix:
         - redis-server
         - postgresql
       install:
-        - make travis-uninstall-dependencies
+        - make travis-clean-virtualenv
         - pip install -e ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
@@ -95,7 +95,7 @@ matrix:
         - mysql
         - redis-server
       install:
-        - make travis-uninstall-dependencies
+        - make travis-clean-virtualenv
         - pip install -e ".[dev,tests,optional]"
         - pip install mysqlclient
       before_script:
@@ -116,7 +116,7 @@ matrix:
         - docker ps -a
       install:
         - yarn install --pure-lockfile
-        - make travis-uninstall-dependencies
+        - make travis-clean-virtualenv
         - pip install -e ".[dev,tests,optional]"
         - wget -N "http://chromedriver.storage.googleapis.com/$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip" -P ~/
         - unzip ~/chromedriver_linux64.zip -d ~/
@@ -154,7 +154,7 @@ matrix:
         - redis-server
         - postgresql
       install:
-        - make travis-uninstall-dependencies
+        - make travis-clean-virtualenv
         - pip install -e ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
@@ -167,7 +167,7 @@ matrix:
         - redis-server
         - postgresql
       install:
-        - make travis-uninstall-dependencies
+        - make travis-clean-virtualenv
         - pip install -e ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
@@ -180,7 +180,7 @@ matrix:
         - redis-server
         - postgresql
       install:
-        - make travis-uninstall-dependencies
+        - make travis-clean-virtualenv
         - pip install -e ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
@@ -198,7 +198,7 @@ matrix:
         - docker run -d --network host --name snuba --env SNUBA_SETTINGS=test --env CLICKHOUSE_SERVER=localhost:9000 getsentry/snuba
         - docker ps -a
       install:
-        - make travis-uninstall-dependencies
+        - make travis-clean-virtualenv
         - pip install -e ".[dev,tests,optional]"
       before_script:
         - psql -c 'create database sentry;' -U postgres
