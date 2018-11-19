@@ -87,8 +87,6 @@ class EventSerializerTest(TestCase):
         assert result['_meta']['message'] == {'': {'err': ['some error']}}
 
     def test_message_legacy(self):
-        # TODO: This test case can be removed once validation is implemented by
-        # libsemaphore and enforced on all payloads
         event = self.create_event(
             data={
                 'message': 'foo',
@@ -102,8 +100,7 @@ class EventSerializerTest(TestCase):
         del event.data['logentry']
 
         result = serialize(event)
-        assert result['message'] == 'foo'
-        assert result['_meta']['message'] == {'': {'err': ['some error']}}
+        assert result['message'] is None
 
     def test_tags_tuples(self):
         event = self.create_event(
