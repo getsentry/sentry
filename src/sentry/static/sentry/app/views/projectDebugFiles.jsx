@@ -47,7 +47,7 @@ function getFeatureTooltip(feature) {
       );
     case 'debug':
       return t(
-        'Debug information provides function names and resolvese inlined frames during symbolication'
+        'Debug information provides function names and resolves inlined frames during symbolication'
       );
     case 'unwind':
       return t(
