@@ -100,7 +100,7 @@ class Event(Model):
     def get_legacy_message(self):
         return get_valid(self.data, 'logentry', 'formatted') \
             or get_valid(self.data, 'logentry', 'message') \
-            or get_valid(self.data, 'message')
+            or self.message
 
     def get_event_type(self):
         """
