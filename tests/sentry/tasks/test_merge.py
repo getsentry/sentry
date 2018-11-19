@@ -62,10 +62,10 @@ class MergeGroupTest(TestCase):
     def test_merge_with_event_integrity(self):
         project1 = self.create_project()
         group1 = self.create_group(project1)
-        event1 = self.create_event('a' * 32, group=group1, data={'foo': 'bar'})
+        event1 = self.create_event('a' * 32, group=group1, data={'extra': {'foo': 'bar'}})
         project2 = self.create_project()
         group2 = self.create_group(project2)
-        event2 = self.create_event('b' * 32, group=group2, data={'foo': 'baz'})
+        event2 = self.create_event('b' * 32, group=group2, data={'extra': {'foo': 'baz'}})
 
         with self.tasks():
             merge_groups([group1.id], group2.id)
@@ -77,12 +77,12 @@ class MergeGroupTest(TestCase):
         event1 = Event.objects.get(id=event1.id)
         assert event1.group_id == group2.id
         Event.objects.bind_nodes([event1], 'data')
-        assert event1.data['foo'] == 'bar'
+        assert event1.data['extra']['foo'] == 'bar'
 
         event2 = Event.objects.get(id=event2.id)
         assert event2.group_id == group2.id
         Event.objects.bind_nodes([event2], 'data')
-        assert event2.data['foo'] == 'baz'
+        assert event2.data['extra']['foo'] == 'baz'
 
     def test_merge_creates_redirect(self):
         groups = [self.create_group() for _ in range(0, 3)]

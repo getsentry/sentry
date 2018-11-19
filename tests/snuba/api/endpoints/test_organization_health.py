@@ -102,7 +102,7 @@ class OrganizationHealthTest(APITestCase, SnubaTestCase):
             group=group,
             datetime=self.min_ago,
             tags={
-                'environment': None,
+                'environment': '',
                 'sentry:user': 'id:%s' % (self.user.id,),
             },
         )

@@ -84,6 +84,20 @@ SECURITY_REPORT_INTERFACES = (
 ENABLE_RUST = os.environ.get("SENTRY_USE_RUST_NORMALIZER", "false").lower() in ("1", "true")
 
 
+def get_event_metadata_compat(data, fallback_message):
+    """This is a fallback path to getting the event metadata.  This is used
+    by some code paths that could potentially deal with old sentry events that
+    do not have metadata yet.  This does not happen in practice any more but
+    the testsuite was never adapted so the tests hit this code path constantly.
+    """
+    etype = data.get('type') or 'default'
+    if 'metadata' not in data:
+        data = dict(data)
+        data['logentry'] = {'formatted': fallback_message}
+        return eventtypes.get(etype)(data).get_metadata()
+    return data['metadata']
+
+
 def count_limit(count):
     # TODO: could we do something like num_to_store = max(math.sqrt(100*count)+59, 200) ?
     # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
@@ -386,6 +400,7 @@ class EventManager(object):
         auth=None,
         key=None,
         content_encoding=None,
+        for_store=True,
     ):
         self._data = _decode_event(data, content_encoding=content_encoding)
         self.version = version
@@ -394,6 +409,7 @@ class EventManager(object):
         self._user_agent = user_agent
         self._auth = auth
         self._key = key
+        self._for_store = for_store
 
     def process_csp_report(self):
         """Only called from the CSP report endpoint."""
@@ -466,14 +482,19 @@ class EventManager(object):
             return
 
         data = self._data
-        if self._project is not None:
-            data['project'] = self._project.id
-        if self._key is not None:
-            data['key_id'] = self._key.id
-        if self._auth is not None:
-            data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
 
-        errors = data['errors'] = []
+        if self._for_store:
+            if self._project is not None:
+                data['project'] = self._project.id
+            if self._key is not None:
+                data['key_id'] = self._key.id
+            if self._auth is not None:
+                data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
+
+        # permit the client to transmit errors as well.
+        errors = data.get('errors')
+        if not errors:
+            errors = data['errors'] = []
 
         # Before validating with a schema, attempt to cast values to their desired types
         # so that the schema doesn't have to take every type variation into account.
@@ -516,10 +537,17 @@ class EventManager(object):
                     errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
                     del data[c]
 
-        # raw 'message' is coerced to the Message interface, as its used for pure index of
-        # searchable strings. If both a raw 'message' and a Message interface exist, try and
-        # add the former as the 'formatted' attribute of the latter.
-        # See GH-3248
+        # raw 'message' is coerced to the Message interface.  Longer term
+        # we want to treat 'message' as a pure alias for 'logentry' but
+        # for now that won't be the case.
+        #
+        # TODO(mitsuhiko): the logic we want to apply here long term is
+        # to
+        #
+        # 1. make logentry.message optional
+        # 2. make logentry.formatted the primary value
+        # 3. always treat a string as an alias for `logentry.formatted`
+        # 4. remove the custom coercion logic here
         msg_str = data.pop('message', None)
         if msg_str:
             msg_if = data.get('logentry')
@@ -587,63 +615,64 @@ class EventManager(object):
                 log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
                 errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
 
-        # Additional data coercion and defaulting
-        level = data.get('level') or DEFAULT_LOG_LEVEL
-        if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
-            level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
-        data['level'] = LOG_LEVELS_MAP.get(level, LOG_LEVELS_MAP[DEFAULT_LOG_LEVEL])
+        # Additional data coercion and defaulting we only do for store.
+        if self._for_store:
+            level = data.get('level') or DEFAULT_LOG_LEVEL
+            if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
+                level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
+            data['level'] = LOG_LEVELS_MAP.get(level, LOG_LEVELS_MAP[DEFAULT_LOG_LEVEL])
 
-        if data.get('dist') and not data.get('release'):
-            data['dist'] = None
+            if data.get('dist') and not data.get('release'):
+                data['dist'] = None
 
-        timestamp = data.get('timestamp')
-        if not timestamp:
-            timestamp = timezone.now()
+            timestamp = data.get('timestamp')
+            if not timestamp:
+                timestamp = timezone.now()
 
-        # TODO (alex) can this all be replaced by utcnow?
-        # it looks like the only time that this would even be hit is when timestamp
-        # is not defined, as the earlier process_timestamp already converts existing
-        # timestamps to floats.
-        if isinstance(timestamp, datetime):
-            # We must convert date to local time so Django doesn't mess it up
-            # based on TIME_ZONE
-            if settings.TIME_ZONE:
-                if not timezone.is_aware(timestamp):
-                    timestamp = timestamp.replace(tzinfo=timezone.utc)
-            elif timezone.is_aware(timestamp):
-                timestamp = timestamp.replace(tzinfo=None)
-            timestamp = float(timestamp.strftime('%s'))
+            # TODO (alex) can this all be replaced by utcnow?
+            # it looks like the only time that this would even be hit is when timestamp
+            # is not defined, as the earlier process_timestamp already converts existing
+            # timestamps to floats.
+            if isinstance(timestamp, datetime):
+                # We must convert date to local time so Django doesn't mess it up
+                # based on TIME_ZONE
+                if settings.TIME_ZONE:
+                    if not timezone.is_aware(timestamp):
+                        timestamp = timestamp.replace(tzinfo=timezone.utc)
+                elif timezone.is_aware(timestamp):
+                    timestamp = timestamp.replace(tzinfo=None)
+                timestamp = float(timestamp.strftime('%s'))
 
-        data['timestamp'] = timestamp
-        data['received'] = float(timezone.now().strftime('%s'))
+            data['timestamp'] = timestamp
+            data['received'] = float(timezone.now().strftime('%s'))
 
-        data.setdefault('checksum', None)
-        data.setdefault('culprit', None)
-        data.setdefault('dist', None)
-        data.setdefault('environment', None)
-        data.setdefault('extra', {})
-        data.setdefault('fingerprint', None)
-        data.setdefault('logger', DEFAULT_LOGGER_NAME)
-        data.setdefault('platform', None)
-        data.setdefault('server_name', None)
-        data.setdefault('site', None)
-        data.setdefault('tags', [])
-        data.setdefault('transaction', None)
+            data.setdefault('checksum', None)
+            data.setdefault('culprit', None)
+            data.setdefault('dist', None)
+            data.setdefault('environment', None)
+            data.setdefault('extra', {})
+            data.setdefault('fingerprint', None)
+            data.setdefault('logger', DEFAULT_LOGGER_NAME)
+            data.setdefault('platform', None)
+            data.setdefault('server_name', None)
+            data.setdefault('site', None)
+            data.setdefault('tags', [])
+            data.setdefault('transaction', None)
 
-        # Fix case where legacy apps pass 'environment' as a tag
-        # instead of a top level key.
-        # TODO (alex) save() just reinserts the environment into the tags
-        if not data.get('environment'):
-            tagsdict = dict(data['tags'])
-            if 'environment' in tagsdict:
-                data['environment'] = tagsdict['environment']
-                del tagsdict['environment']
-                data['tags'] = tagsdict.items()
+            # Fix case where legacy apps pass 'environment' as a tag
+            # instead of a top level key.
+            # TODO (alex) save() just reinserts the environment into the tags
+            if not data.get('environment'):
+                tagsdict = dict(data['tags'])
+                if 'environment' in tagsdict:
+                    data['environment'] = tagsdict['environment']
+                    del tagsdict['environment']
+                    data['tags'] = tagsdict.items()
 
-        # the SDKs currently do not describe event types, and we must infer
-        # them from available attributes
-        data['type'] = eventtypes.infer(data).key
-        data['version'] = self.version
+            # the SDKs currently do not describe event types, and we must infer
+            # them from available attributes
+            data['type'] = eventtypes.infer(data).key
+            data['version'] = self.version
 
         exception = data.get('exception')
         stacktrace = data.get('stacktrace')
@@ -674,14 +703,21 @@ class EventManager(object):
             data.setdefault('user', {}).setdefault('ip_address', self._client_ip)
 
         # Trim values
-        data['logger'] = trim(data['logger'].strip(), 64)
-        trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
+        if data.get('logger'):
+            data['logger'] = trim(data['logger'].strip(), 64)
 
-        if data['culprit']:
+        if data.get('extra'):
+            trim_dict(data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
+
+        if data.get('culprit'):
             data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
 
-        if data['transaction']:
+        if data.get('transaction'):
             data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
+
+        # Do not add errors unless there are for non store mode
+        if not self._for_store and not data.get('errors'):
+            self._data.pop('errors')
 
         self._data = data
 
@@ -754,6 +790,29 @@ class EventManager(object):
             platform=platform
         )
 
+    def get_search_message(self, data, event_metadata=None, culprit=None):
+        """This generates the internal event.message attribute which is used
+        for search purposes.  It adds a bunch of data from the metadata and
+        the culprit.
+        """
+        message = ''
+
+        if 'logentry' in data:
+            message += (data['logentry'].get('formatted') or
+                        data['logentry'].get('message') or '')
+
+        if event_metadata:
+            for value in six.itervalues(event_metadata):
+                value_u = force_text(value, errors='replace')
+                if value_u not in message:
+                    message = u'{} {}'.format(message, value_u)
+
+        if culprit and culprit not in message:
+            culprit_u = force_text(culprit, errors='replace')
+            message = u'{} {}'.format(message, culprit_u)
+
+        return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
+
     def save(self, project_id, raw=False):
         from sentry.tasks.post_process import index_event_tags
 
@@ -799,8 +858,10 @@ class EventManager(object):
         environment = data.pop('environment', None)
         recorded_timestamp = data.get("timestamp")
 
-        # unused
-        message = data.pop('message', '')
+        # old events had a small chance of having a legacy message
+        # attribute show up here.  In all reality this is being coerced
+        # into logentry for more than two years at this point (2018).
+        data.pop('message', None)
 
         event = self._get_event_instance(project_id=project_id)
         event._project_cache = project
@@ -897,46 +958,19 @@ class EventManager(object):
         else:
             hashes = [md5_from_hash(h) for h in get_hashes_for_event(event)]
 
-        # TODO(dcramer): temp workaround for complexity
-        data['message'] = message
         event_type = eventtypes.get(data.get('type', 'default'))(data)
         event_metadata = event_type.get_metadata()
-        # TODO(dcramer): temp workaround for complexity
-        del data['message']
 
         data['type'] = event_type.key
         data['metadata'] = event_metadata
 
         # index components into ``Event.message``
         # See GH-3248
-        if event_type.key != 'default':
-            if 'logentry' in data and \
-                    data['logentry']['message'] != message:
-                message = u'{} {}'.format(
-                    message,
-                    data['logentry']['message'],
-                )
+        event.message = self.get_search_message(data, event_metadata, culprit)
 
-        if not message:
-            message = ''
-        elif not isinstance(message, six.string_types):
-            message = force_text(message)
-
-        for value in six.itervalues(event_metadata):
-            value_u = force_text(value, errors='replace')
-            if value_u not in message:
-                message = u'{} {}'.format(message, value_u)
-
-        if culprit and culprit not in message:
-            culprit_u = force_text(culprit, errors='replace')
-            message = u'{} {}'.format(message, culprit_u)
-
-        message = trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
-
-        event.message = message
         kwargs = {
             'platform': platform,
-            'message': message
+            'message': event.message
         }
 
         received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
