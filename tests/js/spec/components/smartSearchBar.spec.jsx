@@ -35,7 +35,6 @@ describe('removeSpace()', function() {
 describe('SmartSearchBar', function() {
   let sandbox;
   let options;
-  // let urlTagValuesMock;
   let environmentTagValuesMock;
   let supportedTags;
   let tagValuesMock = jest.fn(() => Promise.resolve([]));
@@ -52,10 +51,6 @@ describe('SmartSearchBar', function() {
       context: {organization: {id: '123'}},
     };
 
-    // urlTagValuesMock = MockApiClient.addMockResponse({
-    // url: '/projects/123/456/tags/url/values/',
-    // body: [],
-    // });
     environmentTagValuesMock = MockApiClient.addMockResponse({
       url: '/projects/123/456/tags/environment/values/',
       body: [],
