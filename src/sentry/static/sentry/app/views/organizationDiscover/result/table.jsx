@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import ExternalLink from 'app/components/externalLink';
+import Link from 'app/components/link';
 import Tooltip from 'app/components/tooltip';
 import InlineSvg from 'app/components/inlineSvg';
 import Panel from 'app/components/panels/panel';
@@ -88,9 +88,9 @@ export default class ResultTable extends React.Component {
 
     return (
       <Tooltip title={t('Open event')} tooltipOptions={{container: 'body'}}>
-        <ExternalLink href={`/${slug}/${projectSlug}/events/${event.id}/`}>
+        <Link href={`/${slug}/${projectSlug}/events/${event.id}/`} target="_blank">
           <InlineSvg src="icon-exit" size="1em" />
-        </ExternalLink>
+        </Link>
       </Tooltip>
     );
   };
