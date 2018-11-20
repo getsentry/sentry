@@ -85,6 +85,8 @@ class EventsChart extends React.PureComponent {
       };
     }
 
+    // TODO(billy): For now only include previous period when we use relative time
+
     return (
       <div>
         <EventsRequestWithParams
@@ -93,6 +95,7 @@ class EventsChart extends React.PureComponent {
           showLoading
           query={(location.query && location.query.query) || ''}
           getCategory={() => t('Events')}
+          includePrevious={!!period}
         >
           {({timeseriesData, previousTimeseriesData}) => {
             return (
