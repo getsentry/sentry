@@ -94,6 +94,49 @@ class SnubaError(Exception):
     pass
 
 
+class UnqualifiedQueryError(SnubaError):
+    """
+    Exception raised when no project_id qualifications were provided in the
+    query or could be derived from other filter criteria.
+    """
+    pass
+
+
+class UnexpectedResponseError(SnubaError):
+    """
+    Exception raised when the Snuba API server returns an unexpected response
+    type (e.g. not JSON.)
+    """
+
+
+class QueryExecutionError(SnubaError):
+    """
+    Exception raised when a query failed to execute.
+    """
+
+
+class RateLimitExceeded(SnubaError):
+    """
+    Exception raised when a query cannot be executed due to rate limits.
+    """
+
+
+class SchemaValidationError(QueryExecutionError):
+    """
+    Exception raised when a query is not valid.
+    """
+
+
+class QueryMemoryLimitExceeded(QueryExecutionError):
+    """
+    Exception raised when a query would exceed the memory limit.
+    """
+
+
+class QueryIllegalTypeArgument(QueryExecutionError):
+    pass
+
+
 class QueryOutsideRetentionError(Exception):
     pass
 
@@ -271,7 +314,8 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
                 conditions.append((col, 'IN', keys))
 
     if not project_ids:
-        raise SnubaError("No project_id filter, or none could be inferred from other filters.")
+        raise UnqualifiedQueryError(
+            "No project_id filter, or none could be inferred from other filters.")
 
     # any project will do, as they should all be from the same organization
     project = Project.objects.get(pk=project_ids[0])
@@ -324,11 +368,24 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     try:
         body = json.loads(response.data)
     except ValueError:
-        raise SnubaError(u"Could not decode JSON response: {}".format(response.data))
+        raise UnexpectedResponseError(u"Could not decode JSON response: {}".format(response.data))
 
     if response.status != 200:
         if body.get('error'):
-            raise SnubaError(body['error'])
+            error = body['error']
+            if response.status == 429:
+                raise RateLimitExceeded(error['message'])
+            elif error['type'] == 'schema':
+                raise SchemaValidationError(error['message'])
+            elif error['type'] == 'clickhouse':
+                if error['code'] == 43:
+                    raise QueryIllegalTypeArgument(error['message'])
+                elif error['code'] == 241:
+                    raise QueryMemoryLimitExceeded(error['message'])
+                else:
+                    raise QueryExecutionError(error['message'])
+            else:
+                raise SnubaError(error['message'])
         else:
             raise SnubaError(u'HTTP {}'.format(response.status))
 
