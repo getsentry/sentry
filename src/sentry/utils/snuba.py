@@ -132,8 +132,11 @@ class QueryMemoryLimitExceeded(QueryExecutionError):
     """
 
 
-class QueryIllegalTypeArgument(QueryExecutionError):
-    pass
+class QueryIllegalTypeOfArgument(QueryExecutionError):
+    """
+    Exception raised when a function in the query is provided an invalid
+    argument type.
+    """
 
 
 class QueryOutsideRetentionError(Exception):
@@ -378,7 +381,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
                 raise SchemaValidationError(error['message'])
             elif error['type'] == 'clickhouse':
                 if error['code'] == 43:
-                    raise QueryIllegalTypeArgument(error['message'])
+                    raise QueryIllegalTypeOfArgument(error['message'])
                 elif error['code'] == 241:
                     raise QueryMemoryLimitExceeded(error['message'])
                 else:
