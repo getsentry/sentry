@@ -11,7 +11,8 @@ import os
 import re
 import six
 import jsonschema
-
+import random
+import time
 
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -21,7 +22,7 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 
-from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
+from sentry import buffer, eventtypes, eventstream, features, tsdb, filters, options
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
     DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH
@@ -63,6 +64,7 @@ from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
+from sentry.utils.contexts_normalization import normalize_user_agent
 from sentry.stacktraces import normalize_in_app
 
 
@@ -690,6 +692,12 @@ class EventManager(object):
             for ex in exception['values']:
                 if ex is not None and 'mechanism' in ex:
                     normalize_mechanism_meta(ex['mechanism'], sdk_info)
+
+        if random.random() < options.get('event-normalization.parse-user-agent-sample-rate'):
+            start_time = time.time()
+            normalize_user_agent(data)
+            ms = int((time.time() - start_time) * 1000)
+            metrics.timing('events.normalize.user_agent.duration', ms)
 
         # If there is no User ip_addres, update it either from the Http interface
         # or the client_ip of the request.
