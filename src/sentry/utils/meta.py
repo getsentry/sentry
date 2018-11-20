@@ -19,7 +19,7 @@ class Meta(object):
     """
 
     def __init__(self, meta=None, path=None):
-        self._meta = meta or {}
+        self._meta = {} if meta is None else meta
         self._path = path or []
 
     def enter(self, *path):
@@ -84,6 +84,8 @@ class Meta(object):
         if err and other.get('err'):
             meta['err'] = err + other['err']
 
+        return meta
+
     def get_errors(self):
         """
         Returns meta errors of the item at the current path.
@@ -91,7 +93,7 @@ class Meta(object):
         It is not safe to mutate the return value since it might be detached
         from the actual meta tree.
         """
-        self.get().get('err') or []
+        return self.get().get('err') or []
 
     def add_error(self, error, value=None):
         """
@@ -124,12 +126,15 @@ def get_valid(data, *path, **kwargs):
     If the path does not exist or contains errors, ``None`` is returned. When
     `with_meta` is specified, a tuple ``value, meta`` is returned instead.
     """
-    meta = kwargs.pop('meta', None) or Meta(data.get('_meta'))
+    meta = kwargs.pop('meta', None) or \
+        isinstance(data, collections.Mapping) and Meta(data.get('_meta')) or \
+        Meta()
+
     with_meta = kwargs.get('with_meta', False)
     root = meta
 
     for key in path:
-        if isinstance(data, collections.Sequence) and key < 0:
+        if isinstance(data, (list, tuple)) and key < 0:
             key = len(data) + key
 
         meta = meta.enter(key)
@@ -138,7 +143,7 @@ def get_valid(data, *path, **kwargs):
 
         if isinstance(data, collections.Mapping) and key in data:
             data = data[key]
-        elif isinstance(data, collections.Sequence) and 0 <= key < len(data):
+        elif isinstance(data, (list, tuple)) and 0 <= key < len(data):
             data = data[key]
         else:
             return (None, root.enter(*path)) if with_meta else None
@@ -162,11 +167,14 @@ def get_all_valid(data, *path, **kwargs):
 
     If the resolved value is not a list, the original value is returned.
     """
-    meta = kwargs.pop('meta', None) or Meta(data.get('_meta'))
+    meta = kwargs.pop('meta', None) or \
+        isinstance(data, collections.Mapping) and Meta(data.get('_meta')) or \
+        Meta()
+
     with_meta = kwargs.pop('with_meta', False)
 
     value, meta = get_valid(data, *path, meta=meta, with_meta=True, **kwargs)
-    if not value or not isinstance(value, collections.Sequence):
+    if not value or not isinstance(value, (list, tuple)):
         return (value, meta) if with_meta else value
 
     results = []
