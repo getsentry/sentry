@@ -17,6 +17,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from six.moves.urllib.parse import urlencode
 
 from sentry import eventtypes, tagstore
 from sentry.constants import (
@@ -262,10 +263,11 @@ class Group(Model):
         )
         super(Group, self).save(*args, **kwargs)
 
-    def get_absolute_url(self):
-        return absolute_uri(
-            reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
-        )
+    def get_absolute_url(self, params=None):
+        url = reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
+        if params:
+            url = url + '?' + urlencode(params)
+        return absolute_uri(url)
 
     @property
     def qualified_short_id(self):
