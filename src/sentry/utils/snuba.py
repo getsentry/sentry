@@ -99,7 +99,6 @@ class UnqualifiedQueryError(SnubaError):
     Exception raised when no project_id qualifications were provided in the
     query or could be derived from other filter criteria.
     """
-    pass
 
 
 class UnexpectedResponseError(SnubaError):
