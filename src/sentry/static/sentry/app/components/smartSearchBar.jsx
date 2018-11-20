@@ -1,19 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import _ from 'lodash';
 import classNames from 'classnames';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import TagStore from 'app/stores/tagStore';
-import MemberListStore from 'app/stores/memberListStore';
-
-import ApiMixin from 'app/mixins/apiMixin';
 import {t} from 'app/locale';
-
+import MemberListStore from 'app/stores/memberListStore';
 import SearchDropdown from 'app/views/stream/searchDropdown';
-import OrganizationState from 'app/mixins/organizationState';
+import withOrganization from 'app/utils/withOrganization';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -30,117 +26,73 @@ export function removeSpace(query = '') {
     return query;
   }
 }
-
-const SearchBar = createReactClass({
-  displayName: 'SearchBar',
-
-  propTypes: {
+class SmartSearchBar extends React.Component {
+  static propTypes = {
     defaultQuery: PropTypes.string,
     query: PropTypes.string,
     defaultSearchItems: PropTypes.array.isRequired,
     disabled: PropTypes.bool,
     placeholder: PropTypes.string,
+
+    // Map of tags
+    supportedTags: PropTypes.object,
+
+    onGetTagValues: PropTypes.func,
+
     onSearch: PropTypes.func,
     // If true, excludes the environment tag from the autocompletion list
     // This is because we don't want to treat environment as a tag in some places
     // such as the stream view where it is a top level concept
     excludeEnvironment: PropTypes.bool,
-  },
+  };
 
-  mixins: [
-    ApiMixin,
-    OrganizationState,
-    Reflux.listenTo(MemberListStore, 'onMemberListStoreChange'),
-  ],
-
-  statics: {
-    /**
+  /**
      * Given a query, and the current cursor position, return the string-delimiting
      * index of the search term designated by the cursor.
      */
-    getLastTermIndex(query, cursor) {
-      // TODO: work with quoted-terms
-      let cursorOffset = query.slice(cursor).search(/\s|$/);
-      return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
-    },
+  static getLastTermIndex = (query, cursor) => {
+    // TODO: work with quoted-terms
+    let cursorOffset = query.slice(cursor).search(/\s|$/);
+    return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
+  };
 
-    /**
+  /**
      * Returns an array of query terms, including incomplete terms
      *
      * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
      */
-    getQueryTerms(query, cursor) {
-      return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
-    },
-  },
+  static getQueryTerms = (query, cursor) => {
+    return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
+  };
 
-  getDefaultProps() {
-    return {
-      defaultQuery: '',
-      query: null,
-      onSearch: function() {},
-      excludeEnvironment: false,
-      defaultSearchItems: [
-        {
-          title: t('Tag'),
-          desc: t('key/value pair associated to an issue'),
-          example: 'browser:"Chrome 34", has:browser',
-          className: 'icon-tag',
-          value: 'browser:',
-        },
-        {
-          title: t('Status'),
-          desc: t('State of an issue'),
-          example: 'is:resolved, unresolved, ignored, assigned, unassigned',
-          className: 'icon-toggle',
-          value: 'is:',
-        },
-        {
-          title: t('Time or Count'),
-          desc: t('Time or Count related search'),
-          example: 'firstSeen, lastSeen, event.timestamp, timesSeen',
-          className: 'icon-clock',
-          value: '',
-        },
-        {
-          title: t('Assigned'),
-          desc: t('team member assigned to an issue'),
-          example: 'assigned:[me|user@example.com]',
-          className: 'icon-user',
-          value: 'assigned:',
-        },
-        {
-          title: t('Bookmarked By'),
-          desc: t('team member who bookmarked an issue'),
-          example: 'bookmarks:[me|user@example.com]',
-          className: 'icon-user',
-          value: 'bookmarks:',
-        },
-        {
-          desc: t('or paste an event id to jump straight to it'),
-          className: 'icon-hash',
-          value: '',
-        },
-      ],
-    };
-  },
+  static defaultProps = {
+    defaultQuery: '',
+    query: null,
+    onSearch: function() {},
+    excludeEnvironment: false,
+    placeholder: t('Search for events, users, tags, and everything else.'),
+    supportedTags: {},
+    defaultSearchItems: [],
+  };
 
-  getInitialState() {
-    return {
-      query:
-        this.props.query !== null ? addSpace(this.props.query) : this.props.defaultQuery,
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      query: props.query !== null ? addSpace(props.query) : props.defaultQuery,
 
       searchTerm: '',
       searchItems: [],
       activeSearchItem: 0,
 
       tags: {},
-      members: MemberListStore.getAll(),
 
       dropdownVisible: false,
       loading: false,
     };
-  },
+
+    this.searchInput = React.createRef();
+  }
 
   componentWillReceiveProps(nextProps) {
     // query was updated by another source (e.g. sidebar filters)
@@ -149,121 +101,125 @@ const SearchBar = createReactClass({
         query: addSpace(nextProps.query),
       });
     }
-  },
+  }
 
-  DROPDOWN_BLUR_DURATION: 200,
+  DROPDOWN_BLUR_DURATION = 200;
 
-  blur() {
-    ReactDOM.findDOMNode(this.refs.searchInput).blur();
-  },
+  blur = () => {
+    if (!this.searchInput.current) {
+      return;
+    }
+    this.searchInput.current.blur();
+  };
 
-  onSubmit(evt) {
+  onSubmit = evt => {
     evt.preventDefault();
     this.blur();
     this.props.onSearch(removeSpace(this.state.query));
-  },
+  };
 
-  clearSearch() {
+  clearSearch = () => {
     this.setState({query: ''}, () => this.props.onSearch(this.state.query));
-  },
+  };
 
-  onQueryFocus() {
+  onQueryFocus = () => {
     this.setState({
       dropdownVisible: true,
     });
-  },
+  };
 
-  onQueryBlur() {
+  onQueryBlur = () => {
     // wait 200ms before closing dropdown in case blur was a result of
     // clicking a menu option
     this.blurTimeout = setTimeout(() => {
       this.blurTimeout = null;
       this.setState({dropdownVisible: false});
     }, this.DROPDOWN_BLUR_DURATION);
-  },
+  };
 
-  onQueryChange(evt) {
+  onQueryChange = evt => {
     this.setState({query: evt.target.value}, () => this.updateAutoCompleteItems());
-  },
+  };
 
-  onKeyUp(evt) {
+  onKeyUp = evt => {
     if (evt.key === 'Escape' || evt.keyCode === 27) {
       // blur handler should additionally hide dropdown
       this.blur();
     }
-  },
+  };
 
-  getCursorPosition() {
-    return ReactDOM.findDOMNode(this.refs.searchInput).selectionStart;
-  },
+  getCursorPosition = () => {
+    if (!this.searchInput.current) {
+      return -1;
+    }
+    return this.searchInput.current.selectionStart;
+  };
 
   /**
    * Returns array of possible key values that substring match `query`
    *
    * e.g. ['is:', 'assigned:', 'url:', 'release:']
    */
-  getTagKeys: function(query) {
-    const allKeys = TagStore.getTagKeys()
-      .map(key => key + ':')
+  getTagKeys = function(query) {
+    const {supportedTags} = this.props;
+    const tagKeys = Object.keys(supportedTags)
+      .map(key => `${key}:`)
       .filter(key => key.indexOf(query) > -1);
 
     // If the environment feature is active and excludeEnvironment = true
     // then remove the environment key
     if (this.props.excludeEnvironment) {
-      return allKeys.filter(key => key !== 'environment:');
+      return tagKeys.filter(key => key !== 'environment:');
     } else {
-      return allKeys;
+      return tagKeys;
     }
-  },
+  };
 
   /**
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with data when ready
    */
-  getTagValues: _.debounce(function(tag, query, callback) {
+  getTagValues = _.debounce((tag, query, callback) => {
     // Strip double quotes if there are any
-    query = query.replace('"', '').trim();
+    query = query.replace(/"/g, '').trim();
 
     this.setState({
       loading: true,
     });
 
-    let {orgId, projectId} = this.props;
-
-    this.api.request(`/projects/${orgId}/${projectId}/tags/${tag.key}/values/`, {
-      data: {
-        query,
-      },
-      method: 'GET',
-      success: values => {
+    this.props.onGetTagValues(tag, query).then(
+      values => {
         this.setState({loading: false});
         callback(
-          values.map(v => {
+          values.map(value => {
             // Wrap in quotes if there is a space
-            return v.value.indexOf(' ') > -1 ? `"${v.value}"` : v.value;
+            return value.indexOf(' ') > -1 ? `"${value}"` : value;
           }),
           tag.key,
           query
         );
       },
-    });
-  }, 300),
+      () => {
+        this.setState({loading: false});
+      }
+    );
+  }, 300);
 
   /**
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with results
    */
-  getPredefinedTagValues: function(tag, query, callback) {
+  getPredefinedTagValues = function(tag, query, callback) {
     let values = tag.values.filter(value => value.indexOf(query) > -1);
 
     callback(values, tag.key);
-  },
+  };
 
-  onInputClick() {
+  onInputClick = () => {
     this.updateAutoCompleteItems();
-  },
+  };
 
-  updateAutoCompleteItems() {
+  updateAutoCompleteItems = () => {
     if (this.blurTimeout) {
       clearTimeout(this.blurTimeout);
       this.blurTimeout = null;
@@ -272,8 +228,8 @@ const SearchBar = createReactClass({
     let cursor = this.getCursorPosition();
     let query = this.state.query;
 
-    let lastTermIndex = SearchBar.getLastTermIndex(query, cursor);
-    let terms = SearchBar.getQueryTerms(query.slice(0, lastTermIndex));
+    let lastTermIndex = SmartSearchBar.getLastTermIndex(query, cursor);
+    let terms = SmartSearchBar.getQueryTerms(query.slice(0, lastTermIndex));
 
     if (
       !terms || // no terms
@@ -304,6 +260,7 @@ const SearchBar = createReactClass({
       this.setState({searchTerm: matchValue});
       this.updateAutoCompleteState(autoCompleteItems, matchValue);
     } else {
+      let {supportedTags} = this.props;
       tagName = last.slice(0, index);
       query = last.slice(index + 1);
 
@@ -318,7 +275,7 @@ const SearchBar = createReactClass({
         searchItems: filteredSearchItems,
       });
 
-      let tag = TagStore.getTag(tagName);
+      let tag = supportedTags[tagName];
 
       if (!tag) return undefined;
 
@@ -334,13 +291,13 @@ const SearchBar = createReactClass({
       );
     }
     return undefined;
-  },
+  };
 
-  isDefaultDropdown() {
+  isDefaultDropdown = () => {
     return this.state.searchItems === this.props.defaultSearchItems;
-  },
+  };
 
-  updateAutoCompleteState(autoCompleteItems, tagName) {
+  updateAutoCompleteState = (autoCompleteItems, tagName) => {
     autoCompleteItems = autoCompleteItems.map(item => {
       let out = {
         desc: item,
@@ -375,9 +332,9 @@ const SearchBar = createReactClass({
       searchItems: autoCompleteItems.slice(0, 5), // only show 5
       activeSearchItem: 0,
     });
-  },
+  };
 
-  onKeyDown(evt) {
+  onKeyDown = evt => {
     let state = this.state;
     let searchItems = state.searchItems;
 
@@ -401,18 +358,19 @@ const SearchBar = createReactClass({
 
       this.onAutoComplete(searchItems[state.activeSearchItem].value);
     }
-  },
+  };
 
-  onAutoComplete(replaceText) {
+  onAutoComplete = replaceText => {
     let cursor = this.getCursorPosition();
     let query = this.state.query;
 
-    let lastTermIndex = SearchBar.getLastTermIndex(query, cursor);
-    let terms = SearchBar.getQueryTerms(query.slice(0, lastTermIndex));
+    let lastTermIndex = SmartSearchBar.getLastTermIndex(query, cursor);
+    let terms = SmartSearchBar.getQueryTerms(query.slice(0, lastTermIndex));
     let newQuery;
 
     // If not postfixed with : (tag value), add trailing space
-    replaceText += replaceText.charAt(replaceText.length - 1) === ':' ? '' : ' ';
+    let lastChar = replaceText.charAt(replaceText.length - 1);
+    replaceText += lastChar === ':' || lastChar === '.' ? '' : ' ';
 
     if (!terms) {
       newQuery = replaceText;
@@ -437,42 +395,37 @@ const SearchBar = createReactClass({
       },
       () => {
         // setting a new input value will lose focus; restore it
-        let node = ReactDOM.findDOMNode(this.refs.searchInput);
-        node.focus();
+        if (this.searchInput.current) {
+          this.searchInput.current.focus();
+        }
 
         // then update the autocomplete box with new contextTypes
         this.updateAutoCompleteItems();
       }
     );
-  },
-
-  onMemberListStoreChange(members) {
-    this.setState(
-      {
-        members,
-      },
-      this.updateAutoCompleteItems
-    );
-  },
+  };
 
   render() {
-    let dropdownStyle = {
-      display: this.state.dropdownVisible ? 'block' : 'none',
-    };
-
-    let rootClassNames = ['search'];
-    if (this.props.disabled) rootClassNames.push('disabled');
+    let {className, disabled} = this.props;
 
     return (
-      <div className={classNames(rootClassNames)}>
-        <form className="form-horizontal" ref="searchForm" onSubmit={this.onSubmit}>
+      <div
+        className={classNames(
+          'search',
+          {
+            disabled,
+          },
+          className
+        )}
+      >
+        <form className="form-horizontal" onSubmit={this.onSubmit}>
           <div>
             <input
               type="text"
               className="search-input form-control"
               placeholder={this.props.placeholder}
               name="query"
-              ref="searchInput"
+              ref={this.searchInput}
               autoComplete="off"
               value={this.state.query}
               onFocus={this.onQueryFocus}
@@ -494,20 +447,51 @@ const SearchBar = createReactClass({
           </div>
 
           {(this.state.loading || this.state.searchItems.length > 0) && (
-            <div style={dropdownStyle}>
+            <DropdownWrapper visible={this.state.dropdownVisible}>
               <SearchDropdown
-                style={dropdownStyle}
                 items={this.state.searchItems}
                 onClick={this.onAutoComplete}
                 loading={this.state.loading}
                 searchSubstring={this.state.searchTerm}
               />
-            </div>
+            </DropdownWrapper>
           )}
         </form>
       </div>
     );
-  },
-});
+  }
+}
 
-export default SearchBar;
+const SmartSearchBarContainer = withOrganization(
+  createReactClass({
+    displayName: 'SmartSearchBarContainer',
+
+    mixins: [Reflux.listenTo(MemberListStore, 'onMemberListStoreChange')],
+
+    getInitialState() {
+      return {
+        members: MemberListStore.getAll(),
+      };
+    },
+
+    onMemberListStoreChange(members) {
+      this.setState(
+        {
+          members,
+        },
+        this.updateAutoCompleteItems
+      );
+    },
+
+    render() {
+      return <SmartSearchBar {...this.props} members={this.state.members} />;
+    },
+  })
+);
+
+const DropdownWrapper = styled('div')`
+  display: ${p => (p.visible ? 'block' : 'none')};
+`;
+
+export default SmartSearchBarContainer;
+export {SmartSearchBar};

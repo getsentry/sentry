@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
-import SearchBar, {addSpace, removeSpace} from 'app/components/smartSearchBar';
+import {SmartSearchBar, addSpace, removeSpace} from 'app/components/smartSearchBar';
 import TagStore from 'app/stores/tagStore';
 
 describe('addSpace()', function() {
@@ -32,15 +32,19 @@ describe('removeSpace()', function() {
   });
 });
 
-describe('SearchBar', function() {
+describe('SmartSearchBar', function() {
   let sandbox;
   let options;
-  let urlTagValuesMock;
+  // let urlTagValuesMock;
   let environmentTagValuesMock;
+  let supportedTags;
+  let tagValuesMock = jest.fn(() => Promise.resolve([]));
 
   beforeEach(function() {
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
+    tagValuesMock.mockClear();
+    supportedTags = {};
 
     sandbox = sinon.sandbox.create();
 
@@ -48,10 +52,10 @@ describe('SearchBar', function() {
       context: {organization: {id: '123'}},
     };
 
-    urlTagValuesMock = MockApiClient.addMockResponse({
-      url: '/projects/123/456/tags/url/values/',
-      body: [],
-    });
+    // urlTagValuesMock = MockApiClient.addMockResponse({
+    // url: '/projects/123/456/tags/url/values/',
+    // body: [],
+    // });
     environmentTagValuesMock = MockApiClient.addMockResponse({
       url: '/projects/123/456/tags/environment/values/',
       body: [],
@@ -65,13 +69,19 @@ describe('SearchBar', function() {
 
   describe('componentWillReceiveProps()', function() {
     it('should add a space when setting state.query', function() {
-      let searchBar = shallow(<SearchBar query="one" />, options);
+      let searchBar = shallow(
+        <SmartSearchBar supportedTags={supportedTags} query="one" />,
+        options
+      );
 
       expect(searchBar.state().query).toEqual('one ');
     });
 
     it('should update state.query if props.query is updated from outside', function() {
-      let searchBar = shallow(<SearchBar query="one" />, options);
+      let searchBar = shallow(
+        <SmartSearchBar supportedTags={supportedTags} query="one" />,
+        options
+      );
 
       searchBar.setProps({query: 'two'});
 
@@ -79,7 +89,10 @@ describe('SearchBar', function() {
     });
 
     it('should not reset user input if a noop props change happens', function() {
-      let searchBar = shallow(<SearchBar query="one" />, options);
+      let searchBar = shallow(
+        <SmartSearchBar supportedTags={supportedTags} query="one" />,
+        options
+      );
       searchBar.setState({query: 'two'});
 
       searchBar.setProps({query: 'one'});
@@ -88,7 +101,10 @@ describe('SearchBar', function() {
     });
 
     it('should reset user input if a meaningful props change happens', function() {
-      let searchBar = shallow(<SearchBar query="one" />, options);
+      let searchBar = shallow(
+        <SmartSearchBar supportedTags={supportedTags} query="one" />,
+        options
+      );
       searchBar.setState({query: 'two'});
 
       searchBar.setProps({query: 'three'});
@@ -100,16 +116,16 @@ describe('SearchBar', function() {
   describe('getQueryTerms()', function() {
     it('should extract query terms from a query string', function() {
       let query = 'tagname: ';
-      expect(SearchBar.getQueryTerms(query, query.length)).toEqual(['tagname:']);
+      expect(SmartSearchBar.getQueryTerms(query, query.length)).toEqual(['tagname:']);
 
       query = 'tagname:derp browser:';
-      expect(SearchBar.getQueryTerms(query, query.length)).toEqual([
+      expect(SmartSearchBar.getQueryTerms(query, query.length)).toEqual([
         'tagname:derp',
         'browser:',
       ]);
 
       query = '   browser:"Chrome 33.0"    ';
-      expect(SearchBar.getQueryTerms(query, query.length)).toEqual([
+      expect(SmartSearchBar.getQueryTerms(query, query.length)).toEqual([
         'browser:"Chrome 33.0"',
       ]);
     });
@@ -118,13 +134,13 @@ describe('SearchBar', function() {
   describe('getLastTermIndex()', function() {
     it('should provide the index of the last query term, given cursor index', function() {
       let query = 'tagname:';
-      expect(SearchBar.getLastTermIndex(query, 0)).toEqual(8);
+      expect(SmartSearchBar.getLastTermIndex(query, 0)).toEqual(8);
 
       query = 'tagname:foo'; // 'f' (index 9)
-      expect(SearchBar.getLastTermIndex(query, 9)).toEqual(11);
+      expect(SmartSearchBar.getLastTermIndex(query, 9)).toEqual(11);
 
       query = 'tagname:foo anothertag:bar'; // 'f' (index 9)
-      expect(SearchBar.getLastTermIndex(query, 9)).toEqual(11);
+      expect(SmartSearchBar.getLastTermIndex(query, 9)).toEqual(11);
     });
   });
 
@@ -135,37 +151,40 @@ describe('SearchBar', function() {
         projectId: '456',
         query: 'is:unresolved ruby',
         defaultQuery: 'is:unresolved',
+        supportedTags,
       };
-      let searchBar = shallow(<SearchBar {...props} />, options).instance();
+      let searchBar = shallow(<SmartSearchBar {...props} />, options).instance();
 
       searchBar.clearSearch();
 
       expect(searchBar.state.query).toEqual('');
     });
 
-    it('calls onSearch()', function(done) {
+    it('calls onSearch()', async function() {
       let props = {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved ruby',
         defaultQuery: 'is:unresolved',
+        supportedTags,
         onSearch: sandbox.spy(),
       };
-      let searchBar = shallow(<SearchBar {...props} />, options).instance();
+      let searchBar = shallow(<SmartSearchBar {...props} />, options).instance();
 
-      searchBar.clearSearch();
-
-      setTimeout(() => {
-        expect(props.onSearch.calledWith('')).toBe(true);
-        done();
-      });
+      await searchBar.clearSearch();
+      expect(props.onSearch.calledWith('')).toBe(true);
     });
   });
 
   describe('onQueryFocus()', function() {
     it('displays the drop down', function() {
       let searchBar = shallow(
-        <SearchBar orgId="123" projectId="456" />,
+        <SmartSearchBar
+          orgId="123"
+          projectId="456"
+          supportedTags={supportedTags}
+          onGetTagValues={tagValuesMock}
+        />,
         options
       ).instance();
       expect(searchBar.state.dropdownVisible).toBe(false);
@@ -179,7 +198,7 @@ describe('SearchBar', function() {
   describe('onQueryBlur()', function() {
     it('hides the drop down', function() {
       let searchBar = shallow(
-        <SearchBar orgId="123" projectId="456" />,
+        <SmartSearchBar orgId="123" projectId="456" supportedTags={supportedTags} />,
         options
       ).instance();
       searchBar.state.dropdownVisible = true;
@@ -195,7 +214,10 @@ describe('SearchBar', function() {
   describe('onKeyUp()', function() {
     describe('escape', function() {
       it('blurs the input', function() {
-        let wrapper = shallow(<SearchBar orgId="123" projectId="456" />, options);
+        let wrapper = shallow(
+          <SmartSearchBar orgId="123" projectId="456" supportedTags={supportedTags} />,
+          options
+        );
         wrapper.setState({dropdownVisible: true});
 
         let instance = wrapper.instance();
@@ -212,11 +234,12 @@ describe('SearchBar', function() {
     it('invokes onSearch() when submitting the form', function() {
       let stubbedOnSearch = sandbox.spy();
       let wrapper = mount(
-        <SearchBar
+        <SmartSearchBar
           onSearch={stubbedOnSearch}
           orgId="123"
           projectId="456"
           query="is:unresolved"
+          supportedTags={supportedTags}
         />,
         options
       );
@@ -233,9 +256,10 @@ describe('SearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved',
+        supportedTags,
         onSearch: sandbox.spy(),
       };
-      let wrapper = mount(<SearchBar {...props} />, options);
+      let wrapper = mount(<SmartSearchBar {...props} />, options);
 
       wrapper.find('.search-clear-form').simulate('click');
 
@@ -252,8 +276,9 @@ describe('SearchBar', function() {
       projectId: '456',
       query: '',
       defaultQuery: 'is:unresolved',
+      supportedTags,
     };
-    let wrapper = mount(<SearchBar {...props} />, options);
+    let wrapper = mount(<SmartSearchBar {...props} />, options);
     expect(wrapper.state('query')).toEqual('');
   });
 
@@ -271,8 +296,9 @@ describe('SearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: '',
+        supportedTags,
       };
-      let searchBar = mount(<SearchBar {...props} />, options).instance();
+      let searchBar = mount(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('');
       expect(searchBar.state.searchItems).toEqual(searchBar.props.defaultSearchItems);
@@ -284,24 +310,11 @@ describe('SearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: 'fu',
+        supportedTags,
       };
-      let searchBar = mount(<SearchBar {...props} />, options).instance();
+      let searchBar = mount(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems).toEqual([]);
-      expect(searchBar.state.activeSearchItem).toEqual(0);
-    });
-
-    it('sets state with complete tag', function() {
-      let props = {
-        orgId: '123',
-        projectId: '456',
-        query: 'url:"fu"',
-      };
-      let searchBar = mount(<SearchBar {...props} />, options).instance();
-      searchBar.updateAutoCompleteItems();
-      clock.tick(301);
-      expect(searchBar.state.searchTerm).toEqual('"fu"');
       expect(searchBar.state.searchItems).toEqual([]);
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
@@ -311,8 +324,9 @@ describe('SearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: 'is:unresolved fu',
+        supportedTags,
       };
-      let searchBar = mount(<SearchBar {...props} />, options).instance();
+      let searchBar = mount(<SmartSearchBar {...props} />, options).instance();
       searchBar.getCursorPosition = jest.fn();
       searchBar.getCursorPosition.mockReturnValue(15); // end of line
       searchBar.updateAutoCompleteItems();
@@ -321,30 +335,15 @@ describe('SearchBar', function() {
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
 
-    it('sets state when value has colon', function() {
-      let props = {
-        orgId: '123',
-        projectId: '456',
-        query: 'url:"http://example.com"',
-      };
-
-      let searchBar = mount(<SearchBar {...props} />, options).instance();
-      searchBar.updateAutoCompleteItems();
-      expect(searchBar.state.searchTerm).toEqual('"http://example.com"');
-      expect(searchBar.state.searchItems).toEqual([]);
-      expect(searchBar.state.activeSearchItem).toEqual(0);
-      clock.tick(301);
-      expect(urlTagValuesMock).toHaveBeenCalled();
-    });
-
     it('does not request values when tag is environments', function() {
       let props = {
         orgId: '123',
         projectId: '456',
         query: 'environment:production',
         excludeEnvironment: true,
+        supportedTags,
       };
-      let searchBar = mount(<SearchBar {...props} />, options).instance();
+      let searchBar = mount(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       clock.tick(301);
       expect(environmentTagValuesMock).not.toHaveBeenCalled();
@@ -360,8 +359,9 @@ describe('SearchBar', function() {
         orgId: '123',
         projectId: '456',
         query: 'timesSeen:',
+        supportedTags,
       };
-      let searchBar = mount(<SearchBar {...props} />, options).instance();
+      let searchBar = mount(<SmartSearchBar {...props} />, options).instance();
       searchBar.updateAutoCompleteItems();
       clock.tick(301);
       expect(mock).not.toHaveBeenCalled();

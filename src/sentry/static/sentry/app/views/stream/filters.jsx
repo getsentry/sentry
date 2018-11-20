@@ -4,7 +4,7 @@ import React from 'react';
 import SavedSearchSelector from 'app/views/stream/savedSearchSelector';
 import SearchBar from 'app/views/stream/searchBar';
 import SortOptions from 'app/views/stream/sortOptions';
-import {t} from 'app/locale';
+import TagStore from 'app/stores/tagStore';
 
 class StreamFilters extends React.Component {
   static propTypes = {
@@ -83,11 +83,11 @@ class StreamFilters extends React.Component {
               <SearchBar
                 orgId={orgId}
                 projectId={projectId}
-                placeholder={t('Search for events, users, tags, and everything else.')}
                 query={query || ''}
                 onSearch={onSearch}
                 disabled={isSearchDisabled}
                 excludeEnvironment={true}
+                supportedTags={TagStore.getAllTags()}
               />
               <a
                 className="btn btn-default toggle-stream-sidebar"
