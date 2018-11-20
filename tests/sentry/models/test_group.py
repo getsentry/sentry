@@ -236,4 +236,6 @@ class GroupTest(TestCase):
         group = self.create_group(project=project)
 
         result = group.get_absolute_url({'environment': u'd\u00E9v'})
-        assert result == 'http://testserver/baz/pumped-quagga/issues/1/?environment=d%C3%A9v'
+        assert result == u'http://testserver/baz/{}/issues/{}/?environment=d%C3%A9v'.format(
+            project.slug,
+            group.id)
