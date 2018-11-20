@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
+import {Box} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -35,6 +36,7 @@ import {
   DiscoverHeader,
   Body,
   BodyContent,
+  Heading,
   Sidebar,
   SidebarTabs,
   SavedQueryWrapper,
@@ -336,7 +338,14 @@ export default class OrganizationDiscover extends React.Component {
                 onFetchPage={this.onFetchPage}
               />
             )}
-            {!shouldDisplayResult && <Intro updateQuery={this.updateFields} />}
+            {!shouldDisplayResult && (
+              <React.Fragment>
+                <Box mt={1} mb={2}>
+                  <Heading>{t('Discover')}</Heading>
+                </Box>
+                <Intro updateQuery={this.updateFields} />
+              </React.Fragment>
+            )}
             {isFetchingQuery && <ResultLoading />}
             <EarlyAdopterMessage />
           </BodyContent>
