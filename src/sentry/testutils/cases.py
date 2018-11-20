@@ -276,6 +276,21 @@ class BaseTestCase(Fixtures, Exam):
                 **extra
             )
 
+    def _postUnrealWithHeader(self, upload_unreal_crash, data=None, key=None, **extra):
+        path = reverse(
+            'sentry-api-unreal',
+            kwargs={
+                'project_id': self.project.id,
+                'sentry_key': self.projectkey.public_key})
+        with self.tasks():
+            return self.client.post(
+                path,
+                data=upload_unreal_crash,
+                content_type='application/octet-stream',
+                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
+                **extra
+            )
+
     def _getWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
         if key is None:
             key = self.projectkey.public_key

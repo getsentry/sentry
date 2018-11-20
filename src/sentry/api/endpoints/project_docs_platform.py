@@ -21,6 +21,7 @@ def replace_keys(html, project_key):
     html = html.replace('___SECRET_KEY___', project_key.secret_key)
     html = html.replace('___PROJECT_ID___', six.text_type(project_key.project_id))
     html = html.replace('___MINIDUMP_URL___', project_key.minidump_endpoint)
+    html = html.replace('___UNREAL_URL___', project_key.unreal_endpoint)
     html = html.replace('___RELAY_CDN_URL___', absolute_uri(
         reverse('sentry-js-sdk-loader', args=[project_key.public_key])
     ))

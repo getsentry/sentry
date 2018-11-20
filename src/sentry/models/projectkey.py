@@ -204,6 +204,11 @@ class ProjectKey(Model):
         )
 
     @property
+    def unreal_endpoint(self):
+        return self.get_endpoint() + reverse('sentry-api-unreal',
+                                             args=[self.project_id, self.public_key])
+
+    @property
     def js_sdk_loader_cdn_url(self):
         if settings.JS_SDK_LOADER_CDN_URL:
             return '%s%s.min.js' % (settings.JS_SDK_LOADER_CDN_URL, self.public_key)
