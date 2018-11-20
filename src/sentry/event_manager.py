@@ -849,6 +849,9 @@ class EventManager(object):
 
         # pull out our top-level (non-data attr) kwargs
         level = data.pop('level')
+        if not isinstance(level, int):
+            level = LOG_LEVELS_MAP[level]
+
         transaction_name = data.pop('transaction', None)
         culprit = data.pop('culprit', None)
         logger_name = data.pop('logger', None)
@@ -981,7 +984,7 @@ class EventManager(object):
             {
                 'culprit': culprit,
                 'logger': logger_name,
-                'level': LOG_LEVELS_MAP[level],
+                'level': level,
                 'last_seen': date,
                 'first_seen': date,
                 'active_at': date,
