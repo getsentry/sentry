@@ -38,6 +38,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 redirect_url=result.get('redirectUrl'),
                 is_alertable=result.get('isAlertable'),
                 scopes=result.get('scopes'),
+                events=result.get('events'),
                 overview=result.get('overview'),
             )
 

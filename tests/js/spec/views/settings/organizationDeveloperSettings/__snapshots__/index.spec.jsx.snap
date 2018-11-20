@@ -222,6 +222,7 @@ exports[`Organization Developer Settings when Apps exist displays all Apps owned
                       Object {
                         "clientId": "client-id",
                         "clientSecret": "client-secret",
+                        "events": Array [],
                         "isAlertable": false,
                         "name": "Sample App",
                         "overview": "This is an app.",
@@ -259,6 +260,7 @@ exports[`Organization Developer Settings when Apps exist displays all Apps owned
                                     Object {
                                       "clientId": "client-id",
                                       "clientSecret": "client-secret",
+                                      "events": Array [],
                                       "isAlertable": false,
                                       "name": "Sample App",
                                       "overview": "This is an app.",

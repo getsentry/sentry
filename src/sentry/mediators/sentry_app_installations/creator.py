@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.mediators import Mediator, Param
+from sentry.mediators import Mediator, Param, service_hooks
 from sentry.models import (
     ApiAuthorization, ApiGrant, SentryApp, SentryAppInstallation
 )
@@ -19,6 +19,7 @@ class Creator(Mediator):
         self._create_authorization()
         self._create_api_grant()
         self._create_install()
+        self._create_service_hooks()
         self._notify_service()
         self.install.is_new = True
         return self.install
@@ -43,6 +44,16 @@ class Creator(Mediator):
             user_id=self.sentry_app.proxy_user.id,
             application_id=self.api_application.id,
         )
+
+    def _create_service_hooks(self):
+        for project in self.organization.project_set.all():
+            service_hooks.Creator.run(
+                application=self.api_application,
+                actor=self.install,
+                project=project,
+                events=self.sentry_app.events,
+                url=self.sentry_app.webhook_url,
+            )
 
     def _notify_service(self):
         installation_webhook.delay(self.install.id, self.user.id)
