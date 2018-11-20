@@ -119,6 +119,7 @@ const theme = {
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',
   fontSizeExtraLarge: '18px',
+  headerFontSize: '22px',
 
   settings: {
     // Max-width for settings breadcrumbs

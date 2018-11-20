@@ -5,7 +5,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
 
-import {ResultViewButtons, ResultViewDropdownButtons} from '../styles';
+import {ResultViewButtons, ResultViewDropdownButtons, DownloadCsvButton} from '../styles';
 
 class VisualizationsToggle extends React.Component {
   static propTypes = {
@@ -16,6 +16,7 @@ class VisualizationsToggle extends React.Component {
       })
     ).isRequired,
     handleChange: PropTypes.func.isRequired,
+    handleCsvDownload: PropTypes.func.isRequired,
     visualization: PropTypes.string.isRequired,
   };
 
@@ -35,13 +36,20 @@ class VisualizationsToggle extends React.Component {
   getButtonItems = opt => {
     const active = opt.id === this.props.visualization;
     return (
-      <a
-        key={opt.id}
-        className={classNames('btn btn-default btn-sm', {active})}
-        onClick={() => this.props.handleChange(opt.id)}
-      >
-        {opt.name}
-      </a>
+      <li key={opt.id} className={classNames({active})}>
+        <a onClick={() => this.props.handleChange(opt.id)}>
+          {opt.name}
+        </a>
+      </li>
+    );
+  };
+
+  getDownloadCsvButton = () => {
+    const {handleCsvDownload} = this.props;
+    return (
+      <DownloadCsvButton onClick={handleCsvDownload} icon="icon-download" size="xsmall">
+        {t('Export CSV')}
+      </DownloadCsvButton>
     );
   };
 
@@ -52,10 +60,11 @@ class VisualizationsToggle extends React.Component {
 
     return (
       <React.Fragment>
-        <ResultViewButtons className="btn-group">
+        <ResultViewButtons underlined>
           {options.map(opt => {
             return this.getButtonItems(opt);
           })}
+          {this.getDownloadCsvButton()}
         </ResultViewButtons>
         <ResultViewDropdownButtons>
           <DropdownLink title={dropdownTitle} className={'btn btn-default btn-sm'}>
@@ -63,6 +72,7 @@ class VisualizationsToggle extends React.Component {
               return this.getMenuItem(opt);
             })}
           </DropdownLink>
+          {this.getDownloadCsvButton()}
         </ResultViewDropdownButtons>
       </React.Fragment>
     );
