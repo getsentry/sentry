@@ -900,15 +900,6 @@ class Stacktrace(Interface):
 
         return '\n'.join(result)
 
-    def get_traceback(self, event, newest_first=None):
-        result = [
-            event.message,
-            '',
-            self.get_stacktrace(event, newest_first=newest_first),
-        ]
-
-        return '\n'.join(result)
-
     def get_culprit_string(self, platform=None):
         default = None
         for frame in reversed(self.frames):
