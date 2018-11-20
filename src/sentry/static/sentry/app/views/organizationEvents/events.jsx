@@ -7,14 +7,16 @@ import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Pagination from 'app/components/pagination';
-import PreviewFeature from 'app/components/previewFeature';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
+import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
 
 import {getParams} from './utils/getParams';
 import EventsChart from './eventsChart';
 import EventsTable from './eventsTable';
+import Tag from '../settings/components/tag';
 
 class OrganizationEvents extends AsyncView {
   static propTypes = {
@@ -86,15 +88,27 @@ class OrganizationEvents extends AsyncView {
     return (
       <React.Fragment>
         <Flex align="center" justify="space-between" mb={2}>
-          <HeaderTitle>{t('Events')}</HeaderTitle>
+          <HeaderTitle>
+            {t('Events')}{' '}
+            <Tooltip
+              title={t('This feature is a preview and may change in the future.')}
+              tooltipOptions={{
+                placement: 'right',
+              }}
+            >
+              <span>
+                <StyledTag priority="beta" size="small">
+                  beta
+                </StyledTag>
+              </span>
+            </Tooltip>
+          </HeaderTitle>
           <StyledSearchBar
             query={location.query && location.query.query}
             placeholder={t('Search for events, users, tags, and everything else.')}
             onSearch={this.handleSearch}
           />
         </Flex>
-
-        <PreviewFeature type="info" />
 
         <Panel>
           <EventsChart organization={organization} />
@@ -115,6 +129,16 @@ const HeaderTitle = styled('h4')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex: 1;
+`;
+
+const StyledTag = styled(Tag)`
+  position: relative;
+  top: -1px;
+  font-size: 12px;
+  font-weight: normal;
+  padding: 3px 6px;
+  margin-left: ${space(0.5)};
+  border-radius: 20px;
 `;
 
 export default withOrganization(OrganizationEvents);
