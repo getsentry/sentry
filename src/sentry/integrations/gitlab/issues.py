@@ -45,6 +45,7 @@ class GitlabIssueBasic(IssueBasicMixin):
 
     def get_create_issue_config(self, group, **kwargs):
         default_project, project_choices = self.get_projects_and_default(group, **kwargs)
+        kwargs['link_referrer'] = 'gitlab_integration'
         fields = super(GitlabIssueBasic, self).get_create_issue_config(group, **kwargs)
 
         org = group.organization

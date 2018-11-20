@@ -59,6 +59,7 @@ class VstsIssueSync(IssueSyncMixin):
         return default_project, project_choices
 
     def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'vsts_integration'
         fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
         # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
         # Workitems (issues) are associated with the project not the repository.
