@@ -141,14 +141,12 @@ describe('Result', function() {
       beforeEach(function() {
         wrapper = mount(
           <Result data={data} organization={organization} onFetchPage={jest.fn()} />,
-          {
-            context: {organization},
-          }
+          TestStubs.routerContext([{organization}])
         );
       });
 
       it('displays options', function() {
-        const buttons = wrapper.find('.btn-group').find('a');
+        const buttons = wrapper.find('ResultViewButtons').find('a');
         expect(buttons).toHaveLength(3);
       });
 
@@ -181,9 +179,7 @@ describe('Result', function() {
         expect(wrapper.find('LineChart')).toHaveLength(1);
       });
     });
-
   });
-
 
   describe('Saved query', function() {
     let wrapper, queryBuilder;
