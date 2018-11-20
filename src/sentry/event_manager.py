@@ -672,6 +672,8 @@ class EventManager(object):
             exceptions[0]['stacktrace'] = stacktrace
             stacktrace_meta = meta.enter('stacktrace')
             meta.enter('exception', 'values', 0, 'stacktrace').merge(stacktrace_meta)
+            del data['stacktrace']
+            # TODO(ja): Remove meta data of data['stacktrace'] here, too
 
         # Exception mechanism needs SDK information to resolve proper names in
         # exception meta (such as signal names). "SDK Information" really means
