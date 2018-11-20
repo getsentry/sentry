@@ -246,8 +246,6 @@ export default class AccountNotificationFineTuning extends AsyncView {
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
 
-        {console.log('field', field)}
-
         {field &&
           field.defaultFieldName &&
             // not implemented yet

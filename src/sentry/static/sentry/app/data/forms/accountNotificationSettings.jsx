@@ -21,9 +21,12 @@ export const fields = {
     help: t('E.g. changes in issue assignment, resolution status, and comments.'),
   },
   weeklyReports: {
+    // Form is not visible because currently not implemented
     name: 'weeklyReports',
+    // type: 'boolean',
     label: t('Send Me Weekly Reports'),
     help: t("Reports contain a summary of what's happened within your organization."),
+    // disabled: true,
   },
   deployNotifications: {
     name: 'deployNotifications',
