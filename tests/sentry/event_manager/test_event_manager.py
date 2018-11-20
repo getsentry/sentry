@@ -169,11 +169,13 @@ class EventManagerTest(TransactionTestCase):
         }
 
     def test_updates_group_with_fingerprint(self):
+        ts = time() - 200
         manager = EventManager(
             make_event(
                 message='foo',
                 event_id='a' * 32,
                 fingerprint=['a' * 32],
+                timestamp=ts,
             )
         )
         with self.tasks():
@@ -184,6 +186,7 @@ class EventManagerTest(TransactionTestCase):
                 message='foo bar',
                 event_id='b' * 32,
                 fingerprint=['a' * 32],
+                timestamp=ts,
             )
         )
         with self.tasks():
@@ -1202,6 +1205,29 @@ class EventManagerTest(TransactionTestCase):
 
         assert mock_is_valid_error_message.call_args_list == [
             mock.call(self.project, item.formatted) for item in items]
+
+    def test_legacy_attributes_moved(self):
+        event = make_event(
+            release='my-release',
+            environment='my-environment',
+            site='whatever',
+            server_name='foo.com',
+            event_id=uuid.uuid1().hex,
+        )
+        manager = EventManager(event)
+        event = manager.save(1)
+
+        # release and environment stay toplevel
+        assert event.data['release'] == 'my-release'
+        assert event.data['environment'] == 'my-environment'
+
+        # site is a legacy attribute that is just a tag
+        assert event.data.get('site') is None
+        tags = dict(event.tags)
+        assert tags['site'] == 'whatever'
+        assert event.data.get('server_name') is None
+        tags = dict(event.tags)
+        assert tags['server_name'] == 'foo.com'
 
 
 class ReleaseIssueTest(TransactionTestCase):

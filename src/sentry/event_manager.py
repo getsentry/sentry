@@ -84,6 +84,11 @@ SECURITY_REPORT_INTERFACES = (
 ENABLE_RUST = os.environ.get("SENTRY_USE_RUST_NORMALIZER", "false").lower() in ("1", "true")
 
 
+def set_tag(data, key, value):
+    data['tags'] = [(k, v) for k, v in data['tags'] if k != key]
+    data['tags'].append((key, value))
+
+
 def get_event_metadata_compat(data, fallback_message):
     """This is a fallback path to getting the event metadata.  This is used
     by some code paths that could potentially deal with old sentry events that
@@ -659,8 +664,6 @@ class EventManager(object):
             data.setdefault('fingerprint', None)
             data.setdefault('logger', DEFAULT_LOGGER_NAME)
             data.setdefault('platform', None)
-            data.setdefault('server_name', None)
-            data.setdefault('site', None)
             data.setdefault('tags', [])
             data.setdefault('transaction', None)
 
@@ -720,6 +723,14 @@ class EventManager(object):
         if data.get('transaction'):
             # XXX: This will be trimmed again when inserted into tag values
             data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
+
+        # Move some legacy data into tags
+        site = data.pop('site', None)
+        if site is not None:
+            set_tag(data, 'site', site)
+        server_name = data.pop('server_name', None)
+        if server_name is not None:
+            set_tag(data, 'server_name', server_name)
 
         # Do not add errors unless there are for non store mode
         if not self._for_store and not data.get('errors'):
@@ -878,14 +889,12 @@ class EventManager(object):
         level = data.get('level')
         transaction_name = data.get('transaction')
         logger_name = data.get('logger')
-        server_name = data.get('server_name')
-        site = data.get('site')
         checksum = data.get('checksum')
         fingerprint = data.get('fingerprint')
         release = data.get('release')
         dist = data.get('dist')
         environment = data.get('environment')
-        recorded_timestamp = data.get("timestamp")
+        recorded_timestamp = data.get('timestamp')
 
         # We need to swap out the data with the one internal to the newly
         # created event object
@@ -901,16 +910,14 @@ class EventManager(object):
         if transaction_name:
             transaction_name = force_text(transaction_name)
 
-        # convert this to a dict to ensure we're only storing one value per key
-        # as most parts of Sentry dont currently play well with multiple values
+        # Some of the data that are toplevel attributes are duplicated
+        # into tags (logger, level, environment, transaction).  These are
+        # different from legacy attributes which are normalized into tags
+        # ahead of time (site, server_name).
         tags = dict(data.get('tags') or [])
         tags['level'] = LOG_LEVELS[level]
         if logger_name:
             tags['logger'] = logger_name
-        if server_name:
-            tags['server_name'] = server_name
-        if site:
-            tags['site'] = site
         if environment:
             tags['environment'] = trim(environment, MAX_TAG_VALUE_LENGTH)
         if transaction_name:
