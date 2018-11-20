@@ -38,7 +38,7 @@ class GitlabIssuesTest(GitLabTestCase):
             '    string_max_length=self.string_max_length)\n\nmessage\n```'
         ) % (
             self.group.qualified_short_id,
-            absolute_uri(self.group.get_absolute_url()),
+            absolute_uri(self.group.get_absolute_url(params={'referrer': 'gitlab_integration'})),
         )
         responses.add(
             responses.GET,
@@ -179,7 +179,7 @@ class GitlabIssuesTest(GitLabTestCase):
             '    string_max_length=self.string_max_length)\n\nmessage\n```'
         ) % (
             self.group.qualified_short_id,
-            absolute_uri(self.group.get_absolute_url()),
+            absolute_uri(self.group.get_absolute_url(params={'referrer': 'gitlab_integration'})),
         )
         project_id = 10
         project_name = 'This_is / a_project'
@@ -243,7 +243,7 @@ class GitlabIssuesTest(GitLabTestCase):
             '    string_max_length=self.string_max_length)\n\nmessage\n```'
         ) % (
             self.group.qualified_short_id,
-            absolute_uri(self.group.get_absolute_url()),
+            absolute_uri(self.group.get_absolute_url(params={'referrer': 'gitlab_integration'})),
         )
         project_id = 10
         project_name = 'This_is / a_project'
