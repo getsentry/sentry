@@ -246,5 +246,5 @@ const Body = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: ${space(3)} ${space(4)};
+  padding: ${space(2)} ${space(4)} ${space(3)};
 `;

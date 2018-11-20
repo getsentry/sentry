@@ -10,13 +10,11 @@ import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
-import Tooltip from 'app/components/tooltip';
-import space from 'app/styles/space';
+import BetaTag from 'app/components/betaTag';
 
 import {getParams} from './utils/getParams';
 import EventsChart from './eventsChart';
 import EventsTable from './eventsTable';
-import Tag from '../settings/components/tag';
 
 class OrganizationEvents extends AsyncView {
   static propTypes = {
@@ -89,19 +87,7 @@ class OrganizationEvents extends AsyncView {
       <React.Fragment>
         <Flex align="center" justify="space-between" mb={2}>
           <HeaderTitle>
-            {t('Events')}{' '}
-            <Tooltip
-              title={t('This feature is a preview and may change in the future.')}
-              tooltipOptions={{
-                placement: 'right',
-              }}
-            >
-              <span>
-                <StyledTag priority="beta" size="small">
-                  beta
-                </StyledTag>
-              </span>
-            </Tooltip>
+            {t('Events')} <BetaTag />
           </HeaderTitle>
           <StyledSearchBar
             query={location.query && location.query.query}
@@ -124,21 +110,15 @@ class OrganizationEvents extends AsyncView {
 
 const HeaderTitle = styled('h4')`
   flex: 1;
+  font-size: ${p => p.theme.headerFontSize};
+  line-height: ${p => p.theme.headerFontSize};
+  font-weight: normal;
+  color: ${p => p.theme.gray4};
   margin: 0;
 `;
 
 const StyledSearchBar = styled(SearchBar)`
   flex: 1;
-`;
-
-const StyledTag = styled(Tag)`
-  position: relative;
-  top: -1px;
-  font-size: 12px;
-  font-weight: normal;
-  padding: 3px 6px;
-  margin-left: ${space(0.5)};
-  border-radius: 20px;
 `;
 
 export default withOrganization(OrganizationEvents);
