@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import SavedSearchSelector from 'app/views/stream/savedSearchSelector';
 import SearchBar from 'app/views/stream/searchBar';
@@ -80,7 +81,7 @@ class StreamFilters extends React.Component {
                 <SortOptions sort={sort} onSelect={onSortChange} />
               </div>
 
-              <SearchBar
+              <StyledSearchBar
                 orgId={orgId}
                 projectId={projectId}
                 query={query || ''}
@@ -104,3 +105,12 @@ class StreamFilters extends React.Component {
 }
 
 export default StreamFilters;
+
+const StyledSearchBar = styled(SearchBar)`
+  width: 100%;
+  z-index: 1001; /** due to sticky stream header **/
+
+  @media (max-width: 992px) {
+    margin-bottom: -1px;
+  }
+`;
