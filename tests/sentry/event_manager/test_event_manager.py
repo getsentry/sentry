@@ -109,6 +109,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_ephemral_interfaces_removed_on_save(self):
         manager = EventManager(make_event(platform='python'))
+        manager.normalize()
         event = manager.save(1)
 
         group = event.group
@@ -119,12 +120,14 @@ class EventManagerTest(TransactionTestCase):
         event_id = 'a' * 32
 
         manager = EventManager(make_event(event_id=event_id))
+        manager.normalize()
         manager.save(1)
 
         assert Event.objects.count() == 1
 
         # ensure that calling it again doesn't raise a db error
         manager = EventManager(make_event(event_id=event_id))
+        manager.normalize()
         manager.save(1)
 
         assert Event.objects.count() == 1
@@ -218,13 +221,15 @@ class EventManagerTest(TransactionTestCase):
         assert event.group_id != event2.group_id
 
     def test_unresolves_group(self):
+        ts = time() - 300
+
         # N.B. EventManager won't unresolve the group unless the event2 has a
         # later timestamp than event1. MySQL doesn't support microseconds.
         manager = EventManager(
             make_event(
                 event_id='a' * 32,
                 checksum='a' * 32,
-                timestamp=1403007314,
+                timestamp=ts,
             )
         )
         with self.tasks():
@@ -239,7 +244,7 @@ class EventManagerTest(TransactionTestCase):
             make_event(
                 event_id='b' * 32,
                 checksum='a' * 32,
-                timestamp=1403007345,
+                timestamp=ts + 50,
             )
         )
         event2 = manager.save(1)
@@ -262,6 +267,7 @@ class EventManagerTest(TransactionTestCase):
             )
         )
         with self.tasks():
+            manager.normalize()
             event = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
@@ -276,6 +282,7 @@ class EventManagerTest(TransactionTestCase):
                 timestamp=1403007315,
             )
         )
+        manager.normalize()
         event2 = manager.save(1)
         assert event.group_id == event2.group_id
 
@@ -497,12 +504,13 @@ class EventManagerTest(TransactionTestCase):
 
     @mock.patch('sentry.models.Group.is_resolved')
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
+        ts = time() - 100
         mock_is_resolved.return_value = False
         manager = EventManager(
             make_event(
                 event_id='a' * 32,
                 checksum='a' * 32,
-                timestamp=1403007314,
+                timestamp=ts,
             )
         )
         with self.tasks():
@@ -513,7 +521,7 @@ class EventManagerTest(TransactionTestCase):
             make_event(
                 event_id='b' * 32,
                 checksum='a' * 32,
-                timestamp=1403007414,
+                timestamp=ts + 100,
             )
         )
         with self.tasks():
@@ -521,7 +529,8 @@ class EventManagerTest(TransactionTestCase):
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
-        assert group.active_at == event2.datetime != event.datetime
+        assert group.active_at == event2.datetime
+        assert group.active_at != event.datetime
 
     def test_invalid_transaction(self):
         dict_input = {'messages': 'foo'}
@@ -629,6 +638,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(
             make_event(release='1.0', environment='prod', event_id='a' * 32)
         )
+        manager.normalize()
         event = manager.save(1)
 
         release = Release.objects.get(version='1.0', projects=event.project_id)
@@ -1200,13 +1210,13 @@ class ReleaseIssueTest(TransactionTestCase):
         self.release = Release.get_or_create(self.project, '1.0')
         self.environment1 = Environment.get_or_create(self.project, 'prod')
         self.environment2 = Environment.get_or_create(self.project, 'staging')
-        self.timestamp = 1403007314
+        self.timestamp = float(int(time() - 300))
 
     def make_event(self, **kwargs):
         result = {
             'event_id': 'a' * 32,
             'message': 'foo',
-            'timestamp': 1403007314.570599,
+            'timestamp': self.timestamp + 0.23,
             'level': logging.ERROR,
             'logger': 'default',
             'tags': [],
