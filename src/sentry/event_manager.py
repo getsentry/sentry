@@ -605,7 +605,7 @@ class EventManager(object):
             # thrown during normalization.
             data[inst.path] = inst.to_json() if inst._data else None
             for error in inst.get_errors():
-                errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': data})
+                errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
 
         # Additional data coercion and defaulting we only do for store.
         if self._for_store:
