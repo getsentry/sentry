@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
-import SearchBar, {addSpace, removeSpace} from 'app/views/stream/searchBar';
+import SearchBar, {addSpace, removeSpace} from 'app/components/smartSearchBar';
 import TagStore from 'app/stores/tagStore';
 
 describe('addSpace()', function() {
