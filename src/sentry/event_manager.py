@@ -620,7 +620,9 @@ class EventManager(object):
             level = data.get('level') or DEFAULT_LOG_LEVEL
             if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
                 level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
-            data['level'] = LOG_LEVELS_MAP.get(level, LOG_LEVELS_MAP[DEFAULT_LOG_LEVEL])
+            elif level not in LOG_LEVELS_MAP:
+                level = DEFAULT_LOG_LEVEL
+            data['level'] = level
 
             if data.get('dist') and not data.get('release'):
                 data['dist'] = None
@@ -885,7 +887,7 @@ class EventManager(object):
         # convert this to a dict to ensure we're only storing one value per key
         # as most parts of Sentry dont currently play well with multiple values
         tags = dict(data.get('tags') or [])
-        tags['level'] = LOG_LEVELS[level]
+        tags['level'] = level
         if logger_name:
             tags['logger'] = logger_name
         if server_name:
@@ -979,7 +981,7 @@ class EventManager(object):
             {
                 'culprit': culprit,
                 'logger': logger_name,
-                'level': level,
+                'level': LOG_LEVELS_MAP[level],
                 'last_seen': date,
                 'first_seen': date,
                 'active_at': date,
