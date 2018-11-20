@@ -37,13 +37,13 @@ export default class ResultTable extends React.Component {
     organization: SentryTypes.Organization,
   };
 
-  componentWillReceiveProps(nextProps) {
-    if (this.props.data.meta !== nextProps.data.meta) {
+  componentDidUpdate(prevProps) {
+    if (this.props.data.meta !== prevProps.data.meta) {
       this.grid.recomputeGridSize();
     }
 
-    if (this.props.width !== nextProps.width) {
-      this.forceUpdate();
+    if (this.props.width !== prevProps.width) {
+      this.forceUpdate(() => this.grid.recomputeGridSize());
     }
   }
 
