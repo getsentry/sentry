@@ -47,9 +47,9 @@ class SmartSearchBar extends React.Component {
   };
 
   /**
-     * Given a query, and the current cursor position, return the string-delimiting
-     * index of the search term designated by the cursor.
-     */
+   * Given a query, and the current cursor position, return the string-delimiting
+   * index of the search term designated by the cursor.
+   */
   static getLastTermIndex = (query, cursor) => {
     // TODO: work with quoted-terms
     let cursorOffset = query.slice(cursor).search(/\s|$/);
@@ -57,10 +57,10 @@ class SmartSearchBar extends React.Component {
   };
 
   /**
-     * Returns an array of query terms, including incomplete terms
-     *
-     * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
-     */
+   * Returns an array of query terms, including incomplete terms
+   *
+   * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
+   */
   static getQueryTerms = (query, cursor) => {
     return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
   };
