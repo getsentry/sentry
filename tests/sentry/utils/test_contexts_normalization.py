@@ -126,6 +126,48 @@ class NormalizeUserAgentTests(TestCase):
                      ]}
                      }
 
+    def test_no_headers(self):
+        self.data = {'request': {}}
+        normalize_user_agent(self.data)
+        assert 'contexts' not in self.data
+
+    def test_headers_but_no_ua(self):
+        self.data = {'request': {'headers': [['UA', 'a']]}}
+        normalize_user_agent(self.data)
+        assert 'contexts' not in self.data
+
+    def test_headers_wrong_format(self):
+        self.data = {'request': {'headers': ['UA', 'a']}}
+        normalize_user_agent(self.data)
+        assert 'contexts' not in self.data
+
+    def test_broken_ua(self):
+        self.data = {'request':
+                     {'headers': [
+                         [
+                             'User-Agent',
+                             'xx'
+                         ]
+                     ]}
+                     }
+        normalize_user_agent(self.data)
+        assert self.data['contexts'] == {}
+
+    def test_partial_browser_ua(self):
+        self.data = {'request':
+                     {'headers': [
+                         [
+                             'User-Agent',
+                             'Mozilla/5.0  Version/12.0 Mobile/15E148 Safari/604.1'
+                         ]
+                     ]}
+                     }
+        normalize_user_agent(self.data)
+        assert self.data['contexts']['browser']['name'] == 'Safari'
+        assert self.data['contexts']['browser']['version'] == '12.0'
+        assert 'os' not in self.data['contexts']
+        assert 'device' not in self.data['contexts']
+
     def test_browser_device_os_parsed(self):
         self.data = {'request':
                      {'headers': [

@@ -89,13 +89,16 @@ def _parse_user_agent(data):
     if not headers:
         return None
 
-    for key, value in headers:
-        if key != 'User-Agent':
-            continue
-        ua = Parse(value)
-        if not ua:
-            continue
-        return ua
+    try:
+        for key, value in headers:
+            if key != 'User-Agent':
+                continue
+            ua = Parse(value)
+            if not ua:
+                continue
+            return ua
+    except ValueError:
+        pass
     return None
 
 
