@@ -4,15 +4,21 @@ import logging
 
 from django import forms
 from django.utils.translation import ugettext as _
+from django.views.decorators.csrf import csrf_exempt
+from six.moves.urllib.parse import urlparse
 
-from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
-    IntegrationFeatures, IntegrationProvider, IntegrationMetadata, FeatureDescription,
+    IntegrationFeatures,
+    IntegrationProvider,
+    IntegrationMetadata,
+    FeatureDescription,
 )
+from sentry.integrations.client import ApiError
 from sentry.integrations.jira import JiraIntegration
-from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.utils.http import absolute_uri
+from sentry.pipeline import PipelineView
 from sentry.web.helpers import render_to_response
+from .client import JiraServerClient, JiraServerSetupClient
+
 
 logger = logging.getLogger('sentry.integrations.jira_server')
 
@@ -74,7 +80,7 @@ class InstallationForm(forms.Form):
         required=False,
         initial=True
     )
-    client_id = forms.CharField(
+    consumer_key = forms.CharField(
         label=_('Jira Consumer Key'),
         widget=forms.TextInput(
             attrs={'placeholder': _(
@@ -132,8 +138,70 @@ class InstallationConfigView(PipelineView):
         )
 
 
+class OAuthLoginView(PipelineView):
+    """
+    Start the OAuth dance by creating a request token
+    and redirecting the user to approve it.
+    """
+    @csrf_exempt
+    def dispatch(self, request, pipeline):
+        if 'oauth_token' in request.GET:
+            return pipeline.next_step()
+
+        config = pipeline.state.data['installation_data']
+        client = JiraServerSetupClient(
+            config.get('url'),
+            config.get('consumer_key'),
+            config.get('private_key'),
+            config.get('verify_ssl'),
+        )
+        try:
+            request_token = client.get_request_token()
+            pipeline.bind_state('request_token', request_token)
+            authorize_url = client.get_authorize_url(request_token)
+
+            return self.redirect(authorize_url)
+        except ApiError as error:
+            logger.info('identity.jira-server.request-token', extra={'error': error})
+            return pipeline.error('Could not fetch a request token from Jira')
+
+
+class OAuthCallbackView(PipelineView):
+    """
+    Complete the OAuth dance by exchanging our request token
+    into an access token.
+    """
+    @csrf_exempt
+    def dispatch(self, request, pipeline):
+        config = pipeline.state.data['installation_data']
+        client = JiraServerSetupClient(
+            config.get('url'),
+            config.get('consumer_key'),
+            config.get('private_key'),
+            config.get('verify_ssl'),
+        )
+
+        try:
+            access_token = client.get_access_token(
+                pipeline.state.data['request_token'],
+                request.GET['oauth_token']
+            )
+            pipeline.bind_state('access_token', access_token)
+
+            return pipeline.next_step()
+        except ApiError as error:
+            logger.info('identity.jira-server.access-token', extra={'error': error})
+            return pipeline.error('Could not fetch an access token from Jira')
+
+
 class JiraServerIntegration(JiraIntegration):
-    pass
+    default_identity = None
+
+    def get_client(self):
+        if self.default_identity is None:
+            self.default_identity = self.get_default_identity()
+
+        return JiraServerClient(self)
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):
@@ -156,43 +224,35 @@ class JiraServerIntegrationProvider(IntegrationProvider):
         'height': 1000,
     }
 
-    def _make_identity_pipeline_view(self):
-        """
-        Make the nested identity provider view.
-
-        It is important that this view is not constructed until we reach this step and the
-        ``installation_data`` is available in the pipeline state. This
-        method should be late bound into the pipeline views.
-        """
-        identity_pipeline_config = dict(
-            redirect_url=absolute_uri('/extensions/jira_server/setup/'),
-            **self.pipeline.fetch_state('installation_data')
-        )
-
-        return NestedPipelineView(
-            bind_key='identity',
-            provider_key='jira_server',
-            pipeline_cls=IdentityProviderPipeline,
-            config=identity_pipeline_config,
-        )
-
     def get_pipeline_views(self):
         return [
             InstallationGuideView(),
             InstallationConfigView(),
-            # lambda: self._make_identity_pipeline_view()
+            OAuthLoginView(),
+            OAuthCallbackView(),
         ]
 
     def build_integration(self, state):
-        # TODO complete OAuth
-        # TODO(lb): This is wrong. Not currently operational.
-        # this should be implemented.
-        user = state['identity']['data']
+        install = state['installation_data']
+        access_token = state['access_token']
+        hostname = urlparse(install['url']).netloc
         return {
+            'name': install['consumer_key'],
             'provider': 'jira_server',
-            'external_id': '%s:%s' % (state['base_url'], state['id']),
+            'external_id': '%s:%s' % (hostname, install['consumer_key']),
+            'metadata': {
+                'base_url': install['url'],
+                'verify_ssl': install['verify_ssl'],
+            },
             'user_identity': {
                 'type': 'jira_server',
-                'external_id': '%s:%s' % (state['base_url'], user['id'])
+                'external_id': '%s:%s' % (hostname, install['consumer_key']),
+                'scopes': (),
+                'data': {
+                    'consumer_key': install['consumer_key'],
+                    'private_key': install['private_key'],
+                    'access_token': access_token['oauth_token'],
+                    'access_token_secret': access_token['oauth_token_secret'],
+                }
             }
         }
