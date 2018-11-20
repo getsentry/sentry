@@ -17,7 +17,6 @@ import BetaTag from 'app/components/betaTag';
 import Result from './result';
 import ResultLoading from './result/loading';
 import Intro from './intro';
-import EarlyAdopterMessage from './earlyAdopterMessage';
 import NewQuery from './sidebar/newQuery';
 import EditSavedQuery from './sidebar/editSavedQuery';
 import SavedQueryList from './sidebar/savedQueryList';
@@ -350,7 +349,6 @@ export default class OrganizationDiscover extends React.Component {
               </React.Fragment>
             )}
             {isFetchingQuery && <ResultLoading />}
-            <EarlyAdopterMessage />
           </BodyContent>
         </Body>
         <Sidebar>
