@@ -693,7 +693,13 @@ class EventManager(object):
                 if ex is not None and 'mechanism' in ex:
                     normalize_mechanism_meta(ex['mechanism'], sdk_info)
 
-        if random.random() < options.get('event-normalization.parse-user-agent-sample-rate'):
+        # Please not that we eventually remove this check after we validated that it
+        # doesn't impact the load. Ultimately all events should be parsed for a UA.
+        # The check if `SENTRY_PARSE_USER_AGENT` is set needs to be there to not
+        # trigger a query by trying to fetch the sample rate from the options / db.
+        if (getattr(settings, 'SENTRY_PARSE_USER_AGENT', False) and
+                random.random() <
+                options.get('event-normalization.parse-user-agent-sample-rate')):
             start_time = time.time()
             normalize_user_agent(data)
             ms = int((time.time() - start_time) * 1000)
