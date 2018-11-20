@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import Link from 'app/components/link';
+import ExternalLink from 'app/components/externalLink';
 import Tooltip from 'app/components/tooltip';
 import InlineSvg from 'app/components/inlineSvg';
 import Panel from 'app/components/panels/panel';
@@ -82,13 +82,15 @@ export default class ResultTable extends React.Component {
   };
 
   getLink = event => {
-    const {slug} = this.context.organization;
+    const {slug, projects} = this.context.organization;
+    const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
+      .slug;
 
     return (
       <Tooltip title={t('Open event')} tooltipOptions={{container: 'body'}}>
-        <Link to={`/${slug}/events/${event.id}/`} target="_blank">
+        <ExternalLink href={`/${slug}/${projectSlug}/events/${event.id}/`}>
           <InlineSvg src="icon-exit" size="1em" />
-        </Link>
+        </ExternalLink>
       </Tooltip>
     );
   };

@@ -55,7 +55,7 @@ from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.vsts_extension_configuration import \
     VstsExtensionConfigurationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
-from sentry.web.frontend import organization_event
+from sentry.web.frontend import project_event
 
 
 __all__ = ('urlpatterns', )
@@ -455,11 +455,6 @@ urlpatterns += patterns(
         AcceptOrganizationInviteView.as_view(),
         name='sentry-accept-invite'
     ),
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$',
-        organization_event.event_redirect,
-        name='sentry-organization-event-redirect'
-    ),
 
     # need to catch settings and force it to react
     url(
@@ -579,6 +574,12 @@ urlpatterns += patterns(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/',
         GroupPluginActionView.as_view(),
         name='sentry-group-plugin-action'
+    ),
+
+    url(
+        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$',
+        project_event.ProjectEventRedirect.as_view(),
+        name='sentry-project-event-redirect'
     ),
 
     # Legacy
