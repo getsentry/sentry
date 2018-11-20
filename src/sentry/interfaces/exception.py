@@ -832,16 +832,20 @@ class SingleException(Interface):
             raise InterfaceValidationError("No 'type' or 'value' present")
 
         if data.get('stacktrace') and data['stacktrace'].get('frames'):
-            stacktrace = Stacktrace.to_python(
+            stacktrace = Stacktrace._to_python(
                 data['stacktrace'],
+                meta=meta.enter('stacktrace'),
                 slim_frames=slim_frames,
             )
         else:
             stacktrace = None
 
         if data.get('raw_stacktrace') and data['raw_stacktrace'].get('frames'):
-            raw_stacktrace = Stacktrace.to_python(
-                data['raw_stacktrace'], slim_frames=slim_frames, raw=True
+            raw_stacktrace = Stacktrace._to_python(
+                data['raw_stacktrace'],
+                meta=meta.enter('raw_stacktrace'),
+                slim_frames=slim_frames,
+                raw=True
             )
         else:
             raw_stacktrace = None
@@ -860,7 +864,7 @@ class SingleException(Interface):
         value = trim(value, 4096)
 
         if data.get('mechanism'):
-            mechanism = Mechanism.to_python(data['mechanism'])
+            mechanism = Mechanism._to_python(data['mechanism'], meta=meta.get('mechanism'))
         else:
             mechanism = None
 
@@ -1012,10 +1016,11 @@ class Exception(Interface):
             raise InterfaceValidationError("Invalid value for 'values'")
 
         kwargs = {
-            'values': [v and SingleException.to_python(
+            'values': [v and SingleException._to_python(
                 v,
+                meta=meta.enter(i),
                 slim_frames=False,
-            ) for v in values],
+            ) for i, v in enumerate(values)],
         }
 
         if data.get('exc_omitted'):

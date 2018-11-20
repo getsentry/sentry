@@ -716,11 +716,10 @@ class Stacktrace(Interface):
 
         frame_list = []
 
-        for f in frameiter:
-            if f is None:
-                continue
+        for i, f in enumerate(frameiter):
+            # TODO(ja): Handle already invalid and None frames here
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            frame_list.append(Frame.to_python(f or {}, raw=raw))
+            frame_list.append(Frame._to_python(f or {}, meta=meta.enter(i), raw=raw))
 
         kwargs = {
             'frames': frame_list,
