@@ -86,6 +86,8 @@ class OrganizationEventsContainer extends React.Component {
       period: query.statsPeriod || (hasAbsolute ? null : DEFAULT_STATS_PERIOD),
       start: start || null,
       end: end || null,
+
+      // params from URL will be a string
       utc: typeof query.utc !== 'undefined' ? query.utc === 'true' : DEFAULT_USE_UTC,
     };
   }

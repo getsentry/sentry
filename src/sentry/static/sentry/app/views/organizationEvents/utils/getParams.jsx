@@ -1,6 +1,14 @@
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {defined} from 'app/utils';
 
+const getUtcValue = utc => {
+  if (typeof utc !== 'undefined') {
+    return utc === true || utc === 'true' ? 'true' : 'false';
+  }
+
+  return utc;
+};
+
 // Filters out params with null values and returns a default
 // `statsPeriod` when necessary.
 //
@@ -22,8 +30,9 @@ export function getParams(params = {}) {
     statsPeriod: period,
     start: period ? null : start,
     end: period ? null : end,
-    // coerce utc into a string
-    utc: typeof utc !== 'undefined' ? (utc === true ? 'true' : 'false') : null,
+    // coerce utc into a string (it can be both: a string representation from router,
+    // or a boolean from time range picker)
+    utc: getUtcValue(utc),
     ...otherParams,
   })
     .filter(([key, value]) => defined(value))
