@@ -48,8 +48,8 @@ export const COLUMNS = [
 
   {name: 'sdk.name', type: TYPES.STRING},
   {name: 'sdk.version', type: TYPES.STRING},
-  {name: 'tags_key', type: TYPES.STRING},
-  {name: 'tags_value', type: TYPES.STRING},
+  // {name: 'tags_key', type: TYPES.STRING},
+  // {name: 'tags_value', type: TYPES.STRING},
   {name: 'contexts.key', type: TYPES.STRING},
   {name: 'contexts.value', type: TYPES.STRING},
   {name: 'http.method', type: TYPES.STRING},
