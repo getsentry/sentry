@@ -4,6 +4,7 @@ import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import {omit, isEqual} from 'lodash';
 import qs from 'query-string';
+import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -14,6 +15,7 @@ import FileSize from 'app/components/fileSize';
 import InlineSvg from 'app/components/inlineSvg';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import Tooltip from 'app/components/tooltip';
 import OrganizationState from 'app/mixins/organizationState';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -21,6 +23,7 @@ import TimeSince from 'app/components/timeSince';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import Tag from 'app/views/settings/components/tag';
 import space from 'app/styles/space';
 
 function getFileType(dsym) {
@@ -35,6 +38,29 @@ function getFileType(dsym) {
       return null;
   }
 }
+
+function getFeatureTooltip(feature) {
+  switch (feature) {
+    case 'symtab':
+      return t(
+        'Symbol tables are used as a fallback when full debug information is not available'
+      );
+    case 'debug':
+      return t(
+        'Debug information provides function names and resolves inlined frames during symbolication'
+      );
+    case 'unwind':
+      return t(
+        'Stack unwinding information improves the quality of stack traces extracted from minidumps'
+      );
+    default:
+      return null;
+  }
+}
+
+const DebugSymbolDetails = styled.div`
+  margin-top: 4px;
+`;
 
 const ProjectDebugSymbols = createReactClass({
   displayName: 'ProjectDebugSymbols',
@@ -152,6 +178,7 @@ const ProjectDebugSymbols = createReactClass({
         .baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${dsym.id}`;
       let fileType = getFileType(dsym);
       let symbolType = fileType ? `${dsym.symbolType} ${fileType}` : dsym.symbolType;
+      let features = dsym.data && dsym.data.features;
 
       return (
         <PanelItem key={key} align="center" px={2} py={1}>
@@ -175,35 +202,42 @@ const ProjectDebugSymbols = createReactClass({
             {dsym.symbolType === 'proguard' && dsym.objectName === 'proguard-mapping'
               ? '-'
               : dsym.objectName}
-            <p className="m-b-0 text-light small">
+            <DebugSymbolDetails className="text-light small">
               {dsym.symbolType === 'proguard' && dsym.cpuName === 'any'
                 ? 'proguard mapping'
                 : `${dsym.cpuName} (${symbolType})`}
-            </p>
+
+              {features &&
+                features.map(feature => (
+                  <Tooltip key={feature} title={getFeatureTooltip(feature)}>
+                    <span>
+                      <Tag inline>{feature}</Tag>
+                    </span>
+                  </Tooltip>
+                ))}
+            </DebugSymbolDetails>
           </Box>
 
-          <Box flex="1">
-            <div className="pull-right">
-              <ActionLink
-                onAction={() => (window.location = url)}
-                className="btn btn-default btn-sm"
-                disabled={!access.has('project:write')}
-                css={{
-                  marginRight: space(0.5),
-                }}
-              >
-                <InlineSvg src="icon-download" /> {t('Download')}
-              </ActionLink>
-              <LinkWithConfirmation
-                className="btn btn-danger btn-sm"
-                disabled={!access.has('project:write')}
-                title={t('Delete')}
-                message={t('Are you sure you wish to delete this file?')}
-                onConfirm={() => this.onDelete(dsym.id)}
-              >
-                <InlineSvg src="icon-trash" />
-              </LinkWithConfirmation>
-            </div>
+          <Box className="text-right">
+            <ActionLink
+              onAction={() => (window.location = url)}
+              className="btn btn-default btn-sm"
+              disabled={!access.has('project:write')}
+              css={{
+                marginRight: space(0.5),
+              }}
+            >
+              <InlineSvg src="icon-download" /> {t('Download')}
+            </ActionLink>
+            <LinkWithConfirmation
+              className="btn btn-danger btn-sm"
+              disabled={!access.has('project:write')}
+              title={t('Delete')}
+              message={t('Are you sure you wish to delete this file?')}
+              onConfirm={() => this.onDelete(dsym.id)}
+            >
+              <InlineSvg src="icon-trash" />
+            </LinkWithConfirmation>
           </Box>
         </PanelItem>
       );
