@@ -49,6 +49,17 @@ def get_interfaces(data):
     )
 
 
+def prune_empty_keys(obj):
+    if obj is None:
+        return None
+
+    # eliminate empty values for serialization to compress the keyspace
+    # and save (seriously) ridiculous amounts of bytes
+    # XXX(dcramer): its important that we keep zero values here, but empty
+    # lists and strings get discarded as we've deemed them not important
+    return dict((k, v) for k, v in six.iteritems(obj) if (v == 0 or v is False or v))
+
+
 class InterfaceValidationError(Exception):
     pass
 
@@ -112,11 +123,7 @@ class Interface(object):
         return meta
 
     def to_json(self):
-        # eliminate empty values for serialization to compress the keyspace
-        # and save (seriously) ridiculous amounts of bytes
-        # XXX(dcramer): its important that we keep zero values here, but empty
-        # lists and strings get discarded as we've deemed them not important
-        return dict((k, v) for k, v in six.iteritems(self._data) if (v == 0 or v))
+        return prune_empty_keys(self._data)
 
     def get_hash(self):
         return []

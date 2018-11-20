@@ -78,7 +78,7 @@ class SensitiveDataFilter(object):
             self.filter_stacktrace(data['stacktrace'])
 
         if 'exception' in data:
-            for exc in data['exception']['values']:
+            for exc in data['exception'].get('values') or ():
                 if exc is not None and exc.get('stacktrace'):
                     self.filter_stacktrace(exc['stacktrace'])
 

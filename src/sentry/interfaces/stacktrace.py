@@ -20,7 +20,7 @@ from django.utils.translation import ugettext as _
 from six.moves.urllib.parse import urlparse
 
 from sentry.app import env
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
@@ -782,11 +782,11 @@ class Stacktrace(Interface):
         }
 
     def to_json(self):
-        return {
+        return prune_empty_keys({
             'frames': [f and f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
             'registers': self.registers,
-        }
+        })
 
     def compute_hashes(self, platform):
         system_hash = self.get_hash(platform, system_frames=True)

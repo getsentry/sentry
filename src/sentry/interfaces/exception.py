@@ -15,7 +15,7 @@ import six
 
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
@@ -697,13 +697,6 @@ def upgrade_legacy_mechanism(data):
     return result
 
 
-def prune_empty_keys(obj):
-    if obj is None:
-        return None
-
-    return dict((k, v) for k, v in six.iteritems(obj) if (v == 0 or v is False or v))
-
-
 class Mechanism(Interface):
     """
     an optional field residing in the exception interface. It carries additional
@@ -1031,10 +1024,10 @@ class Exception(Interface):
         return instance
 
     def to_json(self):
-        return {
+        return prune_empty_keys({
             'values': [v and v.to_json() for v in self.values],
             'exc_omitted': self.exc_omitted,
-        }
+        })
 
     def compute_hashes(self, platform):
         system_hash = self.get_hash(platform, system_frames=True)
