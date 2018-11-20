@@ -42,8 +42,8 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      isOpen: false,
       selectedEnvs: new Set(props.value),
+      hasChanges: false,
     };
   }
 
@@ -51,46 +51,20 @@ class MultipleEnvironmentSelector extends React.PureComponent {
    * If value in state is different than value from props, propagate changes
    */
   doChange = (value, e) => {
-    const {onChange} = this.props;
-
-    onChange(value, e);
+    this.props.onChange(value, e);
   };
 
   /**
    * Checks if "onUpdate" is callable. Only calls if there are changes
    */
   doUpdate = () => {
-    const {onUpdate} = this.props;
-
-    if (onUpdate) {
-      onUpdate();
-    }
-  };
-
-  handleOpenMenu = () => {
-    this.setState({isOpen: true});
-  };
-
-  handleCloseMenu = () => {
-    this.handleUpdate();
-  };
-
-  /**
-   * Calls "onUpdate" callback and closes the dropdown menu
-   */
-  handleUpdate = () => {
-    this.setState(
-      {
-        isOpen: false,
-      },
-      this.doUpdate
-    );
+    this.setState({hasChanges: false}, this.props.onUpdate);
   };
 
   /**
    * Toggle selected state of an environment
    */
-  toggleSelected(env, e) {
+  toggleSelected = (env, e) => {
     this.setState(state => {
       const selectedEnvs = new Set(state.selectedEnvs);
 
@@ -104,9 +78,24 @@ class MultipleEnvironmentSelector extends React.PureComponent {
 
       return {
         selectedEnvs,
+        hasChanges: true,
       };
     });
-  }
+  };
+
+  /**
+   * Calls "onUpdate" callback and closes the dropdown menu
+   */
+  handleUpdate = actions => {
+    actions.close();
+    this.doUpdate();
+  };
+
+  handleCloseMenu = () => {
+    // Only update if there are changes
+    if (!this.state.hasChanges) return;
+    this.doUpdate();
+  };
 
   /**
    * Clears all selected environments and updates
@@ -114,11 +103,12 @@ class MultipleEnvironmentSelector extends React.PureComponent {
   handleClear = () => {
     this.setState(
       {
+        hasChanges: false,
         selectedEnvs: new Set(),
       },
       () => {
         this.doChange([]);
-        this.handleCloseMenu();
+        this.doUpdate();
       }
     );
   };
@@ -133,7 +123,7 @@ class MultipleEnvironmentSelector extends React.PureComponent {
       return {
         selectedEnvs: new Set([env.name]),
       };
-    }, this.handleCloseMenu);
+    }, this.doUpdate);
   };
 
   /**
@@ -152,13 +142,12 @@ class MultipleEnvironmentSelector extends React.PureComponent {
       <FetchOrganizationEnvironments organization={organization}>
         {({environments}) => (
           <StyledDropdownAutoComplete
-            isOpen={this.state.isOpen}
             alignMenu="left"
             closeOnSelect={true}
             blendCorner={false}
             searchPlaceholder={t('Filter environments')}
             onSelect={this.handleSelect}
-            onClose={this.handleCloseMenu}
+            onClose={this.handleClose}
             maxHeight={500}
             rootClassName={rootClassName}
             zIndex={theme.zIndex.dropdown}
@@ -188,15 +177,16 @@ class MultipleEnvironmentSelector extends React.PureComponent {
                 : []
             }
           >
-            {({isOpen, getActorProps}) => (
+            {({isOpen, getActorProps, actions}) => (
               <StyledHeaderItem
                 icon={<StyledInlineSvg src="icon-window" />}
                 isOpen={isOpen}
                 hasSelected={value && !!value.length}
+                hasChanges={this.state.hasChanges}
+                onSubmit={() => this.handleUpdate(actions)}
                 onClear={this.handleClear}
                 {...getActorProps({
                   isStyled: true,
-                  onClick: this.handleOpenMenu,
                 })}
               >
                 {summary}
