@@ -693,7 +693,7 @@ class EventManager(object):
                 if ex is not None and 'mechanism' in ex:
                     normalize_mechanism_meta(ex['mechanism'], sdk_info)
 
-        # Please not that we eventually remove this check after we validated that it
+        # Please note that we eventually remove this check after we validated that it
         # doesn't impact the load. Ultimately all events should be parsed for a UA.
         # The check if `SENTRY_PARSE_USER_AGENT` is set needs to be there to not
         # trigger a query by trying to fetch the sample rate from the options / db.
