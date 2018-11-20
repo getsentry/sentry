@@ -742,8 +742,8 @@ class Mechanism(Interface):
         if not data.get('type'):
             raise InterfaceValidationError("No 'type' present")
 
-        meta = data.get('meta', {})
-        mach_exception = meta.get('mach_exception')
+        mechanism_meta = data.get('meta', {})
+        mach_exception = mechanism_meta.get('mach_exception')
         if mach_exception is not None:
             mach_exception = prune_empty_keys({
                 'exception': mach_exception['exception'],
@@ -752,7 +752,7 @@ class Mechanism(Interface):
                 'name': mach_exception.get('name'),
             })
 
-        signal = meta.get('signal')
+        signal = mechanism_meta.get('signal')
         if signal is not None:
             signal = prune_empty_keys({
                 'number': signal['number'],
@@ -761,7 +761,7 @@ class Mechanism(Interface):
                 'code_name': signal.get('code_name'),
             })
 
-        errno = meta.get('errno')
+        errno = mechanism_meta.get('errno')
         if errno is not None:
             errno = prune_empty_keys({
                 'number': errno['number'],
@@ -864,7 +864,7 @@ class SingleException(Interface):
         value = trim(value, 4096)
 
         if data.get('mechanism'):
-            mechanism = Mechanism._to_python(data['mechanism'], meta=meta.get('mechanism'))
+            mechanism = Mechanism._to_python(data['mechanism'], meta=meta.enter('mechanism'))
         else:
             mechanism = None
 
