@@ -44,13 +44,12 @@ class ExceptionTest(TestCase):
         )
 
     def test_null_values(self):
-        sink = {'exc_omitted': None, 'values': []}
+        sink = {}
         assert Exception.to_python({}).to_json() == sink
         assert Exception.to_python({'exc_omitted': None}).to_json() == sink
         assert Exception.to_python({'values': None}).to_json() == sink
         assert Exception.to_python({'values': []}).to_json() == sink
-        assert Exception.to_python({'values': [None]}).to_json() == {
-            "exc_omitted": None, "values": [None]}
+        assert Exception.to_python({'values': [None]}).to_json() == {"values": [None]}
 
     def test_does_not_wrap_if_exception_omitted_present(self):
         input = {
@@ -59,10 +58,7 @@ class ExceptionTest(TestCase):
                 "handled": True, "type": "generic"
             }
         }
-        assert Exception.to_python(input).to_json() == {
-            "exc_omitted": None,
-            "values": [],
-        }
+        assert Exception.to_python(input).to_json() == {}
 
     def test_path(self):
         assert self.interface.get_path() == 'exception'
