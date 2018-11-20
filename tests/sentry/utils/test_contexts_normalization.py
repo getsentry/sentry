@@ -1,5 +1,9 @@
 from __future__ import absolute_import
-from sentry.utils.contexts_normalization import normalize_os, normalize_runtime
+from sentry.utils.contexts_normalization import (
+    normalize_os,
+    normalize_runtime,
+    normalize_user_agent
+)
 from sentry.testutils import TestCase
 
 
@@ -48,7 +52,8 @@ class NormalizeOsTests(TestCase):
         assert data['name'] == 'Windows'
         assert data['version'] == '6.2.9200'
 
-    # RuntimeInformation.OSDescription on Windows 10 (CoreCLR 2.0+, .NET Framework 4.7.1+, Mono 5.4+)
+    # RuntimeInformation.OSDescription on Windows 10 (CoreCLR 2.0+, .NET
+    # Framework 4.7.1+, Mono 5.4+)
     def test_windows_10(self):
         data = {'raw_description': 'Microsoft Windows 10.0.16299'}
         normalize_os(data)
@@ -83,7 +88,8 @@ class NormalizeOsTests(TestCase):
         assert data['name'] == 'Darwin'
         assert data['kernel_version'] == '17.5.0'
 
-    # RuntimeInformation.OSDescription on Windows Subsystem for Linux (Ubuntu) (CoreCLR 2.0+, Mono 5.4+)
+    # RuntimeInformation.OSDescription on Windows Subsystem for Linux (Ubuntu)
+    # (CoreCLR 2.0+, Mono 5.4+)
     def test_wsl_ubuntu(self):
         data = {'raw_description': 'Linux 4.4.0-43-Microsoft #1-Microsoft Wed Dec 31 14:42:53 PST 2014'}
         normalize_os(data)
@@ -107,3 +113,66 @@ class NormalizeOsTests(TestCase):
         assert 'version' not in data
         assert 'kernel_version' not in data
         assert 'raw_description' not in data
+
+
+class NormalizeUserAgentTests(TestCase):
+    def setUp(self):
+        self.data = {'request':
+                     {'headers': [
+                         [
+                             'User-Agent',
+                             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.117 Safari/537.36'
+                         ]
+                     ]}
+                     }
+
+    def test_browser_device_os_parsed(self):
+        self.data = {'request':
+                     {'headers': [
+                         [
+                             'User-Agent',
+                             'Mozilla/5.0 (iPhone; CPU iPhone OS 12_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0 Mobile/15E148 Safari/604.1'
+                         ]
+                     ]}
+                     }
+        normalize_user_agent(self.data)
+        assert self.data['contexts']['browser']['name'] == 'Mobile Safari'
+        assert self.data['contexts']['browser']['version'] == '12.0'
+        assert self.data['contexts']['os']['name'] == 'iOS'
+        assert self.data['contexts']['os']['version'] == '12.1'
+        assert self.data['contexts']['device']['brand'] == 'Apple'
+        assert self.data['contexts']['device']['family'] == 'iPhone'
+        assert self.data['contexts']['device']['model'] == 'iPhone'
+
+    def test_browser_already_set(self):
+        self.data['contexts'] = {'browser': {'name': 'IE', 'version': '6'}}
+        normalize_user_agent(self.data)
+        assert self.data['contexts']['browser']['name'] == 'IE'
+        assert self.data['contexts']['browser']['version'] == '6'
+        assert self.data['contexts']['os']['name'] == 'Mac OS X'
+        assert self.data['contexts']['os']['version'] == '10.13.4'
+
+    def test_os_already_set(self):
+        self.data['contexts'] = {'os': {'name': 'C64', 'version': '1337'}}
+        normalize_user_agent(self.data)
+        assert self.data['contexts']['browser']['name'] == 'Chrome'
+        assert self.data['contexts']['browser']['version'] == '66.0.3359'
+        assert self.data['contexts']['os']['name'] == 'C64'
+        assert self.data['contexts']['os']['version'] == '1337'
+
+    def test_device_already_set(self):
+        self.data = {'request':
+                     {'headers': [
+                         [
+                             'User-Agent',
+                             'Mozilla/5.0 (iPhone; CPU iPhone OS 12_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0 Mobile/15E148 Safari/604.1'
+                         ]
+                     ]}
+                     }
+        self.data['contexts'] = {'device': {'brand': 'TI Calculator'}}
+        normalize_user_agent(self.data)
+        assert self.data['contexts']['browser']['name'] == 'Mobile Safari'
+        assert self.data['contexts']['browser']['version'] == '12.0'
+        assert self.data['contexts']['os']['name'] == 'iOS'
+        assert self.data['contexts']['os']['version'] == '12.1'
+        assert self.data['contexts']['device']['brand'] == 'TI Calculator'

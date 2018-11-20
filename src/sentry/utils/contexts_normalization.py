@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 import re
 
+from ua_parser.user_agent_parser import Parse
+
 # Environment.OSVersion (GetVersionEx) or RuntimeInformation.OSDescription, on Windows
 _windows_re = re.compile('^(Microsoft )?Windows (NT )?(?P<version>\d+\.\d+\.\d+).*$')
 # Environment.OSVersion or RuntimeInformation.OSDescription (uname)
@@ -66,3 +68,87 @@ def normalize_runtime(data):
             version = version_map.get(build, None)
             if version is not None:
                 data['version'] = version
+
+
+def _get_version(user_agent):
+    return '.'.join(
+        value for value in [
+            user_agent['major'],
+            user_agent['minor'],
+            user_agent.get('patch'),
+        ] if value
+    ) or None
+
+
+def _parse_user_agent(data):
+    http = data.get('request')
+    if not http:
+        return None
+
+    headers = http.get('headers')
+    if not headers:
+        return None
+
+    for key, value in headers:
+        if key != 'User-Agent':
+            continue
+        ua = Parse(value)
+        if not ua:
+            continue
+        return ua
+    return None
+
+
+def _inject_browser_context(data, user_agent):
+    ua = user_agent['user_agent']
+    try:
+        if ua['family'] == 'Other':
+            return
+        if data.get('contexts', {}).get('browser', None) is None:
+            data['contexts']['browser'] = {
+                'name': ua['family'],
+                'version': _get_version(ua),
+            }
+    except KeyError:
+        pass
+
+
+def _inject_os_context(data, user_agent):
+    ua = user_agent['os']
+    try:
+        if ua['family'] == 'Other':
+            return
+        if data.get('contexts', {}).get('os', None) is None:
+            data['contexts']['os'] = {
+                'name': ua['family'],
+                'version': _get_version(ua),
+            }
+    except KeyError:
+        pass
+
+
+def _inject_device_context(data, user_agent):
+    ua = user_agent['device']
+    try:
+        if ua['family'] == 'Other':
+            return
+        if data.get('contexts', {}).get('device', None) is None:
+            data['contexts']['device'] = {
+                'family': ua['family'],
+                'model': ua['model'],
+                'brand': ua['brand'],
+            }
+    except KeyError:
+        pass
+
+
+def normalize_user_agent(data):
+    user_agent = _parse_user_agent(data)
+    if not user_agent:
+        return
+
+    data.setdefault('contexts', {})
+
+    _inject_browser_context(data, user_agent)
+    _inject_os_context(data, user_agent)
+    _inject_device_context(data, user_agent)
