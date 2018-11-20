@@ -30,6 +30,7 @@ class ProjectKeySerializer(Serializer):
                 'csp': obj.csp_endpoint,
                 'security': obj.security_endpoint,
                 'minidump': obj.minidump_endpoint,
+                'unreal': obj.unreal_endpoint,
                 'cdn': obj.js_sdk_loader_cdn_url,
             },
             'browserSdkVersion': get_selected_browser_sdk_version(obj),

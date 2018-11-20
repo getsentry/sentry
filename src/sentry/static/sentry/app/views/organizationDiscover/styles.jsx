@@ -4,6 +4,7 @@ import {Flex, Box} from 'grid-emotion';
 import {keyframes} from 'emotion';
 
 import space from 'app/styles/space';
+import {slideInRight} from 'app/styles/animations';
 
 import {Panel, PanelItem} from 'app/components/panels';
 import Button from 'app/components/button';
@@ -241,15 +242,6 @@ export const SavedQueryUpdated = styled('div')`
   color: ${p => p.theme.gray6};
 `;
 
-const slidein = keyframes`
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 0;
-  }
-`;
-
 export const QueryPanelContainer = styled('div')`
   position: absolute;
   width: calc(100% + 1px); /* Add 1px for border */
@@ -257,7 +249,7 @@ export const QueryPanelContainer = styled('div')`
   background-color: white;
   top: ${HEADER_HEIGHT}px;
   border-right: 1px solid ${p => p.theme.borderLight};
-  animation: ${slidein} 0.6s ease-in;
+  animation: ${slideInRight} 0.2s ease-in;
   overflow-y: scroll;
 `;
 
