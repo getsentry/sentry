@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 
 import {growIn} from 'app/styles/animations';
 
-const RadioGroup = ({value, choices, label, onChange, ...props}) => {
+const RadioGroup = ({value, disabled, choices, label, onChange, ...props}) => {
   const isSelected = id => {
     return value ? value === id : id === 0;
   };
@@ -14,14 +14,16 @@ const RadioGroup = ({value, choices, label, onChange, ...props}) => {
       {(choices || []).map(([id, name], index) => (
         <RadioLineItem
           key={index}
-          onClick={e => onChange(id, e)}
+          onClick={e => !disabled && onChange(id, e)}
           role="radio"
           index={index}
           tabIndex={isSelected(id) ? 0 : -1}
           aria-checked={isSelected(id)}
         >
           <RadioLineButton>
-            {isSelected(id) && <RadioLineButtonFill animate={value !== ''} />}
+            {isSelected(id) && (
+              <RadioLineButtonFill isDisabled={disabled} animate={value !== ''} />
+            )}
           </RadioLineButton>
           <RadioLineText>{name}</RadioLineText>
         </RadioLineItem>
@@ -33,6 +35,7 @@ const RadioGroup = ({value, choices, label, onChange, ...props}) => {
 RadioGroup.propTypes = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   choices: PropTypes.arrayOf(PropTypes.array),
+  disabled: PropTypes.bool,
   label: PropTypes.string,
   onChange: PropTypes.func,
 };
@@ -67,6 +70,7 @@ const RadioLineButtonFill = styled.div`
   border-radius: 50%;
   background-color: ${p => p.theme.green};
   animation: ${p => (p.animate ? `0.2s ${growIn} ease` : 'none')};
+  opacity: ${p => (p.isDisabled ? 0.4 : null)};
 `;
 
 const RadioLineText = styled.div`
