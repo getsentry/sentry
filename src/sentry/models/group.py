@@ -16,8 +16,8 @@ from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
+from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
-from six.moves.urllib.parse import urlencode
 
 from sentry import eventtypes, tagstore
 from sentry.constants import (
