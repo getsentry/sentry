@@ -1,5 +1,5 @@
 import {Flex} from 'grid-emotion';
-import {isDate, isEqualWith} from 'lodash';
+import {isDate, isEqual, isEqualWith} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -23,13 +23,31 @@ import {getParams} from './utils/getParams';
 import EventsContext from './utils/eventsContext';
 
 // `lodash.isEqual` does not compare date objects properly?
-const dateComparer = (value, other) => {
+const dateComparator = (value, other) => {
   if (isDate(value) && isDate(other)) {
     return +value === +other;
   }
 
   // returning undefined will use default comparator
   return undefined;
+};
+
+const isEqualWithDates = (a, b) => isEqualWith(a, b, dateComparator);
+const isEqualWithEmptyArrays = (newQuery, current) => {
+  // We will only get empty arrays from `newQuery`
+  // Can't use isEqualWith because keys are unbalanced (guessing)
+  return isEqual(
+    Object.entries(newQuery)
+      .filter(([, value]) => !Array.isArray(value) || !!value.length)
+      .reduce(
+        (acc, [key, value]) => ({
+          ...acc,
+          [key]: value,
+        }),
+        {}
+      ),
+    current
+  );
 };
 
 class OrganizationEventsContainer extends React.Component {
@@ -68,6 +86,8 @@ class OrganizationEventsContainer extends React.Component {
       period: query.statsPeriod || (hasAbsolute ? null : DEFAULT_STATS_PERIOD),
       start: start || null,
       end: end || null,
+
+      // params from URL will be a string
       utc: typeof query.utc !== 'undefined' ? query.utc === 'true' : DEFAULT_USE_UTC,
     };
   }
@@ -76,7 +96,7 @@ class OrganizationEventsContainer extends React.Component {
     const values = OrganizationEventsContainer.getStateFromRouter(props);
 
     // Update `queryValues` if URL parameters change
-    if (!isEqualWith(state.queryValues, values, dateComparer)) {
+    if (!isEqualWithDates(state.queryValues, values)) {
       return {
         ...values,
         queryValues: values,
@@ -115,6 +135,11 @@ class OrganizationEventsContainer extends React.Component {
       newQuery.end = getUtcDateString(newQuery.end);
     }
 
+    // Only push new location if query params has changed because this will cause a heavy re-render
+    if (isEqualWithEmptyArrays(newQuery, router.location.query)) {
+      return;
+    }
+
     router.push({
       pathname: router.location.pathname,
       query: newQuery,
@@ -138,41 +163,18 @@ class OrganizationEventsContainer extends React.Component {
   };
 
   handleUpdatePeriod = () => {
-    this.setState(({period, start, end, utc, ...state}) => {
-      let newValueObj = {
-        ...(defined(period) ? {period} : {start, end}),
-        utc,
-      };
+    let {period, start, end, utc} = this.state;
+    let newValueObj = {
+      ...(defined(period) ? {period} : {start, end}),
+      utc,
+    };
 
-      this.updateParams(newValueObj);
-
-      const {
-        period: _period, // eslint-disable-line no-unused-vars
-        start: _start, // eslint-disable-line no-unused-vars
-        end: _end, // eslint-disable-line no-unused-vars
-        ...queryValues
-      } = state.queryValues;
-
-      return {
-        queryValues: {
-          ...queryValues,
-          ...newValueObj,
-        },
-      };
-    });
+    this.updateParams(newValueObj);
   };
 
   handleUpdate = type => {
-    this.setState(state => {
-      let newValueObj = {[type]: state[type]};
-      this.updateParams(newValueObj);
-      return {
-        queryValues: {
-          ...state.queryValues,
-          ...newValueObj,
-        },
-      };
-    });
+    let newValueObj = {[type]: this.state[type]};
+    this.updateParams(newValueObj);
   };
 
   handleUpdateEnvironmments = () => this.handleUpdate('environment');

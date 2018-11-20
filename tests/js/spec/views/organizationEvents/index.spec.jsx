@@ -96,11 +96,9 @@ describe('OrganizationEvents', function() {
     expect(wrapper.state('environment')).toEqual(['production', 'staging']);
 
     // close dropdown
-    await wrapper
-      .find('MultipleEnvironmentSelector')
-      .instance()
-      .doUpdate();
-    wrapper.update();
+    wrapper
+      .find('MultipleEnvironmentSelector StyledInput')
+      .simulate('keyDown', {key: 'Escape'});
     expect(router.push).toHaveBeenLastCalledWith({
       pathname: '/organizations/org-slug/events/',
       query: {
@@ -244,8 +242,31 @@ describe('OrganizationEvents', function() {
       query: {
         start: '2017-10-01T00:00:00',
         end: '2017-10-01T23:59:59',
-        utc: true,
+        utc: 'true',
       },
     });
+  });
+
+  it('does not update router when toggling environment selector without changes', async function() {
+    wrapper.setProps({
+      router: {
+        ...router,
+        location: {
+          ...router.location,
+          query: {
+            environment: ['production'],
+            statsPeriod: '14d',
+            utc: 'true',
+          },
+        },
+      },
+    });
+
+    // Toggle MultipleProjectSelector
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    wrapper
+      .find('MultipleEnvironmentSelector StyledInput')
+      .simulate('keyDown', {key: 'Escape'});
+    expect(router.push).not.toHaveBeenCalled();
   });
 });
