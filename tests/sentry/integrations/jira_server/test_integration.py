@@ -32,3 +32,16 @@ class JiraServerIntegrationTest(IntegrationTestCase):
                 'external_id': '%s:%s' % (state['base_url'], state['identity']['data']['id'])
             }
         }
+
+    def test_setup_guide(self):
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 200
+        self.assertContains(resp, 'Step 1:')
+        self.assertContains(resp, 'Jira Server')
+        self.assertContains(resp, 'Next</a>')
+
+    def test_config_view(self):
+        resp = self.client.get(self.init_path + '?completed_guide')
+        assert resp.status_code == 200
+        self.assertContains(resp, 'Step 2:')
+        self.assertContains(resp, 'Submit</button>')
