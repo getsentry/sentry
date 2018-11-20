@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import six
 
 import logging
-import math
 import pytz
 import time
 from datetime import timedelta, datetime
@@ -36,47 +35,24 @@ def snuba_str_to_datetime(d):
     return d
 
 
-def calculate_priority_cursor(data):
-    times_seen = data['times_seen']
-    last_seen = int(to_timestamp(snuba_str_to_datetime(data['last_seen'])) * 1000)
-    return ((math.log(times_seen) * 600) + last_seen)
-
-
-def _datetime_cursor_calculator(field):
-    def calculate(data):
-        datetime = snuba_str_to_datetime(data[field])
-        return int(to_timestamp(datetime) * 1000)
-
-    return calculate
-
-
+# mapping from query parameter sort name to underlying scoring aggregation name
 sort_strategies = {
-    # sort_by -> Tuple[
-    #   String: column or alias to sort by (of type T, used below),
-    #   List[String]: extra aggregate columns required for this sorting strategy,
-    #   Function[T] -> int: function for converting a group's data to a cursor value),
-    # ]
-    'priority': (
-        'priority', ['last_seen', 'times_seen'], calculate_priority_cursor,
-    ),
-    'date': (
-        'last_seen', [], _datetime_cursor_calculator('last_seen'),
-    ),
-    'new': (
-        'first_seen', [], _datetime_cursor_calculator('first_seen'),
-    ),
-    'freq': (
-        'times_seen', [], lambda data: data['times_seen'],
-    ),
+    'date': 'last_seen',
+    'freq': 'times_seen',
+    'new': 'first_seen',
+    'priority': 'priority',
 }
 
+dependency_aggregations = {
+    'priority': ['last_seen', 'times_seen']
+}
 
 aggregation_defs = {
     'times_seen': ['count()', ''],
-    'first_seen': ['min', 'timestamp'],
-    'last_seen': ['max', 'timestamp'],
+    'first_seen': ['toUInt64(min(timestamp)) * 1000', ''],
+    'last_seen': ['toUInt64(max(timestamp)) * 1000', ''],
     # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-    'priority': ['toUInt32(log(times_seen) * 600) + toUInt32(last_seen)', ''],
+    'priority': ['(toUInt64(log(times_seen) * 600)) + last_seen', ''],
 }
 
 
@@ -139,7 +115,7 @@ class ScalarCondition(Condition):
 
         arg = parameters[name]
         if isinstance(arg, datetime):
-            arg = int(to_timestamp(arg))
+            arg = int(to_timestamp(arg)) * 1000
 
         return (
             self.field,
@@ -227,7 +203,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # so if the requested sort is `date` (`last_seen`) and there
             # are no other Snuba-based search predicates, we can simply
             # return the results from Postgres.
-            if sort_by == 'date' \
+            if cursor is None \
+                    and sort_by == 'date' \
                     and not tags \
                     and not environment \
                     and not any(param in parameters for param in [
@@ -308,8 +285,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 metrics.incr('snuba.search.too_many_candidates')
                 candidate_ids = None
 
-        sort, extra_aggregations, score_fn = sort_strategies[sort_by]
-
+        sort_field = sort_strategies[sort_by]
         chunk_growth = options.get('snuba.search.chunk-growth-rate')
         max_chunk_size = options.get('snuba.search.max-chunk-size')
         chunk_limit = limit
@@ -347,9 +323,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 project_id=project.id,
                 environment_id=environment and environment.id,
                 tags=tags,
-                sort=sort,
-                extra_aggregations=extra_aggregations,
-                score_fn=score_fn,
+                sort_field=sort_field,
+                cursor=cursor,
                 candidate_ids=candidate_ids,
                 limit=chunk_limit,
                 offset=offset,
@@ -433,8 +408,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
 
 def snuba_search(start, end, project_id, environment_id, tags,
-                 sort, extra_aggregations, score_fn, candidate_ids,
-                 limit, offset, **parameters):
+                 sort_field, cursor, candidate_ids, limit, offset, **parameters):
     """
     This function doesn't strictly benefit from or require being pulled out of the main
     query method above, but the query method is already large and this function at least
@@ -477,7 +451,8 @@ def snuba_search(start, end, project_id, environment_id, tags,
         else:
             conditions.append((col, '=', val))
 
-    required_aggregations = set([sort] + extra_aggregations)
+    extra_aggregations = dependency_aggregations.get(sort_field, [])
+    required_aggregations = set([sort_field] + extra_aggregations)
     for h in having:
         alias = h[0]
         required_aggregations.add(alias)
@@ -485,6 +460,9 @@ def snuba_search(start, end, project_id, environment_id, tags,
     aggregations = []
     for alias in required_aggregations:
         aggregations.append(aggregation_defs[alias] + [alias])
+
+    if cursor is not None:
+        having.append((sort_field, '>=' if cursor.is_prev else '<=', cursor.value))
 
     # {group_id -> {<agg_alias> -> <agg_value>,
     #               <agg_alias> -> <agg_value>,
@@ -501,7 +479,7 @@ def snuba_search(start, end, project_id, environment_id, tags,
         having=having,
         filter_keys=filters,
         aggregations=aggregations,
-        orderby='-' + sort,
+        orderby='-' + sort_field,
         referrer='search',
         limit=limit + 1,
         offset=offset,
@@ -509,17 +487,10 @@ def snuba_search(start, end, project_id, environment_id, tags,
     metrics.timing('snuba.search.num_result_groups', len(snuba_results.keys()))
     more_results = len(snuba_results) == limit + 1
 
-    # {group_id -> {field1: value1,
-    #               field2: value2,
-    #               ...}
+    # {group_id -> score,
     #  ...}
     group_data = {}
     for group_id, obj in snuba_results.items():
-        if group_id not in group_data:
-            group_data[group_id] = {}
-
-        dest = group_data[group_id]
-
         # NOTE: The Snuba utility code is trying to be helpful by collapsing
         # results with only one aggregate down to the single value. It's a
         # bit of a hack that we then immediately undo that work here, but
@@ -527,16 +498,14 @@ def snuba_search(start, end, project_id, environment_id, tags,
         # this pattern again we should either add an option to opt-out of
         # the 'help' here or remove it from the Snuba code altogether.
         if len(required_aggregations) == 1:
-            alias = list(required_aggregations)[0]
-            dest[alias] = obj
+            group_data[group_id] = obj
         else:
-            for k, v in obj.items():
-                dest[k] = v
+            group_data[group_id] = obj[sort_field]
 
     return (
         list(
             sorted(
-                ((gid, score_fn(data)) for gid, data in group_data.items()),
+                ((gid, score) for gid, score in group_data.items()),
                 key=lambda t: t[1], reverse=True
             )
         )[:limit], more_results
