@@ -165,6 +165,12 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert responses.calls[0].request.url == 'https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users'
         assert responses.calls[0].response.status_code == 200
         assert responses.calls[1].request.url == 'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d' % vsts_work_item_id
+
+        request_body = json.loads(responses.calls[1].request.body)
+        assert len(request_body) == 1
+        assert request_body[0]['path'] == '/fields/System.AssignedTo'
+        assert request_body[0]['value'] == 'ftotten@vscsi.us'
+        assert request_body[0]['op'] == 'replace'
         assert responses.calls[1].response.status_code == 200
 
     @responses.activate
@@ -214,6 +220,11 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert responses.calls[1].response.status_code == 200
 
         assert responses.calls[2].request.url == 'https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/%d' % vsts_work_item_id
+        request_body = json.loads(responses.calls[2].request.body)
+        assert len(request_body) == 1
+        assert request_body[0]['path'] == '/fields/System.AssignedTo'
+        assert request_body[0]['value'] == 'ftotten@vscsi.us'
+        assert request_body[0]['op'] == 'replace'
         assert responses.calls[2].response.status_code == 200
 
     @responses.activate
