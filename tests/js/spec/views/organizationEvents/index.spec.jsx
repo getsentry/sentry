@@ -244,7 +244,7 @@ describe('OrganizationEvents', function() {
       query: {
         start: '2017-10-01T00:00:00',
         end: '2017-10-01T23:59:59',
-        utc: true,
+        utc: 'true',
       },
     });
   });

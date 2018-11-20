@@ -8,7 +8,7 @@ import {defined} from 'app/utils';
 //
 // TODO(billy): Make period parameter name consistent
 export function getParams(params = {}) {
-  let {start, end, period, statsPeriod, ...otherParams} = params;
+  let {start, end, period, statsPeriod, utc, ...otherParams} = params;
 
   // `statsPeriod` takes precendence for now
   period = statsPeriod || period;
@@ -22,6 +22,8 @@ export function getParams(params = {}) {
     statsPeriod: period,
     start: period ? null : start,
     end: period ? null : end,
+    // coerce utc into a string
+    utc: typeof utc !== 'undefined' ? (utc === true ? 'true' : 'false') : null,
     ...otherParams,
   })
     .filter(([key, value]) => defined(value))
