@@ -30,7 +30,7 @@ class Geo(Interface):
         return cls(**kwargs)
 
     @classmethod
-    def from_ip_address(cls, ip_address):
+    def from_ip_address(cls, ip_address, meta=None):
         try:
             geo = geo_by_addr(ip_address)
         except Exception:
@@ -48,4 +48,4 @@ class Geo(Interface):
 
             data[k] = d
 
-        return cls.to_python(data)
+        return cls.to_python(data, meta=meta)

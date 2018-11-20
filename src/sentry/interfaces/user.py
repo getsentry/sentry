@@ -81,7 +81,7 @@ class User(Interface):
 
         geo = data.pop('geo', None)
         if not geo and ip_address:
-            geo = Geo.from_ip_address(ip_address)
+            geo = Geo.from_ip_address(ip_address, meta=meta.enter('geo'))
         elif geo:
             geo = Geo.to_python(geo)
 
