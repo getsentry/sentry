@@ -10,6 +10,7 @@ from sentry.utils.http import absolute_uri
 from sentry.models import SentryAppInstallation
 from sentry.api.serializers import serialize, app_platform_event
 
+
 def notify_sentry_app(event, futures):
     group = event.group
     project = group.project

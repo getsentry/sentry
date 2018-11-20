@@ -42,9 +42,9 @@ class SentryApplicationRow extends React.PureComponent {
       const query = Object.assign(qs.parse(url.query), installQuery);
       redirectUrl = `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(query)}`;
       window.location.assign(redirectUrl);
+    } else {
+      browserHistory.push(redirectUrl);
     }
-
-    browserHistory.push(redirectUrl);
   };
 
   install = () => {
