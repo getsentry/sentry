@@ -34,6 +34,7 @@ const AvatarChooser = createReactClass({
     isUser: PropTypes.bool,
     savedDataUrl: PropTypes.string,
     onSave: PropTypes.func,
+    disabled: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -120,6 +121,7 @@ const AvatarChooser = createReactClass({
       savedDataUrl,
       type,
       isUser,
+      disabled,
     } = this.props;
     let {hasError, model} = this.state;
 
@@ -160,6 +162,7 @@ const AvatarChooser = createReactClass({
                 value={avatarType}
                 label="Avatar Type"
                 onChange={id => this.handleChange(id)}
+                disabled={disabled}
               />
 
               {isLetter && (
@@ -196,6 +199,7 @@ const AvatarChooser = createReactClass({
                   type="button"
                   priority="primary"
                   onClick={this.handleSaveSettings}
+                  disabled={disabled}
                 >
                   {t('Save Avatar')}
                 </Button>
