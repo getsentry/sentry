@@ -19,7 +19,6 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:
             raise IntegrationError('Bitbucket requires an integration id.')
-
         integration_model = Integration.objects.get(
             id=integration_id,
             organizations=organization_id,
