@@ -73,11 +73,37 @@ class PushEventWebhookTest(APITestCase):
         super(PushEventWebhookTest, self).setUp()
         project = self.project  # force creation
         self.url = '/extensions/bitbucket/organizations/%s/webhook/' % project.organization.id
+        self.repo_uuid = '{c78dfb25-7882-4550-97b1-4e0d38f32859}'
+
+    def get_commit_list(self):
+        return list(
+            Commit.objects.filter(
+                organization_id=self.project.organization_id,
+            ).select_related('author').order_by('-date_added')
+        )
+
+    def assert_push_event_example(self):
+        commit_list = self.get_commit_list()
+
+        assert len(commit_list) == 1
+
+        commit = commit_list[0]
+
+        assert commit.key == 'e0e377d186e4f0e937bdb487a23384fe002df649'
+        assert commit.message == u'README.md edited online with Bitbucket'
+        assert commit.author.name == u'Max Bittker'
+        assert commit.author.email == 'max@getsentry.com'
+        assert commit.author.external_id is None
+        assert commit.date_added == datetime(2017, 5, 24, 1, 5, 47, tzinfo=timezone.utc)
+
+    def assert_no_commits(self):
+        commit_list = self.get_commit_list()
+        assert len(commit_list) == 0
 
     def test_simple(self):
         Repository.objects.create(
             organization_id=self.project.organization.id,
-            external_id='{c78dfb25-7882-4550-97b1-4e0d38f32859}',
+            external_id=self.repo_uuid,
             provider=PROVIDER_NAME,
             name='maxbittker/newsdiffs',
         )
@@ -91,28 +117,12 @@ class PushEventWebhookTest(APITestCase):
         )
 
         assert response.status_code == 204
-
-        commit_list = list(
-            Commit.objects.filter(
-                organization_id=self.project.organization_id,
-            ).select_related('author').order_by('-date_added')
-        )
-
-        assert len(commit_list) == 1
-
-        commit = commit_list[0]
-
-        assert commit.key == 'e0e377d186e4f0e937bdb487a23384fe002df649'
-        assert commit.message == u'README.md edited online with Bitbucket'
-        assert commit.author.name == u'Max Bittker'
-        assert commit.author.email == 'max@getsentry.com'
-        assert commit.author.external_id is None
-        assert commit.date_added == datetime(2017, 5, 24, 1, 5, 47, tzinfo=timezone.utc)
+        self.assert_push_event_example()
 
     def test_anonymous_lookup(self):
         Repository.objects.create(
             organization_id=self.project.organization.id,
-            external_id='{c78dfb25-7882-4550-97b1-4e0d38f32859}',
+            external_id=self.repo_uuid,
             provider=PROVIDER_NAME,
             name='maxbittker/newsdiffs',
         )
@@ -134,19 +144,107 @@ class PushEventWebhookTest(APITestCase):
 
         assert response.status_code == 204
 
-        commit_list = list(
-            Commit.objects.filter(
-                organization_id=self.project.organization_id,
-            ).select_related('author').order_by('-date_added')
+        # should be skipping the #skipsentry commit
+        self.assert_push_event_example()
+
+    def test_missing_request_information(self):
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id=self.repo_uuid,
+            provider=PROVIDER_NAME,
+            name='maxbittker/newsdiffs',
         )
 
-        # should be skipping the #skipsentry commit
+        # response is missing changes
+        response = self.client.post(
+            path=self.url,
+            json={
+                'repository': {'full_name': 'maxbittker/newsdiffs', 'uuid': '{c78dfb25-7882-4550-97b1-4e0d38f32859}'}
+            },
+            HTTP_X_EVENT_KEY='repo:push',
+            REMOTE_ADDR=BITBUCKET_IP,
+        )
+
+        assert response.status_code == 204
+
+    def test_repository_does_not_exist(self):
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE,
+            content_type='application/json',
+            HTTP_X_EVENT_KEY='repo:push',
+            REMOTE_ADDR=BITBUCKET_IP,
+        )
+
+        assert response.status_code == 404
+
+    def test_repository_name_changed(self):
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id=self.repo_uuid,
+            provider=PROVIDER_NAME,
+            name='maxbittker/newsdiffs',
+        )
+
+        response = self.client.post(
+            path=self.url,
+            json={
+                'push': {'changes': []},
+                'repository': {'full_name': 'maxbittker/vacation', 'uuid': self.repo_uuid}
+            },
+            HTTP_X_EVENT_KEY='repo:push',
+            REMOTE_ADDR=BITBUCKET_IP,
+        )
+
+        assert response.status_code == 204
+        self.assert_no_commits()
+
+        repo = Repository.objects.get(
+            organization_id=self.organization.id,
+            provider=PROVIDER_NAME,
+            external_id=self.repo_uuid,
+        )
+        assert repo.config['name'] == 'maxbittker/vacation'
+
+    def test_missing_commit_info(self):
+        Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id=self.repo_uuid,
+            provider=PROVIDER_NAME,
+            name='maxbittker/newsdiffs',
+        )
+
+        response = self.client.post(
+            path=self.url,
+            json={
+                'push': {'changes': [
+                    {
+                        'author': {'raw': 'Max Bittker <max@getsentry.com>'},
+                        'hash': 'commit-hash-1',
+                        'message': 'commit-message',
+                        'date': '2017-05-24T01:05:47+00:00',
+                    },
+                    {
+                        # commit missing a message
+                        'author': {'raw': 'Max Bittker <max@getsentry.com>'},
+                        'hash': 'commit-hash-2',
+                        'date': '2017-05-24T01:05:47+00:00',
+                    },
+                ]},
+                'repository': {'full_name': 'maxbittker/newsdiffs', 'uuid': self.repo_uuid}
+            },
+            HTTP_X_EVENT_KEY='repo:push',
+            REMOTE_ADDR=BITBUCKET_IP,
+        )
+
+        assert response.status_code == 204
+
+        commit_list = self.get_commit_list()
         assert len(commit_list) == 1
 
         commit = commit_list[0]
-
-        assert commit.key == 'e0e377d186e4f0e937bdb487a23384fe002df649'
-        assert commit.message == u'README.md edited online with Bitbucket'
+        assert commit.key == 'commit-hash-1'
+        assert commit.message == u'commit-message'
         assert commit.author.name == u'Max Bittker'
         assert commit.author.email == 'max@getsentry.com'
         assert commit.author.external_id is None

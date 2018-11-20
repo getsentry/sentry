@@ -29,6 +29,7 @@ BITBUCKET_IPS = [
     u'34.198.32.85'
 ]
 PROVIDER_NAME = 'integrations:bitbucket'
+MAX_EMAIL_LENGTH = 75
 
 
 class Webhook(object):
@@ -58,51 +59,109 @@ class PushEventWebhook(Webhook):
     # https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Push
     def __call__(self, organization, event):
         authors = {}
+        try:
+            repo_full_name = event['repository']['full_name']
+            repo_uuid = event['repository']['uuid']
+            changes = event['push']['changes']
+        except KeyError as e:
+            logger.info(
+                'bitbucket-webhook.request-missing-information',
+                extra={
+                    'organization_id': organization.id,
+                    'error': six.text_type(e),
+                    'event_type': 'repo:push',  # TODO(lb): or whatever....
+                }
+            )
+            # TODO(lb): Throw an error?
 
         try:
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider=PROVIDER_NAME,
-                external_id=six.text_type(event['repository']['uuid']),
+                external_id=six.text_type(repo_uuid),
             )
         except Repository.DoesNotExist:
             raise Http404()
 
-        if repo.config.get('name') != event['repository']['full_name']:
-            repo.config['name'] = event['repository']['full_name']
+        if repo.config.get('name') != repo_full_name:
+            repo.config['name'] = repo_full_name
             repo.save()
 
-        for change in event['push']['changes']:
+        for change in changes:
             for commit in change.get('commits', []):
                 if IntegrationRepositoryProvider.should_ignore_commit(commit['message']):
                     continue
 
-                author_email = parse_raw_user_email(commit['author']['raw'])
+                try:
+                    raw_commit_email = commit['author']['raw']
+                    commit_hash = commit['hash']
+                    commit_message = commit['message']
+                    raw_commit_date = commit['date']
+                except KeyError as e:
+                    logger.info(
+                        'bitbucket-webhook.request-missing-information',
+                        extra={
+                            'organization_id': organization.id,
+                            'repository_id': repo.id,
+                            'error': six.text_type(e),
+                            'event_type': 'repo:push',  # TODO(lb): or whatever....
+                        }
+                    )
+                    # TODO(lb): Throw an error?
+
+                try:
+                    author_email = parse_raw_user_email(raw_commit_email)
+                except Exception as e:
+                    logger.info(
+                        'bitbucket-webhook.could-not-parse-raw-user-email',
+                        extra={
+                            'organization_id': organization.id,
+                            'repository_id': repo.id,
+                            'error': six.text_type(e),
+                            'event_type': 'repo:push',  # TODO(lb): or whatever....
+                            'raw_commit_date': raw_commit_date,
+                        }
+                    )
+                    raise
 
                 # TODO(dcramer): we need to deal with bad values here, but since
                 # its optional, lets just throw it out for now
-                if author_email is None or len(author_email) > 75:
+                if author_email is None or len(author_email) > MAX_EMAIL_LENGTH:
                     author = None
                 elif author_email not in authors:
                     authors[author_email] = author = CommitAuthor.objects.get_or_create(
                         organization_id=organization.id,
                         email=author_email,
-                        defaults={'name': commit['author']['raw'].split('<')[0].strip()}
+                        defaults={'name': author_email}
                     )[0]
                 else:
                     author = authors[author_email]
                 try:
+                    try:
+                        commit_date = dateutil.parser.parse(
+                            raw_commit_date,
+                        ).astimezone(timezone.utc)
+                    except Exception as e:
+                        logger.info(
+                            'bitbucket-webhook.could-not-parse-raw-commit-date',
+                            extra={
+                                'organization_id': organization.id,
+                                'repository_id': repo.id,
+                                'error': six.text_type(e),
+                                'event_type': 'repo:push',  # TODO(lb): or whatever....
+                                'raw_commit_date': raw_commit_date,
+                            }
+                        )
+                        raise  # TODO(lb): should I do this?
                     with transaction.atomic():
 
                         Commit.objects.create(
                             repository_id=repo.id,
                             organization_id=organization.id,
-                            key=commit['hash'],
-                            message=commit['message'],
+                            key=commit_hash,
+                            message=commit_message,
                             author=author,
-                            date_added=dateutil.parser.parse(
-                                commit['date'],
-                            ).astimezone(timezone.utc),
+                            date_added=commit_date,
                         )
 
                 except IntegrityError:
