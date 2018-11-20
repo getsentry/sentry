@@ -2,26 +2,20 @@ from __future__ import print_function, absolute_import
 
 import sys
 
-import pytest
-from django.db import models
-from django.conf import settings
-from south.migration import Migrations
-from south.creator import changes, actions, freezer
 
-APP = 'sentry'
-
-
-@pytest.mark.skipif(not settings.SOUTH_TESTS_MIGRATE,
-                    reason="requires activated south migrations")
-def test_south_missing_migrations():
+def check_missing_migrations(app):
     """
-    Check that the code and the migrations are in sync.
+    Check that the code and the migrations are in sync for the given app.
     Based on the code from "south/management/commands/schemamigration.py"
     """
-    assert models.get_app(APP), "There is no enabled application matching '%s'." % APP
+    from django.db import models
+    from south.migration import Migrations
+    from south.creator import changes, actions, freezer
+
+    assert models.get_app(app), "There is no enabled application matching '%s'." % app
 
     # Get the Migrations for this app (creating the migrations dir if needed)
-    migrations = Migrations(APP, force_creation=False, verbose_creation=True)
+    migrations = Migrations(app, force_creation=False, verbose_creation=True)
 
     # Get the latest migration
     last_migration = migrations[-1]
@@ -66,3 +60,5 @@ def test_south_missing_migrations():
         Ungenerated/unmerged migrations found.
         Run "sentry django schemamigration sentry --auto" to generate the missing migrations.
         """
+
+    return True
