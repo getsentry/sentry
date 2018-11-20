@@ -193,8 +193,9 @@ export default class ResultTable extends React.Component {
     context.font = isHeader ? 'bold 14px Rubik' : 'normal 14px Rubik';
 
     // The measureText function sometimes slightly miscalculates text width.
-    // Add 1px to compensate since we want to avoid rows breaking unnecessarily.
-    return Math.ceil(context.measureText(text).width) + 1;
+    // Add 5px to compensate since we want to avoid rows breaking unnecessarily.
+    // (better to over than under estimate)
+    return Math.ceil(context.measureText(text).width) + 5;
   };
 
   getMaxVisibleRows = elementHeight => {
