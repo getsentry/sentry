@@ -134,6 +134,8 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                     'organization_id': repo.organization_id,
                     'user_id': user_id,
                     'repository': repo.name,
+                    'provider': provider.name,
+                    'error': six.text_type(exc),
                     'end_sha': end_sha,
                     'start_sha': start_sha,
                 }
