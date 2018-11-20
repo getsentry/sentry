@@ -38,7 +38,13 @@ export default class Result extends React.Component {
     super();
     this.state = {
       view: 'table',
+      height: null,
+      width: null,
     };
+  }
+
+  componentDidMount() {
+    window.addEventListener('resize', this.updateDimensions);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -58,11 +64,20 @@ export default class Result extends React.Component {
         view: 'table',
       });
     }
-
-    this.setState({
-      savedQueryName: null,
-    });
   }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.updateDimensions);
+  }
+
+  updateDimensions = () => {
+    if (this.container) {
+      this.setState({
+        height: this.container.clientHeight,
+        width: this.container.clientWidth,
+      });
+    }
+  };
 
   handleToggleVisualizations = opt => {
     this.setState({
@@ -173,12 +188,20 @@ export default class Result extends React.Component {
           </ResultTitle>
           {this.renderToggle()}
         </div>
-        <ResultInnerContainer innerRef={ref => (this.container = ref)}>
+        <ResultInnerContainer
+          innerRef={ref => {
+            this.container = ref;
+            if (ref && this.state.height === null) {
+              this.setState({height: ref.clientHeight, width: ref.clientWidth});
+            }
+          }}
+        >
           {view === 'table' && (
             <Table
               data={baseQuery.data}
               query={baseQuery.query}
-              height={this.container && this.container.clientHeight}
+              height={this.state.height}
+              width={this.state.width}
             />
           )}
           {view === 'line' && (
