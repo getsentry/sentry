@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 from django.utils.html import escape, mark_safe
+from six.moves.urllib.parse import urlparse, urlunparse
 
 from sentry import options
 from sentry.models import (
@@ -63,13 +64,8 @@ class ActivityEmail(object):
         ))
 
     def get_group_link(self):
-        return absolute_uri(
-            u'/{}/{}/issues/{}/'.format(
-                self.organization.slug,
-                self.project.slug,
-                self.group.id,
-            )
-        )
+        referrer = self.__class__.__name__
+        return self.group.get_absolute_url(params={'referrer': referrer})
 
     def get_base_context(self):
         activity = self.activity
@@ -86,12 +82,15 @@ class ActivityEmail(object):
 
     def get_group_context(self):
         group_link = self.get_group_link()
-        activity_link = u'{}activity/'.format(group_link)
+        parts = list(urlparse(group_link))
+        parts[2] = parts[2].rstrip('/') + '/activity/'
+        activity_link = urlunparse(parts)
 
         return {
             'group': self.group,
             'link': group_link,
             'activity_link': activity_link,
+            'referrer': self.__class__.__name__,
         }
 
     def get_email_type(self):

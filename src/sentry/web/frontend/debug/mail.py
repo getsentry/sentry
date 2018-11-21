@@ -366,6 +366,7 @@ def digest(request):
         'digest': digest,
         'start': start,
         'end': end,
+        'referrer': 'digest_email',
     }
     add_unsubscribe_link(context)
 

@@ -1,6 +1,6 @@
 {% load sentry_helpers %}
 
-{% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
+{% url_with_referrer 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
 
 {% with type=group.get_event_type metadata=group.get_event_metadata transaction=group.culprit %}
 <div class="issue {% if group.is_resolved %}resolved{% endif %}">

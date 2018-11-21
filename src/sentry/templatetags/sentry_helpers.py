@@ -15,6 +15,7 @@ from random import randint
 
 import six
 from django import template
+from django.core.urlresolvers import reverse
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone
 from django.utils.html import escape
@@ -114,6 +115,14 @@ def absolute_uri(parser, token):
     else:
         target_var = None
     return AbsoluteUriNode(bits, target_var)
+
+
+@register.assignment_tag(takes_context=True)
+def url_with_referrer(context, viewname, *args):
+    url = reverse(viewname, args=args)
+    if context.get('referrer'):
+        url += '?referrer=%s' % context['referrer']
+    return url
 
 
 @register.simple_tag
