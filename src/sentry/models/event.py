@@ -179,26 +179,37 @@ class Event(Model):
         return None
 
     @property
+    def release(self):
+        return self.get_tag('sentry:release')
+
+    @property
     def dist(self):
         return self.get_tag('sentry:dist')
 
     def as_dict(self):
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
         data = OrderedDict()
-        data['id'] = self.event_id
+        data['event_id'] = self.event_id
         data['project'] = self.project_id
-        data['release'] = self.get_tag('sentry:release')
+        data['release'] = self.release
         data['dist'] = self.dist
         data['platform'] = self.platform
-        data['culprit'] = self.group.culprit
         data['message'] = self.get_legacy_message()
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
-        data['tags'] = self.get_tags()
+        data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.get_tags()]
         for k, v in sorted(six.iteritems(self.data)):
+            if k in data:
+                continue
             if k == 'sdk':
                 v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != 'client_ip'}
             data[k] = v
+
+        # for a long time culprit was not persisted.  In those cases put
+        # the culprit in from the group.
+        if data.get('culprit') is None:
+            data['culprit'] = self.group.culprit
+
         return data
 
     @property
