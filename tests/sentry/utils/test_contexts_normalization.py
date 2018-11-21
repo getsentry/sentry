@@ -186,6 +186,14 @@ class NormalizeUserAgentTests(TestCase):
         assert self.data['contexts']['device']['family'] == 'iPhone'
         assert self.data['contexts']['device']['model'] == 'iPhone'
 
+    def test_contexts_none(self):
+        self.data['contexts'] = None
+        normalize_user_agent(self.data)
+        assert self.data['contexts']['browser']['name'] == 'Chrome'
+        assert self.data['contexts']['browser']['version'] == '66.0.3359'
+        assert self.data['contexts']['os']['name'] == 'Mac OS X'
+        assert self.data['contexts']['os']['version'] == '10.13.4'
+
     def test_browser_already_set(self):
         self.data['contexts'] = {'browser': {'name': 'IE', 'version': '6'}}
         normalize_user_agent(self.data)
@@ -194,6 +202,12 @@ class NormalizeUserAgentTests(TestCase):
         assert self.data['contexts']['os']['name'] == 'Mac OS X'
         assert self.data['contexts']['os']['version'] == '10.13.4'
 
+    def test_browser_none(self):
+        self.data['contexts'] = {'browser': None}
+        normalize_user_agent(self.data)
+        assert self.data['contexts']['browser']['name'] == 'Chrome'
+        assert self.data['contexts']['browser']['version'] == '66.0.3359'
+
     def test_os_already_set(self):
         self.data['contexts'] = {'os': {'name': 'C64', 'version': '1337'}}
         normalize_user_agent(self.data)
@@ -201,6 +215,12 @@ class NormalizeUserAgentTests(TestCase):
         assert self.data['contexts']['browser']['version'] == '66.0.3359'
         assert self.data['contexts']['os']['name'] == 'C64'
         assert self.data['contexts']['os']['version'] == '1337'
+
+    def test_os_none(self):
+        self.data['contexts'] = {'os': None}
+        normalize_user_agent(self.data)
+        assert self.data['contexts']['os']['name'] == 'Mac OS X'
+        assert self.data['contexts']['os']['version'] == '10.13.4'
 
     def test_device_already_set(self):
         self.data = {'request':
@@ -218,3 +238,18 @@ class NormalizeUserAgentTests(TestCase):
         assert self.data['contexts']['os']['name'] == 'iOS'
         assert self.data['contexts']['os']['version'] == '12.1'
         assert self.data['contexts']['device']['brand'] == 'TI Calculator'
+
+    def test_device_none(self):
+        self.data = {
+            'request': {
+                'headers': [[
+                    'User-Agent',
+                    'Mozilla/5.0 (iPhone; CPU iPhone OS 12_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0 Mobile/15E148 Safari/604.1',
+                ]],
+            },
+        }
+        self.data['contexts'] = {'device': None}
+        normalize_user_agent(self.data)
+        assert self.data['contexts']['device']['brand'] == 'Apple'
+        assert self.data['contexts']['device']['family'] == 'iPhone'
+        assert self.data['contexts']['device']['model'] == 'iPhone'
