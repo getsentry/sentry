@@ -112,46 +112,52 @@ class ProjectDataForwarding extends AsyncComponent {
       );
 
     return (
-      <Feature
-        features={['projects:data-forwarding']}
-        renderDisabled={p => p.children(p)}
-      >
-        {({hasFeature, features}) => (
-          <div data-test-id="data-forwarding-settings">
-            <SettingsPageHeader title={t('Data Forwarding')} />
-            <TextBlock>
-              {tct(
-                `Data Forwarding allows processed events to be sent to your
+      <div data-test-id="data-forwarding-settings">
+        <Feature
+          features={['projects:data-forwarding']}
+          renderDisabled={p => p.children(p)}
+        >
+          {({hasFeature, features}) => (
+            <React.Fragment>
+              <SettingsPageHeader title={t('Data Forwarding')} />
+              <TextBlock>
+                {tct(
+                  `Data Forwarding allows processed events to be sent to your
                 favorite business intelligence tools. The exact payload and
                 types of data depend on the integration you're using. Learn
                 more about this functionality in our [link:documentation].`,
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/learn/data-forwarding/" />
-                  ),
-                }
-              )}
-            </TextBlock>
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/learn/data-forwarding/" />
+                    ),
+                  }
+                )}
+              </TextBlock>
 
-            <Alert icon="icon-circle-info">
-              {tct(
-                `Sentry forwards [em:all applicable events] to the provider, in
+              <Alert icon="icon-circle-info">
+                {tct(
+                  `Sentry forwards [em:all applicable events] to the provider, in
                 some cases this may be a significant volume of data.`,
-                {
-                  em: <strong />,
-                }
+                  {
+                    em: <strong />,
+                  }
+                )}
+              </Alert>
+
+              {!hasFeature && (
+                <FeatureDisabled
+                  alert
+                  featureName="Data Forwarding"
+                  features={features}
+                />
               )}
-            </Alert>
 
-            {!hasFeature && (
-              <FeatureDisabled alert featureName="Data Forwarding" features={features} />
-            )}
-
-            <DataForwardingStats params={params} />
-            {hasFeature && pluginsPanel}
-          </div>
-        )}
-      </Feature>
+              <DataForwardingStats params={params} />
+              {hasFeature && pluginsPanel}
+            </React.Fragment>
+          )}
+        </Feature>
+      </div>
     );
   }
 }
