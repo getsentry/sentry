@@ -140,9 +140,17 @@ def get_path(data, *path, **kwargs):
 
 def set_path(data, *path, **kwargs):
     """
-    Traverses a path the same way `get_path` does and overrides the value with
-    the given one. Creates nested dictionaries as needed. `None` is treated as
-    "not present".
+    Recursively traverses or creates the specified path and sets the given value
+    argument. `None` is treated like a missing value. If a non-mapping is
+    encountered while traversing, the value is not set.
+
+    This function is equivalent to a recursive dict.__setitem__. Returns True if
+    the value was set, otherwise False.
+
+    If the ``overwrite` kwarg is set to False, the value is only set if there is
+    no existing value or it is None. See ``setdefault_path``.
+
+    Example: ``set_path({}, )
     """
 
     value = kwargs['value']
@@ -158,5 +166,21 @@ def set_path(data, *path, **kwargs):
         return False
 
     p = path[-1]
-    data[p] = value
-    return True
+    if kwargs.get('overwrite', True) or data.get(p) is None:
+        data[p] = value
+        return True
+
+    return False
+
+
+def setdefault_path(data, *path, **kwargs):
+    """
+    Recursively traverses or creates the specified path and sets the given value
+    argument if it does not exist. `None` is treated like a missing value. If a
+    non-mapping is encountered while traversing, the value is not set.
+
+    This function is equivalent to a recursive dict.setdefault, except for None
+    values. Returns True if the value was set, otherwise False.
+    """
+    kwargs['overwrite'] = False
+    return set_path(data, *path, **kwargs)
