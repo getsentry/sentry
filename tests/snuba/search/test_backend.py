@@ -345,7 +345,7 @@ class SnubaSearchTest(SnubaTestCase):
                     self.project, cursor=results.next, limit=1, sort_by='date')
                 assert set(results) == set([self.group2])
                 assert results.prev.has_results
-                assert results.next.has_results
+                assert not results.next.has_results
 
                 # note: previous cursor
                 results = self.backend.query(
@@ -371,7 +371,7 @@ class SnubaSearchTest(SnubaTestCase):
                     self.project, cursor=results.next, limit=1, sort_by='date')
                 assert set(results) == set([self.group2])
                 assert results.prev.has_results
-                assert results.next.has_results
+                assert not results.next.has_results
 
                 results = self.backend.query(
                     self.project, cursor=results.next, limit=1, sort_by='date')
