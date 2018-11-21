@@ -293,3 +293,49 @@ class GitHubIssueBasicTest(TestCase):
                 repo_field = field
                 break
         assert repo_field['default'] == 'getsentry/sentry'
+
+    @responses.activate
+    @patch('sentry.integrations.github.client.GitHubClientMixin.get_token', return_value='jwt_token_1')
+    def test_default_repo_link_fields_no_repos(self, mock_get_jwt):
+        responses.add(
+            responses.GET,
+            'https://api.github.com/installation/repositories',
+            json={
+                'repositories': []
+            },
+        )
+        group = self.create_group()
+        self.create_event(group=group)
+
+        fields = self.integration.get_link_issue_config(group)
+        repo_field = [field for field in fields if field['name'] == 'repo'][0]
+        assert repo_field['default'] is ''
+        assert repo_field['choices'] == []
+
+    @responses.activate
+    @patch('sentry.integrations.github.client.get_jwt', return_value='jwt_token_1')
+    def test_default_repo_create_fields_no_repos(self, mock_get_jwt):
+        responses.add(
+            responses.GET,
+            'https://api.github.com/installation/repositories',
+            json={
+                'repositories': []
+            },
+        )
+        responses.add(
+            responses.POST,
+            'https://api.github.com/installations/github_external_id/access_tokens',
+            json={'token': 'token_1', 'expires_at': '2018-10-11T22:14:10Z'}
+        )
+
+        group = self.create_group()
+        self.create_event(group=group)
+
+        fields = self.integration.get_create_issue_config(group)
+        repo_field = [field for field in fields if field['name'] == 'repo'][0]
+        assignee_field = [field for field in fields if field['name'] == 'assignee'][0]
+
+        assert repo_field['default'] == ''
+        assert repo_field['choices'] == []
+        assert assignee_field['default'] == ''
+        assert assignee_field['choices'] == []

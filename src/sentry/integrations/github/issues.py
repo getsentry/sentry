@@ -50,7 +50,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
-        assignees = self.get_allowed_assignees(default_repo)
+        assignees = self.get_allowed_assignees(default_repo) if default_repo else []
 
         org = group.organization
         autocomplete_url = reverse(

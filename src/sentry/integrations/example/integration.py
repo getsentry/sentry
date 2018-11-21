@@ -117,7 +117,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_repositories(self):
         return [{
             'name': 'repo',
-            'id': 'user/repo',
+            'identifier': 'user/repo',
         }]
 
     def get_unmigratable_repositories(self):
