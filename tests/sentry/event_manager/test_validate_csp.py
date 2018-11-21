@@ -141,7 +141,9 @@ def test_hpkp_validate_basic():
         'url': 'www.example.com',
         'headers': [
             ('User-Agent', 'Awesome Browser'),
-        ]
+        ],
+        'fragment': '',
+        'query_string': ''
     }
 
 
