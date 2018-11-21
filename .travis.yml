@@ -231,7 +231,6 @@ matrix:
         - gcloud auth activate-service-account --key-file client-secret.json
         - npm install -g "yarn@${YARN_VERSION}"
       install:
-        - python setup.py install_egg_info
         - yarn install --pure-lockfile
         - gcloud version
       script: bash .travis/deploy-storybook.sh
