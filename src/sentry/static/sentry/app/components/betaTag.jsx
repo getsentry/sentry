@@ -23,7 +23,7 @@ const BetaTag = () => (
 const StyledTag = styled(Tag)`
   position: relative;
   top: -1px;
-  font-size: 12px;
+  font-size: ${p => p.theme.fontSizeSmall};
   font-weight: normal;
   padding: 3px 6px;
   margin-left: ${space(0.5)};
