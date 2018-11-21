@@ -131,6 +131,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = 'integrations:vsts'
 
     def setUp(self):
+        super(AzureDevOpsRepositoryProviderTest, self).setUp()
         self.base_url = 'https://visualstudio.com/'
         self.vsts_external_id = '654321'
         self.integration = Integration.objects.create(
@@ -184,6 +185,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         return VstsRepositoryProvider('integrations:vsts')
 
     def tearDown(self):
+        super(AzureDevOpsRepositoryProviderTest, self).tearDown()
         responses.reset()
 
     def add_create_repository_responses(self, repository_config):

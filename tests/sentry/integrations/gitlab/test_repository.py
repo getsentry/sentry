@@ -72,6 +72,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         return GitlabRepositoryProvider('gitlab')
 
     def tearDown(self):
+        super(GitLabRepositoryProviderTest, self).tearDown()
         responses.reset()
 
     def add_create_repository_responses(self, repository_config):
