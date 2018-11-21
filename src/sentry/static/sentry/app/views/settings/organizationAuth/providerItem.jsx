@@ -28,7 +28,7 @@ export default class ProviderItem extends React.PureComponent {
 
   renderDisabledLock = p => <LockedFeature provider={p.provider} features={p.features} />;
 
-  renderInstallButton = (provider, hasFeature) => (
+  renderInstallButton = ({provider, hasFeature}) => (
     <Button
       type="submit"
       name="provider"
@@ -62,12 +62,10 @@ export default class ProviderItem extends React.PureComponent {
               </Box>
             </Flex>
 
-            <Box flex={1}>
-              {!hasFeature && renderDisabled({organization, provider, features})}
-            </Box>
+            <Box flex={1}>{!hasFeature && renderDisabled({provider, features})}</Box>
 
             <Box>
-              {(renderInstallButton || this.renderInstallButton)(provider, hasFeature)}
+              {(renderInstallButton || this.renderInstallButton)({provider, hasFeature})}
             </Box>
           </PanelItem>
         )}
