@@ -254,6 +254,18 @@ class GroupSerializer(Serializer):
                     safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
                 )
 
+            from sentry.integrations import IntegrationFeatures
+            for integration in Integration.objects.filter(
+                    organizations=item.project.organization_id):
+                if not (integration.has_feature(IntegrationFeatures.ISSUE_BASIC) or integration.has_feature(
+                    IntegrationFeatures.ISSUE_SYNC)):
+                    continue
+
+                install = integration.get_installation(item.project.organization_id)
+                annotations.extend(
+                    safe_execute(install.get_annotations, group=item, _with_transaction=False) or ()
+                )
+
             resolution_actor = None
             resolution_type = None
             resolution = release_resolutions.get(item.id)

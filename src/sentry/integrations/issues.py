@@ -239,6 +239,27 @@ class IssueBasicMixin(object):
         """
         return (default_repo, default_repo)
 
+    def get_annotations(self, group):
+        from sentry.models import GroupLink, ExternalIssue
+        external_issue_ids = GroupLink.objects.filter(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            relationship=GroupLink.Relationship.references,
+        ).values_list('linked_id', flat=True)
+
+        external_issues = ExternalIssue.objects.filter(
+            id__in=external_issue_ids,
+            integration_id=self.model.id,
+        )
+        annotations = []
+        for ei in external_issues:
+            link = self.get_issue_url(ei.key)
+            label = self.get_issue_display_name(ei) or ei.key
+            annotations.append('<a href="%s">%s</a>' % (link, label))
+
+        return annotations
+
 
 class IssueSyncMixin(IssueBasicMixin):
     comment_key = None
