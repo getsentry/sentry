@@ -13,8 +13,7 @@ export default class MissingProjectWarningModal extends React.Component {
   };
 
   renderProject(id) {
-    id = id.toString();
-    const project = this.props.organization.projects.find(p => p.id === id);
+    const project = this.props.organization.projects.find(p => p.id === id.toString());
     return <li key={id}>{project ? project.slug : t(`Unknown project ${id}`)}</li>;
   }
   render() {
