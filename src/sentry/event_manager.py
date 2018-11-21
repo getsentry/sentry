@@ -892,7 +892,7 @@ class EventManager(object):
         # This is going to be fine because no code actually still depends
         # on integers here.  When we need an integer it will be converted
         # into one later.  Old workers used to send integers here.
-        if level is None and isinstance(level, six.integer_types):
+        if level is not None and isinstance(level, six.integer_types):
             level = LOG_LEVELS[level]
 
         transaction_name = data.get('transaction')
@@ -1012,7 +1012,7 @@ class EventManager(object):
             'message': event.message,
             'culprit': culprit,
             'logger': logger_name,
-            'level': LOG_LEVELS_MAP[level],
+            'level': LOG_LEVELS_MAP.get(level),
             'last_seen': date,
             'first_seen': date,
             'active_at': date,
