@@ -148,7 +148,7 @@ class OAuthLoginView(PipelineView):
         if 'oauth_token' in request.GET:
             return pipeline.next_step()
 
-        config = pipeline.state.data['installation_data']
+        config = pipeline.fetch_state('installation_data')
         client = JiraServerSetupClient(
             config.get('url'),
             config.get('consumer_key'),
@@ -173,7 +173,7 @@ class OAuthCallbackView(PipelineView):
     """
     @csrf_exempt
     def dispatch(self, request, pipeline):
-        config = pipeline.state.data['installation_data']
+        config = pipeline.fetch_state('installation_data')
         client = JiraServerSetupClient(
             config.get('url'),
             config.get('consumer_key'),
@@ -183,7 +183,7 @@ class OAuthCallbackView(PipelineView):
 
         try:
             access_token = client.get_access_token(
-                pipeline.state.data['request_token'],
+                pipeline.fetch_state('request_token'),
                 request.GET['oauth_token']
             )
             pipeline.bind_state('access_token', access_token)
