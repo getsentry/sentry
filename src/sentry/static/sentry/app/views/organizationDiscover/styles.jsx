@@ -48,7 +48,21 @@ export const PageTitle = styled.h2`
   height: ${HEADER_HEIGHT}px;
 `;
 
+export const ResultViewActions = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  margin-bottom: ${space(3)};
+
+  @media (max-width: ${theme.breakpoints[1]}) {
+    justify-content: flex-start;
+  }
+`;
+
 export const ResultViewButtons = styled(NavTabs)`
+  margin-bottom: 0;
+
   @media (max-width: ${theme.breakpoints[1]}) {
     display: none;
   }
@@ -63,11 +77,6 @@ export const ResultViewDropdownButtons = styled('div')`
 `;
 
 export const DownloadCsvButton = styled(Button)`
-  display: inline-block;
-  float: right;
-  position: relative;
-  top: -${space(0.5)};
-
   @media (max-width: ${theme.breakpoints[1]}) {
     margin-left: ${space(0.5)};
     top: 0;
