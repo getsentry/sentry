@@ -201,7 +201,7 @@ class Event(Model):
         data['message'] = self.get_legacy_message()
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
-        data['tags'] = self.get_tags()
+        data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.get_tags()]
         for k, v in sorted(six.iteritems(self.data)):
             if k in data:
                 continue

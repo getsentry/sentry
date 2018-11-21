@@ -937,6 +937,9 @@ class EventManager(object):
 
         if dist and release:
             dist = release.add_dist(dist, date)
+            # dont allow a conflicting 'dist' tag
+            if 'dist' in tags:
+                del tags['dist']
             tags['sentry:dist'] = dist.name
         else:
             dist = None
