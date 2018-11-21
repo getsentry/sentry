@@ -22,6 +22,35 @@ from django.core.management.base import BaseCommand, CommandError, make_option
 from django.utils.encoding import force_str
 
 
+def catch_errors(f):
+    def wrapper(*args, **kwargs):
+        error = None
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            error = force_str(e.message) + ' ' + force_str(traceback.format_exc())
+
+        try:
+            return encode({
+                'result': None,
+                'error': error,
+                'metrics': None
+            })
+        except (ValueError, TypeError) as e:
+            try:
+                # Encoding error, try to send the exception instead
+                return encode({
+                    'result': None,
+                    'error': force_str(e.message) + ' ' + force_str(traceback.format_exc()),
+                    'metrics': None,
+                    'encoding_error': True,
+                })
+            except Exception:
+                return b'{}'
+
+    return wrapper
+
+
 # Here's where the normalization itself happens
 def process_event(data, meta):
     from sentry.event_manager import EventManager, get_hashes_for_event
@@ -59,52 +88,24 @@ def encode(data):
     return json.dumps(data)
 
 
-def handle_data(pipe, data):
-    @catch_errors
-    def inner(data):
-        mc = MetricCollector()
+@catch_errors
+def handle_data(data):
+    mc = MetricCollector()
 
-        metrics_before = mc.collect_metrics()
-        data, meta = decode(data)
-        rv = process_event(data, meta)
-        metrics_after = mc.collect_metrics()
+    metrics_before = mc.collect_metrics()
+    data, meta = decode(data)
+    rv = process_event(data, meta)
+    metrics_after = mc.collect_metrics()
 
-        return encode({
-            'result': rv,
-            'metrics': {'before': metrics_before, 'after': metrics_after},
-            'error': None
-        })
-
-    pipe.send(inner(data))
+    return encode({
+        'result': rv,
+        'metrics': {'before': metrics_before, 'after': metrics_after},
+        'error': None
+    })
 
 
-def catch_errors(f):
-    def wrapper(*args, **kwargs):
-        error = None
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            error = force_str(e.message) + ' ' + force_str(traceback.format_exc())
-
-        try:
-            return encode({
-                'result': None,
-                'error': error,
-                'metrics': None
-            })
-        except (ValueError, TypeError) as e:
-            try:
-                # Encoding error, try to send the exception instead
-                return encode({
-                    'result': None,
-                    'error': force_str(e.message) + ' ' + force_str(traceback.format_exc()),
-                    'metrics': None,
-                    'encoding_error': True,
-                })
-            except Exception:
-                return b'{}'
-
-    return wrapper
+def handle_data_piped(pipe, data):
+    pipe.send(handle_data(data))
 
 
 class MetricCollector(object):
@@ -162,10 +163,18 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
         self.request.close()
 
     def handle_data(self):
+        from sentry.event_manager import ENABLE_RUST
+        if not ENABLE_RUST:
+            return handle_data(self.data)
+
         @catch_errors
         def inner():
+            # TODO: Remove this contraption once we no longer get segfaults
             parent_conn, child_conn = multiprocessing.Pipe()
-            p = multiprocessing.Process(target=handle_data, args=(child_conn, self.data,))
+            p = multiprocessing.Process(
+                target=handle_data_piped,
+                args=(child_conn, self.data,)
+            )
             p.start()
             p.join(1)
             assert parent_conn.poll(), "Process crashed"
