@@ -184,17 +184,6 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             )
 
         now = timezone.now()
-        # TODO: Presumably we want to search back to the project's full retention,
-        #       which may be higher than 90 days in the past, but apparently
-        #       `retention_window_start` can be None(?), so we need a fallback.
-        start = max(
-            filter(None, [
-                retention_window_start,
-                parameters.get('date_from'),
-                now - timedelta(days=90)
-            ])
-        )
-
         end = parameters.get('date_to')
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
@@ -215,6 +204,36 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 group_queryset = group_queryset.order_by('-last_seen')
                 paginator = DateTimePaginator(group_queryset, '-last_seen', **paginator_options)
                 return paginator.get_result(limit, cursor, count_hits=count_hits)
+
+        # TODO: Presumably we only want to search back to the project's max
+        # retention date, which may be closer than 90 days in the past, but
+        # apparently `retention_window_start` can be None(?), so we need a
+        # fallback.
+        retention_date = max(
+            filter(None, [
+                retention_window_start,
+                now - timedelta(days=90)
+            ])
+        )
+
+        start = max(
+            filter(None, [
+                retention_date,
+                parameters.get('date_from'),
+            ])
+        )
+
+        end = max([
+            retention_date,
+            end
+        ])
+
+        if start == retention_date and end == retention_date:
+            # Both `start` and `end` must have been trimmed to `retention_date`,
+            # so this entire search was against a time range that is outside of
+            # retention. We'll return empty results to maintain backwards compatability
+            # with Django search (for now).
+            return Paginator(Group.objects.none()).get_result()
 
         assert start < end
 
