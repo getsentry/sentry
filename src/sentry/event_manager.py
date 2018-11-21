@@ -61,7 +61,7 @@ from sentry.utils.data_filters import (
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
 from sentry.utils.meta import Meta, get_valid, get_all_valid
-from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path
+from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path, setdefault_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
@@ -586,7 +586,7 @@ class EventManager(object):
         #          in the inner data dict.
         is_valid, event_errors = validate_and_default_interface(data.data, 'event')
         errors.extend(event_errors)
-        if 'tags' in data:
+        if data.get('tags') is not None:
             is_valid, tag_errors = validate_and_default_interface(data['tags'], 'tags', name='tags')
             errors.extend(tag_errors)
 
@@ -648,16 +648,16 @@ class EventManager(object):
             data['timestamp'] = timestamp
             data['received'] = float(timezone.now().strftime('%s'))
 
-            data.setdefault('checksum', None)
-            data.setdefault('culprit', None)
-            data.setdefault('dist', None)
-            data.setdefault('environment', None)
-            data.setdefault('extra', {})
-            data.setdefault('fingerprint', None)
-            data.setdefault('logger', DEFAULT_LOGGER_NAME)
-            data.setdefault('platform', None)
-            data.setdefault('tags', [])
-            data.setdefault('transaction', None)
+            setdefault_path(data, 'checksum', value=None)
+            setdefault_path(data, 'culprit', value=None)
+            setdefault_path(data, 'dist', value=None)
+            setdefault_path(data, 'environment', value=None)
+            setdefault_path(data, 'extra', value={})
+            setdefault_path(data, 'fingerprint', value=None)
+            setdefault_path(data, 'logger', value=DEFAULT_LOGGER_NAME)
+            setdefault_path(data, 'platform', value=None)
+            setdefault_path(data, 'tags', value=[])
+            setdefault_path(data, 'transaction', value=None)
 
             # Fix case where legacy apps pass 'environment' as a tag
             # instead of a top level key.
@@ -742,7 +742,7 @@ class EventManager(object):
 
         # Do not add errors unless there are for non store mode
         if not self._for_store and not data.get('errors'):
-            self._data.pop('errors')
+            data.pop('errors')
 
         if meta.raw():
             data['_meta'] = meta.raw()
