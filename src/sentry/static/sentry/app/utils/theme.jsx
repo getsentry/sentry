@@ -111,6 +111,7 @@ const theme = {
       border: '#E7C0BC',
       textLight: '#92635f',
     },
+    beta: {},
   },
 
   grid: 8,
@@ -171,6 +172,8 @@ theme.alert.success.background = theme.green;
 
 theme.alert.error.iconColor = theme.redDark;
 theme.alert.error.background = theme.red;
+
+theme.alert.beta.background = `linear-gradient(90deg, ${theme.pink}, ${theme.purple})`;
 
 //alias warn to warning
 theme.alert.warn = theme.alert.warning;

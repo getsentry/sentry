@@ -2,6 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
+import Tooltip from 'app/components/tooltip';
 import Tag from 'app/views/settings/components/tag';
 
 storiesOf('UI|Tags', module)
@@ -21,6 +22,23 @@ storiesOf('UI|Tags', module)
     'success',
     withInfo('A happy tag-like thing. Use this to signal something good')(() => (
       <Tag priority="success">Development</Tag>
+    ))
+  )
+  .add(
+    'beta',
+    withInfo(
+      'An attention grabbing thing. Use this to communicate shiny new functionality.'
+    )(() => (
+      <Tooltip
+        title="This feature is in beta and may change in the future."
+        tooltipOptions={{
+          placement: 'right',
+        }}
+      >
+        <span>
+          <Tag priority="beta">beta</Tag>
+        </span>
+      </Tooltip>
     ))
   )
   .add(
