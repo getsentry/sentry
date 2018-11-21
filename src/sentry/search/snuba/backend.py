@@ -385,6 +385,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # items. In this case the paginator will assume there are no more
             # results, so we need to override the `next` cursor's results.
             paginator_results.next.has_results = True
+
         if cursor is not None and (not cursor.is_prev or len(paginator_results.results) > 0):
             # If the user passed a cursor, and it isn't already a 0 result `is_prev`
             # cursor, then it's worth allowing them to go back a page to check for
