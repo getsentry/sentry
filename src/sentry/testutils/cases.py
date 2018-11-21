@@ -899,7 +899,7 @@ class IntegrationRepositoryTestCase(APITestCase):
         self.login_as(self.user)
 
     def add_create_repository_responses(self, repository_config):
-        raise Exception
+        raise NotImplementedError
 
     def create_repository(self, repository_config, integration_id,
                           organization_slug=None, add_responses=True):
