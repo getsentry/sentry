@@ -382,7 +382,7 @@ exports[`ProjectCard renders 1`] = `
                                           data-test-id="badge-display-name"
                                         >
                                           <span
-                                            className="css-1wwlq08-DisplayName e165dl3i2"
+                                            className="css-d0rtl9-DisplayName e165dl3i2"
                                             data-test-id="badge-display-name"
                                           >
                                             <span>

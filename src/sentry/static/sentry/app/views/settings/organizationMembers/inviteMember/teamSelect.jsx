@@ -59,7 +59,7 @@ class TeamSelect extends React.Component {
                     onChange={e => {
                       toggleTeam(team.slug);
                     }}
-                    style={{marginTop: '1px'}}
+                    style={{verticalAlign: 'middle'}}
                   />
                   <IdBadge team={team} hideAvatar />
                 </label>
