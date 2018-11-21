@@ -498,6 +498,7 @@ class Fixtures(object):
                                    for_store=False)
             manager.normalize()
             kwargs['data'] = manager.get_data()
+            kwargs['message'] = manager.get_search_message()
 
         else:
             assert 'message' not in kwargs, 'do not pass message this way'

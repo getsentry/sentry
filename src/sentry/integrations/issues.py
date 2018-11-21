@@ -18,7 +18,7 @@ class IssueBasicMixin(object):
         return False
 
     def get_group_title(self, group, event, **kwargs):
-        return event.error()
+        return event.title
 
     def get_issue_url(self, key):
         """
