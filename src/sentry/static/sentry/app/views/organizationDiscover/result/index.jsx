@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {throttle} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
@@ -38,7 +39,13 @@ export default class Result extends React.Component {
     super();
     this.state = {
       view: 'table',
+      height: null,
+      width: null,
     };
+  }
+
+  componentDidMount() {
+    window.addEventListener('resize', this.throttledUpdateDimensions);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -58,11 +65,29 @@ export default class Result extends React.Component {
         view: 'table',
       });
     }
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.throttledUpdateDimensions);
+  }
+
+  setDimensions = ref => {
+    this.container = ref;
+    if (ref && this.state.height === null) {
+      this.updateDimensions();
+    }
+  };
+
+  updateDimensions = () => {
+    if (!this.container) return;
 
     this.setState({
-      savedQueryName: null,
+      height: this.container.clientHeight,
+      width: this.container.clientWidth,
     });
-  }
+  };
+
+  throttledUpdateDimensions = throttle(this.updateDimensions, 200, {trailing: true});
 
   handleToggleVisualizations = opt => {
     this.setState({
@@ -173,12 +198,13 @@ export default class Result extends React.Component {
           </ResultTitle>
           {this.renderToggle()}
         </div>
-        <ResultInnerContainer innerRef={ref => (this.container = ref)}>
+        <ResultInnerContainer innerRef={this.setDimensions}>
           {view === 'table' && (
             <Table
               data={baseQuery.data}
               query={baseQuery.query}
-              height={this.container && this.container.clientHeight}
+              height={this.state.height}
+              width={this.state.width}
             />
           )}
           {view === 'line' && (
