@@ -887,6 +887,14 @@ class EventManager(object):
 
         # Pull the toplevel data we're interested in
         level = data.get('level')
+
+        # TODO(mitsuhiko): this code path should be gone by July 2018.
+        # This is going to be fine because no code actually still depends
+        # on integers here.  When we need an integer it will be converted
+        # into one later.  Old workers used to send integers here.
+        if level is None and isinstance(level, six.integer_types):
+            level = LOG_LEVELS[level]
+
         transaction_name = data.get('transaction')
         logger_name = data.get('logger')
         checksum = data.get('checksum')
@@ -915,7 +923,7 @@ class EventManager(object):
         # different from legacy attributes which are normalized into tags
         # ahead of time (site, server_name).
         tags = dict(data.get('tags') or [])
-        tags['level'] = LOG_LEVELS[level]
+        tags['level'] = level
         if logger_name:
             tags['logger'] = logger_name
         if environment:
@@ -1004,7 +1012,7 @@ class EventManager(object):
             'message': event.message,
             'culprit': culprit,
             'logger': logger_name,
-            'level': level,
+            'level': LOG_LEVELS_MAP[level],
             'last_seen': date,
             'first_seen': date,
             'active_at': date,
