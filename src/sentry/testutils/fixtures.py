@@ -499,6 +499,9 @@ class Fixtures(object):
             manager.normalize()
             kwargs['data'] = manager.get_data()
 
+        else:
+            assert 'message' not in kwargs, 'do not pass message this way'
+
         event = Event(event_id=event_id, **kwargs)
         EventMapping.objects.create(
             project_id=event.project.id,

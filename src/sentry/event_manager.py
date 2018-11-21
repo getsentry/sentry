@@ -86,6 +86,11 @@ SECURITY_REPORT_INTERFACES = (
 ENABLE_RUST = os.environ.get("SENTRY_USE_RUST_NORMALIZER", "false").lower() in ("1", "true")
 
 
+def set_tag(data, key, value):
+    data['tags'] = [(k, v) for k, v in data['tags'] if k != key]
+    data['tags'].append((key, value))
+
+
 def get_event_metadata_compat(data, fallback_message):
     """This is a fallback path to getting the event metadata.  This is used
     by some code paths that could potentially deal with old sentry events that
@@ -412,6 +417,7 @@ class EventManager(object):
         self._auth = auth
         self._key = key
         self._for_store = for_store
+        self._normalized = False
 
     def process_csp_report(self):
         """Only called from the CSP report endpoint."""
@@ -464,6 +470,10 @@ class EventManager(object):
         self._data = data
 
     def normalize(self):
+        if self._normalized:
+            raise RuntimeError('Already normalized')
+        self._normalized = True
+
         if ENABLE_RUST:
             from semaphore.processing import StoreNormalizer
             rust_normalizer = StoreNormalizer(
@@ -656,8 +666,6 @@ class EventManager(object):
             data.setdefault('fingerprint', None)
             data.setdefault('logger', DEFAULT_LOGGER_NAME)
             data.setdefault('platform', None)
-            data.setdefault('server_name', None)
-            data.setdefault('site', None)
             data.setdefault('tags', [])
             data.setdefault('transaction', None)
 
@@ -730,11 +738,17 @@ class EventManager(object):
             # XXX: This will be trimmed again when inserted into tag values
             data['transaction'] = trim(data['transaction'], MAX_CULPRIT_LENGTH)
 
+        # Move some legacy data into tags
+        site = data.pop('site', None)
+        if site is not None:
+            set_tag(data, 'site', site)
+        server_name = data.pop('server_name', None)
+        if server_name is not None:
+            set_tag(data, 'server_name', server_name)
+
         # Do not add errors unless there are for non store mode
         if not self._for_store and not data.get('errors'):
             self._data.pop('errors')
-
-        self._data = data
 
     def should_filter(self):
         '''
@@ -785,16 +799,14 @@ class EventManager(object):
         return self._data
 
     def _get_event_instance(self, project_id=None):
-        data = self._data.copy()
-        event_id = data.pop('event_id')
-        platform = data.pop('platform', None)
+        data = self._data
+        event_id = data.get('event_id')
+        platform = data.get('platform')
 
-        recorded_timestamp = data.pop('timestamp')
+        recorded_timestamp = data.get('timestamp')
         date = datetime.fromtimestamp(recorded_timestamp)
         date = date.replace(tzinfo=timezone.utc)
-
-        # unused
-        time_spent = data.pop('time_spent', None)
+        time_spent = data.get('time_spent')
 
         return Event(
             project_id=project_id or self._project.id,
@@ -805,11 +817,30 @@ class EventManager(object):
             platform=platform
         )
 
-    def get_search_message(self, data, event_metadata=None, culprit=None):
+    def get_culprit(self):
+        """Helper to calculate the default culprit"""
+        return force_text(
+            self._data.get('culprit') or
+            self._data.get('transaction') or
+            generate_culprit(self._data, platform=self._data['platform']) or
+            ''
+        )
+
+    def get_event_type(self):
+        """Returns the event type."""
+        return eventtypes.get(self._data.get('type', 'default'))(self._data)
+
+    def get_search_message(self, event_metadata=None, culprit=None):
         """This generates the internal event.message attribute which is used
         for search purposes.  It adds a bunch of data from the metadata and
         the culprit.
         """
+        if event_metadata is None:
+            event_metadata = self.get_event_type().get_metadata()
+        if culprit is None:
+            culprit = self.get_culprit()
+
+        data = self._data
         message = ''
 
         if 'logentry' in data:
@@ -828,7 +859,13 @@ class EventManager(object):
 
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
-    def save(self, project_id, raw=False):
+    def save(self, project_id, raw=False, assume_normalized=False):
+        # Normalize if needed
+        if not self._normalized:
+            if not assume_normalized:
+                self.normalize()
+            self._normalized = True
+
         from sentry.tasks.post_process import index_event_tags
 
         data = self._data
@@ -859,53 +896,50 @@ class EventManager(object):
             )
             return event
 
-        # pull out our top-level (non-data attr) kwargs
-        level = data.pop('level')
-        transaction_name = data.pop('transaction', None)
-        culprit = data.pop('culprit', None)
-        logger_name = data.pop('logger', None)
-        server_name = data.pop('server_name', None)
-        site = data.pop('site', None)
-        checksum = data.pop('checksum', None)
-        fingerprint = data.pop('fingerprint', None)
-        release = data.pop('release', None)
-        dist = data.pop('dist', None)
-        environment = data.pop('environment', None)
-        recorded_timestamp = data.get("timestamp")
+        # Pull out the culprit
+        culprit = self.get_culprit()
 
-        # old events had a small chance of having a legacy message
-        # attribute show up here.  In all reality this is being coerced
-        # into logentry for more than two years at this point (2018).
-        data.pop('message', None)
+        # Pull the toplevel data we're interested in
+        level = data.get('level')
 
+        # TODO(mitsuhiko): this code path should be gone by July 2018.
+        # This is going to be fine because no code actually still depends
+        # on integers here.  When we need an integer it will be converted
+        # into one later.  Old workers used to send integers here.
+        if level is not None and isinstance(level, six.integer_types):
+            level = LOG_LEVELS[level]
+
+        transaction_name = data.get('transaction')
+        logger_name = data.get('logger')
+        checksum = data.get('checksum')
+        fingerprint = data.get('fingerprint')
+        release = data.get('release')
+        dist = data.get('dist')
+        environment = data.get('environment')
+        recorded_timestamp = data.get('timestamp')
+
+        # We need to swap out the data with the one internal to the newly
+        # created event object
         event = self._get_event_instance(project_id=project_id)
+        self._data = data = event.data.data
+
         event._project_cache = project
 
         date = event.datetime
         platform = event.platform
         event_id = event.event_id
-        data = event.data.data
-        self._data = None
 
-        culprit = culprit or \
-            transaction_name or \
-            generate_culprit(data, platform=platform) or \
-            ''
-
-        culprit = force_text(culprit)
         if transaction_name:
             transaction_name = force_text(transaction_name)
 
-        # convert this to a dict to ensure we're only storing one value per key
-        # as most parts of Sentry dont currently play well with multiple values
+        # Some of the data that are toplevel attributes are duplicated
+        # into tags (logger, level, environment, transaction).  These are
+        # different from legacy attributes which are normalized into tags
+        # ahead of time (site, server_name).
         tags = dict(data.get('tags') or [])
-        tags['level'] = LOG_LEVELS[level]
+        tags['level'] = level
         if logger_name:
             tags['logger'] = logger_name
-        if server_name:
-            tags['server_name'] = server_name
-        if site:
-            tags['site'] = site
         if environment:
             tags['environment'] = trim(environment, MAX_TAG_VALUE_LENGTH)
         if transaction_name:
@@ -925,6 +959,9 @@ class EventManager(object):
 
         if dist and release:
             dist = release.add_dist(dist, date)
+            # dont allow a conflicting 'dist' tag
+            if 'dist' in tags:
+                del tags['dist']
             tags['sentry:dist'] = dist.name
         else:
             dist = None
@@ -973,7 +1010,7 @@ class EventManager(object):
         else:
             hashes = [md5_from_hash(h) for h in get_hashes_for_event(event)]
 
-        event_type = eventtypes.get(data.get('type', 'default'))(data)
+        event_type = self.get_event_type()
         event_metadata = event_type.get_metadata()
 
         data['type'] = event_type.key
@@ -981,33 +1018,26 @@ class EventManager(object):
 
         # index components into ``Event.message``
         # See GH-3248
-        event.message = self.get_search_message(data, event_metadata, culprit)
+        event.message = self.get_search_message(event_metadata, culprit)
+        received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
 
         kwargs = {
             'platform': platform,
-            'message': event.message
+            'message': event.message,
+            'culprit': culprit,
+            'logger': logger_name,
+            'level': LOG_LEVELS_MAP.get(level),
+            'last_seen': date,
+            'first_seen': date,
+            'active_at': date,
+            'data': {
+                'last_received': received_timestamp,
+                'type': event_type.key,
+                # we cache the events metadata on the group to ensure its
+                # accessible in the stream
+                'metadata': event_metadata,
+            },
         }
-
-        received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
-        kwargs.update(
-            {
-                'culprit': culprit,
-                'logger': logger_name,
-                'level': level,
-                'last_seen': date,
-                'first_seen': date,
-                'active_at': date,
-                'data': {
-                    'last_received': received_timestamp,
-                    'type':
-                    event_type.key,
-                    # we cache the events metadata on the group to ensure its
-                    # accessible in the stream
-                    'metadata':
-                    event_metadata,
-                },
-            }
-        )
 
         if release:
             kwargs['first_release'] = release
