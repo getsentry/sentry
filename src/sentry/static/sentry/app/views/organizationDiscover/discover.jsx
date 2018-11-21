@@ -12,11 +12,11 @@ import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
+import BetaTag from 'app/components/betaTag';
 
 import Result from './result';
 import ResultLoading from './result/loading';
 import Intro from './intro';
-import EarlyAdopterMessage from './earlyAdopterMessage';
 import NewQuery from './sidebar/newQuery';
 import EditSavedQuery from './sidebar/editSavedQuery';
 import SavedQueryList from './sidebar/savedQueryList';
@@ -341,13 +341,14 @@ export default class OrganizationDiscover extends React.Component {
             {!shouldDisplayResult && (
               <React.Fragment>
                 <Box mt={1} mb={2}>
-                  <Heading>{t('Discover')}</Heading>
+                  <Heading>
+                    {t('Discover')} <BetaTag />
+                  </Heading>
                 </Box>
                 <Intro updateQuery={this.updateFields} />
               </React.Fragment>
             )}
             {isFetchingQuery && <ResultLoading />}
-            <EarlyAdopterMessage />
           </BodyContent>
         </Body>
         <Sidebar>

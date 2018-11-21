@@ -31,7 +31,7 @@ const TagTextStyled = styled(({priority, size, border, inline, ...props}) => (
   border-radius: ${p => (p.size == 'small' ? '0.25em' : '2em')};
   text-transform: lowercase;
   font-weight: ${p => (p.size == 'small' ? 'bold' : 'normal')};
-  background-color: ${p =>
+  background: ${p =>
     p.priority ? p.theme.alert[p.priority].background : p.theme.offWhite2};
   ${p => getBorder(p)};
   ${p => getMarginLeft(p)};

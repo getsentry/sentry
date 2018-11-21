@@ -92,7 +92,7 @@ export default class Intro extends React.Component {
 }
 
 const IntroContainer = styled(Flex)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray5};
 `;
 

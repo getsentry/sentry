@@ -7,10 +7,10 @@ import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Pagination from 'app/components/pagination';
-import PreviewFeature from 'app/components/previewFeature';
 import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
+import BetaTag from 'app/components/betaTag';
 
 import {getParams} from './utils/getParams';
 import EventsChart from './eventsChart';
@@ -86,15 +86,15 @@ class OrganizationEvents extends AsyncView {
     return (
       <React.Fragment>
         <Flex align="center" justify="space-between" mb={2}>
-          <HeaderTitle>{t('Events')}</HeaderTitle>
+          <HeaderTitle>
+            {t('Events')} <BetaTag />
+          </HeaderTitle>
           <StyledSearchBar
             query={location.query && location.query.query}
             placeholder={t('Search for events, users, tags, and everything else.')}
             onSearch={this.handleSearch}
           />
         </Flex>
-
-        <PreviewFeature type="info" />
 
         <Panel>
           <EventsChart organization={organization} />
@@ -110,6 +110,10 @@ class OrganizationEvents extends AsyncView {
 
 const HeaderTitle = styled('h4')`
   flex: 1;
+  font-size: ${p => p.theme.headerFontSize};
+  line-height: ${p => p.theme.headerFontSize};
+  font-weight: normal;
+  color: ${p => p.theme.gray4};
   margin: 0;
 `;
 

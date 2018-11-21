@@ -98,7 +98,7 @@ export const Body = styled(Flex)`
 export const BodyContent = styled(Flex)`
   flex: 1;
   flex-direction: column;
-  padding: ${space(1.5)} 32px 32px 32px;
+  padding: ${space(2)} 32px 32px 32px;
   overflow-y: scroll;
   position: relative;
   background: ${p => p.theme.whiteDark};
