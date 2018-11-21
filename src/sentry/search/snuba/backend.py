@@ -379,9 +379,11 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # because we're 'lying' to the SequencePaginator (it thinks it has the entire
         # result set in memory when it does not). For this reason we need to make some
         # best guesses as to whether the `prev` and `next` cursors have more results.
-        if len(paginator_results.results) == limit:
-            # If the paginator is returning `limit` results then chances are there are
-            # more results after this page.
+        if len(paginator_results.results) == limit and more_results:
+            # Because we are going back and forth between DBs there is a small
+            # chance that we will hand the SequencePaginator exactly `limit`
+            # items. In this case the paginator will assume there are no more
+            # results, so we need to override the `next` cursor's results.
             paginator_results.next.has_results = True
         if cursor is not None and (not cursor.is_prev or len(paginator_results.results) > 0):
             # If the user passed a cursor, and it isn't already a 0 result `is_prev`
