@@ -1,6 +1,5 @@
 {% load sentry_helpers %}
 
-{% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
 {% url 'sentry-stream' group.organization.slug group.project.slug as project_link %}
 <div class="group-header">
   <table class="group-stats">
