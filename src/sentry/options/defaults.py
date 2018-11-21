@@ -151,3 +151,6 @@ register('kafka-publisher.max-event-size', default=100000)
 
 # Event Stream
 register('eventstream.kafka.send-post_process-task', type=Bool, default=True)
+
+# Event Normalization
+register('event-normalization.parse-user-agent-sample-rate', default=0.0)

@@ -1,9 +1,8 @@
 from __future__ import absolute_import, print_function
 
-from ua_parser.user_agent_parser import Parse
-
 from sentry.plugins import Plugin2
 from sentry.stacktraces import find_stacktraces_in_data
+from sentry.utils.contexts_normalization import normalize_user_agent
 
 from .processor import JavaScriptStacktraceProcessor
 from .errormapping import rewrite_exception
@@ -15,7 +14,7 @@ def preprocess_event(data):
     translate_exception(data)
     fix_culprit(data)
     if data.get('platform') == 'javascript':
-        inject_device_data(data)
+        normalize_user_agent(data)
     generate_modules(data)
     return data
 
@@ -40,87 +39,6 @@ def fix_culprit(data):
 
     from sentry.event_manager import generate_culprit
     data['culprit'] = generate_culprit(data)
-
-
-def parse_user_agent(data):
-    http = data.get('request')
-    if not http:
-        return None
-
-    headers = http.get('headers')
-    if not headers:
-        return None
-
-    for key, value in headers:
-        if key != 'User-Agent':
-            continue
-        ua = Parse(value)
-        if not ua:
-            continue
-        return ua
-    return None
-
-
-def _get_version(user_agent):
-    return '.'.join(
-        value for value in [
-            user_agent['major'],
-            user_agent['minor'],
-            user_agent.get('patch'),
-        ] if value
-    ) or None
-
-
-def inject_browser_context(data, user_agent):
-    ua = user_agent['user_agent']
-    try:
-        if ua['family'] == 'Other':
-            return
-        data['contexts']['browser'] = {
-            'name': ua['family'],
-            'version': _get_version(ua),
-        }
-    except KeyError:
-        pass
-
-
-def inject_os_context(data, user_agent):
-    ua = user_agent['os']
-    try:
-        if ua['family'] == 'Other':
-            return
-        data['contexts']['os'] = {
-            'name': ua['family'],
-            'version': _get_version(ua),
-        }
-    except KeyError:
-        pass
-
-
-def inject_device_context(data, user_agent):
-    ua = user_agent['device']
-    try:
-        if ua['family'] == 'Other':
-            return
-        data['contexts']['device'] = {
-            'family': ua['family'],
-            'model': ua['model'],
-            'brand': ua['brand'],
-        }
-    except KeyError:
-        pass
-
-
-def inject_device_data(data):
-    user_agent = parse_user_agent(data)
-    if not user_agent:
-        return
-
-    data.setdefault('contexts', {})
-
-    inject_browser_context(data, user_agent)
-    inject_os_context(data, user_agent)
-    inject_device_context(data, user_agent)
 
 
 class JavascriptPlugin(Plugin2):
