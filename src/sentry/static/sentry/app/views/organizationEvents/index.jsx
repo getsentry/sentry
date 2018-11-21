@@ -1,14 +1,13 @@
 import {Flex} from 'grid-emotion';
+import {isDate, isEqual, isEqualWith} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_STATS_PERIOD, DEFAULT_USE_UTC} from 'app/constants';
 import {defined} from 'app/utils';
 import {getLocalDateObject, getUtcDateString} from 'app/utils/dates';
-import {getParams} from 'app/views/organizationEvents/utils';
-import EventsContext from 'app/views/organizationEvents/eventsContext';
 import Feature from 'app/components/acl/feature';
 import Header from 'app/components/organizations/header';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
@@ -20,13 +19,44 @@ import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import space from 'app/styles/space';
 import withOrganization from 'app/utils/withOrganization';
 
+import {getParams} from './utils/getParams';
+import EventsContext from './utils/eventsContext';
+
+// `lodash.isEqual` does not compare date objects properly?
+const dateComparator = (value, other) => {
+  if (isDate(value) && isDate(other)) {
+    return +value === +other;
+  }
+
+  // returning undefined will use default comparator
+  return undefined;
+};
+
+const isEqualWithDates = (a, b) => isEqualWith(a, b, dateComparator);
+const isEqualWithEmptyArrays = (newQuery, current) => {
+  // We will only get empty arrays from `newQuery`
+  // Can't use isEqualWith because keys are unbalanced (guessing)
+  return isEqual(
+    Object.entries(newQuery)
+      .filter(([, value]) => !Array.isArray(value) || !!value.length)
+      .reduce(
+        (acc, [key, value]) => ({
+          ...acc,
+          [key]: value,
+        }),
+        {}
+      ),
+    current
+  );
+};
+
 class OrganizationEventsContainer extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
     router: PropTypes.object,
   };
 
-  static getInitialStateFromRouter(props) {
+  static getStateFromRouter(props) {
     const {query} = props.router.location;
     const hasAbsolute = !!query.start && !!query.end;
     let project = [];
@@ -50,18 +80,30 @@ class OrganizationEventsContainer extends React.Component {
       end = getLocalDateObject(end);
     }
 
-    const values = {
+    return {
       project,
       environment,
       period: query.statsPeriod || (hasAbsolute ? null : DEFAULT_STATS_PERIOD),
       start: start || null,
       end: end || null,
-    };
 
-    return {
-      ...values,
-      queryValues: {...values},
+      // params from URL will be a string
+      utc: typeof query.utc !== 'undefined' ? query.utc === 'true' : DEFAULT_USE_UTC,
     };
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    const values = OrganizationEventsContainer.getStateFromRouter(props);
+
+    // Update `queryValues` if URL parameters change
+    if (!isEqualWithDates(state.queryValues, values)) {
+      return {
+        ...values,
+        queryValues: values,
+      };
+    }
+
+    return null;
   }
 
   constructor(props) {
@@ -70,8 +112,7 @@ class OrganizationEventsContainer extends React.Component {
     this.actions = {
       updateParams: this.updateParams,
     };
-
-    this.state = OrganizationEventsContainer.getInitialStateFromRouter(props);
+    this.state = {};
   }
 
   updateParams = obj => {
@@ -94,6 +135,11 @@ class OrganizationEventsContainer extends React.Component {
       newQuery.end = getUtcDateString(newQuery.end);
     }
 
+    // Only push new location if query params has changed because this will cause a heavy re-render
+    if (isEqualWithEmptyArrays(newQuery, router.location.query)) {
+      return;
+    }
+
     router.push({
       pathname: router.location.pathname,
       query: newQuery,
@@ -101,56 +147,34 @@ class OrganizationEventsContainer extends React.Component {
   };
 
   handleChangeProjects = projects => {
-    this.setState(state => ({
+    this.setState({
       project: projects,
-    }));
+    });
   };
 
   handleChangeEnvironments = environments => {
-    this.setState(state => ({
+    this.setState({
       environment: environments,
-    }));
+    });
   };
 
-  handleChangeTime = ({start, end, relative}) => {
-    this.setState({start, end, period: relative});
+  handleChangeTime = ({start, end, relative, utc}) => {
+    this.setState({start, end, period: relative, utc});
   };
 
   handleUpdatePeriod = () => {
-    this.setState(({period, start, end, ...state}) => {
-      let newValueObj = {
-        ...(defined(period) ? {period} : {start, end}),
-      };
+    let {period, start, end, utc} = this.state;
+    let newValueObj = {
+      ...(defined(period) ? {period} : {start, end}),
+      utc,
+    };
 
-      this.updateParams(newValueObj);
-
-      const {
-        period: _period, // eslint-disable-line no-unused-vars
-        start: _start, // eslint-disable-line no-unused-vars
-        end: _end, // eslint-disable-line no-unused-vars
-        ...queryValues
-      } = state.queryValues;
-
-      return {
-        queryValues: {
-          ...queryValues,
-          ...newValueObj,
-        },
-      };
-    });
+    this.updateParams(newValueObj);
   };
 
   handleUpdate = type => {
-    this.setState(state => {
-      let newValueObj = {[type]: state[type]};
-      this.updateParams(newValueObj);
-      return {
-        queryValues: {
-          ...state.queryValues,
-          ...newValueObj,
-        },
-      };
-    });
+    let newValueObj = {[type]: this.state[type]};
+    this.updateParams(newValueObj);
   };
 
   handleUpdateEnvironmments = () => this.handleUpdate('environment');
@@ -159,13 +183,13 @@ class OrganizationEventsContainer extends React.Component {
 
   render() {
     const {organization, children} = this.props;
-    const {period, start, end} = this.state;
+    const {period, start, end, utc} = this.state;
 
     const projects =
       organization.projects && organization.projects.filter(({isMember}) => isMember);
 
     return (
-      <Feature features={['events-stream']} renderDisabled>
+      <Feature features={['global-views']} renderDisabled>
         <EventsContext.Provider
           value={{actions: this.actions, ...this.state.queryValues}}
         >
@@ -197,11 +221,11 @@ class OrganizationEventsContainer extends React.Component {
                   relative={period}
                   start={start}
                   end={end}
+                  utc={utc}
                   onChange={this.handleChangeTime}
                   onUpdate={this.handleUpdatePeriod}
                 />
               </HeaderItemPosition>
-              <HeaderSeparator />
             </Header>
             <Body>{children}</Body>
           </OrganizationEventsContent>

@@ -8,18 +8,20 @@ import {t} from 'app/locale';
 import {PanelBody, Panel, PanelHeader} from 'app/components/panels';
 import DateTime from 'app/components/dateTime';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import EventsContext from 'app/views/organizationEvents/eventsContext';
 import IdBadge from 'app/components/idBadge';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
+import EventsContext from './utils/eventsContext';
+
 class EventsTable extends React.Component {
   static propTypes = {
     reloading: PropTypes.bool,
     events: PropTypes.array,
     organization: SentryTypes.Organization,
+    utc: PropTypes.bool,
   };
 
   constructor(props) {
@@ -61,7 +63,7 @@ class EventsTable extends React.Component {
   }
 
   render() {
-    const {events, organization, reloading} = this.props;
+    const {events, organization, reloading, utc} = this.props;
     const hasEvents = events && !!events.length;
 
     return (
@@ -102,7 +104,7 @@ class EventsTable extends React.Component {
                   </TableData>
 
                   <TableData>
-                    <StyledDateTime date={new Date(event.dateCreated)} />
+                    <StyledDateTime utc={utc} date={new Date(event.dateCreated)} />
                   </TableData>
                 </TableRow>
               );

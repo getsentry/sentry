@@ -34,8 +34,6 @@ from sentry.utils.linksign import generate_signed_link
 
 from .activity import emails
 
-from six.moves.urllib.parse import urlencode
-
 NOTSET = object()
 
 logger = logging.getLogger(__name__)
@@ -183,11 +181,11 @@ class MailPlugin(NotificationPlugin):
 
         return send_to_list
 
-    def add_unsubscribe_link(self, context, user_id, project, source):
+    def add_unsubscribe_link(self, context, user_id, project, referrer):
         context['unsubscribe_link'] = generate_signed_link(
             user_id,
             'sentry-account-email-unsubscribe-project',
-            source,
+            referrer,
             kwargs={
                 'project_id': project.id,
             }
@@ -206,13 +204,10 @@ class MailPlugin(NotificationPlugin):
 
         subject = event.get_email_subject()
 
-        link = group.get_absolute_url()
-
-        query_params = {'source': 'alert_email'}
+        query_params = {'referrer': 'alert_email'}
         if environment:
             query_params['environment'] = environment
-
-        link = link + '?' + urlencode(query_params)
+        link = group.get_absolute_url(params=query_params)
 
         template = 'sentry/emails/error.txt'
         html_template = 'sentry/emails/error.html'

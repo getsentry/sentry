@@ -72,7 +72,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         if query:
             queryset = queryset.filter(
-                version__istartswith=query,
+                version__icontains=query,
             )
 
         queryset = queryset.extra(select={

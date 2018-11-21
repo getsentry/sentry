@@ -157,7 +157,7 @@ class Field extends React.Component {
         {(label || help) && (
           <FieldDescription inline={inline} htmlFor={id}>
             {label && (
-              <FieldLabel>
+              <FieldLabel disabled={isDisabled}>
                 {label} {required && <FieldRequiredBadge />}
               </FieldLabel>
             )}

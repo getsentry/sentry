@@ -780,7 +780,7 @@ SENTRY_FEATURES = {
     # Enable attaching arbitrary files to events.
     'organizations:event-attachments': False,
     # Enable the organization wide events stream interface.
-    'organizations:events-stream': False,
+    'organizations:global-views': False,
     # Enable the interface and functionality for unmerging event groups.
     'organizations:group-unmerge': False,
     # Enable the 'health' interface.
@@ -1323,7 +1323,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
 )
 
 SENTRY_INTERNAL_INTEGRATIONS = (
-    'vsts-extension',
+    'jira_server',
 )
 
 

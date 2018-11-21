@@ -37,10 +37,9 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import TextField from 'app/views/settings/components/forms/textField';
 import getDynamicText from 'app/utils/getDynamicText';
-
-import TextCopyInput from '../../components/forms/textCopyInput';
 
 const RATE_LIMIT_FORMAT_MAP = new Map([
   [0, 'None'],
@@ -227,6 +226,7 @@ class KeyRateLimitsForm extends React.Component {
                   className="rate-limit-group"
                   name="rateLimit"
                   label={t('Rate Limit')}
+                  disabled={!hasFeature}
                   validate={({id, form, model}) => {
                     let isValid =
                       form &&

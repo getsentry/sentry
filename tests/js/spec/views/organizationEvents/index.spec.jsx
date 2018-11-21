@@ -9,7 +9,7 @@ describe('OrganizationEvents', function() {
   let router;
   const project = TestStubs.Project({isMember: true});
   const organization = TestStubs.Organization({
-    features: ['events-stream'],
+    features: ['global-views'],
     projects: [project, TestStubs.Project({isMember: true, slug: 'new-project', id: 3})],
   });
 
@@ -58,8 +58,6 @@ describe('OrganizationEvents', function() {
       .find('EnvironmentSelectorItem')
       .at(0)
       .simulate('click');
-    // This should update state, but not route or context
-    expect(wrapper.state('environment')).toEqual(['production']);
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/events/',
@@ -68,6 +66,20 @@ describe('OrganizationEvents', function() {
         statsPeriod: '14d',
       },
     });
+
+    wrapper.setProps({
+      router: {
+        ...router,
+        location: {
+          ...router.location,
+          query: {
+            environment: ['production'],
+            statsPeriod: '14d',
+          },
+        },
+      },
+    });
+
     expect(wrapper.state('queryValues')).toEqual(
       expect.objectContaining({environment: ['production']})
     );
@@ -84,11 +96,9 @@ describe('OrganizationEvents', function() {
     expect(wrapper.state('environment')).toEqual(['production', 'staging']);
 
     // close dropdown
-    await wrapper
-      .find('MultipleEnvironmentSelector')
-      .instance()
-      .doUpdate();
-    wrapper.update();
+    wrapper
+      .find('MultipleEnvironmentSelector StyledInput')
+      .simulate('keyDown', {key: 'Escape'});
     expect(router.push).toHaveBeenLastCalledWith({
       pathname: '/organizations/org-slug/events/',
       query: {
@@ -96,6 +106,20 @@ describe('OrganizationEvents', function() {
         statsPeriod: '14d',
       },
     });
+
+    wrapper.setProps({
+      router: {
+        ...router,
+        location: {
+          ...router.location,
+          query: {
+            environment: ['production', 'staging'],
+            statsPeriod: '14d',
+          },
+        },
+      },
+    });
+
     expect(wrapper.state('queryValues')).toEqual(
       expect.objectContaining({environment: ['production', 'staging']})
     );
@@ -105,7 +129,19 @@ describe('OrganizationEvents', function() {
     await tick();
     wrapper.update();
     wrapper.find('MultipleEnvironmentSelector HeaderItem StyledClose').simulate('click');
-    expect(wrapper.state('environment')).toEqual([]);
+
+    wrapper.setProps({
+      router: {
+        ...router,
+        location: {
+          ...router.location,
+          query: {
+            environment: [],
+            statsPeriod: '14d',
+          },
+        },
+      },
+    });
 
     expect(wrapper.state('queryValues')).toEqual(
       expect.objectContaining({environment: []})
@@ -119,25 +155,6 @@ describe('OrganizationEvents', function() {
     });
   });
 
-  it('does not update component state when router is changed', async function() {
-    expect(wrapper.state('environment')).toEqual([]);
-
-    // This shouldn't happen, we only use URL params for initial state
-    wrapper.setProps({
-      router: {
-        ...router,
-        location: {
-          pathname: '/organizations/org-slug/events/',
-          query: {
-            environment: ['production'],
-            statsPeriod: '14d',
-          },
-        },
-      },
-    });
-    expect(wrapper.state('environment')).toEqual([]);
-  });
-
   it('updates router when changing projects', function() {
     expect(wrapper.state('project')).toEqual([]);
 
@@ -147,7 +164,6 @@ describe('OrganizationEvents', function() {
       .find('MultipleProjectSelector AutoCompleteItem')
       .at(0)
       .simulate('click');
-    expect(wrapper.state('project')).toEqual([2]);
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/events/',
@@ -156,6 +172,21 @@ describe('OrganizationEvents', function() {
         statsPeriod: '14d',
       },
     });
+
+    wrapper.setProps({
+      router: {
+        ...router,
+        location: {
+          pathname: '/organizations/org-slug/events/',
+          query: {
+            project: [2],
+            statsPeriod: '14d',
+          },
+        },
+      },
+    });
+
+    expect(wrapper.state('queryValues')).toEqual(expect.objectContaining({project: [2]}));
   });
 
   it('selects multiple projects', async function() {
@@ -186,9 +217,9 @@ describe('OrganizationEvents', function() {
     });
   });
 
-  it('changes to absolute time', async function() {
-    const start = new Date('2017-10-01T04:00:00.000Z');
-    const end = new Date('2017-10-02T03:59:59.000Z');
+  it('changes to absolute time (utc is default)', async function() {
+    const start = new Date('2017-10-01T00:00:00.000Z');
+    const end = new Date('2017-10-01T23:59:59.000Z');
 
     wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
 
@@ -209,9 +240,33 @@ describe('OrganizationEvents', function() {
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/events/',
       query: {
-        start: '2017-10-01T04:00:00',
-        end: '2017-10-02T03:59:59',
+        start: '2017-10-01T00:00:00',
+        end: '2017-10-01T23:59:59',
+        utc: 'true',
       },
     });
+  });
+
+  it('does not update router when toggling environment selector without changes', async function() {
+    wrapper.setProps({
+      router: {
+        ...router,
+        location: {
+          ...router.location,
+          query: {
+            environment: ['production'],
+            statsPeriod: '14d',
+            utc: 'true',
+          },
+        },
+      },
+    });
+
+    // Toggle MultipleProjectSelector
+    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    wrapper
+      .find('MultipleEnvironmentSelector StyledInput')
+      .simulate('keyDown', {key: 'Escape'});
+    expect(router.push).not.toHaveBeenCalled();
   });
 });

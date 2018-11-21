@@ -260,7 +260,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         output = [
             u'Sentry Issue: [{}|{}]'.format(
                 group.qualified_short_id,
-                absolute_uri(group.get_absolute_url()),
+                absolute_uri(group.get_absolute_url(params={'referrer': 'jira_integration'})),
             )
         ]
         body = self.get_group_body(group, event)
@@ -386,6 +386,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return issue_type_meta
 
     def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'jira_integration'
         fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
         params = kwargs.get('params', {})
         defaults = self.get_project_defaults(group.project_id)

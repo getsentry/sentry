@@ -105,6 +105,7 @@ const DisplayNameAndDescription = styled(Flex)`
 const DisplayName = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 `;
 
 const Description = styled('div')`

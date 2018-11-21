@@ -804,17 +804,6 @@ class StacktraceTest(TestCase):
         self.assertEquals(result, get_stacktrace.return_value)
 
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
-    @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_stacktrace')
-    def test_get_traceback_response(self, get_stacktrace):
-        event = mock.Mock(spec=Event())
-        event.message = 'foo'
-        get_stacktrace.return_value = 'bar'
-        interface = Stacktrace.to_python(dict(frames=[{'lineno': 1, 'filename': 'foo.py'}]))
-        result = interface.get_traceback(event)
-        get_stacktrace.assert_called_once_with(event, newest_first=None)
-        self.assertEquals(result, 'foo\n\nbar')
-
-    @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_only_filename(self):
         event = mock.Mock(spec=Event())
         interface = Stacktrace.to_python(dict(frames=[{'filename': 'foo'}, {'filename': 'bar'}]))

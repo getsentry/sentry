@@ -4,10 +4,13 @@ import {Flex, Box} from 'grid-emotion';
 import {keyframes} from 'emotion';
 
 import space from 'app/styles/space';
+import {slideInRight} from 'app/styles/animations';
 
 import {Panel, PanelItem} from 'app/components/panels';
+import Button from 'app/components/button';
 import NavTabs from 'app/components/navTabs';
 import Link from 'app/components/link';
+import Header from 'app/components/organizations/header';
 import theme from 'app/utils/theme';
 
 const HEADER_HEIGHT = 60;
@@ -19,12 +22,19 @@ export const DiscoverWrapper = styled(Flex)`
 export const DiscoverContainer = styled(Flex)`
   width: 100%;
   height: 100vh;
+  position: relative;
 
   margin-bottom: -20px;
 
   .control-group {
     margin-bottom: 0; /* Do not want the global control-group margins  */
   }
+`;
+
+export const DiscoverHeader = styled(Header)`
+  position: absolute;
+  top: 0;
+  left: 0;
 `;
 
 export const PageTitle = styled.h2`
@@ -39,11 +49,11 @@ export const PageTitle = styled.h2`
 `;
 
 export const ResultTitle = styled(Box)`
-  flex: 1;
   min-width: 70px;
+  margin: ${space(1)} 0 ${space(2)};
 `;
 
-export const ResultViewButtons = styled(Flex)`
+export const ResultViewButtons = styled(NavTabs)`
   @media (max-width: ${theme.breakpoints[1]}) {
     display: none;
   }
@@ -52,22 +62,37 @@ export const ResultViewButtons = styled(Flex)`
 export const ResultViewDropdownButtons = styled('div')`
   display: none;
   @media (max-width: ${theme.breakpoints[1]}) {
-    display: block;
+    display: flex;
+    margin-bottom: ${space(2)};
+  }
+`;
+
+export const DownloadCsvButton = styled(Button)`
+  display: inline-block;
+  float: right;
+  position: relative;
+  top: -${space(0.5)};
+
+  @media (max-width: ${theme.breakpoints[1]}) {
+    margin-left: ${space(0.5)};
+    top: 0;
   }
 `;
 
 export const Sidebar = styled(props => (
   <Flex {...props} direction="column" w={[320, 320, 320, 380]} />
 ))`
-  border-right: 1px solid ${p => p.theme.borderDark};
+  border-left: 1px solid ${p => p.theme.borderDark};
   min-width: 320px;
   position: relative;
+  padding-top: ${HEADER_HEIGHT}px;
 `;
 
 export const Body = styled(Flex)`
   flex: 1;
   flex-direction: column;
   overflow: hidden;
+  padding-top: ${HEADER_HEIGHT}px;
 `;
 
 export const BodyContent = styled(Flex)`
@@ -76,6 +101,7 @@ export const BodyContent = styled(Flex)`
   padding: ${space(1.5)} 32px 32px 32px;
   overflow-y: scroll;
   position: relative;
+  background: ${p => p.theme.whiteDark};
 `;
 
 export const LoadingContainer = styled(Flex)`
@@ -95,8 +121,8 @@ export const PlaceholderText = styled.div`
 `;
 
 export const Heading = styled.h2`
-  font-size: 20px;
-  line-height: 24px;
+  font-size: ${p => p.theme.headerFontSize};
+  line-height: ${p => p.theme.headerFontSize};
   font-weight: normal;
   color: ${p => p.theme.gray4};
   margin: 0;
@@ -216,15 +242,6 @@ export const SavedQueryUpdated = styled('div')`
   color: ${p => p.theme.gray6};
 `;
 
-const slidein = keyframes`
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 0;
-  }
-`;
-
 export const QueryPanelContainer = styled('div')`
   position: absolute;
   width: calc(100% + 1px); /* Add 1px for border */
@@ -232,7 +249,7 @@ export const QueryPanelContainer = styled('div')`
   background-color: white;
   top: ${HEADER_HEIGHT}px;
   border-right: 1px solid ${p => p.theme.borderLight};
-  animation: ${slidein} 0.6s ease-in;
+  animation: ${slideInRight} 0.2s ease-in;
   overflow-y: scroll;
 `;
 

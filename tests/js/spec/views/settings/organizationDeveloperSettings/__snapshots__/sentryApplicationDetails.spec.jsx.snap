@@ -353,7 +353,9 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
                                                             htmlFor="name"
                                                           >
-                                                            <FieldLabel>
+                                                            <FieldLabel
+                                                              disabled={false}
+                                                            >
                                                               <div
                                                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                                                               >
@@ -1005,7 +1007,9 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
                                                             htmlFor="webhookUrl"
                                                           >
-                                                            <FieldLabel>
+                                                            <FieldLabel
+                                                              disabled={false}
+                                                            >
                                                               <div
                                                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                                                               >
@@ -1653,7 +1657,9 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
                                                             htmlFor="redirectUrl"
                                                           >
-                                                            <FieldLabel>
+                                                            <FieldLabel
+                                                              disabled={false}
+                                                            >
                                                               <div
                                                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                                                               >
@@ -2371,7 +2377,9 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
                                                             htmlFor="isAlertable"
                                                           >
-                                                            <FieldLabel>
+                                                            <FieldLabel
+                                                              disabled={false}
+                                                            >
                                                               <div
                                                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                                                               >
@@ -3069,7 +3077,9 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
                                                             htmlFor="overview"
                                                           >
-                                                            <FieldLabel>
+                                                            <FieldLabel
+                                                              disabled={false}
+                                                            >
                                                               <div
                                                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                                                               >
@@ -5418,7 +5428,9 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
                                             htmlFor="clientId"
                                           >
-                                            <FieldLabel>
+                                            <FieldLabel
+                                              disabled={false}
+                                            >
                                               <div
                                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                                               >
@@ -6010,7 +6022,9 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
                                             htmlFor="clientSecret"
                                           >
-                                            <FieldLabel>
+                                            <FieldLabel
+                                              disabled={false}
+                                            >
                                               <div
                                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                                               >
@@ -6969,7 +6983,9 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
                                                             htmlFor="name"
                                                           >
-                                                            <FieldLabel>
+                                                            <FieldLabel
+                                                              disabled={false}
+                                                            >
                                                               <div
                                                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                                                               >
@@ -7512,7 +7528,9 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
                                                             htmlFor="webhookUrl"
                                                           >
-                                                            <FieldLabel>
+                                                            <FieldLabel
+                                                              disabled={false}
+                                                            >
                                                               <div
                                                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                                                               >
@@ -8051,7 +8069,9 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
                                                             htmlFor="redirectUrl"
                                                           >
-                                                            <FieldLabel>
+                                                            <FieldLabel
+                                                              disabled={false}
+                                                            >
                                                               <div
                                                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                                                               >
@@ -8660,7 +8680,9 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
                                                             htmlFor="isAlertable"
                                                           >
-                                                            <FieldLabel>
+                                                            <FieldLabel
+                                                              disabled={false}
+                                                            >
                                                               <div
                                                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                                                               >
@@ -9249,7 +9271,9 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                             className="css-gxpq9u-FieldDescription-inlineStyle e12jefmo0"
                                                             htmlFor="overview"
                                                           >
-                                                            <FieldLabel>
+                                                            <FieldLabel
+                                                              disabled={false}
+                                                            >
                                                               <div
                                                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                                                               >

@@ -383,7 +383,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
 
     try:
         manager = EventManager(data)
-        event = manager.save(project_id)
+        event = manager.save(project_id, assume_normalized=True)
 
         # Always load attachments from the cache so we can later prune them.
         # Only save them if the event-attachments feature is active, though.
