@@ -61,7 +61,7 @@ from sentry.utils.data_filters import (
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
 from sentry.utils.meta import Meta, get_valid, get_all_valid
-from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
+from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
@@ -698,16 +698,17 @@ class EventManager(object):
             ms = int((time.time() - start_time) * 1000)
             metrics.timing('events.normalize.user_agent.duration', ms)
 
-        # If there is no User ip_addres, update it either from the Http interface
-        # or the client_ip of the request.
-        is_public = self._auth and self._auth.is_public
-        add_ip_platforms = ('javascript', 'cocoa', 'objc')
+        if not get_path(data, "user", "ip_address"):
+            # If there is no User ip_address, update it either from the Http
+            # interface or the client_ip of the request.
+            is_public = self._auth and self._auth.is_public
+            add_ip_platforms = ('javascript', 'cocoa', 'objc')
 
-        http_ip = get_valid(data, 'request', 'env', 'REMOTE_ADDR')
-        if http_ip:
-            data.setdefault('user', {}).setdefault('ip_address', http_ip)
-        elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
-            data.setdefault('user', {}).setdefault('ip_address', self._client_ip)
+            http_ip = get_valid(data, 'request', 'env', 'REMOTE_ADDR')
+            if http_ip:
+                set_path(data, 'user', 'ip_address', value=http_ip)
+            elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
+                set_path(data, 'user', 'ip_address', value=self._client_ip)
 
         # Trim values
         if data.get('logger'):

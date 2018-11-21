@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pytest
 import mock
 import logging
 
@@ -46,19 +47,20 @@ def test_interface_is_relabeled():
     assert data['user'] == {'id': '1'}
 
 
-def test_does_default_ip_address_to_user():
-    manager = EventManager(
-        make_event(
-            **{
-                'request': {
-                    'url': 'http://example.com',
-                    'env': {
-                        'REMOTE_ADDR': '127.0.0.1',
-                    }
-                }
+@pytest.mark.parametrize('user', ['missing', None, {}, {'ip_address': None}])
+def test_does_default_ip_address_to_user(user):
+    event = {
+        'request': {
+            'url': 'http://example.com',
+            'env': {
+                'REMOTE_ADDR': '127.0.0.1',
             }
-        )
-    )
+        }
+    }
+    if user != 'missing':
+        event['user'] = user
+
+    manager = EventManager(make_event(**event))
     manager.normalize()
     data = manager.get_data()
 

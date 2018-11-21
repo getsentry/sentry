@@ -55,9 +55,8 @@ class StacktraceTest(TestCase):
         assert Stacktrace.to_python({'frames': None}).to_json() == sink
         assert Stacktrace.to_python({'frames': []}).to_json() == sink
 
-        # TODO(markus): Should eventually generate frames: [None]
         assert Stacktrace.to_python({'frames': [None]}).to_json() == \
-            {'frames': [], 'frames_omitted': None, 'registers': None}
+            {'frames': [{}], 'frames_omitted': None, 'registers': None}
 
     def test_null_values_in_frames(self):
         sink = {'frames': [{}], 'frames_omitted': None, 'registers': None}

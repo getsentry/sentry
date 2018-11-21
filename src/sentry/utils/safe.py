@@ -136,3 +136,27 @@ def get_path(data, *path, **kwargs):
         else:
             return kwargs.get('default')
     return data
+
+
+def set_path(data, *path, **kwargs):
+    """
+    Traverses a path the same way `get_path` does and overrides the value with
+    the given one. Creates nested dictionaries as needed. `None` is treated as
+    "not present".
+    """
+
+    value = kwargs['value']
+
+    for p in path[:-1]:
+        if not isinstance(data, collections.Mapping):
+            return False
+        if data.get(p) is None:
+            data[p] = {}
+        data = data[p]
+
+    if not isinstance(data, collections.Mapping):
+        return False
+
+    p = path[-1]
+    data[p] = value
+    return True
