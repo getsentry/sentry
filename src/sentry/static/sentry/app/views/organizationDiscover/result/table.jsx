@@ -2,7 +2,6 @@ import React from 'react';
 import {MultiGrid, AutoSizer} from 'react-virtualized';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import Link from 'app/components/link';
@@ -31,15 +30,20 @@ export default class ResultTable extends React.Component {
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
     height: PropTypes.number,
+    width: PropTypes.number,
   };
 
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
 
-  componentWillReceiveProps(nextProps) {
-    if (this.props.data.meta !== nextProps.data.meta) {
+  componentDidUpdate(prevProps) {
+    if (this.props.data.meta !== prevProps.data.meta) {
       this.grid.recomputeGridSize();
+    }
+
+    if (this.props.width !== prevProps.width) {
+      this.forceUpdate(() => this.grid.recomputeGridSize());
     }
   }
 
