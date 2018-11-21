@@ -58,7 +58,7 @@ def get_client(project_id, credentials):
             Client(
                 project=project_id,
                 credentials=credentials,
-                session=session,
+                _http=session,
             )
         )
     return _client[2]
