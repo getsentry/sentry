@@ -5,7 +5,7 @@ import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.exceptions import IntegrationError
-from sentry.models import ExternalIssue, GroupLink, Integration
+from sentry.models import Activity, ExternalIssue, GroupLink, Integration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
 
@@ -186,6 +186,18 @@ class GroupIntegrationDetailsTest(APITestCase):
                 linked_id=external_issue.id,
             ).exists()
 
+            activity = Activity.objects.filter(type=Activity.CREATE_ISSUE)[0]
+            assert activity.project_id == group.project_id
+            assert activity.group_id == group.id
+            assert activity.ident is None
+            assert activity.user_id == self.user.id
+            assert activity.data == {
+                'title': 'This is a test external issue title',
+                'provider': 'Example',
+                'location': 'https://example/issues/APP-123',
+                'label': 'display name: APP-123',
+            }
+
     def test_put_feature_disabled(self):
         self.login_as(user=self.user)
         org = self.organization
@@ -237,6 +249,18 @@ class GroupIntegrationDetailsTest(APITestCase):
                 group_id=group.id,
                 linked_id=external_issue.id,
             ).exists()
+
+            activity = Activity.objects.filter(type=Activity.CREATE_ISSUE)[0]
+            assert activity.project_id == group.project_id
+            assert activity.group_id == group.id
+            assert activity.ident is None
+            assert activity.user_id == self.user.id
+            assert activity.data == {
+                'title': 'This is a test external issue title',
+                'provider': 'Example',
+                'location': 'https://example/issues/APP-123',
+                'label': 'display name: APP-123',
+            }
 
     def test_post_feature_disabled(self):
         self.login_as(user=self.user)
