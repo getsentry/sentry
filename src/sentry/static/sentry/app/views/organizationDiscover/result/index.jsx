@@ -7,14 +7,13 @@ import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
 import InlineSvg from 'app/components/inlineSvg';
-import {Flex} from 'grid-emotion';
 
 import {getChartData, getChartDataByDay, getRowsPageRange, downloadAsCsv} from './utils';
 import Table from './table';
 import Pagination from './pagination';
 import VisualizationsToggle from './visualizationsToggle';
 import {
-  ResultTitle,
+  HeadingContainer,
   Heading,
   ResultSummary,
   ResultContainer,
@@ -127,23 +126,19 @@ export default class Result extends React.Component {
 
   renderSavedQueryHeader() {
     return (
-      <Flex align="center">
+      <React.Fragment>
         <Heading>
           {getDynamicText({value: this.props.savedQuery.name, fixed: 'saved query'})}
         </Heading>
         <SavedQueryAction onClick={this.props.onToggleEdit}>
           <InlineSvg src="icon-edit" />
         </SavedQueryAction>
-      </Flex>
+      </React.Fragment>
     );
   }
 
   renderQueryResultHeader() {
-    return (
-      <Flex>
-        <Heading>{t('Result')}</Heading>
-      </Flex>
-    );
+    return <Heading>{t('Result')}</Heading>;
   }
 
   render() {
@@ -168,9 +163,9 @@ export default class Result extends React.Component {
     return (
       <ResultContainer>
         <div>
-          <ResultTitle>
+          <HeadingContainer>
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
-          </ResultTitle>
+          </HeadingContainer>
           {this.renderToggle()}
         </div>
         <ResultInnerContainer innerRef={ref => (this.container = ref)}>
