@@ -883,3 +883,12 @@ class SnubaSearchTest(SnubaTestCase):
             assert set(results) == set([self.group1, self.group2])
         finally:
             options.set('snuba.search.max-pre-snuba-candidates', prev_max_pre)
+
+    def test_search_out_of_range(self):
+        results = self.backend.query(
+            self.project,
+            date_from=datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
+            date_to=datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc),
+        )
+
+        assert set(results) == set([])
