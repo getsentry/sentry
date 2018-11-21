@@ -16,7 +16,6 @@ from google.cloud.storage.client import Client
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
 from google.cloud.exceptions import NotFound
-from google.auth.transport.requests import AuthorizedSession
 from google.resumable_media.common import DataCorruption
 
 from sentry.utils import metrics
@@ -48,19 +47,12 @@ def try_repeated(func):
 def get_client(project_id, credentials):
     global _client
     if _client[2] is None or (project_id, credentials) != (_client[0], _client[1]):
-        session = AuthorizedSession(credentials=credentials)
+        client = Client(project=project_id, credentials=credentials)
+        session = client._http
         adapter = TimeoutAdapter(timeout=10.0)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
-        _client = (
-            project_id,
-            credentials,
-            Client(
-                project=project_id,
-                credentials=credentials,
-                _http=session,
-            )
-        )
+        _client = (project_id, credentials, client)
     return _client[2]
 
 
