@@ -686,7 +686,8 @@ class EventManager(object):
 
         exception = data.get('exception')
         stacktrace = data.get('stacktrace')
-        if exception is not None and len(exception['values']) == 1 and stacktrace is not None:
+        if exception and 'values' in exception and len(
+                exception['values']) == 1 and stacktrace is not None:
             exception['values'][0]['stacktrace'] = stacktrace
             del data['stacktrace']
 
