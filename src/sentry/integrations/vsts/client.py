@@ -246,12 +246,17 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             params={'stateFilter': 'WellFormed'}
         )
 
-    def get_users(self, account_name):
+    def get_users(self, account_name, continuation_token=None):
+        """
+        Gets Users with access to a given account/organization
+        https://docs.microsoft.com/en-us/rest/api/azure/devops/graph/users/list?view=azure-devops-rest-4.1
+        """
         return self.get(
             VstsApiPath.users.format(
                 account_name=account_name,
             ),
             api_preview=True,
+            params={'continuationToken': continuation_token},
         )
 
     def create_subscription(self, instance, shared_secret):
