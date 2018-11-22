@@ -13,9 +13,9 @@ import string
 
 from django.utils.encoding import force_text
 
-from sentry.utils.safe import trim
 from sentry.interfaces.base import Interface
 from sentry.utils.contexts_normalization import normalize_os, normalize_runtime
+from sentry.utils.safe import get_path, trim
 
 __all__ = ('Contexts', )
 
@@ -59,19 +59,18 @@ class ContextType(object):
 
     @classmethod
     def values_for_data(cls, data):
-        contexts = data.get('contexts') or {}
         rv = []
-        for context in six.itervalues(contexts):
-            if context.get('type') == cls.type:
+        for context in six.itervalues(data.get('contexts') or {}):
+            if context and context.get('type') == cls.type:
                 rv.append(context)
         return rv
 
     @classmethod
     def primary_value_for_data(cls, data):
-        contexts = data.get('contexts') or {}
-        val = contexts.get(cls.type)
+        val = get_path(data, 'contexts', cls.type)
         if val and val.get('type') == cls.type:
             return val
+
         rv = cls.values_for_data(data)
         if len(rv) == 1:
             return rv[0]
