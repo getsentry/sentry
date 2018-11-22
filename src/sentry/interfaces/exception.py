@@ -19,8 +19,7 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
-from sentry.utils.meta import get_all_valid
-from sentry.utils.safe import trim
+from sentry.utils.safe import get_path, trim
 
 _type_value_re = re.compile('^(\w+):(.*)$')
 
@@ -995,14 +994,17 @@ class Exception(Interface):
 
     score = 2000
 
+    def _values(self):
+        return get_path(self._data, 'values', filter=True, default=())
+
     def __getitem__(self, key):
-        (get_all_valid(self._data, 'values') or [])[key]
+        return self._values()[key]
 
     def __iter__(self):
-        return iter(get_all_valid(self._data, 'values') or ())
+        return iter(self._values())
 
     def __len__(self):
-        return len(get_all_valid(self._data, 'values') or ())
+        return len(self._values())
 
     @classmethod
     def _to_python(cls, data, meta):

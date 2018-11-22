@@ -12,7 +12,7 @@ from django.core.cache import cache
 from six.moves.urllib.parse import parse_qsl
 
 from sentry import http
-from sentry.utils.meta import get_all_valid
+from sentry.utils.safe import get_path
 from sentry.utils.strings import count_sprintf_parameters
 
 logger = logging.getLogger(__name__)
@@ -117,7 +117,7 @@ def rewrite_exception(data):
     otherwise.
     """
     rv = False
-    for exc in get_all_valid(data, 'exception', 'values') or ():
+    for exc in get_path(data, 'exception', 'values', filter=True, default=()):
         for processor in six.itervalues(error_processors):
             try:
                 if processor.try_process(exc):

@@ -31,7 +31,7 @@ from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
-from sentry.utils.meta import get_all_valid
+from sentry.utils.safe import get_path
 from sentry.utils import metrics
 from sentry.stacktraces import StacktraceProcessor
 
@@ -490,7 +490,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.dist = None
 
     def get_stacktraces(self, data):
-        exceptions = get_all_valid(data, 'exception', 'values') or []
+        exceptions = get_path(data, 'exception', 'values', filter=True, default=())
         stacktraces = [e['stacktrace'] for e in exceptions if e.get('stacktrace')]
 
         if 'stacktrace' in data:

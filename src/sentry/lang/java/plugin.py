@@ -7,7 +7,7 @@ from sentry.plugins import Plugin2
 from sentry.stacktraces import StacktraceProcessor
 from sentry.models import ProjectDebugFile, EventError
 from sentry.reprocessing import report_processing_issue
-from sentry.utils.meta import get_all_valid
+from sentry.utils.safe import get_path
 
 FRAME_CACHE_VERSION = 2
 
@@ -19,9 +19,9 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         self.images = set()
         self.available = False
 
-        for image in get_all_valid(self.data, 'debug_meta', 'images') or ():
+        for image in get_path(self.data, 'debug_meta', 'images', filter=True, default=()):
             self.available = True
-            if image['type'] == 'proguard':
+            if image.get('type') == 'proguard':
                 self.images.add(six.text_type(image['uuid']).lower())
 
     def handles_frame(self, frame, stacktrace_info):
