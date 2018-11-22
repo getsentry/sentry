@@ -152,7 +152,7 @@ class ApiClient(object):
             timeout = 30
 
         full_url = self.build_url(path)
-        host = urlparse(self.base_url).netloc
+        host = urlparse(full_url).netloc
         session = build_session()
         try:
             resp = getattr(session, method.lower())(
