@@ -217,7 +217,11 @@ class IssueBasicMixin(object):
             defaults = self.get_project_defaults(group.project_id)
             repo = params.get('repo', defaults.get('repo'))
 
-        default_repo = repo or repo_choices[0][0]
+        try:
+            default_repo = repo or repo_choices[0][0]
+        except IndexError:
+            return '', repo_choices
+
         # If a repo has been selected outside of the default list of
         # repos, stick it onto the front of the list so that it can be
         # selected.
