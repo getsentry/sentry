@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import collections
 import six
 
 
@@ -111,76 +110,3 @@ class Meta(object):
 
         if value is not None:
             meta['val'] = value
-
-
-def get_valid(data, *path, **kwargs):
-    """
-    Safely resolves valid data from a dictionary with attached meta data. A
-    value is only returned if the full path exists and none of the parent
-    objects had errors attached.
-
-    This function extracts meta data from the "_meta" key in the top level
-    dictionary. For the use in nested data structures with out-of-place meta
-    data, pass a ``meta=Meta(...)`` argument manually.
-
-    If the path does not exist or contains errors, ``None`` is returned. When
-    `with_meta` is specified, a tuple ``value, meta`` is returned instead.
-    """
-    meta = kwargs.pop('meta', None) or \
-        isinstance(data, collections.Mapping) and Meta(data.get('_meta')) or \
-        Meta()
-
-    with_meta = kwargs.get('with_meta', False)
-    root = meta
-
-    for key in path:
-        if isinstance(data, (list, tuple)) and key < 0:
-            key = len(data) + key
-
-        meta = meta.enter(key)
-        if meta.get_errors():
-            return (None, root.enter(*path)) if with_meta else None
-
-        if isinstance(data, collections.Mapping) and key in data:
-            data = data[key]
-        elif isinstance(data, (list, tuple)) and 0 <= key < len(data):
-            data = data[key]
-        else:
-            return (None, root.enter(*path)) if with_meta else None
-
-    return (data, meta) if with_meta else data
-
-
-def get_all_valid(data, *path, **kwargs):
-    """
-    Safely resolves a list of valid data from a dictionary with attached meta
-    data. This is similar to `get_valid`, except that it assumes the resolved
-    value is a list which it filters for valid elements.
-
-    This function extracts meta data from the "_meta" key in the top level
-    dictionary. For the use in nested data structures with out-of-place meta
-    data, pass a ``meta=Meta(...)`` argument manually.
-
-    If the path does not exist or contains errors, ``None`` is returned. When
-    `with_meta` is specified, a list of tuples ``value, meta`` is returned
-    instead.
-
-    If the resolved value is not a list, the original value is returned.
-    """
-    meta = kwargs.pop('meta', None) or \
-        isinstance(data, collections.Mapping) and Meta(data.get('_meta')) or \
-        Meta()
-
-    with_meta = kwargs.pop('with_meta', False)
-
-    value, meta = get_valid(data, *path, meta=meta, with_meta=True, **kwargs)
-    if not value or not isinstance(value, (list, tuple)):
-        return (value, meta) if with_meta else value
-
-    results = []
-    for index, item in enumerate(value):
-        item_meta = meta.enter(index)
-        if item is not None and not item_meta.get_errors():
-            results.append((item, item_meta) if with_meta else item)
-
-    return results
