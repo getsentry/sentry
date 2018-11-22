@@ -112,7 +112,7 @@ class EventSerializer(Serializer):
         meta = event.data.get('_meta') or {}
 
         if 'logentry' not in event.data:
-            message = event.message
+            message = event.search_message
             msg_meta = meta.get('message')
         elif 'formatted' in event.data['logentry']:
             message = event.data['logentry']['formatted']

@@ -23,7 +23,7 @@ class OrganizationDiscoverTest(AcceptanceTestCase):
         self.group = self.create_group(project=self.project)
         self.event = self.create_event(
             group=self.group,
-            message="message!",
+            search_message="message!",
             platform="python",
         )
 

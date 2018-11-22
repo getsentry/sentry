@@ -28,7 +28,7 @@ class ProjectReleasesTest(AcceptanceTestCase):
         self.create_group(
             first_release=release,
             project=self.project,
-            message='Foo bar',
+            search_message='Foo bar',
         )
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
@@ -63,7 +63,7 @@ class ProjectReleaseDetailsTest(AcceptanceTestCase):
         self.create_group(
             first_release=self.release,
             project=self.project,
-            message='Foo bar',
+            search_message='Foo bar',
         )
         self.login_as(self.user)
         self.path = u'/{}/{}/releases/{}/'.format(

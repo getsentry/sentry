@@ -213,12 +213,12 @@ class GetPersonalizedDigestsTestCase(TestCase):
                 project=project,
                 first_seen=start_time - timedelta(days=index + 1),
                 last_seen=start_time - timedelta(hours=index + 1),
-                message='group%d' % index
+                search_message='group%d' % index
             )
             if filenames is not None:
                 event = self.create_event(
                     group=group,
-                    message=group.message,
+                    search_message=group.search_message,
                     datetime=group.last_seen,
                     project=project,
                     data=self.create_event_data(filename=label)
@@ -226,7 +226,7 @@ class GetPersonalizedDigestsTestCase(TestCase):
             else:
                 event = self.create_event(
                     group=group,
-                    message=group.message,
+                    search_message=group.search_message,
                     datetime=group.last_seen,
                     project=project,
                     data=self.create_event_data('foo.bar', url=label)

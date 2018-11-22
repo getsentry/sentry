@@ -100,7 +100,7 @@ class GroupManager(BaseManager):
             short_id=short_id,
         )
 
-    def from_kwargs(self, project, **kwargs):
+    def from_event_data(self, project, **kwargs):
         from sentry.event_manager import HashDiscarded, EventManager
 
         manager = EventManager(kwargs)
@@ -198,7 +198,7 @@ class Group(Model):
     level = BoundedPositiveIntegerField(
         choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True
     )
-    message = models.TextField()
+    search_message = models.TextField(db_column='message')
     culprit = models.CharField(
         max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column='view'
     )
@@ -252,9 +252,9 @@ class Group(Model):
         if not self.active_at:
             self.active_at = self.first_seen
         # We limit what we store for the message body
-        self.message = strip(self.message)
-        if self.message:
-            self.message = truncatechars(self.message.splitlines()[0], 255)
+        self.search_message = strip(self.search_message)
+        if self.search_message:
+            self.search_message = truncatechars(self.search_message.splitlines()[0], 255)
         if self.times_seen is None:
             self.times_seen = 1
         self.score = type(self).calculate_score(
@@ -395,7 +395,7 @@ class Group(Model):
         See ``sentry.eventtypes``.
         """
         from sentry.event_manager import get_event_metadata_compat
-        return get_event_metadata_compat(self.data, self.message)
+        return get_event_metadata_compat(self.data, self.search_message)
 
     @property
     def title(self):

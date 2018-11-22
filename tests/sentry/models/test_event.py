@@ -71,10 +71,10 @@ class EventTest(TestCase):
 
     def test_email_subject(self):
         event1 = self.create_event(
-            event_id='a' * 32, group=self.group, tags={'level': 'info'}, message='Foo bar'
+            event_id='a' * 32, group=self.group, tags={'level': 'info'}, data=dict(message='Foo bar')
         )
         event2 = self.create_event(
-            event_id='b' * 32, group=self.group, tags={'level': 'ERROR'}, message='Foo bar'
+            event_id='b' * 32, group=self.group, tags={'level': 'ERROR'}, data=dict(message='Foo bar')
         )
         self.group.level = 30
 
@@ -93,7 +93,7 @@ class EventTest(TestCase):
             tags={'level': 'info',
                   'environment': 'production',
                   'sentry:release': '0'},
-            message='baz',
+            data=dict(message='baz'),
         )
 
         assert event1.get_email_subject() == 'BAR-1 - production@0 $ baz ${tag:invalid} $invalid'
@@ -128,12 +128,12 @@ class EventTest(TestCase):
 
 class EventGetLegacyMessageTest(TestCase):
     def test_message(self):
-        event = self.create_event(message='foo bar')
+        event = self.create_event(search_message='foo bar')
         assert event.get_legacy_message() == 'foo bar'
 
     def test_message_interface(self):
         event = self.create_event(
-            message='biz baz',
+            search_message='biz baz',
             data={'logentry': {
                 'message': 'foo bar'
             }},
@@ -142,7 +142,7 @@ class EventGetLegacyMessageTest(TestCase):
 
     def test_message_interface_with_formatting(self):
         event = self.create_event(
-            message='biz baz',
+            search_message='biz baz',
             data={
                 'logentry': {
                     'message': 'foo %s',

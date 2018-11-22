@@ -25,7 +25,7 @@ class GroupTombstoneSerializer(Serializer):
         return {
             'id': six.text_type(obj.id),
             'level': LOG_LEVELS.get(obj.level, 'unknown'),
-            'message': obj.message,
+            'message': obj.search_message,
             'culprit': obj.culprit,
             'type': obj.get_event_type(),
             'metadata': obj.get_event_metadata(),

@@ -35,7 +35,7 @@ class Event(Model):
     group_id = BoundedBigIntegerField(blank=True, null=True)
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
     project_id = BoundedBigIntegerField(blank=True, null=True)
-    message = models.TextField()
+    search_message = models.TextField(db_column='message')
     platform = models.CharField(max_length=64, null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     time_spent = BoundedIntegerField(null=True)
@@ -102,7 +102,7 @@ class Event(Model):
         # plugins should instead swithc to the actual message attribute or
         # this method could return what currently is real_message.
         msg_interface = self.data.get('logentry', {
-            'message': self.message,
+            'message': self.search_message,
         })
         return msg_interface.get('formatted', msg_interface['message'])
 
@@ -121,7 +121,7 @@ class Event(Model):
         See ``sentry.eventtypes``.
         """
         from sentry.event_manager import get_event_metadata_compat
-        return get_event_metadata_compat(self.data, self.message)
+        return get_event_metadata_compat(self.data, self.search_message)
 
     @property
     def title(self):

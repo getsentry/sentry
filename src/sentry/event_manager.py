@@ -829,7 +829,7 @@ class EventManager(object):
         return eventtypes.get(self._data.get('type', 'default'))(self._data)
 
     def get_search_message(self, event_metadata=None, culprit=None):
-        """This generates the internal event.message attribute which is used
+        """This generates the internal search_message attribute which is used
         for search purposes.  It adds a bunch of data from the metadata and
         the culprit.
         """
@@ -1014,14 +1014,14 @@ class EventManager(object):
         data['type'] = event_type.key
         data['metadata'] = event_metadata
 
-        # index components into ``Event.message``
+        # index components into ``Event.search_message``
         # See GH-3248
-        event.message = self.get_search_message(event_metadata, culprit)
+        event.search_message = self.get_search_message(event_metadata, culprit)
         received_timestamp = event.data.get('received') or float(event.datetime.strftime('%s'))
 
         kwargs = {
             'platform': platform,
-            'message': event.message,
+            'search_message': event.search_message,
             'culprit': culprit,
             'logger': logger_name,
             'level': LOG_LEVELS_MAP.get(level),
@@ -1509,8 +1509,8 @@ class EventManager(object):
             'score': ScoreClause(group),
             'data': data['data'],
         }
-        if event.message and event.message != group.message:
-            extra['message'] = event.message
+        if event.search_message and event.search_message != group.search_message:
+            extra['search_message'] = event.search_message
         if group.level != data['level']:
             extra['level'] = data['level']
         if group.culprit != data['culprit']:

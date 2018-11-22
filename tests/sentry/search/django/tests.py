@@ -29,7 +29,7 @@ class DjangoSearchBackendTest(TestCase):
         self.group1 = self.create_group(
             project=self.project,
             checksum='a' * 32,
-            message='foo',
+            search_message='foo',
             times_seen=5,
             status=GroupStatus.UNRESOLVED,
             last_seen=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=pytz.utc),
@@ -58,7 +58,7 @@ class DjangoSearchBackendTest(TestCase):
         self.group2 = self.create_group(
             project=self.project,
             checksum='b' * 32,
-            message='bar',
+            search_message='bar',
             times_seen=10,
             status=GroupStatus.RESOLVED,
             last_seen=datetime(2013, 7, 14, 3, 8, 24, 880386, tzinfo=pytz.utc),

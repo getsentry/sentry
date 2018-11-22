@@ -198,7 +198,7 @@ class ActivityMailDebugView(View):
         )
 
         data = dict(load_data('python'))
-        data['message'] = group.message
+        data['message'] = group.search_message
         data.pop('logentry', None)
 
         event_manager = EventManager(data)
@@ -253,7 +253,7 @@ def alert(request):
     )
 
     data = dict(load_data(platform))
-    data['message'] = group.message
+    data['message'] = group.search_message
     data.pop('logentry', None)
     data['environment'] = 'prod'
     data['tags'] = [
@@ -267,7 +267,7 @@ def alert(request):
     event_manager.normalize()
     event_type = event_manager.get_event_type()
 
-    group.message = event_manager.get_search_message()
+    group.search_message = event_manager.get_search_message()
     group.data = {
         'type': event_type.key,
         'metadata': event_type.get_metadata(),
@@ -373,7 +373,7 @@ def digest(request):
                 event_id=uuid.uuid4().hex,
                 project=project,
                 group=group,
-                message=group.message,
+                search_message=group.search_message,
                 data=load_data('python'),
                 datetime=to_datetime(
                     random.randint(

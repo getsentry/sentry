@@ -84,7 +84,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 tags['environment'] = environment.name
 
         if query:
-            q = Q(message__icontains=query)
+            q = Q(search_message__icontains=query)
 
             if len(query) == 32:
                 q |= Q(event_id__exact=query)

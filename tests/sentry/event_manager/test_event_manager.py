@@ -58,8 +58,8 @@ class EventManagerTest(TransactionTestCase):
 
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
-        # 'event.message' instead of '[event.message]' which caused it to
-        # generate a hash per letter
+        # 'event.search_message' instead of '[event.search_message]' which
+        # caused it to generate a hash per letter
         manager = EventManager(make_event(event_id='a', message='foo bar'))
         manager.normalize()
         event1 = manager.save(1)
@@ -162,7 +162,7 @@ class EventManagerTest(TransactionTestCase):
 
         assert group.times_seen == 2
         assert group.last_seen.replace(microsecond=0) == event2.datetime.replace(microsecond=0)
-        assert group.message == event2.message
+        assert group.search_message == event2.search_message
         assert group.data.get('type') == 'default'
         assert group.data.get('metadata') == {
             'title': 'foo bar',
@@ -196,7 +196,7 @@ class EventManagerTest(TransactionTestCase):
 
         assert group.times_seen == 2
         assert group.last_seen.replace(microsecond=0) == event.datetime.replace(microsecond=0)
-        assert group.message == event2.message
+        assert group.search_message == event2.search_message
 
     def test_differentiates_with_fingerprint(self):
         manager = EventManager(
@@ -1022,7 +1022,8 @@ class EventManagerTest(TransactionTestCase):
         manager.normalize()
         event = manager.save(self.project.id)
 
-        assert event.message == 'hello world'
+        assert event.search_message == 'hello world'
+        assert event.real_message == 'hello world'
 
     def test_bad_message(self):
         # test that the message is handled gracefully
@@ -1032,7 +1033,8 @@ class EventManagerTest(TransactionTestCase):
         manager.normalize()
         event = manager.save(self.project.id)
 
-        assert event.message == '1234'
+        assert event.search_message == '1234'
+        assert event.real_message == '1234'
         assert event.data['logentry'] == {
             'message': '1234',
         }
@@ -1099,7 +1101,7 @@ class EventManagerTest(TransactionTestCase):
         tombstone = GroupTombstone.objects.create(
             project_id=group.project_id,
             level=group.level,
-            message=group.message,
+            search_message=group.search_message,
             culprit=group.culprit,
             data=group.data,
             previous_group_id=group.id,
