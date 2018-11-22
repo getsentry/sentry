@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import six
-from collections import OrderedDict
+from collections import Mapping, OrderedDict
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -42,16 +42,10 @@ def get_interfaces(data):
         except ValueError:
             continue
 
-        value = safe_execute(
-            cls.to_python, data, meta=meta.enter(key), _with_transaction=False
-        )
-        if not value:
-            continue
-
-        if value.get_errors():
-            continue
-
-        result.append((key, value))
+        interface = safe_execute(cls.to_python, data, meta=meta.enter(key),
+                                 _with_transaction=False)
+        if interface:
+            result.append((key, interface))
 
     return OrderedDict(
         (k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True)
@@ -120,27 +114,38 @@ class Interface(object):
         """Creates a python interface object from the given raw data. By
         default, this uses all keys passed in as `data`.
 
-        To override this behavior, implement `_to_python`.
+        To override this behavior, implement `_to_python`. For invalid data or
+        unprocessable interfaces, overrides should add an error to meta data and
+        return ``None``.
         """
+
+        # Gracefully skip data that is None. We treat None the same as missing
+        # data. If there are meta errors attached, they will remain in meta.
+        if data is None:
+            return None
 
         if meta is None:
             meta = Meta()
 
         try:
-            if meta.get_errors():
-                instance = cls()
-            else:
-                instance = cls._to_python(data, meta, **kwargs)
+            # TODO(ja): Remove this after switching to Rust normalization
+            if not isinstance(data, Mapping):
+                err = 'Expected interface object, found %s' % (type(data).__name__, )
+                raise InterfaceValidationError(err)
+
+            instance = cls._to_python(data, meta, **kwargs)
         except Exception as e:
             # TODO(ja): Remove this after switching to Rust normalization
             if not isinstance(e, InterfaceValidationError):
                 logger.error('Discarded invalid value for interface: %s (%r)',
-                             cls().get_slug(), data, exc_info=True)
+                             cls.path, data, exc_info=True)
 
             meta.add_error(e, value=data)
-            instance = cls()
+            return None
 
-        instance._meta = meta
+        if instance is not None:
+            instance._meta = meta
+
         return instance
 
     def get_api_context(self, is_public=False):

@@ -595,26 +595,20 @@ class EventManager(object):
             if k in CLIENT_RESERVED_ATTRS:
                 continue
 
-            value = data.pop(k)
-
-            if not value:
-                logger.debug('Ignored empty interface value: %s', k)
-                continue
-
             try:
-                interface = get_interface(k)
+                cls = get_interface(k)
             except ValueError:
                 logger.debug('Ignored unknown attribute: %s', k)
                 errors.append({'type': EventError.INVALID_ATTRIBUTE, 'name': k})
                 continue
 
-            inst = interface.to_python(value, meta=meta.enter(k))
-            # TODO(ja): Remove this after removing InterfaceValidationErrors.
-            # Since we check that value is non-empty before invoking to_python,
-            # the only case where inst._data can be empty is when an error was
-            # thrown during normalization.
-            data[inst.path] = inst.to_json() if inst._data else None
-            for error in inst.get_errors():
+            value = data.pop(k)
+            interface_meta = meta.enter(k)
+            interface = cls.to_python(value, meta=interface_meta)
+            if interface is not None:
+                data[interface.path] = interface.to_json()
+
+            for error in interface_meta.get_errors():
                 errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
 
         # Additional data coercion and defaulting we only do for store.
