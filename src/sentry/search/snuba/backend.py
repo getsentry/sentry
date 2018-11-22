@@ -184,17 +184,6 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             )
 
         now = timezone.now()
-        # TODO: Presumably we want to search back to the project's full retention,
-        #       which may be higher than 90 days in the past, but apparently
-        #       `retention_window_start` can be None(?), so we need a fallback.
-        start = max(
-            filter(None, [
-                retention_window_start,
-                parameters.get('date_from'),
-                now - timedelta(days=90)
-            ])
-        )
-
         end = parameters.get('date_to')
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
@@ -215,6 +204,36 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 group_queryset = group_queryset.order_by('-last_seen')
                 paginator = DateTimePaginator(group_queryset, '-last_seen', **paginator_options)
                 return paginator.get_result(limit, cursor, count_hits=count_hits)
+
+        # TODO: Presumably we only want to search back to the project's max
+        # retention date, which may be closer than 90 days in the past, but
+        # apparently `retention_window_start` can be None(?), so we need a
+        # fallback.
+        retention_date = max(
+            filter(None, [
+                retention_window_start,
+                now - timedelta(days=90)
+            ])
+        )
+
+        start = max(
+            filter(None, [
+                retention_date,
+                parameters.get('date_from'),
+            ])
+        )
+
+        end = max([
+            retention_date,
+            end
+        ])
+
+        if start == retention_date and end == retention_date:
+            # Both `start` and `end` must have been trimmed to `retention_date`,
+            # so this entire search was against a time range that is outside of
+            # retention. We'll return empty results to maintain backwards compatability
+            # with Django search (for now).
+            return Paginator(Group.objects.none()).get_result()
 
         assert start < end
 
@@ -295,8 +314,6 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         paginator_results = Paginator(Group.objects.none()).get_result()
         result_groups = []
         result_group_ids = set()
-        min_score = float('inf')
-        max_score = -1
 
         max_time = options.get('snuba.search.max-total-chunk-time-seconds')
         time_start = time.time()
@@ -361,29 +378,6 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     result_group_ids.add(group_id)
                     result_groups.append((group_id, group_score))
 
-                    # used for cursor logic
-                    min_score = min(min_score, group_score)
-                    max_score = max(max_score, group_score)
-
-            # HACK: If a cursor is being used and there may be more results available
-            # in Snuba, we need to detect whether the cursor's value will be
-            # found in the result groups. If it isn't in the results yet we need to
-            # continue querying before we hand off to the paginator to decide whether
-            # enough results are found or not, otherwise the paginator will happily
-            # return `limit` worth of results that don't take the cursor into account
-            # at all, since it can't know there are more results available.
-            # TODO: If chunked search works in practice we should probably extend the
-            # paginator to throw something if the cursor value is never found, or do
-            # something other than partially leak internal paginator logic up to here.
-            # Or make separate Paginator implementation just for Snuba search?
-            if cursor is not None \
-                    and not candidate_ids \
-                    and more_results:
-                if cursor.is_prev and min_score < cursor.value:
-                    continue
-                elif not cursor.is_prev and max_score > cursor.value:
-                    continue
-
             paginator_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups],
                 reverse=True,
@@ -398,6 +392,24 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     or len(paginator_results.results) >= limit \
                     or not more_results:
                 break
+
+        # HACK: We're using the SequencePaginator to mask the complexities of going
+        # back and forth between two databases. This causes a problem with pagination
+        # because we're 'lying' to the SequencePaginator (it thinks it has the entire
+        # result set in memory when it does not). For this reason we need to make some
+        # best guesses as to whether the `prev` and `next` cursors have more results.
+        if len(paginator_results.results) == limit and more_results:
+            # Because we are going back and forth between DBs there is a small
+            # chance that we will hand the SequencePaginator exactly `limit`
+            # items. In this case the paginator will assume there are no more
+            # results, so we need to override the `next` cursor's results.
+            paginator_results.next.has_results = True
+
+        if cursor is not None and (not cursor.is_prev or len(paginator_results.results) > 0):
+            # If the user passed a cursor, and it isn't already a 0 result `is_prev`
+            # cursor, then it's worth allowing them to go back a page to check for
+            # more results.
+            paginator_results.prev.has_results = True
 
         metrics.timing('snuba.search.num_chunks', num_chunks)
 
@@ -479,7 +491,7 @@ def snuba_search(start, end, project_id, environment_id, tags,
         having=having,
         filter_keys=filters,
         aggregations=aggregations,
-        orderby='-' + sort_field,
+        orderby=['-' + sort_field, 'issue'],  # ensure stable sort within the same score
         referrer='search',
         limit=limit + 1,
         offset=offset,

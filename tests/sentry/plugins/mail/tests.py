@@ -28,6 +28,7 @@ from sentry.plugins.sentry_mail.activity.base import ActivityEmail
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase
 from sentry.utils.email import MessageBuilder
+from sentry.event_manager import EventManager
 
 
 class MailPluginTest(TestCase):
@@ -115,14 +116,26 @@ class MailPluginTest(TestCase):
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_notify_users_does_email(self, _send_mail):
+        event_manager = EventManager({
+            'message': 'hello world',
+            'level': 'error',
+        })
+        event_manager.normalize()
+        event_data = event_manager.get_data()
+        event_type = event_manager.get_event_type()
+
         group = Group(
             id=2,
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
-            message='hello world',
+            message=event_manager.get_search_message(),
             logger='root',
             short_id=2,
+            data={
+                'type': event_type.key,
+                'metadata': event_type.get_metadata(),
+            }
         )
 
         event = Event(
@@ -130,9 +143,7 @@ class MailPluginTest(TestCase):
             message=group.message,
             project=self.project,
             datetime=group.last_seen,
-            data={'tags': [
-                ('level', 'error'),
-            ]},
+            data=event_data
         )
 
         notification = Notification(event=event)
@@ -148,14 +159,26 @@ class MailPluginTest(TestCase):
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_multiline_error(self, _send_mail):
+        event_manager = EventManager({
+            'message': 'hello world\nfoo bar',
+            'level': 'error',
+        })
+        event_manager.normalize()
+        event_data = event_manager.get_data()
+        event_type = event_manager.get_event_type()
+
         group = Group(
             id=2,
             first_seen=timezone.now(),
             last_seen=timezone.now(),
             project=self.project,
-            message='hello world\nfoo bar',
+            message=event_manager.get_search_message(),
             logger='root',
             short_id=2,
+            data={
+                'type': event_type.key,
+                'metadata': event_type.get_metadata(),
+            }
         )
 
         event = Event(
@@ -163,9 +186,7 @@ class MailPluginTest(TestCase):
             message=group.message,
             project=self.project,
             datetime=group.last_seen,
-            data={'tags': [
-                ('level', 'error'),
-            ]},
+            data=event_data,
         )
 
         notification = Notification(event=event)

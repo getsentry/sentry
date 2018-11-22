@@ -98,6 +98,10 @@ class Event(Model):
     project = property(_get_project, _set_project)
 
     def get_legacy_message(self):
+        # TODO(mitsuhiko): remove this code once it's unused.  It's still
+        # being used by plugin code and once the message rename is through
+        # plugins should instead swithc to the actual message attribute or
+        # this method could return what currently is real_message.
         return get_path(self.data, 'logentry', 'formatted') \
             or get_path(self.data, 'logentry', 'message') \
             or self.message
@@ -129,6 +133,14 @@ class Event(Model):
         return self.title
 
     error.short_description = _('error')
+
+    @property
+    def real_message(self):
+        # XXX(mitsuhiko): this is a transitional attribute that should be
+        # removed.  `message` will be renamed to `search_message` and this
+        # will become `message`.
+        msg_interface = self.data.get('logentry')
+        return msg_interface and (msg_interface.get('formatted') or msg_interface['message']) or ''
 
     @property
     def message_short(self):
@@ -194,7 +206,7 @@ class Event(Model):
         data['release'] = self.release
         data['dist'] = self.dist
         data['platform'] = self.platform
-        data['message'] = self.get_legacy_message()
+        data['message'] = self.real_message
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
         data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.get_tags()]

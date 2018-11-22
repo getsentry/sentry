@@ -1,7 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
-import {Box} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -12,11 +11,11 @@ import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
+import BetaTag from 'app/components/betaTag';
 
 import Result from './result';
 import ResultLoading from './result/loading';
 import Intro from './intro';
-import EarlyAdopterMessage from './earlyAdopterMessage';
 import NewQuery from './sidebar/newQuery';
 import EditSavedQuery from './sidebar/editSavedQuery';
 import SavedQueryList from './sidebar/savedQueryList';
@@ -36,6 +35,7 @@ import {
   DiscoverHeader,
   Body,
   BodyContent,
+  HeadingContainer,
   Heading,
   Sidebar,
   SidebarTabs,
@@ -303,6 +303,41 @@ export default class OrganizationDiscover extends React.Component {
 
     return (
       <DiscoverContainer>
+        <Sidebar>
+          {this.renderSidebarNav()}
+          {view === 'saved' && (
+            <SavedQueryWrapper>
+              <SavedQueryList organization={organization} savedQuery={savedQuery} />
+            </SavedQueryWrapper>
+          )}
+          {view === 'query' && (
+            <NewQuery
+              organization={organization}
+              queryBuilder={queryBuilder}
+              isFetchingQuery={isFetchingQuery || isLoading}
+              onUpdateField={this.updateField}
+              onRunQuery={this.runQuery}
+              onReset={this.reset}
+              isLoading={isLoading}
+            />
+          )}
+          {isEditingSavedQuery &&
+            savedQuery && (
+              <QueryPanel title={t('Edit Query')} onClose={toggleEditMode}>
+                <EditSavedQuery
+                  savedQuery={savedQuery}
+                  queryBuilder={queryBuilder}
+                  isFetchingQuery={isFetchingQuery}
+                  onUpdateField={this.updateField}
+                  onRunQuery={this.runQuery}
+                  onReset={this.reset}
+                  onDeleteQuery={this.deleteSavedQuery}
+                  onSaveQuery={this.updateSavedQuery}
+                  isLoading={isLoading}
+                />
+              </QueryPanel>
+            )}
+        </Sidebar>
         <DiscoverHeader>
           <HeaderItemPosition>
             <MultipleProjectSelector
@@ -340,51 +375,19 @@ export default class OrganizationDiscover extends React.Component {
             )}
             {!shouldDisplayResult && (
               <React.Fragment>
-                <Box mt={1} mb={2}>
-                  <Heading>{t('Discover')}</Heading>
-                </Box>
+                <div>
+                  <HeadingContainer>
+                    <Heading>
+                      {t('Discover')}  <BetaTag />
+                    </Heading>
+                  </HeadingContainer>
+                </div>
                 <Intro updateQuery={this.updateFields} />
               </React.Fragment>
             )}
             {isFetchingQuery && <ResultLoading />}
-            <EarlyAdopterMessage />
           </BodyContent>
         </Body>
-        <Sidebar>
-          {this.renderSidebarNav()}
-          {view === 'saved' && (
-            <SavedQueryWrapper>
-              <SavedQueryList organization={organization} savedQuery={savedQuery} />
-            </SavedQueryWrapper>
-          )}
-          {view === 'query' && (
-            <NewQuery
-              organization={organization}
-              queryBuilder={queryBuilder}
-              isFetchingQuery={isFetchingQuery || isLoading}
-              onUpdateField={this.updateField}
-              onRunQuery={this.runQuery}
-              onReset={this.reset}
-              isLoading={isLoading}
-            />
-          )}
-          {isEditingSavedQuery &&
-            savedQuery && (
-              <QueryPanel title={t('Edit Query')} onClose={toggleEditMode}>
-                <EditSavedQuery
-                  savedQuery={savedQuery}
-                  queryBuilder={queryBuilder}
-                  isFetchingQuery={isFetchingQuery}
-                  onUpdateField={this.updateField}
-                  onRunQuery={this.runQuery}
-                  onReset={this.reset}
-                  onDeleteQuery={this.deleteSavedQuery}
-                  onSaveQuery={this.updateSavedQuery}
-                  isLoading={isLoading}
-                />
-              </QueryPanel>
-            )}
-        </Sidebar>
       </DiscoverContainer>
     );
   }

@@ -100,8 +100,6 @@ def get_event_metadata_compat(data, fallback_message):
     """
     etype = data.get('type') or 'default'
     if 'metadata' not in data:
-        data = dict(data)
-        data['logentry'] = {'formatted': fallback_message}
         return eventtypes.get(etype)(data).get_metadata()
     return data['metadata']
 
