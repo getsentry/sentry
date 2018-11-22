@@ -60,6 +60,7 @@ from sentry.utils.data_filters import (
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
+from sentry.utils.meta import Meta
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
@@ -536,15 +537,19 @@ class EventManager(object):
             'threads': to_values,
         }
 
+        meta = Meta(data.get('_meta'))
+
         for c in casts:
             if c in data:
                 try:
                     data[c] = casts[c](data[c])
                 except InvalidTimestamp as it:
                     errors.append({'type': it.args[0], 'name': c, 'value': data[c]})
+                    meta.enter(c).add_error(it, data[c])
                     del data[c]
                 except Exception as e:
                     errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
+                    meta.enter(c).add_error(e, data[c])
                     del data[c]
 
         # raw 'message' is coerced to the Message interface.  Longer term
@@ -561,19 +566,14 @@ class EventManager(object):
         msg_str = data.pop('message', None)
         if msg_str:
             msg_if = data.get('logentry')
-            msg_meta = data.get('_meta', {}).get('message')
 
             if not msg_if:
                 msg_if = data['logentry'] = {'message': msg_str}
-                if msg_meta:
-                    data.setdefault('_meta', {}).setdefault('logentry', {})['message'] = msg_meta
+                meta.enter('logentry', 'message').merge(meta.enter('message'))
 
-            if msg_if.get('message') != msg_str:
-                if not msg_if.get('formatted'):
-                    msg_if['formatted'] = msg_str
-                    if msg_meta:
-                        data.setdefault('_meta', {}).setdefault(
-                            'logentry', {})['formatted'] = msg_meta
+            if msg_if.get('message') != msg_str and not msg_if.get('formatted'):
+                msg_if['formatted'] = msg_str
+                meta.enter('logentry', 'formatted').merge(meta.enter('message'))
 
         # Fill in ip addresses marked as {{auto}}
         if self._client_ip:
@@ -618,6 +618,7 @@ class EventManager(object):
                     e, InterfaceValidationError) else logger.error
                 log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
                 errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
+                meta.enter(k).add_error(e, value)
 
         # Additional data coercion and defaulting we only do for store.
         if self._for_store:
@@ -740,7 +741,12 @@ class EventManager(object):
 
         # Do not add errors unless there are for non store mode
         if not self._for_store and not data.get('errors'):
-            self._data.pop('errors')
+            data.pop('errors')
+
+        if meta.raw():
+            data['_meta'] = meta.raw()
+        elif '_meta' in data:
+            del data['_meta']
 
     def should_filter(self):
         '''
