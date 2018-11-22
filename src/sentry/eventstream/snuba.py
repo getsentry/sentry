@@ -11,7 +11,7 @@ class SnubaEventStream(EventStream):
             'group_id': event.group_id,
             'event_id': event.event_id,
             'project_id': event.project_id,
-            'message': event.message,
+            'message': event.real_message,
             'platform': event.platform,
             'datetime': event.datetime,
             'data': dict(event.data.items()),

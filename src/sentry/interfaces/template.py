@@ -71,7 +71,7 @@ class Template(Interface):
 
     def get_traceback(self, event, context):
         result = [
-            event.message,
+            event.real_message,
             '',
             'File "%s", line %s' % (self.filename, self.lineno),
             '',
