@@ -252,18 +252,32 @@ def alert(request):
         make_group_generator(random, project),
     )
 
-    data = load_data(platform)
+    data = dict(load_data(platform))
+    data['message'] = group.message
+    data.pop('logentry', None)
     data['tags'] = [
-        ('logger', 'javascript'), ('environment', 'prod'), ('level', 'error'),
+        ('logger', 'javascript'),
+        ('environment', 'prod'),
+        ('level', 'error'),
         ('device', 'Other')
     ]
+
+    event_manager = EventManager(data)
+    event_manager.normalize()
+    event_type = event_manager.get_event_type()
+
+    group.mesage = event_manager.get_search_message()
+    group.data = {
+        'type': event_type.key,
+        'metadata': event_type.get_metadata(),
+    }
 
     event = Event(
         id=1,
         event_id='44f1419e73884cd2b45c79918f4b6dc4',
         project=project,
         group=group,
-        message=group.message,
+        message=event_manager.get_search_message(),
         data=data,
         datetime=to_datetime(
             random.randint(
