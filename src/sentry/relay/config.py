@@ -9,6 +9,7 @@ from datetime import datetime
 from pytz import utc
 
 from sentry.models import ProjectKey, OrganizationOption
+from sentry.utils.sdk import configure_scope
 
 
 def _generate_pii_config(project, org_options):
@@ -41,10 +42,10 @@ def _generate_pii_config(project, org_options):
                 'redaction': 'remove',
                 'keyPattern': r'\b%s\n' % '|'.join(re.escape(x) for x in fields),
             }
-            databag_rules.push('strip-fields')
+            databag_rules.append('strip-fields')
 
     if scrub_ip_address:
-        ip_rules.push('@ip')
+        ip_rules.append('@ip')
 
     return {
         'rules': custom_rules,
@@ -70,6 +71,10 @@ def get_pii_config(project, org_options):
 
 def get_project_options(project):
     """Returns a dict containing the config for a project for the sentry relay"""
+
+    with configure_scope() as scope:
+        scope.set_tag("project", project.id)
+
     project_keys = ProjectKey.objects.filter(
         project=project,
     ).all()
