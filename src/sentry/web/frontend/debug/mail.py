@@ -255,6 +255,7 @@ def alert(request):
     data = dict(load_data(platform))
     data['message'] = group.message
     data.pop('logentry', None)
+    data['environment'] = 'prod'
     data['tags'] = [
         ('logger', 'javascript'),
         ('environment', 'prod'),
