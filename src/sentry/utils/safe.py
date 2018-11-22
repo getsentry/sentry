@@ -124,9 +124,14 @@ def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
 
 def get_path(data, *path, **kwargs):
     """
-    Looks up a path of properties in a nested dictionary safely.
-    Returns the value at the final level, or the default value if
-    property lookup failed at any step in the path.
+    Safely resolves data from a recursive data structure. A value is only
+    returned if the full path exists, otherwise ``None`` is returned.
+
+    If the ``default`` argument is specified, it is returned instead of ``None``.
+
+    If the ``filter`` argument is specified and the value is a list, it is
+    filtered with the given callback. Alternatively, pass ``True`` as filter to
+    only filter ``None`` values.
     """
     for p in path:
         if isinstance(data, collections.Mapping) and p in data:
@@ -135,7 +140,12 @@ def get_path(data, *path, **kwargs):
             data = data[p]
         else:
             return kwargs.get('default')
-    return data
+
+    f = kwargs.get('filter')
+    if f and data and isinstance(data, (list, tuple)):
+        data = list(filter((lambda x: x is not None) if f is True else f, data))
+
+    return data if data is not None else kwargs.get('default')
 
 
 def set_path(data, *path, **kwargs):
@@ -149,8 +159,6 @@ def set_path(data, *path, **kwargs):
 
     If the ``overwrite` kwarg is set to False, the value is only set if there is
     no existing value or it is None. See ``setdefault_path``.
-
-    Example: ``set_path({}, )
     """
 
     value = kwargs['value']
