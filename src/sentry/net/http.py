@@ -128,6 +128,21 @@ class BlacklistAdapter(HTTPAdapter):
             **pool_kwargs)
 
 
+class TimeoutAdapter(HTTPAdapter):
+
+    def __init__(self, *args, **kwargs):
+        timeout = kwargs.pop('timeout', None)
+        HTTPAdapter.__init__(self, *args, **kwargs)
+        if timeout is None:
+            timeout = 10.0
+        self.default_timeout = timeout
+
+    def send(self, *args, **kwargs):
+        if kwargs.get('timeout') is None:
+            kwargs['timeout'] = self.default_timeout
+        return HTTPAdapter.send(self, *args, **kwargs)
+
+
 USER_AGENT = u'sentry/{version} (https://sentry.io)'.format(
     version=SENTRY_VERSION,
 )
