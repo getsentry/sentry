@@ -30,6 +30,7 @@ class RelayQueryGetProjectConfigTest(APITestCase):
         )
 
         self.project = self.create_project()
+        self.project.update_option('sentry:scrub_ip_address', True)
         self.path = reverse(
             'sentry-api-0-relay-projectconfigs'
         )
