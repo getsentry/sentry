@@ -16,6 +16,7 @@ from google.cloud.storage.client import Client
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
 from google.cloud.exceptions import NotFound
+from google.auth.exceptions import TransportError
 from google.resumable_media.common import DataCorruption
 
 from sentry.utils import metrics
@@ -38,7 +39,7 @@ def try_repeated(func):
     while 1:
         try:
             return func()
-        except (DataCorruption, ConnectionError):
+        except (DataCorruption, ConnectionError, TransportError):
             if idx >= 3:
                 raise
         idx += 1
