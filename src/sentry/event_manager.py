@@ -596,6 +596,9 @@ class EventManager(object):
                 continue
 
             value = data.pop(k)
+            if not value:
+                logger.debug('Ignored empty interface value: %s', k)
+                continue
 
             try:
                 cls = get_interface(k)
