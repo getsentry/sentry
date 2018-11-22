@@ -16,8 +16,11 @@ from google.cloud.storage.client import Client
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
 from google.cloud.exceptions import NotFound
+from google.resumable_media.common import DataCorruption
 
 from sentry.utils import metrics
+from sentry.net.http import TimeoutAdapter
+from requests.exceptions import ConnectionError
 
 
 # _client cache is a 3-tuple of project_id, credentials, Client
@@ -26,17 +29,30 @@ from sentry.utils import metrics
 _client = None, None, None
 
 
+def try_repeated(func):
+    """Runs a function a few times ignoring errors we see from GCS
+    due to what appears to be network issues.  This is a temporary workaround
+    until we can find the root cause.
+    """
+    idx = 0
+    while 1:
+        try:
+            return func()
+        except (DataCorruption, ConnectionError):
+            if idx >= 3:
+                raise
+        idx += 1
+
+
 def get_client(project_id, credentials):
     global _client
     if _client[2] is None or (project_id, credentials) != (_client[0], _client[1]):
-        _client = (
-            project_id,
-            credentials,
-            Client(
-                project=project_id,
-                credentials=credentials,
-            )
-        )
+        client = Client(project=project_id, credentials=credentials)
+        session = client._http
+        adapter = TimeoutAdapter(timeout=10.0)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        _client = (project_id, credentials, client)
     return _client[2]
 
 
@@ -131,6 +147,10 @@ class GoogleCloudFile(File):
         return self.blob.size
 
     def _get_file(self):
+        def _try_download():
+            self.blob.download_to_file(self._file)
+            self.file.seek(0)
+
         if self._file is None:
             with metrics.timer('filestore.read', instance='gcs'):
                 self._file = SpooledTemporaryFile(
@@ -140,8 +160,7 @@ class GoogleCloudFile(File):
                 )
                 if 'r' in self._mode:
                     self._is_dirty = False
-                    self.blob.download_to_file(self._file)
-                    self._file.seek(0)
+                    try_repeated(_try_download)
         return self._file
 
     def _set_file(self, value):
@@ -165,10 +184,13 @@ class GoogleCloudFile(File):
         return super(GoogleCloudFile, self).write(force_bytes(content))
 
     def close(self):
+        def _try_upload():
+            self.file.seek(0)
+            self.blob.upload_from_file(self.file, content_type=self.mime_type)
+
         if self._file is not None:
             if self._is_dirty:
-                self.file.seek(0)
-                self.blob.upload_from_file(self.file, content_type=self.mime_type)
+                try_repeated(_try_upload)
             self._file.close()
             self._file = None
 
