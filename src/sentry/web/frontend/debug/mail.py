@@ -266,7 +266,7 @@ def alert(request):
     event_manager.normalize()
     event_type = event_manager.get_event_type()
 
-    group.mesage = event_manager.get_search_message()
+    group.message = event_manager.get_search_message()
     group.data = {
         'type': event_type.key,
         'metadata': event_type.get_metadata(),
@@ -278,7 +278,7 @@ def alert(request):
         project=project,
         group=group,
         message=event_manager.get_search_message(),
-        data=data,
+        data=event_manager.get_data(),
         datetime=to_datetime(
             random.randint(
                 to_timestamp(group.first_seen),
