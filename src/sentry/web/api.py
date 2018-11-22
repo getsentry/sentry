@@ -849,9 +849,8 @@ class SecurityReportView(StoreView):
         except jsonschema.ValidationError as e:
             raise APIError('Invalid security report: %s' % str(e).splitlines()[0])
 
-        if instance.get_errors():
-            e = instance.get_errors()[1]
-            raise APIError('Invalid security report: %s' % e)
+        if not instance:
+            raise APIError('Invalid security report')
 
         # Do origin check based on the `document-uri` key as explained in `_dispatch`.
         origin = instance.get_origin()

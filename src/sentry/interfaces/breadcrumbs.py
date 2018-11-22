@@ -52,8 +52,10 @@ class Breadcrumbs(Interface):
     @classmethod
     def _to_python(cls, data, meta):
         values = []
-        for crumb in data.get('values') or ():
+        for index, crumb in enumerate(data.get('values') or ()):
             # TODO(ja): Handle already invalid and None breadcrumbs
+            if crumb is None:
+                continue
 
             try:
                 values.append(cls.normalize_crumb(crumb))

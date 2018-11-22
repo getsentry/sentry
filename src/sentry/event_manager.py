@@ -595,6 +595,8 @@ class EventManager(object):
             if k in CLIENT_RESERVED_ATTRS:
                 continue
 
+            value = data.pop(k)
+
             try:
                 cls = get_interface(k)
             except ValueError:
@@ -602,7 +604,6 @@ class EventManager(object):
                 errors.append({'type': EventError.INVALID_ATTRIBUTE, 'name': k})
                 continue
 
-            value = data.pop(k)
             interface_meta = meta.enter(k)
             interface = cls.to_python(value, meta=interface_meta)
             if interface is not None:

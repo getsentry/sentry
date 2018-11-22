@@ -13,8 +13,7 @@ from sentry.interfaces.security import Csp
     )
 )
 def test_invalid_csp_report(report):
-    result = Csp.to_python(report)
-    assert result.get_errors() == ['Invalid interface data']
+    assert Csp.to_python(report) is None
 
 
 @pytest.mark.parametrize(
