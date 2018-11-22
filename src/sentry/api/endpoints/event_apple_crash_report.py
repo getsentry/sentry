@@ -14,7 +14,7 @@ from sentry.api.bases.group import GroupPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Event
 from sentry.lang.native.applecrashreport import AppleCrashReport
-from sentry.utils.meta import get_valid, get_all_valid
+from sentry.utils.safe import get_path
 
 
 class EventAppleCrashReportEndpoint(Endpoint):
@@ -50,10 +50,10 @@ class EventAppleCrashReportEndpoint(Endpoint):
 
         apple_crash_report_string = six.text_type(
             AppleCrashReport(
-                threads=get_all_valid(event.data, 'threads', 'values'),
-                context=get_valid(event.data, 'contexts'),
-                debug_images=get_all_valid(event.data, 'debug_meta', 'images'),
-                exceptions=get_all_valid(event.data, 'exception', 'values'),
+                threads=get_path(event.data, 'threads', 'values', filter=True),
+                context=event.data.get('contexts'),
+                debug_images=get_path(event.data, 'debug_meta', 'images', filter=True),
+                exceptions=get_path(event.data, 'exception', 'values', filter=True),
                 symbolicated=symbolicated,
             )
         )

@@ -16,7 +16,6 @@ from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
     rebase_addr
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.utils import metrics
-from sentry.utils.meta import get_valid, get_all_valid
 from sentry.utils.safe import get_path
 from sentry.stacktraces import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
@@ -36,14 +35,14 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         self.arch = cpu_name_from_data(self.data)
         self.sym = None
         self.difs_referenced = set()
-        self.debug_meta = get_valid(self.data, 'debug_meta')
+        self.debug_meta = self.data.get('debug_meta')
 
         if self.debug_meta:
             self.available = True
             self.sdk_info = get_sdk_from_event(self.data)
             self.object_lookup = ObjectLookup([
-                image for image in get_all_valid(self.data, 'debug_meta', 'images') or ()
-                if image['type'] in self.supported_images
+                image for image in get_path(self.debug_meta, 'images', filter=True, default=())
+                if image.get('type') in self.supported_images
             ])
         else:
             self.available = False
@@ -76,7 +75,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             # The signal is useful information for symbolic in some situations
             # to disambiugate the first frame.  If we can get this information
             # from the mechanism we want to pass it onwards.
-            exceptions = get_all_valid(self.data, 'exception', 'values')
+            exceptions = get_path(self.data, 'exception', 'values', filter=True)
             signal = get_path(exceptions, 0, 'mechanism', 'meta', 'signal', 'number')
             if signal is not None:
                 signal = int(signal)

@@ -23,7 +23,7 @@ from sentry.db.models import (
 from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
-from sentry.utils.meta import get_valid
+from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
 
 
@@ -98,8 +98,8 @@ class Event(Model):
     project = property(_get_project, _set_project)
 
     def get_legacy_message(self):
-        return get_valid(self.data, 'logentry', 'formatted') \
-            or get_valid(self.data, 'logentry', 'message') \
+        return get_path(self.data, 'logentry', 'formatted') \
+            or get_path(self.data, 'logentry', 'message') \
             or self.message
 
     def get_event_type(self):
@@ -145,11 +145,11 @@ class Event(Model):
 
     @memoize
     def ip_address(self):
-        ip_address = get_valid(self.data, 'user', 'ip_address')
+        ip_address = get_path(self.data, 'user', 'ip_address')
         if ip_address:
             return ip_address
 
-        remote_addr = get_valid(self.data, 'request', 'env', 'REMOTE_ADDR')
+        remote_addr = get_path(self.data, 'request', 'env', 'REMOTE_ADDR')
         if remote_addr:
             return remote_addr
 

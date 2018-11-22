@@ -9,8 +9,7 @@ from collections import namedtuple
 from sentry.models import Project, Release
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
-from sentry.utils.meta import get_valid, get_all_valid
-from sentry.utils.safe import safe_execute
+from sentry.utils.safe import get_path, safe_execute
 
 
 logger = logging.getLogger(__name__)
@@ -173,16 +172,16 @@ def find_stacktraces_in_data(data, include_raw=False):
             platforms.add(frame.get('platform') or data.get('platform'))
         rv.append(StacktraceInfo(stacktrace=stacktrace, container=container, platforms=platforms))
 
-    for exc in get_all_valid(data, 'exception', 'values') or ():
+    for exc in get_path(data, 'exception', 'values', filter=True, default=()):
         stacktrace = exc.get('stacktrace')
         if stacktrace:
             _report_stack(stacktrace, exc)
 
-    stacktrace = get_valid(data, 'stacktrace')
+    stacktrace = data.get('stacktrace')
     if stacktrace:
         _report_stack(stacktrace, None)
 
-    for thread in get_all_valid(data, 'threads', 'values') or ():
+    for thread in get_path(data, 'threads', 'values', filter=True, default=()):
         stacktrace = thread.get('stacktrace')
         if stacktrace:
             _report_stack(stacktrace, thread)

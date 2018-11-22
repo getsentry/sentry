@@ -8,7 +8,7 @@ from collections import namedtuple
 from symbolic import parse_addr, arch_from_macho, arch_is_known
 
 from sentry.interfaces.contexts import DeviceContextType
-from sentry.utils.meta import get_valid, get_all_valid
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -27,17 +27,17 @@ def image_name(pkg):
 
 
 def get_sdk_from_event(event):
-    sdk_info = get_valid(event, 'debug_meta', 'sdk_info')
+    sdk_info = get_path(event, 'debug_meta', 'sdk_info')
     if sdk_info:
         return sdk_info
 
-    os = get_valid(event, 'contexts', 'os')
+    os = get_path(event, 'contexts', 'os')
     if os and os.get('type') == 'os':
         return get_sdk_from_os(os)
 
 
 def get_sdk_from_os(data):
-    if 'name' not in data or 'version' not in data:
+    if data.get('name') is None or data.get('version') is None:
         return
 
     try:
@@ -63,7 +63,7 @@ def cpu_name_from_data(data):
 
     # TODO: kill this here.  we want to not support that going forward
     unique_cpu_name = None
-    for img in get_all_valid(data, 'debug_meta', 'images') or ():
+    for img in get_path(data, 'debug_meta', 'images', filter=True, default=()):
         if img.get('arch') and arch_is_known(img['arch']):
             cpu_name = img['arch']
         elif img.get('cpu_type') is not None \

@@ -60,7 +60,7 @@ from sentry.utils.data_filters import (
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
-from sentry.utils.meta import Meta, get_valid, get_all_valid
+from sentry.utils.meta import Meta
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path, setdefault_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
@@ -227,11 +227,11 @@ else:
 
 
 def generate_culprit(data, platform=None):
-    exceptions = get_all_valid(data, 'exception', 'values')
+    exceptions = get_path(data, 'exception', 'values', filter=True)
     if exceptions is not None:
         stacktraces = [e['stacktrace'] for e in exceptions if e.get('stacktrace')]
     else:
-        stacktrace = get_valid(data, 'stacktrace')
+        stacktrace = data.get('stacktrace')
         if stacktrace:
             stacktraces = [stacktrace]
         else:
@@ -246,7 +246,7 @@ def generate_culprit(data, platform=None):
         )
 
     if not culprit and 'request' in data:
-        culprit = get_valid(data, 'request', 'url')
+        culprit = get_path(data, 'request', 'url')
 
     return truncatechars(culprit or '', MAX_CULPRIT_LENGTH)
 
@@ -674,8 +674,8 @@ class EventManager(object):
             data['type'] = eventtypes.infer(data).key
             data['version'] = self.version
 
-        exceptions = get_all_valid(data, 'exception', 'values')
-        stacktrace = get_valid(data, 'stacktrace')
+        exceptions = get_path(data, 'exception', 'values', filter=True)
+        stacktrace = data.get('stacktrace')
         if stacktrace and exceptions and len(exceptions) == 1:
             exceptions[0]['stacktrace'] = stacktrace
             stacktrace_meta = meta.enter('stacktrace')
@@ -712,7 +712,7 @@ class EventManager(object):
             is_public = self._auth and self._auth.is_public
             add_ip_platforms = ('javascript', 'cocoa', 'objc')
 
-            http_ip = get_valid(data, 'request', 'env', 'REMOTE_ADDR')
+            http_ip = get_path(data, 'request', 'env', 'REMOTE_ADDR')
             if http_ip:
                 set_path(data, 'user', 'ip_address', value=http_ip)
             elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
@@ -769,16 +769,15 @@ class EventManager(object):
         if release and not is_valid_release(self._project, release):
             return (True, FilterStatKeys.RELEASE_VERSION)
 
-        message_interface = get_valid(self._data, 'logentry') or {}
-        error_message = message_interface.get('formatted') \
-            or message_interface.get('message') \
+        error_message = get_path(self._data, 'logentry', 'formatted') \
+            or get_path(self._data, 'logentry', 'message') \
             or ''
         if error_message and not is_valid_error_message(self._project, error_message):
             return (True, FilterStatKeys.ERROR_MESSAGE)
 
-        for exception_interface in get_all_valid(self._data, 'exception', 'values') or []:
+        for exc in get_path(self._data, 'exception', 'values', filter=True, default=[]):
             message = u': '.join(
-                filter(None, map(exception_interface.get, ['type', 'value']))
+                filter(None, map(exc.get, ['type', 'value']))
             )
             if message and not is_valid_error_message(self._project, message):
                 return (True, FilterStatKeys.ERROR_MESSAGE)
@@ -838,7 +837,7 @@ class EventManager(object):
         data = self._data
         message = ''
 
-        if get_valid(data, 'logentry'):
+        if data.get('logentry'):
             message += (data['logentry'].get('formatted') or
                         data['logentry'].get('message') or '')
 
@@ -1259,17 +1258,17 @@ class EventManager(object):
         return event
 
     def _get_event_user(self, project, data):
-        user_data = get_valid(data, 'user')
+        user_data = data.get('user')
         if not user_data:
             return
 
         euser = EventUser(
             project_id=project.id,
-            ident=get_valid(data, 'user', 'id'),
-            email=get_valid(data, 'user', 'email'),
-            username=get_valid(data, 'user', 'username'),
-            ip_address=get_valid(data, 'user', 'ip_address'),
-            name=get_valid(data, 'user', 'name'),
+            ident=user_data.get('id'),
+            email=user_data.get('email'),
+            username=user_data.get('username'),
+            ip_address=user_data.get('ip_address'),
+            name=user_data.get('name'),
         )
         euser.set_hash()
         if not euser.hash:

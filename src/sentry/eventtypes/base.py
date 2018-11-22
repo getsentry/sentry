@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.utils.strings import truncatechars, strip
-from sentry.utils.meta import get_valid
+from sentry.utils.safe import get_path
 
 
 class BaseEvent(object):
@@ -28,8 +28,8 @@ class DefaultEvent(BaseEvent):
         return True
 
     def get_metadata(self):
-        message = get_valid(self.data, 'logentry', 'formatted') \
-            or get_valid(self.data, 'logentry', 'message')
+        message = get_path(self.data, 'logentry', 'formatted') \
+            or get_path(self.data, 'logentry', 'message')
 
         if not message:
             title = '<unlabeled event>'
