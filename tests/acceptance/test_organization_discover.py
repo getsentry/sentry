@@ -66,3 +66,20 @@ class OrganizationDiscoverTest(AcceptanceTestCase):
             self.browser.get(self.path + '?view=saved')
             self.browser.wait_until_not('.loading')
             self.browser.snapshot('discover - saved query list')
+
+    def test_invalid_projects_warning(self):
+        with self.feature('organizations:discover'):
+            self.browser.get(self.path)
+            self.browser.wait_until_not('.loading')
+            self.browser.find_element_by_xpath("//button//span[contains(text(), 'Save')]").click()
+            self.new_user = self.create_user('bar@example.com')
+            self.create_member(
+                user=self.new_user,
+                organization=self.org,
+                role='owner',
+                teams=[],
+            )
+            self.login_as(self.new_user)
+            self.browser.get(self.path + 'saved/1/')
+            self.browser.wait_until_not('.loading')
+            self.browser.snapshot('discover - saved query')
