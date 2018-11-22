@@ -198,7 +198,8 @@ describe('AutoComplete', function() {
         .simulate('click');
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
-        expect.objectContaining({inputValue: '', highlightedIndex: 0})
+        expect.objectContaining({inputValue: '', highlightedIndex: 0}),
+        expect.anything()
       );
 
       expect(wrapper.state('inputValue')).toBe('Pineapple');
@@ -221,7 +222,8 @@ describe('AutoComplete', function() {
 
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[2],
-        expect.objectContaining({inputValue: '', highlightedIndex: 2})
+        expect.objectContaining({inputValue: '', highlightedIndex: 2}),
+        expect.anything()
       );
       expect(wrapper.instance().items.size).toBe(0);
       expect(wrapper.state('inputValue')).toBe('Orange');
@@ -285,7 +287,8 @@ describe('AutoComplete', function() {
       input.simulate('keyDown', {key: 'Enter'});
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
-        expect.objectContaining({inputValue: 'ap', highlightedIndex: 1})
+        expect.objectContaining({inputValue: 'ap', highlightedIndex: 1}),
+        expect.anything()
       );
       expect(wrapper.instance().items.size).toBe(0);
       expect(wrapper.state('inputValue')).toBe('Pineapple');
@@ -394,7 +397,8 @@ describe('AutoComplete', function() {
         .simulate('click');
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
-        expect.objectContaining({inputValue: '', highlightedIndex: 0})
+        expect.objectContaining({inputValue: '', highlightedIndex: 0}),
+        expect.anything()
       );
 
       expect(wrapper.state('inputValue')).toBe('Pineapple');
@@ -416,7 +420,8 @@ describe('AutoComplete', function() {
 
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[2],
-        expect.objectContaining({inputValue: '', highlightedIndex: 2})
+        expect.objectContaining({inputValue: '', highlightedIndex: 2}),
+        expect.anything()
       );
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
       expect(wrapper.state('inputValue')).toBe('Orange');
@@ -478,10 +483,38 @@ describe('AutoComplete', function() {
       input.simulate('keyDown', {key: 'Enter'});
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
-        expect.objectContaining({inputValue: 'ap', highlightedIndex: 1})
+        expect.objectContaining({inputValue: 'ap', highlightedIndex: 1}),
+        expect.anything()
       );
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
       expect(wrapper.state('inputValue')).toBe('Pineapple');
     });
+  });
+
+  it('does not reset highlight state if `closeOnSelect` is false and we select a new item', function() {
+    wrapper = createWrapper({closeOnSelect: false});
+    jest.useFakeTimers();
+    input.simulate('focus');
+    expect(wrapper.state('isOpen')).toBe(true);
+
+    input.simulate('keyDown', {key: 'ArrowDown'});
+    expect(wrapper.state('highlightedIndex')).toBe(1);
+
+    // Select item
+    input.simulate('keyDown', {key: 'Enter'});
+
+    // Should still remain open with same highlightedIndex
+    expect(wrapper.state('highlightedIndex')).toBe(1);
+    expect(wrapper.state('isOpen')).toBe(true);
+
+    input.simulate('keyDown', {key: 'ArrowDown'});
+    expect(wrapper.state('highlightedIndex')).toBe(2);
+
+    // Select item
+    input.simulate('keyDown', {key: 'Enter'});
+
+    // Should still remain open with same highlightedIndex
+    expect(wrapper.state('highlightedIndex')).toBe(2);
+    expect(wrapper.state('isOpen')).toBe(true);
   });
 });

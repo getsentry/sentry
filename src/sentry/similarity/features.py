@@ -37,7 +37,7 @@ class ExceptionFeature(object):
 
     def extract(self, event):
         try:
-            interface = event.interfaces['sentry.interfaces.Exception']
+            interface = event.interfaces['exception']
         except KeyError:
             raise InterfaceDoesNotExist()
         return self.function(interface.values[0])
@@ -49,7 +49,7 @@ class MessageFeature(object):
 
     def extract(self, event):
         try:
-            interface = event.interfaces['sentry.interfaces.Message']
+            interface = event.interfaces['logentry']
         except KeyError:
             raise InterfaceDoesNotExist()
         return self.function(interface)
@@ -69,10 +69,10 @@ class FeatureSet(object):
         assert set(self.aliases) == set(self.features)
 
     def __get_scope(self, project):
-        return '{}'.format(project.id)
+        return u'{}'.format(project.id)
 
     def __get_key(self, group):
-        return '{}'.format(group.id)
+        return u'{}'.format(group.id)
 
     def extract(self, event):
         results = {}

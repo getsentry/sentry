@@ -63,10 +63,12 @@ describe('SelectAsyncField', function() {
     // Select item
     wrapper.find('input[id="id-fieldName"]').simulate('keyDown', {keyCode: 13});
 
-    // SelectControl should have the value object, not just a simple value
+    // SelectControl MUST have the value object, not just a simple value
+    // otherwise it means that selecting an item that has been populated in the menu by
+    // an async request will not work (nothing will appear selected).
     expect(wrapper.find('SelectControl').prop('value')).toEqual({
       value: 'baz',
-      label: 'Baz Label',
+      label: expect.anything(),
     });
 
     wrapper.find('Form').simulate('submit');

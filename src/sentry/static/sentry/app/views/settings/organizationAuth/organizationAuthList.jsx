@@ -2,11 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {CSRF_COOKIE_NAME} from 'app/constants';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
+import {descopeFeatureName} from 'app/utils';
 import {t, tct} from 'app/locale';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/externalLink';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import getCookie from 'app/utils/getCookie';
 
@@ -18,13 +19,31 @@ class OrganizationAuthList extends React.Component {
   };
 
   static propTypes = {
-    providerList: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string)),
+    providerList: PropTypes.arrayOf(SentryTypes.AuthProvider).isRequired,
   };
 
   render() {
-    let {organization} = this.context;
-    let {providerList} = this.props;
-    let hasProviderList = providerList && !!providerList.length;
+    const {organization} = this.context;
+    const features = organization.features;
+
+    // Sort feature-flagged integrations last
+    const providerList = (this.props.providerList || []).sort((a, b) => {
+      const aEnabled = features.includes(descopeFeatureName(a.requiredFeature));
+      const bEnabled = features.includes(descopeFeatureName(b.requiredFeature));
+
+      if (aEnabled !== bEnabled) {
+        return aEnabled ? -1 : 1;
+      }
+
+      return a.requiredFeature.localeCompare(b.requiredFeature);
+    });
+
+    const warn2FADisable =
+      organization.require2FA &&
+      providerList.some(
+        ({requiredFeature, disables2FA}) =>
+          disables2FA && features.includes(descopeFeatureName(requiredFeature))
+      );
 
     return (
       <div className="sso">
@@ -32,15 +51,23 @@ class OrganizationAuthList extends React.Component {
         <Panel>
           <PanelHeader>{t('Choose a provider')}</PanelHeader>
           <PanelBody>
-            <PanelAlert m={0} mb={0} type="info">
+            <PanelAlert type="info">
               {tct(
-                `Get started with Single Sign-on for your organization by selecting a
-              provider. For more information on SSO please see our [link:documentation]`,
+                `Get started with Single Sign-on for your organization by
+                selecting a provider. Read more in our [link:SSO documentation].`,
                 {
                   link: <ExternalLink href="https://docs.sentry.io/learn/sso/" />,
                 }
-              )}.
+              )}
             </PanelAlert>
+
+            {warn2FADisable && (
+              <PanelAlert m={0} mb={0} type="warning">
+                {t(
+                  'Require 2FA will be disabled if you enable SAML-based SSO (Okta, OneLogin, Auth0, etc.)'
+                )}
+              </PanelAlert>
+            )}
 
             <form
               action={`/organizations/${organization.slug}/auth/configure/`}
@@ -53,21 +80,15 @@ class OrganizationAuthList extends React.Component {
               />
               <input type="hidden" name="init" value="1" />
 
-              {hasProviderList &&
-                providerList.map(([providerKey, providerName]) => (
-                  <ProviderItem
-                    key={providerKey}
-                    providerKey={providerKey}
-                    providerName={providerName}
-                  />
-                ))}
+              {providerList.map(provider => (
+                <ProviderItem key={provider.key} provider={provider} />
+              ))}
+              {providerList.length === 0 && (
+                <EmptyMessage>
+                  {t('No authentication providers are available.')}
+                </EmptyMessage>
+              )}
             </form>
-
-            {!hasProviderList && (
-              <EmptyMessage style={{padding: 50, textAlign: 'center'}}>
-                {t('No authentication providers are available.')}
-              </EmptyMessage>
-            )}
           </PanelBody>
         </Panel>
       </div>

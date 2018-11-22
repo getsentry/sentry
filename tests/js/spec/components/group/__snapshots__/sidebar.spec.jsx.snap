@@ -50,21 +50,25 @@ exports[`GroupSidebar renders with tags renders 1`] = `
             "canDelete": true,
             "key": "browser",
             "name": "Browser",
+            "totalValues": 30,
           },
           Object {
             "canDelete": true,
             "key": "device",
             "name": "Device",
+            "totalValues": 5,
           },
           Object {
             "canDelete": true,
             "key": "url",
             "name": "URL",
+            "totalValues": 7,
           },
           Object {
             "canDelete": false,
             "key": "environment",
             "name": "Environment",
+            "totalValues": 100,
           },
         ],
       }
@@ -104,32 +108,97 @@ exports[`GroupSidebar renders with tags renders 1`] = `
             "canDelete": true,
             "key": "browser",
             "name": "Browser",
+            "totalValues": 30,
           },
           Object {
             "canDelete": true,
             "key": "device",
             "name": "Device",
+            "totalValues": 5,
           },
           Object {
             "canDelete": true,
             "key": "url",
             "name": "URL",
+            "totalValues": 7,
           },
           Object {
             "canDelete": false,
             "key": "environment",
             "name": "Environment",
+            "totalValues": 100,
           },
         ],
       }
     }
+  />
+  <ExternalIssueList
+    group={
+      Object {
+        "assignedTo": null,
+        "id": "1",
+        "project": Object {
+          "id": "2",
+          "slug": "project-slug",
+        },
+        "stats": Object {
+          "24h": Array [
+            Array [
+              1517281200,
+              2,
+            ],
+            Array [
+              1517310000,
+              1,
+            ],
+          ],
+          "30d": Array [
+            Array [
+              1514764800,
+              1,
+            ],
+            Array [
+              1515024000,
+              122,
+            ],
+          ],
+        },
+        "tags": Array [
+          Object {
+            "canDelete": true,
+            "key": "browser",
+            "name": "Browser",
+            "totalValues": 30,
+          },
+          Object {
+            "canDelete": true,
+            "key": "device",
+            "name": "Device",
+            "totalValues": 5,
+          },
+          Object {
+            "canDelete": true,
+            "key": "url",
+            "name": "URL",
+            "totalValues": 7,
+          },
+          Object {
+            "canDelete": false,
+            "key": "environment",
+            "name": "Environment",
+            "totalValues": 100,
+          },
+        ],
+      }
+    }
+    orgId="org-slug"
   />
   <h6>
     <span>
       Tags
     </span>
   </h6>
-  <withEnvironment
+  <withEnvironment(TagDistributionMeter)
     data-test-id="group-tag"
     group={
       Object {
@@ -166,21 +235,25 @@ exports[`GroupSidebar renders with tags renders 1`] = `
             "canDelete": true,
             "key": "browser",
             "name": "Browser",
+            "totalValues": 30,
           },
           Object {
             "canDelete": true,
             "key": "device",
             "name": "Device",
+            "totalValues": 5,
           },
           Object {
             "canDelete": true,
             "key": "url",
             "name": "URL",
+            "totalValues": 7,
           },
           Object {
             "canDelete": false,
             "key": "environment",
             "name": "Environment",
+            "totalValues": 100,
           },
         ],
       }
@@ -190,8 +263,21 @@ exports[`GroupSidebar renders with tags renders 1`] = `
     orgId="org-slug"
     projectId="project-slug"
     tag="browser"
+    topValues={
+      Array [
+        Object {
+          "count": 10,
+          "value": "Chrome",
+        },
+        Object {
+          "count": 5,
+          "value": "Firefox",
+        },
+      ]
+    }
+    totalValues={30}
   />
-  <withEnvironment
+  <withEnvironment(TagDistributionMeter)
     data-test-id="group-tag"
     group={
       Object {
@@ -228,21 +314,25 @@ exports[`GroupSidebar renders with tags renders 1`] = `
             "canDelete": true,
             "key": "browser",
             "name": "Browser",
+            "totalValues": 30,
           },
           Object {
             "canDelete": true,
             "key": "device",
             "name": "Device",
+            "totalValues": 5,
           },
           Object {
             "canDelete": true,
             "key": "url",
             "name": "URL",
+            "totalValues": 7,
           },
           Object {
             "canDelete": false,
             "key": "environment",
             "name": "Environment",
+            "totalValues": 100,
           },
         ],
       }
@@ -252,8 +342,21 @@ exports[`GroupSidebar renders with tags renders 1`] = `
     orgId="org-slug"
     projectId="project-slug"
     tag="device"
+    topValues={
+      Array [
+        Object {
+          "count": 1,
+          "value": "iPhone",
+        },
+        Object {
+          "count": 2,
+          "value": "Pixel",
+        },
+      ]
+    }
+    totalValues={5}
   />
-  <withEnvironment
+  <withEnvironment(TagDistributionMeter)
     data-test-id="group-tag"
     group={
       Object {
@@ -290,21 +393,25 @@ exports[`GroupSidebar renders with tags renders 1`] = `
             "canDelete": true,
             "key": "browser",
             "name": "Browser",
+            "totalValues": 30,
           },
           Object {
             "canDelete": true,
             "key": "device",
             "name": "Device",
+            "totalValues": 5,
           },
           Object {
             "canDelete": true,
             "key": "url",
             "name": "URL",
+            "totalValues": 7,
           },
           Object {
             "canDelete": false,
             "key": "environment",
             "name": "Environment",
+            "totalValues": 100,
           },
         ],
       }
@@ -314,8 +421,21 @@ exports[`GroupSidebar renders with tags renders 1`] = `
     orgId="org-slug"
     projectId="project-slug"
     tag="url"
+    topValues={
+      Array [
+        Object {
+          "count": 2,
+          "value": "foo.com",
+        },
+        Object {
+          "count": 5,
+          "value": "bar.com",
+        },
+      ]
+    }
+    totalValues={7}
   />
-  <withEnvironment
+  <withEnvironment(TagDistributionMeter)
     data-test-id="group-tag"
     group={
       Object {
@@ -352,21 +472,25 @@ exports[`GroupSidebar renders with tags renders 1`] = `
             "canDelete": true,
             "key": "browser",
             "name": "Browser",
+            "totalValues": 30,
           },
           Object {
             "canDelete": true,
             "key": "device",
             "name": "Device",
+            "totalValues": 5,
           },
           Object {
             "canDelete": true,
             "key": "url",
             "name": "URL",
+            "totalValues": 7,
           },
           Object {
             "canDelete": false,
             "key": "environment",
             "name": "Environment",
+            "totalValues": 100,
           },
         ],
       }
@@ -376,6 +500,15 @@ exports[`GroupSidebar renders with tags renders 1`] = `
     orgId="org-slug"
     projectId="project-slug"
     tag="environment"
+    topValues={
+      Array [
+        Object {
+          "count": 100,
+          "value": "prod",
+        },
+      ]
+    }
+    totalValues={100}
   />
   <h6>
     <span>

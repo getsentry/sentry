@@ -5,13 +5,13 @@ import styled from 'react-emotion';
 import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
 import InlineSvg from 'app/components/inlineSvg';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import withOrganizations from 'app/utils/withOrganizations';
+import SidebarOrgSummary from 'app/components/sidebar/sidebarOrgSummary';
+import SidebarMenuItem from 'app/components/sidebar/sidebarMenuItem';
+import SidebarDropdownMenu from 'app/components/sidebar/sidebarDropdownMenu.styled';
 
-import SidebarOrgSummary from './sidebarOrgSummary';
-import SidebarMenuItem from './sidebarMenuItem';
 import Divider from './divider.styled';
-import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 
 /**
  * Switch Organization Menu Label + Sub Menu

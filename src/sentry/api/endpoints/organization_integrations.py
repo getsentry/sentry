@@ -5,14 +5,17 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationIntegration
+from sentry.models import ObjectStatus, OrganizationIntegration
 
 
 class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission, )
 
     def get(self, request, organization):
-        integrations = OrganizationIntegration.objects.filter(organization=organization)
+        integrations = OrganizationIntegration.objects.filter(
+            organization=organization,
+            status=ObjectStatus.VISIBLE,
+        )
 
         if 'provider_key' in request.GET:
             integrations = integrations.filter(

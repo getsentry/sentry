@@ -1,36 +1,40 @@
+import {Link, browserHistory} from 'react-router';
+import {omit, isEqual} from 'lodash';
+import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import {Link, browserHistory} from 'react-router';
-import Cookies from 'js-cookie';
 import classNames from 'classnames';
+import createReactClass from 'create-react-class';
 import qs from 'query-string';
-import {omit, isEqual} from 'lodash';
 
-import analytics from 'app/utils/analytics';
-import SentryTypes from 'app/proptypes';
+import {Panel, PanelBody} from 'app/components/panels';
+import {logAjaxError} from 'app/utils/logging';
+import {
+  setActiveEnvironment,
+  setActiveEnvironmentName,
+} from 'app/actionCreators/environments';
+import {t, tn, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import ConfigStore from 'app/stores/configStore';
-import GroupStore from 'app/stores/groupStore';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ErrorRobot from 'app/components/errorRobot';
+import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import ProjectState from 'app/mixins/projectState';
 import Pagination from 'app/components/pagination';
-import StreamGroup from 'app/components/stream/group';
+import ProjectState from 'app/mixins/projectState';
+import SentryTypes from 'app/sentryTypes';
 import StreamActions from 'app/views/stream/actions';
 import StreamFilters from 'app/views/stream/filters';
+import StreamGroup from 'app/components/stream/group';
 import StreamSidebar from 'app/views/stream/sidebar';
 import TimeSince from 'app/components/timeSince';
-import utils from 'app/utils';
-import queryString from 'app/utils/queryString';
-import {logAjaxError} from 'app/utils/logging';
+import {analytics} from 'app/utils/analytics';
+import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
-import {t, tn, tct} from 'app/locale';
-import {setActiveEnvironment} from 'app/actionCreators/environments';
-import {Panel, PanelBody} from 'app/components/panels';
+import queryString from 'app/utils/queryString';
+import utils from 'app/utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -42,7 +46,6 @@ const Stream = createReactClass({
 
   propTypes: {
     environment: SentryTypes.Environment,
-    hasEnvironmentsFeature: PropTypes.bool,
     tags: PropTypes.object,
     tagsLoading: PropTypes.bool,
   },
@@ -201,13 +204,9 @@ const Stream = createReactClass({
 
             newState.searchId = defaultResult.id;
 
-            if (this.getFeatures().has('environments')) {
-              newState.query = queryString.getQueryStringWithoutEnvironment(
-                defaultResult.query
-              );
-            } else {
-              newState.query = defaultResult.query;
-            }
+            newState.query = queryString.getQueryStringWithoutEnvironment(
+              defaultResult.query
+            );
             newState.isDefaultSearch = true;
           }
         }
@@ -287,22 +286,15 @@ const Stream = createReactClass({
         search => search.id === searchId
       );
       if (searchResult) {
-        // New behavior is that we'll no longer want to support environment in saved search
+        // New behavior is that we no longer support environment in saved search
         // We check if the query contains a valid environment and update the global setting if so
         // We'll always strip environment from the querystring whether valid or not
-        if (this.props.hasEnvironmentsFeature) {
-          const queryEnv = queryString.getQueryEnvironment(searchResult.query);
-          if (queryEnv) {
-            const env = EnvironmentStore.getByName(queryEnv);
-            setActiveEnvironment(env);
-          }
-          newState.query = queryString.getQueryStringWithoutEnvironment(
-            searchResult.query
-          );
-        } else {
-          // Old behavior, keep the environment in the querystring
-          newState.query = searchResult.query;
+        const queryEnv = queryString.getQueryEnvironment(searchResult.query);
+        if (queryEnv) {
+          const env = EnvironmentStore.getByName(queryEnv);
+          setActiveEnvironment(env);
         }
+        newState.query = queryString.getQueryStringWithoutEnvironment(searchResult.query);
 
         if (this.state.searchId && !props.params.searchId) {
           newState.isDefaultSearch = true;
@@ -384,15 +376,21 @@ const Stream = createReactClass({
         // the current props one as the shortIdLookup can return results for
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          if (data[0].matchingEventId) {
-            return void browserHistory.push(
-              `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0]
-                .id}/events/${data[0].matchingEventId}/`
-            );
+          if (data && data[0].matchingEventId) {
+            let {project, id, matchingEventId, matchingEventEnvironment} = data[0];
+            let redirect = `/${this.props.params
+              .orgId}/${project.slug}/issues/${id}/events/${matchingEventId}/`;
+            // Also direct to the environment of this specific event if this
+            // key exists. We need to explicitly check against undefined becasue
+            // an environment name may be an empty string, which is perfectly valid.
+            if (typeof matchingEventEnvironment !== 'undefined') {
+              setActiveEnvironmentName(matchingEventEnvironment);
+              redirect = `${redirect}?${qs.stringify({
+                environment: matchingEventEnvironment,
+              })}`;
+            }
+            return void browserHistory.replace(redirect);
           }
-          return void browserHistory.push(
-            `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`
-          );
         }
 
         this._streamManager.push(data);
@@ -412,10 +410,8 @@ const Stream = createReactClass({
         });
       },
       error: err => {
-        let error = err.responseJSON || true;
-        error = error.detail || true;
         this.setState({
-          error,
+          error: parseApiError(err),
           dataLoading: false,
         });
       },
@@ -491,15 +487,12 @@ const Stream = createReactClass({
       // We no longer want to support environments specified in the querystring
       // To keep this aligned with old behavior though we'll update the global environment
       // and remove it from the query if someone does provide it this way
-      if (this.props.hasEnvironmentsFeature) {
-        const queryEnvironment = queryString.getQueryEnvironment(query);
-        if (queryEnvironment !== null) {
-          const env = EnvironmentStore.getByName(queryEnvironment);
-          setActiveEnvironment(env);
-        }
-
-        query = queryString.getQueryStringWithoutEnvironment(query);
+      const queryEnvironment = queryString.getQueryEnvironment(query);
+      if (queryEnvironment !== null) {
+        const env = EnvironmentStore.getByName(queryEnvironment);
+        setActiveEnvironment(env);
       }
+      query = queryString.getQueryStringWithoutEnvironment(query);
 
       this.setState(
         {
@@ -596,8 +589,8 @@ const Stream = createReactClass({
     if (pi.numIssues > 0) {
       icon = <span className="icon icon-alert" />;
       issues = tn(
-        'There is %d issue blocking event processing',
-        'There are %d issues blocking event processing',
+        'There is %s issue blocking event processing',
+        'There are %s issues blocking event processing',
         pi.numIssues
       );
       lastEvent = (
@@ -613,16 +606,16 @@ const Stream = createReactClass({
       icon = <span className="icon icon-processing play" />;
       className['alert-info'] = true;
       issues = tn(
-        'Reprocessing %d event …',
-        'Reprocessing %d events …',
+        'Reprocessing %s event …',
+        'Reprocessing %s events …',
         pi.issuesProcessing
       );
     } else if (pi.resolveableIssues > 0) {
       icon = <span className="icon icon-processing" />;
       className['alert-warning'] = true;
       issues = tn(
-        'There is %d event pending reprocessing.',
-        'There are %d events pending reprocessing.',
+        'There is %s event pending reprocessing.',
+        'There are %s events pending reprocessing.',
         pi.resolveableIssues
       );
       showButton = true;
@@ -708,6 +701,11 @@ const Stream = createReactClass({
   renderStreamBody() {
     let body;
     let project = this.getProject();
+
+    if (project.firstEvent) {
+      ConfigStore.set('sentFirstEvent', project.firstEvent);
+    }
+
     if (this.state.dataLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {
@@ -759,6 +757,7 @@ const Stream = createReactClass({
               projectId={params.projectId}
               hasReleases={projectFeatures.has('releases')}
               latestRelease={this.context.project.latestRelease}
+              environment={this.state.environment}
               query={this.state.query}
               queryCount={this.state.queryCount}
               onSelectStatsPeriod={this.onSelectStatsPeriod}

@@ -14,7 +14,7 @@ class EventAttachment(Model):
     event_id = models.CharField(max_length=32)
     file = FlexibleForeignKey('sentry.File')
     name = models.TextField()
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = 'sentry'
@@ -23,3 +23,7 @@ class EventAttachment(Model):
         unique_together = (('project_id', 'event_id', 'file'),)
 
     __repr__ = sane_repr('event_id', 'name', 'file_id')
+
+    def delete(self, *args, **kwargs):
+        super(EventAttachment, self).delete(*args, **kwargs)
+        self.file.delete()

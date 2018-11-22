@@ -4,6 +4,7 @@ __all__ = ['JavaScriptStacktraceProcessor']
 
 import logging
 import re
+import sys
 import base64
 import six
 import zlib
@@ -247,8 +248,8 @@ def fetch_release_file(filename, release, dist=None):
             with metrics.timer('sourcemaps.release_file_read'):
                 with releasefile.file.getfile() as fp:
                     z_body, body = compress_file(fp)
-        except Exception as e:
-            logger.exception(six.text_type(e))
+        except Exception:
+            logger.error('sourcemap.compress_read_failed', exc_info=sys.exc_info())
             cache.set(cache_key, -1, 3600)
             result = None
         else:
@@ -490,14 +491,14 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
     def get_stacktraces(self, data):
         try:
             stacktraces = [
-                e['stacktrace'] for e in data['sentry.interfaces.Exception']['values']
+                e['stacktrace'] for e in data['exception']['values']
                 if e.get('stacktrace')
             ]
         except KeyError:
             stacktraces = []
 
-        if 'sentry.interfaces.Stacktrace' in data:
-            stacktraces.append(data['sentry.interfaces.Stacktrace'])
+        if 'stacktrace' in data:
+            stacktraces.append(data['stacktrace'])
 
         return [(s, Stacktrace.to_python(s)) for s in stacktraces]
 

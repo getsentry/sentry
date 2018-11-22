@@ -22,6 +22,8 @@ const formGroups = [
         name: 'filters:blacklisted_ips',
         type: 'string',
         multiline: true,
+        autosize: true,
+        maxRows: 10,
 
         placeholder: 'e.g. 127.0.0.1 or 10.0.0.0/8',
         label: t('IP Addresses'),
@@ -45,6 +47,8 @@ export const customFilterFields = [
     name: 'filters:releases',
     type: 'string',
     multiline: true,
+    autosize: true,
+    maxRows: 10,
 
     placeholder: 'e.g. 1.* or [!3].[0-9].*',
     label: t('Releases'),
@@ -61,6 +65,8 @@ export const customFilterFields = [
     name: 'filters:error_messages',
     type: 'string',
     multiline: true,
+    autosize: true,
+    maxRows: 10,
 
     placeholder: 'e.g. TypeError* or *: integer division or modulo by zero',
     label: t('Error Message'),

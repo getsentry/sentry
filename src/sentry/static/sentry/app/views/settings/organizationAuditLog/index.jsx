@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import AsyncView from 'app/views/asyncView';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 import AuditLogList from './auditLogList';
 
@@ -15,6 +15,7 @@ const EVENT_TYPES = [
   'member.edit',
   'member.join-team',
   'member.leave-team',
+  'member.pending',
   'team.create',
   'team.edit',
   'team.remove',
@@ -23,10 +24,12 @@ const EVENT_TYPES = [
   'project.remove',
   'project.set-public',
   'project.set-private',
+  'project.request-transfer',
+  'project.accept-transfer',
   'org.create',
   'org.edit',
-  'org.restore',
   'org.remove',
+  'org.restore',
   'tagkey.remove',
   'projectkey.create',
   'projectkey.edit',
@@ -40,6 +43,20 @@ const EVENT_TYPES = [
   'api-key.create',
   'api-key.edit',
   'api-key.remove',
+  'rule.create',
+  'rule.edit',
+  'rule.remove',
+  'serivcehook.create',
+  'serivcehook.edit',
+  'serivcehook.remove',
+  'serivcehook.enable',
+  'serivcehook.disable',
+  'integration.add',
+  'integration.edit',
+  'integration.remove',
+  'ondemand.edit',
+  'trial.started',
+  'plan.changed',
 ].sort();
 
 class OrganizationAuditLog extends AsyncView {

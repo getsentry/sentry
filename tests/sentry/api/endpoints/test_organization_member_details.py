@@ -10,6 +10,7 @@ from sentry.testutils import APITestCase
 
 
 class UpdateOrganizationMemberTest(APITestCase):
+
     @patch('sentry.models.OrganizationMember.send_invite_email')
     def test_reinvite_pending_member(self, mock_send_invite_email):
         self.login_as(user=self.user)
@@ -89,6 +90,54 @@ class UpdateOrganizationMemberTest(APITestCase):
         assert old_invite != member_om.get_invite_link()
         mock_send_invite_email.assert_called_once_with()
         assert resp.data['invite_link'] == member_om.get_invite_link()
+
+    @patch('sentry.models.OrganizationMember.send_invite_email')
+    def test_reinvite_invite_expired_member(self, mock_send_invite_email):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+        member = self.create_member(
+            organization=organization,
+            email='foo@example.com',
+            role='member',
+            token_expires_at='2018-10-20 00:00:00'
+        )
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, member.id]
+        )
+        self.login_as(self.user)
+        resp = self.client.put(path, data={'reinvite': 1})
+
+        assert resp.status_code == 400
+        assert mock_send_invite_email.called is False
+
+        member = OrganizationMember.objects.get(pk=member.id)
+        assert member.token_expired
+
+    @patch('sentry.models.OrganizationMember.send_invite_email')
+    def test_regenerate_invite_expired_member(self, mock_send_invite_email):
+        self.login_as(user=self.user)
+
+        organization = self.create_organization(name='foo', owner=self.user)
+        member = self.create_member(
+            organization=organization,
+            email='foo@example.com',
+            role='member',
+            token_expires_at='2018-10-20 00:00:00'
+        )
+
+        path = reverse(
+            'sentry-api-0-organization-member-details', args=[organization.slug, member.id]
+        )
+        self.login_as(self.user)
+        resp = self.client.put(path, data={'reinvite': 1, 'regenerate': 1})
+
+        assert resp.status_code == 200
+        mock_send_invite_email.assert_called_once_with()
+
+        member = OrganizationMember.objects.get(pk=member.id)
+        assert member.token_expired is False
 
     def test_reinvite_sso_link(self):
         self.login_as(user=self.user)

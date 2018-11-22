@@ -25,7 +25,6 @@ from sentry.utils import json
 
 from sentry.integrations.exceptions import ApiError
 from .repository import GitHubRepositoryProvider
-from .client import GitHubAppsClient
 
 logger = logging.getLogger('sentry.webhooks')
 
@@ -33,14 +32,33 @@ logger = logging.getLogger('sentry.webhooks')
 class Webhook(object):
     provider = 'github'
 
-    def _handle(self, event, organization, repo):
+    def _handle(self, integration, event, organization, repo):
         raise NotImplementedError
 
-    def __call__(self, event):
-        integration = Integration.objects.get(
-            external_id=event['installation']['id'],
-            provider=self.provider,
-        )
+    def __call__(self, event, host=None):
+        external_id = event['installation']['id']
+        if host:
+            external_id = u'{}:{}'.format(host, event['installation']['id'])
+
+        try:
+            integration = Integration.objects.get(
+                external_id=external_id,
+                provider=self.provider,
+            )
+        except Integration.DoesNotExist:
+            # It seems possible for the GH or GHE app to be installed on their
+            # end, but the integration to not exist. Possibly from deleting in
+            # Sentry first or from a failed install flow (where the integration
+            # didn't get created in the first place)
+            logger.info(
+                'github.missing-integration',
+                extra={
+                    'action': event.get('action'),
+                    'repository': event.get('repository'),
+                    'external_id': external_id,
+                }
+            )
+            return
 
         if 'repository' in event:
 
@@ -61,19 +79,36 @@ class Webhook(object):
                     repo.config['name'] = event['repository']['full_name']
                     repo.save()
 
-                self._handle(event, orgs[repo.organization_id], repo)
+                self._handle(integration, event, orgs[repo.organization_id], repo)
 
 
 class InstallationEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationevent
-    def __call__(self, event):
+    def __call__(self, event, host=None):
         installation = event['installation']
         if installation and event['action'] == 'deleted':
-            integration = Integration.objects.get(
-                external_id=installation['id'],
-                provider=self.provider,
-            )
-            self._handle_delete(event, integration)
+            external_id = event['installation']['id']
+            if host:
+                external_id = u'{}:{}'.format(host, event['installation']['id'])
+            try:
+                integration = Integration.objects.get(
+                    external_id=external_id,
+                    provider=self.provider,
+                )
+                self._handle_delete(event, integration)
+            except Integration.DoesNotExist:
+                # It seems possible for the GH or GHE app to be installed on their
+                # end, but the integration to not exist. Possibly from deleting in
+                # Sentry first or from a failed install flow (where the integration
+                # didn't get created in the first place)
+                logger.info(
+                    'github.deletion-missing-integration',
+                    extra={
+                        'action': event['action'],
+                        'installation_name': event['account']['login'],
+                        'external_id': external_id,
+                    }
+                )
 
     def _handle_delete(self, event, integration):
 
@@ -89,29 +124,28 @@ class InstallationEventWebhook(Webhook):
 
 class InstallationRepositoryEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#installationrepositoriesevent
-    def _handle(self, event, organization, repo):
+    def _handle(self, integration, event, organization, repo):
         pass
 
 
 class PushEventWebhook(Webhook):
     # https://developer.github.com/v3/activity/events/types/#pushevent
+
     def is_anonymous_email(self, email):
         return email[-25:] == '@users.noreply.github.com'
 
     def get_external_id(self, username):
         return 'github:%s' % username
 
-    def get_client(self, event):
-        return GitHubAppsClient(event['installation']['id'])
+    def get_idp_external_id(self, integration, host=None):
+        return options.get('github-app.id')
 
     def should_ignore_commit(self, commit):
         return GitHubRepositoryProvider.should_ignore_commit(commit['message'])
 
-    def _handle(self, event, organization, repo):
+    def _handle(self, integration, event, organization, repo, host=None):
         authors = {}
-        client = self.get_client(event)
-        if client is None:
-            return HttpResponse(status=400)
+        client = integration.get_installation(organization_id=organization.id).get_client()
         gh_username_cache = {}
 
         for commit in event['commits']:
@@ -159,7 +193,7 @@ class PushEventWebhook(Webhook):
                                 gh_username_cache[gh_username] = None
                                 try:
                                     identity = Identity.objects.get(
-                                        external_id=gh_user['id'], idp__type=self.provider)
+                                        external_id=gh_user['id'], idp__type=self.provider, idp__external_id=self.get_idp_external_id(integration, host))
                                 except Identity.DoesNotExist:
                                     pass
                                 else:
@@ -257,7 +291,10 @@ class PullRequestEventWebhook(Webhook):
     def get_external_id(self, username):
         return 'github:%s' % username
 
-    def _handle(self, event, organization, repo):
+    def get_idp_external_id(self, integration, host=None):
+        return options.get('github-app.id')
+
+    def _handle(self, integration, event, organization, repo, host=None):
         pull_request = event['pull_request']
         number = pull_request['number']
         title = pull_request['title']
@@ -280,7 +317,8 @@ class PullRequestEventWebhook(Webhook):
             author_email = commit_author.email
         except CommitAuthor.DoesNotExist:
             try:
-                identity = Identity.objects.get(external_id=user['id'], idp__type=self.provider)
+                identity = Identity.objects.get(
+                    external_id=user['id'], idp__type=self.provider, idp__external_id=self.get_idp_external_id(integration, host))
             except Identity.DoesNotExist:
                 pass
             else:
@@ -306,7 +344,8 @@ class PullRequestEventWebhook(Webhook):
                 )
 
         try:
-            PullRequest.objects.create_or_update(
+            PullRequest.create_or_save(
+                organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
                 values={

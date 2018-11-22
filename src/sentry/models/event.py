@@ -18,10 +18,11 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes
 from sentry.db.models import (
-    BaseManager, BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
+    BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
 )
 from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
+from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.strings import truncatechars
 
 
@@ -43,9 +44,8 @@ class Event(Model):
         null=True,
         ref_func=lambda x: x.project_id or x.project.id,
         ref_version=2,
+        wrapper=CanonicalKeyDict,
     )
-
-    objects = BaseManager()
 
     class Meta:
         app_label = 'sentry'
@@ -56,6 +56,19 @@ class Event(Model):
         index_together = (('group_id', 'datetime'), )
 
     __repr__ = sane_repr('project_id', 'group_id')
+
+    def __getstate__(self):
+        state = Model.__getstate__(self)
+
+        # do not pickle cached info.  We want to fetch this on demand
+        # again.  In particular if we were to pickle interfaces we would
+        # pickle a CanonicalKeyView which old sentry workers do not know
+        # about
+        state.pop('_project_cache', None)
+        state.pop('_group_cache', None)
+        state.pop('interfaces', None)
+
+        return state
 
     # Implement a ForeignKey-like accessor for backwards compat
     def _set_group(self, group):
@@ -84,7 +97,11 @@ class Event(Model):
     project = property(_get_project, _set_project)
 
     def get_legacy_message(self):
-        msg_interface = self.data.get('sentry.interfaces.Message', {
+        # TODO(mitsuhiko): remove this code once it's unused.  It's still
+        # being used by plugin code and once the message rename is through
+        # plugins should instead swithc to the actual message attribute or
+        # this method could return what currently is real_message.
+        msg_interface = self.data.get('logentry', {
             'message': self.message,
         })
         return msg_interface.get('formatted', msg_interface['message'])
@@ -103,13 +120,8 @@ class Event(Model):
 
         See ``sentry.eventtypes``.
         """
-        etype = self.data.get('type', 'default')
-        if 'metadata' not in self.data:
-            # TODO(dcramer): remove after Dec 1 2016
-            data = self.data.copy() if self.data else {}
-            data['message'] = self.message
-            return eventtypes.get(etype)(data).get_metadata()
-        return self.data['metadata']
+        from sentry.event_manager import get_event_metadata_compat
+        return get_event_metadata_compat(self.data, self.message)
 
     @property
     def title(self):
@@ -121,6 +133,14 @@ class Event(Model):
         return self.title
 
     error.short_description = _('error')
+
+    @property
+    def real_message(self):
+        # XXX(mitsuhiko): this is a transitional attribute that should be
+        # removed.  `message` will be renamed to `search_message` and this
+        # will become `message`.
+        msg_interface = self.data.get('logentry')
+        return msg_interface and (msg_interface.get('formatted') or msg_interface['message']) or ''
 
     @property
     def message_short(self):
@@ -137,13 +157,13 @@ class Event(Model):
 
     @memoize
     def ip_address(self):
-        user_data = self.data.get('sentry.interfaces.User', self.data.get('user'))
+        user_data = self.data.get('user', self.data.get('user'))
         if user_data:
             value = user_data.get('ip_address')
             if value:
                 return value
 
-        http_data = self.data.get('sentry.interfaces.Http', self.data.get('http'))
+        http_data = self.data.get('request', self.data.get('http'))
         if http_data and 'env' in http_data:
             value = http_data['env'].get('REMOTE_ADDR')
             if value:
@@ -152,7 +172,7 @@ class Event(Model):
         return None
 
     def get_interfaces(self):
-        return get_interfaces(self.data)
+        return CanonicalKeyView(get_interfaces(self.data))
 
     @memoize
     def interfaces(self):
@@ -175,31 +195,42 @@ class Event(Model):
         return None
 
     @property
+    def release(self):
+        return self.get_tag('sentry:release')
+
+    @property
     def dist(self):
         return self.get_tag('sentry:dist')
 
     def as_dict(self):
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
         data = OrderedDict()
-        data['id'] = self.event_id
+        data['event_id'] = self.event_id
         data['project'] = self.project_id
-        data['release'] = self.get_tag('sentry:release')
+        data['release'] = self.release
         data['dist'] = self.dist
         data['platform'] = self.platform
-        data['culprit'] = self.group.culprit
-        data['message'] = self.get_legacy_message()
+        data['message'] = self.real_message
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
-        data['tags'] = self.get_tags()
+        data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.get_tags()]
         for k, v in sorted(six.iteritems(self.data)):
+            if k in data:
+                continue
             if k == 'sdk':
                 v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != 'client_ip'}
             data[k] = v
+
+        # for a long time culprit was not persisted.  In those cases put
+        # the culprit in from the group.
+        if data.get('culprit') is None:
+            data['culprit'] = self.group.culprit
+
         return data
 
     @property
     def size(self):
-        data_len = len(self.get_legacy_message())
+        data_len = 0
         for value in six.itervalues(self.data):
             data_len += len(repr(value))
         return data_len
@@ -234,7 +265,7 @@ class Event(Model):
     @property
     def culprit(self):
         warnings.warn('Event.culprit is deprecated. Use Group.culprit instead.')
-        return self.transaction or self.group.culprit
+        return self.group.culprit
 
     @property
     def checksum(self):

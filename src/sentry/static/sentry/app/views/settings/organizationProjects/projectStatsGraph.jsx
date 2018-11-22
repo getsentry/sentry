@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 
 import BarChart from 'app/components/barChart';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 const ProjectStatsGraph = createReactClass({
   displayName: 'ProjectListItem',
@@ -28,7 +28,13 @@ const ProjectStatsGraph = createReactClass({
       <div>
         {chartData && (
           <LazyLoad height={25} debounce={50}>
-            <BarChart height={25} points={chartData} label="events" />
+            <BarChart
+              height={25}
+              minHeights={[3]}
+              gap={1}
+              points={chartData}
+              label="events"
+            />
           </LazyLoad>
         )}
       </div>

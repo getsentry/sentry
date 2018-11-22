@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from 'app/components/events/eventDataSection';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
 import {getCurlCommand} from 'app/components/events/interfaces/utils';
 import {isUrl} from 'app/utils';
@@ -15,7 +15,6 @@ class RequestInterface extends React.Component {
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    isShare: PropTypes.bool,
   };
 
   static contextTypes = {

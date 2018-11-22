@@ -5,12 +5,13 @@ import Reflux from 'reflux';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 
+import {analytics} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import GroupHeader from 'app/views/groupDetails/header';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import withEnvironment from 'app/utils/withEnvironment';
 
@@ -25,6 +26,11 @@ const GroupDetails = createReactClass({
     setProjectNavSection: PropTypes.func,
     memberList: PropTypes.array,
     environment: SentryTypes.Environment,
+  },
+
+  contextTypes: {
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
   },
 
   childContextTypes: {
@@ -59,6 +65,14 @@ const GroupDetails = createReactClass({
   componentWillMount() {
     this.props.setProjectNavSection('stream');
     this.fetchData();
+  },
+
+  componentDidMount() {
+    analytics('issue_page.viewed', {
+      group_id: parseInt(this.props.params.groupId, 10),
+      org_id: parseInt(this.context.organization.id, 10),
+      project_id: parseInt(this.context.project.id, 10),
+    });
   },
 
   componentWillReceiveProps(nextProps) {
@@ -174,7 +188,7 @@ const GroupDetails = createReactClass({
       case 'default':
         return group.metadata.title;
       default:
-        return group.message.split('\n')[0];
+        return '';
     }
   },
 

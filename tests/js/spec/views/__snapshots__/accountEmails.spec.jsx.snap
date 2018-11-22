@@ -50,7 +50,6 @@ exports[`AccountEmails renders with emails 1`] = `
       apiMethod="POST"
       cancelLabel="Cancel"
       className="form-stacked"
-      footerClass="form-actions align-right"
       onSubmitError={[Function]}
       onSubmitSuccess={[Function]}
       requireChanges={false}
@@ -82,6 +81,7 @@ exports[`AccountEmails renders with emails 1`] = `
     </Form>
     <AlertLink
       icon="icon-stack"
+      priority="warning"
       to="/settings/account/notifications"
     >
       Want to change how many emails you get? Use the notifications panel.

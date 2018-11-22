@@ -15,6 +15,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import {logException} from 'app/utils/logging';
 import localStorage from 'app/utils/localStorage';
+import NavTabs from 'app/components/navTabs';
 import {t} from 'app/locale';
 import mentionsStyle from 'app/../styles/mentions-styles';
 
@@ -302,6 +303,13 @@ const NoteInput = createReactClass({
 
     let btnText = updating ? t('Save Comment') : t('Post Comment');
 
+    let errorMessage =
+      (errorJSON &&
+        (typeof errorJSON.detail === 'string'
+          ? errorJSON.detail
+          : (errorJSON.detail && errorJSON.detail.message) ||
+            t('Unable to post comment'))) ||
+      null;
     return (
       <form
         noValidate
@@ -312,7 +320,7 @@ const NoteInput = createReactClass({
         onSubmit={this.onSubmit}
       >
         <div className="activity-notes">
-          <ul className="nav nav-tabs">
+          <NavTabs>
             <li className={!preview ? 'active' : ''}>
               <a onClick={this.toggleEdit}>{updating ? t('Edit') : t('Write')}</a>
             </li>
@@ -323,7 +331,7 @@ const NoteInput = createReactClass({
               <span className="icon-markdown" />
               <span className="supported">{t('Markdown supported')}</span>
             </li>
-          </ul>
+          </NavTabs>
           {preview ? (
             <div
               className="note-preview"
@@ -360,8 +368,7 @@ const NoteInput = createReactClass({
             </MentionsInput>
           )}
           <div className="activity-actions">
-            {errorJSON &&
-              errorJSON.detail && <small className="error">{errorJSON.detail}</small>}
+            {errorMessage && <small className="error">{errorMessage}</small>}
             <button className="btn btn-default" type="submit" disabled={loading}>
               {btnText}
             </button>

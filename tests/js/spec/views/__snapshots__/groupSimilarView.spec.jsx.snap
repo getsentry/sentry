@@ -21,9 +21,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
   location={Object {}}
   params={
     Object {
-      "groupId": "groupId",
-      "orgId": "orgId",
-      "projectId": "projectId",
+      "groupId": "group-id",
+      "orgId": "org-slug",
+      "projectId": "project-slug",
     }
   }
 >
@@ -224,7 +224,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
           },
         ]
       }
-      groupId="groupId"
+      groupId="group-id"
       items={
         Array [
           Object {
@@ -280,8 +280,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
         ]
       }
       onMerge={[Function]}
-      orgId="orgId"
-      projectId="projectId"
+      orgId="org-slug"
+      projectId="project-slug"
     >
       <div
         className="similar-list-container"
@@ -320,33 +320,57 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 </div>
               </QueryCount>
             </h2>
-            <SimilarSpectrum>
-              <div
-                className="similar-spectrum"
+            <StyledSimilarSpectrum>
+              <SimilarSpectrum
+                className="css-j2x47e-StyledSimilarSpectrum e1hn3xkk0"
               >
-                <span>
-                  Similar
-                </span>
-                <span
-                  className="similar-spectrum-box high"
-                />
-                <span
-                  className="similar-spectrum-box med-high"
-                />
-                <span
-                  className="similar-spectrum-box med"
-                />
-                <span
-                  className="similar-spectrum-box low-med"
-                />
-                <span
-                  className="similar-spectrum-box low"
-                />
-                <span>
-                  Not Similar
-                </span>
-              </div>
-            </SimilarSpectrum>
+                <div
+                  className="css-j2x47e-StyledSimilarSpectrum e1hn3xkk0"
+                >
+                  <span>
+                    Similar
+                  </span>
+                  <SpectrumItem
+                    colorIndex={4}
+                  >
+                    <span
+                      className="css-1m9e7bp-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={3}
+                  >
+                    <span
+                      className="css-1tn9u0a-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={2}
+                  >
+                    <span
+                      className="css-zgizhk-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={1}
+                  >
+                    <span
+                      className="css-1p9s53a-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <SpectrumItem
+                    colorIndex={0}
+                  >
+                    <span
+                      className="css-pvajr0-SpectrumItem e1hn3xkk1"
+                    />
+                  </SpectrumItem>
+                  <span>
+                    Not Similar
+                  </span>
+                </div>
+              </SimilarSpectrum>
+            </StyledSimilarSpectrum>
           </div>
         </SpreadLayout>
         <SimilarToolbar
@@ -392,6 +416,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           >
                             <LinkWithConfirmation
                               className="btn btn-sm btn-default"
+                              data-test-id="merge"
                               disabled={true}
                               message="Are you sure you want to merge these issues?"
                               onConfirm={[Function]}
@@ -400,6 +425,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Confirm"
+                                data-test-id="merge"
                                 disableConfirmButton={false}
                                 disabled={true}
                                 message="Are you sure you want to merge these issues?"
@@ -521,7 +547,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                 "exception": 0.875,
               }
             }
-            groupId="groupId"
+            groupId="group-id"
             isBelowThreshold={false}
             issue={
               Object {
@@ -559,8 +585,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
               }
             }
             key="271"
-            orgId="orgId"
-            projectId="projectId"
+            orgId="org-slug"
+            projectId="project-slug"
             score={
               Object {
                 "exception:stacktrace:pairs": 0.875,
@@ -580,11 +606,13 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             <SpreadLayout
               center={true}
               className="group similar-issue isResolved"
+              data-test-id="similar-item-row"
               onClick={[Function]}
               responsive={true}
             >
               <div
                 className="spread-layout group similar-issue isResolved center allow-responsive"
+                data-test-id="similar-item-row"
                 onClick={[Function]}
               >
                 <FlowLayout
@@ -605,12 +633,14 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                           <Checkbox
                             checked={false}
                             id="271"
+                            onChange={[Function]}
                             value="271"
                           >
                             <input
                               checked={false}
                               className="chk-select"
                               id="271"
+                              onChange={[Function]}
                               type="checkbox"
                               value="271"
                             />
@@ -661,8 +691,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               }
                             }
                             includeLink={true}
-                            orgId="orgId"
-                            projectId="projectId"
+                            orgId="org-slug"
+                            projectId="project-slug"
                           >
                             <div
                               className="event-issue-header"
@@ -679,7 +709,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                     }
                                     to={
                                       Object {
-                                        "pathname": "/orgId/projectId/issues/271/",
+                                        "pathname": "/org-slug/project-slug/issues/271/",
                                         "search": "",
                                       }
                                     }
@@ -693,7 +723,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                       }
                                       to={
                                         Object {
-                                          "pathname": "/orgId/projectId/issues/271/",
+                                          "pathname": "/org-slug/project-slug/issues/271/",
                                           "search": "",
                                         }
                                       }
@@ -715,7 +745,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             title="Error level: Error"
                                           >
                                             <div
-                                              className="tip css-hpn2f3-GroupLevel eex8od4"
+                                              className="tip css-hpn2f3-GroupLevel eex8od5"
                                               title="Error level: Error"
                                             />
                                           </GroupLevel>
@@ -757,8 +787,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             }
                                           }
                                           includeLink={true}
-                                          orgId="orgId"
-                                          projectId="projectId"
+                                          orgId="org-slug"
+                                          projectId="project-slug"
                                           style={
                                             Object {
                                               "fontWeight": 600,
@@ -781,7 +811,9 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                             >
                                               TypeError
                                             </span>
-                                            <em>
+                                            <em
+                                              title="length(app/views/groupSimilar/groupSimilarView)"
+                                            >
                                               length(app/views/groupSimilar/groupSimilarView)
                                             </em>
                                             <br />
@@ -794,7 +826,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               </Title>
                               <Message>
                                 <div
-                                  className="css-y5cfdn-Message-truncateStyles eex8od1"
+                                  className="css-y5cfdn-Message-truncateStyles eex8od2"
                                 >
                                   Cannot read property 'length' of undefined
                                 </div>
@@ -824,7 +856,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                               }
                             }
                             numComments={0}
-                            orgId="orgId"
+                            orgId="org-slug"
                             permalink="http://localhost:8000/sentry/internal/issues/271/"
                             project={
                               Object {
@@ -832,7 +864,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                 "slug": "internal",
                               }
                             }
-                            projectId="projectId"
+                            projectId="project-slug"
                             shareId="312e323731"
                             shortId="INTERNAL-4G"
                             showAssignee={true}
@@ -849,66 +881,48 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                             >
                               <Base
                                 align="center"
-                                className="css-1pyi24d-GroupExtra eec9orn0"
+                                className="css-1iq5qji-GroupExtra eec9orn0"
                               >
                                 <div
-                                  className="css-1pyi24d-GroupExtra eec9orn0"
+                                  className="css-1iq5qji-GroupExtra eec9orn0"
                                   is={null}
                                 >
-                                  <Box
-                                    mr={2}
+                                  <GroupShortId
+                                    shortId="INTERNAL-4G"
                                   >
-                                    <Base
-                                      className="css-6htue9"
-                                      mr={2}
+                                    <ShortId
+                                      className="css-yd3bt1-GroupShortId eec9orn4"
+                                      shortId="INTERNAL-4G"
                                     >
-                                      <div
-                                        className="css-6htue9"
-                                        is={null}
+                                      <StyledShortId
+                                        className="css-yd3bt1-GroupShortId eec9orn4"
+                                        onClick={[Function]}
+                                        shortId="INTERNAL-4G"
                                       >
-                                        <GroupShortId
-                                          shortId="INTERNAL-4G"
+                                        <div
+                                          className="eec9orn4 css-77itmv-StyledShortId-GroupShortId ebuncw00"
+                                          onClick={[Function]}
                                         >
-                                          <ShortId
-                                            className="css-cp85bv-GroupShortId eec9orn2"
-                                            shortId="INTERNAL-4G"
-                                          >
-                                            <StyledShortId
-                                              className="css-cp85bv-GroupShortId eec9orn2"
+                                          <AutoSelectText>
+                                            <div
+                                              className="auto-select-text"
                                               onClick={[Function]}
-                                              shortId="INTERNAL-4G"
                                             >
-                                              <div
-                                                className="eec9orn2 css-gzzipm-StyledShortId-GroupShortId ebuncw00"
-                                                onClick={[Function]}
-                                              >
-                                                <AutoSelectText>
-                                                  <div
-                                                    className="auto-select-text"
-                                                    onClick={[Function]}
-                                                  >
-                                                    INTERNAL-4G
-                                                  </div>
-                                                </AutoSelectText>
-                                              </div>
-                                            </StyledShortId>
-                                          </ShortId>
-                                        </GroupShortId>
-                                      </div>
-                                    </Base>
-                                  </Box>
-                                  <Flex
-                                    align="center"
-                                    mr={2}
-                                  >
-                                    <Base
-                                      align="center"
-                                      className="css-1cjke39"
-                                      mr={2}
+                                              <span>
+                                                INTERNAL-4G
+                                              </span>
+                                            </div>
+                                          </AutoSelectText>
+                                        </div>
+                                      </StyledShortId>
+                                    </ShortId>
+                                  </GroupShortId>
+                                  <Times>
+                                    <div
+                                      className="css-139skj2-Times eec9orn3"
                                     >
                                       <div
-                                        className="css-1cjke39"
-                                        is={null}
+                                        className="css-77t6iv"
                                       >
                                         <TimeSince
                                           className="hidden-xs hidden-sm"
@@ -924,8 +938,8 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                           </time>
                                         </TimeSince>
                                       </div>
-                                    </Base>
-                                  </Flex>
+                                    </div>
+                                  </Times>
                                   <GroupExtraCommentsAndLogger>
                                     <Base
                                       className="css-1ycmuq8-GroupExtraCommentsAndLogger eec9orn1"
@@ -951,7 +965,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                                                 style={Object {}}
                                                 to={
                                                   Object {
-                                                    "pathname": "/orgId/projectId/",
+                                                    "pathname": "/org-slug/project-slug/",
                                                     "query": Object {
                                                       "query": "logger:javascript",
                                                     },
@@ -1023,81 +1037,143 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       }
                       displayTimeout={100}
                     >
-                      <span
-                        className="hovercard-container"
+                      <Container
+                        innerRef={
+                          Object {
+                            "current": <span
+                              class="css-s35yzd-Container e38w1je1"
+                            >
+                              <div
+                                class="css-omtyju-StyledScoreBar eecxaw40"
+                              >
+                                <div
+                                  class="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-1jrlewc-Bar eecxaw41"
+                                  color="#98b480"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar eecxaw41"
+                                  size="40"
+                                />
+                              </div>
+                            </span>,
+                          }
+                        }
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
-                        <ScoreBar
-                          palette={Array []}
-                          paletteClassNames={
-                            Array [
-                              "low",
-                              "low-med",
-                              "med",
-                              "med-high",
-                              "high",
-                            ]
-                          }
-                          score={4}
-                          vertical={true}
+                        <span
+                          className="css-s35yzd-Container e38w1je1"
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
                         >
-                          <div
-                            className="score-bar vertical"
+                          <StyledScoreBar
+                            score={4}
+                            vertical={true}
                           >
-                            <div
-                              className="score-bar-bar med-high"
-                              key="0"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
+                            <ScoreBar
+                              className="css-omtyju-StyledScoreBar eecxaw40"
+                              palette={
+                                Array [
+                                  "#ec5e44",
+                                  "#f38259",
+                                  "#f9a66d",
+                                  "#98b480",
+                                  "#57be8c",
+                                ]
                               }
-                            />
-                            <div
-                              className="score-bar-bar med-high"
-                              key="1"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar med-high"
-                              key="2"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar med-high"
-                              key="3"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-0"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                          </div>
-                        </ScoreBar>
-                      </span>
+                              score={4}
+                              size={40}
+                              thickness={4}
+                              vertical={true}
+                            >
+                              <div
+                                className="css-omtyju-StyledScoreBar eecxaw40"
+                              >
+                                <Bar
+                                  color="#98b480"
+                                  key="0"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-1jrlewc-Bar eecxaw41"
+                                    color="#98b480"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  color="#98b480"
+                                  key="1"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-1jrlewc-Bar eecxaw41"
+                                    color="#98b480"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  color="#98b480"
+                                  key="2"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-1jrlewc-Bar eecxaw41"
+                                    color="#98b480"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  color="#98b480"
+                                  key="3"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-1jrlewc-Bar eecxaw41"
+                                    color="#98b480"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  empty={true}
+                                  key="empty-0"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-15vxee-Bar eecxaw41"
+                                    size={40}
+                                  />
+                                </Bar>
+                              </div>
+                            </ScoreBar>
+                          </StyledScoreBar>
+                        </span>
+                      </Container>
                     </Hovercard>
                   </div>
                   <div
@@ -1108,81 +1184,135 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       body={0}
                       displayTimeout={100}
                     >
-                      <span
-                        className="hovercard-container"
+                      <Container
+                        innerRef={
+                          Object {
+                            "current": <span
+                              class="css-s35yzd-Container e38w1je1"
+                            >
+                              <div
+                                class="css-omtyju-StyledScoreBar eecxaw40"
+                              >
+                                <div
+                                  class="css-15vxee-Bar eecxaw41"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar eecxaw41"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar eecxaw41"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar eecxaw41"
+                                  size="40"
+                                />
+                                <div
+                                  class="css-15vxee-Bar eecxaw41"
+                                  size="40"
+                                />
+                              </div>
+                            </span>,
+                          }
+                        }
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
-                        <ScoreBar
-                          palette={Array []}
-                          paletteClassNames={
-                            Array [
-                              "low",
-                              "low-med",
-                              "med",
-                              "med-high",
-                              "high",
-                            ]
-                          }
-                          score={0}
-                          vertical={true}
+                        <span
+                          className="css-s35yzd-Container e38w1je1"
+                          onMouseEnter={[Function]}
+                          onMouseLeave={[Function]}
                         >
-                          <div
-                            className="score-bar vertical"
+                          <StyledScoreBar
+                            score={0}
+                            vertical={true}
                           >
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-0"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
+                            <ScoreBar
+                              className="css-omtyju-StyledScoreBar eecxaw40"
+                              palette={
+                                Array [
+                                  "#ec5e44",
+                                  "#f38259",
+                                  "#f9a66d",
+                                  "#98b480",
+                                  "#57be8c",
+                                ]
                               }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-1"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-2"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-3"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                            <div
-                              className="score-bar-bar empty"
-                              key="empty-4"
-                              style={
-                                Object {
-                                  "height": undefined,
-                                  "width": undefined,
-                                }
-                              }
-                            />
-                          </div>
-                        </ScoreBar>
-                      </span>
+                              score={0}
+                              size={40}
+                              thickness={4}
+                              vertical={true}
+                            >
+                              <div
+                                className="css-omtyju-StyledScoreBar eecxaw40"
+                              >
+                                <Bar
+                                  empty={true}
+                                  key="empty-0"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-15vxee-Bar eecxaw41"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  empty={true}
+                                  key="empty-1"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-15vxee-Bar eecxaw41"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  empty={true}
+                                  key="empty-2"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-15vxee-Bar eecxaw41"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  empty={true}
+                                  key="empty-3"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-15vxee-Bar eecxaw41"
+                                    size={40}
+                                  />
+                                </Bar>
+                                <Bar
+                                  empty={true}
+                                  key="empty-4"
+                                  size={40}
+                                  thickness={4}
+                                  vertical={true}
+                                >
+                                  <div
+                                    className="css-15vxee-Bar eecxaw41"
+                                    size={40}
+                                  />
+                                </Bar>
+                              </div>
+                            </ScoreBar>
+                          </StyledScoreBar>
+                        </span>
+                      </Container>
                     </Hovercard>
                   </div>
                 </div>

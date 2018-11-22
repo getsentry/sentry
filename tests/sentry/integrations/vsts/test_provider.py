@@ -1,6 +1,6 @@
 
 from __future__ import absolute_import
-from mock import Mock
+from mock import Mock, patch
 import responses
 from django.http import HttpRequest
 from sentry.identity.vsts.provider import VSTSOAuth2CallbackView, VSTSIdentityProvider
@@ -57,11 +57,14 @@ class TestVSTSOAuthCallbackView(TestCase):
 
 class TestAccountConfigView(TestCase):
     def setUp(self):
+        responses.reset()
+        account_id = '1234567-8910'
+        self.base_url = 'http://sentry2.visualstudio.com/'
         self.accounts = [
             {
-                'AccountId': '1234567-89',
+                'accountId': '1234567-89',
                 'NamespaceId': '00000000-0000-0000-0000-000000000000',
-                'AccountName': 'sentry',
+                'accountName': 'sentry',
                 'OrganizationName': None,
                 'AccountType': 0,
                 'AccountOwner': '00000000-0000-0000-0000-000000000000',
@@ -73,9 +76,9 @@ class TestAccountConfigView(TestCase):
                 'Properties': {},
             },
             {
-                'AccountId': '1234567-8910',
+                'accountId': account_id,
                 'NamespaceId': '00000000-0000-0000-0000-000000000000',
-                'AccountName': 'sentry2',
+                'accountName': 'sentry2',
                 'OrganizationName': None,
                 'AccountType': 0,
                 'AccountOwner': '00000000-0000-0000-0000-000000000000',
@@ -91,9 +94,19 @@ class TestAccountConfigView(TestCase):
         responses.add(
             responses.GET,
             'https://app.vssps.visualstudio.com/_apis/accounts',
-            json=self.accounts,
+            json={
+                'value': self.accounts,
+                'count': len(self.accounts),
+            },
             status=200,
 
+        )
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1' % account_id,
+            json={
+                'locationUrl': self.base_url,
+            }
         )
 
     @responses.activate
@@ -103,27 +116,60 @@ class TestAccountConfigView(TestCase):
         request.POST = {'account': '1234567-8910'}
 
         pipeline = Mock()
-        pipeline.state = {'accounts': self.accounts}
+        pipeline.state = {
+            'accounts': self.accounts,
+            'identity': {
+                'data': {'access_token': '123456789'}
+            }
+        }
         pipeline.fetch_state = lambda key: pipeline.state[key]
         pipeline.bind_state = lambda name, value: pipeline.state.update({name: value})
 
         view.dispatch(request, pipeline)
 
-        assert pipeline.fetch_state(key='instance') == 'sentry2.visualstudio.com'
         assert pipeline.fetch_state(key='account') == self.accounts[1]
         assert pipeline.next_step.call_count == 1
 
     @responses.activate
     def test_get_accounts(self):
         view = AccountConfigView()
-        accounts = view.get_accounts('access-token')
-        assert accounts[0]['AccountName'] == 'sentry'
-        assert accounts[1]['AccountName'] == 'sentry2'
+        accounts = view.get_accounts('access-token', 'user-id')
+        assert accounts['value'][0]['accountName'] == 'sentry'
+        assert accounts['value'][1]['accountName'] == 'sentry2'
 
     def test_account_form(self):
         account_form = AccountForm(self.accounts)
         assert account_form.fields['account'].choices == [
             ('1234567-89', 'sentry'), ('1234567-8910', 'sentry2')]
+
+    @responses.activate
+    @patch('sentry.integrations.vsts.integration.get_user_info')
+    @patch('sentry.integrations.vsts.integration.render_to_response')
+    def test_no_accounts_recieved(self, mock_render_to_response, mock_get_user_info):
+        responses.reset()
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/accounts',
+            json={
+                'value': [],
+                'count': 0,
+            },
+            status=200,
+        )
+
+        view = AccountConfigView()
+        request = Mock()
+        request.POST = {}
+        request.user = self.user
+
+        pipeline = Mock()
+        pipeline.fetch_state = lambda key: {'data': {'access_token': '1234567890'}}
+        pipeline.organization = self.organization
+
+        view.dispatch(request, pipeline)
+        assert mock_get_user_info.called is True
+        assert mock_render_to_response.called is True
+        assert mock_render_to_response.call_args[1]['context'] == {'no_accounts': True}
 
 
 class VstsIdentityProviderTest(TestCase):

@@ -74,7 +74,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             }
         ]
 
-    def get_group_data(self, group, event):
+    def get_group_data(self, group, event, triggering_rules):
         data = {
             'id': six.text_type(group.id),
             'project': group.project.slug,
@@ -83,8 +83,9 @@ class WebHooksPlugin(notify.NotificationPlugin):
             'logger': event.get_tag('logger'),
             'level': event.get_tag('level'),
             'culprit': group.culprit,
-            'message': event.get_legacy_message(),
-            'url': group.get_absolute_url(),
+            'message': event.real_message,
+            'url': group.get_absolute_url(params={'referrer': 'webhooks_plugin'}),
+            'triggering_rules': triggering_rules,
         }
         data['event'] = dict(event.data or {})
         data['event']['tags'] = event.get_tags()
@@ -103,7 +104,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             verify_ssl=False,
         )
 
-    def notify_users(self, group, event, fail_silently=False):
-        payload = self.get_group_data(group, event)
+    def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
+        payload = self.get_group_data(group, event, triggering_rules)
         for url in self.get_webhook_urls(group.project):
             safe_execute(self.send_webhook, url, payload, _with_transaction=False)

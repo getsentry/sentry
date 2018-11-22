@@ -1,7 +1,8 @@
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
+import getDisplayName from 'app/utils/getDisplayName';
 import LatestContextStore from 'app/stores/latestContextStore';
 
 // Passes the active environment to the wrapped component if the organizations:environments
@@ -9,7 +10,7 @@ import LatestContextStore from 'app/stores/latestContextStore';
 
 const withEnvironment = WrappedComponent =>
   createReactClass({
-    displayName: 'withEnvironment',
+    displayName: `withEnvironment(${getDisplayName(WrappedComponent)})`,
 
     mixins: [Reflux.listenTo(LatestContextStore, 'onLatestContextChange')],
 
@@ -27,10 +28,7 @@ const withEnvironment = WrappedComponent =>
     },
 
     render() {
-      const features = new Set(
-        this.state.organization ? this.state.organization.features : []
-      );
-      const environment = features.has('environments') ? this.state.environment : null;
+      const environment = this.state.environment;
 
       return <WrappedComponent environment={environment} {...this.props} />;
     },

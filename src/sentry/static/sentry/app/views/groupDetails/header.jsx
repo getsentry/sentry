@@ -9,6 +9,7 @@ import GroupActions from 'app/views/groupDetails/actions';
 import GroupSeenBy from 'app/views/groupDetails/seenBy';
 import IndicatorStore from 'app/stores/indicatorStore';
 import ListLink from 'app/components/listLink';
+import NavTabs from 'app/components/navTabs';
 import ShortId from 'app/components/shortId';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -174,7 +175,7 @@ const GroupHeader = createReactClass({
         </div>
         <GroupSeenBy />
         <GroupActions />
-        <ul className="nav nav-tabs">
+        <NavTabs>
           <ListLink
             to={`/${orgId}/${projectId}/issues/${groupId}/`}
             isActive={() => {
@@ -210,7 +211,7 @@ const GroupHeader = createReactClass({
               {t('Similar Issues')}
             </ListLink>
           )}
-        </ul>
+        </NavTabs>
       </div>
     );
   },

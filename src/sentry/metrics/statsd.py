@@ -14,7 +14,7 @@ class StatsdMetricsBackend(MetricsBackend):
 
     def _full_key(self, key, instance=None):
         if instance:
-            return '{}.{}'.format(key, instance)
+            return u'{}.{}'.format(key, instance)
         return key
 
     def incr(self, key, instance=None, tags=None, amount=1, sample_rate=1):

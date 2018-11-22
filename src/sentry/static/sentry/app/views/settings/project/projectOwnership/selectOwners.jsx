@@ -16,8 +16,8 @@ import TeamStore from 'app/stores/teamStore';
 import IdBadge from 'app/components/idBadge';
 import MultiSelectControl from 'app/components/forms/multiSelectControl';
 import ActorAvatar from 'app/components/actorAvatar';
-import SentryTypes from 'app/proptypes';
-import Button from 'app/components/buttons/button';
+import SentryTypes from 'app/sentryTypes';
+import Button from 'app/components/button';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 
@@ -308,6 +308,7 @@ export default class SelectOwners extends React.Component {
         loadOptions={this.handleLoadOptions}
         defaultOptions
         async
+        clearable
         cache={false}
         valueComponent={ValueComponent}
         placeholder={t('Add Owners')}

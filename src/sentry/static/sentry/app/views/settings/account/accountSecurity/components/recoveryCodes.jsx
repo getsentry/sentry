@@ -4,7 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Clipboard from 'app/components/clipboard';
 import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';

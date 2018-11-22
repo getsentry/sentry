@@ -10,7 +10,7 @@ import Footer from 'app/components/footer';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NotFound from 'app/components/errors/notFound';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SharedGroupHeader from 'app/views/sharedGroupDetails/sharedGroupHeader';
 
 const SharedGroupDetails = createReactClass({

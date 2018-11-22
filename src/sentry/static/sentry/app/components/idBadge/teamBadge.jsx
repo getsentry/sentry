@@ -6,7 +6,7 @@ import PropTypes from 'prop-types';
 
 import BaseBadge from 'app/components/idBadge/baseBadge';
 import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import TeamStore from 'app/stores/teamStore';
 
 class TeamBadge extends React.Component {

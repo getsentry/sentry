@@ -5,7 +5,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import InlineSvg from 'app/components/inlineSvg';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import IdBadge from 'app/components/idBadge';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
 
@@ -19,6 +19,7 @@ class SearchResult extends React.Component {
       sourceType: PropTypes.oneOf([
         'organization',
         'project',
+        'command',
         'team',
         'member',
         'field',
@@ -32,9 +33,16 @@ class SearchResult extends React.Component {
      * - an application route (e.g. org dashboard)
      * - form field
      */
-      resultType: PropTypes.oneOf(['settings', 'route', 'field', 'issue', 'event']),
+      resultType: PropTypes.oneOf([
+        'settings',
+        'command',
+        'route',
+        'field',
+        'issue',
+        'event',
+      ]),
       title: PropTypes.string,
-      description: PropTypes.string,
+      description: PropTypes.node,
       model: PropTypes.oneOfType([
         SentryTypes.Organization,
         SentryTypes.Project,

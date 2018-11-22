@@ -3,13 +3,14 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import Well from 'app/components/well';
 import {Panel, PanelBody, PanelHeader} from './panels';
 import {addErrorMessage, addSuccessMessage} from '../actionCreators/indicator';
 import {t} from '../locale';
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from './avatar';
 import AvatarCropper from './avatarCropper';
-import Button from './buttons/button';
+import Button from './button';
 import ExternalLink from './externalLink';
 import LoadingError from './loadingError';
 import LoadingIndicator from './loadingIndicator';
@@ -33,6 +34,7 @@ const AvatarChooser = createReactClass({
     isUser: PropTypes.bool,
     savedDataUrl: PropTypes.string,
     onSave: PropTypes.func,
+    disabled: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -119,6 +121,7 @@ const AvatarChooser = createReactClass({
       savedDataUrl,
       type,
       isUser,
+      disabled,
     } = this.props;
     let {hasError, model} = this.state;
 
@@ -159,6 +162,7 @@ const AvatarChooser = createReactClass({
                 value={avatarType}
                 label="Avatar Type"
                 onChange={id => this.handleChange(id)}
+                disabled={disabled}
               />
 
               {isLetter && (
@@ -176,10 +180,10 @@ const AvatarChooser = createReactClass({
             <AvatarUploadSection>
               {allowGravatar &&
                 avatarType === 'gravatar' && (
-                  <div className="well">
+                  <Well>
                     {t('Gravatars are managed through ')}
                     <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
-                  </div>
+                  </Well>
                 )}
 
               {avatarType === 'upload' && (
@@ -195,6 +199,7 @@ const AvatarChooser = createReactClass({
                   type="button"
                   priority="primary"
                   onClick={this.handleSaveSettings}
+                  disabled={disabled}
                 >
                   {t('Save Avatar')}
                 </Button>

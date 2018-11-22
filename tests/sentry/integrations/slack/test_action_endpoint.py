@@ -197,7 +197,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, team=self.team).exists()
 
-        expect_status = u'*Issue assigned to {team} by <@{assigner}>*'.format(
+        expect_status = u'*Issue assigned to #{team} by <@{assigner}>*'.format(
             team=self.team.slug,
             assigner=self.identity.external_id,
         )

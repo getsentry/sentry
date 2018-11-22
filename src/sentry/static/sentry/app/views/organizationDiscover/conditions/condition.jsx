@@ -4,8 +4,8 @@ import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
-import {getInternal, getExternal, isValidCondition} from './utils';
-import {CONDITION_OPERATORS} from '../data';
+import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
+import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
 import {PlaceholderText} from '../styles';
 
 export default class Condition extends React.Component {
@@ -15,13 +15,13 @@ export default class Condition extends React.Component {
     columns: PropTypes.arrayOf(
       PropTypes.shape({name: PropTypes.string, type: PropTypes.string})
     ).isRequired,
+    disabled: PropTypes.bool,
   };
 
   constructor(props) {
     super(props);
     this.state = {
-      selectedColumn: null,
-      selectedOperator: null,
+      inputValue: '',
     };
   }
 
@@ -33,26 +33,35 @@ export default class Condition extends React.Component {
     const external = getExternal(option.value, this.props.columns);
 
     if (isValidCondition(external, this.props.columns)) {
-      this.props.onChange(external);
+      this.setState(
+        {
+          inputValue: '',
+        },
+        this.props.onChange(external)
+      );
+
       return;
     }
 
-    if (new Set(this.props.columns.map(({name}) => name)).has(external[0])) {
-      this.setState({selectedColumn: external[0]}, this.focus);
-    }
-
-    if (new Set(CONDITION_OPERATORS).has(external[1])) {
-      this.setState({selectedOperator: external[1]}, this.focus);
-    }
+    this.setState(
+      {
+        inputValue: option.value,
+      },
+      this.focus
+    );
   };
 
-  handleClose = () => {
-    this.setState({selectedColumn: null, selectedOperator: null});
+  handleOpen = () => {
+    if (this.state.inputValue === '') {
+      this.setState({
+        inputValue: getInternal(this.props.value),
+      });
+    }
   };
 
   getOptions() {
     const currentValue = getInternal(this.props.value);
-    const shouldDisplayValue = currentValue || this.state.selectedColumn;
+    const shouldDisplayValue = currentValue || this.state.inputValue;
     return shouldDisplayValue ? [{label: currentValue, value: currentValue}] : [];
   }
 
@@ -60,21 +69,25 @@ export default class Condition extends React.Component {
     const column = this.props.columns.find(({name}) => name === colName);
     const colType = column ? column.type : 'string';
     const numberOnlyOperators = new Set(['>', '<', '>=', '<=']);
-    const stringOnlyOperators = new Set(['LIKE']);
+    const stringOnlyOperators = new Set(['LIKE', 'NOT LIKE']);
 
     return CONDITION_OPERATORS.filter(operator => {
-      if (colType === 'number') {
+      if (colType === 'number' || colType === 'datetime') {
         return !stringOnlyOperators.has(operator);
-      } else {
-        return !numberOnlyOperators.has(operator);
       }
+
+      // We currently only support = and != on array fields
+      if (ARRAY_FIELD_PREFIXES.some(prefix => colName.startsWith(prefix))) {
+        return ['=', '!='].includes(operator);
+      }
+
+      // Treat everything else like a string
+      return !numberOnlyOperators.has(operator);
     });
   }
 
-  filterOptions = (options, input) => {
-    input =
-      input ||
-      `${this.state.selectedColumn || ''} ${this.state.selectedOperator || ''}`.trim();
+  filterOptions = options => {
+    const input = this.state.inputValue;
 
     let optionList = options;
     const external = getExternal(input, this.props.columns);
@@ -84,9 +97,8 @@ export default class Condition extends React.Component {
       return [];
     }
 
-    const hasSelectedColumn = external[0] !== null || this.state.selectedColumn !== null;
-    const hasSelectedOperator =
-      external[1] !== null || this.state.selectedOperator !== null;
+    const hasSelectedColumn = external[0] !== null;
+    const hasSelectedOperator = external[1] !== null;
 
     if (!hasSelectedColumn) {
       optionList = this.props.columns.map(({name}) => ({
@@ -96,9 +108,9 @@ export default class Condition extends React.Component {
     }
 
     if (hasSelectedColumn && !hasSelectedOperator) {
-      const selectedColumn = external[0] || this.state.selectedColumn;
+      const selectedColumn = external[0];
       optionList = this.getConditionsForColumn(selectedColumn).map(op => {
-        const value = `${external[0] || this.state.selectedColumn} ${op}`;
+        const value = `${selectedColumn} ${op}`;
         return {
           value,
           label: value,
@@ -110,26 +122,23 @@ export default class Condition extends React.Component {
   };
 
   isValidNewOption = ({label}) => {
+    label = ignoreCase(label);
     return isValidCondition(getExternal(label, this.props.columns), this.props.columns);
   };
 
   inputRenderer = props => {
-    let val = `${this.state.selectedColumn || ''} ${this.state.selectedOperator ||
-      ''}`.trim();
-
     return (
       <input
         type="text"
         {...props}
-        value={props.value || val}
-        style={{width: '100%', border: 0}}
+        value={this.state.inputValue}
+        style={{width: '100%', border: 0, zIndex: 1000, backgroundColor: 'transparent'}}
       />
     );
   };
 
   valueRenderer = option => {
-    const hideValue = this.state.selectedColumn || this.state.selectedOperator;
-
+    const hideValue = this.state.inputValue;
     return hideValue ? '' : option.value;
   };
 
@@ -138,48 +147,48 @@ export default class Condition extends React.Component {
     return createKeyCodes.has(keyCode);
   };
 
-  onInputChange = value => {
-    const external = getExternal(value, this.props.columns);
-
-    if (!external[0] && this.state.selectedColumn) {
-      this.setState({
-        selectedColumn: null,
-      });
-    }
-
-    if (!external[1] && this.state.selectedOperator) {
-      this.setState({
-        selectedOperator: null,
-      });
-    }
+  handleInputChange = value => {
+    this.setState({
+      inputValue: ignoreCase(value),
+    });
 
     return value;
+  };
+
+  newOptionCreator = ({label, labelKey, valueKey}) => {
+    label = ignoreCase(label);
+    return {
+      [valueKey]: label,
+      [labelKey]: label,
+    };
   };
 
   render() {
     return (
       <Box w={1}>
         <SelectControl
-          forwardedRef={ref => (this.select = ref)}
+          innerRef={ref => (this.select = ref)}
           value={getInternal(this.props.value)}
           placeholder={<PlaceholderText>{t('Add condition...')}</PlaceholderText>}
           options={this.getOptions()}
           filterOptions={this.filterOptions}
           onChange={this.handleChange}
+          onOpen={this.handleOpen}
           closeOnSelect={true}
           openOnFocus={true}
           autoBlur={true}
           clearable={false}
           backspaceRemoves={false}
           deleteRemoves={false}
-          onClose={this.handleClose}
-          creatable={true}
-          promptTextCreator={text => text}
           isValidNewOption={this.isValidNewOption}
           inputRenderer={this.inputRenderer}
           valueRenderer={this.valueRenderer}
+          onInputChange={this.handleInputChange}
+          creatable={true}
+          promptTextCreator={text => text}
           shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
-          onInputChange={this.onInputChange}
+          disabled={this.props.disabled}
+          newOptionCreator={this.newOptionCreator}
         />
       </Box>
     );

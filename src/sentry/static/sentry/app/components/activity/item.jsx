@@ -210,8 +210,8 @@ class ActivityItem extends React.Component {
         });
       case 'unmerge_destination':
         return tn(
-          '%2$s migrated %1$d fingerprint from %3$s to %4$s',
-          '%2$s migrated %1$d fingerprints from %3$s to %4$s',
+          '%2$s migrated %1$s fingerprint from %3$s to %4$s',
+          '%2$s migrated %1$s fingerprints from %3$s to %4$s',
           data.fingerprints.length,
           author,
           data.source ? (
@@ -229,14 +229,19 @@ class ActivityItem extends React.Component {
           issue: issueLink,
         });
       case 'assigned':
+        let assignee;
+
         if (data.assigneeType == 'team') {
+          let team = TeamStore.getById(data.assignee);
+          assignee = team ? team.slug : '<unknown-team>';
+
           return tct('[author] assigned [issue] to #[assignee]', {
             author,
             issue: issueLink,
-            assignee: TeamStore.getById(data.assignee).slug,
+            assignee,
           });
         }
-        let assignee;
+
         if (item.user && data.assignee === item.user.id) {
           return tct('[author] assigned [issue] to themselves', {
             author,

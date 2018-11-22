@@ -9,7 +9,6 @@ import pytz
 from django.conf import settings
 
 from sentry import tagstore
-from sentry.event_manager import ScoreClause
 from sentry.models import (
     Environment, Event, GroupAssignee, GroupBookmark, GroupEnvironment, GroupStatus,
     GroupSubscription, Release, ReleaseEnvironment, ReleaseProjectEnvironment
@@ -35,10 +34,6 @@ class DjangoSearchBackendTest(TestCase):
             status=GroupStatus.UNRESOLVED,
             last_seen=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=pytz.utc),
             first_seen=datetime(2013, 7, 13, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            score=ScoreClause.calculate(
-                times_seen=5,
-                last_seen=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            ),
         )
 
         self.event1 = self.create_event(
@@ -68,10 +63,6 @@ class DjangoSearchBackendTest(TestCase):
             status=GroupStatus.RESOLVED,
             last_seen=datetime(2013, 7, 14, 3, 8, 24, 880386, tzinfo=pytz.utc),
             first_seen=datetime(2013, 7, 14, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            score=ScoreClause.calculate(
-                times_seen=10,
-                last_seen=datetime(2013, 7, 14, 3, 8, 24, 880386, tzinfo=pytz.utc),
-            ),
         )
 
         self.event2 = self.create_event(

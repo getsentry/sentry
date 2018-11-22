@@ -4,7 +4,7 @@ import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import {omit} from 'lodash';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ProjectState from 'app/mixins/projectState';
 import TagStore from 'app/stores/tagStore';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
@@ -21,14 +21,9 @@ const StreamContainer = createReactClass({
   mixins: [ProjectState, Reflux.listenTo(TagStore, 'onTagsChange')],
 
   getInitialState() {
-    const hasEnvironmentsFeature = new Set(this.getOrganization().features).has(
-      'environments'
-    );
-
     return {
       tags: TagStore.getAllTags(),
       tagsLoading: true,
-      hasEnvironmentsFeature,
     };
   },
 
@@ -51,16 +46,10 @@ const StreamContainer = createReactClass({
   },
 
   render() {
-    const {hasEnvironmentsFeature, tagsLoading, tags} = this.state;
-    const filteredTags = hasEnvironmentsFeature ? this.filterTags(this.state.tags) : tags;
+    const filteredTags = this.filterTags(this.state.tags);
 
     return (
-      <Stream
-        hasEnvironmentsFeature={hasEnvironmentsFeature}
-        tags={filteredTags}
-        tagsLoading={tagsLoading}
-        {...this.props}
-      />
+      <Stream tags={filteredTags} tagsLoading={this.state.tagsLoading} {...this.props} />
     );
   },
 });

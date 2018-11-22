@@ -10,6 +10,7 @@ exports[`Button renders 1`] = `
   size="large"
 >
   <ButtonLabel
+    priority="primary"
     size="large"
   >
     Button

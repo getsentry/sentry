@@ -70,52 +70,31 @@ describe('AccountSecurityEnroll', function() {
         })
       );
     });
-  });
 
-  // eslint-disable-next-line jest/no-disabled-tests
-  describe.skip('Recovery', function() {
-    beforeEach(function() {
-      Client.clearMockResponses();
+    it('can redirect with already enrolled error', function() {
       Client.addMockResponse({
-        url: `${ENDPOINT}16/`,
-        body: TestStubs.Authenticators().Recovery(),
+        url: `${ENDPOINT}${authenticator.authId}/enroll/`,
+        body: {details: 'Already enrolled'},
+        statusCode: 400,
       });
+
+      let pushMock = jest.fn();
       wrapper = mount(
         <AccountSecurityEnroll />,
         TestStubs.routerContext([
           {
             router: {
-              ...TestStubs.router(),
+              ...TestStubs.router({
+                push: pushMock,
+              }),
               params: {
-                authId: 16,
+                authId: authenticator.authId,
               },
             },
           },
         ])
       );
-    });
-
-    it('has enrolled circle indicator', function() {
-      expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
-    });
-
-    it('has created and last used dates', function() {
-      expect(wrapper.find('AuthenticatorDate')).toHaveLength(2);
-    });
-
-    it('does not have remove button', function() {
-      expect(wrapper.find('RemoveConfirm')).toHaveLength(0);
-    });
-
-    it('regenerates codes', function() {
-      let deleteMock = Client.addMockResponse({
-        url: `${ENDPOINT}16/`,
-        method: 'PUT',
-      });
-
-      wrapper.find('RecoveryCodes').prop('onRegenerateBackupCodes')();
-
-      expect(deleteMock).toHaveBeenCalled();
+      expect(pushMock).toHaveBeenCalledWith('/settings/account/security/');
     });
   });
 });

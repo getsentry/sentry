@@ -12,6 +12,7 @@ import GroupState from 'app/mixins/groupState';
 import {assignToUser, assignToActor} from 'app/actionCreators/group';
 import {t} from 'app/locale';
 import {openCreateOwnershipRule} from 'app/actionCreators/modal';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 
 const SuggestedOwners = createReactClass({
   displayName: 'SuggestedOwners',
@@ -199,7 +200,8 @@ const SuggestedOwners = createReactClass({
 
     let showCreateRule = access.has('project:write');
 
-    let showSuggestedAssignees = committers.length > 0 || owners.length > 0;
+    let showSuggestedAssignees =
+      (committers && committers.length > 0) || (owners && owners.length > 0);
 
     return (
       <React.Fragment>
@@ -219,6 +221,7 @@ const SuggestedOwners = createReactClass({
         {showCreateRule && (
           <div className="m-b-1">
             <h6>
+              <GuideAnchor target="owners" type="text" />
               <span>{t('Ownership Rules')}</span>
             </h6>
 

@@ -6,13 +6,16 @@ from collections import OrderedDict
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
+from sentry.utils.canonical import get_canonical_name
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
+from sentry.utils.decorators import classproperty
 
 
 def get_interface(name):
     try:
+        name = get_canonical_name(name)
         import_path = settings.SENTRY_INTERFACES[name]
     except KeyError:
         raise ValueError('Invalid interface name: %s' % (name, ))
@@ -64,8 +67,20 @@ class Interface(object):
     def __init__(self, **data):
         self._data = data or {}
 
+    @classproperty
+    def path(cls):
+        """The 'path' of the interface which is the root key in the data."""
+        return cls.__name__.lower()
+
+    @classproperty
+    def external_type(cls):
+        """The external name of the interface.  This is mostly the same as
+        path with some small differences (message, debugmeta).
+        """
+        return cls.path
+
     def __eq__(self, other):
-        if type(self) != type(other):
+        if not isinstance(self, type(other)):
             return False
         return self._data == other._data
 
@@ -93,19 +108,15 @@ class Interface(object):
     def get_api_context(self, is_public=False):
         return self.to_json()
 
+    def get_api_meta(self, meta, is_public=False):
+        return meta
+
     def to_json(self):
         # eliminate empty values for serialization to compress the keyspace
         # and save (seriously) ridiculous amounts of bytes
         # XXX(dcramer): its important that we keep zero values here, but empty
         # lists and strings get discarded as we've deemed them not important
         return dict((k, v) for k, v in six.iteritems(self._data) if (v == 0 or v))
-
-    def get_path(self):
-        cls = type(self)
-        return '%s.%s' % (cls.__module__, cls.__name__)
-
-    def get_alias(self):
-        return self.get_slug()
 
     def get_hash(self):
         return []
@@ -115,9 +126,6 @@ class Interface(object):
         if not result:
             return []
         return [result]
-
-    def get_slug(self):
-        return type(self).__name__.lower()
 
     def get_title(self):
         return _(type(self).__name__)
@@ -139,3 +147,21 @@ class Interface(object):
         if not body:
             return ''
         return '<pre>%s</pre>' % (escape(body), )
+
+    # deprecated stuff.  These were deprecated in late 2018, once
+    # determined they are unused we can kill them.
+
+    def get_path(self):
+        from warnings import warn
+        warn(DeprecationWarning('Replaced with .path'))
+        return self.path
+
+    def get_alias(self):
+        from warnings import warn
+        warn(DeprecationWarning('Replaced with .path'))
+        return self.path
+
+    def get_slug(self):
+        from warnings import warn
+        warn(DeprecationWarning('Replaced with .path'))
+        return self.path

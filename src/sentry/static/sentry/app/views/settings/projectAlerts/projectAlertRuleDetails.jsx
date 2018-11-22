@@ -1,6 +1,6 @@
 import React from 'react';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import AsyncView from 'app/views/asyncView';
 import RuleEditor from 'app/views/settings/projectAlerts/ruleEditor';
 

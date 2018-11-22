@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import GroupEventDataSection from 'app/components/events/eventDataSection';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Breadcrumb from 'app/components/events/interfaces/breadcrumbs/breadcrumb';
 import {t, tct} from 'app/locale';
@@ -9,10 +9,10 @@ import {t, tct} from 'app/locale';
 function Collapsed(props) {
   return (
     <li className="crumbs-collapsed">
-      <span className="icon-container">
-        <span className="icon icon-ellipsis" />
-      </span>
       <a onClick={props.onClick}>
+        <span className="icon-container">
+          <span className="icon icon-ellipsis" />
+        </span>
         {tct('Show [count] collapsed crumbs', {count: props.count})}
       </a>
     </li>

@@ -4,10 +4,10 @@ import {withInfo} from '@storybook/addon-info';
 import {text, boolean} from '@storybook/addon-knobs';
 
 import Tooltip from 'app/components/tooltip';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 
-storiesOf('Tooltip', module).add(
-  'default',
+storiesOf('UI|Tooltip', module).add(
+  'Tooltip',
   withInfo({
     text: 'Adds a tool to any component',
     propTablesExclude: [Button],

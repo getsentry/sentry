@@ -16,31 +16,63 @@ const inlineStyle = p =>
 const highlightedStyle = p =>
   p.highlighted
     ? css`
-        outline: 1px solid ${p.theme.purple};
+        position: relative;
+
+        &:after {
+          content: '';
+          display: block;
+          position: absolute;
+          top: -1px;
+          left: -1px;
+          right: -1px;
+          bottom: -1px;
+          border: 1px solid ${p.theme.purple};
+          pointer-events: none;
+        }
       `
     : '';
 
-const getPadding = props => {
-  if (typeof props.p !== 'undefined') {
-    return `padding: ${props.p};`;
-  }
-  return `padding: ${space(2)} ${props.hasControlState ? 0 : space(2)} ${space(
-    2
-  )} ${space(2)}`;
-};
+const borderStyle = p =>
+  p.stacked
+    ? ''
+    : css`
+        border-bottom: 1px solid ${p.theme.borderLight};
+      `;
+
+const getPadding = p =>
+  p.stacked && !p.inline
+    ? css`
+        padding: 0 ${p.hasControlState ? 0 : space(2)} ${space(1)} 0;
+      `
+    : css`
+        padding: ${space(2)} ${p.hasControlState ? 0 : space(2)} ${space(2)} ${space(2)};
+      `;
 
 /**
  * `hasControlState` - adds padding to right if this is false
  */
-const FieldWrapper = styled(({highlighted, inline, hasControlState, p, ...props}) => (
-  <Flex {...props} />
-))`
+const FieldWrapper = styled(p => <Flex {...p} />, {
+  shouldForwardProp: prop =>
+    !['highlighted', 'inline', 'stacked', 'hasControlState', 'p'].includes(prop),
+})`
   ${getPadding};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
   transition: background 0.15s;
 
-  ${inlineStyle} ${highlightedStyle} &:last-child {
+  ${borderStyle};
+  ${inlineStyle};
+  ${highlightedStyle};
+
+  /* Better padding with form inside of a modal */
+  ${p =>
+    !p.hasControlState
+      ? `.modal-content & {
+      padding-right: 0;
+    }`
+      : ''};
+
+  &:last-child {
     border-bottom: none;
+    ${p => (p.stacked ? 'padding-bottom: 0' : '')};
   }
 `;
 

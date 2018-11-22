@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import SelectInput from 'app/components/selectInput';
+import SelectControl from 'app/components/forms/selectControl';
 import RuleNode from 'app/views/settings/projectAlerts/ruleEditor/ruleNode';
 
 class RuleNodeList extends React.Component {
@@ -35,19 +35,14 @@ class RuleNodeList extends React.Component {
           })}
         </RuleNodes>
         <fieldset>
-          <SelectInput
-            onChange={sel2 => this.props.handleAddRow(sel2.val())}
+          <SelectControl
+            onChange={obj => this.props.handleAddRow(obj ? obj.value : obj)}
             style={{width: '100%'}}
-          >
-            <option key="blank" />
-            {this.props.nodes.filter(n => n.enabled).map(node => {
-              return (
-                <option value={node.id} key={node.id}>
-                  {node.label}
-                </option>
-              );
-            })}
-          </SelectInput>
+            options={this.props.nodes.filter(n => n.enabled).map(node => ({
+              value: node.id,
+              label: node.label,
+            }))}
+          />
         </fieldset>
       </div>
     );

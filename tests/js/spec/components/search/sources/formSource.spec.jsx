@@ -3,6 +3,7 @@ import {mount} from 'enzyme';
 
 import FormSource from 'app/components/search/sources/formSource';
 import FormSearchActions from 'app/actions/formSearchActions';
+import * as ActionCreators from 'app/actionCreators/formSearch';
 
 describe('FormSource', function() {
   let wrapper;
@@ -24,9 +25,15 @@ describe('FormSource', function() {
       },
     },
   ];
+  let loadStub;
 
   beforeEach(function() {
+    loadStub = sinon.stub(ActionCreators, 'loadSearchMap');
     FormSearchActions.loadSearchMap(searchMap);
+  });
+
+  afterEach(function() {
+    loadStub.restore();
   });
 
   it('can find a form field', async function() {

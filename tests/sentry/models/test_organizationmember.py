@@ -2,11 +2,13 @@
 
 from __future__ import absolute_import
 
+from datetime import timedelta
 from django.core import mail
+from django.utils import timezone
 from mock import patch
 
 from sentry.auth import manager
-from sentry.models import OrganizationMember
+from sentry.models import OrganizationMember, INVITE_DAYS_VALID
 from sentry.testutils import TestCase
 
 
@@ -70,3 +72,59 @@ class OrganizationMemberTest(TestCase):
 
         assert not context['has_password']
         assert 'set_password_url' in context
+
+    def test_token_expires_at_set_on_save(self):
+        organization = self.create_organization()
+        member = OrganizationMember(
+            organization=organization,
+            email='foo@example.com')
+        member.token = member.generate_token()
+        member.save()
+
+        expires_at = timezone.now() + timedelta(days=INVITE_DAYS_VALID)
+        assert member.token_expires_at
+        assert member.token_expires_at.date() == expires_at.date()
+
+    def test_token_expiration(self):
+        organization = self.create_organization()
+        member = OrganizationMember(
+            organization=organization,
+            email='foo@example.com')
+        member.token = member.generate_token()
+        member.save()
+
+        assert member.is_pending
+        assert member.token_expired is False
+
+        member.token_expires_at = timezone.now() - timedelta(minutes=1)
+        assert member.token_expired
+
+    def test_set_user(self):
+        organization = self.create_organization()
+        member = OrganizationMember(
+            organization=organization,
+            email='foo@example.com')
+        member.token = member.generate_token()
+        member.save()
+
+        user = self.create_user(email='foo@example.com')
+        member.set_user(user)
+
+        assert member.is_pending is False
+        assert member.token_expires_at is None
+        assert member.token is None
+        assert member.email is None
+
+    def test_regenerate_token(self):
+        organization = self.create_organization()
+        member = OrganizationMember(
+            organization=organization,
+            email='foo@example.com')
+        assert member.token is None
+        assert member.token_expires_at is None
+
+        member.regenerate_token()
+        assert member.token
+        assert member.token_expires_at
+        expires_at = timezone.now() + timedelta(days=INVITE_DAYS_VALID)
+        assert member.token_expires_at.date() == expires_at.date()

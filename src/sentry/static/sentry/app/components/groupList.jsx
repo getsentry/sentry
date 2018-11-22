@@ -4,7 +4,7 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import jQuery from 'jquery';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import GroupListHeader from 'app/components/groupListHeader';
 import GroupStore from 'app/stores/groupStore';

@@ -8,7 +8,7 @@ import Tooltip from 'app/components/tooltip';
 
 import Link from 'app/components/link';
 import ProjectLabel from 'app/components/projectLabel';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 const InlineButton = styled('button')`
   color: ${p => p.theme.gray1};
@@ -31,14 +31,6 @@ const ProjectItem = createReactClass({
     return {
       isBookmarked: this.props.project.isBookmarked,
     };
-  },
-
-  componentWillReceiveProps(nextProps) {
-    // Local bookmarked state should be unset when the project data changes
-    // Local state is used for optimistic UI update
-    if (this.state.isBookmarked !== nextProps.project.isBookmarked) {
-      this.setState({isBookmarked: nextProps.project.isBookmarked});
-    }
   },
 
   handleToggleBookmark() {
@@ -73,7 +65,7 @@ const ProjectItem = createReactClass({
             )}
           </InlineButton>
         </Tooltip>
-        <Link to={`/settings/${organization.slug}/${project.slug}/`}>
+        <Link to={`/${organization.slug}/${project.slug}/`}>
           <ProjectLabel project={project} />
         </Link>
       </div>

@@ -1,14 +1,14 @@
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 
+import sdk from 'app/utils/sdk';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import ConfigStore from 'app/stores/configStore';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import OrganizationState from 'app/mixins/organizationState';
@@ -89,7 +89,7 @@ const InviteMember = createReactClass({
             },
           });
 
-          Raven.captureMessage('[members]: data fetch invalid response', {
+          sdk.captureException(new Error('[members]: data fetch invalid response'), {
             extra: {resp, state: this.state},
           });
         } else {
@@ -105,11 +105,13 @@ const InviteMember = createReactClass({
         if (error.status == 404 && isSuperuser) {
           // use the static list
           this.setState({roleList: STATIC_ROLE_LIST, loading: false});
-        } else {
-          Raven.captureMessage('[members]: data fetch error ', {
+        } else if (error.status !== 0) {
+          sdk.captureException(new Error('[members]: data fetch error'), {
             extra: {error, state: this.state},
           });
         }
+
+        addErrorMessage(t('Error with request, please reload'));
       },
     });
   },
@@ -179,7 +181,7 @@ const InviteMember = createReactClass({
       .then(() => this.redirectToMemberPage())
       .catch(error => {
         if (error && !error.email && !error.role) {
-          Raven.captureMessage('Unknown invite member api response', {
+          sdk.captureException(new Error('Unknown invite member api response'), {
             extra: {error, state: this.state},
           });
         }
@@ -194,6 +196,28 @@ const InviteMember = createReactClass({
         selectedTeams.delete(slug);
       } else {
         selectedTeams.add(slug);
+      }
+      return {
+        selectedTeams,
+      };
+    });
+  },
+
+  allSelected() {
+    let {teams} = this.getOrganization();
+    let {selectedTeams} = this.state;
+    return teams.length === selectedTeams.size;
+  },
+
+  handleSelectAll() {
+    let {teams} = this.getOrganization();
+
+    this.setState(state => {
+      let {selectedTeams} = state;
+      if (this.allSelected()) {
+        selectedTeams.clear();
+      } else {
+        selectedTeams = new Set(teams.map(({slug}) => slug));
       }
       return {
         selectedTeams,
@@ -244,6 +268,8 @@ const InviteMember = createReactClass({
               teams={teams}
               selectedTeams={selectedTeams}
               toggleTeam={this.toggleTeam}
+              onSelectAll={this.handleSelectAll}
+              allSelected={this.allSelected}
             />
             <Button
               priority="primary"

@@ -1,24 +1,23 @@
-import jQuery from 'jquery';
+import {Flex, Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
+import jQuery from 'jquery';
 import styled from 'react-emotion';
-import {Flex, Box} from 'grid-emotion';
 
+import {PanelItem} from 'app/components/panels';
+import {valueIsEqual} from 'app/utils';
 import AssigneeSelector from 'app/components/assigneeSelector';
 import Count from 'app/components/count';
+import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
+import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import GroupChart from 'app/components/stream/groupChart';
 import GroupCheckBox from 'app/components/stream/groupCheckBox';
-import ProjectState from 'app/mixins/projectState';
 import GroupStore from 'app/stores/groupStore';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import ProjectState from 'app/mixins/projectState';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
-import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
-import {PanelItem} from 'app/components/panels';
-
-import {valueIsEqual} from 'app/utils';
 
 const StreamGroup = createReactClass({
   displayName: 'StreamGroup',

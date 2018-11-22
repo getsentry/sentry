@@ -7,13 +7,13 @@ import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import AutoSelectText from 'app/components/autoSelectText';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DynamicWrapper from 'app/components/dynamicWrapper';
 import Field from 'app/views/settings/components/forms/field';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import PluginList from 'app/components/pluginList';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -244,8 +244,8 @@ class ProjectReleaseTracking extends AsyncView {
             </p>
 
             <p>
-              {tct('See the [link:Releases API documentation] for more information.', {
-                link: <a href="https://docs.sentry.io/hosted/api/releases/" />,
+              {tct('See the [link:Releases documentation] for more information.', {
+                link: <a href="https://docs.sentry.io/learn/releases" />,
               })}
             </p>
           </PanelBody>

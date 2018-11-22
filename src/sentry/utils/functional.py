@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.utils.functional import empty
 
 
@@ -39,3 +41,26 @@ def apply_values(function, mapping):
             function(values),
         ),
     )
+
+
+def compact(seq):
+    """
+    Removes ``None`` values from various sequence-based data structures.
+
+    dict:
+        Removes keys with a corresponding ``None`` value.
+
+    list:
+        Removes ``None`` valules.
+
+    >>> compact({'foo': 'bar', 'baz': None})
+    {'foo': 'bar'}
+
+    >>> compact([1, None, 2])
+    [1, 2]
+    """
+    if isinstance(seq, dict):
+        return {k: v for k, v in six.iteritems(seq) if v is not None}
+
+    elif isinstance(seq, list):
+        return [k for k in seq if k is not None]

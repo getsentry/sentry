@@ -3,9 +3,11 @@ from __future__ import absolute_import, print_function
 from django.db import IntegrityError, transaction
 from django.db.models.signals import post_save
 
+from sentry import analytics
 from sentry.models import (
-    Activity, Commit, GroupAssignee, GroupLink, Release, PullRequest
+    Activity, Commit, GroupAssignee, GroupLink, Release, Repository, PullRequest
 )
+from sentry.signals import resolved_with_commit
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 
 
@@ -29,6 +31,11 @@ def resolved_in_commit(instance, created, **kwargs):
     for link in group_links:
         if link.group_id not in group_ids:
             link.delete()
+
+    try:
+        repo = Repository.objects.get(id=instance.repository_id)
+    except Repository.DoesNotExist:
+        repo = None
 
     for group in groups:
         try:
@@ -70,6 +77,18 @@ def resolved_in_commit(instance, created, **kwargs):
                     )
         except IntegrityError:
             pass
+        else:
+            if repo is not None:
+                if repo.integration_id is not None:
+                    analytics.record(
+                        'integration.resolve.commit',
+                        provider=repo.provider,
+                        id=repo.integration_id,
+                        organization_id=repo.organization_id,
+                    )
+                user = user_list[0] if user_list else None
+                resolved_with_commit.send_robust(
+                    organization_id=repo.organization_id, user=user, group=group, sender='resolved_in_commit')
 
 
 def resolved_in_pull_request(instance, created, **kwargs):
@@ -85,6 +104,11 @@ def resolved_in_pull_request(instance, created, **kwargs):
     for link in group_links:
         if link.group_id not in group_ids:
             link.delete()
+
+    try:
+        repo = Repository.objects.get(id=instance.repository_id)
+    except Repository.DoesNotExist:
+        repo = None
 
     for group in groups:
         try:
@@ -126,6 +150,14 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     )
         except IntegrityError:
             pass
+        else:
+            if repo is not None and repo.integration_id is not None:
+                analytics.record(
+                    'integration.resolve.pr',
+                    provider=repo.provider,
+                    id=repo.integration_id,
+                    organization_id=repo.organization_id,
+                )
 
 
 post_save.connect(

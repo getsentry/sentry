@@ -18,7 +18,9 @@ class IntegrationManager(object):
 
     def all(self):
         for key in six.iterkeys(self.__values):
-            yield self.get(key)
+            integration = self.get(key)
+            if integration.visible:
+                yield integration
 
     def get(self, key, **kwargs):
         try:

@@ -67,10 +67,15 @@ class GroupTagValue(Model):
         # fallback
         from sentry.tagstore.v2.models import TagKey
 
-        tk = TagKey.objects.filter(
-            project_id=self.project_id,
-            id=self._key_id,
-        ).values_list('key', flat=True).get()
+        try:
+            tk = TagKey.objects.filter(
+                project_id=self.project_id,
+                id=self._key_id,
+            ).values_list('key', flat=True).get()
+        except TagKey.DoesNotExist:
+            # Data got inconsistent, I must delete myself.
+            self.delete()
+            return None
 
         # cache for future calls
         self.key = tk
@@ -92,10 +97,15 @@ class GroupTagValue(Model):
         # fallback
         from sentry.tagstore.v2.models import TagValue
 
-        tv = TagValue.objects.filter(
-            project_id=self.project_id,
-            id=self._value_id,
-        ).values_list('value', flat=True).get()
+        try:
+            tv = TagValue.objects.filter(
+                project_id=self.project_id,
+                id=self._value_id,
+            ).values_list('value', flat=True).get()
+        except TagValue.DoesNotExist:
+            # Data got inconsistent, I must delete myself.
+            self.delete()
+            return ''
 
         # cache for future calls
         self.value = tv

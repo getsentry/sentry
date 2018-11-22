@@ -6,7 +6,7 @@ import React from 'react';
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 
-const PanelBody = ({disablePadding, flex, direction, ...props}) => {
+const PanelBody = ({className, disablePadding, flex, direction, ...props}) => {
   let padding = !disablePadding
     ? css`
         padding: ${space(2)};
@@ -16,7 +16,11 @@ const PanelBody = ({disablePadding, flex, direction, ...props}) => {
   let Comp = flex ? Flex : 'div';
 
   return (
-    <Comp className={cx(padding, textStyles)} {...props} direction={flexDirection} />
+    <Comp
+      className={cx(padding, textStyles, className)}
+      {...props}
+      direction={flexDirection}
+    />
   );
 };
 

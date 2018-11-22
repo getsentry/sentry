@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
 import {boolean} from '@storybook/addon-knobs';
 
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import DropdownButton from 'app/components/dropdownButton';
 
 const Item = styled('span')`
@@ -16,7 +16,7 @@ const Section = styled('div')`
 `;
 
 // eslint-disable-next-line
-storiesOf('Buttons', module)
+storiesOf('UI|Buttons', module)
   .add(
     'overview',
     withInfo({

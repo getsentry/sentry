@@ -9,6 +9,10 @@ from django.utils import timezone
 from sentry.db.models import (FlexibleForeignKey, ParanoidModel)
 
 
+def default_uuid():
+    return six.binary_type(uuid.uuid4())
+
+
 class SentryAppInstallation(ParanoidModel):
     __core__ = True
 
@@ -37,7 +41,7 @@ class SentryAppInstallation(ParanoidModel):
                                      related_name='sentry_app_installation')
 
     uuid = models.CharField(max_length=64,
-                            default=lambda: six.binary_type(uuid.uuid4()))
+                            default=default_uuid)
 
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
@@ -45,3 +49,7 @@ class SentryAppInstallation(ParanoidModel):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_sentryappinstallation'
+
+    # Used when first creating an Installation to tell the serializer that the
+    # grant code should be included in the serialization.
+    is_new = False

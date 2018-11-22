@@ -19,17 +19,19 @@ import {t, tct} from 'app/locale';
 import {update} from 'app/actionCreators/projects';
 import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import ApiMixin from 'app/mixins/apiMixin';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import EnvironmentStore from 'app/stores/environmentStore';
 import InlineSvg from 'app/components/inlineSvg';
 import ListLink from 'app/components/listLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import SentryTypes from 'app/proptypes';
+import NavTabs from 'app/components/navTabs';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tag from 'app/views/settings/components/tag';
 import Tooltip from 'app/components/tooltip';
 import recreateRoute from 'app/utils/recreateRoute';
+import space from 'app/styles/space';
 
 const ProjectEnvironments = createReactClass({
   propTypes: {
@@ -322,7 +324,7 @@ const ProjectEnvironments = createReactClass({
         <SettingsPageHeader
           title={t('Manage Environments')}
           tabs={
-            <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
+            <NavTabs underlined={true}>
               <ListLink
                 to={`${baseUrl}environments/`}
                 index={true}
@@ -337,7 +339,7 @@ const ProjectEnvironments = createReactClass({
               >
                 {t('Hidden')}
               </ListLink>
-            </ul>
+            </NavTabs>
           }
         />
 
@@ -385,7 +387,11 @@ class EnvironmentRow extends React.Component {
       <PanelItem align="center" justify="space-between">
         <Flex align="center">
           {isSystemRow ? environment.displayName : environment.name}
-          {isDefault && <Tag priority="success">{t('Default')}</Tag>}
+          {isDefault && (
+            <Tag priority="success" ml={1}>
+              {t('Default')}
+            </Tag>
+          )}
         </Flex>
         <div>
           {shouldShowSetDefault && (
@@ -411,7 +417,7 @@ class EnvironmentRow extends React.Component {
   }
 }
 const EnvironmentButton = styled(Button)`
-  margin-left: 4px;
+  margin-left: ${space(0.5)};
 `;
 
 const InvalidDefaultEnvironmentIcon = styled(props => (

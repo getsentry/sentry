@@ -7,25 +7,6 @@ import ApiMixin from 'app/mixins/apiMixin';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 
-const getLoadingStyle = p =>
-  (p.loading &&
-    css`
-      background-color: white;
-      justify-content: center;
-    `) ||
-  '';
-
-const IssueDiffWrapper = styled.div`
-  background-color: #f7f8f9;
-  overflow: auto;
-  padding: 10px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-
-  ${getLoadingStyle};
-`;
-
 class IssueDiff extends React.Component {
   static propTypes = {
     api: PropTypes.object,
@@ -116,11 +97,12 @@ class IssueDiff extends React.Component {
   }
 
   render() {
+    let {className} = this.props;
     let DiffComponent = this.state.SplitDiffAsync;
     let diffReady = !this.state.loading && !!DiffComponent;
 
     return (
-      <IssueDiffWrapper loading={this.state.loading}>
+      <StyledIssueDiff className={className} loading={this.state.loading}>
         {this.state.loading && <LoadingIndicator />}
         {diffReady &&
           this.state.baseEvent.map((value, i) => (
@@ -131,7 +113,7 @@ class IssueDiff extends React.Component {
               type="words"
             />
           ))}
-      </IssueDiffWrapper>
+      </StyledIssueDiff>
     );
   }
 }
@@ -146,3 +128,22 @@ const IssueDiffContainer = createReactClass({
 
 export default IssueDiffContainer;
 export {IssueDiff};
+
+const getLoadingStyle = p =>
+  (p.loading &&
+    css`
+      background-color: white;
+      justify-content: center;
+    `) ||
+  '';
+
+const StyledIssueDiff = styled('div')`
+  background-color: #f7f8f9;
+  overflow: auto;
+  padding: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  ${getLoadingStyle};
+`;

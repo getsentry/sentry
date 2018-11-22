@@ -33,6 +33,8 @@ class OrganizationMemberListTest(APITestCase):
         assert len(response.data) == 2
         assert response.data[0]['email'] == self.user_2.email
         assert response.data[1]['email'] == self.owner_user.email
+        assert response.data[0]['pending'] is False
+        assert response.data[0]['expired'] is False
 
     def test_empty_query(self):
         response = self.client.get(self.url + "?query=")
@@ -112,7 +114,7 @@ class OrganizationMemberListTest(APITestCase):
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ['foo@example.com']
-        assert mail.outbox[0].subject == 'Join {} in using Sentry'.format(
+        assert mail.outbox[0].subject == u'Join {} in using Sentry'.format(
             self.org.name)
 
     def test_existing_user_for_invite(self):

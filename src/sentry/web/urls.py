@@ -13,11 +13,9 @@ from django.http import HttpResponse
 from django.views.generic import RedirectView
 
 from sentry.web import api
-from sentry.web.frontend import accounts, admin, generic, accounts_twofactor
+from sentry.web.frontend import accounts, admin, generic
 from sentry.web.frontend.accept_organization_invite import \
     AcceptOrganizationInviteView
-from sentry.web.frontend.account_security import AccountSecurityView
-from sentry.web.frontend.account_notification import AccountNotificationView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 from sentry.web.frontend.auth_logout import AuthLogoutView
@@ -30,7 +28,7 @@ from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
 from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
-from sentry.web.frontend.integration_setup import IntegrationSetupView
+from sentry.web.frontend.pipeline_advancer import PipelineAdvancerView
 from sentry.web.frontend.mailgun_inbound_webhook import \
     MailgunInboundWebhookView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
@@ -46,18 +44,16 @@ from sentry.web.frontend.project_avatar import ProjectAvatarPhotoView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
-from sentry.web.frontend.remove_account import RemoveAccountView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
-from sentry.web.frontend.remove_project import RemoveProjectView
-from sentry.web.frontend.transfer_project import TransferProjectView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
-from sentry.web.frontend.account_identity import AccountIdentityAssociateView, AccountIdentityLinkView
-from sentry.web.frontend.remove_team import RemoveTeamView
+from sentry.web.frontend.account_identity import AccountIdentityAssociateView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.unsubscribe_issue_notifications import \
     UnsubscribeIssueNotificationsView
 from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
+from sentry.web.frontend.vsts_extension_configuration import \
+    VstsExtensionConfigurationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 
 
@@ -110,6 +106,11 @@ urlpatterns += patterns(
         r'^api/(?P<project_id>[\w_-]+)/minidump/?$',
         api.MinidumpView.as_view(),
         name='sentry-api-minidump'
+    ),
+    url(
+        r'^api/(?P<project_id>[\w_-]+)/unreal/(?P<sentry_key>\w+)/$',
+        api.UnrealView.as_view(),
+        name='sentry-api-unreal'
     ),
     url(
         r'^api/(?P<project_id>\d+)/security/$',
@@ -200,6 +201,11 @@ urlpatterns += patterns(
         accounts.start_confirm_email,
         name='sentry-account-confirm-email-send'
     ),
+    url(r'^account/authorizations/$',
+        RedirectView.as_view(
+            pattern_name="sentry-account-settings-authorizations",
+            permanent=False),
+        ),
     url(
         r'^account/confirm-email/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$',
         accounts.confirm_email,
@@ -216,50 +222,28 @@ urlpatterns += patterns(
         accounts.set_password_confirm,
         name='sentry-account-set-password-confirm'
     ),
-    url(r'^account/settings/$', accounts.account_settings,
-        name='sentry-account-settings'),
+    url(r'^account/settings/$',
+        RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
+        ),
     url(
-        r'^account/settings/2fa/$', accounts.twofactor_settings, name='sentry-account-settings-2fa'
-    ),
-    url(
-        r'^account/settings/2fa/recovery/$',
-        accounts_twofactor.RecoveryCodeSettingsView.as_view(),
-        name='sentry-account-settings-2fa-recovery'
-    ),
-    url(
-        r'^account/settings/2fa/totp/$',
-        accounts_twofactor.TotpSettingsView.as_view(),
-        name='sentry-account-settings-2fa-totp'
-    ),
-    url(
-        r'^account/settings/2fa/sms/$',
-        accounts_twofactor.SmsSettingsView.as_view(),
-        name='sentry-account-settings-2fa-sms'
-    ),
-    url(
-        r'^account/settings/2fa/u2f/$',
-        accounts_twofactor.U2fSettingsView.as_view(),
-        name='sentry-account-settings-2fa-u2f'
+        r'^account/settings/2fa/$',
+        RedirectView.as_view(pattern_name="sentry-account-settings-security", permanent=False),
     ),
     url(
         r'^account/settings/avatar/$',
-        accounts.avatar_settings,
-        name='sentry-account-settings-avatar'
+        RedirectView.as_view(pattern_name="sentry-account-settings-avatar", permanent=False),
     ),
     url(
         r'^account/settings/appearance/$',
-        accounts.appearance_settings,
-        name='sentry-account-settings-appearance'
+        RedirectView.as_view(pattern_name="sentry-account-settings-appearance", permanent=False),
     ),
     url(
         r'^account/settings/identities/$',
-        accounts.list_identities,
-        name='sentry-account-settings-identities'
+        RedirectView.as_view(pattern_name="sentry-account-settings-identities", permanent=False),
     ),
     url(
         r'^account/settings/subscriptions/$',
-        accounts.manage_subscriptions,
-        name='sentry-account-settings-subscriptions'
+        RedirectView.as_view(pattern_name="sentry-account-settings-subscriptions", permanent=False),
     ),
     url(
         r'^account/settings/identities/(?P<identity_id>[^\/]+)/disconnect/$',
@@ -272,22 +256,12 @@ urlpatterns += patterns(
         name='sentry-account-associate-identity'
     ),
     url(
-        r'^account/settings/identities/associate/$',
-        AccountIdentityLinkView.as_view(),
-        name='sentry-account-link-identity'
+        r'^account/settings/security/',
+        RedirectView.as_view(pattern_name="sentry-account-settings-security", permanent=False),
     ),
-    url(
-        r'^account/settings/notifications/$',
-        AccountNotificationView.as_view(),
-        name='sentry-account-settings-notifications'
-    ),
-    url(
-        r'^account/settings/security/$',
-        AccountSecurityView.as_view(),
-        name='sentry-account-security'
-    ),
-    url(r'^account/settings/emails/$', accounts.show_emails,
-        name='sentry-account-settings-emails'),
+    url(r'^account/settings/emails/$',
+        RedirectView.as_view(pattern_name="sentry-account-settings-emails", permanent=False),
+        ),
 
     # Project Wizard
     url(
@@ -302,6 +276,10 @@ urlpatterns += patterns(
         accounts.email_unsubscribe_project
     ),
     url(
+        r'^account/settings/notifications/',
+        RedirectView.as_view(pattern_name="sentry-account-settings-notifications", permanent=False),
+    ),
+    url(
         r'^account/notifications/unsubscribe/(?P<project_id>\d+)/$',
         accounts.email_unsubscribe_project,
         name='sentry-account-email-unsubscribe-project'
@@ -311,8 +289,9 @@ urlpatterns += patterns(
         UnsubscribeIssueNotificationsView.as_view(),
         name='sentry-account-email-unsubscribe-issue'
     ),
-    url(r'^account/remove/$', RemoveAccountView.as_view(),
-        name='sentry-remove-account'),
+    url(r'^account/remove/$',
+        RedirectView.as_view(pattern_name="sentry-remove-account", permanent=False),
+        ),
     url(r'^account/settings/social/', include('social_auth.urls')),
     url(r'^account/', generic_react_page_view),
     url(r'^onboarding/', generic_react_page_view),
@@ -359,17 +338,44 @@ urlpatterns += patterns(
             url='https://docs.sentry.io/hosted/api/', permanent=False),
         name='sentry-api-docs-redirect'
     ),
-    url(r'^api/$', generic_react_page_view, name='sentry-api'),
-    url(r'^api/[^0]+/', generic_react_page_view),
+    url(r'^api/$',
+        RedirectView.as_view(pattern_name="sentry-api", permanent=False),
+        ),
+    url(r'^api/applications/$',
+        RedirectView.as_view(pattern_name="sentry-api-applications", permanent=False)),
+    url(r'^api/new-token/$',
+        RedirectView.as_view(pattern_name="sentry-api-new-auth-token", permanent=False)),
+    url(r'^api/[^0]+/',
+        RedirectView.as_view(pattern_name="sentry-api-details", permanent=False),
+        ),
     url(r'^out/$', OutView.as_view()),
 
     url(r'^accept-transfer/$', react_page_view, name='sentry-accept-project-transfer'),
     # User settings use generic_react_page_view, while any view
     # acting on behalf of an organization should use react_page_view
-    url(r'^settings/account/security/$',
-        generic_react_page_view,
+    url(r'^settings/account/$', generic_react_page_view, name="sentry-account-settings"),
+    url(r'^settings/account/$', generic_react_page_view, name="sentry-account-settings-appearance"),
+    url(r'^settings/account/authorizations/$', generic_react_page_view,
+        name="sentry-account-settings-authorizations"),
+    url(r'^settings/account/security/', generic_react_page_view,
         name='sentry-account-settings-security'),
+    url(r'^settings/account/avatar/$', generic_react_page_view, name='sentry-account-settings-avatar'),
+    url(r'^settings/account/identities/$', generic_react_page_view,
+        name='sentry-account-settings-identities'),
+    url(r'^settings/account/subscriptions/$', generic_react_page_view,
+        name='sentry-account-settings-subscriptions'),
+    url(r'^settings/account/notifications/', generic_react_page_view,
+        name='sentry-account-settings-notifications'),
+    url(r'^settings/account/emails/$', generic_react_page_view, name='sentry-account-settings-emails'),
+    url(r'^settings/account/api/$', generic_react_page_view, name='sentry-api'),
+    url(r'^settings/account/api/applications/$',
+        generic_react_page_view, name='sentry-api-applications'),
+    url(r'^settings/account/api/auth-tokens/new-token/$',
+        generic_react_page_view, name='sentry-api-new-auth-token'),
+    url(r'^settings/account/api/[^0]+/$', generic_react_page_view, name='sentry-api-details'),
+    url(r'^settings/account/close-account/$', generic_react_page_view, name='sentry-remove-account'),
     url(r'^settings/account/', generic_react_page_view),
+
     url(r'^settings/', react_page_view),
     url(
         r'^settings/(?P<organization_slug>[\w_-]+)/members/$',
@@ -386,6 +392,8 @@ urlpatterns += patterns(
         react_page_view,
         name='sentry-organization-member-settings'
     ),
+    url(r'^extensions/external-install/(?P<provider_id>\w+)/(?P<installation_id>\w+)/$',
+        react_page_view, name='integration-installation'),
 
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$',
@@ -436,15 +444,6 @@ urlpatterns += patterns(
         react_page_view,
         name='sentry-organization-stats'
     ),
-
-    # TODO REMOVEME #NEW-SETTINGS, redirect to team settings?
-    url(
-        r'^organizations/(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/remove/$',
-        RemoveTeamView.as_view(),
-        name='sentry-remove-team'
-    ),
-    url(
-        r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', react_page_view),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/restore/$',
         RestoreOrganizationView.as_view(),
@@ -465,18 +464,6 @@ urlpatterns += patterns(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$',
         react_page_view,
         name='sentry-manage-project'
-    ),
-    # TODO REMOVEME #NEW-SETTINGS, redirect to project settings?
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/remove/$',
-        RemoveProjectView.as_view(),
-        name='sentry-remove-project'
-    ),
-    # TODO REMOVEME #NEW-SETTINGS, redirect to project settings?
-    url(
-        r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/transfer/$',
-        TransferProjectView.as_view(),
-        name='sentry-transfer-project'
     ),
     url(
         r'^avatar/(?P<avatar_id>[^\/]+)/$',
@@ -499,6 +486,13 @@ urlpatterns += patterns(
         name='sentry-team-avatar-url'
     ),
 
+    # VSTS Marketplace extension install flow
+    url(
+        r'^extensions/vsts/configure/$',
+        VstsExtensionConfigurationView.as_view(),
+        name='vsts-extension-configuration',
+    ),
+
     # Generic
     url(r'^$', HomeView.as_view(), name='sentry'),
     url(r'^robots\.txt$', api.robots_txt, name='sentry-api-robots-txt'),
@@ -514,8 +508,7 @@ urlpatterns += patterns(
     url(r'favicon\.ico$', lambda r: HttpResponse(status=404)),
 
     # crossdomain.xml
-    url(r'^crossdomain\.xml$', api.crossdomain_xml_index,
-        name='sentry-api-crossdomain-xml-index'),
+    url(r'^crossdomain\.xml$', lambda r: HttpResponse(status=404)),
 
     # plugins
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
@@ -523,14 +516,16 @@ urlpatterns += patterns(
     # assets for the time being
     url(
         r'^extensions/(?P<provider_id>[\w_-]+)/setup/$',
-        IntegrationSetupView.as_view(),
-        name='sentry-integrations-setup'
+        PipelineAdvancerView.as_view(),
+        name='sentry-extension-setup'
     ),
     url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
     url(r'^extensions/jira/', include('sentry.integrations.jira.urls')),
+    url(r'^extensions/jira-server/', include('sentry.integrations.jira_server.urls')),
     url(r'^extensions/slack/', include('sentry.integrations.slack.urls')),
     url(r'^extensions/github/', include('sentry.integrations.github.urls')),
     url(r'^extensions/github-enterprise/', include('sentry.integrations.github_enterprise.urls')),
+    url(r'^extensions/gitlab/', include('sentry.integrations.gitlab.urls')),
     url(r'^extensions/vsts/', include('sentry.integrations.vsts.urls')),
     url(r'^extensions/bitbucket/', include('sentry.integrations.bitbucket.urls')),
 

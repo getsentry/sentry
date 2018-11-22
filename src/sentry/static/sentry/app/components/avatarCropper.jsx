@@ -4,6 +4,7 @@ import React from 'react';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {AVATAR_URL_MAP} from 'app/constants';
 import {t} from 'app/locale';
+import Well from 'app/components/well';
 
 class AvatarCropper extends React.Component {
   static propTypes = {
@@ -386,14 +387,14 @@ class AvatarCropper extends React.Component {
     return (
       <div>
         {!src && (
-          <div className="image-well well blankslate">
+          <Well hasImage centered>
             <p>
               <a onClick={this.uploadClick}>
                 <strong>Upload a photo</strong>
               </a>{' '}
               to get started.
             </p>
-          </div>
+          </Well>
         )}
         {this.renderImageCrop()}
         {this.renderCanvas()}

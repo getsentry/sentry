@@ -2,9 +2,8 @@ import React from 'react';
 
 import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
 import {t} from 'app/locale';
-import ProjectIntegrations from 'app/views/settings/project/projectIntegrations';
 import ProjectPlugins from 'app/views/projectPlugins/projectPlugins';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import withPlugins from 'app/utils/withPlugins';
 
@@ -32,9 +31,7 @@ class ProjectPluginsContainer extends React.Component {
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Integrations')} />
-
-        <ProjectIntegrations {...this.props} />
+        <SettingsPageHeader title={t('Legacy Integrations')} />
 
         <ProjectPlugins
           {...this.props}

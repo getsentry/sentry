@@ -107,6 +107,14 @@ const StacktraceContent = createReactClass({
         frames.push(this.renderOmittedFrames(firstFrameOmitted, lastFrameOmitted));
       }
     });
+
+    if (frames.length > 0 && data.registers) {
+      let lastFrame = frames.length - 1;
+      frames[lastFrame] = React.cloneElement(frames[lastFrame], {
+        registers: data.registers
+      });
+    }
+
     if (this.props.newestFirst) {
       frames.reverse();
     }

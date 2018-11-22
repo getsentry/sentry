@@ -59,7 +59,7 @@ class BasicResolvingIntegrationTest(TestCase):
         assert len(response.data) == 1
 
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -71,7 +71,7 @@ class BasicResolvingIntegrationTest(TestCase):
                     "uuid": PROGUARD_UUID,
                 }]
             },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         'stacktrace': {
@@ -104,7 +104,6 @@ class BasicResolvingIntegrationTest(TestCase):
         self._postWithHeader(event_data)
         with self.assertWriteQueries({
             'nodestore_node': 2,
-            'sentry_environmentproject': 1,
             'sentry_eventtag': 1,
             'sentry_eventuser': 1,
             'sentry_filtervalue': 2,
@@ -119,7 +118,7 @@ class BasicResolvingIntegrationTest(TestCase):
 
         event = Event.objects.first()
 
-        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        bt = event.interfaces['exception'].values[0].stacktrace
         frames = bt.frames
 
         assert frames[0].function == 'getClassContext'
@@ -160,7 +159,7 @@ class BasicResolvingIntegrationTest(TestCase):
         assert len(response.data) == 1
 
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -172,7 +171,7 @@ class BasicResolvingIntegrationTest(TestCase):
                     "uuid": PROGUARD_BUG_UUID,
                 }]
             },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         'stacktrace': {

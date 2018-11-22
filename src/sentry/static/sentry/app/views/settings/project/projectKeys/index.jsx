@@ -16,7 +16,7 @@ import {getOrganizationState} from 'app/mixins/organizationState';
 import {t, tct} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import ClippedBox from 'app/components/clippedBox';
 import Confirm from 'app/components/confirm';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -24,7 +24,7 @@ import ExternalLink from 'app/components/externalLink';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -117,7 +117,7 @@ const KeyRow = createReactClass({
     let editUrl = recreateRoute(`${data.id}/`, this.props);
     let controls = [
       <Button key="edit" to={editUrl} size="small">
-        {t('Details')}
+        {t('Configure')}
       </Button>,
     ];
 

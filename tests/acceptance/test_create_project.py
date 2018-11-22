@@ -13,7 +13,7 @@ class CreateProjectTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-        self.path = '/organizations/{}/projects/new/'.format(self.org.slug)
+        self.path = u'/organizations/{}/projects/new/'.format(self.org.slug)
 
     def test_simple(self):
         self.team = self.create_team(organization=self.org, name='Mariachi Band')

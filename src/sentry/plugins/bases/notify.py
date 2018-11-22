@@ -66,7 +66,8 @@ class NotificationPlugin(Plugin):
 
     def notify(self, notification):
         event = notification.event
-        return self.notify_users(event.group, event)
+        return self.notify_users(event.group, event, triggering_rules=[
+                                 r.label for r in notification.rules])
 
     def rule_notify(self, event, futures):
         rules = []
@@ -117,7 +118,7 @@ class NotificationPlugin(Plugin):
 
         self.logger.info('notification.%s' % log_event, extra=extra)
 
-    def notify_users(self, group, event, fail_silently=False):
+    def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
         raise NotImplementedError
 
     def notify_about_activity(self, activity):
@@ -154,7 +155,7 @@ class NotificationPlugin(Plugin):
         # older plugins.
         if not (hasattr(self, 'notify_digest') and
                 digests.enabled(project)) and self.__is_rate_limited(group, event):
-            logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
+            logger = logging.getLogger(u'sentry.plugins.{0}'.format(self.get_conf_key()))
             logger.info('notification.rate_limited', extra={'project_id': project.id})
             return False
 

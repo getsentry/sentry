@@ -28,7 +28,7 @@ class ProjectTagsSettingsTest(AcceptanceTestCase):
         tagstore.create_tag_key(project_id=self.project.id, environment_id=None, key="Foo")
 
         self.login_as(self.user)
-        self.path1 = '/{}/{}/settings/tags/'.format(self.org.slug, self.project.slug)
+        self.path1 = u'/{}/{}/settings/tags/'.format(self.org.slug, self.project.slug)
 
     def test_tags_list(self):
         self.browser.get(self.path1)

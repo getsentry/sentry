@@ -25,7 +25,7 @@ from sentry.constants import LANGUAGES
 from sentry.models import (Organization, OrganizationStatus, User, UserOption, UserOptionValue)
 from sentry.security import capture_security_activity
 from sentry.utils.auth import find_users, logger
-from sentry.web.forms.fields import CustomTypedChoiceField, ReadOnlyTextField
+from sentry.web.forms.fields import CustomTypedChoiceField, ReadOnlyTextField, AllowedEmailField
 from six.moves import range
 
 
@@ -117,7 +117,7 @@ class AuthenticationForm(forms.Form):
 
         ip_address = self.request.META['REMOTE_ADDR']
         return ratelimiter.is_limited(
-            'auth:ip:{}'.format(ip_address),
+            u'auth:ip:{}'.format(ip_address),
             limit,
         )
 
@@ -185,7 +185,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'placeholder': 'Jane Doe'}),
         required=True
     )
-    username = forms.EmailField(
+    username = AllowedEmailField(
         label=_('Email'),
         max_length=128,
         widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}),
@@ -279,7 +279,14 @@ class RecoverPasswordForm(forms.Form):
             return
         users = find_users(value, with_valid_password=False)
         if not users:
-            raise forms.ValidationError(_("We were unable to find a matching user."))
+            return
+
+        # If we find more than one user, we likely matched on email address.
+        # We silently bail here as we emailing the 'wrong' person isn't great.
+        # They will have to retry with their username which is guaranteed
+        # to be unique
+        if len(users) > 1:
+            return
 
         users = [u for u in users if not u.is_managed]
         if not users:
@@ -287,11 +294,6 @@ class RecoverPasswordForm(forms.Form):
                 _(
                     "The account you are trying to recover is managed and does not support password recovery."
                 )
-            )
-
-        if len(users) > 1:
-            raise forms.ValidationError(
-                _("Multiple accounts were found matching this email address.")
             )
         return users[0]
 
@@ -306,8 +308,7 @@ class ChangePasswordRecoverForm(forms.Form):
 
 
 class EmailForm(forms.Form):
-
-    alt_email = forms.EmailField(
+    alt_email = AllowedEmailField(
         label=_('New Email'),
         required=False,
         help_text='Designate an alternative email for this account',
@@ -343,7 +344,7 @@ class EmailForm(forms.Form):
 class AccountSettingsForm(forms.Form):
     name = forms.CharField(required=True, label=_('Name'), max_length=30)
     username = forms.CharField(label=_('Username'), max_length=128)
-    email = forms.EmailField(label=_('Email'))
+    email = AllowedEmailField(label=_('Email'))
     new_password = forms.CharField(
         label=_('New password'),
         widget=forms.PasswordInput(),
@@ -617,7 +618,7 @@ class NotificationDeploySettingsForm(forms.Form):
         self.fields['notifications'].initial = deploy_setting
 
     def save(self):
-        value = self.data.get('{}-notifications'.format(self.prefix), None)
+        value = self.data.get(u'{}-notifications'.format(self.prefix), None)
         if value is not None:
             UserOption.objects.set_value(
                 user=self.user,
@@ -628,7 +629,7 @@ class NotificationDeploySettingsForm(forms.Form):
 
 
 class NotificationSettingsForm(forms.Form):
-    alert_email = forms.EmailField(
+    alert_email = AllowedEmailField(
         label=_('Email'),
         help_text=_('Designate an alternative email address to send email notifications to.'),
         required=False

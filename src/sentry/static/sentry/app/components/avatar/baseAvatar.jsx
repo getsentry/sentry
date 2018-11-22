@@ -62,6 +62,7 @@ class BaseAvatar extends React.Component {
 
     this.state = {
       showBackupAvatar: false,
+      hasLoaded: props.type !== 'upload',
       loadError: false,
     };
   }
@@ -87,11 +88,11 @@ class BaseAvatar extends React.Component {
   };
 
   handleLoad = () => {
-    this.setState({showBackupAvatar: false});
+    this.setState({showBackupAvatar: false, hasLoaded: true});
   };
 
   handleError = () => {
-    this.setState({showBackupAvatar: true, loadError: true});
+    this.setState({showBackupAvatar: true, loadError: true, hasLoaded: true});
   };
 
   renderImg = () => {
@@ -131,7 +132,7 @@ class BaseAvatar extends React.Component {
   }
 
   render() {
-    let {className, hasTooltip, size, tooltip, tooltipOptions, style} = this.props;
+    let {className, round, hasTooltip, size, tooltip, tooltipOptions, style} = this.props;
     let sizeStyle = {};
 
     if (size) {
@@ -144,7 +145,9 @@ class BaseAvatar extends React.Component {
     return (
       <Tooltip title={tooltip} tooltipOptions={tooltipOptions} disabled={!hasTooltip}>
         <StyledBaseAvatar
+          loaded={this.state.hasLoaded}
           className={classNames('avatar', className)}
+          round={round}
           style={{
             ...sizeStyle,
             ...style,
@@ -164,6 +167,8 @@ export default BaseAvatar;
 // sensible default.
 const StyledBaseAvatar = styled('span')`
   flex-shrink: 0;
+  ${p => !p.loaded && 'background-color: rgba(200, 200, 200, 0.1);'};
+  ${p => p.round && 'border-radius: 100%;'};
 `;
 
 const Image = styled('img')`

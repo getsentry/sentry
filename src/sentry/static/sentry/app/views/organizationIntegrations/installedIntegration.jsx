@@ -1,16 +1,17 @@
-import {Box} from 'grid-emotion';
+import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
-import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
+import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
-import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
+import Tooltip from 'app/components/tooltip';
 
-const CONFIGURABLE_FEATURES = ['commits'];
+const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
 export default class InstalledIntegration extends React.Component {
   static propTypes = {
@@ -19,7 +20,7 @@ export default class InstalledIntegration extends React.Component {
     integration: PropTypes.object.isRequired,
     onRemove: PropTypes.func.isRequired,
     onDisable: PropTypes.func.isRequired,
-    onReinstallIntegration: PropTypes.func,
+    onReinstallIntegration: PropTypes.func.isRequired,
   };
 
   /**
@@ -27,15 +28,13 @@ export default class InstalledIntegration extends React.Component {
    * met:
    *
    * - The Integration has organization-specific configuration options.
-   * - The Integration can be enabled for projects.
    * - The Integration has configurable features
    */
   hasConfiguration() {
     const {integration, provider} = this.props;
 
     return (
-      integration.configProject.length > 0 ||
-      provider.canAddProject ||
+      integration.configOrganization.length > 0 ||
       provider.features.filter(f => CONFIGURABLE_FEATURES.includes(f)).length > 0
     );
   }
@@ -47,15 +46,23 @@ export default class InstalledIntegration extends React.Component {
     this.props.onReinstallIntegration(activeIntegration);
   };
 
+  get removeButton() {
+    return (
+      <StyledButton borderless icon="icon-trash">
+        Remove
+      </StyledButton>
+    );
+  }
+
   renderDisableIntegration(integration) {
     const {body, actionText} = integration.provider.aspects.disable_dialog;
     const message = (
-      <div>
+      <React.Fragment>
         <Alert type="error" icon="icon-circle-exclamation">
           This integration cannot be removed on Sentry
         </Alert>
         {body}
-      </div>
+      </React.Fragment>
     );
 
     return (
@@ -65,7 +72,7 @@ export default class InstalledIntegration extends React.Component {
         priority="danger"
         onConfirm={() => this.props.onDisable(integration)}
       >
-        <Button size="small" icon="icon-trash" />
+        {this.removeButton}
       </Confirm>
     );
   }
@@ -90,65 +97,73 @@ export default class InstalledIntegration extends React.Component {
     const {body, actionText} = this.getRemovalBodyAndText(integration.provider.aspects);
 
     const message = (
-      <div>
+      <React.Fragment>
         <Alert type="error" icon="icon-circle-exclamation">
           Deleting this integration has consequences!
         </Alert>
         {body}
-      </div>
+      </React.Fragment>
     );
     return (
       <Confirm
         message={message}
         confirmText={actionText}
         priority="danger"
-        onConfirm={() => this.props.onRemove()}
+        onConfirm={() => this.props.onRemove(integration)}
       >
-        <Button size="small" icon="icon-trash" />
+        {this.removeButton}
       </Confirm>
     );
   }
 
   render() {
-    const {integration, provider, orgId} = this.props;
-    const style = integration.status === 'disabled' ? {color: '#bebebe'} : {};
+    const {className, integration, provider, orgId} = this.props;
 
     return (
-      <React.Fragment>
-        <PanelItem p={0} py={2} key={integration.id} align="center">
-          <Box px={2} flex={1}>
-            <IntegrationItem integration={integration} style={style} />
-          </Box>
-          {integration.status === 'active' &&
-            this.hasConfiguration() && (
-              <Box mr={1}>
-                <Button
-                  size="small"
+      <Flex align="center" key={integration.id} className={className}>
+        <Box flex={1}>
+          <IntegrationItem compact integration={integration} />
+        </Box>
+        <Box>
+          {integration.status === 'disabled' && (
+            <AddIntegrationButton
+              size="xsmall"
+              priority="success"
+              provider={provider}
+              integration={integration}
+              onAddIntegration={this.reinstallIntegration}
+              reinstall={true}
+            />
+          )}
+          {integration.status === 'active' && (
+            <Tooltip
+              disabled={this.hasConfiguration()}
+              tooltipOptions={{placement: 'left'}}
+              title="Integration not configurable"
+            >
+              <span>
+                <StyledButton
+                  borderless
+                  icon="icon-settings"
+                  disabled={!this.hasConfiguration()}
                   to={`/settings/${orgId}/integrations/${provider.key}/${integration.id}/`}
                 >
-                  {t('Configure')}
-                </Button>
-              </Box>
-            )}
-          {integration.status === 'disabled' && (
-            <Box mr={1}>
-              <AddIntegrationButton
-                size="small"
-                priority="danger"
-                provider={provider}
-                integration={integration}
-                onAddIntegration={this.reinstallIntegration}
-                reinstall={true}
-              />
-            </Box>
+                  Configure
+                </StyledButton>
+              </span>
+            </Tooltip>
           )}
-          <Box mr={1} pr={2}>
-            {integration.status === 'active' && integration.provider.key === 'github'
-              ? this.renderDisableIntegration(integration)
-              : this.renderRemoveIntegration(integration)}
-          </Box>
-        </PanelItem>
-      </React.Fragment>
+        </Box>
+        <Box>
+          {integration.status === 'active' && integration.provider.canDisable
+            ? this.renderDisableIntegration(integration)
+            : this.renderRemoveIntegration(integration)}
+        </Box>
+      </Flex>
     );
   }
 }
+
+const StyledButton = styled(Button)`
+  color: ${p => p.theme.gray2};
+`;

@@ -21,6 +21,7 @@ from sentry.db.exceptions import CannotResolveExpression
 class _UnknownType(object):
     pass
 
+
 try:
     from django.db.models.expressions import ExpressionNode
     Value = _UnknownType

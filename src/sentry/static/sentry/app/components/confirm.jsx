@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import {t} from 'app/locale';
 
 class Confirm extends React.PureComponent {
@@ -26,6 +26,7 @@ class Confirm extends React.PureComponent {
     disableConfirmButton: PropTypes.bool,
     onConfirming: PropTypes.func,
     onCancel: PropTypes.func,
+    header: PropTypes.node,
   };
 
   static defaultProps = {
@@ -124,6 +125,7 @@ class Confirm extends React.PureComponent {
       confirmText,
       cancelText,
       children,
+      header,
     } = this.props;
 
     let confirmMessage;
@@ -154,6 +156,7 @@ class Confirm extends React.PureComponent {
               onClick: this.handleToggle,
             })}
         <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
+          {header && <div className="modal-header">{header}</div>}
           <div className="modal-body">{confirmMessage}</div>
           <div className="modal-footer">
             <Button style={{marginRight: 10}} onClick={this.handleToggle}>

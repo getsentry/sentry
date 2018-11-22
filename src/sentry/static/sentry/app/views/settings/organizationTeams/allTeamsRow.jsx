@@ -6,7 +6,7 @@ import createReactClass from 'create-react-class';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {joinTeam, leaveTeam} from 'app/actionCreators/teams';
-import {t, tct} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import {PanelItem} from 'app/components/panels';
 import IdBadge from 'app/components/idBadge';
@@ -115,7 +115,13 @@ const AllTeamsRow = createReactClass({
 
   render() {
     let {access, team, urlPrefix, openMembership} = this.props;
-    let display = <IdBadge team={team} />;
+    let display = (
+      <IdBadge
+        team={team}
+        avatarSize={36}
+        description={tn('%s Member', '%s Members', team.memberCount)}
+      />
+    );
 
     return (
       <PanelItem p={0} align="center">

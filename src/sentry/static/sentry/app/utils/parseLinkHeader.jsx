@@ -1,4 +1,4 @@
-export default function(header) {
+export default function parseLinkHeader(header) {
   if (header === null) {
     return {};
   }

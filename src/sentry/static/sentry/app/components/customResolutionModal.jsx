@@ -5,7 +5,7 @@ import Modal, {Header, Body, Footer} from 'react-bootstrap/lib/Modal';
 
 import {SelectAsyncField} from 'app/components/forms';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 
@@ -44,12 +44,7 @@ export default class CustomResolutionModal extends React.Component {
     let {orgId, projectId} = this.props;
 
     return (
-      <Modal
-        className="custom-resolution-modal"
-        show={this.props.show}
-        animation={false}
-        onHide={this.props.onCanceled}
-      >
+      <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
         <form onSubmit={this.onSubmit}>
           <Header>{t('Resolved In')}</Header>
           <Body>

@@ -24,11 +24,16 @@ from hashlib import sha1
 from loremipsum import Generator
 from uuid import uuid4
 
+from sentry.event_manager import EventManager
+from sentry.constants import SentryAppStatus
+from sentry.mediators.sentry_apps import Creator as SentryAppCreator
+from sentry.mediators.service_hooks import Creator as ServiceHookCreator
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
-    CommitAuthor, Repository, CommitFileChange, ProjectDSymFile, File, UserPermission
+    CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment
 )
+from sentry.utils.canonical import CanonicalKeyDict
 
 loremipsum = Generator()
 
@@ -58,7 +63,7 @@ DEFAULT_EVENT_DATA = {
     'modules': {
         'raven': '3.1.13'
     },
-    'sentry.interfaces.Http': {
+    'request': {
         'cookies': {},
         'data': {},
         'env': {},
@@ -67,7 +72,7 @@ DEFAULT_EVENT_DATA = {
         'query_string': '',
         'url': 'http://example.com',
     },
-    'sentry.interfaces.Stacktrace': {
+    'stacktrace': {
         'frames': [
             {
                 'abs_path':
@@ -86,12 +91,12 @@ DEFAULT_EVENT_DATA = {
                 'raven.base',
                 'post_context': [
                     '                },', '            })', '',
-                    "        if 'sentry.interfaces.Stacktrace' in data:",
+                    "        if 'stacktrace' in data:",
                     '            if self.include_paths:'
                 ],
                 'pre_context': [
                     '', '            data.update({',
-                    "                'sentry.interfaces.Stacktrace': {",
+                    "                'stacktrace': {",
                     "                    'frames': get_stack_info(frames,",
                     '                        list_max_length=self.list_max_length,'
                 ],
@@ -102,10 +107,10 @@ DEFAULT_EVENT_DATA = {
                     'event_type': 'raven.events.Message',
                     'frames': '<generator object iter_stack_frames at 0x103fef050>',
                     'handler': '<raven.events.Message object at 0x103feb710>',
-                    'k': 'sentry.interfaces.Message',
+                    'k': 'logentry',
                     'public_key': None,
                     'result': {
-                        'sentry.interfaces.Message':
+                        'logentry':
                         "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
                     },
                     'self': '<raven.base.Client object at 0x104397f10>',
@@ -131,12 +136,12 @@ DEFAULT_EVENT_DATA = {
                 'raven.base',
                 'post_context': [
                     '                },', '            })', '',
-                    "        if 'sentry.interfaces.Stacktrace' in data:",
+                    "        if 'stacktrace' in data:",
                     '            if self.include_paths:'
                 ],
                 'pre_context': [
                     '', '            data.update({',
-                    "                'sentry.interfaces.Stacktrace': {",
+                    "                'stacktrace': {",
                     "                    'frames': get_stack_info(frames,",
                     '                        list_max_length=self.list_max_length,'
                 ],
@@ -147,10 +152,10 @@ DEFAULT_EVENT_DATA = {
                     'event_type': 'raven.events.Message',
                     'frames': '<generator object iter_stack_frames at 0x103fef050>',
                     'handler': '<raven.events.Message object at 0x103feb710>',
-                    'k': 'sentry.interfaces.Message',
+                    'k': 'logentry',
                     'public_key': None,
                     'result': {
-                        'sentry.interfaces.Message':
+                        'logentry':
                         "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
                     },
                     'self': '<raven.base.Client object at 0x104397f10>',
@@ -420,7 +425,7 @@ class Fixtures(object):
         return commit_file_change
 
     def create_user(self, email=None, **kwargs):
-        if not email:
+        if email is None:
             email = uuid4().hex + '@example.com'
 
         kwargs.setdefault('username', email)
@@ -452,7 +457,7 @@ class Fixtures(object):
 
         return useremail
 
-    def create_event(self, event_id=None, **kwargs):
+    def create_event(self, event_id=None, normalize=True, **kwargs):
         if event_id is None:
             event_id = uuid4().hex
         if 'group' not in kwargs:
@@ -468,7 +473,11 @@ class Fixtures(object):
             kwargs['data']['tags'] = tags
         if kwargs.get('stacktrace'):
             stacktrace = kwargs.pop('stacktrace')
-            kwargs['data']['sentry.interfaces.Stacktrace'] = stacktrace
+            kwargs['data']['stacktrace'] = stacktrace
+
+        user = kwargs.pop('user', None)
+        if user is not None:
+            kwargs['data']['user'] = user
 
         kwargs['data'].setdefault(
             'errors', [{
@@ -479,20 +488,20 @@ class Fixtures(object):
 
         # maintain simple event fixtures by supporting the legacy message
         # parameter just like our API would
-        if 'sentry.interfaces.Message' not in kwargs['data']:
-            kwargs['data']['sentry.interfaces.Message'] = {
+        if 'logentry' not in kwargs['data']:
+            kwargs['data']['logentry'] = {
                 'message': kwargs.get('message') or '<unlabeled event>',
             }
 
-        if 'type' not in kwargs['data']:
-            kwargs['data'].update(
-                {
-                    'type': 'default',
-                    'metadata': {
-                        'title': kwargs['data']['sentry.interfaces.Message']['message'],
-                    },
-                }
-            )
+        if normalize:
+            manager = EventManager(CanonicalKeyDict(kwargs['data']),
+                                   for_store=False)
+            manager.normalize()
+            kwargs['data'] = manager.get_data()
+            kwargs['message'] = manager.get_search_message()
+
+        else:
+            assert 'message' not in kwargs, 'do not pass message this way'
 
         event = Event(event_id=event_id, **kwargs)
         EventMapping.objects.create(
@@ -533,7 +542,7 @@ class Fixtures(object):
                 "extra": {
                     "session:duration": 40364
                 },
-                "sentry.interfaces.Exception": {
+                "exception": {
                     "exc_omitted": null,
                     "values": [{
                         "stacktrace": {
@@ -564,20 +573,20 @@ class Fixtures(object):
                         "module": null
                     }]
                 },
-                "sentry.interfaces.Http": {
+                "request": {
                     "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
                     "headers": [
                         ["Referer", "https://sentry.io/welcome/"],
                         ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
                     ]
                 },
-                "sentry.interfaces.User": {
+                "user": {
                     "ip_address": "0.0.0.0",
                     "id": "41656",
                     "email": "test@example.com"
                 },
                 "version": "7",
-                "sentry.interfaces.Breadcrumbs": {
+                "breadcrumbs": {
                     "values": [
                         {
                             "category": "xhr",
@@ -619,11 +628,78 @@ class Fixtures(object):
     def create_file(self, **kwargs):
         return File.objects.create(**kwargs)
 
-    def create_dsym_file(self, project=None, **kwargs):
+    def create_file_from_path(self, path, name=None, **kwargs):
+        if name is None:
+            name = os.path.basename(path)
+
+        file = self.create_file(name=name, **kwargs)
+        with open(path) as f:
+            file.putfile(f)
+        return file
+
+    def create_event_attachment(self, event=None, file=None, **kwargs):
+        if event is None:
+            event = self.event
+
+        if file is None:
+            file = self.create_file(
+                name='log.txt',
+                size=32,
+                headers={'Content-Type': 'text/plain'},
+                checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+            )
+
+        return EventAttachment.objects.create(
+            project_id=event.project_id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+            file=file,
+            **kwargs
+        )
+
+    def create_dif_file(self, debug_id=None, project=None, object_name=None,
+                        features=None, data=None, file=None, cpu_name=None, **kwargs):
         if project is None:
             project = self.project
 
-        return ProjectDSymFile.objects.create(project=project, **kwargs)
+        if debug_id is None:
+            debug_id = six.text_type(uuid4())
+
+        if object_name is None:
+            object_name = '%s.dSYM' % debug_id
+
+        if features is not None:
+            if data is None:
+                data = {}
+            data['features'] = features
+
+        if file is None:
+            file = self.create_file(
+                name=object_name,
+                size=42,
+                headers={'Content-Type': 'application/x-mach-binary'},
+                checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+            )
+
+        return ProjectDebugFile.objects.create(
+            debug_id=debug_id,
+            project=project,
+            object_name=object_name,
+            cpu_name=cpu_name or 'x86_64',
+            file=file,
+            data=data,
+            **kwargs
+        )
+
+        return ProjectDebugFile.objects.create(project=project, **kwargs)
+
+    def create_dif_from_path(self, path, object_name=None, **kwargs):
+        if object_name is None:
+            object_name = os.path.basename(path)
+
+        headers = {'Content-Type': 'application/x-mach-binary'}
+        file = self.create_file_from_path(path, name=object_name, headers=headers)
+        return self.create_dif_file(file=file, object_name=object_name, **kwargs)
 
     def add_user_permission(self, user, permission):
         try:
@@ -631,3 +707,43 @@ class Fixtures(object):
                 UserPermission.objects.create(user=user, permission=permission)
         except IntegrityError:
             raise
+
+    def create_sentry_app(self, name=None, organization=None, published=False, scopes=(),
+                          webhook_url=None, **kwargs):
+        if not name:
+            name = 'Test App'
+        if not organization:
+            organization = self.create_organization()
+        if not webhook_url:
+            webhook_url = 'https://example.com/webhook'
+
+        app = SentryAppCreator.run(
+            name=name,
+            organization=organization,
+            scopes=scopes,
+            webhook_url=webhook_url,
+            **kwargs
+        )
+        if published:
+            app.update(status=SentryAppStatus.PUBLISHED)
+
+        return app
+
+    def create_service_hook(self, actor=None, project=None, events=None, url=None, **kwargs):
+        if not actor:
+            actor = self.create_user()
+        if not project:
+            org = self.create_organization(owner=actor)
+            project = self.create_project(organization=org)
+        if not events:
+            events = ('event.created',)
+        if not url:
+            url = 'https://example/sentry/webhook'
+
+        return ServiceHookCreator.run(
+            actor=actor,
+            project=project,
+            events=events,
+            url=url,
+            **kwargs
+        )

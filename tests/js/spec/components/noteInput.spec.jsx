@@ -56,4 +56,23 @@ describe('NoteInput', function() {
     input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
     expect(spy).toHaveBeenCalled();
   });
+
+  it('handles 401 error objects', async function() {
+    Client.addMockResponse({
+      url: '/issues/groupId/comments/',
+      method: 'POST',
+      body: {detail: {message: '', code: 401, extra: ''}},
+      statusCode: 401,
+    });
+    let wrapper = mount(
+      <NoteInput group={{project: {}, id: 'groupId'}} memberList={[]} sessionUser={{}} />,
+      TestStubs.routerContext()
+    );
+
+    let input = wrapper.find('textarea');
+
+    input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
+    wrapper.update();
+    expect(wrapper.find('.activity-actions .error')).toHaveLength(1);
+  });
 });

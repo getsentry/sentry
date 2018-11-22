@@ -77,7 +77,7 @@ def load_doc(path):
 def get_integration_id(platform_id, integration_id):
     if integration_id == '_self':
         return platform_id
-    return '{}-{}'.format(platform_id, integration_id)
+    return u'{}-{}'.format(platform_id, integration_id)
 
 
 def sync_docs(quiet=False):

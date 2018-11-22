@@ -1,16 +1,30 @@
 from __future__ import absolute_import
 
+import logging
 import six
 
-from sentry.models import Event
+from sentry import features
+from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.models import Activity, Event, Group, GroupStatus, Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+
+logger = logging.getLogger('sentry.integrations.issues')
 
 
 class IssueBasicMixin(object):
 
+    def should_sync(self, attribute):
+        return False
+
     def get_group_title(self, group, event, **kwargs):
-        return event.error()
+        return event.title
+
+    def get_issue_url(self, key):
+        """
+        Given the key of the external_issue return the external issue link.
+        """
+        raise NotImplementedError
 
     def get_group_body(self, group, event, **kwargs):
         result = []
@@ -21,8 +35,14 @@ class IssueBasicMixin(object):
         return '\n\n'.join(result)
 
     def get_group_description(self, group, event, **kwargs):
+        params = {}
+        if kwargs.get('link_referrer'):
+            params['referrer'] = kwargs.get('link_referrer')
         output = [
-            absolute_uri(group.get_absolute_url()),
+            u'Sentry Issue: [{}]({})'.format(
+                group.qualified_short_id,
+                absolute_uri(group.get_absolute_url(params=params)),
+            )
         ]
         body = self.get_group_body(group, event)
         if body:
@@ -54,19 +74,22 @@ class IssueBasicMixin(object):
                 'label': 'Title',
                 'default': self.get_group_title(group, event, **kwargs),
                 'type': 'string',
+                'required': True,
             }, {
                 'name': 'description',
                 'label': 'Description',
                 'default': self.get_group_description(group, event, **kwargs),
                 'type': 'textarea',
+                'autosize': True,
+                'maxRows': 10,
             }
         ]
 
     def get_link_issue_config(self, group, **kwargs):
         """
-        Used by the `GroupIntegrationDetailsEndpoint` to
-        create an `ExternalIssue` using title/description
-        obtained from calling `get_issue` described below.
+        Used by the `GroupIntegrationDetailsEndpoint` to create an
+        `ExternalIssue` using title/description obtained from calling
+        `get_issue` described below.
         """
         return [
             {
@@ -76,6 +99,44 @@ class IssueBasicMixin(object):
                 'type': 'string',
             }
         ]
+
+    def get_persisted_default_config_fields(self):
+        """
+        Returns a list of field names that should have their last used values
+        persisted on a per-project basis.
+        """
+        return []
+
+    def store_issue_last_defaults(self, project_id, data):
+        """
+        Stores the last used field defaults on a per-project basis. This
+        accepts a dict of values that will be filtered to keys returned by
+        ``get_persisted_default_config_fields`` which will automatically be
+        merged into the associated field config object as the default.
+
+        >>> integ.store_issue_last_defaults(1, {'externalProject': 2})
+
+        When the integration is serialized these values will automatically be
+        merged into the field configuration objects.
+
+        NOTE: These are currently stored for both link and create issue, no
+              differentiation is made between the two field configs.
+        """
+        persisted_fields = self.get_persisted_default_config_fields()
+        if not persisted_fields:
+            return
+
+        defaults = {k: v for k, v in six.iteritems(data) if k in persisted_fields}
+
+        self.org_integration.config.update({
+            'project_issue_defaults': {project_id: defaults},
+        })
+        self.org_integration.save()
+
+    def get_project_defaults(self, project_id):
+        return self.org_integration.config \
+            .get('project_issue_defaults', {}) \
+            .get(six.text_type(project_id), {})
 
     def create_issue(self, data, **kwargs):
         """
@@ -128,8 +189,76 @@ class IssueBasicMixin(object):
         """
         return data['key']
 
+    def get_issue_display_name(self, external_issue):
+        """
+        Returns the display name of the issue.
+
+        This is not required but helpful for integrations whose external issue key
+        does not match the disired display name.
+        """
+        return ''
+
+    def get_repository_choices(self, group, **kwargs):
+        """
+        Returns the default repository and a set/subset of repositories of asscoaited with the installation
+        """
+        try:
+            repos = self.get_repositories()
+        except ApiError:
+            raise IntegrationError(
+                'Unable to retrive repositories. Please try again later.'
+            )
+        else:
+            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
+
+        repo = kwargs.get('repo')
+        if not repo:
+            params = kwargs.get('params', {})
+            defaults = self.get_project_defaults(group.project_id)
+            repo = params.get('repo', defaults.get('repo'))
+
+        try:
+            default_repo = repo or repo_choices[0][0]
+        except IndexError:
+            return '', repo_choices
+
+        # If a repo has been selected outside of the default list of
+        # repos, stick it onto the front of the list so that it can be
+        # selected.
+        try:
+            next(True for r in repo_choices if r[0] == default_repo)
+        except StopIteration:
+            repo_choices.insert(0, self.create_default_repo_choice(default_repo))
+
+        return default_repo, repo_choices
+
+    def create_default_repo_choice(self, default_repo):
+        """
+        Helper method for get_repository_choices
+        Returns the choice for the default repo in a tuple to be added to the list of repository choices
+        """
+        return (default_repo, default_repo)
+
 
 class IssueSyncMixin(IssueBasicMixin):
+    comment_key = None
+    outbound_status_key = None
+    inbound_status_key = None
+    outbound_assignee_key = None
+    inbound_assignee_key = None
+
+    def should_sync(self, attribute):
+        try:
+            key = getattr(self, '%s_key' % attribute)
+        except AttributeError:
+            return False
+
+        if key is None:
+            return False
+
+        config = self.org_integration.config
+
+        return config.get(key, False)
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """
@@ -143,3 +272,106 @@ class IssueSyncMixin(IssueBasicMixin):
         Propagate a sentry issue's status to a linked issue's status.
         """
         raise NotImplementedError
+
+    def should_unresolve(self, data):
+        """
+        Given webhook data, check whether the status
+        category changed FROM "done" to something else,
+        meaning the sentry issue should be marked as
+        unresolved
+
+        >>> def should_unresolve(self, data):
+        >>>     client = self.get_client()
+        >>>     statuses = client.get_statuses()
+        >>>     done_statuses = [s['id'] for s in statuses if s['category'] == 'done']
+        >>>     return data['from_status'] in done_statuses \
+        >>>         and data['to_status'] not in done_statuses
+
+        """
+        raise NotImplementedError
+
+    def should_resolve(self, data):
+        """
+        Given webhook data, check whether the status
+        category changed TO "done" from something else,
+        meaning the sentry issue should be marked as
+        resolved
+
+        see example above
+        """
+        raise NotImplementedError
+
+    def update_group_status(self, groups, status, activity_type):
+        updated = Group.objects.filter(
+            id__in=[g.id for g in groups],
+        ).exclude(
+            status=status,
+        ).update(
+            status=status,
+        )
+        if updated:
+            for group in groups:
+                activity = Activity.objects.create(
+                    project=group.project,
+                    group=group,
+                    type=activity_type,
+                )
+                activity.send_notification()
+
+    def sync_status_inbound(self, issue_key, data):
+        if not self.should_sync('inbound_status'):
+            return
+
+        organization = Organization.objects.get(id=self.organization_id)
+        has_issue_sync = features.has('organizations:integrations-issue-sync',
+                                      organization)
+
+        if not has_issue_sync:
+            return
+
+        affected_groups = list(
+            Group.objects.get_groups_by_external_issue(
+                self.model, issue_key,
+            ).filter(
+                project__organization_id=self.organization_id,
+            ).select_related('project'),
+        )
+
+        groups_to_resolve = []
+        groups_to_unresolve = []
+
+        should_resolve = self.should_resolve(data)
+        should_unresolve = self.should_unresolve(data)
+
+        for group in affected_groups:
+
+            # this probably shouldn't be possible unless there
+            # is a bug in one of those methods
+            if should_resolve is True and should_unresolve is True:
+                logger.warning(
+                    'sync-config-conflict', extra={
+                        'organization_id': group.project.organization_id,
+                        'integration_id': self.model.id,
+                        'provider': self.model.get_provider(),
+                    }
+                )
+                continue
+
+            if should_unresolve:
+                groups_to_unresolve.append(group)
+            elif should_resolve:
+                groups_to_resolve.append(group)
+
+        if groups_to_resolve:
+            self.update_group_status(
+                groups_to_resolve,
+                GroupStatus.RESOLVED,
+                Activity.SET_RESOLVED,
+            )
+
+        if groups_to_unresolve:
+            self.update_group_status(
+                groups_to_unresolve,
+                GroupStatus.UNRESOLVED,
+                Activity.SET_UNRESOLVED
+            )

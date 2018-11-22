@@ -51,7 +51,7 @@ class LegacyBrowsersFilter(Filter):
         # legacy browsers should be filtered
         rv = ProjectOption.objects.get_value(
             project=self.project,
-            key='filters:{}'.format(self.id),
+            key=u'filters:{}'.format(self.id),
             default='1' if self.default else '0',
         )
 
@@ -75,13 +75,13 @@ class LegacyBrowsersFilter(Filter):
 
         ProjectOption.objects.set_value(
             project=self.project,
-            key='filters:{}'.format(self.id),
+            key=u'filters:{}'.format(self.id),
             value=option_val,
         )
 
     def get_user_agent(self, data):
         try:
-            for key, value in data['sentry.interfaces.Http']['headers']:
+            for key, value in data['request']['headers']:
                 if key.lower() == 'user-agent':
                     return value
         except LookupError:
@@ -188,7 +188,7 @@ class LegacyBrowsersFilter(Filter):
 
         opts = ProjectOption.objects.get_value(
             project=self.project,
-            key='filters:{}'.format(self.id),
+            key=u'filters:{}'.format(self.id),
         )
 
         value = self.get_user_agent(data)

@@ -5,7 +5,7 @@ import {t, tct} from 'app/locale';
 import ExternalLink from 'app/components/externalLink';
 import Field from 'app/views/settings/components/forms/field';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import getDynamicText from 'app/utils/getDynamicText';
 
 class ProjectKeyCredentials extends React.Component {
@@ -17,6 +17,7 @@ class ProjectKeyCredentials extends React.Component {
     showDsnPublic: PropTypes.bool,
     showSecurityEndpoint: PropTypes.bool,
     showMinidump: PropTypes.bool,
+    showUnreal: PropTypes.bool,
     showPublicKey: PropTypes.bool,
     showSecretKey: PropTypes.bool,
     showProjectId: PropTypes.bool,
@@ -27,6 +28,7 @@ class ProjectKeyCredentials extends React.Component {
     showDsnPublic: true,
     showSecurityEndpoint: true,
     showMinidump: true,
+    showUnreal: true,
     showPublicKey: false,
     showSecretKey: false,
     showProjectId: false,
@@ -40,6 +42,7 @@ class ProjectKeyCredentials extends React.Component {
       showDsnPublic,
       showSecurityEndpoint,
       showMinidump,
+      showUnreal,
       showPublicKey,
       showSecretKey,
       showProjectId,
@@ -62,7 +65,7 @@ class ProjectKeyCredentials extends React.Component {
           <Field
             label={t('DSN (Deprecated)')}
             help={t(
-              'This DSN includes the secret which is no longer required by Sentry or newer versions of SDKs.'
+              "This DSN includes the secret which is no longer required by Sentry' newer versions of SDKs. If you are unsure which to use, follow installation instructions for your language."
             )}
             inline={false}
             flexibleControlStateSize
@@ -114,6 +117,22 @@ class ProjectKeyCredentials extends React.Component {
               {getDynamicText({
                 value: data.dsn.minidump,
                 fixed: '__MINIDUMP_ENDPOINT__',
+              })}
+            </TextCopyInput>
+          </Field>
+        )}
+
+        {showUnreal && (
+          <Field
+            label={t('Unreal Engine 4 Endpoint')}
+            help={t('Use this endpoint to configure your UE4 Crash Reporter.')}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput>
+              {getDynamicText({
+                value: data.dsn.unreal || '',
+                fixed: '__UNREAL_ENDPOINT__',
               })}
             </TextCopyInput>
           </Field>

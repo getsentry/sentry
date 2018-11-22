@@ -1,6 +1,6 @@
 import React from 'react';
 import {mount, shallow} from 'enzyme';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 
 describe('Button', function() {
   let routerContext = TestStubs.routerContext();

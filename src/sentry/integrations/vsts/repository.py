@@ -3,14 +3,13 @@ from __future__ import absolute_import
 import six
 
 from sentry.plugins import providers
-from six.moves.urllib.parse import urlparse
 from sentry.models import Integration
 
 MAX_COMMIT_DATA_REQUESTS = 90
 
 
 class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
-    name = 'Visual Studio Team Services v2'
+    name = 'Azure DevOps'
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:
@@ -23,65 +22,27 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return integration_model.get_installation(organization_id)
 
-    def get_config(self, organization):
-        choices = []
-        for i in Integration.objects.filter(organizations=organization, provider='vsts'):
-            choices.append((i.id, i.name))
+    def get_repository_data(self, organization, config):
+        installation = self.get_installation(config['installation'], organization.id)
+        client = installation.get_client()
+        instance = installation.instance
 
-        if not choices:
-            choices = [('', '')]
-        return [
-            {
-                'name': 'integration_id',
-                'label': 'Visual Studio Installation',
-                'type': 'choice',
-                'choices': choices,
-                'initial': choices[0][0],
-                'help': 'Select which %s integration to authenticate with.' % self.name,
-                'required': True,
-            },
-            {
-                'name': 'url',
-                'label': 'Repository URL',
-                'type': 'text',
-                'placeholder': 'e.g. https://example.visualstudio.com/_git/MyFirstProject',
-                'required': True,
-            },
-            {
-                'name': 'project',
-                'label': 'Project Name',
-                'type': 'text',
-                'placeholder': 'e.g. MyFirstProject',
-                'help': 'Optional project name if it does not match the repository name',
-                'required': False,
-            }
-        ]
+        repo_id = config['identifier']
 
-    def validate_config(self, organization, config, actor=None):
-        if config.get('url'):
-            installation = self.get_installation(config['integration_id'], organization.id)
-            client = installation.get_client()
-
-            # parse out the repo name and the instance
-            parts = urlparse(config['url'])
-            instance = parts.netloc
-            name = parts.path.rsplit('_git/', 1)[-1]
-            project = config.get('project') or name
-
-            try:
-                repo = client.get_repo(instance, name, project)
-            except Exception as e:
-                installation.raise_error(e)
-            config.update({
-                'instance': instance,
-                'project': project,
-                'name': repo['name'],
-                'external_id': six.text_type(repo['id']),
-                'url': repo['_links']['web']['href'],
-            })
+        try:
+            repo = client.get_repo(instance, repo_id)
+        except Exception as e:
+            installation.raise_error(e)
+        config.update({
+            'instance': instance,
+            'project': repo['project']['name'],
+            'name': repo['name'],
+            'external_id': six.text_type(repo['id']),
+            'url': repo['_links']['web']['href'],
+        })
         return config
 
-    def create_repository(self, organization, data, actor=None):
+    def build_repository_config(self, organization, data):
         return {
             'name': data['name'],
             'external_id': data['external_id'],
@@ -91,7 +52,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'project': data['project'],
                 'name': data['name'],
             },
-            'integration_id': data['integration_id'],
+            'integration_id': data['installation'],
         }
 
     def transform_changes(self, patch_set):
@@ -130,9 +91,8 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return commit_list
 
-    def compare_commits(self, repo, start_sha, end_sha, actor=None, organization_id=None):
-
-        installation = self.get_installation(repo.integration_id, organization_id)
+    def compare_commits(self, repo, start_sha, end_sha):
+        installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         instance = repo.config['instance']
 
@@ -144,7 +104,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         except Exception as e:
             installation.raise_error(e)
 
-        commits = self.zip_commit_data(repo, res['value'], organization_id)
+        commits = self.zip_commit_data(repo, res['value'], repo.organization_id)
         return self._format_commits(repo, commits)
 
     def _format_commits(self, repo, commit_list):
@@ -158,3 +118,6 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'patch_set': c.get('patch_set'),
             } for c in commit_list
         ]
+
+    def repository_external_slug(self, repo):
+        return repo.external_id

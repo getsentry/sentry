@@ -15,6 +15,7 @@ from sentry.auth.superuser import (
 from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models import User
 from sentry.testutils import TestCase
+from sentry.utils.auth import mark_sso_complete
 
 UNSET = object()
 
@@ -60,6 +61,24 @@ class SuperuserTestCase(TestCase):
         assert superuser.is_active is False
 
         superuser = Superuser(request, allowed_ips=('10.0.0.1',))
+        superuser.set_logged_in(request.user)
+        assert superuser.is_active is True
+
+    def test_sso(self):
+        user = User(is_superuser=True)
+        request = self.make_request(user=user)
+
+        # no ips = any host
+        superuser = Superuser(request, org_id=None)
+        superuser.set_logged_in(request.user)
+        assert superuser.is_active is True
+
+        superuser = Superuser(request, org_id=1)
+        superuser.set_logged_in(request.user)
+        assert superuser.is_active is False
+
+        mark_sso_complete(request, 1)
+        superuser = Superuser(request, org_id=1)
         superuser.set_logged_in(request.user)
         assert superuser.is_active is True
 

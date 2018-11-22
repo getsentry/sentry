@@ -1,12 +1,17 @@
 import {withRouter} from 'react-router';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
+
+import sdk from 'app/utils/sdk';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 class RouteError extends React.Component {
   static propTypes = {
+    /**
+     * Disable logging to Sentry
+     */
+    disableLogSentry: PropTypes.bool,
     error: PropTypes.object.isRequired,
     routes: PropTypes.array,
   };
@@ -17,20 +22,21 @@ class RouteError extends React.Component {
   };
 
   componentWillMount() {
-    let {routes, error} = this.props;
+    let {disableLogSentry, routes, error} = this.props;
     let {organization, project} = this.context;
+
+    if (disableLogSentry) return;
+    if (!error) return;
+
+    let route = getRouteStringFromRoutes(routes);
+    if (route) {
+      error = new Error(error.message + `: ${route}`);
+    }
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // throw this in a timeout so if it errors we dont fall over
     this._timeout = window.setTimeout(() => {
-      let route = getRouteStringFromRoutes(routes);
-
-      if (!error) return;
-
-      if (route) {
-        error.message += `: ${route}`;
-      }
-
-      Raven.captureException(error, {
+      sdk.captureException(error, {
+        fingerprint: ['route-error', ...(route ? [route] : [])],
         extra: {
           route,
           orgFeatures: (organization && organization.features) || [],
@@ -40,7 +46,7 @@ class RouteError extends React.Component {
       });
       // TODO(dcramer): we do not have errorId until send() is called which
       // has latency in production so this will literally never fire
-      Raven.showReportDialog();
+      sdk.showReportDialog();
     });
   }
 

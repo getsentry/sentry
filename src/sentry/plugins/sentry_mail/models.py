@@ -34,8 +34,6 @@ from sentry.utils.linksign import generate_signed_link
 
 from .activity import emails
 
-from six.moves.urllib.parse import urlencode
-
 NOTSET = object()
 
 logger = logging.getLogger(__name__)
@@ -104,7 +102,7 @@ class MailPlugin(NotificationPlugin):
         return absolute_uri(reverse('sentry-account-settings-notifications'))
 
     def get_project_url(self, project):
-        return absolute_uri('/{}/{}/'.format(project.organization.slug, project.slug))
+        return absolute_uri(u'/{}/{}/'.format(project.organization.slug, project.slug))
 
     def is_configured(self, project, **kwargs):
         # Nothing to configure here
@@ -183,10 +181,11 @@ class MailPlugin(NotificationPlugin):
 
         return send_to_list
 
-    def add_unsubscribe_link(self, context, user_id, project):
+    def add_unsubscribe_link(self, context, user_id, project, referrer):
         context['unsubscribe_link'] = generate_signed_link(
             user_id,
             'sentry-account-email-unsubscribe-project',
+            referrer,
             kwargs={
                 'project_id': project.id,
             }
@@ -205,10 +204,10 @@ class MailPlugin(NotificationPlugin):
 
         subject = event.get_email_subject()
 
-        link = group.get_absolute_url()
-
+        query_params = {'referrer': 'alert_email'}
         if environment:
-            link = link + '?' + urlencode({'environment': environment})
+            query_params['environment'] = environment
+        link = group.get_absolute_url(params=query_params)
 
         template = 'sentry/emails/error.txt'
         html_template = 'sentry/emails/error.html'
@@ -275,7 +274,8 @@ class MailPlugin(NotificationPlugin):
         }
 
         for user_id in self.get_send_to(project=project, event=event):
-            self.add_unsubscribe_link(context, user_id, project)
+            self.add_unsubscribe_link(context, user_id, project, 'alert_email')
+
             self._send_mail(
                 subject=subject,
                 template=template,
@@ -331,7 +331,7 @@ class MailPlugin(NotificationPlugin):
             group = six.next(iter(counts))
             subject = self.get_digest_subject(group, counts, start)
 
-            self.add_unsubscribe_link(context, user_id, project)
+            self.add_unsubscribe_link(context, user_id, project, 'alert_digest')
             self._send_mail(
                 subject=subject,
                 template='sentry/emails/digests/body.txt',
@@ -348,7 +348,7 @@ class MailPlugin(NotificationPlugin):
         email_cls = emails.get(activity.type)
         if not email_cls:
             logger.debug(
-                'No email associated with activity type `{}`'.format(
+                u'No email associated with activity type `{}`'.format(
                     activity.get_type_display(),
                 )
             )
@@ -369,17 +369,17 @@ class MailPlugin(NotificationPlugin):
 
         context = {
             'project': project,
-            'project_link': absolute_uri('/{}/{}/'.format(
+            'project_link': absolute_uri(u'/{}/{}/'.format(
                 project.organization.slug,
                 project.slug,
             )),
-            'issue_link': absolute_uri('/{}/{}/issues/{}/'.format(
+            'issue_link': absolute_uri(u'/{}/{}/issues/{}/'.format(
                 project.organization.slug,
                 project.slug,
                 payload['report']['issue']['id'],
             )),
             # TODO(dcramer): we dont have permalinks to feedback yet
-            'link': absolute_uri('/{}/{}/issues/{}/feedback/'.format(
+            'link': absolute_uri(u'/{}/{}/issues/{}/feedback/'.format(
                 project.organization.slug,
                 project.slug,
                 payload['report']['issue']['id'],

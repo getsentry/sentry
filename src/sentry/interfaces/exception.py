@@ -732,8 +732,6 @@ class Mechanism(Interface):
     >>> }
     """
 
-    path = 'mechanism'
-
     @classmethod
     def to_python(cls, data):
         data = upgrade_legacy_mechanism(data)
@@ -795,9 +793,6 @@ class Mechanism(Interface):
             'meta': prune_empty_keys(self.meta),
         })
 
-    def get_path(self):
-        return self.path
-
     def iter_tags(self):
         yield (self.path, self.type)
 
@@ -812,7 +807,7 @@ class SingleException(Interface):
     module namespace. Either ``type`` or ``value`` must be present.
 
     You can also optionally bind a stacktrace interface to an exception. The
-    spec is identical to ``sentry.interfaces.Stacktrace``.
+    spec is identical to ``stacktrace``.
 
     >>> {
     >>>     "type": "ValueError",
@@ -820,12 +815,12 @@ class SingleException(Interface):
     >>>     "module": "__builtins__",
     >>>     "mechanism": {},
     >>>     "stacktrace": {
-    >>>         # see sentry.interfaces.Stacktrace
+    >>>         # see stacktrace
     >>>     }
     >>> }
     """
     score = 2000
-    path = 'sentry.interfaces.Exception'
+    path = 'exception'
 
     @classmethod
     def to_python(cls, data, slim_frames=True):
@@ -907,7 +902,8 @@ class SingleException(Interface):
 
     def get_api_context(self, is_public=False):
         mechanism = isinstance(self.mechanism, Mechanism) and \
-            self.mechanism.to_json() or self.mechanism or None
+            self.mechanism.get_api_context(is_public=is_public) or \
+            self.mechanism or None
 
         if self.stacktrace:
             stacktrace = self.stacktrace.get_api_context(is_public=is_public)
@@ -929,11 +925,24 @@ class SingleException(Interface):
             'rawStacktrace': raw_stacktrace,
         }
 
-    def get_alias(self):
-        return 'exception'
+    def get_api_meta(self, meta, is_public=False):
+        mechanism_meta = self.mechanism.get_api_meta(meta['mechanism'], is_public=is_public) \
+            if isinstance(self.mechanism, Mechanism) and meta.get('mechanism') \
+            else None
 
-    def get_path(self):
-        return self.path
+        stacktrace_meta = self.stacktrace.get_api_meta(meta, is_public=is_public) \
+            if self.stacktrace and meta.get('stacktrace') \
+            else None
+
+        return {
+            '': meta.get(''),
+            'type': meta.get('type'),
+            'value': meta.get('value'),
+            'mechanism': mechanism_meta,
+            'threadId': meta.get('thread_id'),
+            'module': meta.get('module'),
+            'stacktrace': stacktrace_meta,
+        }
 
     def get_hash(self, platform=None):
         output = None
@@ -956,7 +965,7 @@ class Exception(Interface):
     namespace.
 
     You can also optionally bind a stacktrace interface to an exception. The
-    spec is identical to ``sentry.interfaces.Stacktrace``.
+    spec is identical to ``stacktrace``.
 
     >>> {
     >>>     "values": [{
@@ -967,7 +976,7 @@ class Exception(Interface):
     >>>             # see sentry.interfaces.Mechanism
     >>>         },
     >>>         "stacktrace": {
-    >>>             # see sentry.interfaces.Stacktrace
+    >>>             # see stacktrace
     >>>         }
     >>>     }]
     >>> }
@@ -992,20 +1001,21 @@ class Exception(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if 'values' not in data:
-            data = {'values': [data]}
+        if data and 'values' not in data and 'exc_omitted' not in data:
+            data = {"values": [data]}
+        values = data.get('values', [])
 
-        if not data['values']:
-            raise InterfaceValidationError("No 'values' present")
+        if values is None:
+            values = []
 
-        if not isinstance(data['values'], list):
+        if not isinstance(values, list):
             raise InterfaceValidationError("Invalid value for 'values'")
 
         kwargs = {
-            'values': [SingleException.to_python(
+            'values': [v and SingleException.to_python(
                 v,
                 slim_frames=False,
-            ) for v in data['values']],
+            ) for v in values],
         }
 
         if data.get('exc_omitted'):
@@ -1022,15 +1032,9 @@ class Exception(Interface):
 
     def to_json(self):
         return {
-            'values': [v.to_json() for v in self.values],
+            'values': [v and v.to_json() for v in self.values],
             'exc_omitted': self.exc_omitted,
         }
-
-    def get_alias(self):
-        return 'exception'
-
-    def get_path(self):
-        return 'sentry.interfaces.Exception'
 
     def compute_hashes(self, platform):
         system_hash = self.get_hash(platform, system_frames=True)
@@ -1048,7 +1052,7 @@ class Exception(Interface):
         # while others may not and we ALWAYS want stacktraces over values
         output = []
         for value in self.values:
-            if not value.stacktrace:
+            if not value or not value.stacktrace:
                 continue
             stack_hash = value.stacktrace.get_hash(
                 platform=platform,
@@ -1060,18 +1064,31 @@ class Exception(Interface):
 
         if not output:
             for value in self.values:
-                output.extend(value.get_hash(platform=platform))
+                if value:
+                    output.extend(value.get_hash(platform=platform))
 
         return output
 
     def get_api_context(self, is_public=False):
         return {
-            'values': [v.get_api_context(is_public=is_public) for v in self.values],
+            'values': [v.get_api_context(is_public=is_public) for v in self.values if v],
             'hasSystemFrames':
-            any(v.stacktrace.get_has_system_frames() for v in self.values if v.stacktrace),
+            any(v.stacktrace.get_has_system_frames() for v in self.values if v and v.stacktrace),
             'excOmitted':
             self.exc_omitted,
         }
+
+    def get_api_meta(self, meta, is_public=False):
+        if not meta:
+            return meta
+
+        result = {}
+        values = meta.get('values', meta)
+        for index, value in six.iteritems(values):
+            exc = self.values[int(index)]
+            result[index] = exc.get_api_meta(value, is_public=is_public)
+
+        return {'values': result}
 
     def to_string(self, event, is_public=False, **kwargs):
         if not self.values:
@@ -1094,7 +1111,7 @@ class Exception(Interface):
         return ''
 
     def iter_tags(self):
-        if not self.values:
+        if not self.values or not self.values[0]:
             return
 
         mechanism = self.values[0].mechanism
@@ -1112,7 +1129,7 @@ def slim_exception_data(instance, frame_allowance=settings.SENTRY_MAX_STACKTRACE
     # rather than distributing allowance among all exceptions
     frames = []
     for exception in instance.values:
-        if not exception.stacktrace:
+        if exception is None or not exception.stacktrace:
             continue
         frames.extend(exception.stacktrace.frames)
 

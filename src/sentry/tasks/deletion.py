@@ -241,30 +241,40 @@ def delete_project(object_id, transaction_id=None, **kwargs):
 
 
 @instrumented_task(
-    name='sentry.tasks.deletion.delete_group',
+    name='sentry.tasks.deletion.delete_groups',
     queue='cleanup',
     default_retry_delay=60 * 5,
     max_retries=MAX_RETRIES
 )
 @retry(exclude=(DeleteAborted, ))
-def delete_group(object_id, transaction_id=None, **kwargs):
-    from sentry import deletions
+def delete_groups(object_ids, transaction_id=None, eventstream_state=None, **kwargs):
+    from sentry import deletions, eventstream
     from sentry.models import Group
+
+    transaction_id = transaction_id or uuid4().hex
+
+    max_batch_size = 100
+    current_batch, rest = object_ids[:max_batch_size], object_ids[max_batch_size:]
 
     task = deletions.get(
         model=Group,
         query={
-            'id': object_id,
+            'id__in': current_batch,
         },
-        transaction_id=transaction_id or uuid4().hex,
+        transaction_id=transaction_id,
     )
     has_more = task.chunk()
-    if has_more:
-        delete_group.apply_async(
-            kwargs={'object_id': object_id,
-                    'transaction_id': transaction_id},
+    if has_more or rest:
+        delete_groups.apply_async(
+            kwargs={'object_ids': object_ids if has_more else rest,
+                    'transaction_id': transaction_id,
+                    'eventstream_state': eventstream_state},
             countdown=15,
         )
+    else:
+        # all groups have been deleted
+        if eventstream_state:
+            eventstream.end_delete_groups(eventstream_state)
 
 
 @instrumented_task(
@@ -382,6 +392,53 @@ def delete_repository(object_id, transaction_id=None, actor_id=None, **kwargs):
     has_more = task.chunk()
     if has_more:
         delete_repository.apply_async(
+            kwargs={
+                'object_id': object_id,
+                'transaction_id': transaction_id,
+                'actor_id': actor_id,
+            },
+            countdown=15,
+        )
+
+
+@instrumented_task(
+    name='sentry.tasks.deletion.delete_organization_integration',
+    queue='cleanup',
+    default_retry_delay=60 * 5,
+    max_retries=MAX_RETRIES
+)
+@retry(exclude=(DeleteAborted, ))
+def delete_organization_integration(object_id, transaction_id=None, actor_id=None, **kwargs):
+    from sentry import deletions
+    from sentry.models import OrganizationIntegration, Repository
+
+    try:
+        instance = OrganizationIntegration.objects.get(id=object_id)
+    except OrganizationIntegration.DoesNotExist:
+        return
+
+    if instance.status == ObjectStatus.VISIBLE:
+        raise DeleteAborted
+
+    # dissociate repos from that integration
+    Repository.objects.filter(
+        organization_id=instance.organization_id,
+        integration_id=instance.integration_id,
+    ).update(
+        integration_id=None,
+    )
+
+    task = deletions.get(
+        model=OrganizationIntegration,
+        actor_id=actor_id,
+        query={
+            'id': object_id,
+        },
+        transaction_id=transaction_id or uuid4().hex,
+    )
+    has_more = task.chunk()
+    if has_more:
+        delete_organization_integration.apply_async(
             kwargs={
                 'object_id': object_id,
                 'transaction_id': transaction_id,

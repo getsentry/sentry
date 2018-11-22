@@ -9,7 +9,7 @@ import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
 import InlineSvg from 'app/components/inlineSvg';
 import OrganizationCrumb from 'app/views/settings/components/settingsBreadcrumb/organizationCrumb';
 import ProjectCrumb from 'app/views/settings/components/settingsBreadcrumb/projectCrumb';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
 import SettingsBreadcrumbStore from 'app/stores/settingsBreadcrumbStore';
 import TeamCrumb from 'app/views/settings/components/settingsBreadcrumb/teamCrumb';

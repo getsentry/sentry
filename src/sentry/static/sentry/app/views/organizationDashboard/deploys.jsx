@@ -4,8 +4,8 @@ import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 import moment from 'moment-timezone';
 
-import SentryTypes from 'app/proptypes';
-import Button from 'app/components/buttons/button';
+import SentryTypes from 'app/sentryTypes';
+import Button from 'app/components/button';
 import Link from 'app/components/link';
 import {t} from 'app/locale';
 import TextOverflow from 'app/components/textOverflow';
@@ -72,7 +72,7 @@ class Deploy extends React.Component {
           </StyledLink>
         </Version>
         <Flex w={90} justify="flex-end">
-          <DynamicWrapper
+          <StyledDynamicWrapper
             value={moment(deploy.dateFinished).fromNow()}
             fixed="3 hours ago"
           />
@@ -111,16 +111,18 @@ const StyledLink = styled(Link)`
   white-space: nowrap;
 `;
 
+const StyledDynamicWrapper = styled(DynamicWrapper)`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
 class NoDeploys extends React.Component {
   render() {
     return (
       <DeployBox p={2}>
         <Background align="center" justify="center">
-          <Button
-            size="xsmall"
-            href="https://blog.sentry.io/2017/05/09/release-deploys"
-            external={true}
-          >
+          <Button size="xsmall" href="https://docs.sentry.io/learn/releases/" external>
             {t('Track deploys')}
           </Button>
         </Background>

@@ -4,7 +4,7 @@ import {Link} from 'react-router';
 import {omit, isEqual} from 'lodash';
 import qs from 'query-string';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
 import GroupState from 'app/mixins/groupState';
 import EventUserFeedback from 'app/components/events/userFeedback';

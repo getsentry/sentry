@@ -3,8 +3,9 @@ import React from 'react';
 import classnames from 'classnames';
 import _ from 'lodash';
 
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import ListLink from 'app/components/listLink';
+import NavTabs from 'app/components/navTabs';
 import {flattenedPlatforms, categoryList} from 'app/views/onboarding/utils';
 import PlatformCard from 'app/views/onboarding/project/platformCard';
 import {t} from 'app/locale';
@@ -64,7 +65,7 @@ class PlatformPicker extends React.Component {
     let filtered = this.getPlatformList();
     return (
       <div className="platform-picker">
-        <ul className="nav nav-tabs">
+        <NavTabs>
           <li style={{float: 'right', marginRight: 0}}>
             <div className="platform-filter-container">
               <span className="icon icon-search" />
@@ -94,7 +95,7 @@ class PlatformPicker extends React.Component {
               </ListLink>
             );
           })}
-        </ul>
+        </NavTabs>
         {filtered.length ? (
           <ul className="client-platform-list platform-tiles">
             {filtered.map((platform, idx) => {

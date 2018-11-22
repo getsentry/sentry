@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 from django.utils.html import escape, mark_safe
+from six.moves.urllib.parse import urlparse, urlunparse
 
 from sentry import options
 from sentry.models import (
@@ -57,19 +58,14 @@ class ActivityEmail(object):
         return 'sentry/emails/activity/generic.html'
 
     def get_project_link(self):
-        return absolute_uri('/{}/{}/'.format(
+        return absolute_uri(u'/{}/{}/'.format(
             self.organization.slug,
             self.project.slug,
         ))
 
     def get_group_link(self):
-        return absolute_uri(
-            '/{}/{}/issues/{}/'.format(
-                self.organization.slug,
-                self.project.slug,
-                self.group.id,
-            )
-        )
+        referrer = self.__class__.__name__
+        return self.group.get_absolute_url(params={'referrer': referrer})
 
     def get_base_context(self):
         activity = self.activity
@@ -86,16 +82,19 @@ class ActivityEmail(object):
 
     def get_group_context(self):
         group_link = self.get_group_link()
-        activity_link = '{}activity/'.format(group_link)
+        parts = list(urlparse(group_link))
+        parts[2] = parts[2].rstrip('/') + '/activity/'
+        activity_link = urlunparse(parts)
 
         return {
             'group': self.group,
             'link': group_link,
             'activity_link': activity_link,
+            'referrer': self.__class__.__name__,
         }
 
     def get_email_type(self):
-        return 'notify.activity.{}'.format(
+        return u'notify.activity.{}'.format(
             self.activity.get_type_display(),
         )
 
@@ -158,12 +157,12 @@ class ActivityEmail(object):
     def avatar_as_html(self):
         user = self.activity.user
         if not user:
-            return '<img class="avatar" src="{}" width="20px" height="20px" />'.format(
+            return u'<img class="avatar" src="{}" width="20px" height="20px" />'.format(
                 escape(self._get_sentry_avatar_url())
             )
         avatar_type = user.get_avatar_type()
         if avatar_type == 'upload':
-            return '<img class="avatar" src="{}" />'.format(
+            return u'<img class="avatar" src="{}" />'.format(
                 escape(self._get_user_avatar_url(user)))
         elif avatar_type == 'letter_avatar':
             return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
@@ -182,7 +181,7 @@ class ActivityEmail(object):
 
         url = reverse('sentry-user-avatar-url', args=[avatar.ident])
         if size:
-            url = '{}?s={}'.format(url, int(size))
+            url = u'{}?s={}'.format(url, int(size))
         return absolute_uri(url)
 
     def description_as_text(self, description, params):

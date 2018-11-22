@@ -1,7 +1,7 @@
 import React from 'react';
 
 import GroupEventDataSection from 'app/components/events/eventDataSection';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import ContextData from 'app/components/contextData';
 

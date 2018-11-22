@@ -51,6 +51,7 @@ def find_translation(message):
 def format_message(message, data):
     return message.replace('%s', data)
 
+
 message_type_regexp = re.compile('^(?P<type>[a-zA-Z]*Error): (?P<message>.*)')
 
 
@@ -86,12 +87,12 @@ def translate_message(original_message):
 
 
 def translate_exception(data):
-    if 'sentry.interfaces.Message' in data:
-        data['sentry.interfaces.Message']['message'] = translate_message(
-            data['sentry.interfaces.Message']['message'])
+    if 'logentry' in data:
+        data['logentry']['message'] = translate_message(
+            data['logentry']['message'])
 
-    if 'sentry.interfaces.Exception' in data:
-        for entry in data['sentry.interfaces.Exception']['values']:
+    if 'exception' in data:
+        for entry in data['exception']['values']:
             if 'value' in entry:
                 entry['value'] = translate_message(entry['value'])
 

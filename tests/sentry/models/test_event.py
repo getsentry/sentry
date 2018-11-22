@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
+import pickle
+
 from sentry.models import Environment
 from sentry.testutils import TestCase
+from sentry.db.models.fields.node import NodeData
 
 
 class EventTest(TestCase):
@@ -18,6 +21,53 @@ class EventTest(TestCase):
         assert event.site == 'foo'
         assert event.server_name == 'bar'
         assert event.culprit == event.group.culprit
+
+    def test_pickling_compat(self):
+        event = self.create_event(
+            data={'tags': [
+                ('logger', 'foobar'),
+                ('site', 'foo'),
+                ('server_name', 'bar'),
+            ]}
+        )
+
+        # Ensure we load and memoize the interfaces as well.
+        assert len(event.interfaces) > 0
+
+        # When we pickle an event we need to make sure our canonical code
+        # does not appear here or it breaks old workers.
+        data = pickle.dumps(event, protocol=2)
+        assert 'canonical' not in data
+
+        # For testing we remove the backwards compat support in the
+        # `NodeData` as well.
+        nodedata_getstate = NodeData.__getstate__
+        del NodeData.__getstate__
+
+        # Old worker loading
+        try:
+            event2 = pickle.loads(data)
+            assert event2.data == event.data
+        finally:
+            NodeData.__getstate__ = nodedata_getstate
+
+        # New worker loading
+        event2 = pickle.loads(data)
+        assert event2.data == event.data
+
+    def test_event_as_dict(self):
+        event = self.create_event(
+            data={
+                'logentry': {
+                    'message': 'Hello World!',
+                },
+            }
+        )
+
+        d = event.as_dict()
+        assert d['logentry'] == {
+            'message': 'Hello World!',
+        }
 
     def test_email_subject(self):
         event1 = self.create_event(
@@ -84,7 +134,7 @@ class EventGetLegacyMessageTest(TestCase):
     def test_message_interface(self):
         event = self.create_event(
             message='biz baz',
-            data={'sentry.interfaces.Message': {
+            data={'logentry': {
                 'message': 'foo bar'
             }},
         )
@@ -94,7 +144,7 @@ class EventGetLegacyMessageTest(TestCase):
         event = self.create_event(
             message='biz baz',
             data={
-                'sentry.interfaces.Message': {
+                'logentry': {
                     'message': 'foo %s',
                     'formatted': 'foo bar',
                     'params': ['bar'],

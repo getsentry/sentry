@@ -6,9 +6,9 @@ import styled from 'react-emotion';
 import Avatar from 'app/components/avatar';
 import space from 'app/styles/space';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
-class BaseBadge extends React.Component {
+class BaseBadge extends React.PureComponent {
   static propTypes = {
     team: SentryTypes.Team,
     organization: SentryTypes.Organization,
@@ -79,7 +79,9 @@ class BaseBadge extends React.Component {
         )}
 
         <DisplayNameAndDescription>
-          {!hideName && <div data-test-id="badge-display-name">{displayName}</div>}
+          {!hideName && (
+            <DisplayName data-test-id="badge-display-name">{displayName}</DisplayName>
+          )}
           {!!description && <Description>{description}</Description>}
         </DisplayNameAndDescription>
       </Flex>
@@ -97,6 +99,13 @@ const StyledAvatar = styled(Avatar)`
 const DisplayNameAndDescription = styled(Flex)`
   flex-direction: column;
   line-height: 1;
+  overflow: hidden;
+`;
+
+const DisplayName = styled('span')`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
 `;
 
 const Description = styled('div')`

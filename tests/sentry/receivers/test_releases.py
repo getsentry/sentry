@@ -40,7 +40,7 @@ class ResolvedInCommitTest(TestCase):
             key=sha1(uuid4().hex).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message='Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
+            message=u'Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
         )
 
         assert GroupLink.objects.filter(
@@ -67,7 +67,7 @@ class ResolvedInCommitTest(TestCase):
             linked_type=GroupLink.LinkedType.commit,
             linked_id=commit.id).exists()
 
-        commit.message = 'Foo Biz\n\nFixes {}'.format(group.qualified_short_id)
+        commit.message = u'Foo Biz\n\nFixes {}'.format(group.qualified_short_id)
         commit.save()
 
         assert GroupLink.objects.filter(
@@ -87,7 +87,7 @@ class ResolvedInCommitTest(TestCase):
             key=sha1(uuid4().hex).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message='Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
+            message=u'Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
         )
 
         assert GroupLink.objects.filter(
@@ -95,7 +95,7 @@ class ResolvedInCommitTest(TestCase):
             linked_type=GroupLink.LinkedType.commit,
             linked_id=commit.id).exists()
 
-        commit.message = 'Foo Bar Biz\n\nFixes {}'.format(group.qualified_short_id)
+        commit.message = u'Foo Bar Biz\n\nFixes {}'.format(group.qualified_short_id)
         commit.save()
 
         assert GroupLink.objects.filter(
@@ -115,7 +115,7 @@ class ResolvedInCommitTest(TestCase):
             key=sha1(uuid4().hex).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message='Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
+            message=u'Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
         )
 
         assert GroupLink.objects.filter(
@@ -141,7 +141,7 @@ class ResolvedInCommitTest(TestCase):
             key=sha1(uuid4().hex).hexdigest(),
             repository_id=repo.id,
             organization_id=self.organization.id,
-            message='Foo Biz\n\nFixes {}-12F'.format(
+            message=u'Foo Biz\n\nFixes {}-12F'.format(
                 self.project.slug.upper()),
         )
 
@@ -161,7 +161,7 @@ class ResolvedInCommitTest(TestCase):
             key=sha1(uuid4().hex).hexdigest(),
             organization_id=group.organization.id,
             repository_id=repo.id,
-            message='Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
+            message=u'Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
             author=CommitAuthor.objects.create(
                 organization_id=group.organization.id,
                 name=self.user.name,
@@ -191,7 +191,7 @@ class ResolvedInCommitTest(TestCase):
             key=sha1(uuid4().hex).hexdigest(),
             organization_id=group.organization.id,
             repository_id=repo.id,
-            message='Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
+            message=u'Foo Biz\n\nFixes {}'.format(group.qualified_short_id),
             author=CommitAuthor.objects.create(
                 organization_id=group.organization.id,
                 name=user.name,

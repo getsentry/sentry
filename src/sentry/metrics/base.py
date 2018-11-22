@@ -15,7 +15,7 @@ class MetricsBackend(local):
 
     def _get_key(self, key):
         if self.prefix:
-            return '{}{}'.format(self.prefix, key)
+            return u'{}{}'.format(self.prefix, key)
         return key
 
     def _should_sample(self, sample_rate):

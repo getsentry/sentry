@@ -52,27 +52,25 @@ class Client {
 
   static mockAsync = false;
 
-  merge(params, options) {
-    let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
-    return this.request(path, {
-      method: 'PUT',
-      data: {merge: 1},
-      ...options,
-    });
-  }
-
   wrapCallback(id, error) {
-    return (...args) => respond(Client.mockAsync, error, ...args);
+    return (...args) => {
+      if (this.hasProjectBeenRenamed(...args)) return;
+      respond(Client.mockAsync, error, ...args);
+    };
   }
 
-  requestPromise(url, options) {
-    return new Promise((resolve, reject) =>
-      this.request(url, {
+  requestPromise(path, {includeAllArgs, ...options} = {}) {
+    return new Promise((resolve, reject) => {
+      this.request(path, {
         ...options,
-        success: resolve,
-        error: reject,
-      })
-    );
+        success: (data, ...args) => {
+          includeAllArgs ? resolve([data, ...args]) : resolve(data);
+        },
+        error: (error, ...args) => {
+          reject(error);
+        },
+      });
+    });
   }
 
   request(url, options) {
@@ -88,12 +86,16 @@ class Client {
 
       // mock gets returned when we add a mock response, will represent calls to api.request
       mock(url, options);
+
+      const body =
+        typeof response.body === 'function' ? response.body(url, options) : response.body;
+
       if (response.statusCode !== 200) {
         response.callCount++;
         let resp = {
           status: response.statusCode,
-          responseText: JSON.stringify(response.body),
-          responseJSON: response.body,
+          responseText: JSON.stringify(body),
+          responseJSON: body,
         };
         this.handleRequestError(
           {
@@ -107,7 +109,7 @@ class Client {
         respond(
           Client.mockAsync,
           options.success,
-          response.body,
+          body,
           {},
           {
             getResponseHeader: key => response.headers[key],
@@ -125,5 +127,8 @@ Client.prototype.uniqueId = RealClient.Client.prototype.uniqueId;
 Client.prototype.bulkUpdate = RealClient.Client.prototype.bulkUpdate;
 Client.prototype._chain = RealClient.Client.prototype._chain;
 Client.prototype._wrapRequest = RealClient.Client.prototype._wrapRequest;
+Client.prototype.hasProjectBeenRenamed =
+  RealClient.Client.prototype.hasProjectBeenRenamed;
+Client.prototype.merge = RealClient.Client.prototype.merge;
 
 export {Client};

@@ -173,6 +173,10 @@ export function formatBytes(bytes) {
 }
 
 export function getShortVersion(version) {
+  if (version.length < 12) {
+    return version;
+  }
+
   let match = version.match(
     /^(?:[a-zA-Z][a-zA-Z0-9-]+)(?:\.[a-zA-Z][a-zA-Z0-9-]+)+-(.*)$/
   );
@@ -223,6 +227,44 @@ export function sortProjects(projects) {
 export const buildUserId = id => `user:${id}`;
 export const buildTeamId = id => `team:${id}`;
 
+/**
+ * Removes the organization / project scope prefix on feature names.
+ */
+export function descopeFeatureName(feature) {
+  return typeof feature.match !== 'function'
+    ? feature
+    : feature.match(/(?:^(?:projects|organizations):)?(.*)/).pop();
+}
+
+export function isWebpackChunkLoadingError(error) {
+  return (
+    error &&
+    typeof error.message === 'string' &&
+    error.message.toLowerCase().includes('loading chunk')
+  );
+}
+
+/**
+ * This parses our period shorthand strings (e.g. <int><unit>)
+ * and converts it into hours
+ */
+export function parsePeriodToHours(str) {
+  const [, periodNumber, periodLength] = str.match(/([0-9]+)([mhdw])/);
+
+  switch (periodLength) {
+    case 'm':
+      return periodNumber / 60;
+    case 'h':
+      return periodNumber;
+    case 'd':
+      return periodNumber * 24;
+    case 'w':
+      return periodLength * 24 * 7;
+    default:
+      return -1;
+  }
+}
+
 // re-export under utils
 export {parseLinkHeader, Collection, PendingChangeQueue, CursorPoller};
 
@@ -242,6 +284,7 @@ export default {
   parseLinkHeader,
   buildUserId,
   buildTeamId,
+  descopeFeatureName,
 
   // external imports
   objectToArray,

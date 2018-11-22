@@ -15,14 +15,14 @@ import logging
 from collections import defaultdict
 from datetime import timedelta
 from django.db import connections, router, IntegrityError, transaction
-from django.db.models import Q, Sum
+from django.db.models import F, Q, Sum
 from django.utils import timezone
 from operator import or_
 from six.moves import reduce
 
 from sentry import buffer
 from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.base import TagStorage
+from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils import db
 
 from . import models
@@ -83,8 +83,13 @@ class V2TagStorage(TagStorage):
         self.setup_receivers()
 
     def setup_cleanup(self):
-        # TODO: fix for sharded DB
-        pass
+        from sentry.runner.commands import cleanup
+
+        cleanup.EXTRA_BULK_QUERY_DELETES += [
+            (models.GroupTagValue, 'last_seen', None),
+            (models.TagValue, 'last_seen', None),
+            (models.EventTag, 'date_added', 'date_added', 50000),
+        ]
 
     def setup_deletions(self):
         from sentry.deletions import default_manager as deletion_manager
@@ -506,12 +511,14 @@ class V2TagStorage(TagStorage):
 
         return transformers[models.GroupTagKey](instance)
 
-    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
+    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None, keys=None):
         qs = models.GroupTagKey.objects.select_related('_key').filter(
             project_id=project_id,
             group_id=group_id,
             _key__project_id=project_id,
         )
+        if keys is not None:
+            qs = qs.filter(_key__key__in=keys)
 
         qs = self._add_environment_filter(qs, environment_id)
 
@@ -776,7 +783,7 @@ class V2TagStorage(TagStorage):
         qs = self._add_environment_filter(qs, environment_id)
         return qs.aggregate(t=Sum('times_seen'))['t']
 
-    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
+    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
         if db.is_postgres():
             environment_id = AGGREGATE_ENVIRONMENT_ID if environment_id is None else environment_id
 
@@ -880,6 +887,7 @@ class V2TagStorage(TagStorage):
             _key__project_id__in=project_ids,
             _key__environment_id=AGGREGATE_ENVIRONMENT_ID,
             _key__key='sentry:user',
+            _value___key=F('_key'),
             _value__value__in=[eu.tag_value for eu in event_users],
         ).extra(where=[
             # Force the join also through the shard
@@ -936,6 +944,7 @@ class V2TagStorage(TagStorage):
                     _key__project_id=project_id,
                     _key__key=k,
                     _value__project_id=project_id,
+                    _value___key=F('_key'),
                     _value__value=v,
                 )
                 base_qs = self._add_environment_filter(base_qs, environment_id)
@@ -980,7 +989,7 @@ class V2TagStorage(TagStorage):
             )
 
     def get_tag_value_paginator(self, project_id, environment_id, key, query=None,
-            order_by='-last_seen'):
+                                order_by='-last_seen'):
         from sentry.api.paginator import DateTimePaginator
 
         qs = models.TagValue.objects.select_related('_key').filter(
@@ -1010,7 +1019,7 @@ class V2TagStorage(TagStorage):
         return RangeQuerySetWrapper(queryset=qs, callbacks=callbacks)
 
     def get_group_tag_value_paginator(self, project_id, group_id, environment_id, key,
-            order_by='-id'):
+                                      order_by='-id'):
         from sentry.api.paginator import DateTimePaginator, Paginator
 
         qs = self.get_group_tag_value_qs(project_id, group_id, environment_id, key)

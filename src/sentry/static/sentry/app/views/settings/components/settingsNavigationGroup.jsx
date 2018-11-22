@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 
@@ -36,7 +36,7 @@ export default class NavigationGroup extends React.Component {
     let {organization, project, name, items} = this.props;
 
     return (
-      <NavSection>
+      <NavSection data-test-id={name}>
         <SettingsHeading>{name}</SettingsHeading>
         {items.map(({path, title, index, show, badge}) => {
           if (typeof show === 'function' && !show(this.props)) return null;

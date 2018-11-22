@@ -4,7 +4,9 @@ exports[`OrganizationCreate render() renders with terms 1`] = `
 <SideEffect(DocumentTitle)
   title="Create Organization - Sentry"
 >
-  <NarrowLayout>
+  <NarrowLayout
+    showLogout={true}
+  >
     <h3>
       Create a New Organization
     </h3>
@@ -80,7 +82,9 @@ exports[`OrganizationCreate render() renders without terms 1`] = `
 <SideEffect(DocumentTitle)
   title="Create Organization - Sentry"
 >
-  <NarrowLayout>
+  <NarrowLayout
+    showLogout={true}
+  >
     <h3>
       Create a New Organization
     </h3>

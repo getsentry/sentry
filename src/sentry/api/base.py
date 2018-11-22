@@ -16,15 +16,18 @@ from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from simplejson import JSONDecodeError
 
 from sentry import tsdb
-from sentry.app import raven
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.sdk import capture_exception
+from sentry.utils import json
+
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import Paginator
@@ -68,7 +71,7 @@ class Endpoint(APIView):
         )
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = '{0}?{1}'.format(base_url, querystring)
+            base_url = u'{0}?{1}'.format(base_url, querystring)
         else:
             base_url = base_url + '?'
 
@@ -89,7 +92,7 @@ class Endpoint(APIView):
             import sys
             import traceback
             sys.stderr.write(traceback.format_exc())
-            event_id = raven.captureException(request=request)
+            event_id = capture_exception()
             context = {
                 'detail': 'Internal Error',
                 'errorId': event_id,
@@ -100,6 +103,29 @@ class Endpoint(APIView):
 
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
+
+    def load_json_body(self, request):
+        """
+        Attempts to load the request body when it's JSON.
+
+        The end result is ``request.json_body`` having a value. When it can't
+        load the body as JSON, for any reason, ``request.json_body`` is None.
+
+        The request flow is unaffected and no exceptions are ever raised.
+        """
+
+        request.json_body = None
+
+        if not request.META.get('CONTENT_TYPE', '').startswith('application/json'):
+            return
+
+        if not len(request.body):
+            return
+
+        try:
+            request.json_body = json.loads(request.body)
+        except JSONDecodeError:
+            return
 
     def initialize_request(self, request, *args, **kwargs):
         rv = super(Endpoint, self).initialize_request(request, *args, **kwargs)
@@ -121,6 +147,7 @@ class Endpoint(APIView):
         self.args = args
         self.kwargs = kwargs
         request = self.initialize_request(request, *args, **kwargs)
+        self.load_json_body(request)
         self.request = request
         self.headers = self.default_response_headers  # deprecate?
 
@@ -144,13 +171,6 @@ class Endpoint(APIView):
                     return self.response
 
             self.initial(request, *args, **kwargs)
-
-            if getattr(request, 'user', None) and request.user.is_authenticated():
-                raven.user_context({
-                    'id': request.user.id,
-                    'username': request.user.username,
-                    'email': request.user.email,
-                })
 
             # Get the appropriate handler method
             if request.method.lower() in self.http_method_names:
@@ -203,7 +223,7 @@ class Endpoint(APIView):
 
     def paginate(
         self, request, on_results=None, paginator=None,
-        paginator_cls=Paginator, default_per_page=100, **paginator_kwargs
+        paginator_cls=Paginator, default_per_page=100, max_per_page=100, **paginator_kwargs
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
 
@@ -214,7 +234,7 @@ class Endpoint(APIView):
         else:
             input_cursor = None
 
-        assert per_page <= max(100, default_per_page)
+        assert per_page <= max(max_per_page, default_per_page)
 
         if not paginator:
             paginator = paginator_cls(**paginator_kwargs)
@@ -227,6 +247,8 @@ class Endpoint(APIView):
         # map results based on callback
         if on_results:
             results = on_results(cursor_result.results)
+        else:
+            results = cursor_result.results
 
         response = Response(results)
         self.add_cursor_headers(request, response, cursor_result)

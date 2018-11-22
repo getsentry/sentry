@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import datetime
+from datetime import datetime
 
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.client import ApiClient
@@ -11,12 +11,15 @@ class GitHubClientMixin(ApiClient):
 
     base_url = 'https://api.github.com'
 
+    def get_jwt(self):
+        return get_jwt()
+
     def get_last_commits(self, repo, end_sha):
         # return api request that fetches last ~30 commits
         # see https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
         # using end_sha as parameter
         return self.get(
-            '/repos/{}/commits'.format(
+            u'/repos/{}/commits'.format(
                 repo,
             ),
             params={'sha': end_sha},
@@ -25,25 +28,23 @@ class GitHubClientMixin(ApiClient):
     def compare_commits(self, repo, start_sha, end_sha):
         # see https://developer.github.com/v3/repos/commits/#compare-two-commits
         # where start sha is oldest and end is most recent
-        return self.get('/repos/{}/compare/{}...{}'.format(
+        return self.get(u'/repos/{}/compare/{}...{}'.format(
             repo,
             start_sha,
             end_sha,
         ))
 
-    def get_pr_commits(self, repo, num):
-        # see https://developer.github.com/v3/pulls/#list-commits-on-a-pull-request
-        # Max: 250 Commits
-        return self.get('/repos/{}/pulls/{}/commits'.format(
-            repo,
-            num
-        ))
+    def repo_hooks(self, repo):
+        return self.get(u'/repos/{}/hooks'.format(repo))
 
     def get_commits(self, repo):
-        return self.get('/repos/{}/commits'.format(repo))
+        return self.get(u'/repos/{}/commits'.format(repo))
+
+    def get_commit(self, repo, sha):
+        return self.get(u'/repos/{}/commits/{}'.format(repo, sha))
 
     def get_repo(self, repo):
-        return self.get('/repos/{}'.format(repo))
+        return self.get(u'/repos/{}'.format(repo))
 
     def get_repositories(self):
         repositories = self.get(
@@ -52,25 +53,37 @@ class GitHubClientMixin(ApiClient):
         )
         return repositories['repositories']
 
+    def search_repositories(self, query):
+        return self.get(
+            '/search/repositories',
+            params={'q': query},
+        )
+
     def get_assignees(self, repo):
-        return self.get('/repos/{}/assignees'.format(repo))
+        return self.get(u'/repos/{}/assignees'.format(repo))
 
     def get_issues(self, repo):
-        return self.get('/repos/{}/issues'.format(repo))
+        return self.get(u'/repos/{}/issues'.format(repo))
+
+    def search_issues(self, query):
+        return self.get(
+            '/search/issues',
+            params={'q': query},
+        )
 
     def get_issue(self, repo, number):
-        return self.get('/repos/{}/issues/{}'.format(repo, number))
+        return self.get(u'/repos/{}/issues/{}'.format(repo, number))
 
     def create_issue(self, repo, data):
-        endpoint = '/repos/{}/issues'.format(repo)
+        endpoint = u'/repos/{}/issues'.format(repo)
         return self.post(endpoint, data=data)
 
     def create_comment(self, repo, issue_id, data):
-        endpoint = '/repos/{}/issues/{}/comments'.format(repo, issue_id)
+        endpoint = u'/repos/{}/issues/{}/comments'.format(repo, issue_id)
         return self.post(endpoint, data=data)
 
     def get_user(self, gh_username):
-        return self.get('/users/{}'.format(gh_username))
+        return self.get(u'/users/{}'.format(gh_username))
 
     def request(self, method, path, headers=None, data=None, params=None):
         if headers is None:
@@ -82,20 +95,37 @@ class GitHubClientMixin(ApiClient):
         return self._request(method, path, headers=headers, data=data, params=params)
 
     def get_token(self):
-        if not self.token or self.expires_at < datetime.datetime.utcnow():
+        """
+        Get token retrieves the active access token from the integration model.
+        Should the token have expried, a new token will be generated and
+        automatically presisted into the integration.
+        """
+        token = self.integration.metadata.get('access_token')
+        expires_at = self.integration.metadata.get('expires_at')
+
+        if expires_at is not None:
+            expires_at = datetime.strptime(expires_at, '%Y-%m-%dT%H:%M:%S')
+
+        if not token or expires_at < datetime.utcnow():
             res = self.create_token()
-            self.token = res['token']
-            self.expires_at = datetime.datetime.strptime(
+            token = res['token']
+            expires_at = datetime.strptime(
                 res['expires_at'],
                 '%Y-%m-%dT%H:%M:%SZ',
             )
 
-        return self.token
+            self.integration.metadata.update({
+                'access_token': token,
+                'expires_at': expires_at.isoformat(),
+            })
+            self.integration.save()
+
+        return token
 
     def create_token(self):
         return self.post(
-            '/installations/{}/access_tokens'.format(
-                self.external_id,
+            u'/installations/{}/access_tokens'.format(
+                self.integration.external_id,
             ),
             headers={
                 'Authorization': 'Bearer %s' % self.get_jwt(),
@@ -104,14 +134,9 @@ class GitHubClientMixin(ApiClient):
             },
         )
 
-    def get_jwt(self):
-        return get_jwt()
-
 
 class GitHubAppsClient(GitHubClientMixin):
 
-    def __init__(self, external_id):
-        self.external_id = external_id
-        self.token = None
-        self.expires_at = None
+    def __init__(self, integration):
+        self.integration = integration
         super(GitHubAppsClient, self).__init__()

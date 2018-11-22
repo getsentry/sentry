@@ -17,6 +17,8 @@ def get_user_info(access_token):
     )
     resp.raise_for_status()
     user = resp.json()
+    user['uuid'] = user['id']
+
     resp = session.get(
         'https://app.vssps.visualstudio.com/_apis/connectionData/',
         headers={
@@ -47,11 +49,8 @@ class VSTSIdentityProvider(OAuth2Provider):
     oauth_scopes = (
         'vso.code',
         'vso.graph',
-        'vso.project',
-        'vso.release',
         'vso.serviceendpoint_manage',
         'vso.work_write',
-        'vso.workitemsearch',
     )
 
     def get_oauth_client_id(self):

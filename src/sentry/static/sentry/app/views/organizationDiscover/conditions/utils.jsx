@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 import {CONDITION_OPERATORS} from '../data';
 
 const specialConditions = new Set(['IS NULL', 'IS NOT NULL']);
@@ -18,9 +20,12 @@ export function isValidCondition(condition, cols) {
   const isColValid = columns.has(condition[0]);
   const isOperatorValid = allOperators.has(condition[1]);
 
+  const colType = (cols.find(col => col.name === condition[0]) || {}).type;
+
   const isValueValid =
     specialConditions.has(condition[1]) ||
-    typeof condition[2] === (cols.find(col => col.name === condition[0]) || {}).type;
+    (colType === 'datetime' && condition[2] !== null) ||
+    colType === typeof condition[2];
 
   return isColValid && isOperatorValid && isValueValid;
 }
@@ -63,25 +68,74 @@ export function getExternal(internal, columns) {
   if (specialConditions.has(remaining)) {
     external[1] = remaining;
   } else {
-    const operatorMatch = remaining.match(/^([^\s]+).*$/);
-    const operatorValue = operatorMatch ? operatorMatch[1] : null;
-
-    if (new Set(CONDITION_OPERATORS).has(operatorValue)) {
-      external[1] = operatorValue;
-    }
+    CONDITION_OPERATORS.forEach(operator => {
+      if (remaining.startsWith(operator)) {
+        external[1] = operator;
+      }
+    });
   }
 
   // Validate value and convert to correct type
   if (external[0] && external[1] && !specialConditions.has(external[1])) {
-    const valuesMatch = internal.match(/^[a-zA-Z0-9_\.:-]+ [^\s]+ (.*)$/);
-    external[2] = valuesMatch ? valuesMatch[1] : null;
+    const strStart = `${external[0]} ${external[1]} `;
+
+    if (internal.startsWith(strStart)) {
+      external[2] = internal.replace(strStart, '');
+    }
+
     const type = columns.find(({name}) => name === colValue).type;
 
     if (type === 'number') {
       const num = parseInt(external[2], 10);
       external[2] = !isNaN(num) ? num : null;
     }
+
+    if (type === 'boolean') {
+      if (external[2] === 'true') {
+        external[2] = true;
+      }
+      if (external[2] === 'false') {
+        external[2] = false;
+      }
+    }
+
+    if (type === 'datetime') {
+      const date = moment.utc(external[2]);
+      external[2] = date.isValid() ? date.format('YYYY-MM-DDTHH:mm:ss') : null;
+    }
   }
 
   return external;
+}
+
+/**
+* Transform casing of condition operators to uppercase. Applies to the operators
+* IS NULL, IS NOT NULL, LIKE and NOT LIKE
+*
+* @param {String} input Condition string as input by user
+* @returns {String}
+*/
+
+export function ignoreCase(input = '') {
+  const colName = input.split(' ')[0];
+
+  // Strip column name from the start
+  const match = input.match(/^[\w._]+\s(.*)/);
+  let remaining = match ? match[1] : null;
+
+  if (!remaining) {
+    return input;
+  }
+
+  for (let i = 0; i < CONDITION_OPERATORS.length; i++) {
+    const operator = CONDITION_OPERATORS[i];
+
+    if (operator.startsWith(remaining.toUpperCase())) {
+      return `${colName} ${remaining.toUpperCase()}`;
+    } else if (remaining.toUpperCase().startsWith(operator)) {
+      return `${colName} ${operator} ${remaining.slice(operator.length + 1)}`;
+    }
+  }
+
+  return input;
 }

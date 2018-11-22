@@ -14,9 +14,11 @@ from sentry.models import (
 from sentry.testutils import APITestCase
 from uuid import uuid4
 
-from sentry.integrations.github.testutils import (
-    PUSH_EVENT_EXAMPLE_INSTALLATION, PULL_REQUEST_OPENED_EVENT_EXAMPLE,
-    PULL_REQUEST_EDITED_EVENT_EXAMPLE, PULL_REQUEST_CLOSED_EVENT_EXAMPLE
+from .testutils import (
+    PUSH_EVENT_EXAMPLE_INSTALLATION,
+    PULL_REQUEST_OPENED_EVENT_EXAMPLE,
+    PULL_REQUEST_EDITED_EVENT_EXAMPLE,
+    PULL_REQUEST_CLOSED_EVENT_EXAMPLE
 )
 
 from mock import patch
@@ -24,16 +26,29 @@ from mock import patch
 
 class WebhookTest(APITestCase):
     def test_get(self):
-
         url = '/extensions/github-enterprise/webhook/'
 
         response = self.client.get(url)
-
         assert response.status_code == 405
+
+    def test_unknown_host_event(self):
+        # No integration defined in the database, so event should be rejected
+        # because we can't find metadata and secret for it
+        url = '/extensions/github-enterprise/webhook/'
+
+        response = self.client.post(
+            path=url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type='application/json',
+            HTTP_X_GITHUB_EVENT='push',
+            HTTP_X_GITHUB_ENTERPRISE_HOST='99.99.99.99',
+            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
+        )
+        assert response.status_code == 400
 
     def test_unregistered_event(self):
         project = self.project  # force creation
-        url = '/extensions/github-enterprise/webhook/'.format(
+        url = u'/extensions/github-enterprise/webhook/'.format(
             project.organization.id,
         )
 
@@ -42,14 +57,22 @@ class WebhookTest(APITestCase):
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type='application/json',
             HTTP_X_GITHUB_EVENT='UnregisteredEvent',
+            HTTP_X_GITHUB_ENTERPRISE_HOST='35.232.149.196',
             HTTP_X_HUB_SIGNATURE='sha1=56a3df597e02adbc17fb617502c70e19d96a6136',
             HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
         )
-
         assert response.status_code == 204
 
-    def test_invalid_signature_event(self):
-
+    @patch('sentry.integrations.github_enterprise.webhook.get_installation_metadata')
+    def test_invalid_signature_event(self, mock_installation):
+        mock_installation.return_value = {
+            'url': '35.232.149.196',
+            'id': '2',
+            'name': 'test-app',
+            'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
+            'private_key': 'private_key',
+            'verify_ssl': True,
+        }
         url = '/extensions/github-enterprise/webhook/'
 
         response = self.client.post(
@@ -57,11 +80,34 @@ class WebhookTest(APITestCase):
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type='application/json',
             HTTP_X_GITHUB_EVENT='push',
+            HTTP_X_GITHUB_ENTERPRISE_HOST='35.232.149.196',
             HTTP_X_HUB_SIGNATURE='sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec',
             HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
         )
-
         assert response.status_code == 401
+
+    @patch('sentry.integrations.github_enterprise.webhook.get_installation_metadata')
+    def test_missing_signature_ok(self, mock_installation):
+        # Old Github:e doesn't send a signature, so we have to accept that.
+        mock_installation.return_value = {
+            'url': '35.232.149.196',
+            'id': '2',
+            'name': 'test-app',
+            'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
+            'private_key': 'private_key',
+            'verify_ssl': True,
+        }
+        url = '/extensions/github-enterprise/webhook/'
+
+        response = self.client.post(
+            path=url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type='application/json',
+            HTTP_X_GITHUB_EVENT='push',
+            HTTP_X_GITHUB_ENTERPRISE_HOST='35.232.149.196',
+            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
+        )
+        assert response.status_code == 204
 
 
 class PushEventWebhookTest(APITestCase):
@@ -79,6 +125,7 @@ class PushEventWebhookTest(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         Repository.objects.create(
@@ -88,16 +135,26 @@ class PushEventWebhookTest(APITestCase):
             name='baxterthehacker/public-repo',
         )
         integration = Integration.objects.create(
-            external_id="12345",
+            external_id="35.232.149.196:12345",
             provider='github_enterprise',
+            metadata={
+                'domain_name': '35.232.149.196/baxterthehacker',
+                'installation_id': '12345',
+                'installation': {
+                    'id': '2',
+                    'private_key': 'private_key',
+                    'verify_ssl': True,
+                }
+            }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         response = self.client.post(
             path=url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type='application/json',
             HTTP_X_GITHUB_EVENT='push',
+            HTTP_X_GITHUB_ENTERPRISE_HOST='35.232.149.196',
             HTTP_X_HUB_SIGNATURE='sha1=2a0586cc46490b17441834e1e143ec3d8c1fe032',
             HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
         )
@@ -141,14 +198,23 @@ class PushEventWebhookTest(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         integration = Integration.objects.create(
             provider='github_enterprise',
-            external_id='12345',
+            external_id='35.232.149.196:12345',
             name='octocat',
+            metadata={
+                'domain_name': '35.232.149.196/baxterthehacker',
+                'installation': {
+                    'id': '2',
+                    'private_key': 'private_key',
+                    'verify_ssl': True,
+                }
+            }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         Repository.objects.create(
             organization_id=project.organization.id,
@@ -169,6 +235,7 @@ class PushEventWebhookTest(APITestCase):
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type='application/json',
             HTTP_X_GITHUB_EVENT='push',
+            HTTP_X_GITHUB_ENTERPRISE_HOST='35.232.149.196',
             HTTP_X_HUB_SIGNATURE='sha1=2a0586cc46490b17441834e1e143ec3d8c1fe032',
             HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
         )
@@ -214,6 +281,7 @@ class PushEventWebhookTest(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         Repository.objects.create(
@@ -223,10 +291,19 @@ class PushEventWebhookTest(APITestCase):
             name='baxterthehacker/public-repo',
         )
         integration = Integration.objects.create(
-            external_id="12345",
+            external_id="35.232.149.196:12345",
             provider='github_enterprise',
+            metadata={
+                'domain_name': '35.232.149.196/baxterthehacker',
+                'installation_id': '12345',
+                'installation': {
+                    'id': '2',
+                    'private_key': 'private_key',
+                    'verify_ssl': True,
+                }
+            }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         org2 = self.create_organization()
         project2 = self.create_project(organization=org2, name='bar')
@@ -238,16 +315,26 @@ class PushEventWebhookTest(APITestCase):
             name='another/repo',
         )
         integration = Integration.objects.create(
-            external_id="99",
+            external_id="35.232.149.196:99",
             provider='github_enterprise',
+            metadata={
+                'domain_name': '35.232.149.196/another',
+                'installation': {
+                    'installation_id': '99',
+                    'id': '2',
+                    'private_key': 'private_key',
+                    'verify_ssl': True,
+                }
+            }
         )
-        integration.add_organization(org2.id)
+        integration.add_organization(org2, self.user)
 
         response = self.client.post(
             path=url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
             content_type='application/json',
             HTTP_X_GITHUB_EVENT='push',
+            HTTP_X_GITHUB_ENTERPRISE_HOST='35.232.149.196',
             HTTP_X_HUB_SIGNATURE='sha1=2a0586cc46490b17441834e1e143ec3d8c1fe032',
             HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
         )
@@ -282,14 +369,23 @@ class PullRequestEventWebhook(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         integration = Integration.objects.create(
             provider='github_enterprise',
-            external_id='234',
+            external_id='35.232.149.196:234',
             name='octocat',
+            metadata={
+                'domain_name': '35.232.149.196/baxterthehacker',
+                'installation': {
+                    'id': '2',
+                    'private_key': 'private_key',
+                    'verify_ssl': True,
+                }
+            }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,
@@ -303,6 +399,7 @@ class PullRequestEventWebhook(APITestCase):
             data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
             content_type='application/json',
             HTTP_X_GITHUB_EVENT='pull_request',
+            HTTP_X_GITHUB_ENTERPRISE_HOST='35.232.149.196',
             HTTP_X_HUB_SIGNATURE='sha1=aa5b11bc52b9fac082cb59f9ee8667cb222c3aff',
             HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
         )
@@ -334,14 +431,23 @@ class PullRequestEventWebhook(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         integration = Integration.objects.create(
             provider='github_enterprise',
-            external_id='234',
+            external_id='35.232.149.196:234',
             name='octocat',
+            metadata={
+                'domain_name': '35.232.149.196/baxterthehacker',
+                'installation': {
+                    'id': '2',
+                    'private_key': 'private_key',
+                    'verify_ssl': True,
+                }
+            }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,
@@ -361,6 +467,7 @@ class PullRequestEventWebhook(APITestCase):
             data=PULL_REQUEST_EDITED_EVENT_EXAMPLE,
             content_type='application/json',
             HTTP_X_GITHUB_EVENT='pull_request',
+            HTTP_X_GITHUB_ENTERPRISE_HOST='35.232.149.196',
             HTTP_X_HUB_SIGNATURE='sha1=b50a13afd33b514e8e62e603827ea62530f0690e',
             HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
         )
@@ -385,14 +492,23 @@ class PullRequestEventWebhook(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         integration = Integration.objects.create(
             provider='github_enterprise',
-            external_id='234',
+            external_id='35.232.149.196:234',
             name='octocat',
+            metadata={
+                'domain_name': '35.232.149.196/baxterthehacker',
+                'installation': {
+                    'id': '2',
+                    'private_key': 'private_key',
+                    'verify_ssl': True,
+                }
+            }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,
@@ -406,6 +522,7 @@ class PullRequestEventWebhook(APITestCase):
             data=PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
             content_type='application/json',
             HTTP_X_GITHUB_EVENT='pull_request',
+            HTTP_X_GITHUB_ENTERPRISE_HOST='35.232.149.196',
             HTTP_X_HUB_SIGNATURE='sha1=dff1c803cf1e48c1b9aefe4a17952ea132758806',
             HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4())
         )

@@ -5,7 +5,7 @@ import Avatar from 'app/components/avatar';
 import Link from 'app/components/link';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 const UserBadge = ({
   displayName,
@@ -83,7 +83,7 @@ const StyledName = styled(
   ({useLink, hideEmail, to, ...props}) =>
     useLink ? <Link to={to} {...props} /> : <span {...props} />
 )`
-  font-weight: bold;
+  font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
   ${overflowEllipsis};
 `;

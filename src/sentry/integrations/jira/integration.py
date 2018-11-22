@@ -1,39 +1,86 @@
 from __future__ import absolute_import
 
 import logging
+import six
+
 from six.moves.urllib.parse import quote_plus
 
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
+from sentry import features
 from sentry.integrations import (
-    Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+    IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata, FeatureDescription,
 )
-from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError
+from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError, IntegrationFormError
 from sentry.integrations.issues import IssueSyncMixin
+from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
 from sentry.utils.http import absolute_uri
 
 from .client import JiraApiClient
 
 logger = logging.getLogger('sentry.integrations.jira')
 
-alert_link = {
-    'text': 'Visit the **Atlassian Marketplace** to install this integration.',
-    # TODO(jess): update this when we have our app listed on the
-    # atlassian marketplace
-    'link': 'https://marketplace.atlassian.com/',
+DESCRIPTION = """
+Connect your Sentry organization into one or more of your Jira cloud instances.
+Get started streamlining your bug squashing workflow by unifying your Sentry and
+Jira instances together.
+"""
+
+FEATURE_DESCRIPTIONS = [
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a Jira ticket in any of your
+        projects, providing a quick way to jump from Sentry bug to tracked ticket!
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Automatically synchronize assignees to and from Jira. Don't get confused
+        who's fixing what, let us handle ensuring your issues and tickets match up
+        to your Sentry and Jira assignees.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Synchronize Comments on Sentry Issues directly to the linked Jira ticket.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+]
+
+INSTALL_NOTICE_TEXT = """
+Visit the Jira Marketplace to install this integration. After installing the
+Sentry add-on, access the settings panel in your Jira instance to enable the
+integration for this Organization.
+"""
+
+external_install = {
+    'url': 'https://marketplace.atlassian.com/apps/1219432/sentry-for-jira',
+    'buttonText': _('Jira Marketplace'),
+    'noticeText': _(INSTALL_NOTICE_TEXT.strip()),
 }
 
 metadata = IntegrationMetadata(
-    description='Sync Sentry and JIRA issues.',
+    description=_(DESCRIPTION.strip()),
+    features=FEATURE_DESCRIPTIONS,
     author='The Sentry Team',
     noun=_('Instance'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Jira%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira',
     aspects={
-        'alert_link': alert_link,
+        'externalInstall': external_install,
     },
 )
+
+# hide sprint, epic link, parent and linked issues fields because they don't work
+# since sprint and epic link are "custom" we need to search for them by name
+HIDDEN_ISSUE_FIELDS = {
+    'keys': ['parent', 'issuelinks'],
+    'names': ['Sprint', 'Epic Link'],
+}
 
 # A list of common builtin custom field types for Jira for easy reference.
 JIRA_CUSTOM_FIELD_TYPES = {
@@ -44,58 +91,60 @@ JIRA_CUSTOM_FIELD_TYPES = {
 }
 
 
-class JiraIntegration(Integration, IssueSyncMixin):
-    def get_project_config(self):
+class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
+    comment_key = 'sync_comments'
+    outbound_status_key = 'sync_status_forward'
+    inbound_status_key = 'sync_status_reverse'
+    outbound_assignee_key = 'sync_forward_assignment'
+    inbound_assignee_key = 'sync_reverse_assignment'
+
+    def get_organization_config(self):
         configuration = [
             {
-                'name': 'resolve_status',
-                'type': 'choice',
-                'allowEmpty': True,
-                'label': _('Jira Resolved Status'),
-                'placeholder': _('Select a Status'),
-                'help': _('Declares what the linked Jira ticket workflow status should be transitioned to when the Sentry issue is resolved.'),
+                'name': self.outbound_status_key,
+                'type': 'choice_mapper',
+                'label': _('Sync Sentry Status to Jira'),
+                'help': _('When a Sentry issue changes status, change the status of the linked ticket in Jira.'),
+                'addButtonText': _('Add Jira Project'),
+                'addDropdown': {
+                    'emptyMessage': _('All projects configured'),
+                    'noResultsMessage': _('Could not find Jira project'),
+                    'items': [],  # Populated with projects
+                },
+                'mappedSelectors': {
+                    'on_resolve': {'choices': [], 'placeholder': _('Select a status')},
+                    'on_unresolve': {'choices': [], 'placeholder': _('Select a status')},
+                },
+                'columnLabels': {
+                    'on_resolve': _('When resolved'),
+                    'on_unresolve': _('When unresolved'),
+                },
+                'mappedColumnLabel': _('Jira Project'),
             },
             {
-                'name': 'unresolve_status',
-                'type': 'choice',
-                'allowEmpty': True,
-                'label': _('Jira Un-Resolved Status'),
-                'placeholder': _('Select a Status'),
-                'help': _('Declares what the linked Jira ticket workflow status should be transitioned to when the Sentry issue is unresolved.'),
-            },
-            {
-                'name': 'resolve_when',
-                'type': 'choice',
-                'allowEmpty': True,
-                'label': _('Resolve in Sentry When'),
-                'placeholder': _('Select a Status'),
-                'help': _('When a Jira ticket is transitioned to this status, trigger resolution of the Sentry issue.'),
-            },
-            {
-                'name': 'unresolve_when',
-                'type': 'choice',
-                'allowEmpty': True,
-                'label': _('Un-Resolve in Sentry When'),
-                'placeholder': _('Select a Status'),
-                'help': _('When a Jira ticket is transitioned to this status, mark the Sentry issue as unresolved.'),
-            },
-            {
-                'name': 'sync_comments',
+                'name': self.outbound_assignee_key,
                 'type': 'boolean',
-                'label': _('Post Comments to Jira'),
-                'help': _('Synchronize comments from Sentry issues to linked Jira tickets.'),
+                'label': _('Sync Sentry Assignment to Jira'),
+                'help': _('When an issue is assigned in Sentry, assign its linked Jira ticket to the same user.'),
             },
             {
-                'name': 'sync_forward_assignment',
+                'name': self.comment_key,
                 'type': 'boolean',
-                'label': _('Synchronize Assignment to Jira'),
-                'help': _('When assigning something in Sentry, the linked Jira ticket will have the associated Jira user assigned.'),
+                'label': _('Sync Sentry Comments to Jira'),
+                'help': _('Post comments from Sentry issues to linked Jira tickets'),
             },
             {
-                'name': 'sync_reverse_assignment',
+                'name': self.inbound_status_key,
                 'type': 'boolean',
-                'label': _('Synchronize Assignment to Sentry'),
-                'help': _('When assigning a user to a Linked Jira ticket, the associated Sentry user will be assigned to the Sentry issue.'),
+                'label': _('Sync Jira Status to Sentry'),
+                'help': _('When a Jira ticket is marked done, resolve its linked issue in Sentry. '
+                          'When a Jira ticket is removed from being done, unresolve its linked Sentry issue.'),
+            },
+            {
+                'name': self.inbound_assignee_key,
+                'type': 'boolean',
+                'label': _('Sync Jira Assignment to Sentry'),
+                'help': _('When a ticket is assigned in Jira, assign its linked Sentry issue to the same user.'),
             },
         ]
 
@@ -103,20 +152,71 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         try:
             statuses = [(c['id'], c['name']) for c in client.get_valid_statuses()]
-            configuration[0]['choices'] = statuses
-            configuration[1]['choices'] = statuses
-            configuration[2]['choices'] = statuses
-            configuration[3]['choices'] = statuses
+            configuration[0]['mappedSelectors']['on_resolve']['choices'] = statuses
+            configuration[0]['mappedSelectors']['on_unresolve']['choices'] = statuses
+
+            projects = [{'value': p['id'], 'label': p['name']} for p in client.get_projects_list()]
+            configuration[0]['addDropdown']['items'] = projects
         except ApiError:
-            # TODO(epurkhsier): Maybe disabling the inputs for the resolve
-            # statuses is a little heavy handed. Is there something better we
-            # can fall back to?
             configuration[0]['disabled'] = True
-            configuration[1]['disabled'] = True
-            configuration[2]['disabled'] = True
-            configuration[3]['disabled'] = True
+            configuration[0]['disabledReason'] = _(
+                'Unable to communicate with the Jira instance. You may need to reinstall the addon.')
+
+        organization = Organization.objects.get(id=self.organization_id)
+        has_issue_sync = features.has('organizations:integrations-issue-sync',
+                                      organization)
+        if not has_issue_sync:
+            for field in configuration:
+                field['disabled'] = True
+                field['disabledReason'] = _(
+                    'Your organization does not have access to this feature'
+                )
 
         return configuration
+
+    def update_organization_config(self, data):
+        """
+        Update the configuration field for an organization integration.
+        """
+        config = self.org_integration.config
+
+        if 'sync_status_forward' in data:
+            project_mappings = data.pop('sync_status_forward')
+
+            if any(not mapping['on_unresolve'] or not mapping['on_resolve']
+                    for mapping in project_mappings.values()):
+                raise IntegrationError('Resolve and unresolve status are required.')
+
+            data['sync_status_forward'] = bool(project_mappings)
+
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id,
+            ).delete()
+
+            for project_id, statuses in project_mappings.items():
+                IntegrationExternalProject.objects.create(
+                    organization_integration_id=self.org_integration.id,
+                    external_id=project_id,
+                    resolved_status=statuses['on_resolve'],
+                    unresolved_status=statuses['on_unresolve'],
+                )
+
+        config.update(data)
+        self.org_integration.update(config=config)
+
+    def get_config_data(self):
+        config = self.org_integration.config
+        project_mappings = IntegrationExternalProject.objects.filter(
+            organization_integration_id=self.org_integration.id,
+        )
+        sync_status_forward = {}
+        for pm in project_mappings:
+            sync_status_forward[pm.external_id] = {
+                'on_unresolve': pm.unresolved_status,
+                'on_resolve': pm.resolved_status,
+            }
+        config['sync_status_forward'] = sync_status_forward
+        return config
 
     def sync_metadata(self):
         client = self.get_client()
@@ -150,9 +250,18 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 field['type'] = 'select'
         return fields
 
+    def get_issue_url(self, key, **kwargs):
+        return '%s/browse/%s' % (self.model.metadata['base_url'], key)
+
+    def get_persisted_default_config_fields(self):
+        return ['project', 'issuetype', 'priority']
+
     def get_group_description(self, group, event, **kwargs):
         output = [
-            absolute_uri(group.get_absolute_url()),
+            u'Sentry Issue: [{}|{}]'.format(
+                group.qualified_short_id,
+                absolute_uri(group.get_absolute_url(params={'referrer': 'jira_integration'})),
+            )
         ]
         body = self.get_group_body(group, event)
         if body:
@@ -170,7 +279,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
             self.model.metadata['shared_secret'],
         )
 
-    def get_issue(self, issue_id):
+    def get_issue(self, issue_id, **kwargs):
         client = self.get_client()
         issue = client.get_issue(issue_id)
         return {
@@ -179,11 +288,18 @@ class JiraIntegration(Integration, IssueSyncMixin):
             'description': issue['fields']['description'],
         }
 
-    def create_comment(self, issue_id, comment):
-        return self.get_client().create_comment(issue_id, comment)
+    def create_comment(self, issue_id, user_id, comment):
+        # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
+        user = User.objects.get(id=user_id)
+        attribution = '%s wrote:\n\n' % user.name
+        quoted_comment = '%s{quote}%s{quote}' % (attribution, comment)
+        return self.get_client().create_comment(issue_id, quoted_comment)
 
     def search_issues(self, query):
-        return self.get_client().search_issues(query)
+        try:
+            return self.get_client().search_issues(query)
+        except ApiError as e:
+            self.raise_error(e)
 
     def make_choices(self, x):
         return [(y['id'], y['name'] if 'name' in y else y['value']) for y in x] if x else []
@@ -197,6 +313,13 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 message += ' '
             message += ' '.join(['%s: %s' % (k, v) for k, v in data.get('errors').items()])
         return message
+
+    def error_fields_from_json(self, data):
+        errors = data.get('errors')
+        if not errors:
+            return None
+
+        return {key: [error] for key, error in data.get('errors').items()}
 
     def build_dynamic_field(self, group, field_meta):
         """
@@ -263,18 +386,33 @@ class JiraIntegration(Integration, IssueSyncMixin):
         return issue_type_meta
 
     def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'jira_integration'
         fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
         params = kwargs.get('params', {})
+        defaults = self.get_project_defaults(group.project_id)
 
-        # TODO(jess): update if we allow saving a default project key
-
+        default_project = params.get('project', defaults.get('project'))
         client = self.get_client()
+
         try:
-            resp = client.get_create_meta(params.get('project'))
+            resp = client.get_create_meta(default_project)
         except ApiUnauthorized:
             raise IntegrationError(
                 'Jira returned: Unauthorized. '
                 'Please check your configuration settings.'
+            )
+        except ApiError as exc:
+            logger.info(
+                'error-fetching-issue-config',
+                extra={
+                    'integration_id': self.model.id,
+                    'organization': group.organization.id,
+                    'error': exc.message,
+                }
+            )
+            raise IntegrationError(
+                'There was an error communicating with the Jira API. '
+                'Please try again or contact support.'
             )
 
         try:
@@ -285,9 +423,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
             )
 
         # check if the issuetype was passed as a parameter
-        issue_type = params.get('issuetype')
-
-        # TODO(jess): update if we allow specifying a default issuetype
+        issue_type = params.get('issuetype', defaults.get('issuetype'))
 
         issue_type_meta = self.get_issue_type_meta(issue_type, meta)
 
@@ -324,13 +460,16 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         # TODO(jess): are we going to allow ignored fields?
         # ignored_fields = (self.get_option('ignored_fields', group.project) or '').split(',')
-        ignored_fields = set()
+        ignored_fields = set(
+            k for k, v in six.iteritems(issue_type_meta['fields']) if v['name'] in HIDDEN_ISSUE_FIELDS['names']
+        )
+        ignored_fields.update(HIDDEN_ISSUE_FIELDS['keys'])
 
         # apply ordering to fields based on some known built-in Jira fields.
         # otherwise weird ordering occurs.
         anti_gravity = {"priority": -150, "fixVersions": -125, "components": -100, "security": -50}
 
-        dynamic_fields = issue_type_meta.get('fields').keys()
+        dynamic_fields = issue_type_meta['fields'].keys()
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
         # build up some dynamic fields based on required shit.
         for field in dynamic_fields:
@@ -347,9 +486,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 # whenever priorities are available, put the available ones in the list.
                 # allowedValues for some reason doesn't pass enough info.
                 field['choices'] = self.make_choices(client.get_priorities())
-                # TODO(jess): fix if we are going to allow default priority
-                # field['default'] = self.get_option('default_priority', group.project) or ''
-                field['default'] = ''
+                field['default'] = defaults.get('priority', '')
             elif field['name'] == 'fixVersions':
                 field['choices'] = self.make_choices(client.get_versions(meta['key']))
 
@@ -361,11 +498,11 @@ class JiraIntegration(Integration, IssueSyncMixin):
         # protect against mis-configured integration submitting a form without an
         # issuetype assigned.
         if not data.get('issuetype'):
-            raise IntegrationError('Issue Type is required.')
+            raise IntegrationFormError({'issuetype': ['Issue type is required.']})
 
         jira_project = data.get('project')
         if not jira_project:
-            raise IntegrationError('Jira project is required.')
+            raise IntegrationFormError({'project': ['Jira project is required']})
 
         meta = client.get_create_meta_for_project(jira_project)
 
@@ -485,11 +622,79 @@ class JiraIntegration(Integration, IssueSyncMixin):
             logger.info(
                 'jira.failed-to-assign',
                 extra={
+                    'organization_id': external_issue.organization_id,
                     'integration_id': external_issue.integration_id,
                     'user_id': user.id,
                     'issue_key': external_issue.key,
                 }
             )
+
+    def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
+        """
+        Propagate a sentry issue's status to a linked issue's status.
+        """
+        client = self.get_client()
+        jira_issue = client.get_issue(external_issue.key)
+        jira_project = jira_issue['fields']['project']
+
+        try:
+            external_project = IntegrationExternalProject.objects.get(
+                external_id=jira_project['id'],
+                organization_integration_id__in=OrganizationIntegration.objects.filter(
+                    organization_id=external_issue.organization_id,
+                    integration_id=external_issue.integration_id,
+                )
+            )
+        except IntegrationExternalProject.DoesNotExist:
+            return
+
+        jira_status = external_project.resolved_status if \
+            is_resolved else external_project.unresolved_status
+
+        # don't bother updating if it's already the status we'd change it to
+        if jira_issue['fields']['status']['id'] == jira_status:
+            return
+
+        transitions = client.get_transitions(external_issue.key)
+
+        try:
+            transition = [
+                t for t in transitions if t['to']['id'] == jira_status
+            ][0]
+        except IndexError:
+            # TODO(jess): Email for failure
+            logger.warning(
+                'jira.status-sync-fail',
+                extra={
+                    'organization_id': external_issue.organization_id,
+                    'integration_id': external_issue.integration_id,
+                    'issue_key': external_issue.key,
+                }
+            )
+            return
+
+        client.transition_issue(external_issue.key, transition['id'])
+
+    def _get_done_statuses(self):
+        client = self.get_client()
+        statuses = client.get_valid_statuses()
+        return {
+            s['id'] for s in statuses if s['statusCategory']['key'] == 'done'
+        }
+
+    def should_unresolve(self, data):
+        done_statuses = self._get_done_statuses()
+        c_from = data['changelog']['from']
+        c_to = data['changelog']['to']
+        return c_from in done_statuses and \
+            c_to not in done_statuses
+
+    def should_resolve(self, data):
+        done_statuses = self._get_done_statuses()
+        c_from = data['changelog']['from']
+        c_to = data['changelog']['to']
+        return c_to in done_statuses and \
+            c_from not in done_statuses
 
 
 class JiraIntegrationProvider(IntegrationProvider):
@@ -498,10 +703,12 @@ class JiraIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = JiraIntegration
 
-    features = frozenset([IntegrationFeatures.ISSUE_SYNC])
+    features = frozenset([
+        IntegrationFeatures.ISSUE_BASIC,
+        IntegrationFeatures.ISSUE_SYNC
+    ])
 
     can_add = False
-    can_add_project = True
 
     def get_pipeline_views(self):
         return []

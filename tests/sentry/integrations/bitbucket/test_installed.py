@@ -1,9 +1,16 @@
 from __future__ import absolute_import
 
+import responses
+
 from sentry.testutils import APITestCase
 from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
-from sentry.integrations.bitbucket.integration import scopes
-from sentry.models import Integration
+from sentry.integrations.bitbucket.integration import scopes, BitbucketIntegrationProvider
+from sentry.models import Integration, Repository, Project
+from sentry.plugins import plugins
+from tests.sentry.plugins.testutils import (
+    register_mock_plugins,
+    unregister_mock_plugins,
+)
 
 
 class BitbucketInstalledEndpointTest(APITestCase):
@@ -16,7 +23,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.public_key = u'123abcDEFg'
         self.shared_secret = u'G12332434SDfsjkdfgsd'
         self.base_url = u'https://api.bitbucket.org'
-        self.domain_name = u'bitbucket.org/sentryuser/'
+        self.domain_name = u'bitbucket.org/sentryuser'
         self.display_name = u'Sentry User'
         self.icon = u'https://bitbucket.org/account/sentryuser/avatar/32/'
 
@@ -63,6 +70,12 @@ class BitbucketInstalledEndpointTest(APITestCase):
             }
         }
 
+        register_mock_plugins()
+
+    def tearDown(self):
+        unregister_mock_plugins()
+        super(BitbucketInstalledEndpointTest, self).tearDown()
+
     def test_default_permissions(self):
         # Permissions must be empty so that it will be accessible to bitbucket.
         assert BitbucketInstalledEndpoint.authentication_classes == ()
@@ -80,6 +93,113 @@ class BitbucketInstalledEndpointTest(APITestCase):
         )
         assert integration.name == self.username
         assert integration.metadata == self.metadata
+
+    @responses.activate
+    def test_plugin_migration(self):
+        accessible_repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name='sentryuser/repo',
+            url='https://bitbucket.org/sentryuser/repo',
+            provider='bitbucket',
+            external_id='123456',
+            config={'name': 'sentryuser/repo'},
+        )
+
+        inaccessible_repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name='otheruser/otherrepo',
+            url='https://bitbucket.org/otheruser/otherrepo',
+            provider='bitbucket',
+            external_id='654321',
+            config={'name': 'otheruser/otherrepo'},
+        )
+
+        self.client.post(
+            self.path,
+            data=self.data_from_bitbucket
+        )
+
+        integration = Integration.objects.get(
+            provider=self.provider,
+            external_id=self.client_key,
+        )
+
+        responses.add(
+            responses.GET,
+            u'https://api.bitbucket.org/2.0/repositories/{}/hooks'.format(accessible_repo.name),
+            json={
+                'values': [{
+                    'description': 'sentry-bitbucket-repo-hook',
+                }],
+            },
+        )
+
+        with self.tasks():
+            BitbucketIntegrationProvider().post_install(
+                integration,
+                self.organization,
+            )
+
+            assert Repository.objects.get(
+                id=accessible_repo.id
+            ).integration_id == integration.id
+
+            assert Repository.objects.get(
+                id=accessible_repo.id
+            ).provider == 'integrations:bitbucket'
+
+            assert Repository.objects.get(
+                id=inaccessible_repo.id
+            ).integration_id is None
+
+    @responses.activate
+    def test_disable_plugin_when_fully_migrated(self):
+        project = Project.objects.create(
+            organization_id=self.organization.id,
+        )
+
+        plugin = plugins.get('bitbucket')
+        plugin.enable(project)
+
+        # Accessible to new Integration
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name='sentryuser/repo',
+            url='https://bitbucket.org/sentryuser/repo',
+            provider='bitbucket',
+            external_id='123456',
+            config={'name': 'sentryuser/repo'},
+        )
+
+        self.client.post(
+            self.path,
+            data=self.data_from_bitbucket,
+        )
+
+        integration = Integration.objects.get(
+            provider=self.provider,
+            external_id=self.client_key,
+        )
+
+        responses.add(
+            responses.GET,
+            u'https://api.bitbucket.org/2.0/repositories/sentryuser/repo/hooks',
+            json={
+                'values': [{
+                    'description': 'sentry-bitbucket-repo-hook',
+                }],
+            },
+        )
+
+        assert 'bitbucket' in [p.slug for p in plugins.for_project(project)]
+
+        with self.tasks():
+            BitbucketIntegrationProvider().post_install(
+                integration,
+                self.organization,
+            )
+
+            assert 'bitbucket' not in [p.slug for p in plugins.for_project(project)]
 
     def test_installed_without_public_key(self):
         integration = Integration.objects.get_or_create(

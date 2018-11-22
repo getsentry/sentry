@@ -13,6 +13,7 @@ __all__ = ('Stacktrace', )
 import re
 import six
 import posixpath
+from itertools import islice, chain
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -213,7 +214,7 @@ def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAME
     system_frames = []
     for frame in frames:
         frames_len += 1
-        if frame.in_app:
+        if frame is not None and frame.in_app:
             app_frames.append(frame)
         else:
             system_frames.append(frame)
@@ -284,8 +285,6 @@ def is_recursion(frame1, frame2):
 
 class Frame(Interface):
 
-    path = 'frame'
-
     @classmethod
     def to_python(cls, data, raw=False):
         is_valid, errors = validate_and_default_interface(data, cls.path)
@@ -324,11 +323,6 @@ class Frame(Interface):
                         filename = abs_path
                 else:
                     filename = abs_path
-
-        if not (filename or function or module or package):
-            raise InterfaceValidationError(
-                "No 'filename' or 'function' or 'module' or 'package'"
-            )
 
         platform = data.get('platform')
 
@@ -371,6 +365,7 @@ class Frame(Interface):
             'symbol': trim(symbol, 256),
             'symbol_addr': to_hex_addr(data.get('symbol_addr')),
             'instruction_addr': to_hex_addr(data.get('instruction_addr')),
+            'trust': trim(data.get('trust'), 16),
             'in_app': in_app,
             'context_line': context_line,
             # TODO(dcramer): trim pre/post_context
@@ -411,6 +406,13 @@ class Frame(Interface):
         # Safari throws [native code] frames in for calls like ``forEach``
         # whereas Chrome ignores these. Let's remove it from the hashing algo
         # so that they're more likely to group together
+        if self.filename == '<anonymous>':
+            hashable_filename = None
+        elif self.filename:
+            hashable_filename = remove_filename_outliers(self.filename, platform)
+        else:
+            hashable_filename = None
+
         if self.filename == '[native code]':
             return output
 
@@ -419,8 +421,8 @@ class Frame(Interface):
                 output.append('<module>')
             else:
                 output.append(remove_module_outliers(self.module, platform))
-        elif self.filename and not self.is_url() and not self.is_caused_by():
-            output.append(remove_filename_outliers(self.filename, platform))
+        elif hashable_filename and not self.is_url() and not self.is_caused_by():
+            output.append(hashable_filename)
 
         if self.context_line is None:
             can_use_context = False
@@ -457,40 +459,27 @@ class Frame(Interface):
 
     def get_api_context(self, is_public=False, pad_addr=None):
         data = {
-            'filename':
-            self.filename,
-            'absPath':
-            self.abs_path,
-            'module':
-            self.module,
-            'package':
-            self.package,
-            'platform':
-            self.platform,
-            'instructionAddr':
-            pad_hex_addr(self.instruction_addr, pad_addr),
-            'symbolAddr':
-            pad_hex_addr(self.symbol_addr, pad_addr),
-            'function':
-            self.function,
-            'symbol':
-            self.symbol,
-            'context':
-            get_context(
+            'filename': self.filename,
+            'absPath': self.abs_path,
+            'module': self.module,
+            'package': self.package,
+            'platform': self.platform,
+            'instructionAddr': pad_hex_addr(self.instruction_addr, pad_addr),
+            'symbolAddr': pad_hex_addr(self.symbol_addr, pad_addr),
+            'function': self.function,
+            'symbol': self.symbol,
+            'context': get_context(
                 lineno=self.lineno,
                 context_line=self.context_line,
                 pre_context=self.pre_context,
                 post_context=self.post_context,
                 filename=self.filename or self.module,
             ),
-            'lineNo':
-            self.lineno,
-            'colNo':
-            self.colno,
-            'inApp':
-            self.in_app,
-            'errors':
-            self.errors,
+            'lineNo': self.lineno,
+            'colNo': self.colno,
+            'inApp': self.in_app,
+            'trust': self.trust,
+            'errors': self.errors,
         }
         if not is_public:
             data['vars'] = self.vars
@@ -510,6 +499,34 @@ class Frame(Interface):
                 data['mapUrl'] = self.data['sourcemap']
 
         return data
+
+    def get_meta_context(self, meta, is_public=False):
+        if not meta:
+            return
+
+        return {
+            'filename': meta.get('filename'),
+            'absPath': meta.get('abs_path'),
+            'module': meta.get('module'),
+            'package': meta.get('package'),
+            'platform': meta.get('platform'),
+            'instructionAddr': meta.get('instruction_addr'),
+            'symbolAddr': meta.get('symbol_addr'),
+            'function': meta.get('function'),
+            'symbol': meta.get('symbol'),
+            'context': get_context(
+                lineno=meta.get('lineno'),
+                context_line=meta.get('context_line'),
+                pre_context=meta.get('pre_context'),
+                post_context=meta.get('post_context'),
+                filename=meta.get('filename') if self.filename else meta.get('module'),
+            ),
+            'lineNo': meta.get('lineno'),
+            'colNo': meta.get('colno'),
+            'inApp': meta.get('in_app'),
+            'trust': meta.get('trust'),
+            'errors': meta.get('errors'),
+        }
 
     def is_url(self):
         if not self.abs_path:
@@ -568,7 +585,7 @@ class Frame(Interface):
         # not necessarily be the same platform).
         if self.platform is not None:
             platform = self.platform
-        if platform in ('objc', 'cocoa'):
+        if platform in ('objc', 'cocoa', 'native'):
             return self.function or '?'
         fileloc = self.module or self.filename
         if not fileloc:
@@ -612,7 +629,7 @@ class Stacktrace(Interface):
     OR
 
     ``module``
-      Platform-specific module path (e.g. sentry.interfaces.Stacktrace)
+      Platform-specific module path (e.g. stacktrace)
 
     The following additional attributes are supported:
 
@@ -680,7 +697,6 @@ class Stacktrace(Interface):
               to the full interface path.
     """
     score = 2000
-    path = 'sentry.interfaces.Stacktrace'
 
     def __iter__(self):
         return iter(self.frames)
@@ -691,10 +707,20 @@ class Stacktrace(Interface):
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
 
-        frame_list = [
+        # Trim down the frame list to a hard limit. Leave the last frame in place in case
+        # it's useful for debugging.
+        frameiter = data.get('frames') or []
+        if len(frameiter) > settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT:
+            frameiter = chain(
+                islice(data['frames'], settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT - 1), (data['frames'][-1],))
+
+        frame_list = []
+
+        for f in frameiter:
+            if f is None:
+                continue
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            Frame.to_python(f or {}, raw=raw) for f in data['frames']
-        ]
+            frame_list.append(Frame.to_python(f or {}, raw=raw))
 
         kwargs = {
             'frames': frame_list,
@@ -704,10 +730,7 @@ class Stacktrace(Interface):
         if data.get('registers') and isinstance(data['registers'], dict):
             kwargs['registers'] = data.get('registers')
 
-        if data.get('frames_omitted'):
-            kwargs['frames_omitted'] = data['frames_omitted']
-        else:
-            kwargs['frames_omitted'] = None
+        kwargs['frames_omitted'] = data.get('frames_omitted') or None
 
         instance = cls(**kwargs)
         if slim_frames:
@@ -742,15 +765,28 @@ class Stacktrace(Interface):
             'hasSystemFrames': self.get_has_system_frames(),
         }
 
+    def get_api_meta(self, meta, is_public=False):
+        if not meta:
+            return meta
+
+        frame_meta = {}
+        for index, value in six.iteritems(meta.get('frames', {})):
+            frame = self.frames[int(index)]
+            frame_meta[index] = frame.get_api_meta(value, is_public=is_public)
+
+        return {
+            '': meta.get(''),
+            'frames': frame_meta,
+            'framesOmitted': meta.get('frames_omitted'),
+            'registers': meta.get('registers'),
+        }
+
     def to_json(self):
         return {
-            'frames': [f.to_json() for f in self.frames],
+            'frames': [f and f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
             'registers': self.registers,
         }
-
-    def get_path(self):
-        return self.path
 
     def compute_hashes(self, platform):
         system_hash = self.get_hash(platform, system_frames=True)
@@ -861,15 +897,6 @@ class Stacktrace(Interface):
                     '(%d additional frame(s) were not displayed)' % (num_frames - visible_frames, )
                 )
             )
-
-        return '\n'.join(result)
-
-    def get_traceback(self, event, newest_first=None):
-        result = [
-            event.message,
-            '',
-            self.get_stacktrace(event, newest_first=newest_first),
-        ]
 
         return '\n'.join(result)
 

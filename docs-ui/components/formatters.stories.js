@@ -8,7 +8,7 @@ import Duration from 'app/components/duration';
 import DateTime from 'app/components/dateTime';
 import Count from 'app/components/count';
 
-storiesOf('Formatters', module)
+storiesOf('Utility|Formatters', module)
   .add(
     'DateTime',
     withInfo('Formats number (in ms or seconds) into a datetime string')(() => (

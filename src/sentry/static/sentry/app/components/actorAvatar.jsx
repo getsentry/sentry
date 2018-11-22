@@ -1,11 +1,11 @@
-import Raven from 'raven-js';
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import sdk from 'app/utils/sdk';
 import Avatar from 'app/components/avatar';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
-import {Actor} from 'app/proptypes';
+import {Actor} from 'app/sentryTypes';
 
 class ActorAvatar extends React.Component {
   static propTypes = {
@@ -27,7 +27,7 @@ class ActorAvatar extends React.Component {
       return <Avatar team={team} hasTooltip {...props} />;
     }
 
-    Raven.captureException('Unknown avatar type', {
+    sdk.captureException(new Error('Unknown avatar type'), {
       extra: {actor},
     });
     return null;

@@ -242,13 +242,13 @@ class ListResolver(object):
             handler = self.__type_handlers[type(instance)]
         except KeyError:
             raise self.UnregisteredTypeError(
-                'Cannot generate mailing list identifier for {!r}'.format(instance)
+                u'Cannot generate mailing list identifier for {!r}'.format(instance)
             )
 
         label = '.'.join(map(six.binary_type, handler(instance)))
         assert is_valid_dot_atom(label)
 
-        return '{}.{}'.format(label, self.__namespace)
+        return u'{}.{}'.format(label, self.__namespace)
 
 
 default_list_type_handlers = {
@@ -395,7 +395,7 @@ class MessageBuilder(object):
         if not to:
             return ''
         if len(to) > MAX_RECIPIENTS:
-            to = to[:MAX_RECIPIENTS] + ['and {} more.'.format(len(to[MAX_RECIPIENTS:]))]
+            to = to[:MAX_RECIPIENTS] + [u'and {} more.'.format(len(to[MAX_RECIPIENTS:]))]
         return ', '.join(to)
 
     def send(self, to=None, cc=None, bcc=None, fail_silently=False):
@@ -463,6 +463,7 @@ def get_connection(fail_silently=False):
         username=options.get('mail.username'),
         password=options.get('mail.password'),
         use_tls=options.get('mail.use-tls'),
+        timeout=options.get('mail.timeout'),
         fail_silently=fail_silently,
     )
 

@@ -12,9 +12,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
-from sentry.models import Event, File, ProjectDSymFile
+from sentry.models import Event, EventAttachment, File, ProjectDebugFile
 
-from symbolic import parse_addr, Object, SymbolicError
+from symbolic import parse_addr, SymbolicError, SymCache
 
 
 class BasicResolvingIntegrationTest(TestCase):
@@ -43,7 +43,7 @@ class BasicResolvingIntegrationTest(TestCase):
         }]
 
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -70,7 +70,7 @@ class BasicResolvingIntegrationTest(TestCase):
                     "version_patchlevel": 0
                 }
             },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         'stacktrace': {
@@ -174,7 +174,6 @@ class BasicResolvingIntegrationTest(TestCase):
         self._postWithHeader(event_data)
         with self.assertWriteQueries({
             'nodestore_node': 2,
-            'sentry_environmentproject': 1,
             'sentry_eventtag': 1,
             'sentry_eventuser': 1,
             'sentry_filtervalue': 8,
@@ -189,7 +188,7 @@ class BasicResolvingIntegrationTest(TestCase):
 
         event = Event.objects.first()
 
-        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        bt = event.interfaces['exception'].values[0].stacktrace
         frames = bt.frames
 
         assert frames[0].function == '<redacted>'
@@ -214,7 +213,7 @@ class BasicResolvingIntegrationTest(TestCase):
 
         assert len(event.interfaces['threads'].values) == 1
 
-    def sym_app_frame(self, instruction_addr, img, sdk_info=None):
+    def sym_app_frame(self, instruction_addr, img, sdk_info=None, trust=None):
         object_name = (
             "/var/containers/Bundle/Application/"
             "B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
@@ -251,7 +250,7 @@ class BasicResolvingIntegrationTest(TestCase):
         )
 
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -271,13 +270,7 @@ class BasicResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
-            "contexts": {
-                "os": {
-                    "name": "iOS",
-                    "version": "9.3.0"
-                }
-            },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         "stacktrace": {
@@ -358,7 +351,7 @@ class BasicResolvingIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        bt = event.interfaces['exception'].values[0].stacktrace
         frames = bt.frames
 
         assert frames[0].function == '<redacted>'
@@ -418,7 +411,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         }]
 
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -445,7 +438,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                     "version_patchlevel": 0
                 }
             },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         'stacktrace': {
@@ -551,7 +544,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        bt = event.interfaces['exception'].values[0].stacktrace
         frames = bt.frames
 
         assert frames[0].function == '<redacted>'
@@ -576,7 +569,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
 
         assert len(event.interfaces['threads'].values) == 1
 
-    def sym_app_frame(self, instruction_addr, img, sdk_info=None):
+    def sym_app_frame(self, instruction_addr, img, sdk_info=None, trust=None):
         object_name = (
             "/var/containers/Bundle/Application/"
             "B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
@@ -613,7 +606,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         )
 
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -633,13 +626,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
-            "contexts": {
-                "os": {
-                    "name": "iOS",
-                    "version": "9.3.0"
-                }
-            },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         "stacktrace": {
@@ -720,7 +707,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        bt = event.interfaces['exception'].values[0].stacktrace
         frames = bt.frames
 
         assert frames[0].function == '<redacted>'
@@ -768,7 +755,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         # '/private/var/containers/Bundle/Application/',
         # (kscm_|kscrash_|KSCrash |SentryClient |RNSentry )
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -788,13 +775,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
-            "contexts": {
-                "os": {
-                    "name": "iOS",
-                    "version": "9.3.0"
-                }
-            },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         "stacktrace": {
@@ -909,7 +890,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        bt = event.interfaces['exception'].values[0].stacktrace
         frames = bt.frames
         assert not frames[0].in_app
         assert not frames[1].in_app
@@ -919,7 +900,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         assert frames[5].in_app
         assert frames[6].in_app
 
-    def sym_mac_app_frame(self, instruction_addr, img, sdk_info=None):
+    def sym_mac_app_frame(self, instruction_addr, img, sdk_info=None, trust=None):
         object_name = (
             "/Users/haza/Library/Developer/Xcode/Archives/2017-06-19/"
             "CrashProbe 19-06-2017, 08.53.xcarchive/Products/Applications/"
@@ -957,7 +938,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
             "CrashLib.framework/Versions/A/CrashLib"
         )
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -977,7 +958,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         "stacktrace": {
@@ -1064,7 +1045,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        bt = event.interfaces['exception'].values[0].stacktrace
         frames = bt.frames
         assert frames[0].in_app
 
@@ -1118,7 +1099,7 @@ class RealResolvingIntegrationTest(TestCase):
                     "version_patchlevel": 4,
                 }
             },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         'stacktrace': {
@@ -1141,7 +1122,7 @@ class RealResolvingIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        bt = event.interfaces['exception'].values[0].stacktrace
         frames = bt.frames
 
         assert frames[0].function == 'main'
@@ -1166,11 +1147,13 @@ class RealResolvingIntegrationTest(TestCase):
                 'dSYM/hello')
         f.close()
 
-        original_make_symcache = Object.make_symcache
+        original_make_symcache = SymCache.from_object
 
-        def broken_make_symcache(self):
+        @classmethod
+        def broken_make_symcache(cls, obj):
             raise SymbolicError('shit on fire')
-        Object.make_symcache = broken_make_symcache
+        SymCache.from_object = broken_make_symcache
+
         try:
             response = self.client.post(
                 url, {
@@ -1206,7 +1189,7 @@ class RealResolvingIntegrationTest(TestCase):
                         "version_patchlevel": 4,
                     }
                 },
-                "sentry.interfaces.Exception": {
+                "exception": {
                     "values": [
                         {
                             'stacktrace': {
@@ -1227,7 +1210,7 @@ class RealResolvingIntegrationTest(TestCase):
             for _ in range(3):
                 resp = self._postWithHeader(event_data)
                 assert resp.status_code == 200
-                event = Event.objects.get()
+                event = Event.objects.get(project_id=self.project.id)
                 errors = event.data['errors']
                 assert len(errors) == 1
                 assert errors[0] == {
@@ -1239,7 +1222,7 @@ class RealResolvingIntegrationTest(TestCase):
                 }
                 event.delete()
         finally:
-            Object.make_symcache = original_make_symcache
+            SymCache.from_object = original_make_symcache
 
     def test_debug_id_resolving(self):
         file = File.objects.create(
@@ -1252,7 +1235,7 @@ class RealResolvingIntegrationTest(TestCase):
         with open(path) as f:
             file.putfile(f)
 
-        ProjectDSymFile.objects.create(
+        ProjectDebugFile.objects.create(
             file=file,
             object_name='crash.pdb',
             cpu_name='x86',
@@ -1307,7 +1290,7 @@ class RealResolvingIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        bt = event.interfaces['exception'].values[0].stacktrace
         frames = bt.frames
 
         assert frames[0].function == 'main'
@@ -1321,7 +1304,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
 
     def test_full_mechanism(self):
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -1336,7 +1319,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
                     "version_patchlevel": 0
                 }
             },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         "stacktrace": {
@@ -1373,7 +1356,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
+        mechanism = event.interfaces['exception'].values[0].mechanism
 
         assert mechanism.type == 'mach'
         assert mechanism.meta['signal']['number'] == 6
@@ -1386,7 +1369,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
 
     def test_mechanism_name_expansion(self):
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -1401,7 +1384,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
                     "version_patchlevel": 0
                 }
             },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         "stacktrace": {
@@ -1436,7 +1419,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
+        mechanism = event.interfaces['exception'].values[0].mechanism
 
         assert mechanism.type == 'mach'
         assert mechanism.meta['signal']['number'] == 10
@@ -1450,7 +1433,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
 
     def test_legacy_mechanism(self):
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -1465,7 +1448,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
                     "version_patchlevel": 0
                 }
             },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         "stacktrace": {
@@ -1499,7 +1482,7 @@ class ExceptionMechanismIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
+        mechanism = event.interfaces['exception'].values[0].mechanism
 
         # NOTE: legacy mechanisms are always classified "generic"
         assert mechanism.type == 'generic'
@@ -1510,3 +1493,137 @@ class ExceptionMechanismIntegrationTest(TestCase):
         assert mechanism.meta['mach_exception']['code'] == 0
         assert mechanism.meta['mach_exception']['subcode'] == 0
         assert mechanism.meta['mach_exception']['name'] == 'EXC_CRASH'
+
+
+class MinidumpIntegrationTest(TestCase):
+
+    def upload_symbols(self):
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }
+        )
+
+        self.login_as(user=self.user)
+
+        out = BytesIO()
+        f = zipfile.ZipFile(out, 'w')
+        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.sym'),
+                'crash.sym')
+        f.close()
+
+        response = self.client.post(
+            url, {
+                'file':
+                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+            },
+            format='multipart'
+        )
+        assert response.status_code == 201, response.content
+        assert len(response.data) == 1
+
+    def test_full_minidump(self):
+        self.project.update_option('sentry:store_crash_reports', True)
+        self.upload_symbols()
+
+        with self.feature('organizations:event-attachments'):
+            attachment = BytesIO(b'Hello World!')
+            attachment.name = 'hello.txt'
+            with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
+                resp = self._postMinidumpWithHeader(f, {
+                    'sentry[logger]': 'test-logger',
+                    'some_file': attachment,
+                })
+                assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        bt = event.interfaces['exception'].values[0].stacktrace
+        frames = bt.frames
+        main = frames[-1]
+        assert main.function == 'main'
+        assert main.abs_path == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
+        assert main.errors is None
+        assert main.instruction_addr == '0x2a2a3d'
+
+        attachments = sorted(
+            EventAttachment.objects.filter(
+                event_id=event.event_id),
+            key=lambda x: x.name)
+        hello, minidump = attachments
+
+        assert hello.name == 'hello.txt'
+        assert hello.file.type == 'event.attachment'
+        assert hello.file.checksum == '2ef7bde608ce5404e97d5f042f95f89f1c232871'
+
+        assert minidump.name == 'windows.dmp'
+        assert minidump.file.type == 'event.minidump'
+        assert minidump.file.checksum == '74bb01c850e8d65d3ffbc5bad5cabc4668fce247'
+
+    def test_attachments_only_minidumps(self):
+        self.project.update_option('sentry:store_crash_reports', False)
+        self.upload_symbols()
+
+        with self.feature('organizations:event-attachments'):
+            attachment = BytesIO(b'Hello World!')
+            attachment.name = 'hello.txt'
+            with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
+                resp = self._postMinidumpWithHeader(f, {
+                    'sentry[logger]': 'test-logger',
+                    'some_file': attachment,
+                })
+                assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        attachments = list(EventAttachment.objects.filter(event_id=event.event_id))
+        assert len(attachments) == 1
+        hello = attachments[0]
+
+        assert hello.name == 'hello.txt'
+        assert hello.file.type == 'event.attachment'
+        assert hello.file.checksum == '2ef7bde608ce5404e97d5f042f95f89f1c232871'
+
+    def test_disabled_attachments(self):
+        self.upload_symbols()
+
+        attachment = BytesIO(b'Hello World!')
+        attachment.name = 'hello.txt'
+        with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
+            resp = self._postMinidumpWithHeader(f, {
+                'sentry[logger]': 'test-logger',
+                'some_file': attachment,
+            })
+            assert resp.status_code == 200
+
+        event = Event.objects.get()
+        attachments = list(EventAttachment.objects.filter(event_id=event.event_id))
+        assert attachments == []
+
+    def test_attachment_deletion(self):
+        event = self.create_event(
+            event_id='a' * 32,
+            message='Minidump test event',
+        )
+
+        attachment = self.create_event_attachment(event=event, name='log.txt')
+        file = attachment.file
+
+        self.login_as(self.user)
+        with self.tasks():
+            url = u'/api/0/issues/{}/'.format(event.group_id)
+            response = self.client.delete(url)
+
+        assert response.status_code == 202
+        assert not Event.objects.filter(event_id=event.event_id).exists()
+        assert not EventAttachment.objects.filter(event_id=event.event_id).exists()
+        assert not File.objects.filter(id=file.id).exists()
+
+    def test_empty_minidump(self):
+        f = BytesIO()
+        f.name = 'empty.dmp'
+        response = self._postMinidumpWithHeader(f)
+        assert response.status_code == 400
+        assert response.content == '{"error":"Empty minidump upload received"}'

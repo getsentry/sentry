@@ -73,7 +73,7 @@ def parse_unix_timestamp(value):
 
 def parse_datetime_string(value):
     # timezones are not supported and are assumed UTC
-    if value[-1] == 'Z':
+    if value[-1:] == 'Z':
         value = value[:-1]
 
     for format in [DATETIME_FORMAT_MICROSECONDS, DATETIME_FORMAT, DATE_FORMAT]:
@@ -117,32 +117,43 @@ def parse_datetime_comparison(value):
 
 def parse_datetime_value(value):
     # timezones are not supported and are assumed UTC
-    if value[-1] == 'Z':
+    if value[-1:] == 'Z':
         value = value[:-1]
+
+    result = None
 
     # A value that only specifies the date (without a time component) should be
     # expanded to an interval that spans the entire day.
-    if len(value) in (8, 10):
-        value = datetime.strptime(value, DATE_FORMAT).replace(
-            tzinfo=timezone.utc,
-        )
+    try:
+        result = datetime.strptime(value, DATE_FORMAT).replace(tzinfo=timezone.utc)
+    except ValueError:
+        pass
+    else:
         return (
-            (value, True),
-            (value + timedelta(days=1), False),
+            (result, True),
+            (result + timedelta(days=1), False),
         )
 
     # A value that contains the time should converted to an interval.
-    if value[4] == '-':
+    for format in [DATETIME_FORMAT, DATETIME_FORMAT_MICROSECONDS]:
         try:
-            value = datetime.strptime(value, DATETIME_FORMAT).replace(tzinfo=timezone.utc)
+            result = datetime.strptime(value, format).replace(tzinfo=timezone.utc)
         except ValueError:
-            value = datetime.strptime(value, DATETIME_FORMAT_MICROSECONDS).replace(tzinfo=timezone.utc)
+            pass
+        else:
+            break  # avoid entering the else clause below
     else:
-        value = parse_unix_timestamp(value)
+        try:
+            result = parse_unix_timestamp(value)
+        except ValueError:
+            pass
+
+    if result is None:
+        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
     return (
-        (value - timedelta(minutes=5), True),
-        (value + timedelta(minutes=6), False),
+        (result - timedelta(minutes=5), True),
+        (result + timedelta(minutes=6), False),
     )
 
 
@@ -162,13 +173,13 @@ def get_date_params(value, from_field, to_field):
         date_from_value, date_from_inclusive = date_from
         result.update({
             from_field: date_from_value,
-            '{}_inclusive'.format(from_field): date_from_inclusive,
+            u'{}_inclusive'.format(from_field): date_from_inclusive,
         })
     if date_to is not None:
         date_to_value, date_to_inclusive = date_to
         result.update({
             to_field: date_to_value,
-            '{}_inclusive'.format(to_field): date_to_inclusive,
+            u'{}_inclusive'.format(to_field): date_to_inclusive,
         })
     return result
 
@@ -201,38 +212,42 @@ def parse_user_value(value, user):
 numeric_modifiers = [
     (
         '>=', lambda field, value: {
-            '{}_lower'.format(field): value,
-            '{}_lower_inclusive'.format(field): True, }
+            u'{}_lower'.format(field): value,
+            u'{}_lower_inclusive'.format(field): True, }
     ),
     (
         '<=', lambda field, value: {
-            '{}_upper'.format(field): value,
-            '{}_upper_inclusive'.format(field): True, }
+            u'{}_upper'.format(field): value,
+            u'{}_upper_inclusive'.format(field): True, }
     ),
     (
         '>', lambda field, value: {
-            '{}_lower'.format(field): value,
-            '{}_lower_inclusive'.format(field): False, }
+            u'{}_lower'.format(field): value,
+            u'{}_lower_inclusive'.format(field): False, }
     ),
     (
         '<', lambda field, value: {
-            '{}_upper'.format(field): value,
-            '{}_upper_inclusive'.format(field): False, }
+            u'{}_upper'.format(field): value,
+            u'{}_upper_inclusive'.format(field): False, }
     ),
 ]
 
 
 def get_numeric_field_value(field, raw_value, type=int):
-    for modifier, function in numeric_modifiers:
-        if raw_value.startswith(modifier):
-            return function(
-                field,
-                type(raw_value[len(modifier):]),
-            )
-    else:
-        return {
-            field: type(raw_value),
-        }
+    try:
+        for modifier, function in numeric_modifiers:
+            if raw_value.startswith(modifier):
+                return function(
+                    field,
+                    type(raw_value[len(modifier):]),
+                )
+        else:
+            return {
+                field: type(raw_value),
+            }
+    except ValueError:
+        msg = u'"{}" could not be converted to a number.'.format(raw_value)
+        raise InvalidQuery(msg)
 
 
 def tokenize_query(query):

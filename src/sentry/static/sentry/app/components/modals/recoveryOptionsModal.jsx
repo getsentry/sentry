@@ -4,7 +4,7 @@ import React from 'react';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import space from 'app/styles/space';
 
@@ -40,9 +40,8 @@ class RecoveryOptionsModal extends AsyncComponent {
       obj[item.id] = item;
       return obj;
     }, {});
-
-    let smsEnrolled = sms && sms.isEnrolled;
     let recoveryEnrolled = recovery && recovery.isEnrolled;
+    let displaySmsPrompt = sms && !sms.isEnrolled && !skipSms;
 
     return (
       <React.Fragment>
@@ -58,7 +57,7 @@ class RecoveryOptionsModal extends AsyncComponent {
             {t('You should now set up recovery options to secure your account.')}
           </TextBlock>
 
-          {!skipSms && !smsEnrolled ? (
+          {displaySmsPrompt ? (
             // set up backup phone number
             <Alert type="warning">
               {t('We recommend adding a phone number as a backup 2FA method.')}
@@ -74,7 +73,7 @@ class RecoveryOptionsModal extends AsyncComponent {
           )}
         </Body>
 
-        {!skipSms && !smsEnrolled ? (
+        {displaySmsPrompt ? (
           // set up backup phone number
           <div className="modal-footer">
             <Button onClick={this.handleSkipSms} name="skipStep" autoFocus>
@@ -83,7 +82,7 @@ class RecoveryOptionsModal extends AsyncComponent {
             <Button
               priority="primary"
               onClick={closeModal}
-              to={`/settings/account/security/${sms.id}/enroll/`}
+              to={`/settings/account/security/mfa/${sms.id}/enroll/`}
               name="addPhone"
               css={{marginLeft: space(1)}}
               autoFocus
@@ -99,7 +98,7 @@ class RecoveryOptionsModal extends AsyncComponent {
               onClick={closeModal}
               to={
                 recoveryEnrolled
-                  ? `/settings/account/security/${recovery.authId}/`
+                  ? `/settings/account/security/mfa/${recovery.authId}/`
                   : '/settings/account/security/'
               }
               name="getCodes"

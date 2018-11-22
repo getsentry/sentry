@@ -4,6 +4,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
+import {loadSearchMap} from 'app/actionCreators/formSearch';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import FormSearchStore from 'app/stores/formSearchStore';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
@@ -87,6 +88,12 @@ const FormSourceContainer = withRouter(
   createReactClass({
     displayName: 'FormSourceContainer',
     mixins: [Reflux.connect(FormSearchStore, 'searchMap')],
+
+    componentDidMount() {
+      // Loads form fields
+      loadSearchMap();
+    },
+
     render() {
       return <FormSource searchMap={this.state.searchMap} {...this.props} />;
     },

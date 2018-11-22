@@ -3,6 +3,7 @@
  */
 import {withRouter} from 'react-router';
 import React from 'react';
+import Cookies from 'js-cookie';
 
 import {
   addErrorMessage,
@@ -11,8 +12,9 @@ import {
 } from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import {openRecoveryOptions} from 'app/actionCreators/modal';
+import {fetchOrganizationByMember} from 'app/actionCreators/organizations';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -24,6 +26,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 import U2fsign from 'app/components/u2fsign';
 
 const ENDPOINT = '/users/me/authenticators/';
+const PENDING_INVITE = 'pending-invite';
 
 /**
  * Retrieve additional form fields (or modify ones) based on 2fa method
@@ -119,8 +122,54 @@ class AccountSecurityEnroll extends AsyncView {
   }
 
   getEndpoints() {
-    return [['authenticator', `${ENDPOINT}${this.props.params.authId}/enroll/`]];
+    return [
+      [
+        'authenticator',
+        `${ENDPOINT}${this.props.params.authId}/enroll/`,
+        {},
+        {
+          allowError: err => {
+            let alreadyEnrolled =
+              err &&
+              err.status === 400 &&
+              err.responseJSON &&
+              err.responseJSON.details === 'Already enrolled';
+
+            if (alreadyEnrolled) {
+              this.props.router.push('/settings/account/security/');
+              addErrorMessage(t('Already enrolled'));
+              return true;
+            }
+            return false;
+          },
+        },
+      ],
+    ];
   }
+
+  componentWillMount() {
+    super.componentWillMount();
+    // If 2FA is required, a pending organization invite
+    // can be accepted once the user enrolls in 2FA
+    let invite = Cookies.get(PENDING_INVITE);
+
+    if (invite) {
+      invite = invite.split('/');
+      this.invite = {
+        memberId: invite[2],
+        token: invite[3],
+      };
+    }
+  }
+
+  loadOrganizationContext = () => {
+    if (this.invite && this.invite.memberId) {
+      fetchOrganizationByMember(this.invite.memberId, {
+        loadOrg: true,
+        setActive: true,
+      });
+    }
+  };
 
   handleFieldChange = (name, value) => {
     // This should not be used for rendering, that's why it's not in state
@@ -150,6 +199,7 @@ class AccountSecurityEnroll extends AsyncView {
       // Otherwise API will think that we are on verification step (e.g. after submitting phone)
       otp: hasSentCode ? this._form.otp || '' : undefined,
       secret: authenticator.secret,
+      ...this.invite,
     };
 
     // Only show loading when submitting OTP
@@ -177,6 +227,7 @@ class AccountSecurityEnroll extends AsyncView {
             addMessage(t('Sent code to %s', data.phone));
           } else {
             // OTP was accepted and SMS was added as a 2fa method
+            this.loadOrganizationContext();
             this.props.router.push('/settings/account/security/');
             openRecoveryOptions({
               authenticatorName: authenticator.name,
@@ -209,6 +260,7 @@ class AccountSecurityEnroll extends AsyncView {
         data: {
           ...data,
           ...this._form,
+          ...this.invite,
         },
       })
       .then(this.handleEnrollSuccess, this.handleEnrollError);
@@ -222,6 +274,7 @@ class AccountSecurityEnroll extends AsyncView {
       ...this._form,
       ...(dataModel || {}),
       secret: authenticator.secret,
+      ...this.invite,
     };
 
     this.setState({
@@ -237,6 +290,7 @@ class AccountSecurityEnroll extends AsyncView {
 
   // Handler when we successfully add a 2fa device
   handleEnrollSuccess = () => {
+    this.loadOrganizationContext();
     let authenticatorName =
       (this.state.authenticator && this.state.authenticator.name) || 'Authenticator';
     this.props.router.push('/settings/account/security');
@@ -279,6 +333,11 @@ class AccountSecurityEnroll extends AsyncView {
 
   renderBody() {
     let {authenticator} = this.state;
+
+    if (!authenticator) {
+      return null;
+    }
+
     let endpoint = `${ENDPOINT}${this.props.params.authId}/`;
 
     let fields = getFields({

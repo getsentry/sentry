@@ -19,7 +19,7 @@ class ProjectOverviewTest(AcceptanceTestCase):
             name='Bengal',
         )
         self.login_as(self.user)
-        self.path = '/{}/{}/dashboard/'.format(
+        self.path = u'/{}/{}/dashboard/'.format(
             self.org.slug, self.project.slug)
 
     def test_with_issues(self):

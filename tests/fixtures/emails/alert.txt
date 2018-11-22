@@ -14,10 +14,10 @@ Suspect Commits
 Tags
 ----
 
-* logger = javascript
+* device = Other
 * environment = prod
 * level = error
-* device = Other
+* logger = javascript
 
 
 Stacktrace
@@ -39,6 +39,12 @@ Request
 
 
 User
+-----------
+
+
+
+
+Message
 -----------
 
 

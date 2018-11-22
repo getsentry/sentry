@@ -5,7 +5,7 @@ import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import Form from 'app/views/settings/components/forms/form';
@@ -29,10 +29,7 @@ class ProjectOwnership extends AsyncView {
 
   getEndpoints() {
     let {organization, project} = this.props;
-    return [
-      ['project', `/projects/${organization.slug}/${project.slug}/`],
-      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
-    ];
+    return [['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`]];
   }
 
   renderBody() {
@@ -42,12 +39,6 @@ class ProjectOwnership extends AsyncView {
     return (
       <div>
         <SettingsPageHeader title={t('Issue Owners')} />
-
-        <div className="alert alert-block alert-info">
-          {t(`Psst! This feature is still a work-in-progress. Thanks for being an early
-          adopter!`)}
-        </div>
-
         <Panel>
           <PanelHeader>{t('Ownership Rules')}</PanelHeader>
           <PanelBody disablePadding={false}>
@@ -105,9 +96,9 @@ class ProjectOwnership extends AsyncView {
                   {
                     name: 'fallthrough',
                     type: 'boolean',
-                    label: t('All users with access to this project are owners'),
+                    label: t('All users with access to this project are issue owners'),
                     help: t(
-                      'Owners will receive notifications for issues they are responsible for.'
+                      'Issue owners will receive notifications for issues they are responsible for.'
                     ),
                   },
                 ],

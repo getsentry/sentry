@@ -1,11 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`SettingsLayout renders 1`] = `
-<React.Fragment>
+<Fragment>
   <SettingsHeader>
     <SettingsSubheader>
       <Container>
-        <withOrganizations />
+        <withOrganizations(withLatestContext(BackButton)) />
       </Container>
     </SettingsSubheader>
     <Container>
@@ -29,11 +29,9 @@ exports[`SettingsLayout renders 1`] = `
   </SettingsHeader>
   <ContentContainerWrapper>
     <Container>
-      <Content>
-        <NewSettingsWarning />
-      </Content>
+      <Content />
     </Container>
   </ContentContainerWrapper>
   <Footer />
-</React.Fragment>
+</Fragment>
 `;

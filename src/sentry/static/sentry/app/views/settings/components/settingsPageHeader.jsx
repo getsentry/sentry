@@ -35,7 +35,7 @@ class SettingsPageHeading extends React.Component {
   }
 }
 
-const Title = styled(Flex)`
+const Title = styled(Flex, {shouldForwardProp: p => p !== 'styled'})`
   ${p =>
     !p.styled &&
     `

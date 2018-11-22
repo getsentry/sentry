@@ -11,7 +11,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Commit, Repository
+from sentry.models import Commit, Integration, Repository
 from sentry.tasks.deletion import delete_repository
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -27,6 +27,7 @@ class RepositorySerializer(serializers.Serializer):
         ('visible', 'visible'),
         ('active', 'active'),
     ))
+    integrationId = serializers.IntegerField(required=False)
 
 
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
@@ -49,13 +50,30 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
         serializer = RepositorySerializer(data=request.DATA, partial=True)
 
-        if serializer.is_valid():
-            result = serializer.object
-            if result.get('status'):
-                if result['status'] in ('visible', 'active'):
-                    repo.update(status=ObjectStatus.VISIBLE)
-                else:
-                    raise NotImplementedError
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        result = serializer.object
+        update_kwargs = {}
+        if result.get('status'):
+            if result['status'] in ('visible', 'active'):
+                update_kwargs['status'] = ObjectStatus.VISIBLE
+            else:
+                raise NotImplementedError
+        if result.get('integrationId'):
+            try:
+                integration = Integration.objects.get(
+                    id=result['integrationId'],
+                    organizations=organization,
+                )
+            except Integration.DoesNotExist:
+                return Response({'detail': 'Invalid integration id'}, status=400)
+
+            update_kwargs['integration_id'] = integration.id
+            update_kwargs['provider'] = 'integrations:%s' % (integration.provider,)
+
+        if update_kwargs:
+            repo.update(**update_kwargs)
 
         return Response(serialize(repo, request.user))
 
@@ -73,7 +91,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
 
         updated = Repository.objects.filter(
             id=repo.id,
-            status=ObjectStatus.VISIBLE,
+            status__in=[ObjectStatus.VISIBLE, ObjectStatus.DISABLED],
         ).update(status=ObjectStatus.PENDING_DELETION)
         if updated:
             repo.status = ObjectStatus.PENDING_DELETION

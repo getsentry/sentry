@@ -20,7 +20,9 @@ PATH_SEPERATORS = frozenset(['/', '\\'])
 def tokenize_path(path):
     for sep in PATH_SEPERATORS:
         if sep in path:
-            return reversed(path.split(sep))
+            # Exclude empty path segments as some repository integrations
+            # start their paths with `/` which we want to ignore.
+            return reversed(filter(lambda x: x != '', path.split(sep)))
     else:
         return iter([path])
 
@@ -37,10 +39,10 @@ def score_path_match_length(path_a, path_b):
 def _get_frame_paths(event):
     data = event.data
     try:
-        frames = data['sentry.interfaces.Stacktrace']['frames']
+        frames = data['stacktrace']['frames']
     except KeyError:
         try:
-            frames = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
+            frames = data['exception']['values'][0]['stacktrace']['frames']
         except (KeyError, TypeError):
             return []  # can't find stacktrace information
 
@@ -56,10 +58,16 @@ def _get_commits(releases):
 
 
 def _get_commit_file_changes(commits, path_name_set):
+    # Get distinct file names and bail if there are no files.
+    filenames = {next(tokenize_path(path), None) for path in path_name_set}
+    filenames = {path for path in filenames if path is not None}
+    if not len(filenames):
+        return []
+
     # build a single query to get all of the commit file that might match the first n frames
     path_query = reduce(
         operator.or_,
-        (Q(filename__endswith=next(tokenize_path(path))) for path in path_name_set)
+        (Q(filename__endswith=path) for path in filenames)
     )
 
     commit_file_change_matches = CommitFileChange.objects.filter(

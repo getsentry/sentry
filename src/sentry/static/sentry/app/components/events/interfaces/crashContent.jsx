@@ -4,7 +4,7 @@ import React from 'react';
 import ErrorBoundary from 'app/components/errorBoundary';
 import ExceptionContent from 'app/components/events/interfaces/exceptionContent';
 import RawExceptionContent from 'app/components/events/interfaces/rawExceptionContent';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 

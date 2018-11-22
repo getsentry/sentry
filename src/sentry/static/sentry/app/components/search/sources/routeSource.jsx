@@ -3,10 +3,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
+import SentryTypes from 'app/sentryTypes';
 import accountSettingsNavigation from 'app/views/settings/account/navigationConfiguration';
 import organizationSettingsNavigation from 'app/views/settings/organization/navigationConfiguration';
 import projectSettingsNavigation from 'app/views/settings/project/navigationConfiguration';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
+import withLatestContext from 'app/utils/withLatestContext';
 
 // navigation configuration can currently be either:
 // * an array of {name: string, items: Array<{NavItem}>} OR
@@ -14,16 +16,10 @@ import replaceRouterParams from 'app/utils/replaceRouterParams';
 //   (some navigation items require additional context, e.g. a badge based on a `project` property)
 //
 // We need to go through all navigation configurations and get a flattened list of all navigation item objects
-const navigationItems = flattenDepth(
-  [
-    accountSettingsNavigation,
-    projectSettingsNavigation,
-    organizationSettingsNavigation,
-  ].map(config =>
-    (Array.isArray(config) ? config : config({project: {}})).map(({items}) => items)
-  ),
-  2
-);
+const mapFunc = (config, context = {}) =>
+  (Array.isArray(config) ? config : config(context)).map(({items}) =>
+    items.filter(({show, ...rest}) => (typeof show === 'function' ? show(context) : true))
+  );
 
 class RouteSource extends React.Component {
   static propTypes = {
@@ -35,6 +31,9 @@ class RouteSource extends React.Component {
 
     // Array of routes to search
     searchMap: PropTypes.array,
+
+    organization: SentryTypes.Organization,
+    project: SentryTypes.Project,
 
     /**
      * Render function that passes:
@@ -50,17 +49,43 @@ class RouteSource extends React.Component {
     searchOptions: {},
   };
 
-  constructor(...args) {
-    super(...args);
+  constructor(props) {
+    super(props);
 
     this.state = {
       fuzzy: null,
     };
 
-    this.createSearch(navigationItems);
+    this.createSearch();
   }
 
-  async createSearch(searchMap) {
+  componentDidUpdate(prevProps) {
+    if (
+      prevProps.project === this.props.project &&
+      prevProps.organization === this.props.organization
+    )
+      return;
+
+    this.createSearch();
+  }
+
+  async createSearch() {
+    let {project, organization} = this.props;
+    const searchMap = flattenDepth(
+      [
+        mapFunc(accountSettingsNavigation),
+        mapFunc(projectSettingsNavigation, {
+          project: project || {},
+          features: new Set((project && project.features) || []),
+        }),
+        mapFunc(organizationSettingsNavigation, {
+          organization: organization || {},
+          access: new Set((organization && organization.access) || []),
+          features: new Set((organization && organization.features) || []),
+        }),
+      ],
+      2
+    );
     this.setState({
       fuzzy: await createFuzzySearch(searchMap || [], {
         ...this.props.searchOptions,
@@ -93,4 +118,5 @@ class RouteSource extends React.Component {
   }
 }
 
-export default RouteSource;
+export default withLatestContext(RouteSource);
+export {RouteSource};

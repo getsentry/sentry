@@ -10,7 +10,7 @@ from sentry.testutils import TestCase
 class GroupEventJsonTest(TestCase):
     @fixture
     def path(self):
-        return '/{}/{}/issues/{}/events/{}/json/'.format(
+        return u'/{}/{}/issues/{}/events/{}/json/'.format(
             self.organization.slug,
             self.project.slug,
             self.group.id,
@@ -23,4 +23,4 @@ class GroupEventJsonTest(TestCase):
         assert resp.status_code == 200
         assert resp['Content-Type'] == 'application/json'
         data = json.loads(resp.content.decode('utf-8'))
-        assert data['id'] == self.event.event_id
+        assert data['event_id'] == self.event.event_id

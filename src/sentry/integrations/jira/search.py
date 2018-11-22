@@ -4,13 +4,12 @@ from six.moves.urllib.parse import parse_qs, unquote_plus, urlencode, urlsplit, 
 
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.models import Integration
 
 
-class JiraSearchEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationPermission, )
+class JiraSearchEndpoint(IntegrationEndpoint):
 
     def _get_formatted_user(self, user):
         display = '%s %s(%s)' % (
@@ -40,12 +39,15 @@ class JiraSearchEndpoint(OrganizationEndpoint):
         if not query:
             return Response({'detail': 'query is a required parameter'}, status=400)
 
-        installation = integration.get_installation()
+        installation = integration.get_installation(organization.id)
 
         if field == 'externalIssue':
             if not query:
                 return Response([])
-            resp = installation.search_issues(query)
+            try:
+                resp = installation.search_issues(query)
+            except IntegrationError as exc:
+                return Response({'detail': exc.message}, status=400)
             return Response([{
                 'label': '(%s) %s' % (i['key'], i['fields']['summary']),
                 'value': i['key']

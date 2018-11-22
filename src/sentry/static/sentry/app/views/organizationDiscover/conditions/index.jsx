@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from 'react-emotion';
 import {Box} from 'grid-emotion';
 
 import Link from 'app/components/link';
@@ -8,27 +7,17 @@ import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import Condition from './condition';
-import {PlaceholderText, SelectListItem} from '../styles';
+import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
 
 export default class Conditions extends React.Component {
   static propTypes = {
     value: PropTypes.arrayOf(PropTypes.array).isRequired,
     onChange: PropTypes.func.isRequired,
-    columns: PropTypes.array,
+    columns: PropTypes.array.isRequired,
+    disabled: PropTypes.bool,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      editIndex: null,
-    };
-  }
-
   addRow() {
-    const idx = this.props.value.length;
-    this.setState({
-      editIndex: idx,
-    });
     this.props.onChange([...this.props.value, [null, null, null]]);
   }
 
@@ -47,25 +36,28 @@ export default class Conditions extends React.Component {
   }
 
   render() {
-    const {value, columns} = this.props;
+    const {value, columns, disabled} = this.props;
 
     return (
       <div>
         <div>
-          <strong>{t('Conditions')}</strong>
-          <Add>
-            (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
-          </Add>
+          <SidebarLabel>{t('Conditions')}</SidebarLabel>
+          {!disabled && (
+            <AddText>
+              (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
+            </AddText>
+          )}
         </div>
         {!value.length && (
           <PlaceholderText>{t('None, showing all events')}</PlaceholderText>
         )}
         {value.map((condition, idx) => (
-          <SelectListItem key={idx}>
+          <SelectListItem key={`${idx}_${condition[2]}`}>
             <Condition
               value={condition}
               onChange={val => this.handleChange(val, idx)}
               columns={columns}
+              disabled={disabled}
             />
             <Box ml={1}>
               <a onClick={() => this.removeRow(idx)}>
@@ -78,12 +70,3 @@ export default class Conditions extends React.Component {
     );
   }
 }
-
-const Add = styled.span`
-  font-style: italic;
-  text-decoration: underline;
-  margin-left: 4px;
-  font-size: 13px;
-  line-height: 16px;
-  color: ${p => p.theme.gray1};
-`;

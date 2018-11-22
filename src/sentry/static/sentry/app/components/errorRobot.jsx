@@ -4,8 +4,10 @@ import {Link, browserHistory} from 'react-router';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {analytics} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import {t} from 'app/locale';
+import {sendSampleEvent} from 'app/actionCreators/projects';
 
 const ErrorRobot = createReactClass({
   displayName: 'ErrorRobot',
@@ -66,12 +68,15 @@ const ErrorRobot = createReactClass({
 
   createSampleEvent() {
     let {org, project} = this.props;
-    let url = `/projects/${org.slug}/${project.slug}/create-sample/`;
-    this.api.request(url, {
-      method: 'POST',
-      success: data => {
-        browserHistory.push(`/${org.slug}/${project.slug}/issues/${data.groupID}/`);
-      },
+
+    analytics('sample_event.created', {
+      org_id: parseInt(org.id, 10),
+      project_id: parseInt(project.id, 10),
+      source: 'robot',
+    });
+
+    sendSampleEvent(this.api, org.slug, project.slug).then(data => {
+      browserHistory.push(`/${org.slug}/${project.slug}/issues/${data.groupID}/`);
     });
   },
 

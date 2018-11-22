@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';
+import sdk from 'app/utils/sdk';
 
 class DropdownMenu extends React.Component {
   static propTypes = {
@@ -34,6 +34,9 @@ class DropdownMenu extends React.Component {
     // This will change where we attach event handlers
     alwaysRenderMenu: PropTypes.bool,
 
+    // closes menu on "Esc" keypress
+    closeOnEscape: PropTypes.bool,
+
     /**
      * If this is set to true, the dropdown behaves as a "nested dropdown" and is
      * triggered on mouse enter and mouse leave
@@ -43,6 +46,7 @@ class DropdownMenu extends React.Component {
 
   static defaultProps = {
     keepMenuOpen: false,
+    closeOnEscape: true,
   };
 
   constructor(...args) {
@@ -74,7 +78,7 @@ class DropdownMenu extends React.Component {
 
     if (!this.dropdownActor) {
       // Log an error, should be lower priority
-      Raven.captureException(new Error('DropdownMenu does not have "Actor" attached'), {
+      sdk.captureException(new Error('DropdownMenu does not have "Actor" attached'), {
         level: 'warning',
       });
     }
@@ -143,7 +147,7 @@ class DropdownMenu extends React.Component {
         }, MENU_CLOSE_DELAY);
       }
     } catch (err) {
-      Raven.captureException(err, {
+      sdk.captureException(err, {
         event: e,
         toElement: e.toElement,
         relatedTarget: e.relatedTarget,
@@ -215,8 +219,10 @@ class DropdownMenu extends React.Component {
   getRootProps = props => props;
 
   // Actor is the component that will open the dropdown menu
-  getActorProps = ({onClick, onMouseEnter, onMouseLeave, isStyled, ...props} = {}) => {
-    let {isNestedDropdown} = this.props;
+  getActorProps = (
+    {onClick, onMouseEnter, onMouseLeave, onKeyDown, isStyled, style, ...props} = {}
+  ) => {
+    let {isNestedDropdown, closeOnEscape} = this.props;
 
     // Props that the actor needs to have <DropdownMenu> work
     //
@@ -224,7 +230,22 @@ class DropdownMenu extends React.Component {
     return {
       ...props,
       ...((isStyled && {innerRef: this.handleActorMount}) || {}),
+      style: {
+        ...(style || {}),
+        outline: 'none',
+      },
       ref: !isStyled ? this.handleActorMount : undefined,
+      tabIndex: -1,
+      onKeyDown: e => {
+        if (typeof onKeyDown === 'function') {
+          onKeyDown(e);
+        }
+
+        if (e.key === 'Escape' && closeOnEscape) {
+          this.handleClose(e);
+        }
+      },
+
       onMouseEnter: (...args) => {
         if (typeof onMouseEnter === 'function') {
           onMouseEnter(...args);

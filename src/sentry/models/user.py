@@ -211,7 +211,7 @@ class User(BaseModel, AbstractBaseUser):
         from sentry import roles
         from sentry.models import (
             Activity, AuditLogEntry, AuthIdentity, Authenticator, GroupAssignee, GroupBookmark, GroupSeen,
-            GroupShare, GroupSubscription, OrganizationMember, OrganizationMemberTeam, UserAvatar,
+            GroupShare, GroupSubscription, Identity, OrganizationMember, OrganizationMemberTeam, UserAvatar,
             UserEmail, UserOption,
         )
 
@@ -249,7 +249,7 @@ class User(BaseModel, AbstractBaseUser):
 
         model_list = (
             Authenticator, GroupAssignee, GroupBookmark, GroupSeen, GroupShare,
-            GroupSubscription, UserAvatar, UserEmail, UserOption,
+            GroupSubscription, Identity, UserAvatar, UserEmail, UserOption,
         )
 
         for model in model_list:
@@ -302,8 +302,17 @@ class User(BaseModel, AbstractBaseUser):
             ).values('organization'),
         )
 
+    def get_orgs_require_2fa(self):
+        from sentry.models import (Organization, OrganizationStatus)
+        return Organization.objects.filter(
+            flags=models.F('flags').bitor(Organization.flags.require_2fa),
+            status=OrganizationStatus.VISIBLE,
+            member_set__user=self,
+        )
+
     def clear_lost_passwords(self):
         LostPasswordHash.objects.filter(user=self).delete()
+
 
 # HACK(dcramer): last_login needs nullable for Django 1.8
 User._meta.get_field('last_login').null = True

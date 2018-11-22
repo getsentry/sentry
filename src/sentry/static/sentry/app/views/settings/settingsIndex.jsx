@@ -13,7 +13,7 @@ import Link from 'app/components/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import SettingsLayout from 'app/views/settings/components/settingsLayout';
 import withLatestContext from 'app/utils/withLatestContext';
 
@@ -99,7 +99,7 @@ class SettingsIndex extends React.Component {
             <Box w={1 / 3} px={2}>
               {/* if admin */}
               <Panel>
-                {!organization && <LoadingIndicator overlay />}
+                {!organization && <LoadingIndicator overlay hideSpinner />}
                 <HomePanelHeader>
                   <HomeLinkIcon to={organizationSettingsUrl}>
                     {organization ? (
@@ -112,7 +112,7 @@ class SettingsIndex extends React.Component {
                       </HomeIcon>
                     )}
                     <OrganizationName css={{lineHeight: '1.1em'}}>
-                      {organization ? organization.slug : t('Organization')}
+                      {organization ? organization.slug : t('No Organization')}
                     </OrganizationName>
                   </HomeLinkIcon>
                 </HomePanelHeader>

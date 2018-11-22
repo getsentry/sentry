@@ -1,0 +1,258 @@
+from __future__ import absolute_import
+
+from django.http import Http404
+
+from sentry.utils.sdk import configure_scope
+from sentry.api.authentication import ClientIdSecretAuthentication
+from sentry.api.base import Endpoint
+from sentry.api.permissions import SentryPermission
+from sentry.models import SentryApp, SentryAppInstallation, Organization
+
+
+def ensure_scoped_permission(request, allowed_scopes):
+    """
+    Verifies the User making the request has at least one required scope for
+    the endpoint being requested.
+
+    If no scopes were specified in a ``scope_map``, it means the endpoint should
+    not be accessible. That is, this function expects every accessible endpoint
+    to have a list of scopes.
+
+    That list of scopes may be empty, implying that the User does not need any
+    specific scope and the endpoint is public.
+    """
+    # If no scopes were found at all, the endpoint should not be accessible.
+    if allowed_scopes is None:
+        return False
+
+    # If there are no scopes listed, it implies a public endpoint.
+    if len(allowed_scopes) == 0:
+        return True
+
+    return any(request.access.has_scope(s) for s in set(allowed_scopes))
+
+
+class SentryAppsPermission(SentryPermission):
+    scope_map = {
+        'GET': (),  # Public endpoint.
+        'POST': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
+    }
+
+    def has_object_permission(self, request, view, organization):
+        if not hasattr(request, 'user') or not request.user:
+            return False
+
+        self.determine_access(request, organization)
+
+        if request.user.is_superuser:
+            return True
+
+        # User must be a part of the Org they're trying to create the app in.
+        if organization not in request.user.get_orgs():
+            raise Http404
+
+        return ensure_scoped_permission(
+            request,
+            self.scope_map.get(request.method),
+        )
+
+
+class SentryAppsBaseEndpoint(Endpoint):
+    permission_classes = (SentryAppsPermission, )
+
+    def convert_args(self, request, *args, **kwargs):
+        # This baseclass is the the SentryApp collection endpoints:
+        #
+        #       [GET, POST] /sentry-apps
+        #
+        # The GET endpoint is public and doesn't require (or handle) any query
+        # params or request body.
+        #
+        # The POST endpoint is for creating a Sentry App. Part of that creation
+        # is associating it with the Organization that it's created within.
+        #
+        # So in the case of POST requests, we want to pull the Organization out
+        # of the request body so that we can ensure the User making the request
+        # has access to it.
+        #
+        # Since ``convert_args`` is conventionally where you materialize model
+        # objects from URI params, we're applying the same logic for a param in
+        # the request body.
+        #
+        if not request.json_body or 'organization' not in request.json_body:
+            return (args, kwargs)
+
+        organization = request.user.get_orgs().get(
+            slug=request.json_body['organization'],
+        )
+
+        self.check_object_permissions(request, organization)
+
+        kwargs['organization'] = organization
+        return (args, kwargs)
+
+
+class SentryAppPermission(SentryPermission):
+    unpublished_scope_map = {
+        'GET': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
+        'PUT': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
+        'DELETE': ('org:write', 'org:admin'),
+    }
+
+    published_scope_map = {
+        'GET': (),  # Public endpoint.
+        'PUT': ('org:write', 'org:admin'),
+        'DELETE': ('org:admin'),
+    }
+
+    def has_object_permission(self, request, view, sentry_app):
+        if not hasattr(request, 'user') or not request.user:
+            return False
+
+        self.determine_access(request, sentry_app.owner)
+
+        if request.user.is_superuser:
+            return True
+
+        # User must be in the Org who owns the app.
+        if sentry_app.owner not in request.user.get_orgs():
+            raise Http404
+
+        return ensure_scoped_permission(
+            request,
+            self._scopes_for_sentry_app(sentry_app).get(request.method),
+        )
+
+    def _scopes_for_sentry_app(self, sentry_app):
+        if sentry_app.is_published:
+            return self.published_scope_map
+        else:
+            return self.unpublished_scope_map
+
+
+class SentryAppBaseEndpoint(Endpoint):
+    permission_classes = (SentryAppPermission, )
+
+    def convert_args(self, request, sentry_app_slug, *args, **kwargs):
+        try:
+            sentry_app = SentryApp.objects.get(
+                slug=sentry_app_slug,
+            )
+        except SentryApp.DoesNotExist:
+            raise Http404
+
+        self.check_object_permissions(request, sentry_app)
+
+        with configure_scope() as scope:
+            scope.set_tag("sentry_app", sentry_app.slug)
+
+        kwargs['sentry_app'] = sentry_app
+        return (args, kwargs)
+
+
+class SentryAppInstallationsPermission(SentryPermission):
+    scope_map = {
+        'GET': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
+        'POST': ('org:integrations', 'org:write', 'org:admin'),
+    }
+
+    def has_object_permission(self, request, view, organization):
+        if not hasattr(request, 'user') or not request.user:
+            return False
+
+        self.determine_access(request, organization)
+
+        if request.user.is_superuser:
+            return True
+
+        if organization not in request.user.get_orgs():
+            raise Http404
+
+        return ensure_scoped_permission(
+            request,
+            self.scope_map.get(request.method),
+        )
+
+
+class SentryAppInstallationsBaseEndpoint(Endpoint):
+    permission_classes = (SentryAppInstallationsPermission, )
+
+    def convert_args(self, request, organization_slug, *args, **kwargs):
+        if request.user.is_superuser:
+            organizations = Organization.objects.all()
+        else:
+            organizations = request.user.get_orgs()
+
+        try:
+            organization = organizations.get(slug=organization_slug)
+        except Organization.DoesNotExist:
+            raise Http404
+
+        self.check_object_permissions(request, organization)
+
+        kwargs['organization'] = organization
+        return (args, kwargs)
+
+
+class SentryAppInstallationPermission(SentryPermission):
+    scope_map = {
+        'GET': ('org:read', 'org:integrations', 'org:write', 'org:admin'),
+        'DELETE': ('org:integrations', 'org:write', 'org:admin'),
+    }
+
+    def has_object_permission(self, request, view, installation):
+        if not hasattr(request, 'user') or not request.user:
+            return False
+
+        self.determine_access(request, installation.organization)
+
+        if request.user.is_superuser:
+            return True
+
+        if installation.organization not in request.user.get_orgs():
+            raise Http404
+
+        return ensure_scoped_permission(
+            request,
+            self.scope_map.get(request.method),
+        )
+
+
+class SentryAppInstallationBaseEndpoint(Endpoint):
+    permission_classes = (SentryAppInstallationPermission, )
+
+    def convert_args(self, request, uuid, *args, **kwargs):
+        try:
+            installation = SentryAppInstallation.objects.get(
+                uuid=uuid,
+            )
+        except SentryAppInstallation.DoesNotExist:
+            raise Http404
+
+        self.check_object_permissions(request, installation)
+
+        with configure_scope() as scope:
+            scope.set_tag("sentry_app_installation", installation.uuid)
+
+        kwargs['installation'] = installation
+        return (args, kwargs)
+
+
+class SentryAppAuthorizationsPermission(SentryPermission):
+    def has_object_permission(self, request, view, installation):
+        if not hasattr(request, 'user') or not request.user:
+            return False
+
+        self.determine_access(request, installation.organization)
+
+        if not request.user.is_sentry_app:
+            return False
+
+        # Request must be made as the app's Proxy User, using their Client ID
+        # and Secret.
+        return request.user == installation.sentry_app.proxy_user
+
+
+class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
+    authentication_classes = (ClientIdSecretAuthentication, )
+    permission_classes = (SentryAppAuthorizationsPermission, )

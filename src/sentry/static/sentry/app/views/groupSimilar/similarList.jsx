@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Group} from 'app/proptypes';
+import {Group} from 'app/sentryTypes';
 import {t} from 'app/locale';
 import Pagination from 'app/components/pagination';
 import QueryCount from 'app/components/queryCount';

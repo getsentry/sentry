@@ -4,9 +4,9 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import {defined} from 'app/utils';
-import {pulse, fadeOut} from 'app/styles/animations';
+import {pulse, fadeOut, slideInUp} from 'app/styles/animations';
 import {t} from 'app/locale';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import Field from 'app/views/settings/components/forms/field';
 import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
 import FormState from 'app/components/forms/state';
@@ -19,6 +19,8 @@ import space from 'app/styles/space';
 const FormFieldErrorReason = styled.div`
   color: ${p => p.theme.redDark};
   position: absolute;
+  right: 2px;
+  margin-top: 6px;
   background: #fff;
   padding: 6px 8px;
   font-weight: 600;
@@ -26,6 +28,23 @@ const FormFieldErrorReason = styled.div`
   border-radius: 3px;
   box-shadow: 0 0 0 1px rgba(64, 11, 54, 0.15), 0 4px 20px 0 rgba(64, 11, 54, 0.36);
   z-index: 10000;
+  animation: ${slideInUp} 200ms ease-in-out forwards;
+
+  &:before,
+  &:after {
+    content: '';
+    border: 7px solid transparent;
+    border-bottom-color: #fff;
+    position: absolute;
+    top: -14px;
+    right: 9px;
+  }
+
+  &:before {
+    margin-top: -1px;
+    border-bottom-color: rgba(64, 11, 54, 0.15);
+    filter: drop-shadow(0 -2px 5px rgba(64, 11, 54, 1));
+  }
 `;
 
 const FormFieldError = styled.div`
@@ -158,6 +177,13 @@ class MockModel {
     return false;
   }
 }
+
+/**
+ * This is a list of field properties that can accept a function taking the
+ * form model, that will be called to determine the value of the prop upon an
+ * observed change in the model.
+ */
+const propsToObserver = ['inline', 'highlighted'];
 
 class FormField extends React.Component {
   static propTypes = {
@@ -336,9 +362,16 @@ class FormField extends React.Component {
     let model = this.getModel();
     let saveOnBlurFieldOverride = typeof saveOnBlur !== 'undefined' && !saveOnBlur;
 
-    return (
+    const makeField = extraProps => (
       <React.Fragment>
-        <Field id={id} name={name} className={className} {...props}>
+        <Field
+          id={id}
+          name={name}
+          className={className}
+          flexibleControlStateSize={flexibleControlStateSize}
+          {...props}
+          {...extraProps}
+        >
           {({alignRight, inline, disabled, disabledReason}) => (
             <FieldControl
               disabled={disabled}
@@ -366,23 +399,21 @@ class FormField extends React.Component {
 
                   return (
                     <React.Fragment>
-                      <this.props.children
-                        innerRef={this.handleInputMount}
-                        {...{
-                          ...props,
-                          name,
-                          id,
-                          onKeyDown: this.handleKeyDown,
-                          onChange: this.handleChange,
-                          onBlur: this.handleBlur,
-                          // Fixes react warnings about input switching from controlled to uncontrolled
-                          // So force to empty string for null values
-                          value: value === null ? '' : value,
-                          error,
-                          disabled,
-                        }}
-                        initialData={model.initialData}
-                      />
+                      {this.props.children({
+                        innerRef: this.handleInputMount,
+                        ...props,
+                        name,
+                        id,
+                        onKeyDown: this.handleKeyDown,
+                        onChange: this.handleChange,
+                        onBlur: this.handleBlur,
+                        // Fixes react warnings about input switching from controlled to uncontrolled
+                        // So force to empty string for null values
+                        value: value === null ? '' : value,
+                        error,
+                        disabled,
+                        initialData: model.initialData,
+                      })}
                       {showReturnButton && <ReturnButtonStyled />}
                     </React.Fragment>
                   );
@@ -422,6 +453,19 @@ class FormField extends React.Component {
         )}
       </React.Fragment>
     );
+
+    const observedProps = propsToObserver
+      .filter(p => typeof this.props[p] === 'function')
+      .map(p => [p, () => this.props[p](model)]);
+
+    // This field has no properties that require observation to compute their
+    // value, this field is static and will not be re-rendered.
+    if (observedProps.length === 0) return makeField();
+
+    const reducer = (a, [prop, fn]) => ({...a, [prop]: fn()});
+    const observedPropsFn = () => makeField(observedProps.reduce(reducer, {}));
+
+    return <Observer>{observedPropsFn}</Observer>;
   }
 }
 

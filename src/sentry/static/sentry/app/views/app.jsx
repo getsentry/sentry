@@ -202,7 +202,7 @@ const App = createReactClass({
           <Alerts className="messages-container" />
           <Indicators className="indicators-container" />
           <ErrorBoundary>{this.renderBody()}</ErrorBoundary>
-          {ConfigStore.get('features').has('assistant') && <AssistantHelper />}
+          <AssistantHelper />
         </div>
       </ThemeProvider>
     );

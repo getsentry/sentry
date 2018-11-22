@@ -24,6 +24,7 @@ class RangeSlider extends React.Component {
      */
     value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     step: PropTypes.number,
+    disabled: PropTypes.bool,
     onChange: PropTypes.func,
 
     /**
@@ -112,7 +113,7 @@ class RangeSlider extends React.Component {
   };
 
   render() {
-    let {name, min, max, step, allowedValues, formatLabel} = this.props;
+    let {name, min, max, step, disabled, allowedValues, formatLabel} = this.props;
     let {sliderValue} = this.state;
     let actualValue = sliderValue;
     let displayValue = actualValue;
@@ -138,6 +139,7 @@ class RangeSlider extends React.Component {
           min={min}
           max={max}
           step={step}
+          disabled={disabled}
           onInput={this.handleInput}
           onChange={() => {}}
           onMouseUp={this.handleBlur}
@@ -248,6 +250,35 @@ const Slider = styled.input`
 
     &::-ms-fill-lower {
       background: ${p => p.theme.borderDark};
+    }
+  }
+
+  &[disabled] {
+    &::-webkit-slider-thumb {
+      background: ${p => p.theme.gray6};
+      cursor: default;
+    }
+
+    &::-moz-range-thumb {
+      background: ${p => p.theme.gray6};
+      cursor: default;
+    }
+
+    &::-ms-thumb {
+      background: ${p => p.theme.gray6};
+      cursor: default;
+    }
+
+    &::-webkit-slider-runnable-track {
+      cursor: default;
+    }
+
+    &::-moz-range-track {
+      cursor: default;
+    }
+
+    &::-ms-track {
+      cursor: default;
     }
   }
 `;

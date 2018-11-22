@@ -1,11 +1,13 @@
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
+import styled from 'react-emotion';
 
+import {isWebpackChunkLoadingError} from 'app/utils';
 import {t} from 'app/locale';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import retryableImport from 'app/utils/retryableImport';
+import sdk from 'app/utils/sdk';
 
 class LazyLoad extends React.Component {
   static propTypes = {
@@ -59,32 +61,41 @@ class LazyLoad extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    this.handleFetchError(error);
+    sdk.captureException(error);
+    this.handleError(error);
   }
 
   getComponentGetter = () => this.props.component || this.props.route.componentPromise;
 
   handleFetchError = error => {
+    let options = isWebpackChunkLoadingError(error)
+      ? {fingerprint: ['webpack', 'error loading chunk']}
+      : {};
+
+    sdk.captureException(error, options);
+    this.handleError(error);
+  };
+
+  handleError = error => {
     // eslint-disable-next-line no-console
     console.error(error);
-    Raven.captureException(error, {fingerprint: ['webpack', 'error loading chunk']});
     this.setState({
       error,
     });
   };
 
-  fetchComponent = () => {
+  async fetchComponent() {
     let getComponent = this.getComponentGetter();
 
-    retryableImport(getComponent)
-      .then(Component => {
-        // Always load default export if available
-        this.setState({
-          Component: Component.default || Component,
-        });
-      }, this.handleFetchError)
-      .catch(this.handleFetchError);
-  };
+    try {
+      const Component = await retryableImport(getComponent);
+      this.setState({
+        Component: Component.default || Component,
+      });
+    } catch (err) {
+      this.handleFetchError(err);
+    }
+  }
 
   fetchRetry = () => {
     this.setState(
@@ -102,17 +113,35 @@ class LazyLoad extends React.Component {
 
     if (error && !hideError) {
       return (
-        <LoadingError
-          onRetry={this.fetchRetry}
-          message={t('There was an error loading a component.')}
-        />
+        <LoadingErrorContainer>
+          <LoadingError
+            onRetry={this.fetchRetry}
+            message={t('There was an error loading a component.')}
+          />
+        </LoadingErrorContainer>
       );
     }
 
-    if (!Component && !hideBusy) return <LoadingIndicator />;
+    if (!Component && !hideBusy) {
+      return (
+        <LoadingContainer>
+          <LoadingIndicator />
+        </LoadingContainer>
+      );
+    }
 
     return <Component {...otherProps} />;
   }
 }
+
+const LoadingContainer = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+`;
+
+const LoadingErrorContainer = styled('div')`
+  flex: 1;
+`;
 
 export default LazyLoad;

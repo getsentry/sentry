@@ -3,14 +3,26 @@ Hacks for the Django 1.0/1.0.2 releases.
 """
 
 import django
+import six
+
+
+from collections import defaultdict, OrderedDict
 from django.conf import settings
-from django.db.backends.creation import BaseDatabaseCreation
+try:
+    from django.db.backends.creation import BaseDatabaseCreation
+except ImportError:
+    from django.db.backends.base.creation import BaseDatabaseCreation
 from django.db.models.loading import cache
 from django.core import management
 from django.core.management.commands.flush import Command as FlushCommand
 from django.utils.datastructures import SortedDict
 
-from south.utils.py3 import string_types
+from south.constants import DJANGO_17
+
+if DJANGO_17:
+    from django.apps.registry import apps
+else:
+    apps = None
 
 
 class SkipFlushCommand(FlushCommand):
@@ -20,7 +32,6 @@ class SkipFlushCommand(FlushCommand):
 
 
 class Hacks:
-
     def set_installed_apps(self, apps):
         """
         Sets Django's INSTALLED_APPS setting to be effectively the list passed in.
@@ -65,20 +76,33 @@ class Hacks:
         Clears the contents of AppCache to a blank state, so new models
         from the ORM can be added.
         """
-        self.old_app_models, cache.app_models = cache.app_models, {}
+        # Django 1.7+ throws a runtime error in some situations due to model validation:
+        # >>> RuntimeError: Conflicting 'user' models in application 'sentry': <class 'sentry.models.user.User'> and <class 'sentry.models.User'>.
+        if DJANGO_17:
+            self.old_app_models, apps.all_models = apps.all_models, defaultdict(OrderedDict)
+            apps.clear_cache()
+        else:
+            self.old_app_models, cache.app_models = cache.app_models, {}
 
     def unclear_app_cache(self):
         """
         Reversed the effects of clear_app_cache.
         """
-        cache.app_models = self.old_app_models
-        cache._get_models_cache = {}
+        if DJANGO_17:
+            apps.all_models = self.old_app_models
+            apps.clear_cache()
+        else:
+            cache.app_models = self.old_app_models
+            cache._get_models_cache = {}
 
     def repopulate_app_cache(self):
         """
         Rebuilds AppCache with the real model definitions.
         """
-        cache._populate()
+        if DJANGO_17:
+            apps.clear_cache()
+        else:
+            cache._populate()
 
     def store_app_cache_state(self):
         self.stored_app_cache_state = dict(**cache.__dict__)

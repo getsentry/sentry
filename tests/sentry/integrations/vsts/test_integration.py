@@ -1,165 +1,404 @@
 from __future__ import absolute_import
 
-import responses
-
-from time import time
+from mock import patch
 
 from sentry.identity.vsts import VSTSIdentityProvider
+from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
-from sentry.models import Integration, Identity, IdentityProvider
-from sentry.testutils import APITestCase, TestCase
+from sentry.models import (
+    Integration, IntegrationExternalProject, OrganizationIntegration, Repository,
+    Project
+)
+from sentry.plugins import plugins
+from tests.sentry.plugins.testutils import (
+    register_mock_plugins,
+    unregister_mock_plugins,
+    VstsPlugin,
+)
+from .testutils import VstsIntegrationTestCase, CREATE_SUBSCRIPTION
 
 
-class VstsIntegrationProviderTest(TestCase):
+class VstsIntegrationProviderTest(VstsIntegrationTestCase):
+    # Test data setup in ``VstsIntegrationTestCase``
+
     def setUp(self):
-        self.integration = VstsIntegrationProvider()
-        responses.add(
-            responses.GET,
-            'https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=1.0',
-            json={
-                'id': 'user1',
-                'displayName': 'Sentry User',
-                'emailAddress': 'sentry@user.com',
-            },
-        )
-        responses.add(
-            responses.GET,
-            'https://app.vssps.visualstudio.com/_apis/connectionData/',
-            json={
-                'authenticatedUser': {
-                    'subjectDescriptor': 'user1-subject-desc',
-                },
-            },
+        super(VstsIntegrationProviderTest, self).setUp()
+        register_mock_plugins()
+
+    def tearDown(self):
+        unregister_mock_plugins()
+        super(VstsIntegrationProviderTest, self).tearDown()
+
+    def test_basic_flow(self):
+        self.assert_installation()
+
+        integration = Integration.objects.get(provider='vsts')
+
+        assert integration.external_id == self.vsts_account_id
+        assert integration.name == self.vsts_account_name
+
+        metadata = integration.metadata
+        assert metadata['scopes'] == list(VSTSIdentityProvider.oauth_scopes)
+        assert metadata['subscription']['id'] == CREATE_SUBSCRIPTION['id']
+        assert metadata['domain_name'] == self.vsts_base_url
+
+    def test_migrate_repositories(self):
+        accessible_repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name=self.project_a['name'],
+            url=u'{}/_git/{}'.format(
+                self.vsts_base_url,
+                self.repo_name,
+            ),
+            provider='visualstudio',
+            external_id=self.repo_id,
+            config={'name': self.project_a['name'], 'project': self.project_a['name']}
         )
 
-    @responses.activate
+        inaccessible_repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name='NotReachable',
+            url='https://randoaccount.visualstudio.com/Product/_git/NotReachable',
+            provider='visualstudio',
+            external_id='123456789',
+            config={'name': 'NotReachable', 'project': 'NotReachable'}
+        )
+
+        with self.tasks():
+            self.assert_installation()
+        integration = Integration.objects.get(provider='vsts')
+
+        assert Repository.objects.get(
+            id=accessible_repo.id,
+        ).integration_id == integration.id
+
+        assert Repository.objects.get(
+            id=inaccessible_repo.id,
+        ).integration_id is None
+
+    def setupPluginTest(self):
+        self.project = Project.objects.create(
+            organization_id=self.organization.id,
+        )
+        VstsPlugin().enable(project=self.project)
+
+    def test_disabled_plugin_when_fully_migrated(self):
+        self.setupPluginTest()
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name=self.project_a['name'],
+            url=u'https://{}.visualstudio.com/_git/{}'.format(
+                self.vsts_account_name,
+                self.repo_name,
+            ),
+            provider='visualstudio',
+            external_id=self.repo_id,
+            config={'name': self.project_a['name'], 'project': self.project_a['name']}
+        )
+
+        # Enabled before Integration installation
+        assert 'vsts' in [p.slug for p in plugins.for_project(self.project)]
+
+        with self.tasks():
+            self.assert_installation()
+
+        # Disabled
+        assert 'vsts' not in [p.slug for p in plugins.for_project(self.project)]
+
+    def test_doesnt_disable_plugin_when_partially_migrated(self):
+        self.setupPluginTest()
+
+        # Repo accessible by new Integration
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name=self.project_a['name'],
+            url=u'https://{}.visualstudio.com/_git/{}'.format(
+                self.vsts_account_name,
+                self.repo_name,
+            ),
+            provider='visualstudio',
+            external_id=self.repo_id,
+        )
+
+        # Inaccessible Repo - causes plugin to stay enabled
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            name='NotReachable',
+            url='https://randoaccount.visualstudio.com/Product/_git/NotReachable',
+            provider='visualstudio',
+            external_id='123456789',
+        )
+
+        self.assert_installation()
+
+        # Still enabled
+        assert 'vsts' in [p.slug for p in plugins.for_project(self.project)]
+
     def test_build_integration(self):
         state = {
-            'account': {'AccountName': 'sentry', 'AccountId': '123435'},
-            'instance': 'sentry.visualstudio.com',
+            'account': {
+                'accountName': self.vsts_account_name,
+                'accountId': self.vsts_account_id,
+            },
+            'base_url': self.vsts_base_url,
             'identity': {
                 'data': {
-                    'access_token': 'xxx-xxxx',
+                    'access_token': self.access_token,
                     'expires_in': '3600',
-                    'refresh_token': 'rxxx-xxxx',
+                    'refresh_token': self.refresh_token,
                     'token_type': 'jwt-bearer',
                 },
             },
         }
-        integration_dict = self.integration.build_integration(state)
-        assert integration_dict['name'] == 'sentry'
-        assert integration_dict['external_id'] == '123435'
-        assert integration_dict['metadata']['domain_name'] == 'sentry.visualstudio.com'
+
+        integration = VstsIntegrationProvider()
+        integration_dict = integration.build_integration(state)
+
+        assert integration_dict['name'] == self.vsts_account_name
+        assert integration_dict['external_id'] == self.vsts_account_id
+        assert integration_dict['metadata']['domain_name'] == self.vsts_base_url
 
         assert integration_dict['user_identity']['type'] == 'vsts'
-        assert integration_dict['user_identity']['external_id'] == 'user1-subject-desc'
+        assert integration_dict['user_identity']['external_id'] == \
+            self.vsts_account_id
         assert integration_dict['user_identity']['scopes'] == sorted(
             VSTSIdentityProvider.oauth_scopes)
 
-        assert integration_dict['user_identity']['data']['access_token'] == 'xxx-xxxx'
-        assert isinstance(integration_dict['user_identity']['data']['expires'], int)
-        assert integration_dict['user_identity']['data']['refresh_token'] == 'rxxx-xxxx'
-        assert integration_dict['user_identity']['data']['token_type'] == 'jwt-bearer'
+    def test_webhook_subscription_created_once(self):
+        self.assert_installation()
 
-
-class VstsIntegrationTest(APITestCase):
-    def setUp(self):
-
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-        self.access_token = '1234567890'
-        self.instance = 'instance.visualstudio.com'
-        self.model = Integration.objects.create(
-            provider='integrations:vsts',
-            external_id='vsts_external_id',
-            name='vsts_name',
-            metadata={
-                 'domain_name': 'instance.visualstudio.com'
-            }
-        )
-        self.identity_provider = IdentityProvider.objects.create(type='vsts')
-        self.identity = Identity.objects.create(
-            idp=self.identity_provider,
-            user=self.user,
-            external_id='vsts_id',
-            data={
-                'access_token': self.access_token,
-                'refresh_token': 'qwertyuiop',
-                'expires': int(time()) - int(1234567890),
-            }
-        )
-        self.org_integration = self.model.add_organization(organization.id, self.identity.id)
-        self.project_integration = self.model.add_project(project.id)
-        self.integration = VstsIntegration(self.model, organization.id, project.id)
-        self.projects = [
-            ('eb6e4656-77fc-42a1-9181-4c6d8e9da5d1', 'ProjectB'),
-            ('6ce954b1-ce1f-45d1-b94d-e6bf2464ba2c', 'ProjectA')
-        ]
-        self.project_result = {
-            'value': [
-                {
-                    'id': self.projects[0][0],
-                    'name': self.projects[0][1],
-
+        state = {
+            'account': {
+                'accountName': self.vsts_account_name,
+                'accountId': self.vsts_account_id,
+            },
+            'base_url': self.vsts_base_url,
+            'identity': {
+                'data': {
+                    'access_token': self.access_token,
+                    'expires_in': '3600',
+                    'refresh_token': self.refresh_token,
+                    'token_type': 'jwt-bearer',
                 },
-                {
-                    'id': self.projects[1][0],
-                    'name': self.projects[1][1],
-                }
-            ],
-            'count': 2
+            },
         }
-        responses.add(
-            responses.GET,
-            'https://instance.visualstudio.com/DefaultCollection/_apis/projects',
-            json=self.project_result,
+
+        # The above already created the Webhook, so subsequent calls to
+        # ``build_integration`` should omit that data.
+        data = VstsIntegrationProvider().build_integration(state)
+        assert 'subscription' in data['metadata']
+        assert Integration.objects.get(
+            provider='vsts').metadata['subscription'] == data['metadata']['subscription']
+
+    def test_fix_subscription(self):
+        external_id = '1234567890'
+        Integration.objects.create(
+            metadata={},
+            provider='vsts',
+            external_id=external_id,
         )
-        self.refresh_data = {
-            'access_token': 'access token for this user',
-            'token_type': 'type of token',
-            'expires_in': 123456789,
-            'refresh_token': 'new refresh token to use when the token has timed out',
-        }
-        responses.add(
-            responses.POST,
-            'https://app.vssps.visualstudio.com/oauth2/token',
-            json=self.refresh_data,
-        )
+        data = VstsIntegrationProvider().build_integration({
+            'account': {
+                'accountName': self.vsts_account_name,
+                'accountId': external_id,
+            },
+            'base_url': self.vsts_base_url,
+            'identity': {
+                'data': {
+                    'access_token': self.access_token,
+                    'expires_in': '3600',
+                    'refresh_token': self.refresh_token,
+                    'token_type': 'jwt-bearer',
+                },
+            },
+        })
+        assert external_id == data['external_id']
+        subscription = data['metadata']['subscription']
+        assert subscription['id'] is not None and subscription['secret'] is not None
 
-    def assert_identity_updated(self, new_identity, expected_data):
-        assert new_identity.data['access_token'] == expected_data['access_token']
-        assert new_identity.data['token_type'] == expected_data['token_type']
-        assert new_identity.data['refresh_token'] == expected_data['refresh_token']
-        assert new_identity.data['expires'] >= time()
 
-    def test_get_client(self):
-        client = self.integration.get_client()
-        assert client.identity.data['access_token'] == self.access_token
+class VstsIntegrationTest(VstsIntegrationTestCase):
+    def test_get_organization_config(self):
+        self.assert_installation()
+        integration = Integration.objects.get(provider='vsts')
 
-    @responses.activate
-    def test_refreshes_expired_token(self):
-        result = self.integration.get_client().get_projects(self.instance)
+        fields = integration.get_installation(
+            integration.organizations.first().id
+        ).get_organization_config()
 
-        assert len(responses.calls) == 2
-        default_identity = self.integration.default_identity
-        self.assert_identity_updated(default_identity, self.refresh_data)
-
-        identity = Identity.objects.get(id=self.identity.id)
-        self.assert_identity_updated(identity, self.refresh_data)
-
-        projects = result['value']
-        assert projects[0]['id'] == self.projects[0][0] and projects[0]['name'] == self.projects[0][1]
-        assert projects[1]['id'] == self.projects[1][0] and projects[1]['name'] == self.projects[1][1]
-
-    @responses.activate
-    def test_get_project_config(self):
-        fields = self.integration.get_project_config()
-        assert len(fields) == 6
-        names = [
-            'resolve_status',
-            'resolve_when',
-            'regression_status',
-            'sync_comments',
+        assert [field['name'] for field in fields] == [
+            'sync_status_forward',
             'sync_forward_assignment',
-            'sync_reverse_assignment']
-        assert [field['name'] for field in fields] == names
+            'sync_comments',
+            'sync_status_reverse',
+            'sync_reverse_assignment',
+        ]
+
+    def test_update_organization_config_remove_all(self):
+        self.assert_installation()
+
+        model = Integration.objects.get(provider='vsts')
+        integration = VstsIntegration(model, self.organization.id)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+        )
+
+        data = {
+            'sync_status_forward': {},
+            'other_option': 'hello',
+        }
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id=1,
+            resolved_status='ResolvedStatus1',
+            unresolved_status='UnresolvedStatus1',
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id=2,
+            resolved_status='ResolvedStatus2',
+            unresolved_status='UnresolvedStatus2',
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id=3,
+            resolved_status='ResolvedStatus3',
+            unresolved_status='UnresolvedStatus3',
+        )
+
+        integration.update_organization_config(data)
+
+        external_projects = IntegrationExternalProject.objects \
+            .all() \
+            .values_list('external_id', flat=True)
+
+        assert list(external_projects) == []
+
+        config = OrganizationIntegration.objects.get(
+            organization_id=org_integration.organization_id,
+            integration_id=org_integration.integration_id
+        ).config
+
+        assert config == {
+            'sync_status_forward': False,
+            'other_option': 'hello',
+        }
+
+    def test_update_organization_config(self):
+        self.assert_installation()
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+        )
+
+        model = Integration.objects.get(provider='vsts')
+        integration = VstsIntegration(model, self.organization.id)
+
+        # test validation
+        data = {
+            'sync_status_forward': {
+                1: {
+                    'on_resolve': '',
+                    'on_unresolve': 'UnresolvedStatus1',
+                },
+            },
+        }
+        with self.assertRaises(IntegrationError):
+            integration.update_organization_config(data)
+
+        data = {
+            'sync_status_forward': {
+                1: {
+                    'on_resolve': 'ResolvedStatus1',
+                    'on_unresolve': 'UnresolvedStatus1',
+                },
+                2: {
+                    'on_resolve': 'ResolvedStatus2',
+                    'on_unresolve': 'UnresolvedStatus2',
+                },
+                4: {
+                    'on_resolve': 'ResolvedStatus4',
+                    'on_unresolve': 'UnresolvedStatus4',
+                },
+            },
+            'other_option': 'hello',
+        }
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id=1,
+            resolved_status='UpdateMe',
+            unresolved_status='UpdateMe',
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id=2,
+            resolved_status='ResolvedStatus2',
+            unresolved_status='UnresolvedStatus2',
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id=3,
+            resolved_status='ResolvedStatus3',
+            unresolved_status='UnresolvedStatus3',
+        )
+
+        integration.update_organization_config(data)
+
+        external_projects = IntegrationExternalProject.objects \
+            .all() \
+            .order_by('external_id')
+
+        assert external_projects[0].external_id == '1'
+        assert external_projects[0].resolved_status == 'ResolvedStatus1'
+        assert external_projects[0].unresolved_status == 'UnresolvedStatus1'
+
+        assert external_projects[1].external_id == '2'
+        assert external_projects[1].resolved_status == 'ResolvedStatus2'
+        assert external_projects[1].unresolved_status == 'UnresolvedStatus2'
+
+        assert external_projects[2].external_id == '4'
+        assert external_projects[2].resolved_status == 'ResolvedStatus4'
+        assert external_projects[2].unresolved_status == 'UnresolvedStatus4'
+
+        config = OrganizationIntegration.objects.get(
+            organization_id=org_integration.organization_id,
+            integration_id=org_integration.integration_id
+        ).config
+
+        assert config == {
+            'sync_status_forward': True,
+            'other_option': 'hello',
+        }
+
+    def test_update_domain_name(self):
+        account_name = 'MyVSTSAccount.visualstudio.com'
+        account_uri = 'https://MyVSTSAccount.visualstudio.com/'
+
+        self.assert_installation()
+
+        model = Integration.objects.get(provider='vsts')
+        model.metadata['domain_name'] = account_name
+        model.save()
+
+        integration = VstsIntegration(model, self.organization.id)
+        integration.get_client()
+
+        domain_name = integration.model.metadata['domain_name']
+        assert domain_name == account_uri
+        assert Integration.objects.get(provider='vsts').metadata['domain_name'] == account_uri
+
+    @patch('sentry.integrations.vsts.client.VstsApiClient.update_work_item')
+    def test_create_comment(self, mock_update_work_item):
+        self.assert_installation()
+        integration = Integration.objects.get(provider='vsts')
+        installation = integration.get_installation(self.organization.id)
+
+        comment = 'hello world\nThis is a comment.\n\n\n    Glad it\'s quoted'
+        self.user.name = 'Sentry Admin'
+        self.user.save()
+        installation.create_comment(1, self.user.id, comment)
+
+        assert mock_update_work_item.call_args[1]['comment'] == \
+            'Sentry Admin wrote:\n\n<blockquote>%s</blockquote>' % comment

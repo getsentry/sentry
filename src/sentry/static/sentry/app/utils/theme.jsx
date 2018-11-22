@@ -1,3 +1,5 @@
+import CHART_PALETTE from 'app/constants/chartPalette';
+
 const theme = {
   breakpoints: ['768px', '992px', '1200px'],
 
@@ -46,7 +48,7 @@ const theme = {
 
   purple: '#6C5FC7',
   purple2: '#6f617c', // This is from event-details
-  purplelightest: '#9F92FA',
+  purpleLightest: '#9F92FA',
   purpleLight: '#8679E1',
   purpleDark: '#5346AE',
   purpleDarkest: '#392C94',
@@ -62,23 +64,42 @@ const theme = {
   background: '#fff',
 
   zIndex: {
+    orgAndUserMenu: 1003,
     sidebar: 1002,
     header: 1000,
     dropdown: 1001,
     modal: 10000,
     toast: 10001,
+    dropdownAutocomplete: {
+      // needs to be above menu
+      actor: 1008,
+
+      // needs to be below actor but above other page elements (e.g. pagination)
+      // (e.g. Issue Details "seen" dots on chart is 2)
+      // stream header is 1000
+      menu: 1007,
+    },
   },
 
   alert: {
+    default: {
+      backgroundLight: '#FAF9FB',
+      background: '#BDB4C7',
+      border: '#E2DBE8',
+    },
     info: {
       backgroundLight: '#F5FAFE',
       border: '#B5D6ED',
+    },
+    attention: {
+      backgroundLight: '#ECBFA6',
+      background: '#F09E71',
+      border: '#D0816D',
     },
     warning: {
       backgroundLight: '#FFFDF7',
       background: '#f9a66d',
       border: '#E1D697',
-      textDark: '#D3BE2B',
     },
     success: {
       backgroundLight: '#F8FCF7',
@@ -89,8 +110,8 @@ const theme = {
       backgroundLight: '#FDF6F5',
       border: '#E7C0BC',
       textLight: '#92635f',
-      textDark: '#5d3e3b',
     },
+    beta: {},
   },
 
   grid: 8,
@@ -98,6 +119,7 @@ const theme = {
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',
   fontSizeExtraLarge: '18px',
+  headerFontSize: '22px',
 
   settings: {
     // Max-width for settings breadcrumbs
@@ -151,6 +173,8 @@ theme.alert.success.background = theme.green;
 theme.alert.error.iconColor = theme.redDark;
 theme.alert.error.background = theme.red;
 
+theme.alert.beta.background = `linear-gradient(90deg, ${theme.pink}, ${theme.purple})`;
+
 //alias warn to warning
 theme.alert.warn = theme.alert.warning;
 
@@ -200,6 +224,29 @@ theme.button = {
     background: theme.white,
     backgroundActive: theme.white,
   },
+};
+
+theme.charts = {
+  colors: CHART_PALETTE[CHART_PALETTE.length - 1],
+
+  // We have an array that maps `number + 1` --> list of `number` colors
+  getColorPalette: length =>
+    CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
+
+  previousPeriod: theme.gray1,
+};
+
+theme.diff = {
+  removedRow: '#fcefee',
+  addedRow: '#f5fbf8',
+  removed: '#f7ceca',
+  added: '#d8f0e4',
+};
+
+// Similarity spectrum used in "Similar Issues" in group details
+theme.similarity = {
+  empty: '#e2dee6',
+  colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
 };
 
 export default theme;

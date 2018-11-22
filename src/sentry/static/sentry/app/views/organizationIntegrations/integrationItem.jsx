@@ -1,49 +1,69 @@
 import {Box, Flex} from 'grid-emotion';
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import PropTypes from 'prop-types';
-import Tooltip from 'app/components/tooltip';
 
+import {t} from 'app/locale';
 import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
-
-const IntegrationName = styled.div`
-  font-size: 1.6rem;
-  margin-bottom: 3px;
-`;
-
-const DomainName = styled.div`
-  color: ${p => p.theme.gray3};
-  font-size: 1.4rem;
-`;
+import Tooltip from 'app/components/tooltip';
+import space from 'app/styles/space';
 
 export default class IntegrationItem extends React.Component {
   static propTypes = {
     integration: PropTypes.object.isRequired,
+    compact: PropTypes.bool,
   };
 
   render() {
-    const {integration, style} = this.props;
+    const {integration, compact} = this.props;
+
     return (
       <Flex>
         <Box>
-          <IntegrationIcon integration={integration} />
+          <IntegrationIcon size={compact ? 22 : 32} integration={integration} />
         </Box>
-        <Box pl={2}>
-          <IntegrationName style={style}>
+        <Labels compact={compact}>
+          <IntegrationName>
             {integration.name}
             {integration.status === 'disabled' && (
               <Tooltip
-                title={
+                title={t(
                   'This Integration has been disconnected from the external provider'
-                }
+                )}
               >
-                <small> — Disabled</small>
+                <small> — {t('Disabled')}</small>
               </Tooltip>
             )}
           </IntegrationName>
-          <DomainName style={style}>{integration.domainName}</DomainName>
-        </Box>
+          <DomainName compact={compact}>{integration.domainName}</DomainName>
+        </Labels>
       </Flex>
     );
   }
 }
+
+const Labels = styled('div')`
+  box-sizing: border-box;
+  display: flex;
+  ${p => (p.compact ? 'align-items: center;' : '')};
+  flex-direction: ${p => (p.compact ? 'row' : 'column')};
+  padding-left: ${space(1)};
+  min-width: 0;
+`;
+
+const IntegrationName = styled('div')`
+  font-size: 1.6rem;
+`;
+
+// Not using the overflowEllipsis style import here
+// as it sets width 100% which causes layout issues in the
+// integration list.
+const DomainName = styled('div')`
+  color: ${p => (p.compact ? p.theme.gray1 : p.theme.gray3)};
+  margin-left: ${p => (p.compact ? space(1) : 'inherit')};
+  margin-top: ${p => (!p.compact ? space(0.25) : 'inherit')};
+  font-size: 1.4rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;

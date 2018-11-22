@@ -152,6 +152,15 @@ class OsContextType(ContextType):
         super(OsContextType, self).__init__(alias, data)
 
 
+@contexttype
+class GpuContextType(ContextType):
+    type = 'gpu'
+    indexed_fields = {
+        'name': u'{name}',
+        'vendor': u'{vendor_name}',
+    }
+
+
 class Contexts(Interface):
     """
     This interface stores context specific information.
@@ -163,7 +172,8 @@ class Contexts(Interface):
     def to_python(cls, data):
         rv = {}
         for alias, value in six.iteritems(data):
-            rv[alias] = cls.normalize_context(alias, value)
+            if value is not None:
+                rv[alias] = cls.normalize_context(alias, value)
         return cls(**rv)
 
     @classmethod
@@ -185,6 +195,3 @@ class Contexts(Interface):
         for inst in self.iter_contexts():
             for tag in inst.iter_tags():
                 yield tag
-
-    def get_path(self):
-        return 'contexts'

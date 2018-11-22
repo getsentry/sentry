@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import {t} from '../../locale';
 import SidebarPanel from './sidebarPanel';
 import TodoList from '../onboardingWizard/todos';
@@ -23,7 +23,7 @@ class OnboardingStatus extends React.Component {
       currentPanel !== prevProps.currentPanel &&
       (currentPanel || prevProps.currentPanel == 'todos')
     ) {
-      this.recordAnalytics(currentPanel, org.id);
+      this.recordAnalytics(currentPanel, parseInt(org.id, 10));
     }
   }
 

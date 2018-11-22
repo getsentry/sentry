@@ -51,9 +51,9 @@ EXTENSION_EXC_SOURCES = re.compile(
     '|'.join(
         (
             # Facebook flakiness
-            r'graph\.facebook\.com'
+            r'graph\.facebook\.com',
             # Facebook blocked
-            r'connect\.facebook\.net\/en_US\/all\.js',
+            r'connect\.facebook\.net',
             # Woopra flakiness
             r'eatdifferent\.com\.woopra-ns\.com',
             r'static\.woopra\.com\/js\/woopra\.js',
@@ -79,14 +79,14 @@ class BrowserExtensionsFilter(Filter):
 
     def get_exception_value(self, data):
         try:
-            return data['sentry.interfaces.Exception']['values'][0]['value']
+            return data['exception']['values'][0]['value']
         except (LookupError, TypeError):
             return ''
 
     def get_exception_source(self, data):
         try:
-            return data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames'
-                                                                                  ][-1]['abs_path']
+            return data['exception']['values'][0]['stacktrace']['frames'
+                                                                ][-1]['abs_path']
         except (LookupError, TypeError):
             return ''
 

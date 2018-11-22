@@ -67,7 +67,6 @@ var appEntry = {
     'react-router',
     'react-bootstrap/lib/Modal',
     'reflux',
-    'select2',
     'vendor/simple-slider/simple-slider',
     'emotion',
     'react-emotion',
@@ -150,6 +149,20 @@ var appConfig = {
         ],
       },
       {
+        test: /\.css/,
+        use: [
+          {
+            loader: 'style-loader',
+          },
+          {
+            loader: 'css-loader',
+            options: {
+              minimize: IS_PRODUCTION,
+            },
+          },
+        ],
+      },
+      {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
         exclude: /app\/icons\/.*\.svg$/,
         loader: 'file-loader?name=' + '[name].[ext]',
@@ -167,6 +180,7 @@ var appConfig = {
       collections: true,
       currying: true, // these are enabled to support lodash/fp/ features
       flattening: true, // used by a dependency of react-mentions
+      shorthands: true,
     }),
     new webpack.optimize.CommonsChunkPlugin({
       names: localeEntries.concat(['vendor']), // 'vendor' must be last entry
@@ -176,7 +190,6 @@ var appConfig = {
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
-      Raven: 'raven-js',
     }),
     new ExtractTextPlugin('[name].css'),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
@@ -250,6 +263,10 @@ var pwConfig = {
 var legacyCssConfig = {
   entry: {
     sentry: 'less/sentry.less',
+
+    // Below is for old plugins that use select2 when creating a new issue for a plugin
+    // e.g. Trello, Teamwork
+    select2: 'less/select2.less',
   },
   context: path.join(__dirname, staticPrefix),
   output: {

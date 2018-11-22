@@ -11,7 +11,7 @@ def get_asset_url(module, path):
       {% asset_url 'sentry' 'dist/sentry.css' %}
       =>  "/_static/74d127b78dc7daf2c51f/sentry/dist/sentry.css"
     """
-    return '{}/{}/{}'.format(
+    return u'{}/{}/{}'.format(
         settings.STATIC_URL.rstrip('/'),
         module,
         path.lstrip('/'),

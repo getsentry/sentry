@@ -29,13 +29,17 @@ describe('OrganizationMembers', function() {
   let organization = TestStubs.Organization({
     access: ['member:admin', 'org:admin'],
   });
+  let getStub;
 
   beforeAll(function() {
-    sinon.stub(ConfigStore, 'get', () => currentUser);
+    getStub = sinon
+      .stub(ConfigStore, 'get')
+      .withArgs('user')
+      .returns(currentUser);
   });
 
   afterAll(function() {
-    ConfigStore.get.restore();
+    getStub.restore();
   });
 
   beforeEach(function() {
@@ -300,7 +304,7 @@ describe('OrganizationMembers', function() {
 
   it('can search organization members', async function() {
     let searchMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-id/members/?query=member',
+      url: '/organizations/org-id/members/',
       body: [],
     });
     let routerContext = TestStubs.routerContext();
@@ -315,16 +319,17 @@ describe('OrganizationMembers', function() {
       routerContext
     );
 
-    expect(searchMock).not.toHaveBeenCalled();
+    wrapper
+      .find('AsyncComponentSearchInput input')
+      .simulate('change', {target: {value: 'member'}});
 
-    wrapper.find('Input').simulate('change', {target: {value: 'member'}});
-
-    expect(wrapper.state('searchQuery')).toBe('member');
-    expect(searchMock).toHaveBeenCalled();
-    expect(searchMock).toHaveBeenCalledWith(
-      '/organizations/org-id/members/?query=member',
+    expect(searchMock).toHaveBeenLastCalledWith(
+      '/organizations/org-id/members/',
       expect.objectContaining({
         method: 'GET',
+        query: {
+          query: 'member',
+        },
       })
     );
 

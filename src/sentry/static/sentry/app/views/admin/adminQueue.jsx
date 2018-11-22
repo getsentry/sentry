@@ -3,7 +3,7 @@ import React from 'react';
 
 import AsyncView from 'app/views/asyncView';
 import InternalStatChart from 'app/components/internalStatChart';
-import {Select2Field} from 'app/components/forms';
+import {SelectField} from 'app/components/forms';
 
 export default class AdminQueue extends AsyncView {
   getDefaultState() {
@@ -37,9 +37,9 @@ export default class AdminQueue extends AsyncView {
     });
   }
 
-  changeTask(value) {
+  changeTask = value => {
     this.setState({activeTask: value});
-  }
+  };
 
   renderBody() {
     let {activeTask, taskList} = this.state;
@@ -81,7 +81,7 @@ export default class AdminQueue extends AsyncView {
         <div>
           <div>
             <label>Show details for task:</label>
-            <Select2Field
+            <SelectField
               name="task"
               onChange={this.changeTask}
               value={activeTask}

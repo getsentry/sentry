@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {Metadata} from 'app/proptypes';
+import {Metadata} from 'app/sentryTypes';
 
 class EventOrGroupTitle extends React.Component {
   static propTypes = {
@@ -41,7 +41,7 @@ class EventOrGroupTitle extends React.Component {
       return (
         <span style={this.props.style}>
           <span style={{marginRight: 10}}>{title}</span>
-          <em>{subtitle}</em>
+          <em title={subtitle}>{subtitle}</em>
           <br />
         </span>
       );

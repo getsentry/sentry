@@ -48,6 +48,62 @@ class ProjectSearchListTest(APITestCase):
         assert response.data[0]['id'] == six.text_type(search1.id)
         assert response.data[1]['id'] == six.text_type(search2.id)
 
+    def test_user_searches_visible__before_and_after_project_write_permissions(self):
+        user = self.create_user()
+        # user without project-write permissions
+        member = self.create_member(user=user, organization=self.organization, role='member')
+        self.login_as(user=user)
+
+        team = self.create_team()
+        project1 = self.create_project(teams=[team], name='foo')
+        SavedSearch.objects.filter(project=project1).delete()
+
+        url = reverse(
+            'sentry-api-0-project-searches',
+            kwargs={
+                'organization_slug': project1.organization.slug,
+                'project_slug': project1.slug,
+            }
+        )
+
+        resp = self.client.post(
+            url,
+            format='json',
+            data={
+                'name': 'Latest Release',
+                'query': 'release:[latest]'
+            }
+        )
+        assert resp.status_code == 201, resp.content
+        search1 = SavedSearch.objects.get(project=project1, owner_id=user.id)
+
+        resp = self.client.get(url, format='json')
+        assert resp.status_code == 200, resp.content
+        assert len(resp.data) == 1
+        assert resp.data[0]['id'] == six.text_type(search1.id)
+
+        # update permissions
+        member.role = 'manager'
+        member.save()
+
+        resp = self.client.post(
+            url,
+            format='json',
+            data={
+                'name': 'New Yesterday',
+                'query': 'age:[-48h]'
+            }
+        )
+
+        assert resp.status_code == 201, resp.content
+        search2 = SavedSearch.objects.get(project=project1, owner_id__isnull=True)
+
+        resp = self.client.get(url, format='json')
+        assert resp.status_code == 200, resp.content
+        assert len(resp.data) == 2
+        assert resp.data[0]['id'] == six.text_type(search1.id)
+        assert resp.data[1]['id'] == six.text_type(search2.id)
+
 
 class ProjectSearchCreateTest(APITestCase):
     def test_simple(self):

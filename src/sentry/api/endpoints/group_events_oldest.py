@@ -25,8 +25,8 @@ class GroupEventsOldestEndpoint(GroupEndpoint):
     @attach_scenarios([get_oldest_group_sample_scenario])
     def get(self, request, group):
         """
-        Retrieve Oldest Event
-        `````````````````````
+        Retrieve the Oldest Event for an Issue
+        ``````````````````````````````````````
 
         Retrieves the details of the oldest event for an issue.
 
@@ -37,6 +37,6 @@ class GroupEventsOldestEndpoint(GroupEndpoint):
             return Response({'detail': 'No events found for group'}, status=404)
 
         try:
-            return client.get('/events/{}/'.format(event.id), request=request)
+            return client.get(u'/events/{}/'.format(event.id), request=request)
         except client.ApiError as e:
             return Response(e.body, status=e.status_code)

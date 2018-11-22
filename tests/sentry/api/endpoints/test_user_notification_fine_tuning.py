@@ -306,6 +306,41 @@ class UserNotificationFineTuningTest(APITestCase):
             user=self.user,
             key="reports:disabled-organizations").value) == set([self.org.id, self.org2.id])
 
+    def test_enable_weekly_reports_from_default_setting(self):
+        url = reverse(
+            'sentry-api-0-user-notifications-fine-tuning', kwargs={
+                'user_id': 'me',
+                'notification_type': 'reports',
+            }
+        )
+
+        update = {}
+        update[self.org.id] = 1
+        update[self.org2.id] = "1"
+
+        resp = self.client.put(url, data=update)
+        assert resp.status_code == 204
+
+        assert set(UserOption.objects.get(
+            user=self.user,
+            key="reports:disabled-organizations").value) == set([])
+
+        # can disable
+        update = {}
+        update[self.org.id] = 0
+        resp = self.client.put(url, data=update)
+        assert set(UserOption.objects.get(
+            user=self.user,
+            key="reports:disabled-organizations").value) == set([self.org.id])
+
+        # re-enable
+        update = {}
+        update[self.org.id] = 1
+        resp = self.client.put(url, data=update)
+        assert set(UserOption.objects.get(
+            user=self.user,
+            key="reports:disabled-organizations").value) == set([])
+
     def test_permissions(self):
         new_user = self.create_user(email='b@example.com')
         new_org = self.create_organization(name='New Org')

@@ -1,8 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-import Button from 'app/components/buttons/button';
-import {Select2Field, NumberField, TextField} from 'app/components/forms';
+
+import Button from 'app/components/button';
+import {t} from 'app/locale';
+import {SelectField, NumberField, TextField} from 'app/components/forms';
 
 class RuleNode extends React.Component {
   static propTypes = {
@@ -20,7 +22,7 @@ class RuleNode extends React.Component {
     // If it's not yet defined, call handlePropertyChange to make sure the value is set on state
 
     let initialVal;
-    if (this.props.data[name] === undefined) {
+    if (this.props.data[name] === undefined && !!data.choices.length) {
       initialVal = data.choices[0][0];
       this.props.handlePropertyChange(name, initialVal);
     } else {
@@ -28,12 +30,15 @@ class RuleNode extends React.Component {
     }
 
     return (
-      <Select2Field
+      <SelectField
+        clearable={false}
+        placeholder={t('Select integration')}
+        noResultsText={t('No integrations available')}
         name={name}
         value={initialVal}
         choices={data.choices}
         key={name}
-        style={{marginBottom: 0}}
+        style={{marginLeft: 6, marginRight: 6}}
         onChange={val => this.props.handlePropertyChange(name, val)}
       />
     );
@@ -139,9 +144,27 @@ const RuleNodeForm = styled('div')`
   .form-control {
     padding: 3px 12px;
   }
-  .select2-container,
-  input {
-    min-width: 100px;
+
+  .Select {
+    line-height: 26px;
+    min-width: 150px;
+  }
+  .Select-placeholder {
+    height: 26px;
+    line-height: 26px;
+  }
+  .Select-control {
+    height: 24px;
+  }
+  .Select--single > .Select-control .Select-value {
+    line-height: 25px;
+  }
+  .Select-input {
+    height: 24px;
+    input {
+      line-height: 20px;
+      padding: 2px 0;
+    }
   }
 `;
 

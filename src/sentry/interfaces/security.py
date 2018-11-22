@@ -41,6 +41,7 @@ DEFAULT_DISALLOWED_SOURCES = (
     'mbinit://*',
     'symres://*',
     'resource://*',
+    'moz-extension://*',
     '*.metrext.com',
     'static.image2play.com',
     '*.tlscdn.com',
@@ -72,6 +73,12 @@ DEFAULT_DISALLOWED_SOURCES = (
     'connectionstrenth.com',
     'siteheart.net',
     'netanalitics.space',
+    'printapplink.com',
+    'godlinkapp.com',
+    'devappstor.com',
+    'hoholikik.club',
+    'smartlink.cool',
+    'promfflinkdev.com',
 )  # yapf: disable
 
 
@@ -80,7 +87,6 @@ class SecurityReport(Interface):
     A browser security violation report.
     """
 
-    path = None
     title = None
 
     @classmethod
@@ -106,9 +112,6 @@ class SecurityReport(Interface):
 
     def get_message(self):
         raise NotImplementedError
-
-    def get_path(self):
-        return self.path
 
     def get_tags(self):
         raise NotImplementedError
@@ -152,7 +155,6 @@ class Hpkp(SecurityReport):
     score = 1300
     display_score = 1300
 
-    path = 'hpkp'
     title = 'HPKP Report'
 
     @classmethod
@@ -173,7 +175,7 @@ class Hpkp(SecurityReport):
         return ['hpkp', self.hostname]
 
     def get_message(self):
-        return "Public key pinning validation failed for '{self.hostname}'".format(self=self)
+        return u"Public key pinning validation failed for '{self.hostname}'".format(self=self)
 
     def get_tags(self):
         return [
@@ -213,7 +215,6 @@ class ExpectStaple(SecurityReport):
     score = 1300
     display_score = 1300
 
-    path = 'expectstaple'
     title = 'Expect-Staple Report'
 
     @classmethod
@@ -237,7 +238,7 @@ class ExpectStaple(SecurityReport):
         return ['expect-staple', self.hostname]
 
     def get_message(self):
-        return "Expect-Staple failed for '{self.hostname}'".format(self=self)
+        return u"Expect-Staple failed for '{self.hostname}'".format(self=self)
 
     def get_tags(self):
         return (
@@ -276,7 +277,6 @@ class ExpectCT(SecurityReport):
     score = 1300
     display_score = 1300
 
-    path = 'expectct'
     title = 'Expect-CT Report'
 
     @classmethod
@@ -299,7 +299,7 @@ class ExpectCT(SecurityReport):
         return ['expect-ct', self.hostname]
 
     def get_message(self):
-        return "Expect-CT failed for '{self.hostname}'".format(self=self)
+        return u"Expect-CT failed for '{self.hostname}'".format(self=self)
 
     def get_tags(self):
         return (
@@ -335,7 +335,6 @@ class Csp(SecurityReport):
     score = 1300
     display_score = 1300
 
-    path = 'sentry.interfaces.Csp'
     title = 'CSP Report'
 
     @classmethod

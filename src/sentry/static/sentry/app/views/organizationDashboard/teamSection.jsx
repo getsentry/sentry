@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 
 import TeamMembers from './teamMembers';

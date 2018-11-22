@@ -3,11 +3,14 @@ import DocumentTitle from 'react-document-title';
 import React from 'react';
 
 import Footer from 'app/components/footer';
-import Sidebar from 'app/components/sidebar';
 import HookStore from 'app/stores/hookStore';
 import ListLink from 'app/components/listLink';
+import Sidebar from 'app/components/sidebar';
+import withLatestContext from 'app/utils/withLatestContext';
 
-export default class extends React.Component {
+const SidebarWithLatest = withLatestContext(Sidebar);
+
+export default class AdminLayout extends React.Component {
   constructor(props) {
     super(props);
     // Allow injection via getsentry et all
@@ -29,7 +32,7 @@ export default class extends React.Component {
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app" css={{paddingTop: 20}}>
-          <Sidebar />
+          <SidebarWithLatest />
           <div className="container">
             <div className="content">
               <div className="row">

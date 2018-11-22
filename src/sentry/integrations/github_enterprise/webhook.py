@@ -16,15 +16,16 @@ from sentry.models import Integration
 from sentry.utils import json
 from sentry.integrations.github.webhook import InstallationEventWebhook, InstallationRepositoryEventWebhook, PushEventWebhook, PullRequestEventWebhook
 from .repository import GitHubEnterpriseRepositoryProvider
-from .client import GitHubEnterpriseAppsClient
 
 logger = logging.getLogger('sentry.webhooks')
 
 
-def get_installation_metadata(event):
+def get_installation_metadata(event, host):
+    if not host:
+        return
     try:
         integration = Integration.objects.get(
-            external_id=event['installation']['id'],
+            external_id=u'{}:{}'.format(host, event['installation']['id']),
             provider='github_enterprise')
     except Integration.DoesNotExist:
         return
@@ -53,16 +54,8 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
     def get_external_id(self, username):
         return 'github_enterprise:%s' % username
 
-    def get_client(self, event):
-        metadata = get_installation_metadata(event)
-        if metadata is None:
-            return None
-
-        return GitHubEnterpriseAppsClient(
-            metadata['url'],
-            metadata['id'],
-            event['installation']['id'],
-            metadata['private_key'])
+    def get_idp_external_id(self, integration, host):
+        return u'{}:{}'.format(host, integration.metadata['installation']['id'])
 
     def should_ignore_commit(self, commit):
         return GitHubEnterpriseRepositoryProvider.should_ignore_commit(commit['message'])
@@ -78,6 +71,9 @@ class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
     def get_external_id(self, username):
         return 'github_enterprise:%s' % username
 
+    def get_idp_external_id(self, integration, host):
+        return u'{}:{}'.format(host, integration.metadata['installation']['id'])
+
 
 class GitHubEnterpriseWebhookBase(View):
     # https://developer.github.com/webhooks/
@@ -85,14 +81,12 @@ class GitHubEnterpriseWebhookBase(View):
         return self._handlers.get(event_type)
 
     def is_valid_signature(self, method, body, secret, signature):
-        if method == 'sha1':
-            mod = hashlib.sha1
-        else:
+        if method != 'sha1':
             raise NotImplementedError('signature method %s is not supported' % (method, ))
         expected = hmac.new(
             key=secret.encode('utf-8'),
             msg=body,
-            digestmod=mod,
+            digestmod=hashlib.sha1,
         ).hexdigest()
         return constant_time_compare(expected, signature)
 
@@ -106,8 +100,8 @@ class GitHubEnterpriseWebhookBase(View):
     def get_logging_data(self):
         pass
 
-    def get_secret(self, event):
-        metadata = get_installation_metadata(event)
+    def get_secret(self, event, host):
+        metadata = get_installation_metadata(event, host)
         if metadata:
             return metadata.get('webhook_secret')
         else:
@@ -116,7 +110,7 @@ class GitHubEnterpriseWebhookBase(View):
     def handle(self, request):
         body = six.binary_type(request.body)
         if not body:
-            logger.error(
+            logger.warning(
                 'github_enterprise.webhook.missing-body',
                 extra=self.get_logging_data(),
             )
@@ -125,7 +119,7 @@ class GitHubEnterpriseWebhookBase(View):
         try:
             handler = self.get_handler(request.META['HTTP_X_GITHUB_EVENT'])
         except KeyError:
-            logger.error(
+            logger.warning(
                 'github_enterprise.webhook.missing-event',
                 extra=self.get_logging_data(),
             )
@@ -135,40 +129,45 @@ class GitHubEnterpriseWebhookBase(View):
             return HttpResponse(status=204)
 
         try:
-            method, signature = request.META['HTTP_X_HUB_SIGNATURE'].split('=', 1)
-        except (KeyError, IndexError):
-            logger.error(
-                'github_enterprise.webhook.missing-signature',
-                extra=self.get_logging_data(),
-            )
-            return HttpResponse(status=400)
-
-        try:
             event = json.loads(body.decode('utf-8'))
         except JSONDecodeError:
-            logger.error(
+            logger.warning(
                 'github_enterprise.webhook.invalid-json',
                 extra=self.get_logging_data(),
                 exc_info=True,
             )
             return HttpResponse(status=400)
 
-        secret = self.get_secret(event)
-        if secret is None:
-            logger.error(
-                'github_enterprise.webhook.missing-secret',
-                extra=self.get_logging_data(),
-            )
-            return HttpResponse(status=401)
+        try:
+            host = request.META['HTTP_X_GITHUB_ENTERPRISE_HOST']
+        except KeyError:
+            logger.warning('github_enterprise.webhook.missing-enterprise-host')
+            return HttpResponse(status=400)
 
-        if not self.is_valid_signature(method, body, self.get_secret(event), signature):
-            logger.error(
-                'github_enterprise.webhook.invalid-signature',
-                extra=self.get_logging_data(),
+        secret = self.get_secret(event, host)
+        if not secret:
+            logger.warning(
+                'github_enterprise.webhook.missing-integration',
+                extra={'host': host}
             )
-            return HttpResponse(status=401)
+            return HttpResponse(status=400)
 
-        handler()(event)
+        try:
+            # Attempt to validate the signature. Older versions of
+            # GitHub Enterprise do not send the signature so this is an optional step.
+            method, signature = request.META['HTTP_X_HUB_SIGNATURE'].split('=', 1)
+            if not self.is_valid_signature(method, body, secret, signature):
+                logger.warning(
+                    'github_enterprise.webhook.invalid-signature',
+                    extra=self.get_logging_data(),
+                )
+                return HttpResponse(status=401)
+        except (KeyError, IndexError) as e:
+            logger.info(
+                'github_enterprise.webhook.missing-signature',
+                extra={'host': host, 'error': six.text_type(e)}
+            )
+        handler()(event, host)
         return HttpResponse(status=204)
 
 

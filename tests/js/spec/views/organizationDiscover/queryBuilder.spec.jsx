@@ -1,20 +1,22 @@
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 
 describe('Query Builder', function() {
-  it('generates default query with all projects', function() {
-    const queryBuilder = createQueryBuilder(
-      {},
-      TestStubs.Organization({projects: [TestStubs.Project()]})
-    );
-    const external = queryBuilder.getExternal();
+  describe('applyDefaults()', function() {
+    it('generates default query with all projects', function() {
+      const queryBuilder = createQueryBuilder(
+        {},
+        TestStubs.Organization({projects: [TestStubs.Project()]})
+      );
+      const external = queryBuilder.getExternal();
 
-    expect(external.projects).toEqual([2]);
-    expect(external.fields).toEqual(expect.arrayContaining([expect.any(String)]));
-    expect(external.fields).toHaveLength(47);
-    expect(external.conditions).toHaveLength(0);
-    expect(external.aggregations).toHaveLength(0);
-    expect(external.orderby).toBe('-timestamp');
-    expect(external.limit).toBe(1000);
+      expect(external.projects).toEqual([2]);
+      expect(external.fields).toEqual(expect.arrayContaining([expect.any(String)]));
+      expect(external.fields).toHaveLength(5);
+      expect(external.conditions).toHaveLength(0);
+      expect(external.aggregations).toHaveLength(0);
+      expect(external.orderby).toBe('-timestamp');
+      expect(external.limit).toBe(1000);
+    });
   });
 
   describe('loads()', function() {
@@ -24,10 +26,10 @@ describe('Query Builder', function() {
 
     it('loads tags', async function() {
       const discoverMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/',
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
         body: {
-          data: [{tags_key: ['tag1', 'tag2']}],
+          data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
         },
       });
       const queryBuilder = createQueryBuilder(
@@ -37,19 +39,26 @@ describe('Query Builder', function() {
       await queryBuilder.load();
 
       expect(discoverMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/discover/',
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         expect.objectContaining({
           data: expect.objectContaining({
-            aggregations: [['topK(1000)', 'tags_key', 'tags_key']],
+            fields: ['tags_key'],
+            aggregations: [['count()', null, 'count']],
+            orderby: '-count',
             projects: [2],
-            start: '2017-07-19T02:41:20',
-            end: '2017-10-17T02:41:20',
+            range: '90d',
           }),
         })
       );
 
-      expect(queryBuilder.getColumns()).toContainEqual({name: 'tag1', type: 'string'});
-      expect(queryBuilder.getColumns()).toContainEqual({name: 'tag2', type: 'string'});
+      expect(queryBuilder.getColumns()).toContainEqual({
+        name: 'tag1',
+        type: 'string',
+      });
+      expect(queryBuilder.getColumns()).toContainEqual({
+        name: 'tag2',
+        type: 'string',
+      });
       expect(queryBuilder.getColumns()).not.toContainEqual({
         name: 'environment',
         type: 'string',
@@ -58,7 +67,7 @@ describe('Query Builder', function() {
 
     it('loads hardcoded tags when API request fails', async function() {
       const discoverMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/',
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
       });
       const queryBuilder = createQueryBuilder(
@@ -80,6 +89,49 @@ describe('Query Builder', function() {
     });
   });
 
+  describe('fetch()', function() {
+    let queryBuilder, discoverMock;
+
+    beforeEach(function() {
+      queryBuilder = createQueryBuilder(
+        {},
+        TestStubs.Organization({projects: [TestStubs.Project()]})
+      );
+      discoverMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+        method: 'POST',
+        body: {
+          data: [],
+          timing: {},
+          meta: [],
+        },
+      });
+    });
+
+    afterEach(function() {
+      MockApiClient.clearMockResponses();
+    });
+
+    it('makes request', async function() {
+      const data = {projects: [1], fields: ['id']};
+      await queryBuilder.fetch(data);
+      expect(discoverMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+        expect.objectContaining({
+          data,
+        })
+      );
+    });
+
+    it('handles no projects', async function() {
+      const result = queryBuilder.fetch({projects: []});
+      await expect(result).rejects.toMatchObject({
+        message: 'No projects selected',
+      });
+      expect(discoverMock).not.toHaveBeenCalled();
+    });
+  });
+
   describe('updateField()', function() {
     let queryBuilder;
     beforeEach(function() {
@@ -91,27 +143,26 @@ describe('Query Builder', function() {
 
     it('updates field', function() {
       queryBuilder.updateField('projects', [5]);
-      queryBuilder.updateField('conditions', [['event_id', '=', 'event1']]);
+      queryBuilder.updateField('conditions', [['id', '=', 'event1']]);
 
       const query = queryBuilder.getInternal();
-      expect(query.conditions).toEqual([['event_id', '=', 'event1']]);
+      expect(query.conditions).toEqual([['id', '=', 'event1']]);
     });
 
-    it('updates orderby if there is an aggregation and value is not a summarized field', function() {
-      queryBuilder.updateField('fields', ['environment']);
-      queryBuilder.updateField('aggregations', [['count', null, 'count']]);
+    it('updates orderby if there is an aggregation and value is not a valid field', function() {
+      queryBuilder.updateField('fields', ['id']);
+      queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
       const query = queryBuilder.getInternal();
-      expect(query.orderby).toEqual('environment');
+      expect(query.orderby).toBe('-count');
     });
 
-    it('removes orderby and limit if there is aggregation but no summarize', function() {
-      queryBuilder.updateField('fields', []);
-      queryBuilder.updateField('aggregations', [['count', null, 'count']]);
-
-      const query = queryBuilder.getInternal();
-      expect(query.orderby).toEqual(null);
-      expect(query.limit).toEqual(null);
+    it('updates orderby if there is no aggregation and value is not a valid field', function() {
+      queryBuilder.updateField('fields', ['id']);
+      queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
+      expect(queryBuilder.getInternal().orderby).toBe('-count');
+      queryBuilder.updateField('aggregations', []);
+      expect(queryBuilder.getInternal().orderby).toBe('-timestamp');
     });
   });
 });

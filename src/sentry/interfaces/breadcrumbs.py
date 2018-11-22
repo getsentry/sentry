@@ -53,13 +53,17 @@ class Breadcrumbs(Interface):
     def to_python(cls, data):
         values = []
         for crumb in data.get('values') or ():
+            if crumb is None:
+                continue
+
             try:
                 values.append(cls.normalize_crumb(crumb))
             except InterfaceValidationError:
                 # TODO(dcramer): we dont want to discard the entirety of data
                 # when one breadcrumb errors, but it'd be nice if we could still
                 # record an error
-                continue
+                pass
+
         return cls(values=values)
 
     @classmethod
@@ -109,12 +113,6 @@ class Breadcrumbs(Interface):
 
         return rv
 
-    def get_path(self):
-        return 'sentry.interfaces.Breadcrumbs'
-
-    def get_alias(self):
-        return 'breadcrumbs'
-
     def get_api_context(self, is_public=False):
         def _convert(x):
             return {
@@ -130,3 +128,9 @@ class Breadcrumbs(Interface):
         return {
             'values': [_convert(v) for v in self.values],
         }
+
+    def get_api_meta(self, meta, is_public=False):
+        if meta and 'values' not in meta:
+            return {'values': meta}
+        else:
+            return meta

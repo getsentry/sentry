@@ -1,21 +1,21 @@
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
 
+import {uniq} from 'lodash';
 import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
-import {COLUMNS, PROMOTED_TAGS} from './data';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {t} from 'app/locale';
 
-const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
+import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
+import {isValidAggregation} from './aggregations/utils';
 
 const DEFAULTS = {
   projects: [],
-  fields: [],
+  fields: ['id', 'issue.id', 'project.name', 'platform', 'timestamp'],
   conditions: [],
   aggregations: [],
-  start: moment()
-    .subtract(14, 'days')
-    .format(DATE_TIME_FORMAT),
-  end: moment().format(DATE_TIME_FORMAT),
+  range: DEFAULT_STATS_PERIOD,
   orderby: '-timestamp',
   limit: 1000,
 };
@@ -31,10 +31,11 @@ function applyDefaults(query) {
 
 /**
  * This function is responsible for storing and managing updates to query state,
- * It applies sensible defaults if query parameters are not provided on initialization.
+ * It applies sensible defaults if query parameters are not provided on
+ * initialization.
  */
 export default function createQueryBuilder(initial = {}, organization) {
-  const query = applyDefaults(initial);
+  let query = applyDefaults(initial);
   const defaultProjects = organization.projects
     .filter(projects => projects.isMember)
     .map(project => parseInt(project.id, 10));
@@ -45,40 +46,67 @@ export default function createQueryBuilder(initial = {}, organization) {
     getExternal,
     updateField,
     fetch,
+    getQueryByType,
     getColumns,
     load,
+    reset,
   };
 
+  /**
+   * Loads tags keys for user's projects and updates `tags` with the result.
+   * If the request fails updates `tags` to be the hardcoded list of predefined
+   * promoted tags.
+   *
+   * @returns {Promise<Void>}
+   */
   function load() {
     return fetch({
       projects: defaultProjects,
-      aggregations: [['topK(1000)', 'tags_key', 'tags_key']],
-      start: moment()
-        .subtract(90, 'days')
-        .format(DATE_TIME_FORMAT),
-      end: moment().format(DATE_TIME_FORMAT),
+      fields: ['tags_key'],
+      aggregations: [['count()', null, 'count']],
+      orderby: '-count',
+      range: '90d',
+      turbo: true,
     })
       .then(res => {
-        tags = res.data[0].tags_key.map(tag => ({name: tag, type: 'string'}));
+        tags = res.data.map(tag => {
+          const type = SPECIAL_TAGS[tags.tags_key] || 'string';
+          return {name: tag.tags_key, type};
+        });
       })
       .catch(err => {
-        tags = PROMOTED_TAGS;
+        tags = PROMOTED_TAGS.map(tag => {
+          const type = SPECIAL_TAGS[tag] || 'string';
+          return {name: tag, type};
+        });
       });
   }
 
+  /**
+   * Returns the query object (internal state of the query)
+   *
+   * @returns {Object}
+   */
   function getInternal() {
     return query;
   }
 
+  /**
+   * Returns the external representation of the query as required by Snuba.
+   * Applies default projects and fields if these properties were not specified
+   * by the user.
+   *
+   * @returns {Object}
+   */
   function getExternal() {
     // Default to all projects if none is selected
     const projects = query.projects.length ? query.projects : defaultProjects;
 
-    // Default to all fields if there are none selected, and no aggregation is specified
-    const useDefaultFields =
-      !query.fields.length && !query.aggregations.length && !query.groupby;
+    // Default to all fields if there are none selected, and no aggregation is
+    // specified
+    const useDefaultFields = !query.fields.length && !query.aggregations.length;
 
-    const fields = useDefaultFields ? COLUMNS.map(({name}) => name) : query.fields;
+    const fields = useDefaultFields ? getColumns().map(({name}) => name) : query.fields;
 
     // Remove orderby property if it is not set
     if (!query.orderby) {
@@ -92,45 +120,136 @@ export default function createQueryBuilder(initial = {}, organization) {
     };
   }
 
+  /**
+   * Updates field in query to value provided. Also updates orderby and limit
+   * parameters if this causes their values to become invalid.
+   *
+   * @param {String} field Name of field to be updated
+   * @param {*} value Value to update field to
+   * @returns {Void}
+   */
   function updateField(field, value) {
     query[field] = value;
 
-    // If there are aggregations, we need to remove or update the orderby parameter
-    // if it's not in the list of selected fields
-    const hasAggregations = query.aggregations.length > 0;
-    const hasFields = query.fields.length > 0;
+    // Ignore non valid aggregations (e.g. user halfway inputting data)
+    const validAggregations = query.aggregations.filter(agg =>
+      isValidAggregation(agg, getColumns())
+    );
+
     const orderbyField = (query.orderby || '').replace(/^-/, '');
-    const hasOrderFieldInFields = query.fields.includes(orderbyField);
+    const hasOrderFieldInFields =
+      getColumns().find(f => f.name === orderbyField) !== undefined;
+    const hasOrderFieldInSelectedFields = query.fields.includes(orderbyField);
+    const hasOrderFieldInAggregations = query.aggregations.some(
+      agg => orderbyField === agg[2]
+    );
 
-    if (hasAggregations) {
-      // Check for invalid order by parameter
-      if (hasFields && !hasOrderFieldInFields) {
-        query.orderby = query.fields ? query.fields[0] : null;
-      }
+    const hasInvalidOrderbyField = validAggregations.length
+      ? !hasOrderFieldInSelectedFields && !hasOrderFieldInAggregations
+      : !hasOrderFieldInFields;
 
-      // Disable orderby for aggregations without any summarize fields
-      if (!hasFields) {
-        query.orderby = null;
+    // If orderby value becomes invalid, update it to the first valid aggregation
+    if (hasInvalidOrderbyField) {
+      if (validAggregations.length > 0) {
+        query.orderby = `-${validAggregations[0][2]}`;
+      } else {
+        query.orderby = '-timestamp';
       }
     }
 
+    // Snuba doesn't allow limit without orderby
     if (!query.orderby) {
       query.limit = null;
     }
   }
 
-  function fetch(data) {
+  /**
+   * Fetches either the query provided as an argument or the current query state
+   * if this is not provided and returns the result wrapped in a promise
+   *
+   * @param {Object} [data] Optional field to provide data to fetch
+   * @returns {Promise<Object|Error>}
+   */
+  function fetch(data, cursor = '0:0:1') {
     const api = new Client();
-    const endpoint = `/organizations/${organization.slug}/discover/`;
+    const limit = data.limit || 1000;
+    const endpoint = `/organizations/${organization.slug}/discover/query/?per_page=${limit}&cursor=${cursor}`;
 
-    return api.requestPromise(endpoint, {
-      method: 'POST',
-      data: data || getExternal(),
-    });
+    data = data || getExternal();
+
+    // Reject immediately if no projects are available
+    if (!data.projects.length) {
+      return Promise.reject(new Error(t('No projects selected')));
+    }
+
+    if (typeof data.limit === 'number') {
+      if (data.limit < 1 || data.limit > 1000) {
+        return Promise.reject(new Error(t('Invalid limit parameter')));
+      }
+    }
+
+    if (moment.utc(data.start).isAfter(moment.utc(data.end))) {
+      return Promise.reject(new Error('Start date cannot be after end date'));
+    }
+
+    return api
+      .requestPromise(endpoint, {includeAllArgs: true, method: 'POST', data})
+      .then(([responseData, _, utils]) => {
+        responseData.pageLinks = utils.getResponseHeader('Link');
+        return responseData;
+      })
+      .catch(err => {
+        throw new Error(t('An error occurred'));
+      });
   }
 
-  // Get all columns, including tags
+  /**
+   * Get the actual query to be run for each visualization type
+   *
+   * @param {Object} originalQuery Original query input by user (external query representation)
+   * @param {String} Type to fetch - currently either byDay or base
+   * @returns {Object} Modified query to be run for that type
+   */
+  function getQueryByType(originalQuery, type) {
+    if (type === 'byDayQuery') {
+      return {
+        ...originalQuery,
+        groupby: ['time'],
+        rollup: 60 * 60 * 24,
+        orderby: 'time',
+        limit: 1000,
+      };
+    }
+
+    // If there are no aggregations, always ensure we fetch event ID and
+    // project ID so we can display the link to event
+    if (type === 'baseQuery') {
+      return !originalQuery.aggregations.length && originalQuery.fields.length
+        ? {
+            ...originalQuery,
+            fields: uniq([...originalQuery.fields, 'id', 'project.id']),
+          }
+        : originalQuery;
+    }
+
+    throw new Error('Invalid query type');
+  }
+
+  /**
+   * Returns all column objects, including tags
+   *
+   * @returns {Array<{name: String, type: String}>}
+   */
   function getColumns() {
     return [...COLUMNS, ...tags];
+  }
+
+  /**
+   * Resets the query to defaults
+   *
+   * @returns {Void}
+   */
+  function reset(q = {}) {
+    query = applyDefaults(q);
   }
 }

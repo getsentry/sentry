@@ -24,7 +24,7 @@ class OrganizationSettingsTest(AcceptanceTestCase):
             teams=[self.team],
         )
         self.login_as(self.user)
-        self.path = '/organizations/{}/settings/'.format(self.org.slug)
+        self.path = u'/organizations/{}/settings/'.format(self.org.slug)
 
     def load_organization_helper(self, snapshot_name=None):
         self.browser.wait_until_not('.loading-indicator')

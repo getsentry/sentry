@@ -4,68 +4,104 @@
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
 import styled from 'react-emotion';
+import PropTypes from 'prop-types';
 
-import {addErrorMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import Field from 'app/views/settings/components/forms/field';
+import ListLink from 'app/components/listLink';
+import NavTabs from 'app/components/navTabs';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import Tooltip from 'app/components/tooltip';
 import TwoFactorRequired from 'app/views/settings/account/accountSecurity/components/twoFactorRequired';
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import PasswordForm from 'app/views/settings/account/passwordForm';
-
-const ENDPOINT = '/users/me/authenticators/';
+import recreateRoute from 'app/utils/recreateRoute';
 
 const AuthenticatorName = styled.span`
   font-size: 1.2em;
 `;
 
 class AccountSecurity extends AsyncView {
-  getEndpoints() {
-    return [['authenticators', '/users/me/authenticators/']];
-  }
+  static PropTypes = {
+    authenticators: PropTypes.arrayOf(PropTypes.object).isRequired,
+    orgsRequire2fa: PropTypes.arrayOf(PropTypes.object).isRequired,
+    countEnrolled: PropTypes.number.isRequired,
+    deleteDisabled: PropTypes.bool.isRequired,
+    onDisable: PropTypes.func.isRequired,
+  };
 
   getTitle() {
     return t('Security');
   }
 
-  handleDisable = auth => {
-    if (!auth || !auth.authId) return;
+  getEndpoints() {
+    return [];
+  }
 
-    this.setState(
-      {
-        loading: true,
+  handleSessionClose = () => {
+    this.api.request('/auth/', {
+      method: 'DELETE',
+      data: {all: true},
+      success: () => {
+        window.location = '/auth/login/';
       },
-      () =>
-        this.api
-          .requestPromise(`${ENDPOINT}${auth.authId}/`, {
-            method: 'DELETE',
-          })
-          .then(this.remountComponent, () => {
-            this.setState({loading: false});
-            addErrorMessage(t('Error disabling', auth.name));
-          })
-    );
+    });
   };
 
   renderBody() {
-    let {authenticators} = this.state;
+    let {
+      authenticators,
+      orgsRequire2fa,
+      countEnrolled,
+      deleteDisabled,
+      onDisable,
+    } = this.props;
     let isEmpty = !authenticators.length;
-    let twoFactorEnrolled = authenticators.some(({isEnrolled}) => {
-      return isEnrolled;
-    });
 
     return (
       <div>
-        <SettingsPageHeader title="Security" />
+        <SettingsPageHeader
+          title="Security"
+          tabs={
+            <NavTabs underlined={true}>
+              <ListLink to={recreateRoute('', this.props)} index={true}>
+                {t('Settings')}
+              </ListLink>
+              <ListLink to={recreateRoute('session-history/', this.props)}>
+                {t('Session History')}
+              </ListLink>
+            </NavTabs>
+          }
+        />
 
-        {!isEmpty && !twoFactorEnrolled && <TwoFactorRequired />}
+        {!isEmpty &&
+          countEnrolled == 0 && <TwoFactorRequired orgsRequire2fa={orgsRequire2fa} />}
 
         <PasswordForm />
+
+        <Panel>
+          <PanelHeader>{t('Sessions')}</PanelHeader>
+          <PanelBody>
+            <Field
+              alignRight={true}
+              flexibleControlStateSize={true}
+              label={t('Sign out of all devices')}
+              help={t(
+                'Signing out of all devices will sign you out of this device as well.'
+              )}
+            >
+              <Button data-test-id="signoutAll" onClick={this.handleSessionClose}>
+                {t('Sign out of all devices')}
+              </Button>
+            </Field>
+          </PanelBody>
+        </Panel>
 
         <Panel>
           <PanelHeader>
@@ -99,9 +135,10 @@ class AccountSecurity extends AsyncView {
                       {!isBackupInterface &&
                         !isEnrolled && (
                           <Button
-                            to={`/settings/account/security/${id}/enroll/`}
+                            to={`/settings/account/security/mfa/${id}/enroll/`}
                             size="small"
                             priority="primary"
+                            className="enroll-button"
                           >
                             {t('Add')}
                           </Button>
@@ -110,8 +147,9 @@ class AccountSecurity extends AsyncView {
                       {isEnrolled &&
                         authId && (
                           <Button
-                            to={`/settings/account/security/${authId}/`}
+                            to={`/settings/account/security/mfa/${authId}/`}
                             size="small"
+                            className="details-button"
                           >
                             {configureButton}
                           </Button>
@@ -119,11 +157,23 @@ class AccountSecurity extends AsyncView {
 
                       {!isBackupInterface &&
                         isEnrolled && (
-                          <RemoveConfirm onConfirm={() => this.handleDisable(auth)}>
-                            <Button css={{marginLeft: 6}} size="small">
-                              <span className="icon icon-trash" />
-                            </Button>
-                          </RemoveConfirm>
+                          <Tooltip
+                            title={t(
+                              "Two-factor authentication is required for at least one organization you're a member of."
+                            )}
+                            disabled={!deleteDisabled}
+                          >
+                            <span>
+                              <RemoveConfirm
+                                onConfirm={() => onDisable(auth)}
+                                disabled={deleteDisabled}
+                              >
+                                <Button css={{marginLeft: 6}} size="small">
+                                  <span className="icon icon-trash" />
+                                </Button>
+                              </RemoveConfirm>
+                            </span>
+                          </Tooltip>
                         )}
 
                       {isBackupInterface && !isEnrolled ? t('requires 2FA') : null}

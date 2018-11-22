@@ -1,18 +1,21 @@
 from __future__ import absolute_import
 
 import six
-
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.integrations.exceptions import IntegrationError
-from sentry.exceptions import PluginError
 from sentry.models import Repository
-from sentry.plugins.config import ConfigValidator
+from sentry.signals import repo_linked
 
 
 class IntegrationRepositoryProvider(object):
+    """
+    Repository Provider for Integrations in the Sentry Repository.
+    Does not include plugins.
+    """
     name = None
     logger = None
     repo_provider = None
@@ -22,34 +25,16 @@ class IntegrationRepositoryProvider(object):
 
     def dispatch(self, request, organization, **kwargs):
         try:
-            fields = self.get_config(organization)
-        except Exception as e:
-            return self.handle_api_error(e)
-
-        if request.method == 'GET':
-            return Response(fields)
-
-        validator = ConfigValidator(fields, request.DATA)
-        if not validator.is_valid():
-            return Response(
-                {
-                    'error_type': 'validation',
-                    'errors': validator.errors,
-                }, status=400
-            )
-
-        try:
-            config = self.validate_config(organization, validator.result, actor=request.user)
+            config = self.get_repository_data(organization, request.DATA)
         except Exception as e:
             return self.handle_api_error(e)
 
         try:
-            result = self.create_repository(
+            result = self.build_repository_config(
                 organization=organization,
                 data=config,
-                actor=request.user,
             )
-        except PluginError as e:
+        except IntegrationError as e:
             return Response(
                 {
                     'errors': {
@@ -81,14 +66,22 @@ class IntegrationRepositoryProvider(object):
                     provider=self.id,
                     integration_id=result.get('integration_id'),
                 )
-                self.delete_repository(repo, actor=request.user)
-            except PluginError:
+                self.on_delete_repository(repo)
+            except IntegrationError:
                 pass
             return Response(
                 {'errors': {'__all__': 'A repository with that name already exists'}},
                 status=400,
             )
+        else:
+            repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
 
+        analytics.record(
+            'integration.repo.added',
+            provider=self.id,
+            id=result.get('integration_id'),
+            organization_id=organization.id,
+        )
         return Response(serialize(repo, request.user), status=201)
 
     def handle_api_error(self, error):
@@ -113,17 +106,50 @@ class IntegrationRepositoryProvider(object):
     def get_config(self, organization):
         raise NotImplementedError
 
-    def validate_config(self, organization, config, actor=None):
+    def get_repository_data(self, organization, config):
+        """
+        Gets the necessary repository data through the integration's API
+        """
         return config
 
-    def create_repository(self, organization, data, actor=None):
+    def build_repository_config(self, organization, data):
+        """
+        Builds final dict containing all necessary data to create the repository
+
+            >>> {
+            >>>    'name': data['name'],
+            >>>    'external_id': data['external_id'],
+            >>>    'url': data['url'],
+            >>>    'config': {
+            >>>        # Any additional data
+            >>>    },
+            >>>    'integration_id': data['installation'],
+            >>> }
+        """
         raise NotImplementedError
 
-    def delete_repository(self, repo, actor=None):
+    def on_delete_repository(self, repo):
         pass
 
-    def compare_commits(self, repo, start_sha, end_sha, actor=None, organization_id=None):
+    def compare_commits(self, repo, start_sha, end_sha):
+        """
+        Generate a list of commits between the start & end sha
+        """
         raise NotImplementedError
+
+    def pull_request_url(self, repo, pull_request):
+        """
+        Generate a URL to a pull request on the repository provider.
+        """
+        return None
+
+    def repository_external_slug(self, repo):
+        """
+        Generate the public facing 'external_slug' for a repository
+        The shape of this id must match the `identifier` returned by
+        the integration's Integration.get_repositories() method
+        """
+        return repo.name
 
     @staticmethod
     def should_ignore_commit(message):

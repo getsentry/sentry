@@ -53,12 +53,9 @@ manager.add(44, "custom_tags", "Custom Tags", "code", prerequisite=["first_event
 manager.add(45, "source_maps", "Source Maps", "code",
             prerequisite=["first_event", ("javascript", "node")])
 manager.add(46, "user_feedback", "User Feedback", "code", prerequisite=["user_tracking"])
-# manager.add(47, "api", "API", "code", prerequisite=["first_event"])  #
-# Challenging to determine what organization (i.e. api/0/organizations/)
 manager.add(48, "breadcrumbs", "Breadcrumbs", "code", prerequisite=[
             "first_event", ("python", "javascript", "node", "php")])
-# TODO(ehfeng) manager.add("resolve_in_commit", "Resolve in Commit",
-# "code", prerequisite=["first_event", "releases"])
+manager.add(49, "resolved_with_commit", "Resolve with Commit", "code")
 
 # Web UI
 manager.add(60, "first_project", "First Project", "web")
@@ -76,13 +73,17 @@ manager.add(69, "notification_integration", "Notification Integration", "web",
             prerequisite=["first_project"])
 manager.add(70, "delete_and_discard", "Delete and Discard Future Events", "web",
             prerequisite=["first_event"])
-# TODO(ehfeng) manager.add("snooze", "Snooze Issue", "web", prerequisite=["first_event"])
-# TODO(ehfeng) manager.add("merge", "Merge Issues", "web", prerequisite=["first_event"])
-# TODO(ehfeng) manager.add("releases", "Releases", "web", prerequisite=["first_project"])
+manager.add(71, "repo_linked", "Link a Repository", "web")
+manager.add(72, "ownership_rule_created", "Ownership Rules", "web")
+manager.add(73, "issue_ignored", "Ignore Issue", "web")
 
 # Admin UI
 manager.add(80, "sso", "SSO", "admin", prerequisite=["invite_team"])
 manager.add(81, "data_scrubbers", "Data Scrubbers", "admin", prerequisite=["first_event"])
+
+# API
+manager.add(90, "release_created", "Create Release Using API", "api")
+manager.add(91, "deploy_created", "Create Deploy Using API", "api")
 
 
 class FeatureAdoptionManager(BaseManager):

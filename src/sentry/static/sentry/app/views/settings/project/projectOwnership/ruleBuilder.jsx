@@ -5,12 +5,12 @@ import {Flex} from 'grid-emotion';
 
 import {t} from 'app/locale';
 import memberListStore from 'app/stores/memberListStore';
-import Button from 'app/components/buttons/button';
+import Button from 'app/components/button';
 import SelectField from 'app/components/forms/selectField';
 import TextOverflow from 'app/components/textOverflow';
 import InlineSvg from 'app/components/inlineSvg';
 import Input from 'app/views/settings/components/forms/controls/input';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import SelectOwners from 'app/views/settings/project/projectOwnership/selectOwners';
 import space from 'app/styles/space.jsx';

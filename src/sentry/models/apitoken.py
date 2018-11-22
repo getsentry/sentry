@@ -2,21 +2,28 @@ from __future__ import absolute_import, print_function
 
 import six
 
-from bitfield import BitField
 from datetime import timedelta
 from django.db import models, transaction
 from django.utils import timezone
 from uuid import uuid4
 
-from sentry.models.apiscopes import ApiScopes
+from sentry.models.apiscopes import HasApiScopes
 from sentry.db.models import (
-    ArrayField, Model, BaseManager, FlexibleForeignKey, sane_repr
+    Model, BaseManager, FlexibleForeignKey, sane_repr
 )
 
 DEFAULT_EXPIRATION = timedelta(days=30)
 
 
-class ApiToken(Model):
+def default_expiration():
+    return timezone.now() + DEFAULT_EXPIRATION
+
+
+def generate_token():
+    return uuid4().hex + uuid4().hex
+
+
+class ApiToken(Model, HasApiScopes):
     __core__ = True
 
     # users can generate tokens without being application-bound
@@ -25,19 +32,17 @@ class ApiToken(Model):
     token = models.CharField(
         max_length=64,
         unique=True,
-        default=lambda: ApiToken.generate_token(),
+        default=generate_token,
     )
     refresh_token = models.CharField(
         max_length=64,
         unique=True,
         null=True,
-        default=lambda: ApiToken.generate_token(),
+        default=generate_token,
     )
     expires_at = models.DateTimeField(
-        null=True, default=lambda: timezone.now() + DEFAULT_EXPIRATION
+        null=True, default=default_expiration
     )
-    scopes = BitField(flags=ApiScopes().to_bitfield())
-    scope_list = ArrayField(of=models.TextField)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager(cache_fields=('token', ))
@@ -50,10 +55,6 @@ class ApiToken(Model):
 
     def __unicode__(self):
         return six.text_type(self.token)
-
-    @classmethod
-    def generate_token(cls):
-        return uuid4().hex + uuid4().hex
 
     @classmethod
     def from_grant(cls, grant):
@@ -75,14 +76,6 @@ class ApiToken(Model):
             'scopes': self.get_scopes(),
         }
 
-    def get_scopes(self):
-        if self.scope_list:
-            return self.scope_list
-        return [k for k, v in six.iteritems(self.scopes) if v]
-
-    def has_scope(self, scope):
-        return scope in self.get_scopes()
-
     def get_allowed_origins(self):
         if self.application:
             return self.application.get_allowed_origins()
@@ -93,7 +86,7 @@ class ApiToken(Model):
             expires_at = timezone.now() + DEFAULT_EXPIRATION
 
         self.update(
-            token=type(self).generate_token(),
-            refresh_token=type(self).generate_token(),
+            token=generate_token(),
+            refresh_token=generate_token(),
             expires_at=expires_at,
         )

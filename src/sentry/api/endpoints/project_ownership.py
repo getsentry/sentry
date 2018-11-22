@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ProjectOwnership, resolve_actors
+from sentry.signals import ownership_rule_created
 
 from sentry.ownership.grammar import parse_rules, dump_schema, ParseError
 
@@ -121,5 +122,6 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         )
         if serializer.is_valid():
             ownership = serializer.save()
+            ownership_rule_created.send_robust(project=project, sender=self.__class__)
             return Response(serialize(ownership, request.user))
         return Response(serializer.errors, status=400)

@@ -33,7 +33,9 @@ exports[`TeamMembers renders 1`] = `
         onChange={[Function]}
         onClose={[Function]}
         onSelect={[Function]}
-      />
+      >
+        <Component />
+      </DropdownAutoComplete>
     </div>
   </PanelHeader>
   <StyledMemberContainer
@@ -44,6 +46,7 @@ exports[`TeamMembers renders 1`] = `
       member={
         Object {
           "email": "sentry1@test.com",
+          "expired": false,
           "flags": Object {
             "sso:linked": false,
           },

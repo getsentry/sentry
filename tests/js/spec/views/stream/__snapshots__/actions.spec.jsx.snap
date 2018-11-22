@@ -165,7 +165,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
             >
               <Component
                 aria-label="Cancel"
-                className="css-cmo08-StyledButton-getColors e17811v30"
+                className="css-cmo08-StyledButton-getColors eqrebog0"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -177,7 +177,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               >
                 <button
                   aria-label="Cancel"
-                  className="css-cmo08-StyledButton-getColors e17811v30"
+                  className="css-cmo08-StyledButton-getColors eqrebog0"
                   disabled={false}
                   onClick={[Function]}
                   role="button"
@@ -189,24 +189,13 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 >
                   <ButtonLabel>
                     <Component
-                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                      className="css-ga4b18-ButtonLabel eqrebog1"
                     >
-                      <Flex
-                        align="center"
-                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                      <span
+                        className="css-ga4b18-ButtonLabel eqrebog1"
                       >
-                        <Base
-                          align="center"
-                          className="e17811v31 css-mvnt76-ButtonLabel"
-                        >
-                          <div
-                            className="e17811v31 css-mvnt76-ButtonLabel"
-                            is={null}
-                          >
-                            Cancel
-                          </div>
-                        </Base>
-                      </Flex>
+                        Cancel
+                      </span>
                     </Component>
                   </ButtonLabel>
                 </button>
@@ -232,7 +221,7 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
               <Component
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
-                className="css-1msljz8-StyledButton-getColors e17811v30"
+                className="css-1msljz8-StyledButton-getColors eqrebog0"
                 data-test-id="confirm-modal"
                 disabled={false}
                 onClick={[Function]}
@@ -242,33 +231,25 @@ exports[`StreamActions Bulk Total results < bulk limit bulk resolves 1`] = `
                 <button
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
-                  className="css-1msljz8-StyledButton-getColors e17811v30"
+                  className="css-1msljz8-StyledButton-getColors eqrebog0"
                   data-test-id="confirm-modal"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
                   role="button"
                 >
-                  <ButtonLabel>
+                  <ButtonLabel
+                    priority="primary"
+                  >
                     <Component
-                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                      className="css-ga4b18-ButtonLabel eqrebog1"
+                      priority="primary"
                     >
-                      <Flex
-                        align="center"
-                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                      <span
+                        className="css-ga4b18-ButtonLabel eqrebog1"
                       >
-                        <Base
-                          align="center"
-                          className="e17811v31 css-mvnt76-ButtonLabel"
-                        >
-                          <div
-                            className="e17811v31 css-mvnt76-ButtonLabel"
-                            is={null}
-                          >
-                            Bulk resolve issues
-                          </div>
-                        </Base>
-                      </Flex>
+                        Bulk resolve issues
+                      </span>
                     </Component>
                   </ButtonLabel>
                 </button>
@@ -479,7 +460,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
             >
               <Component
                 aria-label="Cancel"
-                className="css-cmo08-StyledButton-getColors e17811v30"
+                className="css-cmo08-StyledButton-getColors eqrebog0"
                 disabled={false}
                 onClick={[Function]}
                 role="button"
@@ -491,7 +472,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               >
                 <button
                   aria-label="Cancel"
-                  className="css-cmo08-StyledButton-getColors e17811v30"
+                  className="css-cmo08-StyledButton-getColors eqrebog0"
                   disabled={false}
                   onClick={[Function]}
                   role="button"
@@ -503,24 +484,13 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 >
                   <ButtonLabel>
                     <Component
-                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                      className="css-ga4b18-ButtonLabel eqrebog1"
                     >
-                      <Flex
-                        align="center"
-                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                      <span
+                        className="css-ga4b18-ButtonLabel eqrebog1"
                       >
-                        <Base
-                          align="center"
-                          className="e17811v31 css-mvnt76-ButtonLabel"
-                        >
-                          <div
-                            className="e17811v31 css-mvnt76-ButtonLabel"
-                            is={null}
-                          >
-                            Cancel
-                          </div>
-                        </Base>
-                      </Flex>
+                        Cancel
+                      </span>
                     </Component>
                   </ButtonLabel>
                 </button>
@@ -546,7 +516,7 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
               <Component
                 aria-label="Bulk resolve issues"
                 autoFocus={true}
-                className="css-1msljz8-StyledButton-getColors e17811v30"
+                className="css-1msljz8-StyledButton-getColors eqrebog0"
                 data-test-id="confirm-modal"
                 disabled={false}
                 onClick={[Function]}
@@ -556,33 +526,25 @@ exports[`StreamActions Bulk Total results > bulk limit bulk resolves 1`] = `
                 <button
                   aria-label="Bulk resolve issues"
                   autoFocus={true}
-                  className="css-1msljz8-StyledButton-getColors e17811v30"
+                  className="css-1msljz8-StyledButton-getColors eqrebog0"
                   data-test-id="confirm-modal"
                   disabled={false}
                   onClick={[Function]}
                   priority="primary"
                   role="button"
                 >
-                  <ButtonLabel>
+                  <ButtonLabel
+                    priority="primary"
+                  >
                     <Component
-                      className="css-1dxlw1i-ButtonLabel e17811v31"
+                      className="css-ga4b18-ButtonLabel eqrebog1"
+                      priority="primary"
                     >
-                      <Flex
-                        align="center"
-                        className="css-1dxlw1i-ButtonLabel e17811v31"
+                      <span
+                        className="css-ga4b18-ButtonLabel eqrebog1"
                       >
-                        <Base
-                          align="center"
-                          className="e17811v31 css-mvnt76-ButtonLabel"
-                        >
-                          <div
-                            className="e17811v31 css-mvnt76-ButtonLabel"
-                            is={null}
-                          >
-                            Bulk resolve issues
-                          </div>
-                        </Base>
-                      </Flex>
+                        Bulk resolve issues
+                      </span>
                     </Component>
                   </ButtonLabel>
                 </button>

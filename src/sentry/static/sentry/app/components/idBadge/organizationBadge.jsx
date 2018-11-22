@@ -7,7 +7,7 @@ import Reflux from 'reflux';
 import BaseBadge from 'app/components/idBadge/baseBadge';
 import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
 import OrganizationStore from 'app/stores/organizationsStore';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 class OrganizationBadge extends React.Component {
   static propTypes = {

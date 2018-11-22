@@ -4,8 +4,8 @@ import React from 'react';
 import {t, tct} from 'app/locale';
 import ApiForm from 'app/components/forms/apiForm';
 import BooleanField from 'app/components/forms/booleanField';
-import Button from 'app/components/buttons/button';
-import Select2Field from 'app/components/forms/select2Field';
+import Button from 'app/components/button';
+import SelectField from 'app/components/forms/selectField';
 
 const ROLES = [
   ['member', 'Member'],
@@ -123,7 +123,7 @@ class OrganizationAuthProvider extends React.Component {
                 label="Require SSO"
                 help="Require members to use a valid linked SSO account to access this organization"
               />
-              <Select2Field
+              <SelectField
                 name="default_role"
                 label="Default Role"
                 choices={ROLES}
