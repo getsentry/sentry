@@ -111,7 +111,8 @@ class AppleCrashReport(object):
 
         is_exception = bool(thread_info.get('mechanism'))
         thread_id = thread_info.get('id') or thread_info.get('thread_id') or '0'
-        thread_name_string = ' name: %s' % (thread_info.get('name') or '')
+        thread_name = thread_info.get('name')
+        thread_name_string = ' name: %s' % (thread_name) if thread_name else ''
         thread_crashed = thread_info.get('crashed') or is_exception
         thread_crashed_thread = ' Crashed:' if thread_crashed else ''
         thread_string = 'Thread %s%s%s\n' % (
