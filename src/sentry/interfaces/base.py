@@ -35,6 +35,7 @@ def get_interface(name):
 
 def get_interfaces(data):
     result = []
+    meta = Meta(data.get('_meta'))
     for key, data in six.iteritems(data):
         try:
             cls = get_interface(key)
@@ -42,7 +43,7 @@ def get_interfaces(data):
             continue
 
         value = safe_execute(
-            cls.to_python, data, _with_transaction=False
+            cls.to_python, data, meta=meta.enter(key), _with_transaction=False
         )
         if not value:
             continue
@@ -73,7 +74,7 @@ class Interface(object):
     ephemeral = False
 
     def __init__(self, **data):
-        self._data = data or {}
+        self._data = data
         self._meta = Meta()
 
     @classproperty
