@@ -167,38 +167,33 @@ def find_stacktraces_in_data(data, include_raw=False):
     rv = []
 
     def _report_stack(stacktrace, container):
-        platforms = set()
-        for frame in stacktrace.get('frames') or ():
-            platforms.add(frame.get('platform') or data.get('platform'))
+        if not stacktrace or not get_path(stacktrace, 'frames', filter=True):
+            return
+
+        platforms = set(
+            frame.get('platform') or data.get('platform')
+            for frame in get_path(stacktrace, 'frames', filter=True, default=())
+        )
         rv.append(StacktraceInfo(stacktrace=stacktrace, container=container, platforms=platforms))
 
     for exc in get_path(data, 'exception', 'values', filter=True, default=()):
-        stacktrace = exc.get('stacktrace')
-        if stacktrace:
-            _report_stack(stacktrace, exc)
+        _report_stack(exc.get('stacktrace'), exc)
 
-    stacktrace = data.get('stacktrace')
-    if stacktrace:
-        _report_stack(stacktrace, None)
+    _report_stack(data.get('stacktrace'), None)
 
     for thread in get_path(data, 'threads', 'values', filter=True, default=()):
-        stacktrace = thread.get('stacktrace')
-        if stacktrace:
-            _report_stack(stacktrace, thread)
+        _report_stack(thread.get('stacktrace'), thread)
 
     if include_raw:
-        for stacktrace_info in rv[:]:
-            if stacktrace_info.container is None:
-                continue
-            raw = stacktrace_info.container.get('raw_stacktrace')
-            if raw:
-                _report_stack(raw, stacktrace_info.container)
+        for info in rv[:]:
+            if info.container is not None:
+                _report_stack(info.container.get('raw_stacktrace'), info.container)
 
     return rv
 
 
 def normalize_in_app(data):
-    def _get_has_system_frames(frames):
+    def _has_system_frames(frames):
         system_frames = 0
         for frame in frames:
             if not frame.get('in_app'):
@@ -206,8 +201,8 @@ def normalize_in_app(data):
         return bool(system_frames) and len(frames) != system_frames
 
     for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
-        frames = stacktrace_info.stacktrace.get('frames') or ()
-        has_system_frames = _get_has_system_frames(frames)
+        frames = get_path(stacktrace_info.stacktrace, 'frames', filter=True, default=())
+        has_system_frames = _has_system_frames(frames)
         for frame in frames:
             if not has_system_frames:
                 frame['in_app'] = False
@@ -264,9 +259,10 @@ def get_processable_frames(stacktrace_info, processors):
     """Returns thin wrappers around the frames in a stacktrace associated
     with the processor for it.
     """
-    frame_count = len(stacktrace_info.stacktrace['frames'])
+    frames = get_path(stacktrace_info.stacktrace, 'frames', filter=True, default=())
+    frame_count = len(frames)
     rv = []
-    for idx, frame in enumerate(stacktrace_info.stacktrace['frames']):
+    for idx, frame in enumerate(frames):
         processor = next((p for p in processors if p.handles_frame(frame, stacktrace_info)), None)
         if processor is not None:
             rv.append(

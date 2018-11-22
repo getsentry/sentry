@@ -83,7 +83,7 @@ class User(Interface):
         if not geo and ip_address:
             geo = Geo.from_ip_address(ip_address, meta=meta.enter('geo'))
         elif geo:
-            geo = Geo._to_python(geo, meta=meta.enter('geo'))
+            geo = Geo.to_python(geo, meta=meta.enter('geo'))
 
         # TODO(dcramer): patch in fix to deal w/ old data but not allow new
         # if not (ident or email or username or ip_address):

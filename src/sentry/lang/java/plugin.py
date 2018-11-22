@@ -19,9 +19,9 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         self.images = set()
         self.available = False
 
-        for image in get_path(self.data, 'debug_meta', 'images', filter=True, default=()):
-            self.available = True
-            if image.get('type') == 'proguard':
+        for image in get_path(self.data, 'debug_meta', 'images', default=()):
+            if image and image.get('type') == 'proguard':
+                self.available = True
                 self.images.add(six.text_type(image['uuid']).lower())
 
     def handles_frame(self, frame, stacktrace_info):

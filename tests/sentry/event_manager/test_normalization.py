@@ -23,6 +23,14 @@ def make_event(**kwargs):
     return result
 
 
+def test_tags_none():
+    manager = EventManager(make_event(tags=None))
+    manager.normalize()
+    data = manager.get_data()
+
+    assert data['tags'] == []
+
+
 def test_tags_as_list():
     manager = EventManager(make_event(tags=[('foo', 'bar')]))
     manager.normalize()
@@ -45,6 +53,14 @@ def test_interface_is_relabeled():
     data = manager.get_data()
 
     assert data['user'] == {'id': '1'}
+
+
+def test_interface_none():
+    manager = EventManager(make_event(user=None))
+    manager.normalize()
+    data = manager.get_data()
+
+    assert 'user' not in data
 
 
 @pytest.mark.parametrize('user', ['missing', None, {}, {'ip_address': None}])
@@ -189,6 +205,36 @@ def test_logger():
     data = manager.get_data()
     assert data['logger'] == DEFAULT_LOGGER_NAME
     assert not any(e.get('name') == 'logger' for e in data['errors'])
+
+
+def test_moves_stacktrace_to_exception():
+    manager = EventManager(
+        make_event(
+            exception={
+                'type': 'MyException',
+            },
+            stacktrace={
+                'frames': [
+                    {
+                        'lineno': 1,
+                        'filename': 'foo.py',
+                    }, {
+                        'lineno': 1,
+                        'filename': 'bar.py',
+                    }
+                ]
+            }
+        )
+    )
+    manager.normalize()
+    data = manager.get_data()
+
+    frames = data['exception']['values'][0]['stacktrace']['frames']
+    assert frames[0]['lineno'] == 1
+    assert frames[0]['filename'] == 'foo.py'
+    assert frames[1]['lineno'] == 1
+    assert frames[1]['filename'] == 'bar.py'
+    assert 'stacktrace' not in data
 
 
 def test_bad_interfaces_no_exception():

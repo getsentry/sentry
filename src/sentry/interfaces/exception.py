@@ -995,7 +995,7 @@ class Exception(Interface):
     score = 2000
 
     def _values(self):
-        return get_path(self._data, 'values', filter=True, default=())
+        return get_path(self.values, filter=True)
 
     def __getitem__(self, key):
         return self._values()[key]

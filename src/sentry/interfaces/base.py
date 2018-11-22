@@ -189,10 +189,7 @@ class Interface(object):
         body = self.to_string(event)
         if not body:
             return ''
-        return '<pre>%s</pre>' % (escape(body),)
-
-    def get_errors(self):
-        return self._meta.get().get('err', [])
+        return '<pre>%s</pre>' % (escape(body), )
 
     # deprecated stuff.  These were deprecated in late 2018, once
     # determined they are unused we can kill them.

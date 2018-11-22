@@ -227,12 +227,12 @@ else:
 
 
 def generate_culprit(data, platform=None):
-    exceptions = get_path(data, 'exception', 'values', filter=True)
-    if exceptions is not None:
-        stacktraces = [e['stacktrace'] for e in exceptions if e.get('stacktrace')]
+    exceptions = get_path(data, 'exception', 'values')
+    if exceptions:
+        stacktraces = [e['stacktrace'] for e in exceptions if get_path(e, 'stacktrace', 'frames')]
     else:
         stacktrace = data.get('stacktrace')
-        if stacktrace:
+        if stacktrace and stacktrace.get('frames'):
             stacktraces = [stacktrace]
         else:
             stacktraces = None
@@ -245,7 +245,7 @@ def generate_culprit(data, platform=None):
             platform=platform,
         )
 
-    if not culprit and 'request' in data:
+    if not culprit and data.get('request'):
         culprit = get_path(data, 'request', 'url')
 
     return truncatechars(culprit or '', MAX_CULPRIT_LENGTH)
@@ -537,18 +537,20 @@ class EventManager(object):
             'threads': to_values,
         }
 
+        meta = Meta(data.get('_meta'))
+
         for c in casts:
-            if c in data:
+            if data.get(c) is not None:
                 try:
                     data[c] = casts[c](data[c])
                 except InvalidTimestamp as it:
                     errors.append({'type': it.args[0], 'name': c, 'value': data[c]})
+                    meta.enter(c).add_error(it, data[c])
                     del data[c]
-                except Exception:
+                except Exception as e:
                     errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
+                    meta.enter(c).add_error(e, data[c])
                     del data[c]
-
-        meta = Meta(data.get('_meta'))
 
         # raw 'message' is coerced to the Message interface.  Longer term
         # we want to treat 'message' as a pure alias for 'logentry' but

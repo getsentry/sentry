@@ -60,7 +60,7 @@ class ContextType(object):
     @classmethod
     def values_for_data(cls, data):
         rv = []
-        for key, context in six.iteritems(data.get('contexts') or {}):
+        for context in six.itervalues(data.get('contexts') or {}):
             if context and context.get('type') == cls.type:
                 rv.append(context)
         return rv
