@@ -577,16 +577,10 @@ class EventManager(object):
 
         # Fill in ip addresses marked as {{auto}}
         if self._client_ip:
-            if get_path(data, ['request', 'env', 'REMOTE_ADDR']) == '{{auto}}':
+            if get_path(data, 'request', 'env', 'REMOTE_ADDR') == '{{auto}}':
                 data['request']['env']['REMOTE_ADDR'] = self._client_ip
 
-            if get_path(data, ['request', 'env', 'REMOTE_ADDR']) == '{{auto}}':
-                data['request']['env']['REMOTE_ADDR'] = self._client_ip
-
-            if get_path(data, ['user', 'ip_address']) == '{{auto}}':
-                data['user']['ip_address'] = self._client_ip
-
-            if get_path(data, ['user', 'ip_address']) == '{{auto}}':
+            if get_path(data, 'user', 'ip_address') == '{{auto}}':
                 data['user']['ip_address'] = self._client_ip
 
         # Validate main event body and tags against schema.
