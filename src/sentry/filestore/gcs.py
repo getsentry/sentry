@@ -18,6 +18,7 @@ from google.cloud.storage.bucket import Bucket
 from google.cloud.exceptions import NotFound
 from google.auth.exceptions import TransportError
 from google.resumable_media.common import DataCorruption
+from requests.exceptions import RequestException
 
 from sentry.utils import metrics
 from sentry.net.http import TimeoutAdapter
@@ -36,10 +37,10 @@ def try_repeated(func):
     until we can find the root cause.
     """
     idx = 0
-    while 1:
+    while True:
         try:
             return func()
-        except (DataCorruption, ConnectionError, TransportError):
+        except (DataCorruption, ConnectionError, TransportError, RequestException):
             if idx >= 3:
                 raise
         idx += 1
@@ -150,7 +151,7 @@ class GoogleCloudFile(File):
     def _get_file(self):
         def _try_download():
             self.blob.download_to_file(self._file)
-            self.file.seek(0)
+            self._file.seek(0)
 
         if self._file is None:
             with metrics.timer('filestore.read', instance='gcs'):
@@ -248,6 +249,11 @@ class GoogleCloudStorage(Storage):
         return GoogleCloudFile(name, mode, self)
 
     def _save(self, name, content):
+        def _try_upload():
+            content.seek(0, os.SEEK_SET)
+            file.blob.upload_from_file(content, size=content.size,
+                                       content_type=file.mime_type)
+
         with metrics.timer('filestore.save', instance='gcs'):
             cleaned_name = clean_name(name)
             name = self._normalize_name(cleaned_name)
@@ -255,9 +261,7 @@ class GoogleCloudStorage(Storage):
             content.name = cleaned_name
             encoded_name = self._encode_name(name)
             file = GoogleCloudFile(encoded_name, 'w', self)
-            content.seek(0, os.SEEK_SET)
-            file.blob.upload_from_file(content, size=content.size,
-                                       content_type=file.mime_type)
+            try_repeated(_try_upload)
         return cleaned_name
 
     def delete(self, name):
