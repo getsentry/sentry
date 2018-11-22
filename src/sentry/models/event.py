@@ -23,6 +23,7 @@ from sentry.db.models import (
 from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
+from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
 
 
@@ -101,10 +102,9 @@ class Event(Model):
         # being used by plugin code and once the message rename is through
         # plugins should instead swithc to the actual message attribute or
         # this method could return what currently is real_message.
-        msg_interface = self.data.get('logentry', {
-            'message': self.message,
-        })
-        return msg_interface.get('formatted', msg_interface['message'])
+        return get_path(self.data, 'logentry', 'formatted') \
+            or get_path(self.data, 'logentry', 'message') \
+            or self.message
 
     def get_event_type(self):
         """
@@ -157,17 +157,13 @@ class Event(Model):
 
     @memoize
     def ip_address(self):
-        user_data = self.data.get('user', self.data.get('user'))
-        if user_data:
-            value = user_data.get('ip_address')
-            if value:
-                return value
+        ip_address = get_path(self.data, 'user', 'ip_address')
+        if ip_address:
+            return ip_address
 
-        http_data = self.data.get('request', self.data.get('http'))
-        if http_data and 'env' in http_data:
-            value = http_data['env'].get('REMOTE_ADDR')
-            if value:
-                return value
+        remote_addr = get_path(self.data, 'request', 'env', 'REMOTE_ADDR')
+        if remote_addr:
+            return remote_addr
 
         return None
 
