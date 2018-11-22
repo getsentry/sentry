@@ -123,10 +123,15 @@ class EventAttributeCondition(EventCondition):
         # TODO(dcramer): we should validate attributes (when we can) before
         path = attr.split('.')
 
-        if path[0] in ('message', 'platform'):
+        if path[0] == 'platform':
             if len(path) != 1:
                 return []
-            return [getattr(event, path[0])]
+            return [event.platform]
+
+        if path[0] == 'message':
+            if len(path) != 1:
+                return []
+            return [event.real_message]
 
         elif path[0] == 'environment':
             return [event.get_tag('environment')]

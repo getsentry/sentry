@@ -26,11 +26,11 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
 
         self.event = self.create_event(
             group=self.group,
-            message="message!",
             platform="python",
             datetime=one_second_ago,
             tags={'environment': 'production'},
             data={
+                'message': 'message!',
                 'exception': {
                     'values': [
                         {

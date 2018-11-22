@@ -44,6 +44,12 @@ User
 
 
 
+Message
+-----------
+
+
+
+
 
 
 Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");

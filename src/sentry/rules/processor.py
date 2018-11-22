@@ -23,6 +23,9 @@ class EventCompatibilityProxy(object):
     """
     __class__ = property(lambda x: x._event.__class__)
 
+    # TODO: this goes away once message has been renamed to search_message
+    # and real_message to message
+
     def __init__(self, event):
         self._event = event
 
@@ -31,7 +34,7 @@ class EventCompatibilityProxy(object):
 
     @property
     def message(self):
-        return self._event.get_legacy_message()
+        return self._event.real_message
 
 
 class RuleProcessor(object):

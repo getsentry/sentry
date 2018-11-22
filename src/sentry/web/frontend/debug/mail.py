@@ -26,6 +26,7 @@ from sentry.models import (
     Activity, Event, Group, GroupStatus, GroupSubscriptionReason, Organization, OrganizationMember,
     Project, Release, Rule, Team
 )
+from sentry.event_manager import EventManager
 from sentry.plugins.sentry_mail.activity import emails
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import inline_css
@@ -89,15 +90,25 @@ def make_group_generator(random, project):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
 
+        culprit = make_culprit(random)
+        level = random.choice(LOG_LEVELS.keys())
+        message = make_message(random)
+
         group = Group(
             id=id,
             project=project,
-            culprit=make_culprit(random),
-            level=random.choice(LOG_LEVELS.keys()),
-            message=make_message(random),
+            culprit=culprit,
+            level=level,
+            message=message,
             first_seen=to_datetime(first_seen),
             last_seen=to_datetime(last_seen),
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED, )),
+            data={
+                'type': 'default',
+                'metadata': {
+                    'title': message,
+                }
+            }
         )
 
         if random.random() < 0.8:
@@ -186,13 +197,27 @@ class ActivityMailDebugView(View):
             ),
         )
 
+        data = dict(load_data('python'))
+        data['message'] = group.message
+        data.pop('logentry', None)
+
+        event_manager = EventManager(data)
+        event_manager.normalize()
+        event_type = event_manager.get_event_type()
+
+        group.mesage = event_manager.get_search_message()
+        group.data = {
+            'type': event_type.key,
+            'metadata': event_type.get_metadata(),
+        }
+
         event = Event(
             id=1,
             project=project,
+            message=event_manager.get_search_message(),
             group=group,
-            message=group.message,
-            data=load_data('python'),
             datetime=datetime(2016, 6, 13, 3, 8, 24, tzinfo=timezone.utc),
+            data=event_manager.get_data()
         )
 
         activity = Activity(
@@ -227,19 +252,34 @@ def alert(request):
         make_group_generator(random, project),
     )
 
-    data = load_data(platform)
+    data = dict(load_data(platform))
+    data['message'] = group.message
+    data.pop('logentry', None)
+    data['environment'] = 'prod'
     data['tags'] = [
-        ('logger', 'javascript'), ('environment', 'prod'), ('level', 'error'),
+        ('logger', 'javascript'),
+        ('environment', 'prod'),
+        ('level', 'error'),
         ('device', 'Other')
     ]
+
+    event_manager = EventManager(data)
+    event_manager.normalize()
+    event_type = event_manager.get_event_type()
+
+    group.message = event_manager.get_search_message()
+    group.data = {
+        'type': event_type.key,
+        'metadata': event_type.get_metadata(),
+    }
 
     event = Event(
         id=1,
         event_id='44f1419e73884cd2b45c79918f4b6dc4',
         project=project,
         group=group,
-        message=group.message,
-        data=data,
+        message=event_manager.get_search_message(),
+        data=event_manager.get_data(),
         datetime=to_datetime(
             random.randint(
                 to_timestamp(group.first_seen),
