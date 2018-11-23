@@ -109,7 +109,7 @@ class EventSerializer(Serializer):
         meta = get_path(event.data, '_meta', attr)
         return (value, meta_with_chunks(value, meta))
 
-    def _get_message_with_meta(self, event):
+    def _get_legacy_message_with_meta(self, event):
         meta = event.data.get('_meta')
 
         message = get_path(event.data, 'logentry', 'formatted')
@@ -120,7 +120,8 @@ class EventSerializer(Serializer):
             msg_meta = get_path(meta, 'logentry', 'message')
 
         if not message:
-            # TODO(mitsuhiko): this path is inactive and should be removed
+            # TODO(mitsuhiko): this path needs to become inactive and
+            # should be removed
             message = event.search_message
             msg_meta = None
 
@@ -167,7 +168,7 @@ class EventSerializer(Serializer):
             }
             errors.append(error_result)
 
-        (message, message_meta) = self._get_message_with_meta(obj)
+        (message, message_meta) = self._get_legacy_message_with_meta(obj)
         (tags, tags_meta) = self._get_tags_with_meta(obj)
         (context, context_meta) = self._get_attr_with_meta(obj, 'extra', {})
         (packages, packages_meta) = self._get_attr_with_meta(obj, 'modules', {})
