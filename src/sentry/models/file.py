@@ -58,7 +58,7 @@ ChunkFileState = enum(
 def _get_size_and_checksum(fileobj):
     size = 0
     checksum = sha1()
-    while 1:
+    while True:
         chunk = fileobj.read(65536)
         if not chunk:
             break
@@ -134,7 +134,7 @@ class FileBlob(Model):
 
         def _upload_and_pend_chunk(fileobj, size, checksum, lock):
             blob = cls(size=size, checksum=checksum)
-            blob.path = cls.generate_unique_path(blob.timestamp)
+            blob.path = cls.generate_unique_path()
             storage = get_storage()
             storage.save(blob.path, fileobj)
             blobs_to_save.append((blob, lock))
@@ -156,7 +156,7 @@ class FileBlob(Model):
             _ensure_blob_owned(blob)
 
         def _flush_blobs():
-            while 1:
+            while True:
                 try:
                     blob, lock = blobs_to_save.pop()
                 except IndexError:
@@ -229,7 +229,7 @@ class FileBlob(Model):
                 return existing
 
             blob = cls(size=size, checksum=checksum)
-            blob.path = cls.generate_unique_path(blob.timestamp)
+            blob.path = cls.generate_unique_path()
             storage = get_storage()
             storage.save(blob.path, fileobj)
             blob.save()
@@ -238,9 +238,9 @@ class FileBlob(Model):
         return blob
 
     @classmethod
-    def generate_unique_path(cls, timestamp):
-        pieces = [six.text_type(x) for x in divmod(int(timestamp.strftime('%s')), ONE_DAY)]
-        pieces.append(uuid4().hex)
+    def generate_unique_path(cls):
+        uuid_hex = uuid4().hex
+        pieces = [uuid_hex[:2], uuid_hex[2:6], uuid_hex[6:]]
         return u'/'.join(pieces)
 
     def delete(self, *args, **kwargs):
