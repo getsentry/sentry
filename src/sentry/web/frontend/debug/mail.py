@@ -99,7 +99,7 @@ def make_group_generator(random, project):
             project=project,
             culprit=culprit,
             level=level,
-            message=message,
+            search_message=message,
             first_seen=to_datetime(first_seen),
             last_seen=to_datetime(last_seen),
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED, )),
