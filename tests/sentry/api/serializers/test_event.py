@@ -87,8 +87,6 @@ class EventSerializerTest(TestCase):
         assert result['_meta']['message'] == {'': {'err': ['some error']}}
 
     def test_message_legacy(self):
-        # TODO: This test case can be removed once validation is implemented by
-        # libsemaphore and enforced on all payloads
         event = self.create_event(
             data={
                 'message': 'foo',
@@ -102,8 +100,7 @@ class EventSerializerTest(TestCase):
         del event.data['logentry']
 
         result = serialize(event)
-        assert result['message'] == 'foo'
-        assert result['_meta']['message'] == {'': {'err': ['some error']}}
+        assert result['message'] is None
 
     def test_tags_tuples(self):
         event = self.create_event(
@@ -154,6 +151,27 @@ class EventSerializerTest(TestCase):
         assert result['tags'][1]['value'] == 'foo'
         assert result['_meta']['tags']['0']['value'] == {'': {'err': ['bar error']}}
         assert result['_meta']['tags']['1']['value'] == {'': {'err': ['foo error']}}
+
+    def test_none_interfaces(self):
+        event = self.create_event(data={
+            'breadcrumbs': None,
+            'exception': None,
+            'logentry': None,
+            'request': None,
+            'user': None,
+            'contexts': None,
+            'sdk': None,
+            '_meta': None,
+        })
+
+        result = serialize(event)
+        assert not any(e['type'] == 'breadcrumbs' for e in result['entries'])
+        assert not any(e['type'] == 'exception' for e in result['entries'])
+        assert not any(e['type'] == 'message' for e in result['entries'])
+        assert not any(e['type'] == 'request' for e in result['entries'])
+        assert result['user'] is None
+        assert result['sdk'] is None
+        assert result['contexts'] == {}
 
 
 class SharedEventSerializerTest(TestCase):
