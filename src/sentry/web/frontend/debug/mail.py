@@ -214,7 +214,7 @@ class ActivityMailDebugView(View):
         event = Event(
             id=1,
             project=project,
-            message=event_manager.get_search_message(),
+            search_message=event_manager.get_search_message(),
             group=group,
             datetime=datetime(2016, 6, 13, 3, 8, 24, tzinfo=timezone.utc),
             data=event_manager.get_data()
@@ -278,7 +278,7 @@ def alert(request):
         event_id='44f1419e73884cd2b45c79918f4b6dc4',
         project=project,
         group=group,
-        message=event_manager.get_search_message(),
+        search_message=event_manager.get_search_message(),
         data=event_manager.get_data(),
         datetime=to_datetime(
             random.randint(
