@@ -79,12 +79,24 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         client = installation.get_client()
         n = 0
         for commit in commit_list:
-            commit.update(
-                {'patch_set': self.transform_changes(
-                    client.get_commit_filechanges(
-                        repo.config['instance'], repo.external_id, commit['commitId'])
-                )})
+            # Azure will truncate commit comments to only the first line.
+            # We need to make an additional API call to get the full commit message.
+            # This is important because issue refs could be anywhere in the commit
+            # message.
+            if commit.get('commentTruncated', False):
+                full_commit = client.get_commit(
+                    repo.config['instance'],
+                    repo.external_id,
+                    commit['commitId'])
+                commit['comment'] = full_commit['comment']
 
+            commit['patch_set'] = self.transform_changes(
+                client.get_commit_filechanges(
+                    repo.config['instance'],
+                    repo.external_id,
+                    commit['commitId'])
+            )
+            # We only fetch patch data for 90 commits.
             n += 1
             if n > MAX_COMMIT_DATA_REQUESTS:
                 break
