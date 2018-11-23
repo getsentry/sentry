@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import re
 
 from ua_parser.user_agent_parser import Parse
+from sentry.utils.safe import setdefault_path
 
 # Environment.OSVersion (GetVersionEx) or RuntimeInformation.OSDescription, on Windows
 _windows_re = re.compile('^(Microsoft )?Windows (NT )?(?P<version>\d+\.\d+\.\d+).*$')
@@ -107,11 +108,10 @@ def _inject_browser_context(data, user_agent):
     try:
         if ua['family'] == 'Other':
             return
-        if data.get('contexts', {}).get('browser', None) is None:
-            data['contexts']['browser'] = {
-                'name': ua['family'],
-                'version': _get_version(ua),
-            }
+        setdefault_path(data, 'contexts', 'browser', value={
+            'name': ua['family'],
+            'version': _get_version(ua),
+        })
     except KeyError:
         pass
 
@@ -121,11 +121,10 @@ def _inject_os_context(data, user_agent):
     try:
         if ua['family'] == 'Other':
             return
-        if data.get('contexts', {}).get('os', None) is None:
-            data['contexts']['os'] = {
-                'name': ua['family'],
-                'version': _get_version(ua),
-            }
+        setdefault_path(data, 'contexts', 'os', value={
+            'name': ua['family'],
+            'version': _get_version(ua),
+        })
     except KeyError:
         pass
 
@@ -135,12 +134,12 @@ def _inject_device_context(data, user_agent):
     try:
         if ua['family'] == 'Other':
             return
-        if data.get('contexts', {}).get('device', None) is None:
-            data['contexts']['device'] = {
-                'family': ua['family'],
-                'model': ua['model'],
-                'brand': ua['brand'],
-            }
+        setdefault_path(data, 'contexts', 'device', value={
+            'family': ua['family'],
+            'model': ua['model'],
+            'brand': ua['brand'],
+        })
+
     except KeyError:
         pass
 
@@ -150,7 +149,7 @@ def normalize_user_agent(data):
     if not user_agent:
         return
 
-    data.setdefault('contexts', {})
+    setdefault_path(data, 'contexts', value={})
 
     _inject_browser_context(data, user_agent)
     _inject_os_context(data, user_agent)

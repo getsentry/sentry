@@ -19,7 +19,7 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.interfaces.stacktrace import Stacktrace, slim_frame_data
 from sentry.utils import json
-from sentry.utils.safe import trim
+from sentry.utils.safe import get_path, trim
 
 _type_value_re = re.compile('^(\w+):(.*)$')
 
@@ -554,7 +554,7 @@ def normalize_mechanism_errno(errno, sdk):
     if not sdk:
         return
 
-    if 'name' not in errno:
+    if not errno.get('name'):
         errnos = WELL_KNOWN_ERRNO.get(sdk, {})
         name = errnos.get(errno['number'])
         if name:
@@ -565,7 +565,7 @@ def normalize_mechanism_signal(signal, sdk):
     if not sdk:
         return
 
-    if 'name' not in signal:
+    if not signal.get('name'):
         signals = WELL_KNOWN_SIGNALS.get(sdk, {})
         name = signals.get(signal['number'])
         if name:
@@ -574,7 +574,7 @@ def normalize_mechanism_signal(signal, sdk):
     if sdk != 'darwin':
         return
 
-    if 'code' in signal and 'code_name' not in signal:
+    if signal.get('code') is not None and not signal.get('code_name'):
         codes = WELL_KNOWN_SIGNAL_CODES.get(signal['number'], {})
         code_name = codes.get(signal['code'])
         if code_name:
@@ -582,17 +582,16 @@ def normalize_mechanism_signal(signal, sdk):
 
 
 def normalize_mechanism_mach_exception(mach):
-    if 'name' not in mach:
+    if not mach.get('name'):
         name = WELL_KNOWN_MACH_EXCEPTIONS.get(mach['exception'])
         if name:
             mach['name'] = name
 
 
 def normalize_mechanism_meta(mechanism, sdk_info=None):
-    if mechanism is None or 'meta' not in mechanism:
+    meta = get_path(mechanism, 'meta')
+    if not meta:
         return
-
-    meta = mechanism['meta']
 
     sdk_name = sdk_info['sdk_name'].lower() if sdk_info else ''
     if sdk_name in ('ios', 'watchos', 'tvos', 'macos'):
@@ -742,8 +741,8 @@ class Mechanism(Interface):
         if not data.get('type'):
             raise InterfaceValidationError("No 'type' present")
 
-        meta = data.get('meta', {})
-        mach_exception = meta.get('mach_exception')
+        mechanism_meta = data.get('meta') or {}
+        mach_exception = mechanism_meta.get('mach_exception')
         if mach_exception is not None:
             mach_exception = prune_empty_keys({
                 'exception': mach_exception['exception'],
@@ -752,7 +751,7 @@ class Mechanism(Interface):
                 'name': mach_exception.get('name'),
             })
 
-        signal = meta.get('signal')
+        signal = mechanism_meta.get('signal')
         if signal is not None:
             signal = prune_empty_keys({
                 'number': signal['number'],
@@ -761,7 +760,7 @@ class Mechanism(Interface):
                 'code_name': signal.get('code_name'),
             })
 
-        errno = meta.get('errno')
+        errno = mechanism_meta.get('errno')
         if errno is not None:
             errno = prune_empty_keys({
                 'number': errno['number'],
@@ -831,7 +830,7 @@ class SingleException(Interface):
         if not (data.get('type') or data.get('value')):
             raise InterfaceValidationError("No 'type' or 'value' present")
 
-        if data.get('stacktrace') and data['stacktrace'].get('frames'):
+        if get_path(data, 'stacktrace', 'frames', filter=True):
             stacktrace = Stacktrace.to_python(
                 data['stacktrace'],
                 slim_frames=slim_frames,
@@ -839,7 +838,7 @@ class SingleException(Interface):
         else:
             stacktrace = None
 
-        if data.get('raw_stacktrace') and data['raw_stacktrace'].get('frames'):
+        if get_path(data, 'raw_stacktrace', 'frames', filter=True):
             raw_stacktrace = Stacktrace.to_python(
                 data['raw_stacktrace'], slim_frames=slim_frames, raw=True
             )
@@ -990,32 +989,32 @@ class Exception(Interface):
 
     score = 2000
 
+    def _values(self):
+        return get_path(self.values, filter=True)
+
     def __getitem__(self, key):
-        return self.values[key]
+        return self._values()[key]
 
     def __iter__(self):
-        return iter(self.values)
+        return iter(self._values())
 
     def __len__(self):
-        return len(self.values)
+        return len(self._values())
 
     @classmethod
     def to_python(cls, data):
         if data and 'values' not in data and 'exc_omitted' not in data:
             data = {"values": [data]}
-        values = data.get('values', [])
 
-        if values is None:
-            values = []
-
+        values = get_path(data, 'values', default=[])
         if not isinstance(values, list):
             raise InterfaceValidationError("Invalid value for 'values'")
 
         kwargs = {
-            'values': [v and SingleException.to_python(
-                v,
-                slim_frames=False,
-            ) for v in values],
+            'values': [
+                v and SingleException.to_python(v, slim_frames=False)
+                for v in values
+            ],
         }
 
         if data.get('exc_omitted'):
@@ -1029,6 +1028,9 @@ class Exception(Interface):
         # we want to wait to slim things til we've reconciled in_app
         slim_exception_data(instance)
         return instance
+
+    # TODO(ja): Fix all following methods when to_python is refactored. All
+    # methods below might throw if None exceptions are in ``values``.
 
     def to_json(self):
         return {
@@ -1051,7 +1053,7 @@ class Exception(Interface):
         # optimize around the fact that some exceptions might have stacktraces
         # while others may not and we ALWAYS want stacktraces over values
         output = []
-        for value in self.values:
+        for value in self._values():
             if not value or not value.stacktrace:
                 continue
             stack_hash = value.stacktrace.get_hash(
@@ -1063,7 +1065,7 @@ class Exception(Interface):
                 output.append(value.type)
 
         if not output:
-            for value in self.values:
+            for value in self._values():
                 if value:
                     output.extend(value.get_hash(platform=platform))
 
