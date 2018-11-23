@@ -45,7 +45,19 @@ def test_is_minidump():
 
     assert not is_minidump_event({
         'exception': {
+            'values': [None]
+        }
+    })
+
+    assert not is_minidump_event({
+        'exception': {
             'values': []
+        }
+    })
+
+    assert not is_minidump_event({
+        'exception': {
+            'values': None
         }
     })
 
