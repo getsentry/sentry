@@ -651,16 +651,9 @@ class EventManager(object):
             data['timestamp'] = timestamp
             data['received'] = float(timezone.now().strftime('%s'))
 
-            data.setdefault('checksum', None)
-            data.setdefault('culprit', None)
-            data.setdefault('dist', None)
-            data.setdefault('environment', None)
             data.setdefault('extra', {})
-            data.setdefault('fingerprint', None)
             data.setdefault('logger', DEFAULT_LOGGER_NAME)
-            data.setdefault('platform', None)
             data.setdefault('tags', [])
-            data.setdefault('transaction', None)
 
             # Fix case where legacy apps pass 'environment' as a tag
             # instead of a top level key.
