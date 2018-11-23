@@ -50,6 +50,9 @@ class User(Interface):
     >>> }
     """
 
+    score = 1
+    display_score = 2020
+
     @classmethod
     def to_python(cls, data):
         data = data.copy()
