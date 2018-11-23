@@ -37,7 +37,7 @@ def test_csp_validate_basic():
     assert result['environment'] == 'production'
     assert result['errors'] == []
     assert 'logentry' in result
-    assert 'culprit' in result
+    assert result['culprit'] == "img-src 'self'"
     assert result['tags'] == [
         ('effective-directive', 'img-src'),
         ('blocked-uri', 'http://google.com'),
@@ -130,7 +130,7 @@ def test_hpkp_validate_basic():
     assert result['release'] == 'abc123'
     assert result['errors'] == []
     assert 'logentry' in result
-    assert 'culprit' in result
+    assert not result.get('culprit')
     assert sorted(result['tags']) == [
         ('hostname', 'www.example.com'),
         ('include-subdomains', 'false'),
