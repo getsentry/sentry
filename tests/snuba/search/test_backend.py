@@ -338,23 +338,46 @@ class SnubaSearchTest(SnubaTestCase):
             with self.options(options_set):
                 results = self.backend.query(self.project, limit=1, sort_by='date')
                 assert set(results) == set([self.group1])
+                assert not results.prev.has_results
+                assert results.next.has_results
 
                 results = self.backend.query(
                     self.project, cursor=results.next, limit=1, sort_by='date')
                 assert set(results) == set([self.group2])
+                assert results.prev.has_results
+                assert not results.next.has_results
 
-                # note: previous
+                # note: previous cursor
                 results = self.backend.query(
                     self.project, cursor=results.prev, limit=1, sort_by='date')
                 assert set(results) == set([self.group1])
+                assert results.prev.has_results
+                assert results.next.has_results
+
+                # note: previous cursor, paging too far into 0 results
+                results = self.backend.query(
+                    self.project, cursor=results.prev, limit=1, sort_by='date')
+                assert set(results) == set([])
+                assert not results.prev.has_results
+                assert results.next.has_results
+
+                results = self.backend.query(
+                    self.project, cursor=results.next, limit=1, sort_by='date')
+                assert set(results) == set([self.group1])
+                assert results.prev.has_results
+                assert results.next.has_results
 
                 results = self.backend.query(
                     self.project, cursor=results.next, limit=1, sort_by='date')
                 assert set(results) == set([self.group2])
+                assert results.prev.has_results
+                assert not results.next.has_results
 
                 results = self.backend.query(
                     self.project, cursor=results.next, limit=1, sort_by='date')
                 assert set(results) == set([])
+                assert results.prev.has_results
+                assert not results.next.has_results
 
     def test_pagination_with_environment(self):
         for dt in [
@@ -830,7 +853,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         self.backend.query(self.project, query='foo', sort_by='date', last_seen_from=timezone.now())
         assert query_mock.call_args == mock.call(
-            orderby='-last_seen',
+            orderby=['-last_seen', 'issue'],
             aggregations=[['toUInt64(max(timestamp)) * 1000', '', 'last_seen']],
             having=[('last_seen', '>=', Any(int))],
             **common_args
@@ -838,7 +861,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         self.backend.query(self.project, query='foo', sort_by='priority')
         assert query_mock.call_args == mock.call(
-            orderby='-priority',
+            orderby=['-priority', 'issue'],
             aggregations=[
                 ['(toUInt64(log(times_seen) * 600)) + last_seen', '', 'priority'],
                 ['count()', '', 'times_seen'],
@@ -850,7 +873,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         self.backend.query(self.project, query='foo', sort_by='freq', times_seen=5)
         assert query_mock.call_args == mock.call(
-            orderby='-times_seen',
+            orderby=['-times_seen', 'issue'],
             aggregations=[['count()', '', 'times_seen']],
             having=[('times_seen', '=', 5)],
             **common_args
@@ -858,7 +881,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         self.backend.query(self.project, query='foo', sort_by='new', age_from=timezone.now())
         assert query_mock.call_args == mock.call(
-            orderby='-first_seen',
+            orderby=['-first_seen', 'issue'],
             aggregations=[['toUInt64(min(timestamp)) * 1000', '', 'first_seen']],
             having=[('first_seen', '>=', Any(int))],
             **common_args
@@ -883,3 +906,12 @@ class SnubaSearchTest(SnubaTestCase):
             assert set(results) == set([self.group1, self.group2])
         finally:
             options.set('snuba.search.max-pre-snuba-candidates', prev_max_pre)
+
+    def test_search_out_of_range(self):
+        results = self.backend.query(
+            self.project,
+            date_from=datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc),
+            date_to=datetime(2000, 1, 1, 1, 0, 0, tzinfo=pytz.utc),
+        )
+
+        assert set(results) == set([])

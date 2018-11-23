@@ -2,10 +2,12 @@ from __future__ import absolute_import
 
 from collections import OrderedDict
 from functools import partial
+import pytest
 
 from sentry.testutils import TestCase
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
+from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path, \
+    setdefault_path
 
 a_very_long_string = 'a' * 1024
 
@@ -92,13 +94,93 @@ class SafeExecuteTest(TestCase):
         assert safe_execute(Foo().simple, 1) is None
 
 
-class GetChainTest(TestCase):
-    def test_get_path(self):
-        assert get_path({}, ['a']) is None
-        assert get_path({}, ['a'], 1) == 1
-        assert get_path({'a': 2}, ['a']) == 2
-        assert get_path({'a': 2}, ['b']) is None
-        assert get_path({'a': 2}, ['b'], 1) == 1
-        assert get_path({'a': {'b': []}}, ['a', 'b']) == []
-        assert get_path({'a': []}, ['a', 'b']) is None
-        assert get_path(CanonicalKeyDict({'a': 2}), ['a']) == 2
+class GetPathTest(TestCase):
+    def test_get_none(self):
+        assert get_path(None, 'foo') is None
+        assert get_path('foo', 'foo') is None
+        assert get_path(42, 'foo') is None
+        assert get_path(ValueError(), 'foo') is None
+        assert get_path(True, 'foo') is None
+
+    def test_get_path_dict(self):
+        assert get_path({}, 'a') is None
+        assert get_path({'a': 2}, 'a') == 2
+        assert get_path({'a': 2}, 'b') is None
+        assert get_path({'a': {'b': []}}, 'a', 'b') == []
+        assert get_path({'a': []}, 'a', 'b') is None
+        assert get_path(CanonicalKeyDict({'a': 2}), 'a') == 2
+
+    def test_get_default(self):
+        assert get_path({'a': 2}, 'b', default=1) == 1
+        assert get_path({'a': 2}, 'a', default=1) == 2
+        assert get_path({'a': None}, 'a', default=1) == 1
+
+    def test_get_path_list(self):
+        arr = [1, 2]
+        assert get_path(arr, 1) == 2
+        assert get_path(arr, -1) == 2
+        assert get_path(arr, 2) is None
+        assert get_path(arr, '1') is None
+        assert get_path([], 1) is None
+
+    def test_filter_list(self):
+        data = {'a': [False, 1, None]}
+        assert get_path(data, 'a', filter=True) == [False, 1]
+        assert get_path(data, 'a', filter=lambda x: x) == [1]
+
+    def test_filter_tuple(self):
+        data = {'a': (False, 1, None)}
+        assert get_path(data, 'a', filter=True) == [False, 1]
+        assert get_path(data, 'a', filter=lambda x: x) == [1]
+
+    def test_filter_other(self):
+        assert get_path({'a': 42}, 'a', filter=True) == 42
+        assert get_path({'a': True}, 'a', filter=True) is True
+        assert get_path({'a': {'b': 42}}, 'a', filter=True) == {'b': 42}
+        assert get_path({'a': 42}, 'b', filter=True) is None
+
+    def test_kwargs(self):
+        with pytest.raises(TypeError):
+            get_path({}, 'foo', unknown=True)
+
+
+class SetPathTest(TestCase):
+    def test_set_none(self):
+        assert not set_path(None, 'foo', value=42)
+        assert not set_path('foo', 'foo', value=42)
+        assert not set_path(42, 'foo', value=42)
+        assert not set_path(ValueError(), 'foo', value=42)
+        assert not set_path(True, 'foo', value=42)
+
+    def test_set_dict(self):
+        data = {}
+        assert set_path(data, 'a', value=42)
+        assert data == {'a': 42}
+
+        data = {'a': 2}
+        assert set_path(data, 'a', value=42)
+        assert data == {'a': 42}
+
+        data = {}
+        assert set_path(data, 'a', 'b', value=42)
+        assert data == {'a': {'b': 42}}
+
+        data = CanonicalKeyDict({})
+        assert set_path(data, 'a', value=42)
+        assert data == {'a': 42}
+
+    def test_set_default(self):
+        data = {'a': {'b': 2}}
+        assert not setdefault_path(data, 'a', 'b', value=42)
+        assert data == {'a': {'b': 2}}
+
+        data = {}
+        assert setdefault_path(data, 'a', 'b', value=42)
+        assert data == {'a': {'b': 42}}
+
+    def test_kwargs(self):
+        with pytest.raises(TypeError):
+            set_path({}, 'foo')
+
+        with pytest.raises(TypeError):
+            set_path({}, 'foo', value=1, unknown=True)

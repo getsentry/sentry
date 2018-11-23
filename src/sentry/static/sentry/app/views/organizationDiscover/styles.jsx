@@ -4,7 +4,7 @@ import {Flex, Box} from 'grid-emotion';
 import {keyframes} from 'emotion';
 
 import space from 'app/styles/space';
-import {slideInRight} from 'app/styles/animations';
+import {slideInLeft} from 'app/styles/animations';
 
 import {Panel, PanelItem} from 'app/components/panels';
 import Button from 'app/components/button';
@@ -48,11 +48,6 @@ export const PageTitle = styled.h2`
   height: ${HEADER_HEIGHT}px;
 `;
 
-export const ResultTitle = styled(Box)`
-  min-width: 70px;
-  margin: ${space(1)} 0 ${space(2)};
-`;
-
 export const ResultViewButtons = styled(NavTabs)`
   @media (max-width: ${theme.breakpoints[1]}) {
     display: none;
@@ -80,9 +75,9 @@ export const DownloadCsvButton = styled(Button)`
 `;
 
 export const Sidebar = styled(props => (
-  <Flex {...props} direction="column" w={[320, 320, 320, 380]} />
+  <Flex {...props} direction="column" w={[300, 300, 300, 360]} />
 ))`
-  border-left: 1px solid ${p => p.theme.borderDark};
+  border-right: 1px solid ${p => p.theme.borderDark};
   min-width: 320px;
   position: relative;
   padding-top: ${HEADER_HEIGHT}px;
@@ -98,7 +93,7 @@ export const Body = styled(Flex)`
 export const BodyContent = styled(Flex)`
   flex: 1;
   flex-direction: column;
-  padding: ${space(1.5)} 32px 32px 32px;
+  padding: ${space(3)} ${space(4)} ${space(4)} ${space(4)};
   overflow-y: scroll;
   position: relative;
   background: ${p => p.theme.whiteDark};
@@ -111,13 +106,19 @@ export const LoadingContainer = styled(Flex)`
 `;
 
 export const SidebarTabs = styled(props => <NavTabs {...props} underlined={true} />)`
-  padding: 20px 30px 0;
+  padding: ${space(3)} ${space(3)} 0;
   margin: 0;
 `;
 
 export const PlaceholderText = styled.div`
   color: ${p => p.theme.gray6};
   font-size: 15px;
+`;
+
+export const HeadingContainer = styled(Flex)`
+  min-width: 70px;
+  margin: ${space(1)} 0 ${space(2)};
+  align-items: center;
 `;
 
 export const Heading = styled.h2`
@@ -129,7 +130,7 @@ export const Heading = styled.h2`
 `;
 
 export const Fieldset = styled.fieldset`
-  margin: ${space(3)} ${space(4)};
+  margin: ${space(3)};
 `;
 
 export const SelectListItem = styled(Flex)`
@@ -211,6 +212,7 @@ export const ChartNote = styled(Box)`
 export const SavedQueryAction = styled(Link)`
   color: ${p => p.theme.gray6};
   margin-left: ${space(2)};
+  display: flex;
 `;
 
 export const SavedQueryWrapper = styled('div')`
@@ -249,7 +251,7 @@ export const QueryPanelContainer = styled('div')`
   background-color: white;
   top: ${HEADER_HEIGHT}px;
   border-right: 1px solid ${p => p.theme.borderLight};
-  animation: ${slideInRight} 0.2s ease-in;
+  animation: ${slideInLeft} 0.2s ease-in;
   overflow-y: scroll;
 `;
 

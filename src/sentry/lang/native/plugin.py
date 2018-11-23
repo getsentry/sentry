@@ -16,6 +16,7 @@ from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
     rebase_addr
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 from sentry.stacktraces import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
 
@@ -30,17 +31,18 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
-        debug_meta = self.data.get('debug_meta')
+
         self.arch = cpu_name_from_data(self.data)
         self.sym = None
         self.difs_referenced = set()
-        if debug_meta:
+
+        images = get_path(self.data, 'debug_meta', 'images', default=(),
+                          filter=(lambda img: img and img.get('type') in self.supported_images))
+
+        if images:
             self.available = True
-            self.debug_meta = debug_meta
             self.sdk_info = get_sdk_from_event(self.data)
-            self.object_lookup = ObjectLookup(
-                [img for img in self.debug_meta['images'] if img['type'] in self.supported_images]
-            )
+            self.object_lookup = ObjectLookup(images)
         else:
             self.available = False
 
@@ -72,16 +74,12 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             # The signal is useful information for symbolic in some situations
             # to disambiugate the first frame.  If we can get this information
             # from the mechanism we want to pass it onwards.
-            signal = None
-            exc = self.data.get('exception')
-            if exc is not None:
-                mechanism = exc['values'][0].get('mechanism')
-                if mechanism and 'meta' in mechanism and \
-                    'signal' in mechanism['meta'] and \
-                        'number' in mechanism['meta']['signal']:
-                    signal = int(mechanism['meta']['signal']['number'])
-            registers = processable_frame.stacktrace_info.stacktrace.get(
-                'registers')
+            exceptions = get_path(self.data, 'exception', 'values', filter=True)
+            signal = get_path(exceptions, 0, 'mechanism', 'meta', 'signal', 'number')
+            if signal is not None:
+                signal = int(signal)
+
+            registers = processable_frame.stacktrace_info.stacktrace.get('registers')
             if registers:
                 ip_reg_name = arch_get_ip_reg_name(self.arch)
                 if ip_reg_name:

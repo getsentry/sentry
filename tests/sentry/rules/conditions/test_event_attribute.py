@@ -9,9 +9,9 @@ class EventAttributeConditionTest(RuleTestCase):
 
     def get_event(self):
         event = self.create_event(
-            message='hello world',
             platform='php',
             data={
+                'message': 'hello world',
                 'type': 'error',
                 'request': {
                     'method': 'GET',
