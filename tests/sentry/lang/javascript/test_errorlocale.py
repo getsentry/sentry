@@ -1,7 +1,9 @@
 from __future__ import absolute_import, unicode_literals
 
+from copy import deepcopy
+
 from sentry.testutils import TestCase
-from sentry.lang.javascript.errorlocale import translate_message
+from sentry.lang.javascript.errorlocale import translate_message, translate_exception
 
 
 class ErrorLocaleTest(TestCase):
@@ -62,4 +64,55 @@ class ErrorLocaleTest(TestCase):
         expected = 'ReferenceError: Cannot modify property \'foo\': \'length\' is not writable'
         actual = translate_message(
             u'ReferenceError: Nie mo\u017cna zmodyfikowa\u0107 w\u0142a\u015bciwo\u015bci \u201efoo\u201d: warto\u015b\u0107 \u201elength\u201d jest niezapisywalna')
+        assert actual == expected
+
+    def test_translate_exception(self):
+        data = {
+            'logentry': {
+                'message': 'Typenkonflikt',
+                'formatted': 'Typenkonflikt',
+            },
+            'exception': {
+                'values': [
+                    {'value': 'Typenkonflikt'},
+                    {'value': 'Typenkonflikt'},
+                ]
+            }
+        }
+
+        translate_exception(data)
+        assert data == {
+            'logentry': {
+                'message': 'Type mismatch',
+                'formatted': 'Type mismatch',
+            },
+            'exception': {
+                'values': [
+                    {'value': 'Type mismatch'},
+                    {'value': 'Type mismatch'},
+                ]
+            }
+        }
+
+    def test_translate_exception_missing(self):
+        data = {}
+        translate_exception(data)
+        assert data == {}
+
+    def test_translate_exception_none(self):
+        expected = {
+            'logentry': {
+                'message': None,
+                'formatted': None,
+            },
+            'exception': {
+                'values': [
+                    None,
+                    {'value': None},
+                ]
+            }
+        }
+
+        actual = deepcopy(expected)
+        translate_exception(actual)
         assert actual == expected
