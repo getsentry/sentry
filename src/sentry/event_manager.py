@@ -36,7 +36,7 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
-from sentry.interfaces.base import get_interface, InterfaceValidationError
+from sentry.interfaces.base import get_interface, prune_empty_keys, InterfaceValidationError
 from sentry.interfaces.exception import normalize_mechanism_meta
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.lang.native.utils import get_sdk_from_event
@@ -742,6 +742,8 @@ class EventManager(object):
             data['_meta'] = meta.raw()
         elif '_meta' in data:
             del data['_meta']
+
+        self._data = prune_empty_keys(data)
 
     def should_filter(self):
         '''
