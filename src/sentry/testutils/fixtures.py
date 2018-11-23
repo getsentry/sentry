@@ -609,7 +609,7 @@ class Fixtures(object):
                                  data=json.loads(payload))
 
     def create_group(self, project=None, checksum=None, **kwargs):
-        assert 'message' not in kwargs, 'message was removed'
+        assert 'message' not in kwargs, 'message was removed use search_message instead'
         if checksum:
             warnings.warn('Checksum passed to create_group', DeprecationWarning)
         if project is None:
