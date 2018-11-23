@@ -391,6 +391,30 @@ class Frame(Interface):
 
         return cls(**kwargs)
 
+    def to_json(self):
+        return prune_empty_keys({
+            'abs_path': self.abs_path or None,
+            'filename': self.filename or None,
+            'platform': self.platform or None,
+            'module': self.module or None,
+            'function': self.function or None,
+            'package': self.package or None,
+            'image_addr': self.image_addr,
+            'symbol': self.symbol,
+            'symbol_addr': self.symbol_addr,
+            'instruction_addr': self.instruction_addr,
+            'trust': self.trust,
+            'in_app': self.in_app,
+            'context_line': self.context_line,
+            'pre_context': self.pre_context or None,
+            'post_context': self.post_context or None,
+            'vars': self.vars or None,
+            'data': self.data or None,
+            'errors': self.errors or None,
+            'lineno': self.lineno,
+            'colno': self.colno
+        })
+
     def get_hash(self, platform=None):
         """
         The hash of the frame varies depending on the data available.
