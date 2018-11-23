@@ -75,7 +75,7 @@ class ExceptionTest(TestCase):
                 'module': 'foo.bar',
             }])
         )
-        assert type(inst.values[0]) is SingleException
+        assert isinstance(inst.values[0], SingleException)
         assert inst.values[0].type == 'ValueError'
         assert inst.values[0].value == 'hello world'
         assert inst.values[0].module == 'foo.bar'
@@ -88,7 +88,7 @@ class ExceptionTest(TestCase):
                 'module': 'foo.bar',
             }
         )
-        assert type(inst.values[0]) is SingleException
+        assert isinstance(inst.values[0], SingleException)
         assert inst.values[0].type == 'ValueError'
         assert inst.values[0].value == 'hello world'
         assert inst.values[0].module == 'foo.bar'
@@ -327,6 +327,16 @@ ValueError: hello world
         })
         context = inst.get_api_context()
         assert context['values'][0]['mechanism']['type'] == 'generic'
+
+    def test_iteration(self):
+        inst = Exception.to_python({
+            'values': [None, {'type': 'ValueError'}, None]
+        })
+
+        assert len(inst) == 1
+        assert inst[0].type == 'ValueError'
+        for exc in inst:
+            assert exc.type == 'ValueError'
 
 
 class SingleExceptionTest(TestCase):
