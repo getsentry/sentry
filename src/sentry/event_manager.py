@@ -734,9 +734,9 @@ class EventManager(object):
         if server_name is not None:
             set_tag(data, 'server_name', server_name)
 
-        # Do not add errors unless there are for non store mode
-        if not self._for_store and not data.get('errors'):
-            data.pop('errors')
+        for key in ('errors', 'tags', 'extra', 'fingerprint'):
+            if not data.get(key):
+                data.pop(key, None)
 
         if meta.raw():
             data['_meta'] = meta.raw()

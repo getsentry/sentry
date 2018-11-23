@@ -35,7 +35,7 @@ def test_csp_validate_basic():
     assert result['logger'] == 'csp'
     assert result['release'] == 'abc123'
     assert result['environment'] == 'production'
-    assert result['errors'] == []
+    assert "errors" not in result
     assert 'logentry' in result
     assert result['culprit'] == "img-src 'self'"
     assert result['tags'] == [
@@ -108,7 +108,7 @@ def test_csp_tag_value():
         ('effective-directive', 'img-src'),
         ('blocked-uri', 'http://google.com'),
     ]
-    assert len(result['errors']) == 0
+    assert 'errors' not in result
 
 
 def test_hpkp_validate_basic():
@@ -128,7 +128,7 @@ def test_hpkp_validate_basic():
     }
     result = validate_and_normalize(report)
     assert result['release'] == 'abc123'
-    assert result['errors'] == []
+    assert 'errors' not in result
     assert 'logentry' in result
     assert not result.get('culprit')
     assert sorted(result['tags']) == [
@@ -141,9 +141,7 @@ def test_hpkp_validate_basic():
         'url': 'www.example.com',
         'headers': [
             ('User-Agent', 'Awesome Browser'),
-        ],
-        'fragment': '',
-        'query_string': ''
+        ]
     }
 
 
