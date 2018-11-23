@@ -623,7 +623,9 @@ class EventManager(object):
             level = data.get('level') or DEFAULT_LOG_LEVEL
             if isinstance(level, int) or (isinstance(level, six.string_types) and level.isdigit()):
                 level = LOG_LEVELS.get(int(level), DEFAULT_LOG_LEVEL)
-            data['level'] = LOG_LEVELS_MAP.get(level, LOG_LEVELS_MAP[DEFAULT_LOG_LEVEL])
+            if level not in LOG_LEVELS_MAP:
+                level = DEFAULT_LOG_LEVEL
+            data['level'] = level
 
             if data.get('dist') and not data.get('release'):
                 data['dist'] = None
