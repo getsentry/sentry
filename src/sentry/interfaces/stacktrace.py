@@ -299,11 +299,11 @@ class Frame(Interface):
         package = data.get('package')
 
         # For legacy reasons
-        if function == '?':
+        if function in ('?', ''):
             function = None
 
         # For consistency reasons
-        if symbol == '?':
+        if symbol in ('?', ''):
             symbol = None
 
         # Some of this processing should only be done for non raw frames
