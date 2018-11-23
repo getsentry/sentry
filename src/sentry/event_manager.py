@@ -61,7 +61,7 @@ from sentry.utils.data_filters import (
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
 from sentry.utils.meta import Meta
-from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
+from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path, setdefault_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
@@ -225,14 +225,12 @@ else:
 
 
 def generate_culprit(data, platform=None):
-    try:
-        stacktraces = [
-            e['stacktrace'] for e in data['exception']['values']
-            if e and e.get('stacktrace')
-        ]
-    except KeyError:
+    exceptions = get_path(data, 'exception', 'values')
+    if exceptions:
+        stacktraces = [e['stacktrace'] for e in exceptions if get_path(e, 'stacktrace', 'frames')]
+    else:
         stacktrace = data.get('stacktrace')
-        if stacktrace:
+        if stacktrace and stacktrace.get('frames'):
             stacktraces = [stacktrace]
         else:
             stacktraces = None
@@ -245,8 +243,8 @@ def generate_culprit(data, platform=None):
             platform=platform,
         )
 
-    if not culprit and 'request' in data:
-        culprit = data['request'].get('url', '')
+    if not culprit and data.get('request'):
+        culprit = get_path(data, 'request', 'url')
 
     return truncatechars(culprit or '', MAX_CULPRIT_LENGTH)
 
@@ -540,7 +538,7 @@ class EventManager(object):
         meta = Meta(data.get('_meta'))
 
         for c in casts:
-            if c in data:
+            if data.get(c) is not None:
                 try:
                     data[c] = casts[c](data[c])
                 except InvalidTimestamp as it:
@@ -588,7 +586,7 @@ class EventManager(object):
         #          in the inner data dict.
         is_valid, event_errors = validate_and_default_interface(data.data, 'event')
         errors.extend(event_errors)
-        if 'tags' in data:
+        if data.get('tags') is not None:
             is_valid, tag_errors = validate_and_default_interface(data['tags'], 'tags', name='tags')
             errors.extend(tag_errors)
 
@@ -651,16 +649,16 @@ class EventManager(object):
             data['timestamp'] = timestamp
             data['received'] = float(timezone.now().strftime('%s'))
 
-            data.setdefault('checksum', None)
-            data.setdefault('culprit', None)
-            data.setdefault('dist', None)
-            data.setdefault('environment', None)
-            data.setdefault('extra', {})
-            data.setdefault('fingerprint', None)
-            data.setdefault('logger', DEFAULT_LOGGER_NAME)
-            data.setdefault('platform', None)
-            data.setdefault('tags', [])
-            data.setdefault('transaction', None)
+            setdefault_path(data, 'checksum', value=None)
+            setdefault_path(data, 'culprit', value=None)
+            setdefault_path(data, 'dist', value=None)
+            setdefault_path(data, 'environment', value=None)
+            setdefault_path(data, 'extra', value={})
+            setdefault_path(data, 'fingerprint', value=None)
+            setdefault_path(data, 'logger', value=DEFAULT_LOGGER_NAME)
+            setdefault_path(data, 'platform', value=None)
+            setdefault_path(data, 'tags', value=[])
+            setdefault_path(data, 'transaction', value=None)
 
             # Fix case where legacy apps pass 'environment' as a tag
             # instead of a top level key.
@@ -677,21 +675,24 @@ class EventManager(object):
             data['type'] = eventtypes.infer(data).key
             data['version'] = self.version
 
-        exception = data.get('exception')
+        exceptions = get_path(data, 'exception', 'values', filter=True)
         stacktrace = data.get('stacktrace')
-        if exception and len(exception['values']) == 1 and stacktrace:
-            exception['values'][0]['stacktrace'] = stacktrace
+        if stacktrace and exceptions and len(exceptions) == 1:
+            exceptions[0]['stacktrace'] = stacktrace
+            stacktrace_meta = meta.enter('stacktrace')
+            meta.enter('exception', 'values', 0, 'stacktrace').merge(stacktrace_meta)
             del data['stacktrace']
+            # TODO(ja): Remove meta data of data['stacktrace'] here, too
 
         # Exception mechanism needs SDK information to resolve proper names in
         # exception meta (such as signal names). "SDK Information" really means
         # the operating system version the event was generated on. Some
         # normalization still works without sdk_info, such as mach_exception
         # names (they can only occur on macOS).
-        if exception:
+        if exceptions:
             sdk_info = get_sdk_from_event(data)
-            for ex in exception['values']:
-                if ex is not None and 'mechanism' in ex:
+            for ex in exceptions:
+                if 'mechanism' in ex:
                     normalize_mechanism_meta(ex['mechanism'], sdk_info)
 
         # Please note that we eventually remove this check after we validated that it
@@ -706,16 +707,17 @@ class EventManager(object):
             ms = int((time.time() - start_time) * 1000)
             metrics.timing('events.normalize.user_agent.duration', ms)
 
-        # If there is no User ip_addres, update it either from the Http interface
-        # or the client_ip of the request.
-        is_public = self._auth and self._auth.is_public
-        add_ip_platforms = ('javascript', 'cocoa', 'objc')
+        if not get_path(data, "user", "ip_address"):
+            # If there is no User ip_address, update it either from the Http
+            # interface or the client_ip of the request.
+            is_public = self._auth and self._auth.is_public
+            add_ip_platforms = ('javascript', 'cocoa', 'objc')
 
-        http_ip = data.get('request', {}).get('env', {}).get('REMOTE_ADDR')
-        if http_ip:
-            data.setdefault('user', {}).setdefault('ip_address', http_ip)
-        elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
-            data.setdefault('user', {}).setdefault('ip_address', self._client_ip)
+            http_ip = get_path(data, 'request', 'env', 'REMOTE_ADDR')
+            if http_ip:
+                set_path(data, 'user', 'ip_address', value=http_ip)
+            elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
+                set_path(data, 'user', 'ip_address', value=self._client_ip)
 
         # Trim values
         if data.get('logger'):
@@ -768,20 +770,15 @@ class EventManager(object):
         if release and not is_valid_release(self._project, release):
             return (True, FilterStatKeys.RELEASE_VERSION)
 
-        message_interface = self._data.get('logentry', {})
-        error_message = message_interface.get('formatted', '') or message_interface.get(
-            'message', ''
-        )
+        error_message = get_path(self._data, 'logentry', 'formatted') \
+            or get_path(self._data, 'logentry', 'message') \
+            or ''
         if error_message and not is_valid_error_message(self._project, error_message):
             return (True, FilterStatKeys.ERROR_MESSAGE)
 
-        for exception_interface in self._data.get(
-            'exception', {}
-        ).get('values', []):
-            if exception_interface is None:
-                continue
+        for exc in get_path(self._data, 'exception', 'values', filter=True, default=[]):
             message = u': '.join(
-                filter(None, map(exception_interface.get, ['type', 'value']))
+                filter(None, map(exc.get, ['type', 'value']))
             )
             if message and not is_valid_error_message(self._project, message):
                 return (True, FilterStatKeys.ERROR_MESSAGE)
@@ -841,7 +838,7 @@ class EventManager(object):
         data = self._data
         message = ''
 
-        if 'logentry' in data:
+        if data.get('logentry'):
             message += (data['logentry'].get('formatted') or
                         data['logentry'].get('message') or '')
 

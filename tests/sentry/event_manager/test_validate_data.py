@@ -418,3 +418,9 @@ def test_messages_old_behavior():
     assert "message" not in data
     assert len(data["errors"]) == 1
     assert data["logentry"] == {"message": "foo is bar"}
+
+
+def test_none_interface():
+    data = validate_and_normalize({"exception": None})
+    assert data.get("exception") is None
+    assert not data.get("errors")
