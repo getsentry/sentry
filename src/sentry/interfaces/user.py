@@ -11,7 +11,7 @@ __all__ = ('User', )
 
 import six
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.geo import Geo
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
@@ -96,18 +96,21 @@ class User(Interface):
             'ip_address': ip_address,
             'name': name,
             'geo': geo,
+            'data': trim_dict(extra_data)
         }
 
-        kwargs['data'] = trim_dict(extra_data)
         return cls(**kwargs)
 
     def to_json(self):
-        # geo needs to be JSON encoded if it exists
-        geo = self._data.pop('geo') if 'geo' in self._data else {}
-        json = super(User, self).to_json()
-        if geo:
-            json['geo'] = geo.to_json()
-        return json
+        return prune_empty_keys({
+            'id': self.id,
+            'email': self.email,
+            'username': self.username,
+            'ip_address': self.ip_address,
+            'name': self.name,
+            'geo': self.geo.to_json() if self.geo is not None else None,
+            'data': self.data or None
+        })
 
     def get_api_context(self, is_public=False):
         return {

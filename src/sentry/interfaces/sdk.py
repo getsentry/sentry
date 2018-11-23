@@ -5,7 +5,7 @@ __all__ = ('Sdk', )
 from distutils.version import LooseVersion
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.utils.safe import trim
 
 
@@ -70,6 +70,14 @@ class Sdk(Interface):
         }
 
         return cls(**kwargs)
+
+    def to_json(self):
+        return prune_empty_keys({
+            'name': self.name,
+            'version': self.version,
+            'integrations': self.integrations or None,
+            'packages': self.packages or None
+        })
 
     def get_api_context(self, is_public=False):
         newest_version = get_with_prefix(settings.SDK_VERSIONS, self.name)

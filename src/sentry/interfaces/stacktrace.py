@@ -371,8 +371,8 @@ class Frame(Interface):
             # TODO(dcramer): trim pre/post_context
             'pre_context': pre_context,
             'post_context': post_context,
-            'vars': context_locals,
-            'data': extra_data,
+            'vars': context_locals or None,
+            'data': extra_data or None,
             'errors': data.get('errors'),
         }
 
@@ -783,7 +783,7 @@ class Stacktrace(Interface):
 
     def to_json(self):
         return prune_empty_keys({
-            'frames': [f and f.to_json() for f in self.frames],
+            'frames': [f and f.to_json() for f in self.frames] or None,
             'frames_omitted': self.frames_omitted,
             'registers': self.registers,
         })

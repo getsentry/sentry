@@ -781,8 +781,8 @@ class Mechanism(Interface):
             'description': self.description,
             'help_link': self.help_link,
             'handled': self.handled,
-            'data': self.data,
-            'meta': prune_empty_keys(self.meta),
+            'data': self.data or None,
+            'meta': prune_empty_keys(self.meta) or None,
         })
 
     def iter_tags(self):
@@ -1027,7 +1027,7 @@ class Exception(Interface):
 
     def to_json(self):
         return prune_empty_keys({
-            'values': [v and v.to_json() for v in self.values],
+            'values': [v and v.to_json() for v in self.values] or None,
             'exc_omitted': self.exc_omitted,
         })
 

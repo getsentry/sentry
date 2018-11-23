@@ -55,8 +55,7 @@ def prune_empty_keys(obj):
 
     # eliminate empty values for serialization to compress the keyspace
     # and save (seriously) ridiculous amounts of bytes
-    return dict((k, v) for k, v in six.iteritems(obj)
-                if v is not None and v != {} and v != () and v != [])
+    return dict((k, v) for k, v in six.iteritems(obj) if v is not None)
 
 
 class InterfaceValidationError(Exception):
