@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from collections import OrderedDict
 from functools import partial
+import pytest
 
 from sentry.testutils import TestCase
 from sentry.utils.canonical import CanonicalKeyDict
@@ -138,6 +139,10 @@ class GetPathTest(TestCase):
         assert get_path({'a': {'b': 42}}, 'a', filter=True) == {'b': 42}
         assert get_path({'a': 42}, 'b', filter=True) is None
 
+    def test_kwargs(self):
+        with pytest.raises(TypeError):
+            get_path({}, 'foo', unknown=True)
+
 
 class SetPathTest(TestCase):
     def test_set_none(self):
@@ -172,3 +177,10 @@ class SetPathTest(TestCase):
         data = {}
         assert setdefault_path(data, 'a', 'b', value=42)
         assert data == {'a': {'b': 42}}
+
+    def test_kwargs(self):
+        with pytest.raises(TypeError):
+            set_path({}, 'foo')
+
+        with pytest.raises(TypeError):
+            set_path({}, 'foo', value=1, unknown=True)
