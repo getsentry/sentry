@@ -194,7 +194,7 @@ class SentryRemoteTest(TestCase):
         event_id = json.loads(resp.content)['id']
         instance = Event.objects.get(event_id=event_id)
 
-        assert instance.message == 'hello'
+        assert instance.search_message == 'hello'
 
         assert tagstore.get_tag_key(self.project.id, None, 'foo') is not None
         assert tagstore.get_tag_value(self.project.id, None, 'foo', 'bar') is not None
@@ -215,7 +215,7 @@ class SentryRemoteTest(TestCase):
         resp = self._postWithSignature(kwargs)
         assert resp.status_code == 200, resp.content
         instance = Event.objects.get()
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
         assert instance.datetime == timestamp
         group = instance.group
         assert group.first_seen == timestamp
@@ -229,7 +229,7 @@ class SentryRemoteTest(TestCase):
         resp = self._postWithSignature(kwargs)
         assert resp.status_code == 200, resp.content
         instance = Event.objects.get()
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
         assert instance.datetime == timestamp
         group = instance.group
         assert group.first_seen == timestamp
@@ -240,7 +240,7 @@ class SentryRemoteTest(TestCase):
         resp = self._postWithSignature(kwargs)
         assert resp.status_code == 200
         instance = Event.objects.get()
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
 
     @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
     def test_correct_data_with_get(self):
@@ -248,7 +248,7 @@ class SentryRemoteTest(TestCase):
         resp = self._getWithReferer(kwargs)
         assert resp.status_code == 200, resp.content
         instance = Event.objects.get()
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
 
     @override_settings(SENTRY_ALLOW_ORIGIN='*')
     def test_get_without_referer_allowed(self):
@@ -263,7 +263,7 @@ class SentryRemoteTest(TestCase):
         resp = self._postWithReferer(kwargs)
         assert resp.status_code == 200, resp.content
         instance = Event.objects.get()
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
 
     @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
     def test_post_without_referer(self):
@@ -299,7 +299,7 @@ class SentryRemoteTest(TestCase):
 
         instance = Event.objects.get()
 
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
 
     def test_content_encoding_deflate(self):
         kwargs = {'message': 'hello'}
@@ -323,7 +323,7 @@ class SentryRemoteTest(TestCase):
         event_id = json.loads(resp.content)['id']
         instance = Event.objects.get(event_id=event_id)
 
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
 
     def test_content_encoding_gzip(self):
         kwargs = {'message': 'hello'}
@@ -355,7 +355,7 @@ class SentryRemoteTest(TestCase):
         event_id = json.loads(resp.content)['id']
         instance = Event.objects.get(event_id=event_id)
 
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
 
     def test_protocol_v2_0_without_secret_key(self):
         kwargs = {'message': 'hello'}
@@ -371,7 +371,7 @@ class SentryRemoteTest(TestCase):
         event_id = json.loads(resp.content)['id']
         instance = Event.objects.get(event_id=event_id)
 
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
 
     def test_protocol_v3(self):
         kwargs = {'message': 'hello'}
@@ -388,7 +388,7 @@ class SentryRemoteTest(TestCase):
         event_id = json.loads(resp.content)['id']
         instance = Event.objects.get(event_id=event_id)
 
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
 
     def test_protocol_v4(self):
         kwargs = {'message': 'hello'}
@@ -405,7 +405,7 @@ class SentryRemoteTest(TestCase):
         event_id = json.loads(resp.content)['id']
         instance = Event.objects.get(event_id=event_id)
 
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
 
     def test_protocol_v5(self):
         kwargs = {'message': 'hello'}
@@ -422,7 +422,7 @@ class SentryRemoteTest(TestCase):
         event_id = json.loads(resp.content)['id']
         instance = Event.objects.get(event_id=event_id)
 
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
 
     def test_protocol_v6(self):
         kwargs = {'message': 'hello'}
@@ -439,7 +439,7 @@ class SentryRemoteTest(TestCase):
         event_id = json.loads(resp.content)['id']
         instance = Event.objects.get(event_id=event_id)
 
-        assert instance.message == 'hello'
+        assert instance.real_message == 'hello'
 
 
 class DepdendencyTest(TestCase):
