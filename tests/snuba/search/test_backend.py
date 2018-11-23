@@ -29,7 +29,7 @@ class SnubaSearchTest(SnubaTestCase):
         self.group1 = self.create_group(
             project=self.project,
             checksum='a' * 32,
-            message='foo',
+            search_message='foo',
             times_seen=5,
             status=GroupStatus.UNRESOLVED,
             last_seen=base_datetime,
@@ -67,7 +67,7 @@ class SnubaSearchTest(SnubaTestCase):
         self.group2 = self.create_group(
             project=self.project,
             checksum='b' * 32,
-            message='bar',
+            search_message='bar',
             times_seen=10,
             status=GroupStatus.RESOLVED,
             last_seen=base_datetime - timedelta(days=30),
