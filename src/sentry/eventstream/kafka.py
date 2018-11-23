@@ -130,6 +130,8 @@ class KafkaEventStream(EventStream):
             'event_id': event.event_id,
             'organization_id': project.organization_id,
             'project_id': event.project_id,
+            # TODO(mitsuhiko): We do not want to send this incorrect
+            # message but this is what snuba needs at the moment.
             'message': event.real_message,
             'platform': event.platform,
             'datetime': event.datetime,
