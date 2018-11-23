@@ -571,6 +571,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 300,
         },
     },
+    'clear-expired-organizationmember-invites': {
+        'task': 'sentry.tasks.clear_expired_invites',
+        'schedule': timedelta(days=1),
+        'options': {
+            'expires': 60 * 25,
+        }
+    },
     'collect-project-platforms': {
         'task': 'sentry.tasks.collect_project_platforms',
         'schedule': timedelta(days=1),
