@@ -13,6 +13,8 @@ from .decorators import (
 )
 from .operations import DatabaseOperations
 
+from sentry.utils.strings import strip_lone_surrogates
+
 __all__ = ('DatabaseWrapper', )
 
 
@@ -20,6 +22,17 @@ def remove_null(value):
     if not isinstance(value, string_types):
         return value
     return value.replace('\x00', '')
+
+
+def remove_surrogates(value):
+    if not isinstance(value, string_types):
+        return value
+    if type(value) is bytes:
+        try:
+            return strip_lone_surrogates(value.decode('utf-8')).encode('utf-8')
+        except UnicodeError:
+            return value
+    return strip_lone_surrogates(value)
 
 
 class CursorWrapper(object):
@@ -61,6 +74,13 @@ class CursorWrapper(object):
                 if e.message != 'A string literal cannot contain NUL (0x00) characters.':
                     raise
                 return self.cursor.execute(sql, [remove_null(param) for param in params])
+            except Database.DataError as e:
+                # Another hack.  postgres does not accept lone surrogates
+                # in utf-8 mode.  If we encounter any lone surrogates in
+                # our string we need to remove it.
+                if 'invalid byte sequence for encoding' not in e.message:
+                    raise
+                return self.cursor.execute(sql, [remove_surrogates(param) for param in params])
         return self.cursor.execute(sql)
 
     @capture_transaction_exceptions

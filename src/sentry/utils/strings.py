@@ -24,6 +24,22 @@ _sprintf_placeholder_re = re.compile(
     r'%(?:\d+\$)?[+-]?(?:[ 0]|\'.{1})?-?\d*(?:\.\d+)?[bcdeEufFgGosxX]'
 )
 
+_lone_surrogate = re.compile(u"""(?x)
+    (
+        [\ud800-\udbff](?![\udc00-\udfff])
+    ) | (
+        (?<![\ud800-\udbff])
+        [\udc00-\udfff]
+    )
+""")
+
+
+def strip_lone_surrogates(string):
+    """Removes lone surrogates."""
+    if six.PY3:
+        return string.encode('utf-8', 'surrogateescape').decode('utf-8', 'ignore')
+    return _lone_surrogate.sub('', string)
+
 
 def truncatechars(value, arg, ellipsis='...'):
     # TODO (alex) could use unicode ellipsis: u'\u2026'
