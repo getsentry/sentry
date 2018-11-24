@@ -3,7 +3,8 @@
 from __future__ import absolute_import
 
 from sentry.constants import MAX_CULPRIT_LENGTH
-from sentry.event_manager import generate_culprit, md5_from_hash
+from sentry.event_manager import generate_culprit
+from sentry.event_hashing import md5_from_hash
 
 
 def test_with_exception_interface():

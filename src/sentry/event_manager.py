@@ -8,19 +8,16 @@ from __future__ import absolute_import, print_function
 
 import logging
 import os
-import re
 import six
 import jsonschema
 import random
 import time
 
 from datetime import datetime, timedelta
-from collections import OrderedDict
 from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
 from django.utils import timezone
-from django.utils.encoding import force_bytes, force_text
-from hashlib import md5
+from django.utils.encoding import force_text
 
 from sentry import buffer, eventtypes, eventstream, features, tsdb, filters, options
 from sentry.constants import (
@@ -72,8 +69,6 @@ from sentry.stacktraces import normalize_in_app
 logger = logging.getLogger("sentry.events")
 
 
-HASH_RE = re.compile(r'^[0-9a-f]{32}$')
-DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
 MAX_SECS_IN_FUTURE = 60
 ALLOWED_FUTURE_DELTA = timedelta(seconds=MAX_SECS_IN_FUTURE)
 MAX_SECS_IN_PAST = 2592000  # 30 days
@@ -118,79 +113,6 @@ def time_limit(silence):  # ~ 3600 per hour
         if silence >= amount:
             return sample_rate
     return settings.SENTRY_MAX_SAMPLE_TIME
-
-
-def md5_from_hash(hash_bits):
-    result = md5()
-    for bit in hash_bits:
-        result.update(force_bytes(bit, errors='replace'))
-    return result.hexdigest()
-
-
-def get_fingerprint_for_event(event):
-    fingerprint = event.data.get('fingerprint')
-    if fingerprint is None:
-        return ['{{ default }}']
-    return fingerprint
-
-
-def get_hashes_for_event(event):
-    return get_hashes_for_event_with_reason(event)[1]
-
-
-def get_hashes_for_event_with_reason(event):
-    interfaces = event.get_interfaces()
-    for interface in six.itervalues(interfaces):
-        result = interface.compute_hashes(event.platform)
-        if not result:
-            continue
-        return (interface.path, result)
-
-    return ('no_interfaces', [''])
-
-
-def get_grouping_behavior(event):
-    data = event.data
-    if 'checksum' in data:
-        return ('checksum', data['checksum'])
-    fingerprint = get_fingerprint_for_event(event)
-    return ('fingerprint', get_hashes_from_fingerprint_with_reason(event, fingerprint))
-
-
-def get_hashes_from_fingerprint(event, fingerprint):
-    if any(d in fingerprint for d in DEFAULT_FINGERPRINT_VALUES):
-        default_hashes = get_hashes_for_event(event)
-        hash_count = len(default_hashes)
-    else:
-        hash_count = 1
-
-    hashes = []
-    for idx in range(hash_count):
-        result = []
-        for bit in fingerprint:
-            if bit in DEFAULT_FINGERPRINT_VALUES:
-                result.extend(default_hashes[idx])
-            else:
-                result.append(bit)
-        hashes.append(result)
-    return hashes
-
-
-def get_hashes_from_fingerprint_with_reason(event, fingerprint):
-    if any(d in fingerprint for d in DEFAULT_FINGERPRINT_VALUES):
-        default_hashes = get_hashes_for_event_with_reason(event)
-        hash_count = len(default_hashes[1])
-    else:
-        hash_count = 1
-
-    hashes = OrderedDict((bit, []) for bit in fingerprint)
-    for idx in range(hash_count):
-        for bit in fingerprint:
-            if bit in DEFAULT_FINGERPRINT_VALUES:
-                hashes[bit].append(default_hashes)
-            else:
-                hashes[bit] = bit
-    return list(hashes.items())
 
 
 def parse_client_as_sdk(value):
@@ -906,7 +828,6 @@ class EventManager(object):
 
         transaction_name = data.get('transaction')
         logger_name = data.get('logger')
-        checksum = data.get('checksum')
         fingerprint = data.get('fingerprint')
         release = data.get('release')
         dist = data.get('dist')
@@ -992,18 +913,7 @@ class EventManager(object):
         data['tags'] = tags
         data['fingerprint'] = fingerprint or ['{{ default }}']
 
-        # prioritize fingerprint over checksum as its likely the client defaulted
-        # a checksum whereas the fingerprint was explicit
-        if fingerprint:
-            hashes = [md5_from_hash(h) for h in get_hashes_from_fingerprint(event, fingerprint)]
-        elif checksum:
-            if HASH_RE.match(checksum):
-                hashes = [checksum]
-            else:
-                hashes = [md5_from_hash([checksum]), checksum]
-            data['checksum'] = checksum
-        else:
-            hashes = [md5_from_hash(h) for h in get_hashes_for_event(event)]
+        hashes = event.get_hashes(no_fingerprint=fingerprint is None)
 
         event_type = self.get_event_type()
         event_metadata = event_type.get_metadata()
