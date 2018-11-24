@@ -1,3 +1,4 @@
+# coding: utf-8
 from __future__ import absolute_import
 
 import pytest
@@ -48,3 +49,13 @@ class CursorWrapperTestCase(TestCase):
         long_str_from_db = cursor.fetchone()[0]
         assert long_str_from_db == (u'a' * (MAX_CULPRIT_LENGTH - 1))
         assert len(long_str_from_db) <= MAX_CULPRIT_LENGTH
+
+    def test_lone_surrogates(self):
+        from django.db import connection
+        cursor = connection.cursor()
+
+        bad_str = u'Hello\ud83dWorld🇦🇹!'
+
+        cursor.execute('SELECT %s', [bad_str])
+        bad_str_from_db = cursor.fetchone()[0]
+        assert bad_str_from_db == u'HelloWorld🇦🇹!'
