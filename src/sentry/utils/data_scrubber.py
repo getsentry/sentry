@@ -12,6 +12,7 @@ import six
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
 from sentry.constants import DEFAULT_SCRUBBED_FIELDS, FILTER_MASK, NOT_SCRUBBED_VALUES
+from sentry.utils.safe import get_path
 
 
 def varmap(func, var, context=None, name=None):
@@ -78,8 +79,8 @@ class SensitiveDataFilter(object):
             self.filter_stacktrace(data['stacktrace'])
 
         if 'exception' in data:
-            for exc in data['exception']['values']:
-                if exc is not None and exc.get('stacktrace'):
+            for exc in get_path(data, 'exception', 'values', filter=True) or ():
+                if exc.get('stacktrace'):
                     self.filter_stacktrace(exc['stacktrace'])
 
         if 'breadcrumbs' in data:
