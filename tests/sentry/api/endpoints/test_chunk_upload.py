@@ -38,7 +38,7 @@ class ChunkUploadTest(APITestCase):
         assert response.data['chunkSize'] == CHUNK_UPLOAD_BLOB_SIZE
         assert response.data['chunksPerRequest'] == MAX_CHUNKS_PER_REQUEST
         assert response.data['maxRequestSize'] == MAX_REQUEST_SIZE
-        assert response.data['maxFileSize'] == options.get('system.maximum-file-size')
+        assert response.data['maxFileSize'] == options.get('system.chunk-upload.maximum-file-size')
         assert response.data['concurrency'] == MAX_CONCURRENCY
         assert response.data['hashAlgorithm'] == HASH_ALGORITHM
         assert response.data['url'] == options.get('system.url-prefix') + self.url
