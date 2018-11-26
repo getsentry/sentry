@@ -37,7 +37,7 @@ _lone_surrogate = re.compile(u"""(?x)
 def strip_lone_surrogates(string):
     """Removes lone surrogates."""
     if six.PY3:
-        return string.encode('utf-8', 'surrogateescape').decode('utf-8', 'ignore')
+        return string.encode('utf-8', 'surrogatepass').decode('utf-8', 'ignore')
     return _lone_surrogate.sub('', string)
 
 
