@@ -18,10 +18,10 @@ from google.cloud.storage.bucket import Bucket
 from google.cloud.exceptions import NotFound
 from google.auth.exceptions import TransportError
 from google.resumable_media.common import DataCorruption
+from requests.exceptions import RequestException
 
 from sentry.utils import metrics
 from sentry.net.http import TimeoutAdapter
-from requests.exceptions import ConnectionError
 
 
 # _client cache is a 3-tuple of project_id, credentials, Client
@@ -31,16 +31,32 @@ _client = None, None, None
 
 
 def try_repeated(func):
-    """Runs a function a few times ignoring errors we see from GCS
+    """
+    Runs a function a few times ignoring errors we see from GCS
     due to what appears to be network issues.  This is a temporary workaround
     until we can find the root cause.
     """
+    if hasattr(func, '__name__'):
+        func_name = func.__name__
+    elif hasattr(func, 'func'):
+        # Partials
+        func_name = getattr(func.func, '__name__', '__unknown__')
+    else:
+        func_name = '__unknown__'
+
+    metrics_key = 'filestore.gcs.retry'
+    metrics_tags = {'function': func_name}
     idx = 0
-    while 1:
+    while True:
         try:
-            return func()
-        except (DataCorruption, ConnectionError, TransportError):
+            result = func()
+            metrics_tags.update({'success': '1'})
+            metrics.timing(metrics_key, idx, tags=metrics_tags)
+            return result
+        except (DataCorruption, TransportError, RequestException) as e:
             if idx >= 3:
+                metrics_tags.update({'success': '0', 'exception_class': e.__class__.__name__})
+                metrics.timing(metrics_key, idx, tags=metrics_tags)
                 raise
         idx += 1
 
@@ -150,7 +166,7 @@ class GoogleCloudFile(File):
     def _get_file(self):
         def _try_download():
             self.blob.download_to_file(self._file)
-            self.file.seek(0)
+            self._file.seek(0)
 
         if self._file is None:
             with metrics.timer('filestore.read', instance='gcs'):
@@ -248,6 +264,11 @@ class GoogleCloudStorage(Storage):
         return GoogleCloudFile(name, mode, self)
 
     def _save(self, name, content):
+        def _try_upload():
+            content.seek(0, os.SEEK_SET)
+            file.blob.upload_from_file(content, size=content.size,
+                                       content_type=file.mime_type)
+
         with metrics.timer('filestore.save', instance='gcs'):
             cleaned_name = clean_name(name)
             name = self._normalize_name(cleaned_name)
@@ -255,9 +276,7 @@ class GoogleCloudStorage(Storage):
             content.name = cleaned_name
             encoded_name = self._encode_name(name)
             file = GoogleCloudFile(encoded_name, 'w', self)
-            content.seek(0, os.SEEK_SET)
-            file.blob.upload_from_file(content, size=content.size,
-                                       content_type=file.mime_type)
+            try_repeated(_try_upload)
         return cleaned_name
 
     def delete(self, name):

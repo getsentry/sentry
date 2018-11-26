@@ -138,6 +138,7 @@ class FileBlob(Model):
             storage = get_storage()
             storage.save(blob.path, fileobj)
             blobs_to_save.append((blob, lock))
+            metrics.timing('filestore.blob-size', size, tags={'function': 'from_files'})
 
         def _ensure_blob_owned(blob):
             if organization is None:
