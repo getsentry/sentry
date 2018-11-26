@@ -8,6 +8,8 @@ sentry.plugins.bases.notify
 from __future__ import absolute_import, print_function
 
 import logging
+import requests
+import six
 from six.moves.urllib.parse import (
     urlparse,
     urlencode,
@@ -66,8 +68,15 @@ class NotificationPlugin(Plugin):
 
     def notify(self, notification):
         event = notification.event
-        return self.notify_users(event.group, event, triggering_rules=[
-                                 r.label for r in notification.rules])
+        try:
+            return self.notify_users(event.group, event, triggering_rules=[
+                                     r.label for r in notification.rules])
+        except requests.HTTPError as err:
+            self.logger.info('notification-plugin.notify-failed.', extra={
+                'error': six.text_type(err),
+                'plugin': self.slug
+            })
+            return False
 
     def rule_notify(self, event, futures):
         rules = []
