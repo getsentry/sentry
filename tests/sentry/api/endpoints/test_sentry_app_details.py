@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+
 from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -16,11 +17,23 @@ class SentryAppDetailsTest(APITestCase):
             organization=self.org,
             published=True,
         )
+
         self.unpublished_app = self.create_sentry_app(
             name='Testin',
             organization=self.org,
         )
-        self.url = reverse('sentry-api-0-sentry-app-details', args=[self.published_app.slug])
+
+        self.unowned_unpublished_app = self.create_sentry_app(
+            name='Nosee',
+            organization=self.create_organization(),
+            scopes=(),
+            webhook_url='https://example.com',
+        )
+
+        self.url = reverse(
+            'sentry-api-0-sentry-app-details',
+            args=[self.published_app.slug],
+        )
 
 
 class GetSentryAppDetailsTest(SentryAppDetailsTest):
@@ -30,42 +43,48 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
         response = self.client.get(self.url, format='json')
 
         assert response.status_code == 200
-        assert response.data == {
-            'name': self.published_app.name,
-            'scopes': [],
-            'uuid': self.published_app.uuid,
-            'webhook_url': self.published_app.webhook_url,
-        }
+        assert response.data['uuid'] == self.published_app.uuid
 
-        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.slug])
+        url = reverse(
+            'sentry-api-0-sentry-app-details',
+            args=[self.unpublished_app.slug],
+        )
+
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200
-        assert response.data == {
-            'name': self.unpublished_app.name,
-            'scopes': [],
-            'uuid': self.unpublished_app.uuid,
-            'webhook_url': self.unpublished_app.webhook_url,
-        }
+        assert response.data['uuid'] == self.unpublished_app.uuid
 
     @with_feature('organizations:internal-catchall')
-    def test_users_only_see_published_apps(self):
+    def test_users_see_published_app(self):
         self.login_as(user=self.user)
-        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.slug])
 
         response = self.client.get(self.url, format='json')
-
         assert response.status_code == 200
-        assert response.data == {
-            'name': self.published_app.name,
-            'scopes': [],
-            'uuid': self.published_app.uuid,
-            'webhook_url': self.published_app.webhook_url,
-        }
+        assert response.data['uuid'] == self.published_app.uuid
 
-        url = reverse('sentry-api-0-sentry-app-details', args=[self.unpublished_app.slug])
+    @with_feature('organizations:internal-catchall')
+    def test_users_see_unpublished_apps_owned_by_their_org(self):
+        self.login_as(self.user)
+
+        url = reverse(
+            'sentry-api-0-sentry-app-details',
+            args=[self.unpublished_app.slug],
+        )
+
         response = self.client.get(url, format='json')
+        assert response.status_code == 200
 
+    @with_feature('organizations:internal-catchall')
+    def test_users_do_not_see_unowned_unpublished_apps(self):
+        self.login_as(self.user)
+
+        url = reverse(
+            'sentry-api-0-sentry-app-details',
+            args=[self.unowned_unpublished_app.slug],
+        )
+
+        response = self.client.get(url, format='json')
         assert response.status_code == 404
 
     def test_no_access_without_internal_catchall(self):
@@ -83,15 +102,24 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             self.url,
             data={
                 'name': 'NewName',
-                'webhook_url': 'https://newurl.com',
+                'webhookUrl': 'https://newurl.com',
+                'redirectUrl': 'https://newredirecturl.com',
+                'isAlertable': True,
             },
             format='json',
         )
         assert response.data == {
             'name': 'NewName',
+            'slug': self.published_app.slug,
             'scopes': [],
+            'status': self.published_app.get_status_display(),
             'uuid': self.published_app.uuid,
-            'webhook_url': 'https://newurl.com',
+            'webhookUrl': 'https://newurl.com',
+            'redirectUrl': 'https://newredirecturl.com',
+            'isAlertable': True,
+            'clientId': self.published_app.application.client_id,
+            'clientSecret': self.published_app.application.client_secret,
+            'overview': self.published_app.overview,
         }
 
     @with_feature('organizations:internal-catchall')
@@ -103,19 +131,17 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             url,
             data={
                 'name': 'NewName',
-                'webhook_url': 'https://newurl.com',
+                'webhookUrl': 'https://newurl.com',
                 'scopes': ('project:read',)
             },
             format='json',
         )
 
         assert response.status_code == 200
-        assert response.data == {
-            'name': 'NewName',
-            'scopes': ['project:read'],
-            'uuid': self.unpublished_app.uuid,
-            'webhook_url': 'https://newurl.com',
-        }
+        assert response.data['name'] == 'NewName'
+        assert response.data['scopes'] == ['project:read']
+        assert response.data['uuid'] == self.unpublished_app.uuid
+        assert response.data['webhookUrl'] == 'https://newurl.com'
 
     @with_feature('organizations:internal-catchall')
     def test_cannot_update_scopes_published_app(self):
@@ -125,7 +151,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             self.url,
             data={
                 'name': 'NewName',
-                'webhook_url': 'https://newurl.com',
+                'webhookUrl': 'https://newurl.com',
                 'scopes': ('project:read',)
             },
             format='json',
@@ -144,8 +170,8 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             url,
             data={
                 'name': 'NewName',
-                'webhook_url': 'https://newurl.com',
+                'webhookUrl': 'https://newurl.com',
             },
             format='json',
         )
-        assert response.status_code == 403
+        assert response.status_code == 404

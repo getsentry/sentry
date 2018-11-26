@@ -14,15 +14,25 @@ class SentryAppsTest(APITestCase):
         self.user = self.create_user(email='boop@example.com')
         self.org = self.create_organization(owner=self.user)
         self.super_org = self.create_organization(owner=self.superuser)
+
         self.published_app = self.create_sentry_app(
             name='Test',
             organization=self.org,
             published=True,
         )
+
         self.unpublished_app = self.create_sentry_app(
             name='Testin',
             organization=self.org,
         )
+
+        self.unowned_unpublished_app = self.create_sentry_app(
+            name='Nosee',
+            organization=self.create_organization(),
+            scopes=(),
+            webhook_url='https://example.com',
+        )
+
         self.url = reverse('sentry-api-0-sentry-apps')
 
 
@@ -32,24 +42,65 @@ class GetSentryAppsTest(SentryAppsTest):
         self.login_as(user=self.superuser)
 
         response = self.client.get(self.url, format='json')
+        response_uuids = set(o['uuid'] for o in response.data)
 
         assert response.status_code == 200
-        assert set(o['uuid'] for o in response.data) == set(
-            [self.published_app.uuid, self.unpublished_app.uuid])
+        assert self.published_app.uuid in response_uuids
+        assert self.unpublished_app.uuid in response_uuids
+        assert self.unowned_unpublished_app.uuid in response_uuids
 
     @with_feature('organizations:internal-catchall')
-    def test_users_only_see_published_apps(self):
+    def test_users_see_published_apps(self):
         self.login_as(user=self.user)
 
         response = self.client.get(self.url, format='json')
 
         assert response.status_code == 200
-        assert response.data == [{
+        assert {
             'name': self.published_app.name,
+            'slug': self.published_app.slug,
             'scopes': [],
+            'status': self.published_app.get_status_display(),
             'uuid': self.published_app.uuid,
-            'webhook_url': self.published_app.webhook_url,
-        }]
+            'webhookUrl': self.published_app.webhook_url,
+            'redirectUrl': self.published_app.redirect_url,
+            'isAlertable': self.published_app.is_alertable,
+            'clientId': self.published_app.application.client_id,
+            'clientSecret': self.published_app.application.client_secret,
+            'overview': self.published_app.overview,
+        } in response.data
+
+    @with_feature('organizations:internal-catchall')
+    def test_users_see_unpublished_apps_their_org_owns(self):
+        self.login_as(user=self.user)
+
+        response = self.client.get(self.url, format='json')
+
+        assert response.status_code == 200
+        assert {
+            'name': self.unpublished_app.name,
+            'slug': self.unpublished_app.slug,
+            'scopes': [],
+            'status': self.unpublished_app.get_status_display(),
+            'uuid': self.unpublished_app.uuid,
+            'webhookUrl': self.unpublished_app.webhook_url,
+            'redirectUrl': self.unpublished_app.redirect_url,
+            'isAlertable': self.unpublished_app.is_alertable,
+            'clientId': self.unpublished_app.application.client_id,
+            'clientSecret': self.unpublished_app.application.client_secret,
+            'overview': self.unpublished_app.overview,
+        } in response.data
+
+    @with_feature('organizations:internal-catchall')
+    def test_users_dont_see_unpublished_apps_outside_their_orgs(self):
+        self.login_as(user=self.user)
+
+        response = self.client.get(self.url, format='json')
+
+        assert response.status_code == 200
+        assert self.unowned_unpublished_app.uuid not in [
+            a['uuid'] for a in response.data
+        ]
 
     def test_no_access_without_internal_catchall(self):
         self.login_as(user=self.user)
@@ -67,7 +118,7 @@ class PostSentryAppsTest(SentryAppsTest):
         expected = {
             'name': 'MyApp',
             'scopes': ['project:read', 'project:write'],
-            'webhook_url': 'https://example.com',
+            'webhookUrl': 'https://example.com',
         }
 
         assert response.status_code == 201, response.content
@@ -100,17 +151,18 @@ class PostSentryAppsTest(SentryAppsTest):
     @with_feature('organizations:internal-catchall')
     def test_missing_webhook_url(self):
         self.login_as(self.user)
-        response = self._post(webhook_url=None)
+        response = self._post(webhookUrl=None)
 
         assert response.status_code == 422, response.content
-        assert 'webhook_url' in response.data['errors']
+        assert 'webhookUrl' in response.data['errors']
 
     def _post(self, **kwargs):
         body = {
             'name': 'MyApp',
             'organization': self.org.slug,
             'scopes': ('project:read', 'project:write'),
-            'webhook_url': 'https://example.com',
+            'webhookUrl': 'https://example.com',
+            'isAlertable': False,
         }
 
         body.update(**kwargs)

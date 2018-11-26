@@ -1,6 +1,7 @@
 import moment from 'moment';
 import {Client} from 'app/api';
 import {isValidAggregation} from './aggregations/utils';
+import {NON_SNUBA_FIELDS} from './data';
 
 export function getQueryFromQueryString(queryString) {
   const validQueryKeys = new Set([
@@ -59,8 +60,8 @@ export function getOrderByOptions(queryBuilder) {
       }
     }
 
-    // Never allow ordering by project_name since this can't be done in Snuba
-    if (name === 'project_name') {
+    // Never allow ordering by project.name or issue.id since this can't be done in Snuba
+    if (NON_SNUBA_FIELDS.includes(name)) {
       return acc;
     }
 
@@ -85,7 +86,19 @@ export function getOrderByOptions(queryBuilder) {
   return [...columnOptions, ...aggregationOptions];
 }
 
-export function getView(requestedView) {
+/**
+ * Takes the params object and the requested view querystring and returns the
+ * correct view to be displayed
+ *
+ * @param {Object} params
+ * @param {String} reqeustedView
+ * @returns {String} View
+ */
+export function getView(params, requestedView) {
+  if (typeof params.savedQueryId !== 'undefined') {
+    requestedView = 'saved';
+  }
+
   switch (requestedView) {
     case 'saved':
       return 'saved';

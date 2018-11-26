@@ -6,14 +6,14 @@ import pytest
 
 from exam import fixture
 
-from sentry.models import Integration, Repository
+from sentry.models import Integration, Repository, PullRequest
 from sentry.testutils import PluginTestCase
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.utils import json
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.github.repository import GitHubRepositoryProvider
-from sentry.integrations.github.testutils import (
+from .testutils import (
     COMPARE_COMMITS_EXAMPLE,
     GET_LAST_COMMITS_EXAMPLE,
     GET_COMMIT_EXAMPLE
@@ -42,10 +42,11 @@ class GitHubAppsProviderTest(PluginTestCase):
             external_id='654321',
         )
         return Repository.objects.create(
-            name='example-repo',
+            name='getsentry/example-repo',
             provider='integrations:github',
             organization_id=organization.id,
             integration_id=integration.id,
+            url='https://github.com/getsentry/example-repo',
             config={'name': 'getsentry/example-repo'},
         )
 
@@ -54,7 +55,7 @@ class GitHubAppsProviderTest(PluginTestCase):
         organization = self.create_organization()
         integration = Integration.objects.create(
             provider='github',
-            name='Example Github',
+            name='Example GitHub',
         )
         integration.add_organization(organization, self.user)
         data = {
@@ -150,3 +151,12 @@ class GitHubAppsProviderTest(PluginTestCase):
         )
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, 'xyz123', 'abcdef')
+
+    def test_pull_request_url(self):
+        pull = PullRequest(key=99)
+        result = self.provider.pull_request_url(self.repository, pull)
+        assert result == 'https://github.com/getsentry/example-repo/pull/99'
+
+    def test_repository_external_slug(self):
+        result = self.provider.repository_external_slug(self.repository)
+        assert result == self.repository.config['name']

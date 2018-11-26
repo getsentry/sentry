@@ -100,6 +100,7 @@ RESERVED_PROJECT_SLUGS = frozenset((
     'api-keys', 'audit-log', 'auth', 'members', 'projects',
     'rate-limits', 'repos', 'settings', 'teams', 'billing',
     'payments', 'legal', 'subscription', 'support', 'integrations',
+    'developer-settings',
 ))
 
 LOG_LEVELS = {
@@ -166,6 +167,7 @@ CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
     'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
     'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id', '_meta',
+    'applecrashreport', 'device', 'repos', 'query', 'type',
 )
 
 # XXX: Must be all lowercase

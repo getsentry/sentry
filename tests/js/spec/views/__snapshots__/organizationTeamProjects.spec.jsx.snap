@@ -91,6 +91,7 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           resetInputOnClose={true}
                         >
                           <DropdownMenu
+                            closeOnEscape={true}
                             isOpen={false}
                             keepMenuOpen={false}
                             onClickOutside={[Function]}
@@ -106,16 +107,30 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                                     innerRef={[Function]}
                                     isOpen={false}
                                     onClick={[Function]}
+                                    onKeyDown={[Function]}
                                     onMouseEnter={[Function]}
                                     onMouseLeave={[Function]}
                                     role="button"
+                                    style={
+                                      Object {
+                                        "outline": "none",
+                                      }
+                                    }
+                                    tabIndex={-1}
                                   >
                                     <div
-                                      className="css-dy1pax-Actor e53us8t0"
+                                      className="css-17fe80j-Actor e53us8t0"
                                       onClick={[Function]}
+                                      onKeyDown={[Function]}
                                       onMouseEnter={[Function]}
                                       onMouseLeave={[Function]}
                                       role="button"
+                                      style={
+                                        Object {
+                                          "outline": "none",
+                                        }
+                                      }
+                                      tabIndex={-1}
                                     >
                                       <DropdownButton
                                         isOpen={false}

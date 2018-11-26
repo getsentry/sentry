@@ -12,9 +12,9 @@ __all__ = ('Breadcrumbs', )
 
 import six
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.utils import json
-from sentry.utils.safe import trim
+from sentry.utils.safe import get_path, trim
 from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
 
 
@@ -52,15 +52,21 @@ class Breadcrumbs(Interface):
     @classmethod
     def to_python(cls, data):
         values = []
-        for crumb in data.get('values') or ():
+        for index, crumb in enumerate(get_path(data, 'values', filter=True, default=())):
+            # TODO(ja): Handle already invalid and None breadcrumbs
+
             try:
                 values.append(cls.normalize_crumb(crumb))
             except InterfaceValidationError:
                 # TODO(dcramer): we dont want to discard the entirety of data
                 # when one breadcrumb errors, but it'd be nice if we could still
                 # record an error
-                continue
+                pass
+
         return cls(values=values)
+
+    def to_json(self):
+        return prune_empty_keys({'values': self.values or None})
 
     @classmethod
     def normalize_crumb(cls, crumb):
@@ -108,12 +114,6 @@ class Breadcrumbs(Interface):
                 rv['data'] = trim(crumb['data'], 4096)
 
         return rv
-
-    def get_path(self):
-        return 'sentry.interfaces.Breadcrumbs'
-
-    def get_alias(self):
-        return 'breadcrumbs'
 
     def get_api_context(self, is_public=False):
         def _convert(x):

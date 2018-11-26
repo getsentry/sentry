@@ -24,6 +24,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         return ['repo']
 
     def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'bitbucket_integration'
         fields = super(BitbucketIssueBasicMixin, self).get_create_issue_config(group, **kwargs)
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
@@ -36,10 +37,11 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
             {
                 'name': 'repo',
                 'required': True,
+                'updatesForm': True,
                 'type': 'select',
                 'url': autocomplete_url,
                 'choices': repo_choices,
-                'defaultValue': default_repo,
+                'default': default_repo,
                 'label': 'Bitbucket Repository',
             }
         ] + fields + [
@@ -69,10 +71,11 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         return [{
             'name': 'repo',
             'required': True,
+            'updatesForm': True,
             'type': 'select',
             'url': autocomplete_url,
             'choices': repo_choices,
-            'defaultValue': default_repo,
+            'default': default_repo,
             'label': 'Bitbucket Repository',
         }, {
             'name': 'externalIssue',

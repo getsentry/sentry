@@ -50,6 +50,12 @@ export default class AsyncComponent extends React.Component {
   // eslint-disable-next-line react/sort-comp
   shouldReloadOnVisible = false;
 
+  // This affects how the component behaves when `remountComponent` is called
+  // By default, the component gets put back into a "loading" state when re-fetching data.
+  // If this is true, then when we fetch data, the original ready component remains mounted
+  // and it will need to handle any additional "reloading" states
+  shouldReload = false;
+
   // should `renderError` render the `detail` attribute of a 400 error
   shouldRenderBadRequests = false;
 
@@ -71,22 +77,29 @@ export default class AsyncComponent extends React.Component {
     }
   }
 
-  componentWillReceiveProps(nextProps, nextContext) {
-    const isRouterInContext = !!this.context.router;
-    const isLocationInProps = nextProps.location !== undefined;
+  // Compatiblity shim for child classes that call super on this hook.
+  componentWillReceiveProps(newProps, newContext) {}
+
+  componentDidUpdate(prevProps, prevContext) {
+    const isRouterInContext = !!prevContext.router;
+    const isLocationInProps = prevProps.location !== undefined;
 
     const currentLocation = isLocationInProps
       ? this.props.location
       : isRouterInContext ? this.context.router.location : null;
-    const nextLocation = isLocationInProps
-      ? nextProps.location
-      : isRouterInContext ? nextContext.router.location : null;
+    const prevLocation = isLocationInProps
+      ? prevProps.location
+      : isRouterInContext ? prevContext.router.location : null;
 
-    // re-fetch data when router params change
+    if (!(currentLocation && prevLocation)) {
+      return;
+    }
+
+    // Re-fetch data when router params change.
     if (
-      !isEqual(this.props.params, nextProps.params) ||
-      currentLocation.search !== nextLocation.search ||
-      currentLocation.state !== nextLocation.state
+      !isEqual(this.props.params, prevProps.params) ||
+      currentLocation.search !== prevLocation.search ||
+      currentLocation.state !== prevLocation.state
     ) {
       this.remountComponent();
     }
@@ -116,7 +129,16 @@ export default class AsyncComponent extends React.Component {
   }
 
   remountComponent = () => {
-    this.setState(this.getDefaultState(), this.fetchData);
+    if (this.shouldReload) {
+      this.setState(
+        {
+          reloading: true,
+        },
+        this.fetchData
+      );
+    } else {
+      this.setState(this.getDefaultState(), this.fetchData);
+    }
   };
 
   visibilityReloader = () =>
@@ -327,7 +349,7 @@ export default class AsyncComponent extends React.Component {
   }
 
   renderComponent() {
-    return this.state.loading && !this.state.reloading
+    return this.state.loading && (!this.shouldReload || !this.state.reloading)
       ? this.renderLoading()
       : this.state.error
         ? this.renderError(new Error('Unable to load all required endpoints'))

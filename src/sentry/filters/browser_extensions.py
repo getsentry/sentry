@@ -41,10 +41,6 @@ EXTENSION_EXC_VALUES = re.compile(
                 # Dragon Web Extension from Nuance Communications
                 # See: https://forum.sentry.io/t/error-in-raven-js-plugin-setsuspendstate/481/
                 'plugin.setSuspendState is not a function',
-                # Google Translate extension
-                # See:
-                # https://medium.com/@amir.harel/a-b-target-classname-indexof-is-not-a-function-at-least-not-mine-8e52f7be64ca
-                'a[b].target.className.indexOf is not a function',
             )
         )
     ),
@@ -83,14 +79,14 @@ class BrowserExtensionsFilter(Filter):
 
     def get_exception_value(self, data):
         try:
-            return data['sentry.interfaces.Exception']['values'][0]['value']
+            return data['exception']['values'][0]['value']
         except (LookupError, TypeError):
             return ''
 
     def get_exception_source(self, data):
         try:
-            return data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames'
-                                                                                  ][-1]['abs_path']
+            return data['exception']['values'][0]['stacktrace']['frames'
+                                                                ][-1]['abs_path']
         except (LookupError, TypeError):
             return ''
 

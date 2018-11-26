@@ -5,13 +5,13 @@ exports[`OrganizationRepositoriesContainer render() without any providers is loa
   title="Repositories - Sentry"
 >
   <OrganizationRepositories
+    api={Client {}}
     error={false}
     errors={Object {}}
     itemList={Array []}
     loading={false}
     onAddRepo={[Function]}
-    onCancelDelete={[Function]}
-    onDeleteRepo={[Function]}
+    onRepositoryChange={[Function]}
     params={
       Object {
         "orgId": "org-slug",

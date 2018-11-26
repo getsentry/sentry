@@ -20,7 +20,7 @@ from django.utils.translation import ugettext as _
 from six.moves.urllib.parse import urlparse
 
 from sentry.app import env
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
@@ -214,7 +214,7 @@ def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAME
     system_frames = []
     for frame in frames:
         frames_len += 1
-        if frame.in_app:
+        if frame is not None and frame.in_app:
             app_frames.append(frame)
         else:
             system_frames.append(frame)
@@ -285,8 +285,6 @@ def is_recursion(frame1, frame2):
 
 class Frame(Interface):
 
-    path = 'frame'
-
     @classmethod
     def to_python(cls, data, raw=False):
         is_valid, errors = validate_and_default_interface(data, cls.path)
@@ -301,11 +299,11 @@ class Frame(Interface):
         package = data.get('package')
 
         # For legacy reasons
-        if function == '?':
+        if function in ('?', ''):
             function = None
 
         # For consistency reasons
-        if symbol == '?':
+        if symbol in ('?', ''):
             symbol = None
 
         # Some of this processing should only be done for non raw frames
@@ -325,11 +323,6 @@ class Frame(Interface):
                         filename = abs_path
                 else:
                     filename = abs_path
-
-        if not (filename or function or module or package):
-            raise InterfaceValidationError(
-                "No 'filename' or 'function' or 'module' or 'package'"
-            )
 
         platform = data.get('platform')
 
@@ -378,8 +371,8 @@ class Frame(Interface):
             # TODO(dcramer): trim pre/post_context
             'pre_context': pre_context,
             'post_context': post_context,
-            'vars': context_locals,
-            'data': extra_data,
+            'vars': context_locals or None,
+            'data': extra_data or None,
             'errors': data.get('errors'),
         }
 
@@ -398,6 +391,30 @@ class Frame(Interface):
 
         return cls(**kwargs)
 
+    def to_json(self):
+        return prune_empty_keys({
+            'abs_path': self.abs_path or None,
+            'filename': self.filename or None,
+            'platform': self.platform or None,
+            'module': self.module or None,
+            'function': self.function or None,
+            'package': self.package or None,
+            'image_addr': self.image_addr,
+            'symbol': self.symbol,
+            'symbol_addr': self.symbol_addr,
+            'instruction_addr': self.instruction_addr,
+            'trust': self.trust,
+            'in_app': self.in_app,
+            'context_line': self.context_line or None,
+            'pre_context': self.pre_context or None,
+            'post_context': self.post_context or None,
+            'vars': self.vars or None,
+            'data': self.data or None,
+            'errors': self.errors or None,
+            'lineno': self.lineno,
+            'colno': self.colno
+        })
+
     def get_hash(self, platform=None):
         """
         The hash of the frame varies depending on the data available.
@@ -413,6 +430,13 @@ class Frame(Interface):
         # Safari throws [native code] frames in for calls like ``forEach``
         # whereas Chrome ignores these. Let's remove it from the hashing algo
         # so that they're more likely to group together
+        if self.filename == '<anonymous>':
+            hashable_filename = None
+        elif self.filename:
+            hashable_filename = remove_filename_outliers(self.filename, platform)
+        else:
+            hashable_filename = None
+
         if self.filename == '[native code]':
             return output
 
@@ -421,8 +445,8 @@ class Frame(Interface):
                 output.append('<module>')
             else:
                 output.append(remove_module_outliers(self.module, platform))
-        elif self.filename and not self.is_url() and not self.is_caused_by():
-            output.append(remove_filename_outliers(self.filename, platform))
+        elif hashable_filename and not self.is_url() and not self.is_caused_by():
+            output.append(hashable_filename)
 
         if self.context_line is None:
             can_use_context = False
@@ -585,7 +609,7 @@ class Frame(Interface):
         # not necessarily be the same platform).
         if self.platform is not None:
             platform = self.platform
-        if platform in ('objc', 'cocoa'):
+        if platform in ('objc', 'cocoa', 'native'):
             return self.function or '?'
         fileloc = self.module or self.filename
         if not fileloc:
@@ -629,7 +653,7 @@ class Stacktrace(Interface):
     OR
 
     ``module``
-      Platform-specific module path (e.g. sentry.interfaces.Stacktrace)
+      Platform-specific module path (e.g. stacktrace)
 
     The following additional attributes are supported:
 
@@ -697,7 +721,6 @@ class Stacktrace(Interface):
               to the full interface path.
     """
     score = 2000
-    path = 'sentry.interfaces.Stacktrace'
 
     def __iter__(self):
         return iter(self.frames)
@@ -710,15 +733,18 @@ class Stacktrace(Interface):
 
         # Trim down the frame list to a hard limit. Leave the last frame in place in case
         # it's useful for debugging.
-        frameiter = data['frames']
-        if len(data['frames']) > settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT:
+        frameiter = data.get('frames') or []
+        if len(frameiter) > settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT:
             frameiter = chain(
                 islice(data['frames'], settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT - 1), (data['frames'][-1],))
 
-        frame_list = [
+        frame_list = []
+
+        for f in frameiter:
+            if f is None:
+                continue
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            Frame.to_python(f or {}, raw=raw) for f in frameiter
-        ]
+            frame_list.append(Frame.to_python(f or {}, raw=raw))
 
         kwargs = {
             'frames': frame_list,
@@ -728,10 +754,7 @@ class Stacktrace(Interface):
         if data.get('registers') and isinstance(data['registers'], dict):
             kwargs['registers'] = data.get('registers')
 
-        if data.get('frames_omitted'):
-            kwargs['frames_omitted'] = data['frames_omitted']
-        else:
-            kwargs['frames_omitted'] = None
+        kwargs['frames_omitted'] = data.get('frames_omitted') or None
 
         instance = cls(**kwargs)
         if slim_frames:
@@ -783,14 +806,11 @@ class Stacktrace(Interface):
         }
 
     def to_json(self):
-        return {
-            'frames': [f.to_json() for f in self.frames],
+        return prune_empty_keys({
+            'frames': [f and f.to_json() for f in self.frames] or None,
             'frames_omitted': self.frames_omitted,
             'registers': self.registers,
-        }
-
-    def get_path(self):
-        return self.path
+        })
 
     def compute_hashes(self, platform):
         system_hash = self.get_hash(platform, system_frames=True)
@@ -901,15 +921,6 @@ class Stacktrace(Interface):
                     '(%d additional frame(s) were not displayed)' % (num_frames - visible_frames, )
                 )
             )
-
-        return '\n'.join(result)
-
-    def get_traceback(self, event, newest_first=None):
-        result = [
-            event.message,
-            '',
-            self.get_stacktrace(event, newest_first=newest_first),
-        ]
 
         return '\n'.join(result)
 

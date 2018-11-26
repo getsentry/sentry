@@ -2,6 +2,7 @@ import {
   getInternal,
   getExternal,
   isValidCondition,
+  ignoreCase,
 } from 'app/views/organizationDiscover/conditions/utils';
 
 import {COLUMNS} from 'app/views/organizationDiscover/data';
@@ -12,20 +13,20 @@ const conditionList = [
     external: ['message', 'LIKE', '%test%'],
   },
   {
-    internal: 'user_id = USER_1',
-    external: ['user_id', '=', 'USER_1'],
+    internal: 'user.id = USER_1',
+    external: ['user.id', '=', 'USER_1'],
   },
   {
     internal: 'message IS NOT NULL',
     external: ['message', 'IS NOT NULL', null],
   },
   {
-    internal: 'device_battery_level = 3',
-    external: ['device_battery_level', '=', 3],
+    internal: 'device.battery_level = 3',
+    external: ['device.battery_level', '=', 3],
   },
   {
-    internal: 'device_battery_level >= 0',
-    external: ['device_battery_level', '>=', 0],
+    internal: 'device.battery_level >= 0',
+    external: ['device.battery_level', '>=', 0],
   },
   {
     internal: 'message NOT LIKE something%',
@@ -36,12 +37,12 @@ const conditionList = [
     external: ['message', 'LIKE', null],
   },
   {
-    internal: 'exception_frames.in_app = true',
-    external: ['exception_frames.in_app', '=', true],
+    internal: 'stack.in_app = true',
+    external: ['stack.in_app', '=', true],
   },
   {
-    internal: 'exception_frames.in_app = false',
-    external: ['exception_frames.in_app', '=', false],
+    internal: 'stack.in_app = false',
+    external: ['stack.in_app', '=', false],
   },
 ];
 
@@ -52,8 +53,8 @@ describe('Conditions', function() {
     });
 
     // datetime fields are expanded
-    const expected = ['received', '=', '2018-05-05T00:00:00Z'];
-    expect(getExternal('received = 2018-05-05', COLUMNS)).toEqual(expected);
+    const expected = ['timestamp', '=', '2018-05-05T00:00:00'];
+    expect(getExternal('timestamp = 2018-05-05', COLUMNS)).toEqual(expected);
   });
 
   it('getInternal()', function() {
@@ -64,22 +65,51 @@ describe('Conditions', function() {
 
   describe('isValidCondition()', function() {
     it('validates column name exists', function() {
-      expect(isValidCondition(['device_name', '=', 'something'], COLUMNS)).toBe(true);
-      expect(isValidCondition(['device__name', '=', 'something'], COLUMNS)).toBe(false);
+      expect(isValidCondition(['device.name', '=', 'something'], COLUMNS)).toBe(true);
+      expect(isValidCondition(['device_name', '=', 'something'], COLUMNS)).toBe(false);
     });
 
     it('validates column type', function() {
-      expect(isValidCondition(['device_battery_level', '=', 5], COLUMNS)).toBe(true);
-      expect(isValidCondition(['device_battery_level', '=', '5'], COLUMNS)).toBe(false);
+      expect(isValidCondition(['device.battery_level', '=', 5], COLUMNS)).toBe(true);
+      expect(isValidCondition(['device.battery_level', '=', '5'], COLUMNS)).toBe(false);
     });
 
     it('validates operator', function() {
-      expect(isValidCondition(['device_name', 'LIKE', '%something%'], COLUMNS)).toBe(
+      expect(isValidCondition(['device.name', 'LIKE', '%something%'], COLUMNS)).toBe(
         true
       );
-      expect(isValidCondition(['device__name', 'iS', '%something%'], COLUMNS)).toBe(
-        false
-      );
+      expect(isValidCondition(['device_name', 'iS', '%something%'], COLUMNS)).toBe(false);
+    });
+  });
+
+  describe('ignoreCase()', function() {
+    const conditionCases = [
+      {
+        input: '',
+        output: '',
+      },
+      {
+        input: 'id like %test%',
+        output: 'id LIKE %test%',
+      },
+      {
+        input: 'id IS Nul',
+        output: 'id IS NUL',
+      },
+      {
+        input: 'id = asdf',
+        output: 'id = asdf',
+      },
+      {
+        input: 'id IS not null',
+        output: 'id IS NOT NULL',
+      },
+    ];
+
+    it('uppercases condition operators', function() {
+      conditionCases.forEach(({input, output}) => {
+        expect(ignoreCase(input)).toBe(output);
+      });
     });
   });
 });

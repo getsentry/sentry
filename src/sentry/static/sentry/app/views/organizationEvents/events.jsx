@@ -1,14 +1,20 @@
+import {Flex} from 'grid-emotion';
+import {isEqual} from 'lodash';
 import React from 'react';
+import styled from 'react-emotion';
 
-import {Panel, PanelHeader} from 'app/components/panels';
-import {getParams} from 'app/views/organizationEvents/utils';
+import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-import EventsChart from 'app/views/organizationEvents/eventsChart';
-import EventsTable from 'app/views/organizationEvents/eventsTable';
 import Pagination from 'app/components/pagination';
+import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import withOrganization from 'app/utils/withOrganization';
+import BetaTag from 'app/components/betaTag';
+
+import {getParams} from './utils/getParams';
+import EventsChart from './eventsChart';
+import EventsTable from './eventsTable';
 
 class OrganizationEvents extends AsyncView {
   static propTypes = {
@@ -22,6 +28,24 @@ class OrganizationEvents extends AsyncView {
     );
   }
 
+  shouldComponentUpdate(nextProps, nextState) {
+    if (this.state !== nextState) {
+      return true;
+    }
+
+    const isDiff = ['path', 'search'].find(
+      key => !isEqual(this.props.location[key], nextProps.location[key])
+    );
+
+    if (isDiff) {
+      return true;
+    }
+
+    return false;
+  }
+
+  shouldReload = true;
+
   getEndpoints() {
     const {organization, location} = this.props;
     let {statsPeriod, ...query} = location.query;
@@ -32,7 +56,7 @@ class OrganizationEvents extends AsyncView {
         `/organizations/${organization.slug}/events/`,
         {
           query: getParams({
-            period: statsPeriod,
+            statsPeriod,
             ...query,
           }),
         },
@@ -41,31 +65,61 @@ class OrganizationEvents extends AsyncView {
   }
 
   getTitle() {
-    return `${this.props.organization.slug} Events`;
+    return `Events - ${this.props.organization.slug}`;
   }
 
+  handleSearch = query => {
+    let {router, location} = this.props;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...(location.query || {}),
+        query,
+      },
+    });
+  };
+
   renderBody() {
-    const {organization} = this.props;
-    const {loading, events, eventsPageLinks} = this.state;
+    const {organization, location} = this.props;
+    const {reloading, events, eventsPageLinks} = this.state;
 
     return (
       <React.Fragment>
+        <Flex align="center" justify="space-between" mb={2}>
+          <HeaderTitle>
+            {t('Events')} <BetaTag />
+          </HeaderTitle>
+          <StyledSearchBar
+            query={location.query && location.query.query}
+            placeholder={t('Search for events, users, tags, and everything else.')}
+            onSearch={this.handleSearch}
+          />
+        </Flex>
+
         <Panel>
-          <PanelHeader hasButtons>
-            {t('Events')}
-            {this.renderSearchInput({})}
-          </PanelHeader>
-
           <EventsChart organization={organization} />
-
-          <EventsTable loading={loading} events={events} organization={organization} />
         </Panel>
+
+        <EventsTable reloading={reloading} events={events} organization={organization} />
 
         <Pagination pageLinks={eventsPageLinks} />
       </React.Fragment>
     );
   }
 }
+
+const HeaderTitle = styled('h4')`
+  flex: 1;
+  font-size: ${p => p.theme.headerFontSize};
+  line-height: ${p => p.theme.headerFontSize};
+  font-weight: normal;
+  color: ${p => p.theme.gray4};
+  margin: 0;
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex: 1;
+`;
 
 export default withOrganization(OrganizationEvents);
 export {OrganizationEvents};

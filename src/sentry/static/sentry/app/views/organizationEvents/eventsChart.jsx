@@ -1,20 +1,22 @@
+import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
-import {HealthRequestWithParams} from 'app/views/organizationHealth/util/healthRequest';
 import {t} from 'app/locale';
 import AreaChart from 'app/components/charts/areaChart';
-import DataZoom from 'app/components/charts/components/dataZoom';
-import EventsContext from 'app/views/organizationEvents/eventsContext';
 import SentryTypes from 'app/sentryTypes';
-import ToolBox from 'app/components/charts/components/toolBox';
 import withApi from 'app/utils/withApi';
 
-class EventsChart extends React.Component {
+import {EventsRequestWithParams} from './utils/eventsRequest';
+import EventsContext from './utils/eventsContext';
+
+class EventsChart extends React.PureComponent {
   static propTypes = {
     organization: SentryTypes.Organization,
     actions: PropTypes.object,
+    period: PropTypes.string,
+    utc: PropTypes.bool,
   };
 
   constructor(props) {
@@ -68,62 +70,75 @@ class EventsChart extends React.Component {
   };
 
   render() {
+    const {period, utc, location} = this.props;
+
+    let interval = '1d';
+    let xAxisOptions = {};
+    if ((typeof period === 'string' && period.endsWith('h')) || period === '1d') {
+      interval = '1h';
+      xAxisOptions.axisLabel = {
+        formatter: value =>
+          moment
+            .utc(value)
+            .local()
+            .format('LT'),
+      };
+    }
+
+    // TODO(billy): For now only include previous period when we use relative time
+
     return (
       <div>
-        <HealthRequestWithParams
+        <EventsRequestWithParams
           {...this.props}
-          tag="error.handled"
-          includeTimeseries
-          interval="1d"
+          interval={interval}
           showLoading
-          getCategory={() => t('Event')}
+          query={(location.query && location.query.query) || ''}
+          getCategory={() => t('Events')}
+          includePrevious={!!period}
         >
-          {({timeseriesData, previousTimeseriesData}) => (
-            <AreaChart
-              isGroupedByDate
-              series={timeseriesData}
-              previousPeriod={previousTimeseriesData}
-              grid={{
-                left: '18px',
-                right: '18px',
-              }}
-              dataZoom={DataZoom()}
-              toolBox={ToolBox(
-                {},
-                {
-                  dataZoom: {},
-                  restore: {},
-                }
-              )}
-              onEvents={{
-                datazoom: this.handleDataZoom,
-                click: this.handleChartClick,
-              }}
-            />
-          )}
-        </HealthRequestWithParams>
+          {({timeseriesData, previousTimeseriesData}) => {
+            return (
+              <AreaChart
+                isGroupedByDate
+                useUtc={utc}
+                interval={interval === '1h' ? 'hour' : 'day'}
+                series={timeseriesData}
+                previousPeriod={previousTimeseriesData}
+                grid={{
+                  left: '18px',
+                  right: '18px',
+                }}
+                xAxis={xAxisOptions}
+              />
+            );
+          }}
+        </EventsRequestWithParams>
       </div>
     );
   }
 }
 
-const EventsChartContainer = withApi(
-  class EventsChartContainer extends React.Component {
-    render() {
-      return (
-        <EventsContext.Consumer>
-          {context => (
-            <EventsChart
-              {...context}
-              projects={context.project || []}
-              environments={context.environment || []}
-              {...this.props}
-            />
-          )}
-        </EventsContext.Consumer>
-      );
+const EventsChartContainer = withRouter(
+  withApi(
+    class EventsChartContainer extends React.Component {
+      render() {
+        return (
+          <EventsContext.Consumer>
+            {context => (
+              <EventsChart
+                {...context}
+                projects={context.project || []}
+                environments={context.environment || []}
+                {...this.props}
+              />
+            )}
+          </EventsContext.Consumer>
+        );
+      }
     }
-  }
+  )
 );
+
 export default EventsChartContainer;
 export {EventsChart};

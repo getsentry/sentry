@@ -216,18 +216,16 @@ class ProjectDebugFile(Model):
                 # Explicitly select referencing caches and delete them. Using
                 # the backref does not work, since `dif.id` is None after the
                 # delete.
-                symcache = ProjectSymCacheFile.objects \
+                symcaches = ProjectSymCacheFile.objects \
                     .filter(debug_file_id=dif_id) \
-                    .select_related('cache_file') \
-                    .first()
-                if symcache:
+                    .select_related('cache_file')
+                for symcache in symcaches:
                     symcache.delete()
 
-                cficache = ProjectCfiCacheFile.objects \
+                cficaches = ProjectCfiCacheFile.objects \
                     .filter(debug_file_id=dif_id) \
-                    .select_related('cache_file') \
-                    .first()
-                if cficache:
+                    .select_related('cache_file')
+                for cficache in cficaches:
                     cficache.delete()
 
         self.file.delete()
@@ -732,6 +730,12 @@ class DIFCache(object):
             o = fo.get_object(id=debug_id)
             if o is None:
                 return None, None, None
+
+            # Check features from the actual object file, if this is a legacy
+            # DIF where features have not been extracted yet.
+            if (debug_file.data or {}).get('features') is None:
+                if o.features < set(cls.required_features):
+                    return None, None, None
 
             cache = cls.cache_cls.from_object(o)
         except SymbolicError as e:

@@ -448,7 +448,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
     'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
     'sentry.tagstore.tasks', 'sentry.tasks.assemble', 'sentry.tasks.integrations',
-    'sentry.tasks.files',
+    'sentry.tasks.files', 'sentry.tasks.app_platform',
 )
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
@@ -780,7 +780,7 @@ SENTRY_FEATURES = {
     # Enable attaching arbitrary files to events.
     'organizations:event-attachments': False,
     # Enable the organization wide events stream interface.
-    'organizations:events-stream': False,
+    'organizations:global-views': False,
     # Enable the interface and functionality for unmerging event groups.
     'organizations:group-unmerge': False,
     # Enable the 'health' interface.
@@ -796,10 +796,13 @@ SENTRY_FEATURES = {
     'organizations:internal-catchall': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
+    # Enable gitlab integration currently available to early adopters only.
+    'organizations:gitlab-integration': False,
+    # Enable jira server integration currently available to internal users only.
+    'organizations:jira-server-integration': False,
+
     # DEPRECATED: pending removal.
     'organizations:js-loader': False,
-    # DEPRECATED: pending removal.
-    'organizations:new-issue-ui': True,
     # DEPRECATED: pending removal.
     'organizations:new-teams': True,
     # Enable the relay functionality, for use with sentry semaphore. See
@@ -909,17 +912,13 @@ SENTRY_INTERFACES = {
     'hpkp': 'sentry.interfaces.security.Hpkp',
     'expectct': 'sentry.interfaces.security.ExpectCT',
     'expectstaple': 'sentry.interfaces.security.ExpectStaple',
-    'device': 'sentry.interfaces.device.Device',
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
-    'query': 'sentry.interfaces.query.Query',
-    'repos': 'sentry.interfaces.repos.Repos',
     'request': 'sentry.interfaces.http.Http',
     'sdk': 'sentry.interfaces.sdk.Sdk',
     'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
     'template': 'sentry.interfaces.template.Template',
     'user': 'sentry.interfaces.user.User',
-    'applecrashreport': 'sentry.interfaces.applecrash.AppleCrashReport',
     'breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
     'contexts': 'sentry.interfaces.contexts.Contexts',
     'threads': 'sentry.interfaces.threads.Threads',
@@ -1318,13 +1317,13 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     'sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider',
     'sentry.integrations.gitlab.GitlabIntegrationProvider',
     'sentry.integrations.jira.JiraIntegrationProvider',
+    'sentry.integrations.jira_server.JiraServerIntegrationProvider',
     'sentry.integrations.vsts.VstsIntegrationProvider',
     'sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider',
 )
 
 SENTRY_INTERNAL_INTEGRATIONS = (
-    'gitlab',
-    'vsts-extension',
+    'jira_server',
 )
 
 
@@ -1417,6 +1416,14 @@ SENTRY_RELAY_WHITELIST_PK = []
 # When open registration is not permitted then only relays in the
 # whitelist can register.
 SENTRY_RELAY_OPEN_REGISTRATION = False
+
+# GeoIP
+# Used for looking up IP addresses.
+# For example /usr/local/share/GeoIP/GeoIPCity.dat
+GEOIP_PATH = None
+# Same file but in the newer format. Both are required.
+# For example /usr/local/share/GeoIP/GeoIPCity.mmdb
+GEOIP_PATH_MMDB = None
 
 # CDN
 # If this is an absolute url like e.g.: https://js.sentry-cdn.com/

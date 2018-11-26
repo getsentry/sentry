@@ -25,14 +25,14 @@ def test_timestamp():
     )
     with mock.patch("sentry.event_manager.process_timestamp", patched):
         data = validate_and_normalize({"timestamp": "2018-04-10T14:33:18Z"})
-        assert len(data["errors"]) == 0
+        assert "errors" not in data
 
     data = validate_and_normalize({"timestamp": "not-a-timestamp"})
     assert len(data["errors"]) == 1
 
     now = datetime.utcnow()
     data = validate_and_normalize({"timestamp": now.strftime("%Y-%m-%dT%H:%M:%SZ")})
-    assert len(data["errors"]) == 0
+    assert "errors" not in data
 
     future = now + timedelta(minutes=2)
     data = validate_and_normalize({"timestamp": future.strftime("%Y-%m-%dT%H:%M:%SZ")})
@@ -92,12 +92,12 @@ def test_invalid_interface_name():
 
 def test_invalid_interface_import_path():
     data = validate_and_normalize(
-        {"message": "foo", "sentry.interfaces.Exception2": "bar"}
+        {"message": "foo", "exception2": "bar"}
     )
-    assert "sentry.interfaces.Exception2" not in data
+    assert "exception2" not in data
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_attribute"
-    assert data["errors"][0]["name"] == "sentry.interfaces.Exception2"
+    assert data["errors"][0]["name"] == "exception2"
 
 
 def test_does_expand_list():
@@ -109,17 +109,22 @@ def test_does_expand_list():
             ],
         }
     )
-    assert "sentry.interfaces.Exception" in data
+    assert "exception" in data
 
 
 def test_log_level_as_string():
     data = validate_and_normalize({"message": "foo", "level": "error"})
-    assert data["level"] == 40
+    assert data["level"] == "error"
+
+
+def test_log_level_as_int():
+    data = validate_and_normalize({"message": "foo", "level": 40})
+    assert data["level"] == "error"
 
 
 def test_invalid_log_level():
     data = validate_and_normalize({"message": "foo", "level": "foobar"})
-    assert data["level"] == 40
+    assert data["level"] == "error"
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_data"
     assert data["errors"][0]["name"] == "level"
@@ -128,7 +133,7 @@ def test_invalid_log_level():
 
 def test_tags_as_string():
     data = validate_and_normalize({"message": "foo", "tags": "bar"})
-    assert data["tags"] == []
+    assert "tags" not in data
 
 
 def test_tags_with_spaces():
@@ -181,7 +186,7 @@ def test_tag_value():
 
 def test_extra_as_string():
     data = validate_and_normalize({"message": "foo", "extra": "bar"})
-    assert data["extra"] == {}
+    assert "extra" not in data
 
 
 def test_release_tag_max_len():
@@ -190,7 +195,7 @@ def test_release_tag_max_len():
     data = validate_and_normalize(
         {"message": "foo", "tags": [[release_key, release_value]]}
     )
-    assert not data["errors"]
+    assert "errors" not in data
     assert data["tags"] == [(release_key, release_value)]
 
 
@@ -340,33 +345,33 @@ def test_fingerprints():
         {"fingerprint": ["{{default}}", 1, "bar", 4.5, -2.7, True]}
     )
     assert data.get("fingerprint") == ["{{default}}", "1", "bar", "4", "-2", "True"]
-    assert len(data["errors"]) == 0
+    assert "errors" not in data
 
     data = validate_and_normalize({"fingerprint": ["{{default}}", 1e100, -1e100, 1e10]})
     assert data.get("fingerprint") == ["{{default}}", "10000000000"]
-    assert len(data["errors"]) == 0
+    assert "errors" not in data
 
     data = validate_and_normalize({"fingerprint": []})
-    assert data.get("fingerprint") == []
-    assert len(data["errors"]) == 0
+    assert "fingerprint" not in data
+    assert "errors" not in data
 
 
 def test_messages():
     # Just 'message': wrap it in interface
     data = validate_and_normalize({"message": "foo is bar"})
     assert "message" not in data
-    assert data["sentry.interfaces.Message"] == {"message": "foo is bar"}
+    assert data["logentry"] == {"message": "foo is bar"}
 
     # both 'message' and interface with no 'formatted' value, put 'message'
     # into 'formatted'.
     data = validate_and_normalize(
         {
             "message": "foo is bar",
-            "sentry.interfaces.Message": {"message": "something else"},
+            "logentry": {"message": "something else"},
         }
     )
     assert "message" not in data
-    assert data["sentry.interfaces.Message"] == {
+    assert data["logentry"] == {
         "message": "something else",
         "formatted": "foo is bar",
     }
@@ -375,15 +380,15 @@ def test_messages():
     data = validate_and_normalize(
         {
             "message": "foo is bar",
-            "sentry.interfaces.Message": {
+            "logentry": {
                 "message": "something else",
                 "formatted": "something else formatted",
             },
         }
     )
     assert "message" not in data
-    assert len(data["errors"]) == 0
-    assert data["sentry.interfaces.Message"] == {
+    assert "errors" not in data
+    assert data["logentry"] == {
         "message": "something else",
         "formatted": "something else formatted",
     }
@@ -397,15 +402,15 @@ def test_messages_old_behavior():
     data = validate_and_normalize(
         {
             "message": "foo is bar",
-            "sentry.interfaces.Message": {
+            "logentry": {
                 "message": "something else",
                 "formatted": "something else",
             },
         }
     )
     assert "message" not in data
-    assert len(data["errors"]) == 0
-    assert data["sentry.interfaces.Message"] == {
+    assert "errors" not in data
+    assert data["logentry"] == {
         "message": "something else",
         "formatted": "foo is bar",
     }
@@ -413,8 +418,14 @@ def test_messages_old_behavior():
     # interface discarded as invalid, replaced by new interface containing
     # wrapped 'message'
     data = validate_and_normalize(
-        {"message": "foo is bar", "sentry.interfaces.Message": {"invalid": "invalid"}}
+        {"message": "foo is bar", "logentry": {"invalid": "invalid"}}
     )
     assert "message" not in data
     assert len(data["errors"]) == 1
-    assert data["sentry.interfaces.Message"] == {"message": "foo is bar"}
+    assert data["logentry"] == {"message": "foo is bar"}
+
+
+def test_none_interface():
+    data = validate_and_normalize({"exception": None})
+    assert data.get("exception") is None
+    assert not data.get("errors")

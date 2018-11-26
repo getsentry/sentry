@@ -18,7 +18,7 @@ export default class Intro extends React.Component {
       {
         description: t('Last 10 event IDs'),
         query: {
-          fields: ['event_id'],
+          fields: ['id'],
           aggregations: [],
           conditions: [],
           limit: 10,
@@ -28,7 +28,7 @@ export default class Intro extends React.Component {
       {
         description: t('Events by project ID'),
         query: {
-          fields: ['project_id'],
+          fields: ['project.id'],
           aggregations: [['count()', null, 'count']],
           conditions: [],
           limit: 1000,
@@ -38,9 +38,9 @@ export default class Intro extends React.Component {
       {
         description: t('Top exception types'),
         query: {
-          fields: ['exception_stacks.type'],
+          fields: ['error.type'],
           aggregations: [['count()', null, 'count']],
-          conditions: [['exception_stacks.type', 'IS NOT NULL', null]],
+          conditions: [['error.type', 'IS NOT NULL', null]],
           limit: 1000,
           orderby: '-count',
         },
@@ -92,7 +92,7 @@ export default class Intro extends React.Component {
 }
 
 const IntroContainer = styled(Flex)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray5};
 `;
 

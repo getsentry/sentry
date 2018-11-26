@@ -1,61 +1,96 @@
 from __future__ import absolute_import
 
+import re
+import six
+
 from collections import namedtuple
+
+from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
 from sentry.search.utils import parse_datetime_string, InvalidQuery
+from sentry.utils.snuba import SENTRY_SNUBA_MAP
+
+WILDCARD_CHARS = re.compile(r'[\*\[\]\?]')
+
+
+def translate(pat):
+    """Translate a shell PATTERN to a regular expression.
+    There is no way to quote meta-characters.
+    modified from: https://github.com/python/cpython/blob/2.7/Lib/fnmatch.py#L85
+    """
+
+    i, n = 0, len(pat)
+    res = ''
+    while i < n:
+        c = pat[i]
+        i = i + 1
+        if c == '*':
+            res = res + '.*'
+        elif c == '?':
+            res = res + '.'
+        elif c == '[':
+            j = i
+            if j < n and pat[j] == '!':
+                j = j + 1
+            if j < n and pat[j] == ']':
+                j = j + 1
+            while j < n and pat[j] != ']':
+                j = j + 1
+            if j >= n:
+                res = res + '\\['
+            else:
+                stuff = pat[i:j].replace('\\', '\\\\')
+                i = j + 1
+                if stuff[0] == '!':
+                    stuff = '^' + stuff[1:]
+                elif stuff[0] == '^':
+                    stuff = '\\' + stuff
+                res = '%s[%s]' % (res, stuff)
+        else:
+            res = res + re.escape(c)
+    return '^' + res + '$'
+
 
 event_search_grammar = Grammar(r"""
 # raw_search must come at the end, otherwise other
 # search_terms will be treated as a raw query
 search          = search_term* raw_search?
-search_term     = space? (time_filter / basic_filter) space?
+search_term     = space? (time_filter / has_filter / basic_filter) space?
 raw_search      = ~r".+$"
 
 # standard key:val filter
 basic_filter    = search_key sep search_value
 # filter specifically for the timestamp
-time_filter     = "timestamp" operator date_formats
+time_filter     = "timestamp" operator date_format
+# has filter for not null type checks
+has_filter      = "has" sep (search_key / search_value)
 
-search_key      = ~r"[a-z]*\.?[a-z]*"
-search_value    = ~r"\S*"
+search_key      = key / quoted_key
+search_value    = quoted_value / value
+value           = ~r"\S*"
+quoted_value    = ~r"\"(.*)\""s
+key             = ~r"[a-zA-Z0-9_\.-]+"
+# only allow colons in quoted keys
+quoted_key      = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 
-date_formats    = date_time_micro / date_time / date
-date            = ~r"\d{4}-\d{2}-\d{2}"
-date_time       = ~r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
-date_time_micro = ~r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{1,6}"
+date_format    = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?"
 
 # NOTE: the order in which these operators are listed matters
 # because for example, if < comes before <= it will match that
 # even if the operator is <=
 operator        = ">=" / "<=" / ">" / "<" / "=" / "!="
 sep             = ":"
-space           = ~r"\s"
-"""
-)
+space           = " "
+""")
 
-FIELD_LOOKUP = {
-    'user.id': {
-        'snuba_name': 'user_id',
-        'type': 'string',
-    },
-    'user.email': {
-        'snuba_name': 'email',
-        'type': 'string',
-    },
-    'release': {
-        'snuba_name': 'sentry:release',
-        'type': 'string',
-    },
-    'message': {
-        'snuba_name': 'message',
-        'type': 'string',
-    },
-    'timestamp': {
-        'snuba_name': 'timestamp',
-        'type': 'timestamp',
-    }
-}
+
+# add valid snuba `raw_query` args
+SEARCH_MAP = dict({
+    'start': 'start',
+    'end': 'end',
+    'project_id': 'project_id',
+}, **SENTRY_SNUBA_MAP)
 
 
 class InvalidSearchQuery(Exception):
@@ -70,11 +105,25 @@ class SearchKey(namedtuple('SearchKey', 'name')):
 
     @property
     def snuba_name(self):
-        return FIELD_LOOKUP[self.name]['snuba_name']
+        snuba_name = SEARCH_MAP.get(self.name)
+        if snuba_name:
+            return snuba_name
+        # assume custom tag if not listed
+        return 'tags[%s]' % (self.name,)
 
 
-class SearchValue(namedtuple('SearchValue', 'raw_value type')):
-    pass
+class SearchValue(namedtuple('SearchValue', 'raw_value')):
+
+    @property
+    def value(self):
+        if self.is_wildcard():
+            return translate(self.raw_value)
+        return self.raw_value
+
+    def is_wildcard(self):
+        if not isinstance(self.raw_value, six.string_types):
+            return False
+        return bool(WILDCARD_CHARS.search(self.raw_value))
 
 
 class SearchVisitor(NodeVisitor):
@@ -95,7 +144,7 @@ class SearchVisitor(NodeVisitor):
         return SearchFilter(
             SearchKey('message'),
             "=",
-            SearchValue(node.text, FIELD_LOOKUP['message']['type']),
+            SearchValue(node.text),
         )
 
     def visit_time_filter(self, node, children):
@@ -110,7 +159,7 @@ class SearchVisitor(NodeVisitor):
             return SearchFilter(
                 SearchKey(search_key),
                 operator,
-                SearchValue(search_value, FIELD_LOOKUP[search_key]['type']),
+                SearchValue(search_value),
             )
         except KeyError:
             raise InvalidSearchQuery('Unsupported search term: %s' % (search_key,))
@@ -118,25 +167,47 @@ class SearchVisitor(NodeVisitor):
     def visit_operator(self, node, children):
         return node.text
 
-    def visit_date_formats(self, node, children):
+    def visit_date_format(self, node, children):
         return node.text
 
     def visit_basic_filter(self, node, children):
         search_key, _, search_value = children
-        try:
-            return SearchFilter(
-                SearchKey(search_key),
-                "=",
-                SearchValue(search_value, FIELD_LOOKUP[search_key]['type']),
-            )
-        except KeyError:
-            raise InvalidSearchQuery('Unsupported search term: %s' % (search_key,))
+
+        return SearchFilter(search_key, "=", search_value)
+
+    def visit_has_filter(self, node, children):
+        # the key is has here, which we don't need
+        _, _, (search_key,) = children
+
+        # if it matched search value instead, it's not a valid key
+        if isinstance(search_key, SearchValue):
+            raise InvalidSearchQuery(
+                'Invalid format for "has" search: %s' %
+                (search_key.raw_value,))
+
+        return SearchFilter(
+            search_key,
+            '!=',
+            SearchValue(''),
+        )
 
     def visit_search_key(self, node, children):
-        return node.text
+        return SearchKey(children[0])
 
     def visit_search_value(self, node, children):
+        return SearchValue(children[0])
+
+    def visit_value(self, node, children):
         return node.text
+
+    def visit_key(self, node, children):
+        return node.text
+
+    def visit_quoted_value(self, node, children):
+        return node.match.groups()[0]
+
+    def visit_quoted_key(self, node, children):
+        return node.match.groups()[0]
 
     def generic_visit(self, node, children):
         return children or node
@@ -147,21 +218,74 @@ def parse_search_query(query):
     return SearchVisitor().visit(tree)
 
 
-def get_snuba_query_args(query):
-    parsed_filters = parse_search_query(query)
-    conditions = []
-    for _filter in parsed_filters:
-        if _filter.key.snuba_name == 'message':
-            # make message search case insensitive
-            conditions.append(
-                [['positionCaseInsensitive', ['message', "'%s'" %
-                                              (_filter.value.raw_value,)]], '!=', 0]
-            )
-        else:
-            conditions.append([
-                _filter.key.snuba_name,
-                _filter.operator,
-                _filter.value.raw_value,
-            ])
+def convert_endpoint_params(params):
+    return [
+        SearchFilter(
+            SearchKey(key),
+            '=',
+            SearchValue(params[key]),
+        ) for key in params
+    ]
 
-    return {'conditions': conditions}
+
+def get_snuba_query_args(query=None, params=None):
+    # NOTE: this function assumes project permisions check already happened
+    parsed_filters = []
+    if query is not None:
+        try:
+            parsed_filters = parse_search_query(query)
+        except ParseError as e:
+            raise InvalidSearchQuery(
+                u'Parse error: %r (column %d)' % (e.expr.name, e.column())
+            )
+
+    # Keys included as url params take precedent if same key is included in search
+    if params is not None:
+        parsed_filters.extend(convert_endpoint_params(params))
+
+    kwargs = {
+        'conditions': [],
+        'filter_keys': {},
+    }
+    for _filter in parsed_filters:
+        snuba_name = _filter.key.snuba_name
+        value = _filter.value.value
+
+        if snuba_name in ('start', 'end'):
+            kwargs[snuba_name] = value
+
+        elif snuba_name == 'tags[environment]':
+            env_conditions = []
+            _envs = set(value if isinstance(value, (list, tuple)) else [value])
+            # the "no environment" environment is null in snuba
+            if '' in _envs:
+                _envs.remove('')
+                env_conditions.append(['tags[environment]', 'IS NULL', None])
+
+            if _envs:
+                env_conditions.append(['tags[environment]', 'IN', list(_envs)])
+
+            kwargs['conditions'].append(env_conditions)
+
+        elif snuba_name == 'project_id':
+            kwargs['filter_keys'][snuba_name] = value
+
+        elif snuba_name == 'message':
+            # make message search case insensitive
+            kwargs['conditions'].append(
+                [['positionCaseInsensitive', ['message', "'%s'" % (value,)]], '!=', 0]
+            )
+
+        else:
+            if _filter.value.is_wildcard():
+                kwargs['conditions'].append(
+                    [['match', [snuba_name, "'%s'" % (value,)]], '=', 1]
+                )
+            else:
+                kwargs['conditions'].append([
+                    snuba_name,
+                    _filter.operator,
+                    value,
+                ])
+
+    return kwargs

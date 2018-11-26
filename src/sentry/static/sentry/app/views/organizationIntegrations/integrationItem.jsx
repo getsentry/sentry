@@ -42,23 +42,28 @@ export default class IntegrationItem extends React.Component {
   }
 }
 
-const Labels = p => {
-  const {compact, ...props} = p;
-
-  return compact ? (
-    <Flex align="center" direction="row" pl={1} {...props} />
-  ) : (
-    <Flex direction="column" pl={1} {...props} />
-  );
-};
+const Labels = styled('div')`
+  box-sizing: border-box;
+  display: flex;
+  ${p => (p.compact ? 'align-items: center;' : '')};
+  flex-direction: ${p => (p.compact ? 'row' : 'column')};
+  padding-left: ${space(1)};
+  min-width: 0;
+`;
 
 const IntegrationName = styled('div')`
   font-size: 1.6rem;
 `;
 
+// Not using the overflowEllipsis style import here
+// as it sets width 100% which causes layout issues in the
+// integration list.
 const DomainName = styled('div')`
   color: ${p => (p.compact ? p.theme.gray1 : p.theme.gray3)};
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
   margin-top: ${p => (!p.compact ? space(0.25) : 'inherit')};
   font-size: 1.4rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;

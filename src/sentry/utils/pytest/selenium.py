@@ -173,12 +173,21 @@ class Browser(object):
 
     def snapshot(self, name):
         """
-        Capture a screenshot of the current state of the page. Screenshots
-        are captured both locally (in ``cls.screenshots_path``) as well as
-        with Percy (when enabled).
+        Capture a screenshot of the current state of the page.
         """
         # TODO(dcramer): ideally this would take the executing test package
         # into account for duplicate names
+        if os.environ.get('SENTRY_SCREENSHOT') == 'open':
+            import tempfile
+            import click
+            import time
+
+            with tempfile.NamedTemporaryFile('wb', suffix='.png') as tf:
+                tf.write(self.driver.get_screenshot_as_png())
+                tf.flush()
+                click.launch(tf.name)
+                time.sleep(1)
+
         self.percy.snapshot(name=name)
         return self
 

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import os
 
-from sentry.lang.native.minidump import merge_minidump_event, is_minidump_event
+from sentry.lang.native.minidump import process_minidump, merge_process_state_event, is_minidump_event
 
 
 def test_is_minidump():
@@ -45,7 +45,19 @@ def test_is_minidump():
 
     assert not is_minidump_event({
         'exception': {
+            'values': [None]
+        }
+    })
+
+    assert not is_minidump_event({
+        'exception': {
             'values': []
+        }
+    })
+
+    assert not is_minidump_event({
+        'exception': {
+            'values': None
         }
     })
 
@@ -57,7 +69,9 @@ def test_is_minidump():
 def test_minidump_linux():
     event = {'release': 'test-1.0.0'}
     minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'linux.dmp')
-    merge_minidump_event(event, minidump)
+    with open(minidump, 'rb') as f:
+        state = process_minidump(f.read())
+        merge_process_state_event(event, state)
 
     assert event == {
         'contexts': {
@@ -141,109 +155,109 @@ def test_minidump_linux():
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x401dc0',
-                        'module': u'/work/linux/build/crash',
+                        'package': u'/work/linux/build/crash',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x7f5140cdc000',
-                        'module': None,
+                        'package': None,
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x400040',
-                        'module': u'/work/linux/build/crash',
+                        'package': u'/work/linux/build/crash',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x7fff5aef1000',
-                        'module': None,
+                        'package': None,
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x401de9',
-                        'module': u'/work/linux/build/crash',
+                        'package': u'/work/linux/build/crash',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x401dc0',
-                        'module': u'/work/linux/build/crash',
+                        'package': u'/work/linux/build/crash',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x414ca0',
-                        'module': u'/work/linux/build/crash',
+                        'package': u'/work/linux/build/crash',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x401c70',
-                        'module': u'/work/linux/build/crash',
+                        'package': u'/work/linux/build/crash',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x401dc0',
-                        'module': u'/work/linux/build/crash',
+                        'package': u'/work/linux/build/crash',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x401c70',
-                        'module': u'/work/linux/build/crash',
+                        'package': u'/work/linux/build/crash',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x7f514017d830',
-                        'module': u'/lib/x86_64-linux-gnu/libc-2.23.so',
+                        'package': u'/lib/x86_64-linux-gnu/libc-2.23.so',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x414c30',
-                        'module': u'/work/linux/build/crash',
+                        'package': u'/work/linux/build/crash',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x401ec0',
-                        'module': u'/work/linux/build/crash',
+                        'package': u'/work/linux/build/crash',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x7f5140cebac6',
-                        'module': u'/lib/x86_64-linux-gnu/ld-2.23.so',
+                        'package': u'/lib/x86_64-linux-gnu/ld-2.23.so',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x400000',
-                        'module': None,
+                        'package': None,
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x7f51401e4800',
-                        'module': u'/lib/x86_64-linux-gnu/libc-2.23.so',
+                        'package': u'/lib/x86_64-linux-gnu/libc-2.23.so',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x7f514025002e',
-                        'module': u'/lib/x86_64-linux-gnu/libc-2.23.so',
+                        'package': u'/lib/x86_64-linux-gnu/libc-2.23.so',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x401d72',
-                        'module': u'/work/linux/build/crash',
+                        'package': u'/work/linux/build/crash',
                         'trust': 'context',
                     }
                 ],
@@ -268,11 +282,10 @@ def test_minidump_linux():
                 }
             },
             'thread_id': 1304,
-            'type': u'SIGSEGV',
-            'value': u'Fatal Error: SIGSEGV'
+            'type': u'SIGSEGV /0x00000000',
+            'value': u'Fatal Error: SIGSEGV /0x00000000'
         },
         'level': 'fatal',
-        'message': u'Fatal Error: SIGSEGV',
         'platform': 'native',
         'release': 'test-1.0.0',
         'threads': [
@@ -288,7 +301,9 @@ def test_minidump_linux():
 def test_minidump_macos():
     event = {'release': 'test-1.0.0'}
     minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'macos.dmp')
-    merge_minidump_event(event, minidump)
+    with open(minidump, 'rb') as f:
+        state = process_minidump(f.read())
+        merge_process_state_event(event, state)
 
     assert event == {
         'contexts': {
@@ -617,25 +632,25 @@ def test_minidump_macos():
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x7fffe7eeb235',
-                        'module': u'/usr/lib/system/libdyld.dylib',
+                        'package': u'/usr/lib/system/libdyld.dylib',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x7fffe7eeb235',
-                        'module': u'/usr/lib/system/libdyld.dylib',
+                        'package': u'/usr/lib/system/libdyld.dylib',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x109ba8c70',
-                        'module': u'/Users/travis/build/getsentry/breakpad-tools/macos/build/./crash',
+                        'package': u'/Users/travis/build/getsentry/breakpad-tools/macos/build/./crash',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x109ba8c15',
-                        'module': u'/Users/travis/build/getsentry/breakpad-tools/macos/build/./crash',
+                        'package': u'/Users/travis/build/getsentry/breakpad-tools/macos/build/./crash',
                         'trust': 'context',
                     }
                 ],
@@ -664,7 +679,6 @@ def test_minidump_macos():
             'value': u'Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS'
         },
         'level': 'fatal',
-        'message': u'Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS',
         'platform': 'native',
         'release': 'test-1.0.0',
         'threads': [
@@ -680,7 +694,9 @@ def test_minidump_macos():
 def test_minidump_windows():
     event = {'release': 'test-1.0.0'}
     minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp')
-    merge_minidump_event(event, minidump)
+    with open(minidump, 'rb') as f:
+        state = process_minidump(f.read())
+        merge_process_state_event(event, state)
 
     assert event == {
         'contexts': {
@@ -827,73 +843,73 @@ def test_minidump_windows():
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x771d0f44',
-                        'module': u'C:\\Windows\\System32\\ntdll.dll',
+                        'package': u'C:\\Windows\\System32\\ntdll.dll',
                         'trust': 'fp',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x771d0f79',
-                        'module': u'C:\\Windows\\System32\\ntdll.dll',
+                        'package': u'C:\\Windows\\System32\\ntdll.dll',
                         'trust': 'fp',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x750662c4',
-                        'module': u'C:\\Windows\\System32\\kernel32.dll',
+                        'package': u'C:\\Windows\\System32\\kernel32.dll',
                         'trust': 'fp',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x2a2d97',
-                        'module': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
+                        'package': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x2a3435',
-                        'module': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
+                        'package': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x7584e9c0',
-                        'module': u'C:\\Windows\\System32\\rpcrt4.dll',
+                        'package': u'C:\\Windows\\System32\\rpcrt4.dll',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x75810000',
-                        'module': None,
+                        'package': None,
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x70b7ae40',
-                        'module': u'C:\\Windows\\System32\\dbgcore.dll',
+                        'package': u'C:\\Windows\\System32\\dbgcore.dll',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x70850000',
-                        'module': None,
+                        'package': None,
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x7584e9c0',
-                        'module': u'C:\\Windows\\System32\\rpcrt4.dll',
+                        'package': u'C:\\Windows\\System32\\rpcrt4.dll',
                         'trust': 'scan',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x2a28d0',
-                        'module': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
+                        'package': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
                         'trust': 'fp',
                     },
                     {
                         'function': '<unknown>',
                         'instruction_addr': '0x2a2a3d',
-                        'module': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
+                        'package': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
                         'trust': 'context',
                     }
                 ],
@@ -915,7 +931,6 @@ def test_minidump_windows():
             'value': u'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
         },
         'level': 'fatal',
-        'message': u'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE',
         'platform': 'native',
         'release': 'test-1.0.0',
         'threads': [
@@ -930,25 +945,25 @@ def test_minidump_windows():
                     'frames': [{
                         'function': '<unknown>',
                         'instruction_addr': '0x771d0f44',
-                        'module': u'C:\\Windows\\System32\\ntdll.dll',
+                        'package': u'C:\\Windows\\System32\\ntdll.dll',
                         'trust': 'fp',
                     },
                         {
                         'function': '<unknown>',
                         'instruction_addr': '0x771d0f79',
-                        'module': u'C:\\Windows\\System32\\ntdll.dll',
+                        'package': u'C:\\Windows\\System32\\ntdll.dll',
                         'trust': 'fp',
                     },
                         {
                         'function': '<unknown>',
                         'instruction_addr': '0x750662c4',
-                        'module': u'C:\\Windows\\System32\\kernel32.dll',
+                        'package': u'C:\\Windows\\System32\\kernel32.dll',
                         'trust': 'fp',
                     },
                         {
                         'function': '<unknown>',
                         'instruction_addr': '0x771e016c',
-                        'module': u'C:\\Windows\\System32\\ntdll.dll',
+                        'package': u'C:\\Windows\\System32\\ntdll.dll',
                         'trust': 'context',
                     }],
                     'registers': {
@@ -972,25 +987,25 @@ def test_minidump_windows():
                     'frames': [{
                         'function': '<unknown>',
                         'instruction_addr': '0x771d0f44',
-                        'module': u'C:\\Windows\\System32\\ntdll.dll',
+                        'package': u'C:\\Windows\\System32\\ntdll.dll',
                         'trust': 'fp',
                     },
                         {
                         'function': '<unknown>',
                         'instruction_addr': '0x771d0f79',
-                        'module': u'C:\\Windows\\System32\\ntdll.dll',
+                        'package': u'C:\\Windows\\System32\\ntdll.dll',
                         'trust': 'fp',
                     },
                         {
                         'function': '<unknown>',
                         'instruction_addr': '0x750662c4',
-                        'module': u'C:\\Windows\\System32\\kernel32.dll',
+                        'package': u'C:\\Windows\\System32\\kernel32.dll',
                         'trust': 'fp',
                     },
                         {
                         'function': '<unknown>',
                         'instruction_addr': '0x771e016c',
-                        'module': u'C:\\Windows\\System32\\ntdll.dll',
+                        'package': u'C:\\Windows\\System32\\ntdll.dll',
                         'trust': 'context',
                     }],
                     'registers': {
@@ -1014,7 +1029,7 @@ def test_minidump_windows():
                     'frames': [{
                         'function': '<unknown>',
                         'instruction_addr': '0x771df3dc',
-                        'module': u'C:\\Windows\\System32\\ntdll.dll',
+                        'package': u'C:\\Windows\\System32\\ntdll.dll',
                         'trust': 'context',
                     }],
                     'registers': {

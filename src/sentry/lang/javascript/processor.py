@@ -4,6 +4,7 @@ __all__ = ['JavaScriptStacktraceProcessor']
 
 import logging
 import re
+import sys
 import base64
 import six
 import zlib
@@ -30,6 +31,7 @@ from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
+from sentry.utils.safe import get_path
 from sentry.utils import metrics
 from sentry.stacktraces import StacktraceProcessor
 
@@ -247,8 +249,8 @@ def fetch_release_file(filename, release, dist=None):
             with metrics.timer('sourcemaps.release_file_read'):
                 with releasefile.file.getfile() as fp:
                     z_body, body = compress_file(fp)
-        except Exception as e:
-            logger.exception(six.text_type(e))
+        except Exception:
+            logger.error('sourcemap.compress_read_failed', exc_info=sys.exc_info())
             cache.set(cache_key, -1, 3600)
             result = None
         else:
@@ -488,16 +490,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.dist = None
 
     def get_stacktraces(self, data):
-        try:
-            stacktraces = [
-                e['stacktrace'] for e in data['sentry.interfaces.Exception']['values']
-                if e.get('stacktrace')
-            ]
-        except KeyError:
-            stacktraces = []
+        exceptions = get_path(data, 'exception', 'values', filter=True, default=())
+        stacktraces = [e['stacktrace'] for e in exceptions if e.get('stacktrace')]
 
-        if 'sentry.interfaces.Stacktrace' in data:
-            stacktraces.append(data['sentry.interfaces.Stacktrace'])
+        if 'stacktrace' in data:
+            stacktraces.append(data['stacktrace'])
 
         return [(s, Stacktrace.to_python(s)) for s in stacktraces]
 

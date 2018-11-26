@@ -42,7 +42,8 @@ class GitLabTestCase(APITestCase):
             external_id='gitlab123',
             data={
                 'access_token': '123456789',
-                'expires': time() + 1234567,
+                'created_at': time(),
+                'refresh_token': '0987654321',
             }
         )
         self.integration.add_organization(self.organization, self.user, identity.id)
@@ -102,7 +103,7 @@ MERGE_REQUEST_OPENED_EVENT = b"""{
     "merge_status": "unchecked",
     "target_project_id": 14,
     "iid": 1,
-    "description": "Create a viewport for things",
+    "description": "Create a viewport for things Fixes BAR-9",
     "updated_by_id": 1,
     "merge_error": null,
     "merge_params": {

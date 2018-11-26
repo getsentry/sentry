@@ -5,8 +5,9 @@ import logging
 import six
 
 from sentry.models import Identity, Integration, OrganizationIntegration, sync_group_assignee_inbound
+from sentry.models.apitoken import generate_token
 from sentry.api.base import Endpoint
-from uuid import uuid4
+
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.crypto import constant_time_compare
 
@@ -162,7 +163,8 @@ class WorkItemWebhook(Endpoint):
             installation = integration.get_installation(organization_id)
             data = {
                 'new_state': status_change['newValue'],
-                'old_state': status_change['oldValue'],
+                # old_state is None when the issue is New
+                'old_state': status_change.get('oldValue'),
                 'project': project,
             }
 
@@ -172,12 +174,7 @@ class WorkItemWebhook(Endpoint):
         # TODO(lb): hmm... this looks brittle to me
         return EMAIL_PARSER.search(email).group(1)
 
-    def create_subscription(self, instance, identity_data, oauth_redirect_url, external_id):
+    def create_subscription(self, instance, identity_data, oauth_redirect_url):
         client = self.get_client(Identity(data=identity_data), oauth_redirect_url)
-        shared_secret = self.create_webhook_secret()
-        return client.create_subscription(instance, external_id, shared_secret), shared_secret
-
-    def create_webhook_secret(self):
-        # following this example
-        # https://github.com/getsentry/sentry-plugins/blob/master/src/sentry_plugins/github/plugin.py#L305
-        return uuid4().hex + uuid4().hex
+        shared_secret = generate_token()
+        return client.create_subscription(instance, shared_secret), shared_secret

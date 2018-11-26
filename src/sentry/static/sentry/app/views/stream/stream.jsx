@@ -389,7 +389,7 @@ const Stream = createReactClass({
                 environment: matchingEventEnvironment,
               })}`;
             }
-            return void browserHistory.push(redirect);
+            return void browserHistory.replace(redirect);
           }
         }
 
@@ -701,6 +701,11 @@ const Stream = createReactClass({
   renderStreamBody() {
     let body;
     let project = this.getProject();
+
+    if (project.firstEvent) {
+      ConfigStore.set('sentFirstEvent', project.firstEvent);
+    }
+
     if (this.state.dataLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {

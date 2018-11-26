@@ -47,7 +47,7 @@ export default class AvatarList extends React.Component {
         {visibleUsers.map(user => {
           return (
             <StyledAvatar
-              key={user.id}
+              key={`${user.id}-${user.email}`}
               user={user}
               size={avatarSize}
               renderTooltip={renderTooltip}

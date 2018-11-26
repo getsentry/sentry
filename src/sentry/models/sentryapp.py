@@ -4,6 +4,7 @@ import six
 import uuid
 
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.template.defaultfilters import slugify
 
@@ -53,6 +54,9 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     redirect_url = models.URLField(null=True)
     webhook_url = models.URLField()
+    # does the application subscribe to `event.alert`,
+    # meaning can it be used in alert rules as a {service} ?
+    is_alertable = models.BooleanField(default=False)
 
     overview = models.TextField(null=True)
 
@@ -62,6 +66,15 @@ class SentryApp(ParanoidModel, HasApiScopes):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_sentryapp'
+
+    @classmethod
+    def visible_for_user(cls, user):
+        if user.is_superuser:
+            return cls.objects.all()
+
+        return cls.objects.filter(
+            Q(status=SentryAppStatus.PUBLISHED) | Q(owner__in=user.get_orgs()),
+        )
 
     @property
     def organizations(self):
@@ -81,6 +94,10 @@ class SentryApp(ParanoidModel, HasApiScopes):
             return Team.objects.none()
 
         return Team.objects.filter(organization__in=self.organizations)
+
+    @property
+    def is_published(self):
+        return self.status == SentryAppStatus.PUBLISHED
 
     def save(self, *args, **kwargs):
         self._set_slug()

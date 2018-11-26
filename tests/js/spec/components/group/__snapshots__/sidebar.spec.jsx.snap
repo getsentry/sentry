@@ -132,75 +132,67 @@ exports[`GroupSidebar renders with tags renders 1`] = `
       }
     }
   />
-  <FeatureContainer
-    features={
-      Array [
-        "new-issue-ui",
-      ]
-    }
-  >
-    <ExternalIssueList
-      group={
-        Object {
-          "assignedTo": null,
-          "id": "1",
-          "project": Object {
-            "id": "2",
-            "slug": "project-slug",
-          },
-          "stats": Object {
-            "24h": Array [
-              Array [
-                1517281200,
-                2,
-              ],
-              Array [
-                1517310000,
-                1,
-              ],
+  <ExternalIssueList
+    group={
+      Object {
+        "assignedTo": null,
+        "id": "1",
+        "project": Object {
+          "id": "2",
+          "slug": "project-slug",
+        },
+        "stats": Object {
+          "24h": Array [
+            Array [
+              1517281200,
+              2,
             ],
-            "30d": Array [
-              Array [
-                1514764800,
-                1,
-              ],
-              Array [
-                1515024000,
-                122,
-              ],
+            Array [
+              1517310000,
+              1,
             ],
-          },
-          "tags": Array [
-            Object {
-              "canDelete": true,
-              "key": "browser",
-              "name": "Browser",
-              "totalValues": 30,
-            },
-            Object {
-              "canDelete": true,
-              "key": "device",
-              "name": "Device",
-              "totalValues": 5,
-            },
-            Object {
-              "canDelete": true,
-              "key": "url",
-              "name": "URL",
-              "totalValues": 7,
-            },
-            Object {
-              "canDelete": false,
-              "key": "environment",
-              "name": "Environment",
-              "totalValues": 100,
-            },
           ],
-        }
+          "30d": Array [
+            Array [
+              1514764800,
+              1,
+            ],
+            Array [
+              1515024000,
+              122,
+            ],
+          ],
+        },
+        "tags": Array [
+          Object {
+            "canDelete": true,
+            "key": "browser",
+            "name": "Browser",
+            "totalValues": 30,
+          },
+          Object {
+            "canDelete": true,
+            "key": "device",
+            "name": "Device",
+            "totalValues": 5,
+          },
+          Object {
+            "canDelete": true,
+            "key": "url",
+            "name": "URL",
+            "totalValues": 7,
+          },
+          Object {
+            "canDelete": false,
+            "key": "environment",
+            "name": "Environment",
+            "totalValues": 100,
+          },
+        ],
       }
-      orgId="org-slug"
-    />
-  </FeatureContainer>
+    }
+    orgId="org-slug"
+  />
   <h6>
     <span>
       Tags

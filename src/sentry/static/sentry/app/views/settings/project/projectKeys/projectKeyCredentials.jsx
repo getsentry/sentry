@@ -17,6 +17,7 @@ class ProjectKeyCredentials extends React.Component {
     showDsnPublic: PropTypes.bool,
     showSecurityEndpoint: PropTypes.bool,
     showMinidump: PropTypes.bool,
+    showUnreal: PropTypes.bool,
     showPublicKey: PropTypes.bool,
     showSecretKey: PropTypes.bool,
     showProjectId: PropTypes.bool,
@@ -27,6 +28,7 @@ class ProjectKeyCredentials extends React.Component {
     showDsnPublic: true,
     showSecurityEndpoint: true,
     showMinidump: true,
+    showUnreal: true,
     showPublicKey: false,
     showSecretKey: false,
     showProjectId: false,
@@ -40,6 +42,7 @@ class ProjectKeyCredentials extends React.Component {
       showDsnPublic,
       showSecurityEndpoint,
       showMinidump,
+      showUnreal,
       showPublicKey,
       showSecretKey,
       showProjectId,
@@ -114,6 +117,22 @@ class ProjectKeyCredentials extends React.Component {
               {getDynamicText({
                 value: data.dsn.minidump,
                 fixed: '__MINIDUMP_ENDPOINT__',
+              })}
+            </TextCopyInput>
+          </Field>
+        )}
+
+        {showUnreal && (
+          <Field
+            label={t('Unreal Engine 4 Endpoint')}
+            help={t('Use this endpoint to configure your UE4 Crash Reporter.')}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput>
+              {getDynamicText({
+                value: data.dsn.unreal || '',
+                fixed: '__UNREAL_ENDPOINT__',
               })}
             </TextCopyInput>
           </Field>

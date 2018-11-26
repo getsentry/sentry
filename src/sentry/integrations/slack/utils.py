@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 import logging
 
-from six.moves.urllib.parse import parse_qs, urlencode, urlparse, urlunparse
-
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.utils import json
@@ -65,15 +63,6 @@ def get_assignee(group):
         return None
 
 
-def add_notification_referrer_param(url, provider):
-    parsed_url = urlparse(url)
-    query = parse_qs(parsed_url.query)
-    query['referrer'] = provider
-    url_list = list(parsed_url)
-    url_list[4] = urlencode(query, doseq=True)
-    return urlunparse(url_list)
-
-
 def build_attachment_title(group, event=None):
     ev_metadata = group.get_event_metadata()
     ev_type = group.get_event_type()
@@ -107,7 +96,7 @@ def build_assigned_text(group, identity, assignee):
         return
 
     if actor.type == Team:
-        assignee_text = assigned_actor.slug
+        assignee_text = u'#{}'.format(assigned_actor.slug)
     elif actor.type == User:
         try:
             assignee_ident = Identity.objects.get(
@@ -277,7 +266,7 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
     return {
         'fallback': u'[{}] {}'.format(group.project.slug, group.title),
         'title': build_attachment_title(group, event),
-        'title_link': add_notification_referrer_param(group.get_absolute_url(), 'slack'),
+        'title_link': group.get_absolute_url(params={'referrer': 'slack'}),
         'text': text,
         'fields': fields,
         'mrkdwn_in': ['text'],

@@ -9,7 +9,7 @@ from uuid import uuid4
 from confluent_kafka import Producer, TopicPartition
 from django.utils.functional import cached_property
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.models import Organization
 from sentry.eventstream.base import EventStream
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
@@ -117,13 +117,12 @@ class KafkaEventStream(EventStream):
 
     def insert(self, group, event, is_new, is_sample, is_regression,
                is_new_group_environment, primary_hash, skip_consume=False):
-        # ensure the superclass's insert() is called, regardless of what happens
-        # attempting to send to Kafka
-        super(KafkaEventStream, self).insert(
-            group, event, is_new, is_sample,
-            is_regression, is_new_group_environment,
-            primary_hash, skip_consume
-        )
+        if options.get('eventstream.kafka.send-post_process-task'):
+            super(KafkaEventStream, self).insert(
+                group, event, is_new, is_sample,
+                is_regression, is_new_group_environment,
+                primary_hash, skip_consume
+            )
 
         project = event.project
         retention_days = quotas.get_event_retention(
@@ -135,6 +134,8 @@ class KafkaEventStream(EventStream):
             'event_id': event.event_id,
             'organization_id': project.organization_id,
             'project_id': event.project_id,
+            # TODO(mitsuhiko): We do not want to send this incorrect
+            # message but this is what snuba needs at the moment.
             'message': event.message,
             'platform': event.platform,
             'datetime': event.datetime,

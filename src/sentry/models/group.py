@@ -16,6 +16,7 @@ from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
+from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes, tagstore
@@ -262,10 +263,11 @@ class Group(Model):
         )
         super(Group, self).save(*args, **kwargs)
 
-    def get_absolute_url(self):
-        return absolute_uri(
-            reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
-        )
+    def get_absolute_url(self, params=None):
+        url = reverse('sentry-group', args=[self.organization.slug, self.project.slug, self.id])
+        if params:
+            url = url + '?' + urlencode(params)
+        return absolute_uri(url)
 
     @property
     def qualified_short_id(self):
@@ -392,14 +394,8 @@ class Group(Model):
 
         See ``sentry.eventtypes``.
         """
-        etype = self.data.get('type')
-        if etype is None:
-            etype = 'default'
-        if 'metadata' not in self.data:
-            data = self.data.copy() if self.data else {}
-            data['message'] = self.message
-            return eventtypes.get(etype)(data).get_metadata()
-        return self.data['metadata']
+        from sentry.event_manager import get_event_metadata_compat
+        return get_event_metadata_compat(self.data, self.message)
 
     @property
     def title(self):

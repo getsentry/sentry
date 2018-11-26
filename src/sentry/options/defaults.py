@@ -122,7 +122,7 @@ register('slack.client-id', flags=FLAG_PRIORITIZE_DISK)
 register('slack.client-secret', flags=FLAG_PRIORITIZE_DISK)
 register('slack.verification-token', flags=FLAG_PRIORITIZE_DISK)
 
-# Github Integration
+# GitHub Integration
 register('github-app.id', default=0)
 register('github-app.name', default='')
 register('github-app.webhook-secret', default='')
@@ -135,8 +135,12 @@ register('vsts.client-id', flags=FLAG_PRIORITIZE_DISK)
 register('vsts.client-secret', flags=FLAG_PRIORITIZE_DISK)
 
 # Snuba
-register('snuba.use_group_id_column', default=False)
-register('snuba.search.max-pre-snuba-candidates', default=500)
+register('snuba.use_group_id_column', default=True)
+register('snuba.search.pre-snuba-candidates-optimizer', type=Bool, default=False)
+register('snuba.search.pre-snuba-candidates-percentage', default=0.2)
+register('snuba.search.project-group-count-cache-time', default=24 * 60 * 60)
+register('snuba.search.min-pre-snuba-candidates', default=500)
+register('snuba.search.max-pre-snuba-candidates', default=5000)
 register('snuba.search.chunk-growth-rate', default=1.5)
 register('snuba.search.max-chunk-size', default=2000)
 register('snuba.search.max-total-chunk-time-seconds', default=30.0)
@@ -144,3 +148,6 @@ register('snuba.search.max-total-chunk-time-seconds', default=30.0)
 # Kafka Publisher
 register('kafka-publisher.raw-event-sample-rate', default=0.0)
 register('kafka-publisher.max-event-size', default=100000)
+
+# Event Stream
+register('eventstream.kafka.send-post_process-task', type=Bool, default=True)

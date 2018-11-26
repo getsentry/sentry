@@ -399,6 +399,9 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     "backgroundLight": "#ECBFA6",
                                                     "border": "#D0816D",
                                                   },
+                                                  "beta": Object {
+                                                    "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
+                                                  },
                                                   "default": Object {
                                                     "background": "#BDB4C7",
                                                     "backgroundLight": "#FAF9FB",
@@ -542,6 +545,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                 "greenLight": "#71D8A6",
                                                 "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                 "grid": 8,
+                                                "headerFontSize": "22px",
                                                 "offWhite": "#FAF9FB",
                                                 "offWhite2": "#E7E1EC",
                                                 "orange": "#ec5e44",
@@ -659,6 +663,9 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                             "background": "#F09E71",
                                                             "backgroundLight": "#ECBFA6",
                                                             "border": "#D0816D",
+                                                          },
+                                                          "beta": Object {
+                                                            "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
                                                           },
                                                           "default": Object {
                                                             "background": "#BDB4C7",
@@ -803,6 +810,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                         "greenLight": "#71D8A6",
                                                         "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                         "grid": 8,
+                                                        "headerFontSize": "22px",
                                                         "offWhite": "#FAF9FB",
                                                         "offWhite2": "#E7E1EC",
                                                         "orange": "#ec5e44",
@@ -1346,40 +1354,26 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                               <Labels
                                                 compact={true}
                                               >
-                                                <Flex
-                                                  align="center"
-                                                  direction="row"
-                                                  pl={1}
+                                                <div
+                                                  className="css-j2micm-Labels ettpo130"
                                                 >
-                                                  <Base
-                                                    align="center"
-                                                    className="css-x3jwi"
-                                                    direction="row"
-                                                    pl={1}
+                                                  <IntegrationName>
+                                                    <div
+                                                      className="css-ksmg3c-IntegrationName ettpo131"
+                                                    >
+                                                      Test Integration
+                                                    </div>
+                                                  </IntegrationName>
+                                                  <DomainName
+                                                    compact={true}
                                                   >
                                                     <div
-                                                      className="css-x3jwi"
-                                                      is={null}
+                                                      className="css-equk2k-DomainName ettpo132"
                                                     >
-                                                      <IntegrationName>
-                                                        <div
-                                                          className="css-ksmg3c-IntegrationName ettpo130"
-                                                        >
-                                                          Test Integration
-                                                        </div>
-                                                      </IntegrationName>
-                                                      <DomainName
-                                                        compact={true}
-                                                      >
-                                                        <div
-                                                          className="css-1wocc7i-DomainName ettpo131"
-                                                        >
-                                                          github.com/test-integration
-                                                        </div>
-                                                      </DomainName>
+                                                      github.com/test-integration
                                                     </div>
-                                                  </Base>
-                                                </Flex>
+                                                  </DomainName>
+                                                </div>
                                               </Labels>
                                             </div>
                                           </Base>
@@ -1746,6 +1740,9 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     "backgroundLight": "#ECBFA6",
                                                     "border": "#D0816D",
                                                   },
+                                                  "beta": Object {
+                                                    "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
+                                                  },
                                                   "default": Object {
                                                     "background": "#BDB4C7",
                                                     "backgroundLight": "#FAF9FB",
@@ -1889,6 +1886,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                 "greenLight": "#71D8A6",
                                                 "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                 "grid": 8,
+                                                "headerFontSize": "22px",
                                                 "offWhite": "#FAF9FB",
                                                 "offWhite2": "#E7E1EC",
                                                 "orange": "#ec5e44",
@@ -2006,6 +2004,9 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                             "background": "#F09E71",
                                                             "backgroundLight": "#ECBFA6",
                                                             "border": "#D0816D",
+                                                          },
+                                                          "beta": Object {
+                                                            "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
                                                           },
                                                           "default": Object {
                                                             "background": "#BDB4C7",
@@ -2150,6 +2151,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                         "greenLight": "#71D8A6",
                                                         "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                         "grid": 8,
+                                                        "headerFontSize": "22px",
                                                         "offWhite": "#FAF9FB",
                                                         "offWhite2": "#E7E1EC",
                                                         "orange": "#ec5e44",
@@ -2672,40 +2674,26 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                               <Labels
                                                 compact={true}
                                               >
-                                                <Flex
-                                                  align="center"
-                                                  direction="row"
-                                                  pl={1}
+                                                <div
+                                                  className="css-j2micm-Labels ettpo130"
                                                 >
-                                                  <Base
-                                                    align="center"
-                                                    className="css-x3jwi"
-                                                    direction="row"
-                                                    pl={1}
+                                                  <IntegrationName>
+                                                    <div
+                                                      className="css-ksmg3c-IntegrationName ettpo131"
+                                                    >
+                                                      Jira Test Integration
+                                                    </div>
+                                                  </IntegrationName>
+                                                  <DomainName
+                                                    compact={true}
                                                   >
                                                     <div
-                                                      className="css-x3jwi"
-                                                      is={null}
+                                                      className="css-equk2k-DomainName ettpo132"
                                                     >
-                                                      <IntegrationName>
-                                                        <div
-                                                          className="css-ksmg3c-IntegrationName ettpo130"
-                                                        >
-                                                          Jira Test Integration
-                                                        </div>
-                                                      </IntegrationName>
-                                                      <DomainName
-                                                        compact={true}
-                                                      >
-                                                        <div
-                                                          className="css-1wocc7i-DomainName ettpo131"
-                                                        >
-                                                          jira.com/test-integration
-                                                        </div>
-                                                      </DomainName>
+                                                      jira.com/test-integration
                                                     </div>
-                                                  </Base>
-                                                </Flex>
+                                                  </DomainName>
+                                                </div>
                                               </Labels>
                                             </div>
                                           </Base>
@@ -3253,6 +3241,9 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                     "backgroundLight": "#ECBFA6",
                                                     "border": "#D0816D",
                                                   },
+                                                  "beta": Object {
+                                                    "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
+                                                  },
                                                   "default": Object {
                                                     "background": "#BDB4C7",
                                                     "backgroundLight": "#FAF9FB",
@@ -3396,6 +3387,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                 "greenLight": "#71D8A6",
                                                 "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                 "grid": 8,
+                                                "headerFontSize": "22px",
                                                 "offWhite": "#FAF9FB",
                                                 "offWhite2": "#E7E1EC",
                                                 "orange": "#ec5e44",
@@ -3513,6 +3505,9 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                             "background": "#F09E71",
                                                             "backgroundLight": "#ECBFA6",
                                                             "border": "#D0816D",
+                                                          },
+                                                          "beta": Object {
+                                                            "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
                                                           },
                                                           "default": Object {
                                                             "background": "#BDB4C7",
@@ -3657,6 +3652,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                         "greenLight": "#71D8A6",
                                                         "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                         "grid": 8,
+                                                        "headerFontSize": "22px",
                                                         "offWhite": "#FAF9FB",
                                                         "offWhite2": "#E7E1EC",
                                                         "orange": "#ec5e44",
@@ -4002,6 +3998,9 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                     "backgroundLight": "#ECBFA6",
                                                     "border": "#D0816D",
                                                   },
+                                                  "beta": Object {
+                                                    "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
+                                                  },
                                                   "default": Object {
                                                     "background": "#BDB4C7",
                                                     "backgroundLight": "#FAF9FB",
@@ -4145,6 +4144,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                 "greenLight": "#71D8A6",
                                                 "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                 "grid": 8,
+                                                "headerFontSize": "22px",
                                                 "offWhite": "#FAF9FB",
                                                 "offWhite2": "#E7E1EC",
                                                 "orange": "#ec5e44",
@@ -4262,6 +4262,9 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                             "background": "#F09E71",
                                                             "backgroundLight": "#ECBFA6",
                                                             "border": "#D0816D",
+                                                          },
+                                                          "beta": Object {
+                                                            "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
                                                           },
                                                           "default": Object {
                                                             "background": "#BDB4C7",
@@ -4406,6 +4409,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                         "greenLight": "#71D8A6",
                                                         "greenTransparent": "rgba(87, 190, 140, 0.5)",
                                                         "grid": 8,
+                                                        "headerFontSize": "22px",
                                                         "offWhite": "#FAF9FB",
                                                         "offWhite2": "#E7E1EC",
                                                         "orange": "#ec5e44",

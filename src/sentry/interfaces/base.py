@@ -10,6 +10,7 @@ from sentry.utils.canonical import get_canonical_name
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
+from sentry.utils.decorators import classproperty
 
 
 def get_interface(name):
@@ -48,6 +49,23 @@ def get_interfaces(data):
     )
 
 
+def prune_empty_keys(obj):
+    if obj is None:
+        return None
+
+    # eliminate None values for serialization to compress the keyspace
+    # and save (seriously) ridiculous amounts of bytes
+    #
+    # Do not coerce empty arrays/dicts or other "falsy" values here to None,
+    # but rather deal with them case-by-case before calling `prune_empty_keys`
+    # (e.g. in `Interface.to_json`). Rarely, but sometimes, there's a slight
+    # semantic difference between empty containers and a missing value. One
+    # example would be `event.logenty.formatted`, where `{}` means "this
+    # message has no params" and `None` means "this message is already
+    # formatted".
+    return dict((k, v) for k, v in six.iteritems(obj) if v is not None)
+
+
 class InterfaceValidationError(Exception):
     pass
 
@@ -65,6 +83,18 @@ class Interface(object):
 
     def __init__(self, **data):
         self._data = data or {}
+
+    @classproperty
+    def path(cls):
+        """The 'path' of the interface which is the root key in the data."""
+        return cls.__name__.lower()
+
+    @classproperty
+    def external_type(cls):
+        """The external name of the interface.  This is mostly the same as
+        path with some small differences (message, debugmeta).
+        """
+        return cls.path
 
     def __eq__(self, other):
         if not isinstance(self, type(other)):
@@ -99,18 +129,7 @@ class Interface(object):
         return meta
 
     def to_json(self):
-        # eliminate empty values for serialization to compress the keyspace
-        # and save (seriously) ridiculous amounts of bytes
-        # XXX(dcramer): its important that we keep zero values here, but empty
-        # lists and strings get discarded as we've deemed them not important
-        return dict((k, v) for k, v in six.iteritems(self._data) if (v == 0 or v))
-
-    def get_path(self):
-        cls = type(self)
-        return '%s.%s' % (cls.__module__, cls.__name__)
-
-    def get_alias(self):
-        return self.get_slug()
+        return prune_empty_keys(self._data)
 
     def get_hash(self):
         return []
@@ -120,9 +139,6 @@ class Interface(object):
         if not result:
             return []
         return [result]
-
-    def get_slug(self):
-        return type(self).__name__.lower()
 
     def get_title(self):
         return _(type(self).__name__)
@@ -144,3 +160,21 @@ class Interface(object):
         if not body:
             return ''
         return '<pre>%s</pre>' % (escape(body), )
+
+    # deprecated stuff.  These were deprecated in late 2018, once
+    # determined they are unused we can kill them.
+
+    def get_path(self):
+        from warnings import warn
+        warn(DeprecationWarning('Replaced with .path'))
+        return self.path
+
+    def get_alias(self):
+        from warnings import warn
+        warn(DeprecationWarning('Replaced with .path'))
+        return self.path
+
+    def get_slug(self):
+        from warnings import warn
+        warn(DeprecationWarning('Replaced with .path'))
+        return self.path

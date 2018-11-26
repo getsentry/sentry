@@ -108,4 +108,21 @@ describe('GroupSidebar', function() {
       );
     });
   });
+
+  describe('environment toggle', function() {
+    it('re-requests tags with correct environment', function() {
+      const stagingEnv = {name: 'staging', displayName: 'Staging', id: '2'};
+      expect(tagValuesMock).toHaveBeenCalledTimes(1);
+      wrapper.setProps({environment: stagingEnv});
+      expect(tagValuesMock).toHaveBeenCalledTimes(2);
+      expect(tagValuesMock).toHaveBeenCalledWith(
+        '/issues/1/tags/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: 'staging',
+          }),
+        })
+      );
+    });
+  });
 });

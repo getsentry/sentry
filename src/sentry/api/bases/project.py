@@ -27,7 +27,6 @@ class ProjectPermission(OrganizationPermission):
 
         if not result:
             return result
-
         if project.teams.exists():
             return any(
                 has_team_permission(request, team, self.scope_map) for team in project.teams.all()
@@ -46,6 +45,8 @@ class ProjectPermission(OrganizationPermission):
                 return False
 
             return roles.get(role).is_global
+        elif hasattr(request.auth, 'project_id') and project.id == request.auth.project_id:
+            return True
 
         return False
 

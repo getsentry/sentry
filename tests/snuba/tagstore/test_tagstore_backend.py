@@ -42,7 +42,7 @@ class TagStorageTest(SnubaTestCase):
         data = json.dumps([{
             'event_id': six.text_type(r) * 32,
             'primary_hash': hash1,
-            'group_id': int(hash1[:16], 16),
+            'group_id': self.proj1group1.id,
             'project_id': self.proj1.id,
             'message': 'message 1',
             'platform': 'python',
@@ -56,7 +56,7 @@ class TagStorageTest(SnubaTestCase):
                     'sentry:release': 100 * r,
                     'sentry:user': u"id:user{}".format(r),
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     'id': u"user{}".format(r),
                     'email': u"user{}@sentry.io".format(r)
                 }
@@ -64,7 +64,7 @@ class TagStorageTest(SnubaTestCase):
         } for r in [1, 2]] + [{
             'event_id': '3' * 32,
             'primary_hash': hash2,
-            'group_id': int(hash2[:16], 16),
+            'group_id': self.proj1group2.id,
             'project_id': self.proj1.id,
             'message': 'message 2',
             'platform': 'python',
@@ -76,7 +76,7 @@ class TagStorageTest(SnubaTestCase):
                     'environment': self.proj1env1.name,
                     'sentry:user': "id:user1",
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     'id': "user1"
                 }
             },
@@ -85,35 +85,35 @@ class TagStorageTest(SnubaTestCase):
         assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
 
     def test_get_group_tag_keys_and_top_values(self):
-        result = self.ts.get_group_tag_keys_and_top_values(
+        result = list(self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
-        )
+        ))
         tags = [r.key for r in result]
         assert set(tags) == set(['foo', 'baz', 'environment', 'sentry:release', 'sentry:user'])
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == 'baz'
         assert result[0].top_values[0].value == 'quux'
-        # assert result[0].values_seen == 1
-        # assert result[0].count == 2
+        assert result[0].values_seen == 1
+        assert result[0].count == 2
 
         assert result[3].key == 'sentry:release'
-        # assert result[3].values_seen == 2
-        # assert result[3].count == 2
+        assert result[3].values_seen == 2
+        assert result[3].count == 2
         top_release_values = result[3].top_values
         assert len(top_release_values) == 2
         assert set(v.value for v in top_release_values) == set(['100', '200'])
         assert all(v.times_seen == 1 for v in top_release_values)
 
         # Now with only a specific set of keys,
-        result = self.ts.get_group_tag_keys_and_top_values(
+        result = list(self.ts.get_group_tag_keys_and_top_values(
             self.proj1.id,
             self.proj1group1.id,
             self.proj1env1.id,
             keys=['environment', 'sentry:release'],
-        )
+        ))
         tags = [r.key for r in result]
         assert set(tags) == set(['environment', 'sentry:release'])
 

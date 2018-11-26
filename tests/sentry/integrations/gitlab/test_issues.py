@@ -38,7 +38,7 @@ class GitlabIssuesTest(GitLabTestCase):
             '    string_max_length=self.string_max_length)\n\nmessage\n```'
         ) % (
             self.group.qualified_short_id,
-            absolute_uri(self.group.get_absolute_url()),
+            absolute_uri(self.group.get_absolute_url(params={'referrer': 'gitlab_integration'})),
         )
         responses.add(
             responses.GET,
@@ -77,15 +77,33 @@ class GitlabIssuesTest(GitLabTestCase):
 
     @responses.activate
     def test_get_link_issue_config(self):
+        responses.add(
+            responses.GET,
+            u'https://example.gitlab.com/api/v4/groups/%s/projects' % self.installation.model.metadata['group_id'],
+            json=[
+                {'name_with_namespace': 'getsentry / sentry', 'id': 1},
+                {'name_with_namespace': 'getsentry / hello', 'id': 22},
+            ]
+        )
+        autocomplete_url = '/extensions/gitlab/search/baz/%d/' % self.installation.model.id
         assert self.installation.get_link_issue_config(self.group) == [
+            {
+                'name': 'project',
+                'label': 'GitLab Project',
+                'type': 'select',
+                'default': 1,
+                'choices': [(1, u'getsentry / sentry'), (22, u'getsentry / hello')],
+                'url': autocomplete_url,
+                'updatesForm': True,
+                'required': True,
+            },
             {
                 'name': 'externalIssue',
                 'label': 'Issue',
                 'default': '',
                 'type': 'select',
-                'url': '/extensions/gitlab/search/baz/%d/' % self.installation.model.id,
+                'url': autocomplete_url,
                 'required': True,
-                'updatesForm': True,
             },
         ]
 
@@ -161,7 +179,7 @@ class GitlabIssuesTest(GitLabTestCase):
             '    string_max_length=self.string_max_length)\n\nmessage\n```'
         ) % (
             self.group.qualified_short_id,
-            absolute_uri(self.group.get_absolute_url()),
+            absolute_uri(self.group.get_absolute_url(params={'referrer': 'gitlab_integration'})),
         )
         project_id = 10
         project_name = 'This_is / a_project'
@@ -225,7 +243,7 @@ class GitlabIssuesTest(GitLabTestCase):
             '    string_max_length=self.string_max_length)\n\nmessage\n```'
         ) % (
             self.group.qualified_short_id,
-            absolute_uri(self.group.get_absolute_url()),
+            absolute_uri(self.group.get_absolute_url(params={'referrer': 'gitlab_integration'})),
         )
         project_id = 10
         project_name = 'This_is / a_project'
@@ -259,6 +277,50 @@ class GitlabIssuesTest(GitLabTestCase):
                     (22, u'getsentry / hello')
                 ],
                 'defaultValue': project_id,
+                'type': 'select',
+                'label': 'Gitlab Project'
+            },
+            {
+                'name': 'title',
+                'label': 'Title',
+                'default': self.group.get_latest_event().error(),
+                'type': 'string',
+                'required': True,
+            },
+            {
+                'name': 'description',
+                'label': 'Description',
+                'default': group_description,
+                'type': 'textarea',
+                'autosize': True,
+                'maxRows': 10,
+            }
+        ]
+
+    @responses.activate
+    def test_create_issue_no_projects(self):
+        group_description = (
+            u'Sentry Issue: [%s](%s)\n\n'
+            '```\nStacktrace (most recent call last):\n\n'
+            '  File "sentry/models/foo.py", line 29, in build_msg\n'
+            '    string_max_length=self.string_max_length)\n\nmessage\n```'
+        ) % (
+            self.group.qualified_short_id,
+            absolute_uri(self.group.get_absolute_url(params={'referrer': 'gitlab_integration'})),
+        )
+
+        responses.add(
+            responses.GET,
+            u'https://example.gitlab.com/api/v4/groups/%s/projects' % self.installation.model.metadata['group_id'],
+            json=[]
+        )
+        assert self.installation.get_create_issue_config(self.group) == [
+            {
+                'url': '/extensions/gitlab/search/baz/%d/' % self.installation.model.id,
+                'name': 'project',
+                'required': True,
+                'choices': [],
+                'defaultValue': '',
                 'type': 'select',
                 'label': 'Gitlab Project'
             },

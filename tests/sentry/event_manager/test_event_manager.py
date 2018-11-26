@@ -14,10 +14,8 @@ from time import time
 
 from sentry.app import tsdb
 from sentry.constants import VERSION_LENGTH
-from sentry.event_manager import (
-    HashDiscarded, EventManager, EventUser,
-    md5_from_hash
-)
+from sentry.event_manager import HashDiscarded, EventManager, EventUser
+from sentry.event_hashing import md5_from_hash
 from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
     GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
@@ -107,22 +105,9 @@ class EventManagerTest(TransactionTestCase):
             event_id=event_id,
         ).exists()
 
-    def test_platform_is_saved(self):
-        manager = EventManager(
-            make_event(
-                **{'sentry.interfaces.AppleCrashReport': {
-                    'crash': {},
-                    'binary_images': []
-                }}
-            )
-        )
-        manager.normalize()
-        event = manager.save(1)
-
-        assert 'sentry.interfacse.AppleCrashReport' not in event.interfaces
-
     def test_ephemral_interfaces_removed_on_save(self):
         manager = EventManager(make_event(platform='python'))
+        manager.normalize()
         event = manager.save(1)
 
         group = event.group
@@ -133,24 +118,29 @@ class EventManagerTest(TransactionTestCase):
         event_id = 'a' * 32
 
         manager = EventManager(make_event(event_id=event_id))
+        manager.normalize()
         manager.save(1)
 
         assert Event.objects.count() == 1
 
         # ensure that calling it again doesn't raise a db error
         manager = EventManager(make_event(event_id=event_id))
+        manager.normalize()
         manager.save(1)
 
         assert Event.objects.count() == 1
 
     def test_updates_group(self):
+        timestamp = time() - 300
         manager = EventManager(
             make_event(
                 message='foo',
                 event_id='a' * 32,
                 checksum='a' * 32,
+                timestamp=timestamp,
             )
         )
+        manager.normalize()
         event = manager.save(1)
 
         manager = EventManager(
@@ -158,15 +148,18 @@ class EventManagerTest(TransactionTestCase):
                 message='foo bar',
                 event_id='b' * 32,
                 checksum='a' * 32,
+                timestamp=timestamp + 2.0,
             )
         )
+        manager.normalize()
+
         with self.tasks():
             event2 = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
 
         assert group.times_seen == 2
-        assert group.last_seen.replace(microsecond=0) == event.datetime.replace(microsecond=0)
+        assert group.last_seen.replace(microsecond=0) == event2.datetime.replace(microsecond=0)
         assert group.message == event2.message
         assert group.data.get('type') == 'default'
         assert group.data.get('metadata') == {
@@ -174,11 +167,13 @@ class EventManagerTest(TransactionTestCase):
         }
 
     def test_updates_group_with_fingerprint(self):
+        ts = time() - 200
         manager = EventManager(
             make_event(
                 message='foo',
                 event_id='a' * 32,
                 fingerprint=['a' * 32],
+                timestamp=ts,
             )
         )
         with self.tasks():
@@ -189,6 +184,7 @@ class EventManagerTest(TransactionTestCase):
                 message='foo bar',
                 event_id='b' * 32,
                 fingerprint=['a' * 32],
+                timestamp=ts,
             )
         )
         with self.tasks():
@@ -226,13 +222,15 @@ class EventManagerTest(TransactionTestCase):
         assert event.group_id != event2.group_id
 
     def test_unresolves_group(self):
+        ts = time() - 300
+
         # N.B. EventManager won't unresolve the group unless the event2 has a
         # later timestamp than event1. MySQL doesn't support microseconds.
         manager = EventManager(
             make_event(
                 event_id='a' * 32,
                 checksum='a' * 32,
-                timestamp=1403007314,
+                timestamp=ts,
             )
         )
         with self.tasks():
@@ -247,7 +245,7 @@ class EventManagerTest(TransactionTestCase):
             make_event(
                 event_id='b' * 32,
                 checksum='a' * 32,
-                timestamp=1403007345,
+                timestamp=ts + 50,
             )
         )
         event2 = manager.save(1)
@@ -270,6 +268,7 @@ class EventManagerTest(TransactionTestCase):
             )
         )
         with self.tasks():
+            manager.normalize()
             event = manager.save(1)
 
         group = Group.objects.get(id=event.group_id)
@@ -284,6 +283,7 @@ class EventManagerTest(TransactionTestCase):
                 timestamp=1403007315,
             )
         )
+        manager.normalize()
         event2 = manager.save(1)
         assert event.group_id == event2.group_id
 
@@ -505,12 +505,13 @@ class EventManagerTest(TransactionTestCase):
 
     @mock.patch('sentry.models.Group.is_resolved')
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
+        ts = time() - 100
         mock_is_resolved.return_value = False
         manager = EventManager(
             make_event(
                 event_id='a' * 32,
                 checksum='a' * 32,
-                timestamp=1403007314,
+                timestamp=ts,
             )
         )
         with self.tasks():
@@ -521,7 +522,7 @@ class EventManagerTest(TransactionTestCase):
             make_event(
                 event_id='b' * 32,
                 checksum='a' * 32,
-                timestamp=1403007414,
+                timestamp=ts + 100,
             )
         )
         with self.tasks():
@@ -529,7 +530,8 @@ class EventManagerTest(TransactionTestCase):
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group.id)
-        assert group.active_at == event2.datetime != event.datetime
+        assert group.active_at == event2.datetime
+        assert group.active_at != event.datetime
 
     def test_invalid_transaction(self):
         dict_input = {'messages': 'foo'}
@@ -557,6 +559,12 @@ class EventManagerTest(TransactionTestCase):
         event1 = manager.save(1)
         assert event1.transaction is None
         assert event1.culprit == 'foobar'
+
+    def test_inferred_culprit_from_empty_stacktrace(self):
+        manager = EventManager(make_event(stacktrace={"frames": []}))
+        manager.normalize()
+        event = manager.save(1)
+        assert event.culprit == ''
 
     def test_transaction_and_culprit(self):
         manager = EventManager(make_event(
@@ -631,6 +639,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(
             make_event(release='1.0', environment='prod', event_id='a' * 32)
         )
+        manager.normalize()
         event = manager.save(1)
 
         release = Release.objects.get(version='1.0', projects=event.project_id)
@@ -705,7 +714,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(make_event(
             event_id='a',
             environment='totally unique environment',
-            **{'sentry.interfaces.User': {
+            **{'user': {
                 'id': '1',
             }}
         ))
@@ -766,7 +775,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(
             make_event(
                 event_id='b',
-                **{'sentry.interfaces.User': {
+                **{'user': {
                     'id': '1',
                     'name': 'jane',
                 }}
@@ -782,7 +791,7 @@ class EventManagerTest(TransactionTestCase):
         assert euser.ident == '1'
 
     def test_event_user_unicode_identifier(self):
-        manager = EventManager(make_event(**{'sentry.interfaces.User': {'username': u'foô'}}))
+        manager = EventManager(make_event(**{'user': {'username': u'foô'}}))
         manager.normalize()
         with self.tasks():
             manager.save(self.project.id)
@@ -914,7 +923,7 @@ class EventManagerTest(TransactionTestCase):
             make_event(
                 **{
                     'message': '',
-                    'sentry.interfaces.Message': {
+                    'logentry': {
                         'formatted': 'foo bar',
                         'message': 'foo %s',
                         'params': ['bar'],
@@ -936,7 +945,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(
             make_event(
                 **{
-                    'sentry.interfaces.Exception': {
+                    'exception': {
                         'values': [{
                             'type': 'Foo',
                             'value': 'bar',
@@ -960,7 +969,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(
             make_event(
                 **{
-                    'sentry.interfaces.Csp': {
+                    'csp': {
                         'effective_directive': 'script-src',
                         'blocked_uri': 'http://example.com',
                     },
@@ -1002,7 +1011,7 @@ class EventManagerTest(TransactionTestCase):
             make_event(
                 **{
                     'message': None,
-                    'sentry.interfaces.Message': {
+                    'logentry': {
                         'message': 'hello world',
                     },
                 }
@@ -1022,7 +1031,7 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
 
         assert event.message == '1234'
-        assert event.data['sentry.interfaces.Message'] == {
+        assert event.data['logentry'] == {
             'message': '1234',
         }
 
@@ -1032,19 +1041,19 @@ class EventManagerTest(TransactionTestCase):
         }))
         manager.normalize()
         event = manager.save(self.project.id)
-        assert event.data['sentry.interfaces.Message'] == {
+        assert event.data['logentry'] == {
             'message': 'hello world',
         }
 
     def test_message_attribute_goes_to_formatted(self):
-        # The combining of 'message' and 'sentry.interfaces.Message' is a bit
+        # The combining of 'message' and 'logentry' is a bit
         # of a compatibility hack, and ideally we would just enforce a stricter
         # schema instead of combining them like this.
         manager = EventManager(
             make_event(
                 **{
                     'message': 'world hello',
-                    'sentry.interfaces.Message': {
+                    'logentry': {
                         'message': 'hello world',
                     },
                 }
@@ -1052,7 +1061,7 @@ class EventManagerTest(TransactionTestCase):
         )
         manager.normalize()
         event = manager.save(self.project.id)
-        assert event.data['sentry.interfaces.Message'] == {
+        assert event.data['logentry'] == {
             'message': 'hello world',
             'formatted': 'world hello',
         }
@@ -1061,14 +1070,14 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(
             make_event(
                 **{
-                    'sentry.interfaces.Message': 'a plain string',
+                    'logentry': 'a plain string',
                     'message': 'another string',
                 }
             )
         )
         manager.normalize()
         event = manager.save(self.project.id)
-        assert event.data['sentry.interfaces.Message'] == {
+        assert event.data['logentry'] == {
             'message': 'a plain string',
             'formatted': 'another string',
         }
@@ -1181,7 +1190,7 @@ class EventManagerTest(TransactionTestCase):
         ]
 
         data = {
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [item.value for item in items]
             },
         }
@@ -1195,6 +1204,29 @@ class EventManagerTest(TransactionTestCase):
         assert mock_is_valid_error_message.call_args_list == [
             mock.call(self.project, item.formatted) for item in items]
 
+    def test_legacy_attributes_moved(self):
+        event = make_event(
+            release='my-release',
+            environment='my-environment',
+            site='whatever',
+            server_name='foo.com',
+            event_id=uuid.uuid1().hex,
+        )
+        manager = EventManager(event)
+        event = manager.save(1)
+
+        # release and environment stay toplevel
+        assert event.data['release'] == 'my-release'
+        assert event.data['environment'] == 'my-environment'
+
+        # site is a legacy attribute that is just a tag
+        assert event.data.get('site') is None
+        tags = dict(event.tags)
+        assert tags['site'] == 'whatever'
+        assert event.data.get('server_name') is None
+        tags = dict(event.tags)
+        assert tags['server_name'] == 'foo.com'
+
 
 class ReleaseIssueTest(TransactionTestCase):
     def setUp(self):
@@ -1202,13 +1234,13 @@ class ReleaseIssueTest(TransactionTestCase):
         self.release = Release.get_or_create(self.project, '1.0')
         self.environment1 = Environment.get_or_create(self.project, 'prod')
         self.environment2 = Environment.get_or_create(self.project, 'staging')
-        self.timestamp = 1403007314
+        self.timestamp = float(int(time() - 300))
 
     def make_event(self, **kwargs):
         result = {
             'event_id': 'a' * 32,
             'message': 'foo',
-            'timestamp': 1403007314.570599,
+            'timestamp': self.timestamp + 0.23,
             'level': logging.ERROR,
             'logger': 'default',
             'tags': [],

@@ -111,6 +111,7 @@ const theme = {
       border: '#E7C0BC',
       textLight: '#92635f',
     },
+    beta: {},
   },
 
   grid: 8,
@@ -118,6 +119,7 @@ const theme = {
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',
   fontSizeExtraLarge: '18px',
+  headerFontSize: '22px',
 
   settings: {
     // Max-width for settings breadcrumbs
@@ -170,6 +172,8 @@ theme.alert.success.background = theme.green;
 
 theme.alert.error.iconColor = theme.redDark;
 theme.alert.error.background = theme.red;
+
+theme.alert.beta.background = `linear-gradient(90deg, ${theme.pink}, ${theme.purple})`;
 
 //alias warn to warning
 theme.alert.warn = theme.alert.warning;

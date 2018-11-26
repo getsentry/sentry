@@ -5,12 +5,28 @@ import pytest
 import time
 import uuid
 
+from sentry import options
 from sentry.models import GroupHash, GroupHashTombstone
 from sentry.testutils import SnubaTestCase
 from sentry.utils import snuba
 
 
 class SnubaTest(SnubaTestCase):
+
+    def _insert_event_for_time(self, ts, hash='a' * 32, group_id=None):
+        self.snuba_insert({
+            'event_id': uuid.uuid4().hex,
+            'primary_hash': hash,
+            'group_id': group_id if group_id else int(hash[:16], 16),
+            'project_id': self.project.id,
+            'message': 'message',
+            'platform': 'python',
+            'datetime': ts.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            'data': {
+                'received': time.mktime(ts.timetuple()),
+            }
+        })
+
     def test(self):
         "This is just a simple 'hello, world' example test."
 
@@ -48,44 +64,13 @@ class SnubaTest(SnubaTestCase):
                 groupby=[")("],
             )
 
-    def test_project_issues_with_legacy_hash(self):
-        a_hash = 'a' * 32
-
-        for h in [a_hash, 'A' * 8]:
-            GroupHash.objects.create(
-                project=self.project,
-                group=self.group,
-                hash=h,
-            )
-
-        assert snuba.get_project_issues([self.project], [self.group.id]) == \
-            [(self.group.id, self.group.project_id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)])]
-
-        # GroupHash without a group_id, should not be included in get_project_issues
-        GroupHash.objects.create(
-            project=self.project,
-            hash='0' * 32,
-        )
-
-        group_ids = [i[0] for i in (snuba.get_project_issues([self.project]))]
-        assert self.group.id in group_ids
-        assert None not in group_ids
-
-    def _insert_event_for_time(self, ts, hash='a' * 32, group_id=None):
-        self.snuba_insert({
-            'event_id': uuid.uuid4().hex,
-            'primary_hash': hash,
-            'group_id': group_id if group_id else int(hash[:16], 16),
-            'project_id': self.project.id,
-            'message': 'message',
-            'platform': 'python',
-            'datetime': ts.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            'data': {
-                'received': time.mktime(ts.timetuple()),
-            }
-        })
-
     def test_project_issues_with_tombstones(self):
+        # Nothing to be done if we're using `group_id`.
+        # When this option is the default we can remove
+        # this test.
+        if options.get('snuba.use_group_id_column'):
+            return
+
         base_time = datetime.utcnow()
         hash = 'a' * 32
 

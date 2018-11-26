@@ -27,7 +27,7 @@ class HealthRequestWithParams extends React.Component {
     /**
      * List of project ids to query
      */
-    projects: PropTypes.arrayOf(PropTypes.string),
+    projects: PropTypes.arrayOf(PropTypes.number),
 
     /**
      * List of environments to query
@@ -46,11 +46,11 @@ class HealthRequestWithParams extends React.Component {
     /**
      * Absolute start date for query
      */
-    start: PropTypes.string,
+    start: PropTypes.instanceOf(Date),
     /**
      * Absolute end date for query
      */
-    end: PropTypes.string,
+    end: PropTypes.instanceOf(Date),
 
     /**
      * Interval to group results in
@@ -110,7 +110,7 @@ class HealthRequestWithParams extends React.Component {
   };
 
   static defaultProps = {
-    period: '7d',
+    period: null,
     start: null,
     end: null,
     interval: '1d',
@@ -300,8 +300,17 @@ class HealthRequestWithParams extends React.Component {
       resultsForTimestamp &&
         !!resultsForTimestamp.length &&
         resultsForTimestamp.forEach(({count, [tag]: tagObject}) => {
-          categorySet.add(this.getCategory(tagObject));
-          timestampMap.set(`${timestamp}-${this.getCategory(tagObject)}`, count);
+          const category = this.getCategory(tagObject);
+          const timestampKey = `${timestamp}-${this.getCategory(tagObject)}`;
+          categorySet.add(category);
+
+          // aggregate if exists
+          timestampMap.set(
+            timestampKey,
+            timestampMap.has(timestampKey)
+              ? timestampMap.get(timestampKey) + count
+              : count
+          );
         });
     });
 

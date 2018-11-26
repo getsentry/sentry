@@ -19,7 +19,7 @@ from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
 from sentry import features, options
-from sentry.models import ProjectOwnership, User
+from sentry.models import Environment, ProjectOwnership, User
 
 from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.plugins import register
@@ -33,8 +33,6 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
 from .activity import emails
-
-from six.moves.urllib.parse import urlencode
 
 NOTSET = object()
 
@@ -183,10 +181,11 @@ class MailPlugin(NotificationPlugin):
 
         return send_to_list
 
-    def add_unsubscribe_link(self, context, user_id, project):
+    def add_unsubscribe_link(self, context, user_id, project, referrer):
         context['unsubscribe_link'] = generate_signed_link(
             user_id,
             'sentry-account-email-unsubscribe-project',
+            referrer,
             kwargs={
                 'project_id': project.id,
             }
@@ -205,10 +204,10 @@ class MailPlugin(NotificationPlugin):
 
         subject = event.get_email_subject()
 
-        link = group.get_absolute_url()
-
+        query_params = {'referrer': 'alert_email'}
         if environment:
-            link = link + '?' + urlencode({'environment': environment})
+            query_params['environment'] = environment
+        link = group.get_absolute_url(params=query_params)
 
         template = 'sentry/emails/error.txt'
         html_template = 'sentry/emails/error.html'
@@ -272,10 +271,12 @@ class MailPlugin(NotificationPlugin):
             'X-Sentry-Logger-Level': group.get_level_display(),
             'X-Sentry-Project': project.slug,
             'X-Sentry-Reply-To': group_id_to_email(group.id),
+            'X-Sentry-Environment': Environment.get_name_or_default(event.get_tag('environment')),
         }
 
         for user_id in self.get_send_to(project=project, event=event):
-            self.add_unsubscribe_link(context, user_id, project)
+            self.add_unsubscribe_link(context, user_id, project, 'alert_email')
+
             self._send_mail(
                 subject=subject,
                 template=template,
@@ -331,7 +332,7 @@ class MailPlugin(NotificationPlugin):
             group = six.next(iter(counts))
             subject = self.get_digest_subject(group, counts, start)
 
-            self.add_unsubscribe_link(context, user_id, project)
+            self.add_unsubscribe_link(context, user_id, project, 'alert_digest')
             self._send_mail(
                 subject=subject,
                 template='sentry/emails/digests/body.txt',

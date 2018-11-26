@@ -158,6 +158,14 @@ class ProjectKey(Model):
         )
 
     @property
+    def organization_id(self):
+        return self.project.organization_id
+
+    @property
+    def organization(self):
+        return self.project.organization
+
+    @property
     def dsn_private(self):
         return self.get_dsn(public=False)
 
@@ -194,6 +202,11 @@ class ProjectKey(Model):
             reverse('sentry-api-minidump', args=[self.project_id]),
             self.public_key,
         )
+
+    @property
+    def unreal_endpoint(self):
+        return self.get_endpoint() + reverse('sentry-api-unreal',
+                                             args=[self.project_id, self.public_key])
 
     @property
     def js_sdk_loader_cdn_url(self):

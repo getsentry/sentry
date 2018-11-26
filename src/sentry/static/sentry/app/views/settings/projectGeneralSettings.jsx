@@ -296,7 +296,11 @@ class ProjectGeneralSettings extends AsyncView {
                   {tct(
                     'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
                     {
-                      link: <a href="https://github.com/getsentry/raven-js">raven-js</a>,
+                      link: (
+                        <a href="https://github.com/getsentry/sentry-javascript">
+                          sentry-javascript
+                        </a>
+                      ),
                     }
                   )}{' '}
                   {tct(

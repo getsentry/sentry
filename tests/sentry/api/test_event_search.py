@@ -3,9 +3,11 @@ from __future__ import absolute_import
 import datetime
 
 from django.utils import timezone
+from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
-    get_snuba_query_args, parse_search_query, InvalidSearchQuery, SearchFilter, SearchKey, SearchValue
+    convert_endpoint_params, get_snuba_query_args, parse_search_query,
+    InvalidSearchQuery, SearchFilter, SearchKey, SearchValue
 )
 from sentry.testutils import TestCase
 
@@ -17,17 +19,17 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='user.email'),
                 operator="=",
-                value=SearchValue(raw_value='foo@example.com', type='string'),
+                value=SearchValue(raw_value='foo@example.com'),
             ),
             SearchFilter(
                 key=SearchKey(name='release'),
                 operator="=",
-                value=SearchValue(raw_value='1.2.1', type='string'),
+                value=SearchValue(raw_value='1.2.1'),
             ),
             SearchFilter(
                 key=SearchKey(name='message'),
                 operator='=',
-                value=SearchValue(raw_value='hello', type='string'),
+                value=SearchValue(raw_value='hello'),
             )
         ]
 
@@ -36,9 +38,7 @@ class EventSearchTest(TestCase):
             SearchFilter(
                 key=SearchKey(name='message'),
                 operator='=',
-                value=SearchValue(
-                    raw_value='hello user.email:foo@example.com release:1.2.1',
-                    type='string'),
+                value=SearchValue(raw_value='hello user.email:foo@example.com release:1.2.1'),
             ),
         ]
 
@@ -56,7 +56,7 @@ class EventSearchTest(TestCase):
                         0,
                         0,
                         tzinfo=timezone.utc),
-                    type='timestamp'),
+                ),
             ),
         ]
         # test date time format
@@ -73,7 +73,7 @@ class EventSearchTest(TestCase):
                         15,
                         1,
                         tzinfo=timezone.utc),
-                    type='timestamp'),
+                ),
             ),
         ]
 
@@ -92,19 +92,222 @@ class EventSearchTest(TestCase):
                         1,
                         103000,
                         tzinfo=timezone.utc),
-                    type='timestamp'),
+                ),
             ),
         ]
 
-    def test_parse_search_query_invalid(self):
+    def test_parse_search_query_quoted_val(self):
+        assert parse_search_query('release:"a release"') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a release'),
+            ),
+        ]
+
+    def test_parse_search_query_quoted_key(self):
+        assert parse_search_query('"hi:there":value') == [
+            SearchFilter(
+                key=SearchKey(name='hi:there'),
+                operator='=',
+                value=SearchValue(raw_value='value'),
+            ),
+        ]
+
+    def test_parse_search_query_weird_values(self):
+        # quotes within quotes
+        assert parse_search_query('release:"a"thing""') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a"thing"'),
+            ),
+        ]
+
+        # newline within quote
+        assert parse_search_query('release:"a\nrelease"') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a\nrelease')
+            ),
+        ]
+        # newline outside quote
+        with self.assertRaises(IncompleteParseError):
+            parse_search_query('release:a\nrelease')
+
+        # tab within quote
+        assert parse_search_query('release:"a\trelease"') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a\trelease')
+            ),
+        ]
+        # tab outside quote
+        assert parse_search_query('release:a\trelease') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a'),
+            ),
+            SearchFilter(
+                key=SearchKey(name='message'),
+                operator='=',
+                value=SearchValue(raw_value='\trelease')
+            ),
+        ]
+
+        # escaped quotes
+        assert parse_search_query('release:"a\"thing\""') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a"thing"')
+            ),
+        ]
+        assert parse_search_query('release:"a\"\"release"') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a""release')
+            ),
+        ]
+
+        # poorly escaped quotes
+        assert parse_search_query('release:"a release\"') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a release')
+            ),
+        ]
+        assert parse_search_query('release:\"a release "') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='a release ')
+            ),
+        ]
+
+    def test_parse_search_query_custom_tag(self):
+        assert parse_search_query('fruit:apple release:1.2.1') == [
+            SearchFilter(
+                key=SearchKey(name='fruit'),
+                operator='=',
+                value=SearchValue(raw_value='apple'),
+            ),
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='=',
+                value=SearchValue(raw_value='1.2.1'),
+            ),
+        ]
+
+    def test_parse_search_query_has_tag(self):
+        # unquoted key
+        assert parse_search_query('has:release') == [
+            SearchFilter(
+                key=SearchKey(name='release'),
+                operator='!=',
+                value=SearchValue(raw_value=''),
+            ),
+        ]
+
+        # quoted key
+        assert parse_search_query('has:"hi:there"') == [
+            SearchFilter(
+                key=SearchKey(name='hi:there'),
+                operator='!=',
+                value=SearchValue(raw_value=''),
+            ),
+        ]
+
+        # malformed key
         with self.assertRaises(InvalidSearchQuery):
-            parse_search_query('fruit:apple release:1.2.1')
+            parse_search_query('has:"hi there"')
 
     def test_get_snuba_query_args(self):
-        assert get_snuba_query_args('user.email:foo@example.com release:1.2.1 hello') == {
+        assert get_snuba_query_args('user.email:foo@example.com release:1.2.1 fruit:apple hello', {
+            'project_id': [1, 2, 3],
+            'start': datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
+            'end': datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
+        }) == {
             'conditions': [
                 ['email', '=', 'foo@example.com'],
-                ['sentry:release', '=', '1.2.1'],
+                ['tags[sentry:release]', '=', '1.2.1'],
+                ['tags[fruit]', '=', 'apple'],
                 [['positionCaseInsensitive', ['message', "'hello'"]], '!=', 0],
-            ]
+            ],
+            'filter_keys': {'project_id': [1, 2, 3]},
+            'start': datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
+            'end': datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
         }
+
+    def test_get_snuba_query_args_no_search(self):
+        assert get_snuba_query_args(params={
+            'project_id': [1, 2, 3],
+            'start': datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
+            'end': datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
+        }) == {
+            'conditions': [],
+            'filter_keys': {'project_id': [1, 2, 3]},
+            'start': datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
+            'end': datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
+        }
+
+    def test_get_snuba_query_args_wildcard(self):
+        assert get_snuba_query_args('release:3.1.* user.email:*@example.com') == {
+            'conditions': [
+                [['match', ['tags[sentry:release]', "'^3\\.1\\..*$'"]], '=', 1],
+                [['match', ['email', "'^.*\\@example\\.com$'"]], '=', 1],
+            ],
+            'filter_keys': {},
+        }
+
+    def test_get_snuba_query_args_has(self):
+        assert get_snuba_query_args('has:release') == {
+            'filter_keys': {},
+            'conditions': [['tags[sentry:release]', '!=', '']]
+        }
+
+    def test_convert_endpoint_params(self):
+        assert convert_endpoint_params({
+            'project_id': [1, 2, 3],
+            'start': datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
+            'end': datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
+        }) == [
+            SearchFilter(
+                key=SearchKey(name='start'),
+                operator='=',
+                value=SearchValue(
+                    raw_value=datetime.datetime(
+                        2015,
+                        5,
+                        18,
+                        10,
+                        15,
+                        1,
+                        tzinfo=timezone.utc),
+                )
+            ),
+            SearchFilter(
+                key=SearchKey(name='project_id'),
+                operator='=',
+                value=SearchValue(raw_value=[1, 2, 3])
+            ),
+            SearchFilter(
+                key=SearchKey(name='end'),
+                operator='=',
+                value=SearchValue(
+                    raw_value=datetime.datetime(
+                        2015,
+                        5,
+                        19,
+                        10,
+                        15,
+                        1,
+                        tzinfo=timezone.utc),
+                )
+            ),
+        ]

@@ -21,11 +21,9 @@ CANONICAL_KEY_MAPPING = {
     'sentry.interfaces.Message': 'logentry',
     'sentry.interfaces.Stacktrace': 'stacktrace',
     'sentry.interfaces.Template': 'template',
-    'sentry.interfaces.Query': 'query',
     'sentry.interfaces.Http': 'request',
     'sentry.interfaces.User': 'user',
     'sentry.interfaces.Csp': 'csp',
-    'sentry.interfaces.AppleCrashReport': 'applecrashreport',
     'sentry.interfaces.Breadcrumbs': 'breadcrumbs',
     'sentry.interfaces.Contexts': 'contexts',
     'sentry.interfaces.Threads': 'threads',
@@ -104,6 +102,7 @@ class CanonicalKeyDict(collections.MutableMapping):
 
     def copy(self):
         rv = object.__new__(self.__class__)
+        rv._norm_func = self._norm_func
         rv.data = copy.copy(self.data)
         return rv
 

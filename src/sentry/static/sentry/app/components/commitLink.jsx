@@ -25,6 +25,11 @@ const SUPPORTED_PROVIDERS = [
     providerIds: ['visualstudio', 'integrations:vsts'],
     commitUrl: ({baseUrl, commitId}) => `${baseUrl}/commit/${commitId}`,
   },
+  {
+    icon: 'icon-gitlab',
+    providerIds: ['gitlab', 'integrations:gitlab'],
+    commitUrl: ({baseUrl, commitId}) => `${baseUrl}/commit/${commitId}`,
+  },
 ];
 
 function CommitLink({inline, commitId, repository}) {
@@ -34,9 +39,10 @@ function CommitLink({inline, commitId, repository}) {
 
   const shortId = getShortVersion(commitId);
 
-  const providerData = SUPPORTED_PROVIDERS.find(provider =>
-    provider.providerIds.includes(repository.provider.id)
-  );
+  const providerData = SUPPORTED_PROVIDERS.find(provider => {
+    if (!repository.provider) return false;
+    return provider.providerIds.includes(repository.provider.id);
+  });
 
   if (providerData === undefined) {
     return <span>{shortId}</span>;

@@ -26,17 +26,18 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View as BaseView
 from functools import wraps
 from querystring_parser import parser
-from symbolic import ProcessMinidumpError
+from symbolic import ProcessMinidumpError, Unreal4Error
 
 from sentry import features, quotas, tsdb, options
 from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
-    APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, MinidumpApiHelper, safely_load_json_string, logger as api_logger
+    Auth, APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, MinidumpApiHelper, safely_load_json_string, logger as api_logger
 )
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.minidump import merge_minidump_event, MINIDUMP_ATTACHMENT_TYPE
+from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type
+from sentry.lang.native.minidump import merge_process_state_event, process_minidump, MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received)
@@ -383,6 +384,7 @@ class StoreView(APIView):
             auth=auth,
             client_ip=remote_addr,
             user_agent=helper.context.agent,
+            version=auth.version,
             content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
         )
         del data
@@ -683,7 +685,8 @@ class MinidumpView(StoreView):
                     attachments.append(CachedAttachment.from_upload(file))
 
         try:
-            merge_minidump_event(data, minidump)
+            state = process_minidump(minidump)
+            merge_process_state_event(data, state)
         except ProcessMinidumpError as e:
             logger.exception(e)
             raise APIError(e.message.split('\n', 1)[0])
@@ -701,6 +704,85 @@ class MinidumpView(StoreView):
         # Return the formatted UUID of the generated event. This is
         # expected by the Electron http uploader on Linux and doesn't
         # break the default Breakpad client library.
+        return HttpResponse(
+            six.text_type(uuid.UUID(response_or_event_id)),
+            content_type='text/plain'
+        )
+
+
+# Endpoint used by the Unreal Engine 4 (UE4) Crash Reporter.
+class UnrealView(StoreView):
+    content_types = ('application/octet-stream', )
+
+    def _dispatch(self, request, helper, sentry_key, project_id=None, origin=None, *args, **kwargs):
+        if request.method != 'POST':
+            return HttpResponseNotAllowed(['POST'])
+
+        content_type = request.META.get('CONTENT_TYPE')
+        if content_type is None or not content_type.startswith(self.content_types):
+            raise APIError('Invalid Content-Type')
+
+        request.user = AnonymousUser()
+
+        project = self._get_project_from_id(project_id)
+        helper.context.bind_project(project)
+
+        auth = Auth({'sentry_key': sentry_key}, is_public=False)
+        auth.client = 'sentry.unreal_engine'
+
+        key = helper.project_key_from_auth(auth)
+        if key.project_id != project.id:
+            raise APIError('Two different projects were specified')
+
+        helper.context.bind_auth(auth)
+        return super(APIView, self).dispatch(
+            request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
+        )
+
+    def post(self, request, project, **kwargs):
+        attachments_enabled = features.has('organizations:event-attachments',
+                                           project.organization, actor=request.user)
+
+        data = {}
+        event_id = uuid.uuid4().hex
+        data['event_id'] = event_id
+
+        attachments = []
+        try:
+            unreal = process_unreal_crash(request.body)
+            process_state = unreal.process_minidump()
+        except (ProcessMinidumpError, Unreal4Error) as e:
+            logger.exception(e)
+            raise APIError(e.message.split('\n', 1)[0])
+
+        if process_state:
+            merge_process_state_event(data, process_state)
+        else:
+            raise APIError("missing minidump in unreal crash report")
+
+        for file in unreal.files():
+            # Always store the minidump in attachments so we can access it during
+            # processing, regardless of the event-attachments feature. This will
+            # allow us to stack walk again with CFI once symbols are loaded.
+            if file.type == "minidump" or attachments_enabled:
+                attachments.append(CachedAttachment(
+                    name=file.name,
+                    data=file.open_stream().read(),
+                    type=unreal_attachment_type(file),
+                ))
+
+        response_or_event_id = self.process(
+            request,
+            attachments=attachments,
+            data=data,
+            project=project,
+            **kwargs)
+
+        # The return here is only useful for consistency
+        # because the UE4 crash reporter doesn't care about it.
+        if isinstance(response_or_event_id, HttpResponse):
+            return response_or_event_id
+
         return HttpResponse(
             six.text_type(uuid.UUID(response_or_event_id)),
             content_type='text/plain'
@@ -790,7 +872,7 @@ class SecurityReportView(StoreView):
 
     def security_report_type(self, body):
         report_type_for_key = {
-            'csp-report': 'sentry.interfaces.Csp',
+            'csp-report': 'csp',
             'expect-ct-report': 'expectct',
             'expect-staple-report': 'expectstaple',
             'known-pins': 'hpkp',

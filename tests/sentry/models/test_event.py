@@ -58,7 +58,7 @@ class EventTest(TestCase):
     def test_event_as_dict(self):
         event = self.create_event(
             data={
-                'sentry.interfaces.Message': {
+                'logentry': {
                     'message': 'Hello World!',
                 },
             }
@@ -125,6 +125,38 @@ class EventTest(TestCase):
         with self.assertNumQueries(0):
             event.get_environment() == environment
 
+    def test_ip_address(self):
+        event = self.create_event(data={
+            'user': {'ip_address': '127.0.0.1'},
+            'request': {'url': 'http://some.com', 'env': {'REMOTE_ADDR': '::1'}}
+        })
+        assert event.ip_address == '127.0.0.1'
+
+        event = self.create_event(data={
+            'user': {'ip_address': None},
+            'request': {'url': 'http://some.com', 'env': {'REMOTE_ADDR': '::1'}}
+        })
+        assert event.ip_address == '::1'
+
+        event = self.create_event(data={
+            'user': None,
+            'request': {'url': 'http://some.com', 'env': {'REMOTE_ADDR': '::1'}}
+        })
+        assert event.ip_address == '::1'
+
+        event = self.create_event(data={
+            'request': {'url': 'http://some.com', 'env': {'REMOTE_ADDR': '::1'}}
+        })
+        assert event.ip_address == '::1'
+
+        event = self.create_event(data={
+            'request': {'url': 'http://some.com', 'env': {'REMOTE_ADDR': None}}
+        })
+        assert event.ip_address is None
+
+        event = self.create_event()
+        assert event.ip_address is None
+
 
 class EventGetLegacyMessageTest(TestCase):
     def test_message(self):
@@ -134,7 +166,7 @@ class EventGetLegacyMessageTest(TestCase):
     def test_message_interface(self):
         event = self.create_event(
             message='biz baz',
-            data={'sentry.interfaces.Message': {
+            data={'logentry': {
                 'message': 'foo bar'
             }},
         )
@@ -144,7 +176,7 @@ class EventGetLegacyMessageTest(TestCase):
         event = self.create_event(
             message='biz baz',
             data={
-                'sentry.interfaces.Message': {
+                'logentry': {
                     'message': 'foo %s',
                     'formatted': 'foo bar',
                     'params': ['bar'],
@@ -152,3 +184,17 @@ class EventGetLegacyMessageTest(TestCase):
             },
         )
         assert event.get_legacy_message() == 'foo bar'
+
+    def test_none(self):
+        event = self.create_event(
+            data={'logentry': None},
+        )
+        assert event.get_legacy_message() == '<unlabeled event>'
+
+        event = self.create_event(
+            data={'logentry': {
+                'formatted': None,
+                'message': None,
+            }},
+        )
+        assert event.get_legacy_message() == '<unlabeled event>'

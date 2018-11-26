@@ -72,7 +72,9 @@ export function getInternal(external) {
 */
 function getAlias(columnName) {
   const tagMatch = columnName.match(/^tags\[(.+)]$/);
-  return tagMatch ? `tags_${tagMatch[1].replace(/[.:-]/, '_')}` : columnName;
+  return tagMatch
+    ? `tags_${tagMatch[1].replace(/[.:-]/, '_')}`
+    : columnName.replace('.', '_');
 }
 
 /**

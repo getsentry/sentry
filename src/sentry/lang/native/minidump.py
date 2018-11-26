@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
-import six
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
-
 from symbolic import arch_from_breakpad, ProcessState, id_from_breakpad
+
+from sentry.utils.safe import get_path
 
 # Attachment type used for minidump files
 MINIDUMP_ATTACHMENT_TYPE = 'event.minidump'
@@ -16,11 +16,8 @@ MINIDUMP_OS_TYPES = {
 
 
 def is_minidump_event(data):
-    exceptions = (data.get('exception') or {}).get('values') or []
-    if not exceptions:
-        return False
-
-    return (exceptions[0].get('mechanism') or {}).get('type') == 'minidump'
+    exceptions = get_path(data, 'exception', 'values', filter=True)
+    return get_path(exceptions, 0, 'mechanism', 'type') == 'minidump'
 
 
 def process_minidump(minidump, cfi=None):
@@ -29,19 +26,13 @@ def process_minidump(minidump, cfi=None):
         return ProcessState.from_minidump_buffer(minidump.read(), cfi)
     elif isinstance(minidump, TemporaryUploadedFile):
         return ProcessState.from_minidump(minidump.temporary_file_path(), cfi)
-    elif isinstance(minidump, six.binary_type) and minidump.startswith('MDMP'):
-        return ProcessState.from_minidump_buffer(minidump, cfi)
     else:
-        return ProcessState.from_minidump(minidump, cfi)
+        return ProcessState.from_minidump_buffer(minidump, cfi)
 
 
-def merge_minidump_event(data, minidump, cfi=None):
-    state = process_minidump(minidump, cfi=cfi)
-
+def merge_process_state_event(data, state, cfi=None):
     data['platform'] = 'native'
     data['level'] = 'fatal' if state.crashed else 'info'
-    data['message'] = 'Assertion Error: %s' % state.assertion if state.assertion \
-        else 'Fatal Error: %s' % state.crash_reason
 
     if state.timestamp:
         data['timestamp'] = float(state.timestamp)
@@ -76,8 +67,10 @@ def merge_minidump_event(data, minidump, cfi=None):
     crashed_thread['crashed'] = True
 
     # Extract the crash reason and infos
+    exc_value = 'Assertion Error: %s' % state.assertion if state.assertion \
+        else 'Fatal Error: %s' % state.crash_reason
     data['exception'] = {
-        'value': data['message'],
+        'value': exc_value,
         'thread_id': crashed_thread['id'],
         'type': state.crash_reason,
         # Move stacktrace here from crashed_thread (mutating!)
@@ -106,6 +99,6 @@ def frames_from_minidump_thread(thread):
     return [{
         'instruction_addr': '0x%x' % frame.return_address,
         'function': '<unknown>',  # Required by interface
-        'module': frame.module.name if frame.module else None,
+        'package': frame.module.name if frame.module else None,
         'trust': frame.trust,
     } for frame in reversed(list(thread.frames()))]

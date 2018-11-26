@@ -1,19 +1,21 @@
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
 
-import moment from 'moment-timezone';
 import {uniq} from 'lodash';
+import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
+
 import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
 
 const DEFAULTS = {
   projects: [],
-  fields: [],
+  fields: ['id', 'issue.id', 'project.name', 'platform', 'timestamp'],
   conditions: [],
   aggregations: [],
-  range: '14d',
+  range: DEFAULT_STATS_PERIOD,
   orderby: '-timestamp',
   limit: 1000,
 };
@@ -64,15 +66,19 @@ export default function createQueryBuilder(initial = {}, organization) {
       aggregations: [['count()', null, 'count']],
       orderby: '-count',
       range: '90d',
+      turbo: true,
     })
       .then(res => {
         tags = res.data.map(tag => {
           const type = SPECIAL_TAGS[tags.tags_key] || 'string';
-          return {name: `tags[${tag.tags_key}]`, type};
+          return {name: tag.tags_key, type};
         });
       })
       .catch(err => {
-        tags = PROMOTED_TAGS;
+        tags = PROMOTED_TAGS.map(tag => {
+          const type = SPECIAL_TAGS[tag] || 'string';
+          return {name: tag, type};
+        });
       });
   }
 
@@ -221,7 +227,7 @@ export default function createQueryBuilder(initial = {}, organization) {
       return !originalQuery.aggregations.length && originalQuery.fields.length
         ? {
             ...originalQuery,
-            fields: uniq([...originalQuery.fields, 'event_id', 'project_id']),
+            fields: uniq([...originalQuery.fields, 'id', 'project.id']),
           }
         : originalQuery;
     }

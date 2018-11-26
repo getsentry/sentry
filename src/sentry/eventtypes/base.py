@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.utils.strings import truncatechars, strip
+from sentry.utils.safe import get_path
 
 
 class BaseEvent(object):
@@ -27,17 +28,14 @@ class DefaultEvent(BaseEvent):
         return True
 
     def get_metadata(self):
-        # See GH-3248
-        message_interface = self.data.get(
-            'sentry.interfaces.Message', {
-                'message': self.data.get('message', ''),
-            }
-        )
-        message = strip(message_interface.get('formatted', message_interface['message']))
-        if not message:
-            title = '<unlabeled event>'
-        else:
+        message = strip(get_path(self.data, 'logentry', 'formatted') or
+                        get_path(self.data, 'logentry', 'message'))
+
+        if message:
             title = truncatechars(message.splitlines()[0], 100)
+        else:
+            title = '<unlabeled event>'
+
         return {
             'title': title,
         }

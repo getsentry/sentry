@@ -22,7 +22,7 @@ describe('Discover', function() {
     beforeEach(function() {
       mockResponse = {
         timing: {},
-        data: [{foo: 'bar', project_id: project.id}],
+        data: [{foo: 'bar', 'project.id': project.id}],
         meta: [{name: 'foo'}],
       };
       queryBuilder.fetch = jest.fn(() => Promise.resolve(mockResponse));
@@ -33,10 +33,10 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          params={{}}
           savedQuery={TestStubs.DiscoverSavedQuery()}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -52,9 +52,9 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -70,10 +70,10 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          params={{}}
           updateSavedQueryData={jest.fn()}
           location={{search: ''}}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -99,7 +99,7 @@ describe('Discover', function() {
         body: {timing: {}, data: [], meta: []},
         headers: {
           Link:
-            '<api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:2:0>; rel="next"; results="true"; cursor="0:1000:0"',
+            '<api/0/organizations/sentry/discover/query/?per_page=2&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <api/0/organizations/sentry/discover/query/?per_page=1000&cursor=0:2:0>; rel="next"; results="true"; cursor="0:1000:0"',
         },
       });
 
@@ -114,7 +114,9 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           params={{}}
-          updateSavedQueryData={() => {}}
+          updateSavedQueryData={jest.fn()}
+          toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext()
       );
@@ -171,30 +173,33 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext()
       );
     });
 
     it('runs basic query', async function() {
+      const query = {...queryBuilder.getExternal()};
+      query.fields = [...queryBuilder.getExternal().fields, 'project.id'];
+
       wrapper.instance().runQuery();
       await tick();
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
-      expect(queryBuilder.fetch).toHaveBeenCalledWith(queryBuilder.getExternal());
+      expect(queryBuilder.fetch).toHaveBeenCalledWith(query);
       expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
     });
 
-    it('always requests event_id and project_id for basic queries', async function() {
+    it('always requests id and project.id for basic queries', async function() {
       queryBuilder.updateField('fields', ['message']);
       wrapper.instance().runQuery();
       await tick();
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
       expect(queryBuilder.fetch).toHaveBeenCalledWith(
         expect.objectContaining({
-          fields: ['message', 'event_id', 'project_id'],
+          fields: ['message', 'id', 'project.id'],
         })
       );
       expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
@@ -237,9 +242,9 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext()
       );
@@ -280,15 +285,15 @@ describe('Discover', function() {
             queryBuilder={queryBuilder}
             organization={organization}
             location={{location: '?fields=something'}}
-            params={{}}
             updateSavedQueryData={jest.fn()}
             toggleEditMode={jest.fn()}
+            isLoading={false}
           />,
           TestStubs.routerContext()
         );
 
         wrapper.instance().updateField('fields', ['message']);
-        wrapper.instance().updateField('orderby', 'event_id');
+        wrapper.instance().updateField('orderby', 'id');
         wrapper.instance().updateField('limit', 5);
 
         wrapper.instance().runQuery();
@@ -309,11 +314,12 @@ describe('Discover', function() {
         const fields = wrapper.find('SelectControl[name="fields"]');
         expect(fields.text()).toContain('message');
         wrapper.instance().reset();
-        expect(fields.text()).toContain('No fields selected');
+        expect(fields.text()).not.toContain('message');
+        expect(fields.text()).toContain('id');
       });
 
       it('resets "orderby"', function() {
-        expect(wrapper.find('SelectControl[name="orderby"]').text()).toBe('event_id asc');
+        expect(wrapper.find('SelectControl[name="orderby"]').text()).toBe('id asc');
         wrapper.instance().reset();
         wrapper.update();
         expect(wrapper.find('SelectControl[name="orderby"]').text()).toBe(
@@ -347,12 +353,12 @@ describe('Discover', function() {
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          params={{}}
           savedQuery={TestStubs.DiscoverSavedQuery()}
           updateSavedQueryData={jest.fn()}
           view="saved"
           location={{search: ''}}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext()
       );
@@ -431,9 +437,9 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           location={{location: '?fields=something'}}
-          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext()
       );
@@ -452,7 +458,7 @@ describe('Discover', function() {
         .simulate('click');
 
       const query = queryBuilder.getInternal();
-      expect(query.fields).toEqual(['event_id']);
+      expect(query.fields).toEqual(['id']);
       expect(query.limit).toEqual(10);
     });
   });
@@ -473,9 +479,9 @@ describe('Discover', function() {
           queryBuilder={queryBuilder}
           organization={organization}
           location={{location: ''}}
-          params={{}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
+          isLoading={false}
         />,
         TestStubs.routerContext()
       );
@@ -491,6 +497,102 @@ describe('Discover', function() {
         .simulate('click');
       expect(wrapper.find('QueryFields')).toHaveLength(0);
       expect(wrapper.find('SavedQueries')).toHaveLength(1);
+    });
+  });
+
+  describe('Time Selector', function() {
+    let wrapper;
+    let query;
+
+    beforeEach(function() {
+      query = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
+        method: 'POST',
+        body: {timing: {}, data: [], meta: []},
+      });
+      wrapper = mount(
+        <Discover
+          queryBuilder={queryBuilder}
+          organization={organization}
+          updateSavedQueryData={jest.fn()}
+          toggleEditMode={jest.fn()}
+          isLoading={false}
+        />,
+        TestStubs.routerContext([{organization}])
+      );
+    });
+
+    it('changes to absolute date', async function() {
+      await wrapper.instance().runQuery();
+      expect(query).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            range: '14d',
+          }),
+        })
+      );
+
+      // Select absolute date
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+      wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+
+      // Hide date picker
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+      // Should make request for the last 14 days as an absolute date range
+      expect(query).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            start: '2017-10-03T02:41:20',
+            end: '2017-10-17T02:41:20',
+          }),
+        })
+      );
+    });
+
+    it('switches between UTC and local dates', async function() {
+      // Select absolute date
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+      wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+
+      // Select a single day
+      wrapper
+        .find('DayCell')
+        .at(0)
+        .simulate('mouseUp');
+
+      // Hide date picker
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+      // Should make request for the last 14 days as an absolute date range
+      expect(query).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            start: '2017-10-01T00:00:00',
+            end: '2017-10-01T23:59:59',
+          }),
+        })
+      );
+
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+      // Switch to UTC
+      wrapper.find('UtcPicker Checkbox').simulate('change');
+      // Hide dropdown
+      wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+      expect(query).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            start: '2017-10-01T04:00:00',
+            end: '2017-10-02T03:59:59',
+          }),
+        })
+      );
     });
   });
 });

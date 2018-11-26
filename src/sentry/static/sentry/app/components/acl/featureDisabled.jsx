@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {selectText} from 'app/utils/selectText';
 import {t, tct} from 'app/locale';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
@@ -10,6 +11,11 @@ import ExternalLink from 'app/components/externalLink';
 import space from 'app/styles/space';
 
 const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
+
+const installText = (features, featureName) =>
+  `# ${t('Enables the %s feature', featureName)}\n${features
+    .map(f => `SENTRY_FEATURES['${f}'] = True`)
+    .join('\n')}`;
 
 /**
  * DisabledInfo renders a component informing that a feature has been disabled.
@@ -21,26 +27,35 @@ const CONFIG_DOCS_URL = 'https://docs.sentry.io/server/config/';
 class FeatureDisabled extends React.Component {
   static propTypes = {
     /**
-     * The feature flag key that should be uwed in the code example for
+     * The feature flag keys that should be awed in the code example for
      * enabling the feature.
      */
-    feature: PropTypes.string,
+    features: PropTypes.arrayOf(PropTypes.string).isRequired,
     /**
-     * The english name of the feature. This is used in the comment that will
+     * The English name of the feature. This is used in the comment that will
      * be outputted above the example line of code to enable the feature.
      */
-    featureName: PropTypes.string,
+    featureName: PropTypes.string.isRequired,
     /**
-     * Render the disabled message within a warning Alert.
+     * Render the disabled message within a warning Alert. A custom Alert
+     * component may be provided.
      *
-     * Attaches additional styles to the FeatureDisabeld component to make it
-     * look nice within the Alert.
+     * Attaches additional styles to the FeatureDisabled component to make it
+     * look consistent within the Alert.
      */
-    alert: PropTypes.bool,
+    alert: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
     /**
-     * Do not show the help toggle.
+     * Do not show the help toggle. The description will always be rendered.
      */
     hideHelpToggle: PropTypes.bool,
+    /**
+     * A custom message to display. Defaults to a generic disabled message.
+     */
+    message: PropTypes.string,
+  };
+
+  static defaultProps = {
+    message: t('This feature is not enabled on your Sentry installation.'),
   };
 
   state = {
@@ -54,12 +69,13 @@ class FeatureDisabled extends React.Component {
 
   render() {
     const {showHelp} = this.state;
-    const {feature, featureName, hideHelpToggle, alert} = this.props;
+    const {message, features, featureName, hideHelpToggle, alert} = this.props;
+    const showDescription = hideHelpToggle || showHelp;
 
     const featureDisabled = (
       <React.Fragment>
-        <Flex justify="space-between">
-          {t('This feature is not enabled on your Sentry installation.')}
+        <Flex justify="space-between" data-test-id="feature-message">
+          {message}
           {!hideHelpToggle && (
             <HelpButton
               icon={showHelp ? 'icon-chevron-down' : 'icon-circle-info'}
@@ -71,7 +87,7 @@ class FeatureDisabled extends React.Component {
             </HelpButton>
           )}
         </Flex>
-        {showHelp && (
+        {showDescription && (
           <HelpDescription>
             <p>
               {tct(
@@ -85,21 +101,22 @@ class FeatureDisabled extends React.Component {
                 }
               )}
             </p>
-            <pre>
-              <code
-              >{`# Enables the ${featureName} feature\nSENTRY_FEATURES['${feature}'] = True`}</code>
+            <pre onClick={e => selectText(e.target)}>
+              <code>{installText(features, featureName)}</code>
             </pre>
           </HelpDescription>
         )}
       </React.Fragment>
     );
 
+    const AlertComponent = alert === true ? Alert : alert;
+
     return !alert ? (
       featureDisabled
     ) : (
-      <StyledAlert type="warning" icon="icon-labs">
-        {featureDisabled}
-      </StyledAlert>
+      <AlertComponent type="warning" icon="icon-lock">
+        <AlertWrapper>{featureDisabled}</AlertWrapper>
+      </AlertComponent>
     );
   }
 }
@@ -116,12 +133,14 @@ const HelpDescription = styled(Box)`
     line-height: 1.5em;
   }
 
-  pre {
+  pre,
+  code {
     margin-bottom: 0;
+    white-space: pre;
   }
 `;
 
-const StyledAlert = styled(Alert)`
+const AlertWrapper = styled('div')`
   /* stylelint-disable-next-line no-duplicate-selectors */
   ${HelpButton} {
     color: #6d6319;

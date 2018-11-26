@@ -230,6 +230,13 @@ export const Release = PropTypes.shape({
   owner: User,
 });
 
+export const Repository = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string,
+  url: PropTypes.string,
+  status: PropTypes.string,
+});
+
 export const NavigationObject = PropTypes.shape({
   name: PropTypes.string,
   items: PropTypes.arrayOf(
@@ -293,6 +300,13 @@ export const PluginsStore = PropTypes.shape({
   pageLinks: PropTypes.any,
 });
 
+export const AuthProvider = PropTypes.shape({
+  key: PropTypes.string,
+  name: PropTypes.string,
+  requiredFeature: PropTypes.string,
+  disables2FA: PropTypes.bool,
+});
+
 export const ProjectDsn = {
   secret: PropTypes.string,
   minidump: PropTypes.string,
@@ -320,6 +334,14 @@ export const ProjectKey = PropTypes.shape({
     url: PropTypes.string,
   }),
   cdnSdkUrl: PropTypes.string,
+});
+
+export const SentryApplication = PropTypes.shape({
+  name: PropTypes.string,
+  slug: PropTypes.string,
+  uuid: PropTypes.string,
+  scopes: PropTypes.arrayOf(PropTypes.string),
+  status: PropTypes.string,
 });
 
 export const EChartsData = PropTypes.arrayOf(
@@ -820,6 +842,7 @@ let SentryTypes = {
     id: PropTypes.string.isRequired,
   }),
   Actor,
+  AuthProvider,
   Config,
   Deploy,
   DiscoverSavedQuery,
@@ -845,7 +868,9 @@ let SentryTypes = {
   PluginsStore,
   ProjectKey,
   Release,
+  Repository,
   User,
+  SentryApplication,
 
   // echarts prop types
   EChartsSeries,

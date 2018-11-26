@@ -4,10 +4,27 @@ import six
 
 from datetime import datetime
 from django.utils import timezone
-
 from semaphore import meta_with_chunks
-from sentry.api.serializers import Serializer, register
-from sentry.models import Event, EventError
+
+from sentry.api.serializers import Serializer, register, serialize
+from sentry.models import Event, EventError, EventAttachment
+from sentry.utils.safe import get_path
+
+
+CRASH_FILE_TYPES = set(['event.minidump'])
+
+
+def get_crash_files(events):
+    event_ids = [x.event_id for x in events if x.platform == 'native']
+    rv = {}
+    if event_ids:
+        attachments = EventAttachment.objects.filter(
+            event_id__in=event_ids,
+        ).select_related('file')
+        for attachment in attachments:
+            if attachment.file.type in CRASH_FILE_TYPES:
+                rv[attachment.event_id] = attachment
+    return rv
 
 
 @register(Event)
@@ -33,7 +50,7 @@ class EventSerializer(Serializer):
 
             entry = {
                 'data': data,
-                'type': interface.get_alias(),
+                'type': interface.external_type,
             }
 
             api_meta = None
@@ -69,13 +86,13 @@ class EventSerializer(Serializer):
         return (data, meta_with_chunks(data, api_meta))
 
     def _get_tags_with_meta(self, event):
-        meta = (event.data.get('_meta') or {}).get('tags') or {}
+        meta = get_path(event.data, '_meta', 'tags') or {}
 
         tags = sorted(
             [{
                 'key': k.split('sentry:', 1)[-1],
                 'value': v,
-                '_meta': meta.get(k) or meta.get(six.text_type(i), {}).get('1') or None,
+                '_meta': meta.get(k) or get_path(meta, six.text_type(i), '1') or None,
             } for i, (k, v) in enumerate(event.data.get('tags') or ())],
             key=lambda x: x['key']
         )
@@ -89,27 +106,29 @@ class EventSerializer(Serializer):
 
     def _get_attr_with_meta(self, event, attr, default=None):
         value = event.data.get(attr, default)
-        meta = (event.data.get('_meta') or {}).get(attr)
+        meta = get_path(event.data, '_meta', attr)
         return (value, meta_with_chunks(value, meta))
 
-    def _get_message_with_meta(self, event):
-        meta = event.data.get('_meta') or {}
+    def _get_legacy_message_with_meta(self, event):
+        meta = event.data.get('_meta')
 
-        if 'logentry' not in event.data:
+        message = get_path(event.data, 'logentry', 'formatted')
+        msg_meta = get_path(meta, 'logentry', 'formatted')
+
+        if not message:
+            message = get_path(event.data, 'logentry', 'message')
+            msg_meta = get_path(meta, 'logentry', 'message')
+
+        if not message:
             message = event.message
-            msg_meta = meta.get('message')
-        elif 'formatted' in event.data['logentry']:
-            message = event.data['logentry']['formatted']
-            msg_meta = meta.get('logentry', {}).get('formatted')
-        else:
-            message = event.data['logentry']['message']
-            msg_meta = meta.get('logentry', {}).get('message')
+            msg_meta = None
 
         return (message, meta_with_chunks(message, msg_meta))
 
     def get_attrs(self, item_list, user, is_public=False):
         Event.objects.bind_nodes(item_list, 'data')
 
+        crash_files = get_crash_files(item_list)
         results = {}
         for item in item_list:
             # TODO(dcramer): convert to get_api_context
@@ -119,11 +138,14 @@ class EventSerializer(Serializer):
 
             (entries, entries_meta) = self._get_entries(item, user, is_public=is_public)
 
+            crash_file = crash_files.get(item.event_id)
+
             results[item] = {
                 'entries': entries,
                 'user': user_data,
                 'contexts': contexts_data or {},
                 'sdk': sdk_data,
+                'crash_file': serialize(crash_file, user=user),
                 '_meta': {
                     'entries': entries_meta,
                     'user': user_meta,
@@ -144,7 +166,7 @@ class EventSerializer(Serializer):
             }
             errors.append(error_result)
 
-        (message, message_meta) = self._get_message_with_meta(obj)
+        (message, message_meta) = self._get_legacy_message_with_meta(obj)
         (tags, tags_meta) = self._get_tags_with_meta(obj)
         (context, context_meta) = self._get_attr_with_meta(obj, 'extra', {})
         (packages, packages_meta) = self._get_attr_with_meta(obj, 'modules', {})
@@ -160,11 +182,6 @@ class EventSerializer(Serializer):
             except TypeError:
                 received = None
 
-        from sentry.event_manager import (
-            get_hashes_from_fingerprint,
-            md5_from_hash,
-        )
-
         # TODO(dcramer): move release serialization here
         d = {
             'id': six.text_type(obj.id),
@@ -177,6 +194,7 @@ class EventSerializer(Serializer):
             'message': message,
             'user': attrs['user'],
             'contexts': attrs['contexts'],
+            'crashFile': attrs['crash_file'],
             'sdk': attrs['sdk'],
             # TODO(dcramer): move into contexts['extra']
             'context': context,
@@ -188,10 +206,7 @@ class EventSerializer(Serializer):
             'dateCreated': obj.datetime,
             'dateReceived': received,
             'errors': errors,
-            'fingerprints': [
-                md5_from_hash(h)
-                for h in get_hashes_from_fingerprint(obj, obj.data.get('fingerprint', ['{{ default }}']))
-            ],
+            'fingerprints': obj.get_hashes(),
             '_meta': {
                 'entries': attrs['_meta']['entries'],
                 'message': message_meta,
@@ -238,6 +253,7 @@ class SnubaEvent(object):
         'message',
         'user_id',
         'username',
+        'ip_address',
         'email',
         'timestamp',
     ]
@@ -265,5 +281,6 @@ class SnubaEventSerializer(Serializer):
                 'id': obj.user_id,
                 'email': obj.email,
                 'username': obj.username,
+                'ipAddress': obj.ip_address,
             }
         }

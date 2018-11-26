@@ -2,10 +2,8 @@ import React from 'react';
 import {MultiGrid, AutoSizer} from 'react-virtualized';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
-import AutoSelectText from 'app/components/autoSelectText';
 import Link from 'app/components/link';
 import Tooltip from 'app/components/tooltip';
 import InlineSvg from 'app/components/inlineSvg';
@@ -20,7 +18,7 @@ const MAX_COL_WIDTH = 500;
 const LINK_COL_WIDTH = 40;
 const CELL_PADDING = 20;
 const MIN_VISIBLE_ROWS = 6;
-const MAX_VISIBLE_ROWS = 24;
+const MAX_VISIBLE_ROWS = 30;
 const OTHER_ELEMENTS_HEIGHT = 70; // pagination buttons, query summary
 
 /**
@@ -32,15 +30,20 @@ export default class ResultTable extends React.Component {
     data: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired,
     height: PropTypes.number,
+    width: PropTypes.number,
   };
 
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
 
-  componentWillReceiveProps(nextProps) {
-    if (this.props.data.meta !== nextProps.data.meta) {
+  componentDidUpdate(prevProps) {
+    if (this.props.data.meta !== prevProps.data.meta) {
       this.grid.recomputeGridSize();
+    }
+
+    if (this.props.width !== prevProps.width) {
+      this.forceUpdate(() => this.grid.recomputeGridSize());
     }
   }
 
@@ -77,22 +80,19 @@ export default class ResultTable extends React.Component {
 
     return (
       <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} align={align}>
-        <AutoSelectText>{value}</AutoSelectText>
+        {value}
       </Cell>
     );
   };
 
   getLink = event => {
     const {slug, projects} = this.context.organization;
-    const projectSlug = projects.find(project => project.id === `${event.project_id}`)
+    const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
       .slug;
 
     return (
       <Tooltip title={t('Open event')} tooltipOptions={{container: 'body'}}>
-        <Link
-          to={`/${slug}/${projectSlug}/issues/?query=${event.event_id}`}
-          target="_blank"
-        >
+        <Link to={`/${slug}/${projectSlug}/issues/?query=${event.id}`} target="_blank">
           <InlineSvg src="icon-exit" size="1em" />
         </Link>
       </Tooltip>
@@ -197,8 +197,9 @@ export default class ResultTable extends React.Component {
     context.font = isHeader ? 'bold 14px Rubik' : 'normal 14px Rubik';
 
     // The measureText function sometimes slightly miscalculates text width.
-    // Add 1px to compensate since we want to avoid rows breaking unnecessarily.
-    return Math.ceil(context.measureText(text).width) + 1;
+    // Add 5px to compensate since we want to avoid rows breaking unnecessarily.
+    // (better to over than under estimate)
+    return Math.ceil(context.measureText(text).width) + 5;
   };
 
   getMaxVisibleRows = elementHeight => {
@@ -254,6 +255,7 @@ export default class ResultTable extends React.Component {
                 rowHeight={({index}) => this.getRowHeight(index, columnsToCheck)}
                 columnWidth={({index}) => columnWidths[index]}
                 cellRenderer={this.cellRenderer}
+                overscanByPixels={800}
               />
             );
           }}

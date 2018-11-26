@@ -1,9 +1,15 @@
 from __future__ import absolute_import, print_function
 
 from django.db import models
+from django.db.models.signals import post_save
 from django.utils import timezone
 
-from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr
+)
 from sentry.utils.groupreference import find_referenced_groups
 
 
@@ -33,6 +39,26 @@ class PullRequest(Model):
     def find_referenced_groups(self):
         text = u'{} {}'.format(self.message, self.title)
         return find_referenced_groups(text, self.organization_id)
+
+    @classmethod
+    def create_or_save(cls, organization_id, repository_id, key, values):
+        """
+        Wraps create_or_update and ensures post_save signals are fired
+        for updated records as GroupLink functionality is dependent
+        on signals being fired.
+        """
+        affected, created = cls.objects.create_or_update(
+            organization_id=organization_id,
+            repository_id=repository_id,
+            key=key,
+            values=values)
+        if created is False:
+            instance = cls.objects.get(
+                organization_id=organization_id,
+                repository_id=repository_id,
+                key=key)
+            post_save.send(sender=cls, instance=instance, created=created)
+        return affected, created
 
 
 class PullRequestCommit(Model):
