@@ -14,7 +14,7 @@ import six
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils import json
-from sentry.utils.safe import trim
+from sentry.utils.safe import get_path, trim
 from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
 
 
@@ -52,9 +52,8 @@ class Breadcrumbs(Interface):
     @classmethod
     def to_python(cls, data):
         values = []
-        for crumb in data.get('values') or ():
-            if crumb is None:
-                continue
+        for index, crumb in enumerate(get_path(data, 'values', filter=True, default=())):
+            # TODO(ja): Handle already invalid and None breadcrumbs
 
             try:
                 values.append(cls.normalize_crumb(crumb))

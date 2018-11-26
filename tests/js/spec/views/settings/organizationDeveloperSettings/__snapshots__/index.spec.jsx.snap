@@ -398,6 +398,9 @@ exports[`Organization Developer Settings when Apps exist displays all Apps owned
                                                     "backgroundLight": "#ECBFA6",
                                                     "border": "#D0816D",
                                                   },
+                                                  "beta": Object {
+                                                    "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
+                                                  },
                                                   "default": Object {
                                                     "background": "#BDB4C7",
                                                     "backgroundLight": "#FAF9FB",
@@ -642,6 +645,9 @@ exports[`Organization Developer Settings when Apps exist displays all Apps owned
                                                             "background": "#F09E71",
                                                             "backgroundLight": "#ECBFA6",
                                                             "border": "#D0816D",
+                                                          },
+                                                          "beta": Object {
+                                                            "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
                                                           },
                                                           "default": Object {
                                                             "background": "#BDB4C7",
@@ -919,6 +925,9 @@ exports[`Organization Developer Settings when Apps exist displays all Apps owned
                                                     "backgroundLight": "#ECBFA6",
                                                     "border": "#D0816D",
                                                   },
+                                                  "beta": Object {
+                                                    "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
+                                                  },
                                                   "default": Object {
                                                     "background": "#BDB4C7",
                                                     "backgroundLight": "#FAF9FB",
@@ -1155,6 +1164,9 @@ exports[`Organization Developer Settings when Apps exist displays all Apps owned
                                                       "background": "#F09E71",
                                                       "backgroundLight": "#ECBFA6",
                                                       "border": "#D0816D",
+                                                    },
+                                                    "beta": Object {
+                                                      "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
                                                     },
                                                     "default": Object {
                                                       "background": "#BDB4C7",
@@ -1394,6 +1406,9 @@ exports[`Organization Developer Settings when Apps exist displays all Apps owned
                                                         "background": "#F09E71",
                                                         "backgroundLight": "#ECBFA6",
                                                         "border": "#D0816D",
+                                                      },
+                                                      "beta": Object {
+                                                        "background": "linear-gradient(90deg, #F868BC, #6C5FC7)",
                                                       },
                                                       "default": Object {
                                                         "background": "#BDB4C7",

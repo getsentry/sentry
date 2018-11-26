@@ -11,6 +11,8 @@ class SnubaEventStream(EventStream):
             'group_id': event.group_id,
             'event_id': event.event_id,
             'project_id': event.project_id,
+            # TODO(mitsuhiko): We do not want to send this incorrect
+            # message but this is what snuba needs at the moment.
             'message': event.message,
             'platform': event.platform,
             'datetime': event.datetime,

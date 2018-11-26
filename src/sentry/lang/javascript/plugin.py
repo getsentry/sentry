@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 from sentry.plugins import Plugin2
 from sentry.stacktraces import find_stacktraces_in_data
+from sentry.utils.safe import get_path
 
 from .processor import JavaScriptStacktraceProcessor
 from .errormapping import rewrite_exception
@@ -20,7 +21,7 @@ def generate_modules(data):
     from sentry.lang.javascript.processor import generate_module
 
     for info in find_stacktraces_in_data(data):
-        for frame in info.stacktrace['frames']:
+        for frame in get_path(info.stacktrace, 'frames', filter=True, default=()):
             platform = frame.get('platform') or data['platform']
             if platform not in ('javascript', 'node') or frame.get('module'):
                 continue
@@ -30,8 +31,7 @@ def generate_modules(data):
 
 
 def fix_culprit(data):
-    exc = data.get('exception')
-    if not exc:
+    if not get_path(data, 'exception', 'values', filter=True):
         return
 
     from sentry.event_manager import generate_culprit

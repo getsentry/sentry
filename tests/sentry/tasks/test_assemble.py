@@ -6,6 +6,8 @@ from hashlib import sha1
 
 from django.core.files.base import ContentFile
 
+from six.moves import xrange
+
 from sentry.testutils import TestCase
 from sentry.tasks.assemble import assemble_dif, assemble_file
 from sentry.models import FileBlob, FileBlobOwner

@@ -136,7 +136,7 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
 class InstallationForm(forms.Form):
     url = forms.CharField(
         label="Installation Url",
-        help_text=_('The "base URL" for your github enterprise instance, '
+        help_text=_('The "base URL" for your GitHub enterprise instance, '
                     'includes the host and protocol.'),
         widget=forms.TextInput(
             attrs={'placeholder': _('https://github.example.com')}

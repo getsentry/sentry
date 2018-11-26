@@ -137,6 +137,40 @@ class BitbucketIssueTest(APITestCase):
         assert repo_field['default'] == 'myaccount/repo1'
 
     @responses.activate
+    def test_default_repo_link_fields_no_repos(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/myaccount',
+            body=b"""{
+                "values": []
+            }""",
+            content_type='application/json',
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        fields = installation.get_link_issue_config(self.group)
+        repo_field = [field for field in fields if field['name'] == 'repo'][0]
+        assert repo_field['default'] == ''
+        assert repo_field['choices'] == []
+
+    @responses.activate
+    def test_default_repo_create_fields_no_repos(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/myaccount',
+            body=b"""{
+                "values": []
+            }""",
+            content_type='application/json',
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        fields = installation.get_create_issue_config(self.group)
+        repo_field = [field for field in fields if field['name'] == 'repo'][0]
+        assert repo_field['default'] == ''
+        assert repo_field['choices'] == []
+
+    @responses.activate
     def test_get_create_issue_config(self):
         responses.add(
             responses.GET,

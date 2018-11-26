@@ -122,7 +122,7 @@ register('slack.client-id', flags=FLAG_PRIORITIZE_DISK)
 register('slack.client-secret', flags=FLAG_PRIORITIZE_DISK)
 register('slack.verification-token', flags=FLAG_PRIORITIZE_DISK)
 
-# Github Integration
+# GitHub Integration
 register('github-app.id', default=0)
 register('github-app.name', default='')
 register('github-app.webhook-secret', default='')

@@ -58,7 +58,8 @@ from sentry.utils.data_filters import (
 )
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
-from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
+from sentry.utils.meta import Meta
+from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path, setdefault_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
@@ -97,8 +98,6 @@ def get_event_metadata_compat(data, fallback_message):
     """
     etype = data.get('type') or 'default'
     if 'metadata' not in data:
-        data = dict(data)
-        data['logentry'] = {'formatted': fallback_message}
         return eventtypes.get(etype)(data).get_metadata()
     return data['metadata']
 
@@ -224,14 +223,12 @@ else:
 
 
 def generate_culprit(data, platform=None):
-    try:
-        stacktraces = [
-            e['stacktrace'] for e in data['exception']['values']
-            if e and e.get('stacktrace')
-        ]
-    except KeyError:
+    exceptions = get_path(data, 'exception', 'values')
+    if exceptions:
+        stacktraces = [e['stacktrace'] for e in exceptions if get_path(e, 'stacktrace', 'frames')]
+    else:
         stacktrace = data.get('stacktrace')
-        if stacktrace:
+        if stacktrace and stacktrace.get('frames'):
             stacktraces = [stacktrace]
         else:
             stacktraces = None
@@ -244,8 +241,8 @@ def generate_culprit(data, platform=None):
             platform=platform,
         )
 
-    if not culprit and 'request' in data:
-        culprit = data['request'].get('url', '')
+    if not culprit and data.get('request'):
+        culprit = get_path(data, 'request', 'url')
 
     return truncatechars(culprit or '', MAX_CULPRIT_LENGTH)
 
@@ -536,15 +533,19 @@ class EventManager(object):
             'threads': to_values,
         }
 
+        meta = Meta(data.get('_meta'))
+
         for c in casts:
-            if c in data:
+            if data.get(c) is not None:
                 try:
                     data[c] = casts[c](data[c])
                 except InvalidTimestamp as it:
                     errors.append({'type': it.args[0], 'name': c, 'value': data[c]})
+                    meta.enter(c).add_error(it, data[c])
                     del data[c]
                 except Exception as e:
                     errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
+                    meta.enter(c).add_error(e, data[c])
                     del data[c]
 
         # raw 'message' is coerced to the Message interface.  Longer term
@@ -561,32 +562,21 @@ class EventManager(object):
         msg_str = data.pop('message', None)
         if msg_str:
             msg_if = data.get('logentry')
-            msg_meta = data.get('_meta', {}).get('message')
 
             if not msg_if:
                 msg_if = data['logentry'] = {'message': msg_str}
-                if msg_meta:
-                    data.setdefault('_meta', {}).setdefault('logentry', {})['message'] = msg_meta
+                meta.enter('logentry', 'message').merge(meta.enter('message'))
 
-            if msg_if.get('message') != msg_str:
-                if not msg_if.get('formatted'):
-                    msg_if['formatted'] = msg_str
-                    if msg_meta:
-                        data.setdefault('_meta', {}).setdefault(
-                            'logentry', {})['formatted'] = msg_meta
+            if msg_if.get('message') != msg_str and not msg_if.get('formatted'):
+                msg_if['formatted'] = msg_str
+                meta.enter('logentry', 'formatted').merge(meta.enter('message'))
 
         # Fill in ip addresses marked as {{auto}}
         if self._client_ip:
-            if get_path(data, ['request', 'env', 'REMOTE_ADDR']) == '{{auto}}':
+            if get_path(data, 'request', 'env', 'REMOTE_ADDR') == '{{auto}}':
                 data['request']['env']['REMOTE_ADDR'] = self._client_ip
 
-            if get_path(data, ['request', 'env', 'REMOTE_ADDR']) == '{{auto}}':
-                data['request']['env']['REMOTE_ADDR'] = self._client_ip
-
-            if get_path(data, ['user', 'ip_address']) == '{{auto}}':
-                data['user']['ip_address'] = self._client_ip
-
-            if get_path(data, ['user', 'ip_address']) == '{{auto}}':
+            if get_path(data, 'user', 'ip_address') == '{{auto}}':
                 data['user']['ip_address'] = self._client_ip
 
         # Validate main event body and tags against schema.
@@ -594,7 +584,7 @@ class EventManager(object):
         #          in the inner data dict.
         is_valid, event_errors = validate_and_default_interface(data.data, 'event')
         errors.extend(event_errors)
-        if 'tags' in data:
+        if data.get('tags') is not None:
             is_valid, tag_errors = validate_and_default_interface(data['tags'], 'tags', name='tags')
             errors.extend(tag_errors)
 
@@ -624,6 +614,7 @@ class EventManager(object):
                     e, InterfaceValidationError) else logger.error
                 log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
                 errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
+                meta.enter(k).add_error(e, value)
 
         # Additional data coercion and defaulting we only do for store.
         if self._for_store:
@@ -656,16 +647,16 @@ class EventManager(object):
             data['timestamp'] = timestamp
             data['received'] = float(timezone.now().strftime('%s'))
 
-            data.setdefault('checksum', None)
-            data.setdefault('culprit', None)
-            data.setdefault('dist', None)
-            data.setdefault('environment', None)
-            data.setdefault('extra', {})
-            data.setdefault('fingerprint', None)
-            data.setdefault('logger', DEFAULT_LOGGER_NAME)
-            data.setdefault('platform', None)
-            data.setdefault('tags', [])
-            data.setdefault('transaction', None)
+            setdefault_path(data, 'checksum', value=None)
+            setdefault_path(data, 'culprit', value=None)
+            setdefault_path(data, 'dist', value=None)
+            setdefault_path(data, 'environment', value=None)
+            setdefault_path(data, 'extra', value={})
+            setdefault_path(data, 'fingerprint', value=None)
+            setdefault_path(data, 'logger', value=DEFAULT_LOGGER_NAME)
+            setdefault_path(data, 'platform', value=None)
+            setdefault_path(data, 'tags', value=[])
+            setdefault_path(data, 'transaction', value=None)
 
             # Fix case where legacy apps pass 'environment' as a tag
             # instead of a top level key.
@@ -682,37 +673,41 @@ class EventManager(object):
             data['type'] = eventtypes.infer(data).key
             data['version'] = self.version
 
-        exception = data.get('exception')
+        exceptions = get_path(data, 'exception', 'values', filter=True)
         stacktrace = data.get('stacktrace')
-        if exception and len(exception['values']) == 1 and stacktrace:
-            exception['values'][0]['stacktrace'] = stacktrace
+        if stacktrace and exceptions and len(exceptions) == 1:
+            exceptions[0]['stacktrace'] = stacktrace
+            stacktrace_meta = meta.enter('stacktrace')
+            meta.enter('exception', 'values', 0, 'stacktrace').merge(stacktrace_meta)
             del data['stacktrace']
+            # TODO(ja): Remove meta data of data['stacktrace'] here, too
 
         # Exception mechanism needs SDK information to resolve proper names in
         # exception meta (such as signal names). "SDK Information" really means
         # the operating system version the event was generated on. Some
         # normalization still works without sdk_info, such as mach_exception
         # names (they can only occur on macOS).
-        if exception:
+        if exceptions:
             sdk_info = get_sdk_from_event(data)
-            for ex in exception['values']:
-                if ex is not None and 'mechanism' in ex:
+            for ex in exceptions:
+                if 'mechanism' in ex:
                     normalize_mechanism_meta(ex['mechanism'], sdk_info)
 
         # This function parses the User Agent from the request if present and fills
         # contexts with it.
         normalize_user_agent(data)
 
-        # If there is no User ip_addres, update it either from the Http interface
-        # or the client_ip of the request.
-        is_public = self._auth and self._auth.is_public
-        add_ip_platforms = ('javascript', 'cocoa', 'objc')
+        if not get_path(data, "user", "ip_address"):
+            # If there is no User ip_address, update it either from the Http
+            # interface or the client_ip of the request.
+            is_public = self._auth and self._auth.is_public
+            add_ip_platforms = ('javascript', 'cocoa', 'objc')
 
-        http_ip = data.get('request', {}).get('env', {}).get('REMOTE_ADDR')
-        if http_ip:
-            data.setdefault('user', {}).setdefault('ip_address', http_ip)
-        elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
-            data.setdefault('user', {}).setdefault('ip_address', self._client_ip)
+            http_ip = get_path(data, 'request', 'env', 'REMOTE_ADDR')
+            if http_ip:
+                set_path(data, 'user', 'ip_address', value=http_ip)
+            elif self._client_ip and (is_public or data.get('platform') in add_ip_platforms):
+                set_path(data, 'user', 'ip_address', value=self._client_ip)
 
         # Trim values
         if data.get('logger'):
@@ -738,7 +733,12 @@ class EventManager(object):
 
         # Do not add errors unless there are for non store mode
         if not self._for_store and not data.get('errors'):
-            self._data.pop('errors')
+            data.pop('errors')
+
+        if meta.raw():
+            data['_meta'] = meta.raw()
+        elif '_meta' in data:
+            del data['_meta']
 
     def should_filter(self):
         '''
@@ -760,20 +760,15 @@ class EventManager(object):
         if release and not is_valid_release(self._project, release):
             return (True, FilterStatKeys.RELEASE_VERSION)
 
-        message_interface = self._data.get('logentry', {})
-        error_message = message_interface.get('formatted', '') or message_interface.get(
-            'message', ''
-        )
+        error_message = get_path(self._data, 'logentry', 'formatted') \
+            or get_path(self._data, 'logentry', 'message') \
+            or ''
         if error_message and not is_valid_error_message(self._project, error_message):
             return (True, FilterStatKeys.ERROR_MESSAGE)
 
-        for exception_interface in self._data.get(
-            'exception', {}
-        ).get('values', []):
-            if exception_interface is None:
-                continue
+        for exc in get_path(self._data, 'exception', 'values', filter=True, default=[]):
             message = u': '.join(
-                filter(None, map(exception_interface.get, ['type', 'value']))
+                filter(None, map(exc.get, ['type', 'value']))
             )
             if message and not is_valid_error_message(self._project, message):
                 return (True, FilterStatKeys.ERROR_MESSAGE)
@@ -833,7 +828,7 @@ class EventManager(object):
         data = self._data
         message = ''
 
-        if 'logentry' in data:
+        if data.get('logentry'):
             message += (data['logentry'].get('formatted') or
                         data['logentry'].get('message') or '')
 
