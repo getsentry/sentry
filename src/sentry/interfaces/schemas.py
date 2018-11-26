@@ -271,6 +271,7 @@ TEMPLATE_INTERFACE_SCHEMA = {
             'items': {'type': 'string'}
         },
     },
+    'required': ['lineno', 'context_line'],
     'additionalProperties': False,
 }
 MESSAGE_INTERFACE_SCHEMA = {'type': 'object'}
