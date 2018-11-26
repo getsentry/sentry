@@ -1,16 +1,21 @@
 from __future__ import absolute_import
 
 import responses
+import pytest
+import six
 
 from exam import fixture
 from sentry.models import Integration, Repository
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, IntegrationRepositoryTestCase
 from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
+from sentry.integrations.exceptions import IntegrationError
 from .testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH, REPO
 
 
 class BitbucketRepositoryProviderTest(TestCase):
+
     def setUp(self):
+        super(BitbucketRepositoryProviderTest, self).setUp()
         self.base_url = 'https://api.bitbucket.org'
         self.shared_secret = '234567890'
         self.subject = 'connect:1234567'
@@ -99,6 +104,7 @@ class BitbucketRepositoryProviderTest(TestCase):
                 'shared_secret': '23456789',
             }
         )
+        integration.add_organization(organization)
         data = {
             'provider': 'integrations:bitbucket',
             'identifier': full_repo_name,
@@ -128,3 +134,71 @@ class BitbucketRepositoryProviderTest(TestCase):
     def test_repository_external_slug(self):
         result = self.provider.repository_external_slug(self.repo)
         assert result == self.repo.name
+
+    def test_get_repository_data_no_installation_id(self):
+        with pytest.raises(IntegrationError) as e:
+            self.provider.get_repository_data(self.organization, {})
+            assert 'requires an integration id' in six.text_type(e)
+
+
+class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
+    provider_name = 'integrations:bitbucket'
+
+    def setUp(self):
+        super(BitbucketCreateRepositoryTestCase, self).setUp()
+        self.base_url = 'https://api.bitbucket.org'
+        self.shared_secret = '234567890'
+        self.subject = 'connect:1234567'
+        self.integration = Integration.objects.create(
+            provider='bitbucket',
+            external_id=self.subject,
+            name='MyBitBucket',
+            metadata={
+                'base_url': self.base_url,
+                'shared_secret': self.shared_secret,
+                'subject': self.subject,
+            }
+        )
+        self.integration.get_provider().setup()
+        self.integration.add_organization(self.organization, self.user)
+        self.repo = Repository.objects.create(
+            provider='bitbucket',
+            name='sentryuser/newsdiffs',
+            organization_id=self.organization.id,
+            config={
+                'name': 'sentryuser/newsdiffs',
+            },
+            integration_id=self.integration.id,
+        )
+        self.default_repository_config = {
+            'full_name': 'getsentry/example-repo',
+            'id': '123',
+        }
+
+    def add_create_repository_responses(self, repository_config):
+        responses.add(
+            responses.GET,
+            '%s/2.0/repositories/%s' % (self.base_url, self.repo.name),
+            json=repository_config,
+        )
+        responses.add(
+            responses.POST,
+            u'%s/2.0/repositories/%s/hooks' % (self.base_url, self.repo.name),
+            json={'uuid': '99'}
+        )
+
+    def test_create_repository_data_no_installation_id(self):
+        response = self.create_repository(self.default_repository_config, None)
+        assert response.status_code == 400
+        self.assert_error_message(response, 'validation', 'requires an integration id')
+
+    def test_create_repository_data_integration_does_not_exist(self):
+        integration_id = self.integration.id
+        self.integration.delete()
+
+        response = self.create_repository(self.default_repository_config, integration_id)
+        assert response.status_code == 404
+        self.assert_error_message(
+            response,
+            'not found',
+            'Integration matching query does not exist.')

@@ -4,6 +4,7 @@ import six
 
 from sentry.plugins import providers
 from sentry.models import Integration
+from sentry.integrations.exceptions import IntegrationError
 
 MAX_COMMIT_DATA_REQUESTS = 90
 
@@ -13,17 +14,18 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:
-            raise ValueError('%s requires an integration_id' % self.name)
+            raise IntegrationError('%s requires an integration id.' % self.name)
 
-        try:
-            integration_model = Integration.objects.get(id=integration_id)
-        except Integration.DoesNotExist as error:
-            self.handle_api_error(error)
+        integration_model = Integration.objects.get(
+            id=integration_id,
+            organizations=organization_id,
+            provider='vsts',
+        )
 
         return integration_model.get_installation(organization_id)
 
     def get_repository_data(self, organization, config):
-        installation = self.get_installation(config['installation'], organization.id)
+        installation = self.get_installation(config.get('installation'), organization.id)
         client = installation.get_client()
         instance = installation.instance
 
