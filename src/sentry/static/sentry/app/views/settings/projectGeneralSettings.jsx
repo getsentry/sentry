@@ -236,7 +236,7 @@ class ProjectGeneralSettings extends AsyncView {
         {!access.has('project:write') && (
           <Alert type="warning" icon="icon-warning-sm">
             {t(
-              "You do not have sufficent permissions to make changes to this Project's settings."
+              'These settings can only be edited by users with the owner, manager, or admin role.'
             )}
           </Alert>
         )}
