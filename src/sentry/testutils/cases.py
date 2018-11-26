@@ -843,9 +843,6 @@ class SnubaTestCase(TestCase):
         doesn't run them through the 'real' event pipeline. In a perfect
         world all test events would go through the full regular pipeline.
         """
-
-        from sentry.event_manager import get_hashes_from_fingerprint, md5_from_hash
-
         event = super(SnubaTestCase, self).create_event(*args, **kwargs)
 
         data = event.data.data
@@ -865,11 +862,7 @@ class SnubaTestCase(TestCase):
                 group_id=event.group_id,
             )
 
-        hashes = get_hashes_from_fingerprint(
-            event,
-            data.get('fingerprint', ['{{ default }}']),
-        )
-        primary_hash = md5_from_hash(hashes[0])
+        primary_hash = event.get_primary_hash()
 
         grouphash, _ = GroupHash.objects.get_or_create(
             project=event.project,
