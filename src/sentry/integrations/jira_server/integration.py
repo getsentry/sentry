@@ -283,6 +283,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
             client.create_issue_webhook(external_id, webhook_secret, credentials)
         except ApiError as err:
             logger.info('jira-server.webhook.failed', extra={
-                'error': six.text_type(err)
+                'error': six.text_type(err),
+                'external_id': external_id,
             })
             raise IntegrationError('Could not create issue webhook in Jira')
