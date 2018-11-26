@@ -53,8 +53,16 @@ def prune_empty_keys(obj):
     if obj is None:
         return None
 
-    # eliminate empty values for serialization to compress the keyspace
+    # eliminate None values for serialization to compress the keyspace
     # and save (seriously) ridiculous amounts of bytes
+    #
+    # Do not coerce empty arrays/dicts or other "falsy" values here to None,
+    # but rather deal with them case-by-case before calling `prune_empty_keys`
+    # (e.g. in `Interface.to_json`). Rarely, but sometimes, there's a slight
+    # semantic difference between empty containers and a missing value. One
+    # example would be `event.logenty.formatted`, where `{}` means "this
+    # message has no params" and `None` means "this message is already
+    # formatted".
     return dict((k, v) for k, v in six.iteritems(obj) if v is not None)
 
 
