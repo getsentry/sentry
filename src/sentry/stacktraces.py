@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 import logging
 from datetime import datetime
+from django.utils import timezone
 
 from collections import namedtuple
 
@@ -118,7 +119,7 @@ class StacktraceProcessor(object):
             return Release.get(project=self.project, version=self.data['release'])
         timestamp = self.data.get('timestamp')
         if timestamp is not None:
-            date = datetime.fromtimestamp(timestamp)
+            date = datetime.fromtimestamp(timestamp).replace(tzinfo=timezone.utc)
         else:
             date = None
         return Release.get_or_create(
