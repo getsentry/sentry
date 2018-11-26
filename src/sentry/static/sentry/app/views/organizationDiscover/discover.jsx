@@ -5,7 +5,9 @@ import {browserHistory} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
+import {updateProjects} from 'app/actionCreators/globalSelection';
 import {t, tct} from 'app/locale';
+
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
@@ -77,7 +79,13 @@ export default class OrganizationDiscover extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    const {queryBuilder, location: {search}, savedQuery, isEditingSavedQuery} = nextProps;
+    const {
+      queryBuilder,
+      location: {search},
+      savedQuery,
+      isEditingSavedQuery,
+      params,
+    } = nextProps;
     const currentSearch = this.props.location.search;
     const {resultManager} = this.state;
 
@@ -96,7 +104,7 @@ export default class OrganizationDiscover extends React.Component {
     }
 
     // Clear data only if location.search is empty (reset has been called)
-    if (!search) {
+    if (!search && !params.savedQueryId) {
       const newQuery = getQueryFromQueryString(search);
       queryBuilder.reset(newQuery);
       resultManager.reset();
@@ -105,6 +113,11 @@ export default class OrganizationDiscover extends React.Component {
       });
     }
   }
+
+  updateProjects = val => {
+    this.updateField('projects', val);
+    updateProjects(val);
+  };
 
   updateField = (field, value) => {
     this.props.queryBuilder.updateField(field, value);
@@ -344,7 +357,7 @@ export default class OrganizationDiscover extends React.Component {
               value={currentQuery.projects}
               organization={organization}
               projects={projects}
-              onChange={val => this.updateField('projects', val)}
+              onChange={this.updateProjects}
               onUpdate={this.runQuery}
             />
           </HeaderItemPosition>
@@ -378,7 +391,7 @@ export default class OrganizationDiscover extends React.Component {
                 <div>
                   <HeadingContainer>
                     <Heading>
-                      {t('Discover')}  <BetaTag />
+                      {t('Discover')} <BetaTag />
                     </Heading>
                   </HeadingContainer>
                 </div>

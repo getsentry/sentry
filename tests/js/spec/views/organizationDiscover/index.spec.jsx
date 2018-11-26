@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {mount} from 'enzyme';
 
-import OrganizationDiscoverContainer from 'app/views/organizationDiscover';
+import {OrganizationDiscoverContainer} from 'app/views/organizationDiscover';
 
 describe('OrganizationDiscoverContainer', function() {
   afterEach(function() {
@@ -24,7 +24,11 @@ describe('OrganizationDiscoverContainer', function() {
         },
       });
       wrapper = mount(
-        <OrganizationDiscoverContainer location={{query: {}, search: ''}} params={{}} />,
+        <OrganizationDiscoverContainer
+          location={{query: {}, search: ''}}
+          params={{}}
+          selection={{}}
+        />,
         TestStubs.routerContext([{organization}])
       );
       await tick();
@@ -64,6 +68,7 @@ describe('OrganizationDiscoverContainer', function() {
         <OrganizationDiscoverContainer
           location={{query: {}, search: ''}}
           params={{savedQueryId: 1}}
+          selection={{}}
         />,
         {
           ...TestStubs.routerContext([{organization}, {organization: PropTypes.object}]),
@@ -99,7 +104,11 @@ describe('OrganizationDiscoverContainer', function() {
     it('display coming soon message', async function() {
       const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
       const wrapper = mount(
-        <OrganizationDiscoverContainer location={{query: {}, search: ''}} params={{}} />,
+        <OrganizationDiscoverContainer
+          location={{query: {}, search: ''}}
+          params={{}}
+          selection={{}}
+        />,
         TestStubs.routerContext([{organization}])
       );
       expect(wrapper.text()).toBe('something is happening here soon :)');
