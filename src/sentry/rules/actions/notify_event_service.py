@@ -84,7 +84,7 @@ class NotifyEventServiceAction(EventAction):
         apps = SentryApp.objects.filter(
             installations__organization_id=self.project.organization_id,
             is_alertable=True,
-        )
+        ).distinct()
         results = [SentryAppService(app) for app in apps]
         return results
 
