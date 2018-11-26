@@ -22,7 +22,6 @@ from requests.exceptions import RequestException
 
 from sentry.utils import metrics
 from sentry.net.http import TimeoutAdapter
-from requests.exceptions import ConnectionError
 
 
 # _client cache is a 3-tuple of project_id, credentials, Client
@@ -45,20 +44,20 @@ def try_repeated(func):
     else:
         func_name = '__unknown__'
 
+    metrics_key = 'filestore.gcs.retry'
+    metrics_tags = {'function': func_name}
     idx = 0
     while True:
-        exiting = False
         try:
             result = func()
-            exiting = True
+            metrics_tags.update({'success': '1'})
+            metrics.timing(metrics_key, idx, tags=metrics_tags)
             return result
-        except (DataCorruption, ConnectionError, TransportError, RequestException):
+        except (DataCorruption, TransportError, RequestException) as e:
             if idx >= 3:
-                exiting = True
+                metrics_tags.update({'success': '0', 'exception_class': e.__class__.__name__})
+                metrics.timing(metrics_key, idx, tags=metrics_tags)
                 raise
-        finally:
-            if exiting:
-                metrics.timing('filestore.gcs.retry', idx, tags={'function': func_name})
         idx += 1
 
 
