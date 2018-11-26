@@ -56,16 +56,16 @@ class Message(Interface):
             'formatted': data.get('formatted'),
         }
 
-        if data.get('params') is not None:
+        if data.get('params'):
             kwargs['params'] = trim(data['params'], 1024)
         else:
-            kwargs['params'] = None
+            kwargs['params'] = ()
 
         if kwargs['formatted']:
             if not isinstance(kwargs['formatted'], six.string_types):
                 kwargs['formatted'] = json.dumps(data['formatted'])
         # support python-esque formatting (e.g. %s)
-        elif '%' in kwargs['message'] and kwargs['params'] is not None:
+        elif '%' in kwargs['message'] and kwargs['params']:
             if isinstance(kwargs['params'], list):
                 kwargs['params'] = tuple(kwargs['params'])
 
@@ -77,7 +77,7 @@ class Message(Interface):
             except Exception:
                 pass
         # support very basic placeholder formatters (non-typed)
-        elif '{}' in kwargs['message'] and kwargs['params'] is not None:
+        elif '{}' in kwargs['message'] and kwargs['params']:
             try:
                 kwargs['formatted'] = trim(
                     kwargs['message'].format(kwargs['params']),
