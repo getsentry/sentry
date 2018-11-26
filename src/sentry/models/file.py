@@ -58,7 +58,7 @@ ChunkFileState = enum(
 def _get_size_and_checksum(fileobj):
     size = 0
     checksum = sha1()
-    while 1:
+    while True:
         chunk = fileobj.read(65536)
         if not chunk:
             break
@@ -138,6 +138,7 @@ class FileBlob(Model):
             storage = get_storage()
             storage.save(blob.path, fileobj)
             blobs_to_save.append((blob, lock))
+            metrics.timing('filestore.blob-size', size, tags={'function': 'from_files'})
 
         def _ensure_blob_owned(blob):
             if organization is None:
@@ -156,7 +157,7 @@ class FileBlob(Model):
             _ensure_blob_owned(blob)
 
         def _flush_blobs():
-            while 1:
+            while True:
                 try:
                     blob, lock = blobs_to_save.pop()
                 except IndexError:

@@ -32,17 +32,33 @@ _client = None, None, None
 
 
 def try_repeated(func):
-    """Runs a function a few times ignoring errors we see from GCS
+    """
+    Runs a function a few times ignoring errors we see from GCS
     due to what appears to be network issues.  This is a temporary workaround
     until we can find the root cause.
     """
+    if hasattr(func, '__name__'):
+        func_name = func.__name__
+    elif hasattr(func, 'func'):
+        # Partials
+        func_name = getattr(func.func, '__name__', '__unknown__')
+    else:
+        func_name = '__unknown__'
+
     idx = 0
     while True:
+        exiting = False
         try:
-            return func()
+            result = func()
+            exiting = True
+            return result
         except (DataCorruption, ConnectionError, TransportError, RequestException):
             if idx >= 3:
+                exiting = True
                 raise
+        finally:
+            if exiting:
+                metrics.timing('filestore.gcs.retry', idx, tags={'function': func_name})
         idx += 1
 
 
