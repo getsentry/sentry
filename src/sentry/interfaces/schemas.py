@@ -252,7 +252,27 @@ GEO_INTERFACE_SCHEMA = {
     'additionalProperties': False,
 }
 
-TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out
+TEMPLATE_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'abs_path': {'type': 'string'},
+        'filename': {'type': 'string'},
+        'context_line': {'type': 'string'},
+        'lineno': {
+            'type': 'number',
+            'minimum': 1,
+        },
+        'pre_context': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+        'post_context': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+    },
+    'additionalProperties': False,
+}
 MESSAGE_INTERFACE_SCHEMA = {'type': 'object'}
 
 TAGS_DICT_SCHEMA = {
