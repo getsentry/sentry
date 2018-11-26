@@ -114,12 +114,17 @@ def test_does_expand_list():
 
 def test_log_level_as_string():
     data = validate_and_normalize({"message": "foo", "level": "error"})
-    assert data["level"] == 40
+    assert data["level"] == "error"
+
+
+def test_log_level_as_int():
+    data = validate_and_normalize({"message": "foo", "level": 40})
+    assert data["level"] == "error"
 
 
 def test_invalid_log_level():
     data = validate_and_normalize({"message": "foo", "level": "foobar"})
-    assert data["level"] == 40
+    assert data["level"] == "error"
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_data"
     assert data["errors"][0]["name"] == "level"
