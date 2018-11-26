@@ -67,7 +67,6 @@ class EventTest(TestCase):
         d = event.as_dict()
         assert d['logentry'] == {
             'message': 'Hello World!',
-            'params': ()
         }
 
     def test_email_subject(self):
