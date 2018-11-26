@@ -506,7 +506,8 @@ class CspReportTest(TestCase):
         assert output['message'] == e.data['logentry']['message']
         for key, value in six.iteritems(output['tags']):
             assert e.get_tag(key) == value
-        self.assertDictContainsSubset(output['data'], e.data, e.data)
+        for key, value in six.iteritems(output['data']):
+            assert e.data[key] == value
 
     def assertReportRejected(self, input):
         resp = self._postCspWithHeader(input)

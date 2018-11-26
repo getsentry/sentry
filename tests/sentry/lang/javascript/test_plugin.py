@@ -519,7 +519,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
         exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
@@ -598,7 +598,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
         exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
@@ -770,7 +770,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
         exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
@@ -928,7 +928,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
         exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
@@ -1152,7 +1152,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code == 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == []
+        assert 'errors' not in event.data
 
     @responses.activate
     def test_html_response_for_js(self):

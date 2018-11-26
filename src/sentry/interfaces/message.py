@@ -14,7 +14,7 @@ import six
 
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.utils import json
 from sentry.utils.safe import trim
 
@@ -91,6 +91,13 @@ class Message(Interface):
             kwargs['formatted'] = None
 
         return cls(**kwargs)
+
+    def to_json(self):
+        return prune_empty_keys({
+            'message': self.message,
+            'formatted': self.formatted,
+            'params': self.params or None
+        })
 
     def get_hash(self):
         return [self.message]

@@ -31,7 +31,7 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
-from sentry.interfaces.base import get_interface, InterfaceValidationError
+from sentry.interfaces.base import get_interface, prune_empty_keys, InterfaceValidationError
 from sentry.interfaces.exception import normalize_mechanism_meta
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.lang.native.utils import get_sdk_from_event
@@ -571,16 +571,9 @@ class EventManager(object):
             data['timestamp'] = timestamp
             data['received'] = float(timezone.now().strftime('%s'))
 
-            setdefault_path(data, 'checksum', value=None)
-            setdefault_path(data, 'culprit', value=None)
-            setdefault_path(data, 'dist', value=None)
-            setdefault_path(data, 'environment', value=None)
             setdefault_path(data, 'extra', value={})
-            setdefault_path(data, 'fingerprint', value=None)
             setdefault_path(data, 'logger', value=DEFAULT_LOGGER_NAME)
-            setdefault_path(data, 'platform', value=None)
             setdefault_path(data, 'tags', value=[])
-            setdefault_path(data, 'transaction', value=None)
 
             # Fix case where legacy apps pass 'environment' as a tag
             # instead of a top level key.
@@ -655,14 +648,16 @@ class EventManager(object):
         if server_name is not None:
             set_tag(data, 'server_name', server_name)
 
-        # Do not add errors unless there are for non store mode
-        if not self._for_store and not data.get('errors'):
-            data.pop('errors')
+        for key in ('errors', 'tags', 'extra', 'fingerprint'):
+            if not data.get(key):
+                data.pop(key, None)
 
         if meta.raw():
             data['_meta'] = meta.raw()
         elif '_meta' in data:
             del data['_meta']
+
+        self._data = prune_empty_keys(data)
 
     def should_filter(self):
         '''

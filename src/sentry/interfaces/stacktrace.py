@@ -20,7 +20,7 @@ from django.utils.translation import ugettext as _
 from six.moves.urllib.parse import urlparse
 
 from sentry.app import env
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
@@ -299,11 +299,11 @@ class Frame(Interface):
         package = data.get('package')
 
         # For legacy reasons
-        if function == '?':
+        if function in ('?', ''):
             function = None
 
         # For consistency reasons
-        if symbol == '?':
+        if symbol in ('?', ''):
             symbol = None
 
         # Some of this processing should only be done for non raw frames
@@ -371,8 +371,8 @@ class Frame(Interface):
             # TODO(dcramer): trim pre/post_context
             'pre_context': pre_context,
             'post_context': post_context,
-            'vars': context_locals,
-            'data': extra_data,
+            'vars': context_locals or None,
+            'data': extra_data or None,
             'errors': data.get('errors'),
         }
 
@@ -390,6 +390,30 @@ class Frame(Interface):
             kwargs['colno'] = None
 
         return cls(**kwargs)
+
+    def to_json(self):
+        return prune_empty_keys({
+            'abs_path': self.abs_path or None,
+            'filename': self.filename or None,
+            'platform': self.platform or None,
+            'module': self.module or None,
+            'function': self.function or None,
+            'package': self.package or None,
+            'image_addr': self.image_addr,
+            'symbol': self.symbol,
+            'symbol_addr': self.symbol_addr,
+            'instruction_addr': self.instruction_addr,
+            'trust': self.trust,
+            'in_app': self.in_app,
+            'context_line': self.context_line or None,
+            'pre_context': self.pre_context or None,
+            'post_context': self.post_context or None,
+            'vars': self.vars or None,
+            'data': self.data or None,
+            'errors': self.errors or None,
+            'lineno': self.lineno,
+            'colno': self.colno
+        })
 
     def get_hash(self, platform=None):
         """
@@ -782,11 +806,11 @@ class Stacktrace(Interface):
         }
 
     def to_json(self):
-        return {
-            'frames': [f and f.to_json() for f in self.frames],
+        return prune_empty_keys({
+            'frames': [f and f.to_json() for f in self.frames] or None,
             'frames_omitted': self.frames_omitted,
             'registers': self.registers,
-        }
+        })
 
     def compute_hashes(self, platform):
         system_hash = self.get_hash(platform, system_frames=True)

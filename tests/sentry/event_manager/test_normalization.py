@@ -28,7 +28,7 @@ def test_tags_none():
     manager.normalize()
     data = manager.get_data()
 
-    assert data['tags'] == []
+    assert not data.get('tags')
 
 
 def test_tags_as_list():

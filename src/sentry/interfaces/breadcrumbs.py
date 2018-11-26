@@ -12,7 +12,7 @@ __all__ = ('Breadcrumbs', )
 
 import six
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.utils import json
 from sentry.utils.safe import get_path, trim
 from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
@@ -64,6 +64,9 @@ class Breadcrumbs(Interface):
                 pass
 
         return cls(values=values)
+
+    def to_json(self):
+        return prune_empty_keys({'values': self.values or None})
 
     @classmethod
     def normalize_crumb(cls, crumb):

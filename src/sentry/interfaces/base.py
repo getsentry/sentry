@@ -49,6 +49,23 @@ def get_interfaces(data):
     )
 
 
+def prune_empty_keys(obj):
+    if obj is None:
+        return None
+
+    # eliminate None values for serialization to compress the keyspace
+    # and save (seriously) ridiculous amounts of bytes
+    #
+    # Do not coerce empty arrays/dicts or other "falsy" values here to None,
+    # but rather deal with them case-by-case before calling `prune_empty_keys`
+    # (e.g. in `Interface.to_json`). Rarely, but sometimes, there's a slight
+    # semantic difference between empty containers and a missing value. One
+    # example would be `event.logenty.formatted`, where `{}` means "this
+    # message has no params" and `None` means "this message is already
+    # formatted".
+    return dict((k, v) for k, v in six.iteritems(obj) if v is not None)
+
+
 class InterfaceValidationError(Exception):
     pass
 
@@ -112,11 +129,7 @@ class Interface(object):
         return meta
 
     def to_json(self):
-        # eliminate empty values for serialization to compress the keyspace
-        # and save (seriously) ridiculous amounts of bytes
-        # XXX(dcramer): its important that we keep zero values here, but empty
-        # lists and strings get discarded as we've deemed them not important
-        return dict((k, v) for k, v in six.iteritems(self._data) if (v == 0 or v))
+        return prune_empty_keys(self._data)
 
     def get_hash(self):
         return []
