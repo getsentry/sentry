@@ -8,9 +8,7 @@ from django.db import transaction
 from sentry import eventstream, tagstore
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
-from sentry.event_manager import (
-    generate_culprit, get_fingerprint_for_event, get_hashes_from_fingerprint, md5_from_hash
-)
+from sentry.event_manager import generate_culprit
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupRelease, Project, Release, UserReport
@@ -144,11 +142,7 @@ def get_group_backfill_attributes(caches, group, events):
 
 def get_fingerprint(event):
     # TODO: This *might* need to be protected from an IndexError?
-    primary_hash = get_hashes_from_fingerprint(
-        event,
-        get_fingerprint_for_event(event),
-    )[0]
-    return md5_from_hash(primary_hash)
+    return event.get_primary_hash()
 
 
 def migrate_events(caches, project, source_id, destination_id,

@@ -53,7 +53,7 @@ def catch_errors(f):
 
 # Here's where the normalization itself happens
 def process_event(data, meta):
-    from sentry.event_manager import EventManager, get_hashes_for_event
+    from sentry.event_manager import EventManager
     from sentry.tasks.store import should_process
 
     event_manager = EventManager(
@@ -70,7 +70,7 @@ def process_event(data, meta):
     group_hash = None
 
     if not should_process(event):
-        group_hash = get_hashes_for_event(event_manager._get_event_instance(project_id=1))
+        group_hash = event_manager._get_event_instance(project_id=1).get_hashes()
     return {
         "event": dict(event),
         "group_hash": group_hash,

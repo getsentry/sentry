@@ -32,9 +32,7 @@ def get_event(pk):
 
 def print_unified_diff(left, right):
     from difflib import unified_diff
-    from sentry.event_manager import (
-        get_grouping_behavior,
-    )
+    from sentry.event_hashing import get_grouping_behavior
 
     left_id = left.id
     right_id = right.id
