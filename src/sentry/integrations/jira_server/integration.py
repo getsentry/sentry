@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import six
 
 from django import forms
 from django.utils.translation import ugettext as _
@@ -14,8 +15,10 @@ from sentry.integrations import (
     FeatureDescription,
 )
 from sentry.integrations.client import ApiError
+from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.jira import JiraIntegration
 from sentry.pipeline import PipelineView
+from sentry.utils.hashlib import sha1_text
 from sentry.web.helpers import render_to_response
 from .client import JiraServerClient, JiraServerSetupClient
 
@@ -195,6 +198,9 @@ class OAuthCallbackView(PipelineView):
 
 
 class JiraServerIntegration(JiraIntegration):
+    """
+    IntegrationInstallation implementation for Jira-Server
+    """
     default_identity = None
 
     def get_client(self):
@@ -235,24 +241,49 @@ class JiraServerIntegrationProvider(IntegrationProvider):
     def build_integration(self, state):
         install = state['installation_data']
         access_token = state['access_token']
-        hostname = urlparse(install['url']).netloc
+
+        external_id = '%s:%s' % (urlparse(install['url']).netloc, install['consumer_key'])
+        webhook_secret = sha1_text(install['private_key']).hexdigest()
+
+        credentials = {
+            'consumer_key': install['consumer_key'],
+            'private_key': install['private_key'],
+            'access_token': access_token['oauth_token'],
+            'access_token_secret': access_token['oauth_token_secret'],
+        }
+        # Create the webhook before the integration record exists
+        # so that if it fails we don't persist a broken integration.
+        self.create_webhook(external_id, webhook_secret, install, credentials)
+
         return {
             'name': install['consumer_key'],
             'provider': 'jira_server',
-            'external_id': '%s:%s' % (hostname, install['consumer_key']),
+            'external_id': external_id,
             'metadata': {
                 'base_url': install['url'],
                 'verify_ssl': install['verify_ssl'],
+                'webhook_secret': webhook_secret,
             },
             'user_identity': {
                 'type': 'jira_server',
-                'external_id': '%s:%s' % (hostname, install['consumer_key']),
+                'external_id': external_id,
                 'scopes': (),
-                'data': {
-                    'consumer_key': install['consumer_key'],
-                    'private_key': install['private_key'],
-                    'access_token': access_token['oauth_token'],
-                    'access_token_secret': access_token['oauth_token_secret'],
-                }
+                'data': credentials
             }
         }
+
+    def create_webhook(self, external_id, webhook_secret, install, credentials):
+        client = JiraServerSetupClient(
+            install['url'],
+            install['consumer_key'],
+            install['private_key'],
+            install['verify_ssl']
+        )
+        try:
+            client.create_issue_webhook(external_id, webhook_secret, credentials)
+        except ApiError as err:
+            logger.info('jira-server.webhook.failed', extra={
+                'error': six.text_type(err),
+                'external_id': external_id,
+            })
+            raise IntegrationError('Could not create issue webhook in Jira')
