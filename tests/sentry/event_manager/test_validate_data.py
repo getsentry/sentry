@@ -355,20 +355,21 @@ def test_messages():
     # Just 'message': wrap it in interface
     data = validate_and_normalize({"message": "foo is bar"})
     assert "message" not in data
-    assert data["logentry"] == {"message": "foo is bar"}
+    assert data["logentry"] == {"message": "foo is bar", "params": ()}
 
     # both 'message' and interface with no 'formatted' value, put 'message'
     # into 'formatted'.
     data = validate_and_normalize(
         {
             "message": "foo is bar",
-            "logentry": {"message": "something else"},
+            "logentry": {"message": "something else", "params": ()},
         }
     )
     assert "message" not in data
     assert data["logentry"] == {
         "message": "something else",
         "formatted": "foo is bar",
+        "params": ()
     }
 
     # both 'message' and complete interface, 'message' is discarded
@@ -378,6 +379,7 @@ def test_messages():
             "logentry": {
                 "message": "something else",
                 "formatted": "something else formatted",
+                "params": ()
             },
         }
     )
@@ -386,6 +388,7 @@ def test_messages():
     assert data["logentry"] == {
         "message": "something else",
         "formatted": "something else formatted",
+        "params": ()
     }
 
 
