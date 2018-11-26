@@ -85,13 +85,14 @@ def get_hashes_from_fingerprint_with_reason(event, fingerprint):
     return list(hashes.items())
 
 
-def get_event_hashes(event, no_fingerprint=False):
-    if not no_fingerprint:
-        fingerprint = event.data.get('fingerprint') or ['{{ default }}']
-        return [md5_from_hash(h) for h in get_hashes_from_fingerprint(event, fingerprint)]
+def get_event_hashes(event):
+    # If a checksum is set, use that one.
     checksum = event.data.get('checksum')
     if checksum:
         if HASH_RE.match(checksum):
             return [checksum]
         return [md5_from_hash([checksum]), checksum]
-    return [md5_from_hash(h) for h in get_hashes_for_event(event)]
+
+    # Otherwise go with the new style fingerprint code
+    fingerprint = event.data.get('fingerprint') or ['{{ default }}']
+    return [md5_from_hash(h) for h in get_hashes_from_fingerprint(event, fingerprint)]
