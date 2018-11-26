@@ -2,9 +2,10 @@ from __future__ import absolute_import, print_function
 
 import six
 from time import time
+from requests.exceptions import RequestException
 
 from sentry.http import safe_urlopen
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.models import SentryAppInstallation
@@ -34,7 +35,7 @@ def notify_sentry_app(event, futures):
                 sentry_app=sentry_app,
             )
         except SentryAppInstallation.DoesNotExist:
-            return
+            continue
 
         payload = app_platform_event('alert', install, data)
         send_alert_event.delay(sentry_app=sentry_app, payload=payload)
@@ -43,6 +44,7 @@ def notify_sentry_app(event, futures):
 @instrumented_task(
     name='sentry.tasks.sentry_apps.send_alert_event', default_retry_delay=60 * 5, max_retries=5
 )
+@retry(on=(RequestException, ))
 def send_alert_event(sentry_app, payload):
 
     body = json.dumps(payload)

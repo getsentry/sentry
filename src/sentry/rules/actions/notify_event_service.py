@@ -13,33 +13,11 @@ from django import forms
 
 from sentry.plugins import plugins
 from sentry.rules.actions.base import EventAction
-from sentry.models import SentryApp, SentryAppInstallation
+from sentry.rules.actions.services import PluginService, SentryAppService
+from sentry.models import SentryApp
 from sentry.utils.safe import safe_execute
 from sentry.utils import metrics
 from sentry.tasks.sentry_apps import notify_sentry_app
-
-
-class PluginService(object):
-    def __init__(self, obj):
-        self.obj = obj
-
-    @property
-    def slug(self):
-        return self.obj.slug
-
-    @property
-    def title(self):
-        return self.obj.get_title()
-
-
-class SentryAppService(PluginService):
-    def __init__(self, obj):
-        super(SentryAppService, self).__init__(obj)
-        self.obj = obj
-
-    @property
-    def title(self):
-        return self.obj.name
 
 
 class NotifyEventServiceForm(forms.Form):
@@ -103,11 +81,10 @@ class NotifyEventServiceAction(EventAction):
             yield self.future(plugin.rule_notify)
 
     def get_installs(self):
-        sentry_app_ids = SentryAppInstallation.objects.filter(
-            organization=self.project.organization_id,
-        ).values_list('sentry_app_id', flat=True)
-
-        apps = SentryApp.objects.filter(id__in=sentry_app_ids, is_alertable=True)
+        apps = SentryApp.objects.filter(
+            installations__organization_id=self.project.organization_id,
+            is_alertable=True,
+        )
         results = [SentryAppService(app) for app in apps]
         return results
 
