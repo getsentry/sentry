@@ -96,7 +96,7 @@ class Message(Interface):
         return prune_empty_keys({
             'message': self.message,
             'formatted': self.formatted,
-            'params': self.params
+            'params': self.params or None
         })
 
     def get_hash(self):
