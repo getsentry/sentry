@@ -137,3 +137,6 @@ class Quota(Service):
 
     def get_event_retention(self, organization):
         return options.get('system.event-retention-days') or None
+
+    def get_maximum_file_size(self, organization):
+        return options.get('system.maximum-file-size')
