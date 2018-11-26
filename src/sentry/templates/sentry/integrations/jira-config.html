@@ -51,33 +51,40 @@
         </div>
       {% else %}
         {% if completed %}
-        <div class="aui-message aui-message-success">
-          <p class="title">
-            <strong>Saved!</strong>
-          </p>
-          <p>
-            The Sentry Jira integration is now enabled for the selected
-            organizations. Return to your sentry organization to configure the Jira
-            integration for your organization.
-          </p>
-        </div>
+          <div class="aui-message aui-message-success">
+            <p class="title">
+              <strong>Saved!</strong>
+            </p>
+            <p>
+              The Sentry Jira integration is now enabled for the selected
+              organizations. Return to your sentry organization to configure the Jira
+              integration for your organization.
+            </p>
+          </div>
         {% endif %}
 
-        <form class="aui top-label" action="" method="post">
-          {% csrf_token %}
-          {% for field in form %}
-            <div class="field-group top-label">
-              {{ field.errors }}
-              {{ field.label_tag }} {{ field }}
-              <div class="description">{{ field.help_text }}</div>
+        {% if organizations|length %}
+          <form class="aui top-label" action="" method="post">
+            {% csrf_token %}
+            {% for field in form %}
+              <div class="field-group top-label">
+                {{ field.errors }}
+                {{ field.label_tag }} {{ field }}
+                <div class="description">{{ field.help_text }}</div>
+              </div>
+            {% endfor %}
+            <div class="field-group">
+              <button class="aui-button aui-button-primary" type="submit">
+                  Save Settings
+              </button>
             </div>
-          {% endfor %}
-          <div class="field-group">
-            <button class="aui-button aui-button-primary" type="submit">
-                Save Settings
-            </button>
+          </form>
+        {% else %}
+          <div class="aui-message aui-message-warning">
+            <p>You must have Owner or Manager permissions in Sentry to complete setup.</p>
           </div>
-        </form>
+        {% endif %}
+
       {% endif %}
     {% endif %}
   </div>

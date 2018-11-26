@@ -76,7 +76,7 @@ class JiraConfigureView(View):
             ).values_list('organization_id', flat=True)
 
             form = JiraConfigForm(organizations, initial={'organizations': active_orgs})
-            return self.get_response({'form': form})
+            return self.get_response({'form': form, 'organizations': organizations})
 
         enabled_orgs = [o for o in organizations if o.id in form.cleaned_data['organizations']]
         disabled_orgs = list(set(organizations) - set(enabled_orgs))
