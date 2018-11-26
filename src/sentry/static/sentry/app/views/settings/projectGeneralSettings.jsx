@@ -4,6 +4,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
+import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import {
   changeProjectSlug,
   removeProject,
@@ -12,18 +13,18 @@ import {
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {t, tct} from 'app/locale';
+import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
-import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import ProjectsStore from 'app/stores/projectsStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/views/settings/components/forms/textField';
+import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import recreateRoute from 'app/utils/recreateRoute';
 
 class ProjectGeneralSettings extends AsyncView {
@@ -221,15 +222,24 @@ class ProjectGeneralSettings extends AsyncView {
     let project = this.state.data;
     let {orgId, projectId} = this.props.params;
     let endpoint = `/projects/${orgId}/${projectId}/`;
+    let access = new Set(organization.access);
     let jsonFormProps = {
       additionalFieldProps: {organization},
       features: new Set(organization.features),
-      access: new Set(organization.access),
+      access,
+      disabled: !access.has('project:write'),
     };
 
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
+        {!access.has('project:write') && (
+          <Alert type="warning" icon="icon-warning-sm">
+            {t(
+              "You do not have sufficent permissions to make changes to this Project's settings."
+            )}
+          </Alert>
+        )}
 
         <Form
           saveOnBlur
