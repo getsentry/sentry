@@ -24,6 +24,18 @@ class FileBlobTest(TestCase):
         assert my_file1.checksum == my_file2.checksum
         assert my_file1.path == my_file2.path
 
+    def test_generate_unique_path(self):
+        path = FileBlob.generate_unique_path()
+        assert path
+
+        parts = path.split('/')
+        assert len(parts) == 3
+        assert map(len, parts) == [2, 4, 26]
+
+        # Check uniqueness
+        path2 = FileBlob.generate_unique_path()
+        assert path != path2
+
 
 class FileTest(TestCase):
     def test_file_handling(self):
