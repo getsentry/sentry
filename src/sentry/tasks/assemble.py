@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import os
 import logging
 
+from sentry import quotas
 from sentry.tasks.base import instrumented_task
 from sentry.utils.sdk import configure_scope
 
@@ -91,7 +92,16 @@ def assemble_file(project, name, checksum, chunks, file_type):
     # chunks need to build the file
     file_blobs = FileBlob.objects.filter(
         checksum__in=chunks
-    ).values_list('id', 'checksum')
+    ).values_list('id', 'checksum', 'size')
+
+    # Reject all files that exceed the maximum allowed size for this
+    # organization. This value cannot be
+    file_size = sum(x[2] for x in file_blobs)
+    max_size = quotas.get_maximum_file_size(project.organization)
+    if file_size > max_size:
+        set_assemble_status(project, checksum, ChunkFileState.ERROR,
+                            detail='File exceeds maximum size')
+        return
 
     # We need to make sure the blobs are in the order in which
     # we received them from the request.
