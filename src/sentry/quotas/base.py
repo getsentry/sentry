@@ -46,7 +46,7 @@ class Quota(Service):
     """
     __all__ = (
         'get_maximum_quota', 'get_organization_quota', 'get_project_quota', 'is_rate_limited',
-        'translate_quota', 'validate', 'refund', 'get_event_retention',
+        'translate_quota', 'validate', 'refund', 'get_event_retention', 'get_maximum_file_size',
     )
 
     def __init__(self, **options):
@@ -139,4 +139,4 @@ class Quota(Service):
         return options.get('system.event-retention-days') or None
 
     def get_maximum_file_size(self, organization):
-        return options.get('system.maximum-file-size')
+        return options.get('system.chunk-upload.maximum-file-size')
