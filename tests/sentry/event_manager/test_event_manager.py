@@ -1015,7 +1015,6 @@ class EventManagerTest(TransactionTestCase):
                     'message': None,
                     'logentry': {
                         'message': 'hello world',
-                        'params': (),
                     },
                 }
             )
@@ -1036,7 +1035,6 @@ class EventManagerTest(TransactionTestCase):
         assert event.message == '1234'
         assert event.data['logentry'] == {
             'message': '1234',
-            'params': (),
         }
 
     def test_message_attribute_goes_to_interface(self):
@@ -1047,7 +1045,6 @@ class EventManagerTest(TransactionTestCase):
         event = manager.save(self.project.id)
         assert event.data['logentry'] == {
             'message': 'hello world',
-            'params': (),
         }
 
     def test_message_attribute_goes_to_formatted(self):
@@ -1060,7 +1057,6 @@ class EventManagerTest(TransactionTestCase):
                     'message': 'world hello',
                     'logentry': {
                         'message': 'hello world',
-                        'params': (),
                     },
                 }
             )
@@ -1070,7 +1066,6 @@ class EventManagerTest(TransactionTestCase):
         assert event.data['logentry'] == {
             'message': 'hello world',
             'formatted': 'world hello',
-            'params': (),
         }
 
     def test_message_attribute_interface_both_strings(self):
@@ -1079,7 +1074,6 @@ class EventManagerTest(TransactionTestCase):
                 **{
                     'logentry': 'a plain string',
                     'message': 'another string',
-                    'params': (),
                 }
             )
         )
@@ -1088,7 +1082,6 @@ class EventManagerTest(TransactionTestCase):
         assert event.data['logentry'] == {
             'message': 'a plain string',
             'formatted': 'another string',
-            'params': (),
         }
 
     def test_throws_when_matches_discarded_hash(self):
