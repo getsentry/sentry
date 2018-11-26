@@ -71,7 +71,7 @@ class ExternalIssueList extends AsyncComponent {
     if (!integrationIssues && !pluginIssues && !pluginActions)
       return (
         <React.Fragment>
-          <h6>
+          <h6 data-test-id="linked-issues">
             <span>Linked Issues</span>
           </h6>
           <AlertLink
@@ -87,7 +87,7 @@ class ExternalIssueList extends AsyncComponent {
 
     return (
       <React.Fragment>
-        <h6>
+        <h6 data-test-id="linked-issues">
           <span>Linked Issues</span>
         </h6>
         {integrationIssues && <Box mb={2}>{integrationIssues}</Box>}
