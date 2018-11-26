@@ -154,6 +154,17 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.wait_until('.entries')
         self.browser.snapshot('issue details empty stacktrace')
 
+    def test_invalid_interfaces(self):
+        event = self.create_sample_event(
+            platform='invalid-interfaces'
+        )
+
+        self.browser.get(
+            u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
+        )
+        self.browser.wait_until('.entries')
+        self.browser.snapshot('issue details invalid interfaces')
+
     def test_activity_page(self):
         event = self.create_sample_event(
             platform='python',

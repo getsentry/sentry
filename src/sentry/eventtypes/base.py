@@ -28,13 +28,13 @@ class DefaultEvent(BaseEvent):
         return True
 
     def get_metadata(self):
-        message = get_path(self.data, 'logentry', 'formatted') \
-            or get_path(self.data, 'logentry', 'message')
+        message = strip(get_path(self.data, 'logentry', 'formatted') or
+                        get_path(self.data, 'logentry', 'message'))
 
-        if not message:
-            title = '<unlabeled event>'
+        if message:
+            title = truncatechars(message.splitlines()[0], 100)
         else:
-            title = truncatechars(strip(message).splitlines()[0], 100)
+            title = '<unlabeled event>'
 
         return {
             'title': title,
