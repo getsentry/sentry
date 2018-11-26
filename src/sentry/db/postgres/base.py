@@ -13,13 +13,41 @@ from .decorators import (
 )
 from .operations import DatabaseOperations
 
+from sentry.utils.strings import strip_lone_surrogates
+
 __all__ = ('DatabaseWrapper', )
 
 
 def remove_null(value):
-    if not isinstance(value, string_types):
-        return value
+    # In psycopg2 2.7+, behavior was introduced where a
+    # NULL byte in a parameter would start raising a ValueError.
+    # psycopg2 chose to do this rather than let Postgres silently
+    # truncate the data, which is it's behavior when it sees a
+    # NULL byte. But for us, we'd rather remove the null value so it's
+    # somewhat legible rather than error. Considering this is better
+    # behavior than the database truncating, seems good to do this
+    # rather than attempting to sanitize all data inputs now manually.
     return value.replace('\x00', '')
+
+
+def remove_surrogates(value):
+    # Another hack.  postgres does not accept lone surrogates
+    # in utf-8 mode.  If we encounter any lone surrogates in
+    # our string we need to remove it.
+    if type(value) is bytes:
+        try:
+            return strip_lone_surrogates(value.decode('utf-8')).encode('utf-8')
+        except UnicodeError:
+            return value
+    return strip_lone_surrogates(value)
+
+
+def clean_bad_params(params):
+    params = list(params)
+    for idx, param in enumerate(params):
+        if isinstance(param, string_types):
+            params[idx] = remove_null(remove_surrogates(param))
+    return params
 
 
 class CursorWrapper(object):
@@ -43,24 +71,7 @@ class CursorWrapper(object):
     @less_shitty_error_messages
     def execute(self, sql, params=None):
         if params is not None:
-            try:
-                return self.cursor.execute(sql, params)
-            except ValueError as e:
-                # In psycopg2 2.7+, behavior was introduced where a
-                # NULL byte in a parameter would start raising a ValueError.
-                # psycopg2 chose to do this rather than let Postgres silently
-                # truncate the data, which is it's behavior when it sees a
-                # NULL byte. But for us, we'd rather remove the null value so it's
-                # somewhat legible rather than error. Considering this is better
-                # behavior than the database truncating, seems good to do this
-                # rather than attempting to sanitize all data inputs now manually.
-
-                # Note: This message is brittle, but it's currently hardcoded into
-                # psycopg2 for this behavior. If anything changes, we're choosing to
-                # address that later rather than potentially catch incorrect behavior.
-                if e.message != 'A string literal cannot contain NUL (0x00) characters.':
-                    raise
-                return self.cursor.execute(sql, [remove_null(param) for param in params])
+            return self.cursor.execute(sql, clean_bad_params(params))
         return self.cursor.execute(sql)
 
     @capture_transaction_exceptions
