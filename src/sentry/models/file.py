@@ -239,6 +239,8 @@ class FileBlob(Model):
 
     @classmethod
     def generate_unique_path(cls):
+        # We intentionally do not use checksums as path names to avoid concurrency issues
+        # when we attempt concurrent uploads for any reason.
         uuid_hex = uuid4().hex
         pieces = [uuid_hex[:2], uuid_hex[2:6], uuid_hex[6:]]
         return u'/'.join(pieces)
