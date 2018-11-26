@@ -405,7 +405,7 @@ class Frame(Interface):
             'instruction_addr': self.instruction_addr,
             'trust': self.trust,
             'in_app': self.in_app,
-            'context_line': self.context_line,
+            'context_line': self.context_line or None,
             'pre_context': self.pre_context or None,
             'post_context': self.post_context or None,
             'vars': self.vars or None,
