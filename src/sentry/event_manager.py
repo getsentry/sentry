@@ -11,8 +11,6 @@ import os
 import re
 import six
 import jsonschema
-import random
-import time
 
 from datetime import datetime, timedelta
 from collections import OrderedDict
@@ -22,7 +20,7 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 
-from sentry import buffer, eventtypes, eventstream, features, tsdb, filters, options
+from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
     DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH
@@ -695,17 +693,9 @@ class EventManager(object):
                 if 'mechanism' in ex:
                     normalize_mechanism_meta(ex['mechanism'], sdk_info)
 
-        # Please note that we eventually remove this check after we validated that it
-        # doesn't impact the load. Ultimately all events should be parsed for a UA.
-        # The check if `SENTRY_PARSE_USER_AGENT` is set needs to be there to not
-        # trigger a query by trying to fetch the sample rate from the options / db.
-        if (getattr(settings, 'SENTRY_PARSE_USER_AGENT', False) and
-                random.random() <
-                options.get('event-normalization.parse-user-agent-sample-rate')):
-            start_time = time.time()
-            normalize_user_agent(data)
-            ms = int((time.time() - start_time) * 1000)
-            metrics.timing('events.normalize.user_agent.duration', ms)
+        # This function parses the User Agent from the request if present and fills
+        # contexts with it.
+        normalize_user_agent(data)
 
         if not get_path(data, "user", "ip_address"):
             # If there is no User ip_address, update it either from the Http
