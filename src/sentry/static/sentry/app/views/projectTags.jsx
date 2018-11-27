@@ -76,39 +76,42 @@ export default class ProjectTags extends AsyncView {
             <Access access={['project:write']}>
               {({hasAccess}) =>
                 !isEmpty &&
-                tags.map(({key, canDelete}, idx) => (
-                  <PanelItem p={0} align="center" key={key} className="ref-tag-row">
-                    <Box align="flex-end" flex="1" p={2}>
-                      <span>{key}</span>
-                    </Box>
-                    <Flex align="center" p={2}>
-                      <Tooltip
-                        disabled={canDelete && hasAccess}
-                        title={
-                          hasAccess
-                            ? t('This tag cannot be deleted.')
-                            : t('You do not have permission to remove tags.')
-                        }
-                      >
-                        <span>
-                          <LinkWithConfirmation
-                            title={'Remove tag?'}
-                            message={'Are you sure you want to remove this tag?'}
-                            onConfirm={() => this.onDelete(key, idx)}
-                            disabled={!canDelete || !hasAccess}
-                          >
-                            <Button
-                              size="xsmall"
-                              icon="icon-trash"
-                              data-test-id="delete"
-                              disabled={!canDelete || !hasAccess}
-                            />
-                          </LinkWithConfirmation>
-                        </span>
-                      </Tooltip>
-                    </Flex>
-                  </PanelItem>
-                ))}
+                tags.map(({key, canDelete}, idx) => {
+                  const enabled = canDelete && hasAccess;
+                  return (
+                    <PanelItem p={0} align="center" key={key} className="ref-tag-row">
+                      <Box align="flex-end" flex="1" p={2}>
+                        <span>{key}</span>
+                      </Box>
+                      <Flex align="center" p={2}>
+                        <Tooltip
+                          disabled={enabled}
+                          title={
+                            hasAccess
+                              ? t('This tag cannot be deleted.')
+                              : t('You do not have permission to remove tags.')
+                          }
+                        >
+                          <span>
+                            <LinkWithConfirmation
+                              title={'Remove tag?'}
+                              message={'Are you sure you want to remove this tag?'}
+                              onConfirm={() => this.onDelete(key, idx)}
+                              disabled={!enabled}
+                            >
+                              <Button
+                                size="xsmall"
+                                icon="icon-trash"
+                                data-test-id="delete"
+                                disabled={!enabled}
+                              />
+                            </LinkWithConfirmation>
+                          </span>
+                        </Tooltip>
+                      </Flex>
+                    </PanelItem>
+                  );
+                })}
             </Access>
           </PanelBody>
         </Panel>
