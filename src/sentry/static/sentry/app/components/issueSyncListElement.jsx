@@ -49,6 +49,7 @@ class IssueSyncElement extends React.Component {
       case 'github_enterprise':
         return <IntegrationIcon src="icon-github" />;
       case 'jira':
+      case 'jira_server':
         return <IntegrationIcon src="icon-jira" />;
       case 'vsts':
         return <IntegrationIcon src="icon-vsts" />;
@@ -68,6 +69,8 @@ class IssueSyncElement extends React.Component {
         return 'GitHub Enterprise';
       case 'vsts':
         return 'Azure DevOps';
+      case 'jira_server':
+        return 'Jira Server';
       default:
         return capitalize(type);
     }
