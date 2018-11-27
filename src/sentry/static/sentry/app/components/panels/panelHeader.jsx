@@ -6,6 +6,11 @@ import space from 'app/styles/space';
 
 const getPadding = ({disablePadding, hasButtons}) => css`
   padding: ${hasButtons ? space(1) : space(2)} ${disablePadding ? 0 : space(2)};
+  /**
+   * Usually we place controls at the right of a panel header, to make the
+   * spacing between the edges correct we will want less padding on the right.
+   */
+  padding-right: ${hasButtons ? space(1) : null};
 `;
 
 const PanelHeader = styled(({disablePadding, hasButtons, ...props}) => (
