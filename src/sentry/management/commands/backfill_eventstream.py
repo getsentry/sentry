@@ -7,6 +7,8 @@ sentry.management.commands.backfill_eventstream
 """
 from __future__ import absolute_import, print_function
 
+import sys
+
 from django.core.management.base import BaseCommand, CommandError, make_option
 from django.utils.dateparse import parse_datetime
 
@@ -21,8 +23,12 @@ class Command(BaseCommand):
                     help='Starting event timestamp (ISO 8601). Example: 2018-11-26T23:59:59'),
         make_option('--to-ts', dest='to_ts', type='string',
                     help='Last event timestamp (ISO 8601).'),
-        make_option('--from-id', dest='from_id', type=int, help='Starting event ID (primary key).'),
-        make_option('--to-id', dest='to_id', type=int, help='Last event ID (primary key).'),
+        make_option('--from-id', dest='from_id', type=int,
+                    help='Starting event ID (primary key).'),
+        make_option('--to-id', dest='to_id', type=int,
+                    help='Last event ID (primary key).'),
+        make_option('--no-input', action='store_true', dest='no_input',
+                    help='Do not ask questions.')
     )
 
     def get_events_by_timestamp(self, from_ts, to_ts):
@@ -56,7 +62,17 @@ class Command(BaseCommand):
         else:
             raise CommandError('Invalid arguments: either use --from/--to-id, or --from/--to-ts.')
 
-        self.stdout.write('Events to process: {}'.format(events.count()))
+        count = events.count()
+        self.stdout.write('Events to process: {}'.format(count))
+
+        if count == 0:
+            self.stdout.write('Nothing to do.')
+            sys.exit(0)
+
+        if not options['no_input']:
+            proceed = raw_input('Do you want to continue? [y/N] ')
+            if proceed.lower() not in ['yes', 'y']:
+                raise CommandError('Aborted.')
 
         for event in events:
             primary_hash = event.get_primary_hash()
@@ -70,3 +86,5 @@ class Command(BaseCommand):
                 primary_hash=primary_hash,
                 skip_consume=True,
             )
+
+        self.stdout.write('Done.')
