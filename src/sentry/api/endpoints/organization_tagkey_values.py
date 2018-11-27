@@ -4,7 +4,6 @@ from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError
 from sentry.api.serializers import serialize
-from sentry.utils.snuba import SENTRY_SNUBA_MAP
 from sentry.tagstore.base import TAG_KEY_RE
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 
@@ -26,7 +25,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
         paginator = tagstore.get_tag_value_paginator_for_projects(
             filter_params['project_id'],
             filter_params.get('environment'),
-            SENTRY_SNUBA_MAP.get(key, key),
+            key,
             filter_params['start'],
             filter_params['end'],
             query=request.GET.get('query'),

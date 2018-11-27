@@ -11,6 +11,7 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationTagKeyValuesTest, self).setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
+        self.day_ago = timezone.now() - timedelta(days=1)
 
     def test_simple(self):
         user = self.create_user()
@@ -82,16 +83,16 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         group = self.create_group(project=project)
 
         self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.com'},
+            'a' * 32, group=group, datetime=self.day_ago, user={'email': 'foo@example.com'},
         )
         self.create_event(
             'b' * 32, group=group, datetime=self.min_ago, user={'email': 'bar@example.com'},
         )
         self.create_event(
-            'c' * 32, group=group, datetime=self.min_ago, user={'email': 'baz@example.com'},
+            'c' * 32, group=group, datetime=timezone.now() - timedelta(seconds=10), user={'email': 'baz@example.com'},
         )
         self.create_event(
-            'd' * 32, group=group, datetime=self.min_ago, user={'email': 'baz@example.com'},
+            'd' * 32, group=group, datetime=timezone.now() - timedelta(seconds=10), user={'email': 'baz@example.com'},
         )
 
         url = reverse(
@@ -104,11 +105,8 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        assert response.data == [
-            {'count': 2, 'value': 'baz@example.com'},
-            {'count': 1, 'value': 'foo@example.com'},
-            {'count': 1, 'value': 'bar@example.com'},
-        ]
+        assert [(val['value'], val['count'])
+                for val in response.data] == [('baz@example.com', 2), ('bar@example.com', 1), ('foo@example.com', 1)]
 
     def test_release(self):
         user = self.create_user()
@@ -144,8 +142,5 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        assert response.data == [
-            {'count': 2, 'value': '3.1.2'},
-            {'count': 1, 'value': '5.1.2'},
-            {'count': 1, 'value': '4.1.2'},
-        ]
+        assert [(val['value'], val['count'])
+                for val in response.data] == [('5.1.2', 1), ('4.1.2', 1), ('3.1.2', 2)]

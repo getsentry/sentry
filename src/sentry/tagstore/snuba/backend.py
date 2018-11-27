@@ -474,23 +474,25 @@ class SnubaTagStorage(TagStorage):
             end,
             query=query,
             order_by=order_by,
-            referrer='tagstore.get_tag_value_paginator',
         )
 
     def get_tag_value_paginator_for_projects(self, projects, environments, key, start, end,
-                                             query=None, order_by='-last_seen', referrer=None):
+                                             query=None, order_by='-last_seen'):
         from sentry.api.paginator import SequencePaginator
 
         if not order_by == '-last_seen':
             raise ValueError("Unsupported order_by: %s" % order_by)
 
+        snuba_key = snuba.get_snuba_column_name(key)
+
         conditions = []
         if query:
-            conditions.append(['tags_value', 'LIKE', u'%{}%'.format(query)])
+            conditions.append([snuba_key, 'LIKE', u'%{}%'.format(query)])
+        else:
+            conditions.append([snuba_key, '!=', ''])
 
         filters = {
             'project_id': projects,
-            'tags_key': [key],
         }
         if environments:
             filters['environment'] = environments
@@ -498,7 +500,7 @@ class SnubaTagStorage(TagStorage):
         results = snuba.query(
             start=start,
             end=end,
-            groupby=['tags_value'],
+            groupby=[snuba_key],
             filter_keys=filters,
             aggregations=[
                 ['count()', '', 'times_seen'],
@@ -509,7 +511,7 @@ class SnubaTagStorage(TagStorage):
             orderby=order_by,
             # TODO: This means they can't actually paginate all TagValues.
             limit=1000,
-            referrer=referrer if referrer is not None else 'tagstore.get_tag_value_paginator_for_projects',
+            referrer='tagstore.get_tag_value_paginator_for_projects',
         )
 
         tag_values = [
