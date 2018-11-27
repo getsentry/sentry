@@ -38,6 +38,8 @@ class NotifyEventAction(EventAction):
         group = event.group
 
         for plugin in self.get_plugins():
+            # plugin is now wrapped in the LegacyPluginService object
+            plugin = plugin.service
             if not safe_execute(
                 plugin.should_notify, group=group, event=event, _with_transaction=False
             ):
