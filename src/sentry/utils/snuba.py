@@ -585,10 +585,13 @@ def insert_raw(data):
     data = json.dumps(data)
     try:
         with timer('snuba_insert_raw'):
-            return _snuba_pool.urlopen(
+            resp = _snuba_pool.urlopen(
                 'POST', '/tests/insert',
                 body=data,
             )
+            if resp.status != 200:
+                raise SnubaError("Non-200 response from Snuba insert!")
+            return resp
     except urllib3.exceptions.HTTPError as err:
         raise SnubaError(err)
 
