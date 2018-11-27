@@ -1,6 +1,13 @@
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
+import {openModal} from 'app/actionCreators/modal';
+
+jest.mock('app/actionCreators/modal');
 
 describe('Query Builder', function() {
+  afterEach(function() {
+    jest.clearAllMocks();
+  });
+
   describe('applyDefaults()', function() {
     it('generates default query with all projects', function() {
       const queryBuilder = createQueryBuilder(
@@ -163,6 +170,42 @@ describe('Query Builder', function() {
       expect(queryBuilder.getInternal().orderby).toBe('-count');
       queryBuilder.updateField('aggregations', []);
       expect(queryBuilder.getInternal().orderby).toBe('-timestamp');
+    });
+  });
+
+  describe('reset()', function() {
+    let queryBuilder;
+    beforeEach(function() {
+      const project = TestStubs.Project({id: '1'});
+      const projectWithoutMembership = TestStubs.Project({id: '2', isMember: false});
+      queryBuilder = createQueryBuilder(
+        {},
+        TestStubs.Organization({projects: [project, projectWithoutMembership]})
+      );
+    });
+
+    it('displays warning if invalid project is provided', function() {
+      queryBuilder.reset({
+        fields: ['id'],
+        projects: [3],
+      });
+      expect(openModal).toHaveBeenCalled();
+    });
+
+    it('displays warning if user does not have project access', function() {
+      queryBuilder.reset({
+        fields: ['id'],
+        projects: [2],
+      });
+      expect(openModal).toHaveBeenCalled();
+    });
+
+    it('does not display warning if user has access to all requested projects', function() {
+      queryBuilder.reset({
+        fields: ['id'],
+        projects: [1],
+      });
+      expect(openModal).not.toHaveBeenCalled();
     });
   });
 });
