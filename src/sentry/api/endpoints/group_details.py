@@ -19,7 +19,7 @@ from sentry.models import (
     Activity,
     Environment,
     Group,
-    GroupHashTombstone,
+    GroupHash,
     GroupRelease,
     GroupSeen,
     GroupStatus,
@@ -393,13 +393,12 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             project = group.project
 
             eventstream_state = eventstream.start_delete_groups(group.project_id, [group.id])
-
-            GroupHashTombstone.tombstone_groups(
-                project_id=project.id,
-                group_ids=[group.id],
-            )
-
             transaction_id = uuid4().hex
+
+            GroupHash.objects.filter(
+                project_id=group.project_id,
+                group__id=group.id,
+            ).delete()
 
             delete_groups.apply_async(
                 kwargs={
