@@ -100,7 +100,7 @@ class KafkaEventStream(EventStream):
 
         try:
             self.producer.produce(
-                self.publish_topic,
+                topic=self.publish_topic,
                 key=key.encode('utf-8'),
                 value=json.dumps(
                     (EVENT_PROTOCOL_VERSION, _type) + extra_data
