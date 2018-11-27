@@ -16,10 +16,7 @@ class EventTest(TestCase):
                 ('server_name', 'bar'),
             ]}
         )
-        assert event.logger == 'foobar'
         assert event.level == event.group.level
-        assert event.site == 'foo'
-        assert event.server_name == 'bar'
         assert event.culprit == event.group.culprit
 
     def test_pickling_compat(self):

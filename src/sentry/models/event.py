@@ -248,6 +248,11 @@ class Event(Model):
             data_len += len(repr(value))
         return data_len
 
+    @property
+    def culprit(self):
+        # For a while events did not save the culprit
+        return self.data.get('culprit') or self.group.culprit
+
     # XXX(dcramer): compatibility with plugins
     def get_level_display(self):
         warnings.warn(
@@ -261,34 +266,9 @@ class Event(Model):
         return self.group.level
 
     @property
-    def logger(self):
-        warnings.warn('Event.logger is deprecated. Use Event.tags instead.', DeprecationWarning)
-        return self.get_tag('logger')
-
-    @property
-    def site(self):
-        warnings.warn('Event.site is deprecated. Use Event.tags instead.', DeprecationWarning)
-        return self.get_tag('site')
-
-    @property
-    def server_name(self):
-        warnings.warn('Event.server_name is deprecated. Use Event.tags instead.')
-        return self.get_tag('server_name')
-
-    @property
-    def culprit(self):
-        warnings.warn('Event.culprit is deprecated. Use Group.culprit instead.')
-        return self.group.culprit
-
-    @property
     def message(self):
         warnings.warn('Event.message is deprecated. Use Event.search_message instead.')
         return self.search_message
-
-    @property
-    def checksum(self):
-        warnings.warn('Event.checksum is no longer used', DeprecationWarning)
-        return ''
 
     @property
     def transaction(self):

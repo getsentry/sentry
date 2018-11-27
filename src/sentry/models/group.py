@@ -418,11 +418,6 @@ class Group(Model):
         return self.project.organization
 
     @property
-    def checksum(self):
-        warnings.warn('Group.checksum is no longer used', DeprecationWarning)
-        return ''
-
-    @property
     def message(self):
         warnings.warn('Group.message is deprecated. Use Group.search_message instead.')
         return self.search_message
