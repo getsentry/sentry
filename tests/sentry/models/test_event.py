@@ -208,7 +208,6 @@ class EventGetLegacyMessageTest(TestCase):
         # Have hashes by default
         hashes = event.get_hashes()
         assert hashes == ['ed076287532e86365e841e92bfc50d8c']
-        print(dict(event.data.data))
         event.data.data['hashes'] == ['ed076287532e86365e841e92bfc50d8c']
 
         # if hashes are reset, generate new ones
