@@ -4,6 +4,7 @@ import os
 import logging
 
 from sentry.tasks.base import instrumented_task
+from sentry.utils.files import get_max_file_size
 from sentry.utils.sdk import configure_scope
 
 logger = logging.getLogger(__name__)
@@ -91,7 +92,15 @@ def assemble_file(project, name, checksum, chunks, file_type):
     # chunks need to build the file
     file_blobs = FileBlob.objects.filter(
         checksum__in=chunks
-    ).values_list('id', 'checksum')
+    ).values_list('id', 'checksum', 'size')
+
+    # Reject all files that exceed the maximum allowed size for this
+    # organization. This value cannot be
+    file_size = sum(x[2] for x in file_blobs)
+    if file_size > get_max_file_size(project.organization):
+        set_assemble_status(project, checksum, ChunkFileState.ERROR,
+                            detail='File exceeds maximum size')
+        return
 
     # We need to make sure the blobs are in the order in which
     # we received them from the request.
