@@ -1,5 +1,5 @@
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
-
+import React from 'react';
 import {uniq} from 'lodash';
 import moment from 'moment-timezone';
 
@@ -7,6 +7,9 @@ import {Client} from 'app/api';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 
+import {openModal} from 'app/actionCreators/modal';
+
+import MissingProjectWarningModal from './missingProjectWarningModal';
 import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
 
@@ -245,11 +248,26 @@ export default function createQueryBuilder(initial = {}, organization) {
   }
 
   /**
-   * Resets the query to defaults
+   * Resets the query to defaults or the query provided
+   * Displays a warning if user does not have access to any project in the query
    *
    * @returns {Void}
    */
   function reset(q = {}) {
+    const invalidProjects = (q.projects || []).filter(
+      project => !defaultProjects.includes(project)
+    );
+
+    if (invalidProjects.length) {
+      openModal(deps => (
+        <MissingProjectWarningModal
+          organization={organization}
+          projects={invalidProjects}
+          {...deps}
+        />
+      ));
+    }
+
     query = applyDefaults(q);
   }
 }
