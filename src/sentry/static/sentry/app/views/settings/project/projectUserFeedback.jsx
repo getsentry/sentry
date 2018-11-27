@@ -2,16 +2,17 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import sdk from 'app/utils/sdk';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
+import Access from 'app/components/acl/access';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import formGroups from 'app/data/forms/userFeedback';
+import sdk from 'app/utils/sdk';
 
 const CodeBlock = styled.pre`
   word-break: break-all;
@@ -171,7 +172,9 @@ class ProjectUserFeedbackSettings extends AsyncView {
           apiEndpoint={`/projects/${orgId}/${projectId}/`}
           initialData={this.state.project.options}
         >
-          <JsonForm forms={formGroups} />
+          <Access access={['project:write']}>
+            {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
+          </Access>
         </Form>
       </div>
     );
