@@ -25,14 +25,14 @@ def test_timestamp():
     )
     with mock.patch("sentry.event_manager.process_timestamp", patched):
         data = validate_and_normalize({"timestamp": "2018-04-10T14:33:18Z"})
-        assert len(data["errors"]) == 0
+        assert "errors" not in data
 
     data = validate_and_normalize({"timestamp": "not-a-timestamp"})
     assert len(data["errors"]) == 1
 
     now = datetime.utcnow()
     data = validate_and_normalize({"timestamp": now.strftime("%Y-%m-%dT%H:%M:%SZ")})
-    assert len(data["errors"]) == 0
+    assert "errors" not in data
 
     future = now + timedelta(minutes=2)
     data = validate_and_normalize({"timestamp": future.strftime("%Y-%m-%dT%H:%M:%SZ")})
@@ -114,12 +114,17 @@ def test_does_expand_list():
 
 def test_log_level_as_string():
     data = validate_and_normalize({"message": "foo", "level": "error"})
-    assert data["level"] == 40
+    assert data["level"] == "error"
+
+
+def test_log_level_as_int():
+    data = validate_and_normalize({"message": "foo", "level": 40})
+    assert data["level"] == "error"
 
 
 def test_invalid_log_level():
     data = validate_and_normalize({"message": "foo", "level": "foobar"})
-    assert data["level"] == 40
+    assert data["level"] == "error"
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_data"
     assert data["errors"][0]["name"] == "level"
@@ -128,7 +133,7 @@ def test_invalid_log_level():
 
 def test_tags_as_string():
     data = validate_and_normalize({"message": "foo", "tags": "bar"})
-    assert data["tags"] == []
+    assert "tags" not in data
 
 
 def test_tags_with_spaces():
@@ -181,7 +186,7 @@ def test_tag_value():
 
 def test_extra_as_string():
     data = validate_and_normalize({"message": "foo", "extra": "bar"})
-    assert data["extra"] == {}
+    assert "extra" not in data
 
 
 def test_release_tag_max_len():
@@ -190,7 +195,7 @@ def test_release_tag_max_len():
     data = validate_and_normalize(
         {"message": "foo", "tags": [[release_key, release_value]]}
     )
-    assert not data["errors"]
+    assert "errors" not in data
     assert data["tags"] == [(release_key, release_value)]
 
 
@@ -340,15 +345,15 @@ def test_fingerprints():
         {"fingerprint": ["{{default}}", 1, "bar", 4.5, -2.7, True]}
     )
     assert data.get("fingerprint") == ["{{default}}", "1", "bar", "4", "-2", "True"]
-    assert len(data["errors"]) == 0
+    assert "errors" not in data
 
     data = validate_and_normalize({"fingerprint": ["{{default}}", 1e100, -1e100, 1e10]})
     assert data.get("fingerprint") == ["{{default}}", "10000000000"]
-    assert len(data["errors"]) == 0
+    assert "errors" not in data
 
     data = validate_and_normalize({"fingerprint": []})
-    assert data.get("fingerprint") == []
-    assert len(data["errors"]) == 0
+    assert "fingerprint" not in data
+    assert "errors" not in data
 
 
 def test_messages():
@@ -382,7 +387,7 @@ def test_messages():
         }
     )
     assert "message" not in data
-    assert len(data["errors"]) == 0
+    assert "errors" not in data
     assert data["logentry"] == {
         "message": "something else",
         "formatted": "something else formatted",
@@ -404,7 +409,7 @@ def test_messages_old_behavior():
         }
     )
     assert "message" not in data
-    assert len(data["errors"]) == 0
+    assert "errors" not in data
     assert data["logentry"] == {
         "message": "something else",
         "formatted": "foo is bar",

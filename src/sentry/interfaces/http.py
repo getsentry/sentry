@@ -17,7 +17,7 @@ from django.conf import settings
 from django.utils.translation import ugettext as _
 from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.utils.http import heuristic_decode
@@ -212,6 +212,19 @@ class Http(Interface):
         kwargs['fragment'] = trim(fragment, 1024)
 
         return cls(**kwargs)
+
+    def to_json(self):
+        return prune_empty_keys({
+            'method': self.method,
+            'url': self.url,
+            'query_string': self.query_string or None,
+            'fragment': self.fragment or None,
+            'cookies': self.cookies or None,
+            'headers': self.headers or None,
+            'data': self.data,
+            'env': self.env or None,
+            'inferred_content_type': self.inferred_content_type,
+        })
 
     @property
     def full_url(self):

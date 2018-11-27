@@ -14,10 +14,8 @@ from time import time
 
 from sentry.app import tsdb
 from sentry.constants import VERSION_LENGTH
-from sentry.event_manager import (
-    HashDiscarded, EventManager, EventUser,
-    md5_from_hash
-)
+from sentry.event_manager import HashDiscarded, EventManager, EventUser
+from sentry.event_hashing import md5_from_hash
 from sentry.models import (
     Activity, Environment, Event, ExternalIssue, Group, GroupEnvironment,
     GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,

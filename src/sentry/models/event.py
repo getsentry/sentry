@@ -123,6 +123,22 @@ class Event(Model):
         from sentry.event_manager import get_event_metadata_compat
         return get_event_metadata_compat(self.data, self.search_message)
 
+    def get_hashes(self, no_fingerprint=False):
+        """
+        Returns the calculated hashes for the event.
+
+        The `no_fingerprint` parameter disables using the fingerprint value.
+        This is a legacy code path that should be removed but matches old
+        event ingestion behavior.  This will make the code consider the
+        legacy checksum as well before falling back to the default fingerprint.
+        """
+        from sentry.event_hashing import get_event_hashes
+        return get_event_hashes(self, no_fingerprint)
+
+    def get_primary_hash(self):
+        # TODO: This *might* need to be protected from an IndexError?
+        return self.get_hashes()[0]
+
     @property
     def title(self):
         et = eventtypes.get(self.get_event_type())(self.data)
