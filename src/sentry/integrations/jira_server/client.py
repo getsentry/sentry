@@ -1,9 +1,14 @@
 from __future__ import absolute_import
 
-from sentry.integrations.client import ApiClient, ApiError
-from requests_oauthlib import OAuth1
+import jwt
+
+from django.core.urlresolvers import reverse
 from oauthlib.oauth1 import SIGNATURE_RSA
+from requests_oauthlib import OAuth1
 from six.moves.urllib.parse import parse_qsl
+
+from sentry.integrations.client import ApiClient, ApiError
+from sentry.utils.http import absolute_uri
 
 
 class JiraServerSetupClient(ApiClient):
@@ -55,6 +60,28 @@ class JiraServerSetupClient(ApiClient):
         resp = self.post(url, auth=auth, allow_text=True)
         return dict(parse_qsl(resp.text))
 
+    def create_issue_webhook(self, external_id, secret, credentials):
+        auth = OAuth1(
+            client_key=credentials['consumer_key'],
+            rsa_key=credentials['private_key'],
+            resource_owner_key=credentials['access_token'],
+            resource_owner_secret=credentials['access_token_secret'],
+            signature_method=SIGNATURE_RSA,
+            signature_type='auth_header')
+
+        # Create a JWT token that we can add to the webhook URL
+        # so we can locate the matching integration later.
+        token = jwt.encode({'id': external_id}, secret)
+        path = reverse(
+            'sentry-extensions-jiraserver-issue-updated',
+            kwargs={'token': token})
+        data = {
+            'name': 'Sentry Issue Sync',
+            'url': absolute_uri(path),
+            'events': ['jira:issue_created', 'jira:issue_updated']
+        }
+        return self.post('/rest/webhooks/1.0/webhook', auth=auth, data=data)
+
     def request(self, *args, **kwargs):
         """
         Add OAuth1 RSA signatures.
@@ -75,8 +102,8 @@ class JiraServerClient(ApiClient):
 
     def __init__(self, installation):
         self.installation = installation
-        verify_ssl = self.metadata['verify_ssl']
-        super(JiraServerClient, self).__init__(verify_ssl)
+        super(JiraServerClient, self).__init__(self.metadata['verify_ssl'])
+        self.base_url = self.metadata['base_url']
 
     @property
     def identity(self):
@@ -88,11 +115,12 @@ class JiraServerClient(ApiClient):
 
     def request(self, *args, **kwargs):
         if 'auth' not in kwargs:
+            auth_data = self.identity.data
             kwargs['auth'] = OAuth1(
-                client_key=self.metadat['consumer_key'],
-                rsa_key=self.metadata['private_key'],
-                resource_owner_key=self.metadata['access_token'],
-                resource_owner_secret=self.metadata['access_token_secret'],
+                client_key=auth_data['consumer_key'],
+                rsa_key=auth_data['private_key'],
+                resource_owner_key=auth_data['access_token'],
+                resource_owner_secret=auth_data['access_token_secret'],
                 signature_method=SIGNATURE_RSA,
                 signature_type='auth_header')
         return self._request(*args, **kwargs)

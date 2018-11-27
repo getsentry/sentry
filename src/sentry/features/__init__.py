@@ -75,6 +75,7 @@ default_manager.add('organizations:suggested-commits', OrganizationFeature)  # N
 default_manager.add('organizations:unreleased-changes', OrganizationFeature)  # NOQA
 default_manager.add('organizations:gitlab-integration', OrganizationFeature)  # NOQA
 default_manager.add('organizations:jira-server-integration', OrganizationFeature)  # NOQA
+default_manager.add('organizations:large-debug-files', OrganizationFeature)  # NOQA
 
 # Project scoped features
 default_manager.add('projects:similarity-view', ProjectFeature)  # NOQA

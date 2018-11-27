@@ -17,6 +17,7 @@ INVALID_ACCESS_TOKEN = 'HTTP 400 (invalid_request): The access token is not vali
 
 
 class VstsApiPath(object):
+    commit = u'{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}'
     commits = u'{instance}_apis/git/repositories/{repo_id}/commits'
     commits_batch = u'{instance}_apis/git/repositories/{repo_id}/commitsBatch'
     commits_changes = u'{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
@@ -197,8 +198,16 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             },
         )
 
-    def get_commit_filechanges(self, instance, repo_id, commit):
+    def get_commit(self, instance, repo_id, commit):
+        return self.get(
+            VstsApiPath.commit.format(
+                instance=instance,
+                repo_id=repo_id,
+                commit_id=commit
+            )
+        )
 
+    def get_commit_filechanges(self, instance, repo_id, commit):
         resp = self.get(
             VstsApiPath.commits_changes.format(
                 instance=instance,

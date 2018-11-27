@@ -57,25 +57,22 @@ class User(Interface):
     def to_python(cls, data):
         data = data.copy()
 
-        extra_data = data.pop('data', data)
-        if not isinstance(extra_data, dict):
-            extra_data = {}
-
         ident = data.pop('id', None)
-        if ident:
+        if ident is not None:
             ident = trim(six.text_type(ident), 128)
+
         try:
             email = trim(validate_email(data.pop('email', None), False), MAX_EMAIL_FIELD_LENGTH)
         except ValueError:
             raise InterfaceValidationError("Invalid value for 'email'")
 
-        username = trim(data.pop('username', None), 128)
-        if username:
-            username = six.text_type(username)
+        username = data.pop('username', None)
+        if username is not None:
+            username = trim(six.text_type(username), 128)
 
-        name = trim(data.pop('name', None), 128)
-        if name:
-            name = six.text_type(name)
+        name = data.pop('name', None)
+        if name is not None:
+            name = trim(six.text_type(name), 128)
 
         try:
             ip_address = validate_ip(data.pop('ip_address', None), False)
@@ -87,6 +84,11 @@ class User(Interface):
             geo = Geo.from_ip_address(ip_address)
         elif geo:
             geo = Geo.to_python(geo)
+
+        extra_data = data.pop('data', None)
+        if not isinstance(extra_data, dict):
+            extra_data = {}
+        extra_data.update(data)
 
         # TODO(dcramer): patch in fix to deal w/ old data but not allow new
         # if not (ident or email or username or ip_address):
