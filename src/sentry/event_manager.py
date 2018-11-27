@@ -180,12 +180,16 @@ def plugin_is_regression(group, event):
     return True
 
 
-def process_timestamp(value, current_datetime=None):
+def process_timestamp(value, meta, current_datetime=None):
+    if value is None:
+        return None
+
     if is_float(value):
         try:
             value = datetime.fromtimestamp(float(value))
         except Exception:
-            raise InvalidTimestamp(EventError.INVALID_DATA)
+            meta.add_error('invalid timestamp', value)
+            return None
     elif not isinstance(value, datetime):
         # all timestamps are in UTC, but the marker is optional
         if value.endswith('Z'):
@@ -201,16 +205,19 @@ def process_timestamp(value, current_datetime=None):
         try:
             value = datetime.strptime(value, fmt)
         except Exception:
-            raise InvalidTimestamp(EventError.INVALID_DATA)
+            meta.add_error('invalid timestamp format', value)
+            return None
 
     if current_datetime is None:
         current_datetime = datetime.now()
 
     if value > current_datetime + ALLOWED_FUTURE_DELTA:
-        raise InvalidTimestamp(EventError.FUTURE_TIMESTAMP)
+        meta.add_error('invalid timestamp (in future)')
+        return None
 
     if value < current_datetime - timedelta(days=30):
-        raise InvalidTimestamp(EventError.PAST_TIMESTAMP)
+        meta.add_error('invalid timestamp (too old)')
+        return None
 
     return float(value.strftime('%s'))
 
@@ -452,7 +459,6 @@ class EventManager(object):
             'dist': lambda v: text(v).strip() if v is not None else v,
             'time_spent': lambda v: int(v) if v is not None else v,
             'tags': lambda v: [(text(v_k).replace(' ', '-').strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
-            'timestamp': lambda v: process_timestamp(v),
             'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
             'logentry': lambda v: v if isinstance(v, dict) else {'message': v},
 
@@ -465,15 +471,15 @@ class EventManager(object):
         meta = Meta(data.get('_meta'))
 
         for c in casts:
-            if data.get(c) is not None:
+            value = data.pop(c, None)
+            if value is not None:
                 try:
-                    data[c] = casts[c](data[c])
-                except InvalidTimestamp as it:
-                    meta.enter(c).add_error(it, data[c])
-                    del data[c]
+                    data[c] = casts[c](value)
                 except Exception as e:
-                    meta.enter(c).add_error(e, data[c])
-                    del data[c]
+                    meta.enter(c).add_error(e, value)
+
+        data['timestamp'] = process_timestamp(data.get('timestamp'),
+                                              meta.enter('timestamp'))
 
         # raw 'message' is coerced to the Message interface.  Longer term
         # we want to treat 'message' as a pure alias for 'logentry' but
