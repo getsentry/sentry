@@ -156,7 +156,7 @@ class IntegrationRepositoryProvider(object):
             >>>     'author_email': commit['author']['email'],
             >>>     'author_name': commit['author']['name'],
             >>>     'message': commit['message'],
-            >>>     'timestamp': self.format_timezone(commit['timestamp']),
+            >>>     'timestamp': self.format_date(commit['timestamp']),
             >>>     'patch_set': commit['patch_set'],
             >>> }
         """
