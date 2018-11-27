@@ -31,7 +31,7 @@ from sentry.coreapi import (
     decode_data,
     safely_load_json_string,
 )
-from sentry.interfaces.base import get_interface, prune_empty_keys, InterfaceValidationError
+from sentry.interfaces.base import get_interface, prune_empty_keys
 from sentry.interfaces.exception import normalize_mechanism_meta
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.lang.native.utils import get_sdk_from_event
@@ -431,11 +431,6 @@ class EventManager(object):
             if self._auth is not None:
                 data['sdk'] = data.get('sdk') or parse_client_as_sdk(self._auth.client)
 
-        # permit the client to transmit errors as well.
-        errors = data.get('errors')
-        if not errors:
-            errors = data['errors'] = []
-
         # Before validating with a schema, attempt to cast values to their desired types
         # so that the schema doesn't have to take every type variation into account.
         text = six.text_type
@@ -474,11 +469,9 @@ class EventManager(object):
                 try:
                     data[c] = casts[c](data[c])
                 except InvalidTimestamp as it:
-                    errors.append({'type': it.args[0], 'name': c, 'value': data[c]})
                     meta.enter(c).add_error(it, data[c])
                     del data[c]
                 except Exception as e:
-                    errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
                     meta.enter(c).add_error(e, data[c])
                     del data[c]
 
@@ -516,11 +509,10 @@ class EventManager(object):
         # Validate main event body and tags against schema.
         # XXX(ja): jsonschema does not like CanonicalKeyDict, so we need to pass
         #          in the inner data dict.
-        is_valid, event_errors = validate_and_default_interface(data.data, 'event')
-        errors.extend(event_errors)
+        validate_and_default_interface(data.data, 'event', meta=meta)
         if data.get('tags') is not None:
-            is_valid, tag_errors = validate_and_default_interface(data['tags'], 'tags', name='tags')
-            errors.extend(tag_errors)
+            validate_and_default_interface(
+                data['tags'], 'tags', name='tags', meta=meta.enter('tags'))
 
         # Validate interfaces
         for k in list(iter(data)):
@@ -529,26 +521,22 @@ class EventManager(object):
 
             value = data.pop(k)
 
+            # Ignore all top-level None and empty values, regardless whether
+            # they are interfaces or not. For all other unrecognized attributes,
+            # we emit an explicit error.
             if not value:
-                logger.debug('Ignored empty interface value: %s', k)
                 continue
 
             try:
                 interface = get_interface(k)
             except ValueError:
                 logger.debug('Ignored unknown attribute: %s', k)
-                errors.append({'type': EventError.INVALID_ATTRIBUTE, 'name': k})
+                meta.enter(k).add_error('unknown attribute')
                 continue
 
-            try:
-                inst = interface.to_python(value)
-                data[inst.path] = inst.to_json()
-            except Exception as e:
-                log = logger.debug if isinstance(
-                    e, InterfaceValidationError) else logger.error
-                log('Discarded invalid value for interface: %s (%r)', k, value, exc_info=True)
-                errors.append({'type': EventError.INVALID_DATA, 'name': k, 'value': value})
-                meta.enter(k).add_error(e, value)
+            normalized = interface.normalize(value, meta.enter(k))
+            if normalized:
+                data[interface.path] = normalized
 
         # Additional data coercion and defaulting we only do for store.
         if self._for_store:
@@ -663,6 +651,27 @@ class EventManager(object):
         for key in ('errors', 'tags', 'extra', 'fingerprint'):
             if not data.get(key):
                 data.pop(key, None)
+
+        # Merge meta errors into the errors array. We need to iterate over the
+        # raw meta instead of data due to pruned null values.
+        errors = data.get('errors') or []
+        for key, field_meta in six.iteritems(meta.raw()):
+            if key == '':
+                continue
+
+            field_meta = Meta(field_meta)
+            original_value = field_meta.get().get('val')
+
+            for i, err in enumerate(field_meta.get_errors()):
+                error = {'type': EventError.GENERAL, 'name': key, 'message': err}
+                if i == 0 and original_value is not None:
+                    error['value'] = original_value
+                errors.append(error)
+
+        if errors:
+            data['errors'] = errors
+        elif 'errors' in data:
+            del data['errors']
 
         if meta.raw():
             data['_meta'] = meta.raw()

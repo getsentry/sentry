@@ -26,6 +26,7 @@ from sentry.constants import (
 from sentry.interfaces.base import InterfaceValidationError
 from sentry.models import EventError
 from sentry.tagstore.base import INTERNAL_TAG_KEYS
+from sentry.utils.meta import Meta
 
 
 def iverror(message="Invalid data"):
@@ -734,7 +735,7 @@ def validator_for_interface(name):
     )
 
 
-def validate_and_default_interface(data, interface, name=None,
+def validate_and_default_interface(data, interface, name=None, meta=None,
                                    strip_nones=True, raise_on_invalid=False):
     """
     Modify data to conform to named interface's schema.
@@ -747,6 +748,9 @@ def validate_and_default_interface(data, interface, name=None,
     Returns whether the resulting modified data is valid against the schema and
     a list of any validation errors encountered in processing.
     """
+    if meta is None:
+        meta = Meta()
+
     is_valid = True
     needs_revalidation = False
     errors = []
@@ -770,6 +774,7 @@ def validate_and_default_interface(data, interface, name=None,
                     default = schema['properties'][p]['default']
                     data[p] = default() if callable(default) else default
                 else:
+                    meta.add_error("missing required field '%s'" % p)
                     errors.append({'type': EventError.MISSING_ATTRIBUTE, 'name': p})
 
     validator_errors = list(validator.iter_errors(data))
@@ -783,10 +788,14 @@ def validate_and_default_interface(data, interface, name=None,
         is_max = ve.validator.startswith('max')
         if is_max:
             error_type = EventError.VALUE_TOO_LONG
+            error_msg = 'value too long'
         elif key == 'environment':
             error_type = EventError.INVALID_ENVIRONMENT
+            error_msg = 'value cannot contain / or newlines'
         else:
             error_type = EventError.INVALID_DATA
+            error_msg = 'invalid value'
+        meta.enter(key).add_error(error_msg, data[key])
         errors.append({'type': error_type, 'name': name or key, 'value': data[key]})
 
         if 'default' in ve.schema:
