@@ -82,4 +82,4 @@ class OrganizationDiscoverTest(AcceptanceTestCase):
             self.login_as(self.new_user)
             self.browser.get(self.path + 'saved/1/')
             self.browser.wait_until_not('.loading')
-            self.browser.snapshot('discover - saved query')
+            self.browser.snapshot('discover - invalid projects')
