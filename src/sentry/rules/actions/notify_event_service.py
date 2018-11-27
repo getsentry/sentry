@@ -80,7 +80,7 @@ class NotifyEventServiceAction(EventAction):
             metrics.incr('notifications.sent', instance=plugin.slug)
             yield self.future(plugin.rule_notify)
 
-    def get_installs(self):
+    def get_sentry_app_services(self):
         apps = SentryApp.objects.filter(
             installations__organization_id=self.project.organization_id,
             is_alertable=True,
@@ -105,7 +105,7 @@ class NotifyEventServiceAction(EventAction):
 
     def get_services(self):
         services = self.get_plugins()
-        services += self.get_installs()
+        services += self.get_sentry_app_services()
         return services
 
     def get_form_instance(self):
