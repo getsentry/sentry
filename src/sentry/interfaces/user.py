@@ -62,20 +62,21 @@ class User(Interface):
             extra_data = {}
 
         ident = data.pop('id', None)
-        if ident:
+        if ident is not None:
             ident = trim(six.text_type(ident), 128)
+
         try:
             email = trim(validate_email(data.pop('email', None), False), MAX_EMAIL_FIELD_LENGTH)
         except ValueError:
             raise InterfaceValidationError("Invalid value for 'email'")
 
-        username = trim(data.pop('username', None), 128)
-        if username:
-            username = six.text_type(username)
+        username = data.pop('username', None)
+        if username is not None:
+            username = trim(six.text_type(username), 128)
 
-        name = trim(data.pop('name', None), 128)
-        if name:
-            name = six.text_type(name)
+        name = data.pop('name', None)
+        if name is not None:
+            name = trim(six.text_type(name), 128)
 
         try:
             ip_address = validate_ip(data.pop('ip_address', None), False)
