@@ -1,16 +1,17 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import React from 'react';
 
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
+import Access from 'app/components/acl/access';
 import AsyncView from 'app/views/asyncView';
 import ExternalLink from 'app/components/externalLink';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import PreviewFeature from 'app/components/previewFeature';
 import ReportUri, {
   getSecurityDsn,
 } from 'app/views/settings/projectSecurityHeaders/reportUri';
-import PreviewFeature from 'app/components/previewFeature';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import formGroups from 'app/data/forms/cspReports';
 
@@ -76,7 +77,9 @@ export default class ProjectCspReports extends AsyncView {
           initialData={this.state.project.options}
           apiEndpoint={`/projects/${orgId}/${projectId}/`}
         >
-          <JsonForm forms={formGroups} />
+          <Access access={['project:write']}>
+            {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
+          </Access>
         </Form>
 
         <Panel>
