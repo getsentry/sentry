@@ -133,6 +133,8 @@ class KafkaEventStream(EventStream):
             # TODO(mitsuhiko): We do not want to send this incorrect
             # message but this is what snuba needs at the moment.
             'message': event.message,
+            'real_message': event.real_message,
+            'title': event.title,
             'platform': event.platform,
             'datetime': event.datetime,
             'data': dict(event.data.items()),
