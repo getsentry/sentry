@@ -57,10 +57,6 @@ class User(Interface):
     def to_python(cls, data):
         data = data.copy()
 
-        extra_data = data.pop('data', data)
-        if not isinstance(extra_data, dict):
-            extra_data = {}
-
         ident = data.pop('id', None)
         if ident is not None:
             ident = trim(six.text_type(ident), 128)
@@ -88,6 +84,11 @@ class User(Interface):
             geo = Geo.from_ip_address(ip_address)
         elif geo:
             geo = Geo.to_python(geo)
+
+        extra_data = data.pop('data')
+        if not isinstance(extra_data, dict):
+            extra_data = {}
+        extra_data.extend(data)
 
         # TODO(dcramer): patch in fix to deal w/ old data but not allow new
         # if not (ident or email or username or ip_address):
