@@ -46,7 +46,9 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        assert response.data == [{'count': 2, 'value': 'orange'}, {'count': 1, 'value': 'apple'}]
+
+        assert [(val['value'], val['count'])
+                for val in response.data] == [('apple', 1), ('orange', 2)]
 
     def test_bad_key(self):
         user = self.create_user()
