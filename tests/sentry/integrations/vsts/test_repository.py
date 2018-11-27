@@ -10,7 +10,9 @@ from sentry.models import Identity, IdentityProvider, Integration, Repository
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
 
 from .testutils import (
-    COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
+    COMPARE_COMMITS_EXAMPLE,
+    COMMIT_DETAILS_EXAMPLE,
+    FILE_CHANGES_EXAMPLE
 )
 
 
@@ -25,7 +27,6 @@ class VisualStudioRepositoryProviderTest(TestCase):
 
     @responses.activate
     def test_compare_commits(self):
-
         responses.add(
             responses.POST,
             'https://visualstudio.com/_apis/git/repositories/None/commitsBatch',
@@ -36,6 +37,12 @@ class VisualStudioRepositoryProviderTest(TestCase):
             'https://visualstudio.com/_apis/git/repositories/None/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff/changes',
             body=FILE_CHANGES_EXAMPLE,
         )
+        responses.add(
+            responses.GET,
+            'https://visualstudio.com/_apis/git/repositories/None/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff',
+            body=COMMIT_DETAILS_EXAMPLE,
+        )
+
         integration = Integration.objects.create(
             provider='vsts',
             external_id=self.vsts_external_id,
@@ -78,7 +85,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
                            'type': 'M'}],
             'author_email': 'max@sentry.io',
             'author_name': 'max bittker',
-            'message': 'Updated README.md',
+            'message': 'Updated README.md\n\nSecond line\n\nFixes SENTRY-1',
             'id': '6c36052c58bde5e57040ebe6bdb9f6a52c906fff',
             'repository': 'example'
         }]
