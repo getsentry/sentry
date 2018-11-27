@@ -237,6 +237,7 @@ COMPARE_COMMITS_EXAMPLE = b"""
         "date": "2018-04-24T00:03:18Z"
       },
       "comment": "Updated README.md",
+      "commentTruncated": true,
       "changeCounts": {"Add": 0, "Edit": 1, "Delete": 0},
       "url":
         "https://mbittker.visualstudio.com/_apis/git/repositories/b1e25999-c080-4ea1-8c61-597c4ec41f06/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff",
@@ -244,6 +245,62 @@ COMPARE_COMMITS_EXAMPLE = b"""
         "https://mbittker.visualstudio.com/_git/MyFirstProject/commit/6c36052c58bde5e57040ebe6bdb9f6a52c906fff"
     }
   ]
+}
+"""
+
+COMMIT_DETAILS_EXAMPLE = r"""
+{
+    "_links": {
+        "changes": {
+            "href": "https://mbittker.visualstudio.com/_apis/git/repositories/666ffcce-8ffa-46ec-bccf-b93b55bb2320/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff/changes"
+        },
+        "repository": {
+            "href": "https://mbittker.visualstudio.com/_apis/git/repositories/666ffcce-8ffa-46ec-bccf-b93b55bb2320"
+        },
+        "self": {
+            "href": "https://mbittker.visualstudio.com/_apis/git/repositories/666ffcce-8ffa-46ec-bccf-b93b55bb2320/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff"
+        },
+        "web": {
+            "href": "https://mbittker.visualstudio.com/_git/MyFirstProject/commit/6c36052c58bde5e57040ebe6bdb9f6a52c906fff"
+        }
+    },
+    "author": {
+        "date": "2018-11-23T15:59:19Z",
+        "email": "max@sentry.io",
+        "imageUrl": "https://www.gravatar.com/avatar/1cee8d752bcad4c172d60e56bb398c11?r=g&d=mm",
+        "name": "max bitker"
+    },
+    "comment": "Updated README.md\n\nSecond line\n\nFixes SENTRY-1",
+    "commitId": "6c36052c58bde5e57040ebe6bdb9f6a52c906fff",
+    "committer": {
+        "date": "2018-11-23T15:59:19Z",
+        "email": "max@sentry.io",
+        "imageUrl": "https://www.gravatar.com/avatar/1cee8d752bcad4c172d60e56bb398c11?r=g&d=mm",
+        "name": "max bittker"
+    },
+    "parents": [
+        "641e82ce0ed14f3cf3670b0bf5f669d7fbd40a68"
+    ],
+    "push": {
+        "date": "2018-11-23T16:01:10.7246278Z",
+        "pushId": 2,
+        "pushedBy": {
+            "_links": {
+                "avatar": {
+                    "href": "https://mbittker.visualstudio.com/_apis/GraphProfile/MemberAvatars/msa.NjI0ZGRhOWMtODgyZC03ZmRhLTk3OWItZTdhMjI5MWMzMzBk"
+                }
+            },
+            "descriptor": "msa.NjI0ZGRhOWMtODgyZC03ZmRhLTk3OWItZTdhMjI5MWMzMzBk",
+            "displayName": "Mark Story",
+            "id": "624dda9c-882d-6fda-979b-e7a2291c330d",
+            "imageUrl": "https://mbittker.visualstudio.com/_api/_common/identityImage?id=624dda9c-882d-6fda-979b-e7a2291c330d",
+            "uniqueName": "mark@mark-story.com",
+            "url": "https://mbittker.visualstudio.com/Aa365971d-9897-47eb-becf-c5142d33db08/_apis/Identities/624dda9c-882d-6fda-979b-e7a2291c330d"
+        }
+    },
+    "remoteUrl": "https://mbittker.visualstudio.com/MyFirstProject/_git/box-of-things/commit/6c36052c58bde5e57040ebe6bdb9f6a52c906fff",
+    "treeId": "026257a5e53eb923497c0217ef76e567f3a60088",
+    "url": "https://mbittker.visualstudio.com/_apis/git/repositories/666ffcce-8ffa-46ec-bccf-b93b55bb2320/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff"
 }
 """
 
@@ -267,6 +324,7 @@ FILE_CHANGES_EXAMPLE = b"""
   ]
 }
 """
+
 WORK_ITEM_RESPONSE = """{
   "id": 309,
   "rev": 1,
@@ -401,6 +459,7 @@ GET_USERS_RESPONSE = b"""{
   ]
 }
 """
+
 CREATE_SUBSCRIPTION = {
     'id': 'fd672255-8b6b-4769-9260-beea83d752ce',
     'url': 'https://fabrikam.visualstudio.com/_apis/hooks/subscriptions/fd672255-8b6b-4769-9260-beea83d752ce',
