@@ -36,6 +36,8 @@ class ProjectOwnership extends AsyncView {
     let {project, organization} = this.props;
     let {ownership} = this.state;
 
+    const disabled = !organization.access.includes('project:write');
+
     return (
       <div>
         <SettingsPageHeader title={t('Issue Owners')} />
@@ -77,7 +79,11 @@ class ProjectOwnership extends AsyncView {
                 url:http://example.com/settings/* #product
               </CodeBlock>
             </Block>
-            <OwnerInput {...this.props} initialText={ownership.raw || ''} />
+            <OwnerInput
+              {...this.props}
+              disabled={disabled}
+              initialText={ownership.raw || ''}
+            />
           </PanelBody>
         </Panel>
 
@@ -100,6 +106,7 @@ class ProjectOwnership extends AsyncView {
                     help: t(
                       'Issue owners will receive notifications for issues they are responsible for.'
                     ),
+                    disabled,
                   },
                 ],
               },
