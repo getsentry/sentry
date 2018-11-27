@@ -10,7 +10,6 @@ const organizationNavigation = [
         path: `${pathPrefix}/`,
         title: t('General Settings'),
         index: true,
-        show: ({access}) => access.has('org:write'),
         description: t('Configure general settings for an organization'),
       },
       {
