@@ -56,7 +56,7 @@ from sentry.utils.safe import safe_execute
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger('sentry')
-internal_logger = logging.getLogger('sentry.internal')
+minidumps_logger = logging.getLogger('sentry.minidumps')
 
 # Transparent 1x1 gif
 # See http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever
@@ -689,7 +689,7 @@ class MinidumpView(StoreView):
             state = process_minidump(minidump)
             merge_process_state_event(data, state)
         except ProcessMinidumpError as e:
-            internal_logger.exception(e)
+            minidumps_logger.exception(e)
             raise APIError(e.message.split('\n', 1)[0])
 
         response_or_event_id = self.process(
@@ -753,7 +753,7 @@ class UnrealView(StoreView):
             unreal = process_unreal_crash(request.body)
             process_state = unreal.process_minidump()
         except (ProcessMinidumpError, Unreal4Error) as e:
-            internal_logger.exception(e)
+            minidumps_logger.exception(e)
             raise APIError(e.message.split('\n', 1)[0])
 
         if process_state:

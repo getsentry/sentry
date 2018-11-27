@@ -16,7 +16,7 @@ from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('sentry.minidumps')
 
 # Frame trust values achieved through the use of CFI
 CFI_TRUSTS = ('cfi', 'cfi-scan')

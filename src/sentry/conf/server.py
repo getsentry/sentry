@@ -679,7 +679,7 @@ LOGGING = {
         'sentry': {
             'level': 'INFO',
         },
-        'sentry.internal': {
+        'sentry.minidumps': {
             'handlers': ['internal'],
             'propagate': False,
         },
