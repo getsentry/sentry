@@ -115,38 +115,33 @@ const KeyRow = createReactClass({
   render() {
     let {access, data} = this.props;
     let editUrl = recreateRoute(`${data.id}/`, this.props);
+    let controlActive = access.has('project:write') && !this.state.loading;
+
     let controls = [
       <Button key="edit" to={editUrl} size="small">
         {t('Configure')}
       </Button>,
+      <Button
+        key="toggle"
+        size="small"
+        onClick={data.isActive ? this.handleDisable : this.handleEnable}
+        disabled={!controlActive}
+      >
+        {data.isActive ? t('Disable') : t('Enable')}
+      </Button>,
+      <Confirm
+        key="remove"
+        priority="danger"
+        disabled={!controlActive}
+        onConfirm={this.handleRemove}
+        confirmText={t('Remove Key')}
+        message={t(
+          'Are you sure you want to remove this key? This action is irreversible.'
+        )}
+      >
+        <Button size="small" disabled={!controlActive} icon="icon-trash" />
+      </Confirm>,
     ];
-
-    if (access.has('project:write')) {
-      controls.push(
-        <Button
-          key="toggle"
-          size="small"
-          onClick={data.isActive ? this.handleDisable : this.handleEnable}
-          disabled={this.state.loading}
-        >
-          {data.isActive ? t('Disable') : t('Enable')}
-        </Button>
-      );
-      controls.push(
-        <Confirm
-          key="remove"
-          priority="danger"
-          disabled={this.state.loading}
-          onConfirm={this.handleRemove}
-          confirmText={t('Remove Key')}
-          message={t(
-            'Are you sure you want to remove this key? This action is irreversible.'
-          )}
-        >
-          <Button size="small" disabled={this.state.loading} icon="icon-trash" />
-        </Confirm>
-      );
-    }
 
     return (
       <ClientKeyItemPanel disabled={!data.isActive}>
