@@ -78,7 +78,6 @@ def multiprocess_worker(task_queue):
                 models.Group,
                 models.GroupEmailThread,
                 models.GroupRuleStatus,
-                models.GroupHashTombstone,
                 # Handled by TTL
                 similarity.features,
             ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
@@ -182,7 +181,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         (models.EventMapping, 'date_added', '-date_added'),
         (models.EventAttachment, 'date_added', None),
         (models.UserReport, 'date_added', None),
-        (models.GroupHashTombstone, 'deleted_at', None),
         (models.GroupEmailThread, 'date', None),
         (models.GroupRuleStatus, 'date_added', None),
     ] + EXTRA_BULK_QUERY_DELETES

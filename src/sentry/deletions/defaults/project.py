@@ -16,9 +16,9 @@ class ProjectDeletionTask(ModelDeletionTask):
         model_list = (
             models.Activity, models.EnvironmentProject, models.EventAttachment, models.EventMapping,
             models.EventUser, models.GroupAssignee, models.GroupBookmark, models.GroupEmailThread,
-            models.GroupHash, models.GroupHashTombstone, models.GroupRelease, models.GroupRuleStatus,
-            models.GroupSeen, models.GroupShare, models.GroupSubscription, models.ProjectBookmark,
-            models.ProjectKey, models.ProjectTeam, models.PromptsActivity, models.SavedSearchUserDefault, models.SavedSearch,
+            models.GroupHash, models.GroupRelease, models.GroupRuleStatus, models.GroupSeen,
+            models.GroupShare, models.GroupSubscription, models.ProjectBookmark, models.ProjectKey,
+            models.ProjectTeam, models.PromptsActivity, models.SavedSearchUserDefault, models.SavedSearch,
             models.ServiceHook, models.UserReport, models.DiscoverSavedQueryProject,
         )
 

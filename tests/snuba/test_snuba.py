@@ -5,8 +5,6 @@ import pytest
 import time
 import uuid
 
-from sentry import options
-from sentry.models import GroupHash, GroupHashTombstone
 from sentry.testutils import SnubaTestCase
 from sentry.utils import snuba
 
@@ -63,67 +61,6 @@ class SnubaTest(SnubaTestCase):
                 filter_keys={'project_id': [self.project.id]},
                 groupby=[")("],
             )
-
-    def test_project_issues_with_tombstones(self):
-        # Nothing to be done if we're using `group_id`.
-        # When this option is the default we can remove
-        # this test.
-        if options.get('snuba.use_group_id_column'):
-            return
-
-        base_time = datetime.utcnow()
-        hash = 'a' * 32
-
-        def _query_for_issue(group_id):
-            return snuba.query(
-                start=base_time - timedelta(days=1),
-                end=base_time + timedelta(days=1),
-                groupby=['issue'],
-                filter_keys={
-                    'project_id': [self.project.id],
-                    'issue': [group_id]
-                },
-            )
-
-        group1 = self.create_group()
-        group2 = self.create_group()
-
-        GroupHash.objects.create(
-            project=self.project,
-            group=group1,
-            hash=hash
-        )
-        assert snuba.get_project_issues([self.project], [group1.id]) == \
-            [(group1.id, group1.project_id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)])]
-
-        # 1 event in the groups, no deletes have happened
-        self._insert_event_for_time(base_time, hash)
-        assert _query_for_issue(group1.id) == {group1.id: 1}
-
-        # group is deleted and then returns (as a new group with the same hash)
-        GroupHashTombstone.tombstone_groups(self.project.id, [group1.id])
-
-        ght = GroupHashTombstone.objects.get(project_id=self.project.id)
-        assert ght
-
-        GroupHash.objects.create(
-            project=self.project,
-            group=group2,
-            hash=hash,
-        )
-
-        # tombstone time is returned as expected
-        assert snuba.get_project_issues([self.project], [group2.id]) == \
-            [(group2.id, group2.project_id, [('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-                                              ght.deleted_at.strftime("%Y-%m-%d %H:%M:%S"))])]
-
-        # events <= to the tombstone date aren't returned
-        self._insert_event_for_time(ght.deleted_at, hash)
-        assert _query_for_issue(group2.id) == {}
-
-        # only the event > than the tombstone date is returned
-        self._insert_event_for_time(ght.deleted_at + timedelta(seconds=1), hash)
-        assert _query_for_issue(group2.id) == {group2.id: 1}
 
     def test_organization_retention_respected(self):
         base_time = datetime.utcnow()
