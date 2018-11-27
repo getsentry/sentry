@@ -422,6 +422,11 @@ class Group(Model):
         warnings.warn('Group.checksum is no longer used', DeprecationWarning)
         return ''
 
+    @property
+    def message(self):
+        warnings.warn('Group.message is deprecated. Use Group.search_message instead.')
+        return self.search_message
+
     def get_email_subject(self):
         return '%s - %s' % (
             self.qualified_short_id.encode('utf-8'),

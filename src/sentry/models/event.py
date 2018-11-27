@@ -281,6 +281,11 @@ class Event(Model):
         return self.group.culprit
 
     @property
+    def message(self):
+        warnings.warn('Event.message is deprecated. Use Event.search_message instead.')
+        return self.search_message
+
+    @property
     def checksum(self):
         warnings.warn('Event.checksum is no longer used', DeprecationWarning)
         return ''
