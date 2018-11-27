@@ -902,9 +902,7 @@ class EventManager(object):
         # tags are stored as a tuple
         tags = tags.items()
 
-        # use the default fingerprint if not set
-        fingerprint = fingerprint or ['{{ default }}']
-
+        # Put the actual tags and fingerprint back
         data['tags'] = tags
         data['fingerprint'] = fingerprint
 
