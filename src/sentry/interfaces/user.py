@@ -85,10 +85,10 @@ class User(Interface):
         elif geo:
             geo = Geo.to_python(geo)
 
-        extra_data = data.pop('data')
+        extra_data = data.pop('data', None)
         if not isinstance(extra_data, dict):
             extra_data = {}
-        extra_data.extend(data)
+        extra_data.update(data)
 
         # TODO(dcramer): patch in fix to deal w/ old data but not allow new
         # if not (ident or email or username or ip_address):
