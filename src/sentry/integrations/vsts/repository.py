@@ -130,6 +130,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'author_name': c['author']['name'],
                 'message': c['comment'],
                 'patch_set': c.get('patch_set'),
+                'timestamp': c['author']['date'],
             } for c in commit_list
         ]
 

@@ -103,6 +103,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'author_email': parse_raw_user_email(c['author']['raw']),
                 'author_name': parse_raw_user_name(c['author']['raw']),
                 'message': c['message'],
+                'timestamp': c['date'],
                 'patch_set': c.get('patch_set'),
             } for c in commit_list
         ]

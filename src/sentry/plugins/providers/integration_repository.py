@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+import dateutil.parser
 import six
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry import analytics
@@ -139,9 +141,24 @@ class IntegrationRepositoryProvider(object):
     def on_delete_repository(self, repo):
         pass
 
+    def format_date(self, date):
+        if not date:
+            return None
+        return dateutil.parser.parse(date).astimezone(timezone.utc)
+
     def compare_commits(self, repo, start_sha, end_sha):
         """
         Generate a list of commits between the start & end sha
+        Commits should be of the following format:
+            >>> {
+            >>>     'id': commit['id'],
+            >>>     'repository': repo.name,
+            >>>     'author_email': commit['author']['email'],
+            >>>     'author_name': commit['author']['name'],
+            >>>     'message': commit['message'],
+            >>>     'timestamp': self.format_timezone(commit['timestamp']),
+            >>>     'patch_set': commit['patch_set'],
+            >>> }
         """
         raise NotImplementedError
 
