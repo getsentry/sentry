@@ -60,5 +60,4 @@ def send_alert_event(sentry_app, payload):
         data=body,
         headers=headers,
         timeout=5,
-        verify_ssl=False,
     )
