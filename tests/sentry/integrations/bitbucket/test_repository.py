@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+import datetime
 import responses
 import pytest
 import six
 
+from django.utils import timezone
 from exam import fixture
 from sentry.models import Integration, Repository
 from sentry.testutils import TestCase, IntegrationRepositoryTestCase
@@ -74,7 +76,8 @@ class BitbucketRepositoryProviderTest(TestCase):
                 'message': 'README.md edited online with Bitbucket',
                 'id': 'e18e4e72de0d824edfbe0d73efe34cbd0d01d301',
                 'repository': 'sentryuser/newsdiffs',
-                'patch_set': [{'path': u'README.md', 'type': 'M'}]
+                'patch_set': [{'path': u'README.md', 'type': 'M'}],
+                'timestamp': datetime.datetime(2017, 5, 16, 23, 21, 40, tzinfo=timezone.utc),
             }
         ]
 
