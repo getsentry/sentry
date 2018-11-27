@@ -50,7 +50,7 @@ class GroupTagValue(Model):
     def merge_counts(self, new_group):
         try:
             with transaction.atomic(using=router.db_for_write(GroupTagValue)):
-                new_obj = GroupTagValue.objects.get(
+                new_obj, _ = GroupTagValue.objects.get_or_create(
                     group_id=new_group.id,
                     key=self.key,
                     value=self.value,
