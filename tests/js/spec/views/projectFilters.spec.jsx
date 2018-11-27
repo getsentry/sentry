@@ -258,4 +258,17 @@ describe('ProjectFilters', function() {
       'error\nerror2'
     );
   });
+
+  it('disables configuration for non project:write users', function() {
+    wrapper = mount(
+      <ProjectFilters
+        params={{projectId: project.slug, orgId: org.slug}}
+        location={{}}
+      />,
+      TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
+    );
+
+    expect(wrapper.find('FormField[disabled=false]')).toHaveLength(0);
+    expect(wrapper.find('LegacyBrowserFilterRow[disabled=false]')).toHaveLength(0);
+  });
 });
