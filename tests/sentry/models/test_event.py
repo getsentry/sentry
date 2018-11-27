@@ -208,13 +208,13 @@ class EventGetLegacyMessageTest(TestCase):
         # Have hashes by default
         hashes = event.get_hashes()
         assert hashes == ['ed076287532e86365e841e92bfc50d8c']
-        event.data.data['hashes'] == ['ed076287532e86365e841e92bfc50d8c']
+        assert event.data.data['hashes'] == ['ed076287532e86365e841e92bfc50d8c']
 
         # if hashes are reset, generate new ones
         event.data.data['hashes'] = None
         hashes = event.get_hashes()
         assert hashes == ['ed076287532e86365e841e92bfc50d8c']
-        event.data.data['hashes'] is None
+        assert event.data.data['hashes'] is None
 
         # Use stored hashes
         event.data.data['hashes'] = ['x']
