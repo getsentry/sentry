@@ -22,6 +22,8 @@ from sentry.utils.dates import to_timestamp
 logger = logging.getLogger('sentry.search.snuba')
 datetime_format = '%Y-%m-%dT%H:%M:%S+00:00'
 
+EMPTY_RESULT = Paginator(Group.objects.none()).get_result()
+
 
 # TODO: Would be nice if this was handled in the Snuba abstraction, but that
 # would require knowledge of which fields are datetimes
@@ -233,9 +235,13 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # so this entire search was against a time range that is outside of
             # retention. We'll return empty results to maintain backwards compatability
             # with Django search (for now).
-            return Paginator(Group.objects.none()).get_result()
+            return EMPTY_RESULT
 
-        assert start < end
+        if start > end:
+            # TODO: This maintains backwards compatability with Django search, but
+            # in the future we should find a way to notify the user that their search
+            # is invalid.
+            return EMPTY_RESULT
 
         # num_candidates is the number of Group IDs to send down to Snuba, if
         # more Group ID candidates are found, a "bare" Snuba search is performed
@@ -290,7 +296,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             if not candidate_ids:
                 # no matches could possibly be found from this point on
                 metrics.incr('snuba.search.no_candidates')
-                return Paginator(Group.objects.none()).get_result()
+                return EMPTY_RESULT
             elif len(candidate_ids) > num_candidates:
                 # If the pre-filter query didn't include anything to significantly
                 # filter down the number of results (from 'first_release', 'query',
@@ -311,7 +317,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         offset = 0
         num_chunks = 0
 
-        paginator_results = Paginator(Group.objects.none()).get_result()
+        paginator_results = EMPTY_RESULT
         result_groups = []
         result_group_ids = set()
 
