@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
 import responses
+import datetime
 
+from django.utils import timezone
 from exam import fixture
 from time import time
 
@@ -87,7 +89,8 @@ class VisualStudioRepositoryProviderTest(TestCase):
             'author_name': 'max bittker',
             'message': 'Updated README.md\n\nSecond line\n\nFixes SENTRY-1',
             'id': '6c36052c58bde5e57040ebe6bdb9f6a52c906fff',
-            'repository': 'example'
+            'repository': 'example',
+            'timestamp': datetime.datetime(2018, 4, 24, 0, 3, 18, tzinfo=timezone.utc),
         }]
 
     @responses.activate
