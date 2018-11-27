@@ -251,3 +251,34 @@ def cron(**options):
             # without_heartbeat=True,
             **options
         ).run()
+
+
+@run.command()
+@click.option('--consumer-group', default='snuba-post-processor',
+              help='Consumer group used to track event offsets that have been enqueued for post-processing.')
+@click.option('--commit-log-topic', default='snuba-commit-log',
+              help='Topic that the Snuba writer is publishing its committed offsets to.')
+@click.option('--synchronize-commit-group', default='snuba-consumers',
+              help='Consumer group that the Snuba writer is committing its offset as.')
+@click.option('--commit-batch-size', default=1000, type=int,
+              help='How many messages to process (may or may not result in an enqueued task) before committing offsets.')
+@click.option('--initial-offset-reset', default='latest', type=click.Choice(['earliest', 'latest']),
+              help='Position in the commit log topic to begin reading from when no prior offset has been recorded.')
+@log_options()
+@configuration
+def relay(**options):
+    from sentry import eventstream
+    from sentry.eventstream.base import RelayNotRequired
+    try:
+        eventstream.relay(
+            consumer_group=options['consumer_group'],
+            commit_log_topic=options['commit_log_topic'],
+            synchronize_commit_group=options['synchronize_commit_group'],
+            commit_batch_size=options['commit_batch_size'],
+            initial_offset_reset=options['initial_offset_reset'],
+        )
+    except RelayNotRequired:
+        sys.stdout.write(
+            'The configured event stream backend does not need a relay '
+            'process to enqueue post-processing tasks. Exiting...\n')
+        return

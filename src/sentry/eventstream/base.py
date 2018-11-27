@@ -9,6 +9,13 @@ from sentry.tasks.post_process import post_process_group
 logger = logging.getLogger(__name__)
 
 
+class RelayNotRequired(NotImplementedError):
+    """
+    Exception raised if this backend does not require a relay process to
+    enqueue post-processing tasks.
+    """
+
+
 class EventStream(Service):
     __all__ = (
         'insert',
@@ -18,6 +25,7 @@ class EventStream(Service):
         'end_merge',
         'start_unmerge',
         'end_unmerge',
+        'relay',
     )
 
     def insert(self, group, event, is_new, is_sample, is_regression,
@@ -52,3 +60,7 @@ class EventStream(Service):
 
     def end_unmerge(self, state):
         pass
+
+    def relay(self, consumer_group, commit_log_topic,
+              synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
+        raise RelayNotRequired
