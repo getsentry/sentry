@@ -5,6 +5,7 @@ import pickle
 from sentry.models import Environment
 from sentry.testutils import TestCase
 from sentry.db.models.fields.node import NodeData
+from sentry.event_manager import EventManager
 
 
 class EventTest(TestCase):
@@ -198,3 +199,23 @@ class EventGetLegacyMessageTest(TestCase):
             }},
         )
         assert event.get_legacy_message() == '<unlabeled event>'
+
+    def test_get_hashes(self):
+        manager = EventManager({'message': 'Hello World!'})
+        manager.normalize()
+        event = manager.save(1)
+
+        # Have hashes by default
+        hashes = event.get_hashes()
+        assert hashes == ['ed076287532e86365e841e92bfc50d8c']
+        assert event.data.data['hashes'] == ['ed076287532e86365e841e92bfc50d8c']
+
+        # if hashes are reset, generate new ones
+        event.data.data['hashes'] = None
+        hashes = event.get_hashes()
+        assert hashes == ['ed076287532e86365e841e92bfc50d8c']
+        assert event.data.data['hashes'] is None
+
+        # Use stored hashes
+        event.data.data['hashes'] = ['x']
+        assert event.get_hashes() == ['x']
