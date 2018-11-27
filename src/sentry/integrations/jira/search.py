@@ -10,6 +10,12 @@ from sentry.models import Integration
 
 
 class JiraSearchEndpoint(IntegrationEndpoint):
+    def _get_integration(self, organization, integration_id):
+        return Integration.objects.get(
+            organizations=organization,
+            id=integration_id,
+            provider='jira',
+        )
 
     def _get_formatted_user(self, user):
         display = '%s %s(%s)' % (
@@ -24,11 +30,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
 
     def get(self, request, organization, integration_id):
         try:
-            integration = Integration.objects.get(
-                organizations=organization,
-                id=integration_id,
-                provider='jira',
-            )
+            integration = self._get_integration(organization, integration_id)
         except Integration.DoesNotExist:
             return Response(status=404)
 

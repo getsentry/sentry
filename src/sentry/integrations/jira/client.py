@@ -43,6 +43,7 @@ class JiraApiClient(ApiClient):
         super(JiraApiClient, self).__init__(verify_ssl=True)
 
     def request(self, method, path, data=None, params=None, **kwargs):
+        # TODO(mark) make this a method that comes from the client/style
         # handle params that are already part of the path
         url_params = dict(parse_qs(urlsplit(path).query))
         url_params.update(params or {})

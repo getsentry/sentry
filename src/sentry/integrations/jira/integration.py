@@ -341,6 +341,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         elif field_meta.get('autoCompleteUrl') and \
                 (schema.get('items') == 'user' or schema['type'] == 'user'):
             fieldtype = 'select'
+            # TODO(mark) make this a method that comes from the client/style
             sentry_url = reverse(
                 'sentry-extensions-jira-search', args=[group.organization.slug, self.model.id],
             )

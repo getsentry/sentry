@@ -4,6 +4,7 @@ import logging
 import six
 
 from django import forms
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
 from six.moves.urllib.parse import urlparse
@@ -208,6 +209,18 @@ class JiraServerIntegration(JiraIntegration):
             self.default_identity = self.get_default_identity()
 
         return JiraServerClient(self)
+
+    def get_link_issue_config(self, group, **kwargs):
+        fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-jiraserver-search', args=[org.slug, self.model.id],
+        )
+        for field in fields:
+            if field['name'] == 'externalIssue':
+                field['url'] = autocomplete_url
+                field['type'] = 'select'
+        return fields
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):
