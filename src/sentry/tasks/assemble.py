@@ -3,8 +3,8 @@ from __future__ import absolute_import, print_function
 import os
 import logging
 
-from sentry import quotas
 from sentry.tasks.base import instrumented_task
+from sentry.utils.files import get_max_file_size
 from sentry.utils.sdk import configure_scope
 
 logger = logging.getLogger(__name__)
@@ -97,8 +97,7 @@ def assemble_file(project, name, checksum, chunks, file_type):
     # Reject all files that exceed the maximum allowed size for this
     # organization. This value cannot be
     file_size = sum(x[2] for x in file_blobs)
-    max_size = quotas.get_maximum_file_size(project.organization)
-    if file_size > max_size:
+    if file_size > get_max_file_size(project.organization):
         set_assemble_status(project, checksum, ChunkFileState.ERROR,
                             detail='File exceeds maximum size')
         return

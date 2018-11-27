@@ -10,10 +10,11 @@ from rest_framework.response import Response
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
-from sentry import options, quotas
+from sentry import options
 from sentry.models import FileBlob
 from sentry.api.bases.organization import (OrganizationEndpoint,
                                            OrganizationReleasePermission)
+from sentry.utils.files import get_max_file_size
 
 
 # The blob size must be a power of two
@@ -54,7 +55,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 'url': endpoint,
                 'chunkSize': CHUNK_UPLOAD_BLOB_SIZE,
                 'chunksPerRequest': MAX_CHUNKS_PER_REQUEST,
-                'maxFileSize': quotas.get_maximum_file_size(organization),
+                'maxFileSize': get_max_file_size(organization),
                 'maxRequestSize': MAX_REQUEST_SIZE,
                 'concurrency': MAX_CONCURRENCY,
                 'hashAlgorithm': HASH_ALGORITHM,

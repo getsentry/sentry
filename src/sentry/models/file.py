@@ -40,6 +40,7 @@ UPLOAD_RETRY_TIME = 60  # 1min
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
 CHUNK_STATE_HEADER = '__state'
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
+MAX_FILE_SIZE = 2 ** 31  # 2GB is the maximum offset supported by fileblob
 
 
 def enum(**named_values):
@@ -58,7 +59,7 @@ ChunkFileState = enum(
 def _get_size_and_checksum(fileobj):
     size = 0
     checksum = sha1()
-    while 1:
+    while True:
         chunk = fileobj.read(65536)
         if not chunk:
             break
@@ -156,7 +157,7 @@ class FileBlob(Model):
             _ensure_blob_owned(blob)
 
         def _flush_blobs():
-            while 1:
+            while True:
                 try:
                     blob, lock = blobs_to_save.pop()
                 except IndexError:
