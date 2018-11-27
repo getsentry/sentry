@@ -127,8 +127,13 @@ class Event(Model):
         """
         Returns the calculated hashes for the event.
         """
-        from sentry.event_hashing import get_event_hashes
-        return get_event_hashes(self)
+        from sentry.event_hashing import calculate_event_hashes
+        # If we have hashes stored in the data we use them, otherwise we
+        # fall back to generating new ones from the data
+        hashes = self.data.get('hashes')
+        if hashes is not None:
+            return hashes
+        return calculate_event_hashes(self)
 
     def get_primary_hash(self):
         # TODO: This *might* need to be protected from an IndexError?

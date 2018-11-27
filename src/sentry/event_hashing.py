@@ -85,7 +85,7 @@ def get_hashes_from_fingerprint_with_reason(event, fingerprint):
     return list(hashes.items())
 
 
-def get_event_hashes(event):
+def calculate_event_hashes(event):
     # If a checksum is set, use that one.
     checksum = event.data.get('checksum')
     if checksum:

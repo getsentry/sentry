@@ -913,6 +913,7 @@ class EventManager(object):
 
         data['type'] = event_type.key
         data['metadata'] = event_metadata
+        data['hashes'] = hashes
 
         # index components into ``Event.message``
         # See GH-3248
