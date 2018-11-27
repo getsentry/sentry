@@ -271,3 +271,17 @@ def test_event_pii():
     manager.normalize()
     data = manager.get_data()
     assert data['_meta']['message'] == {'': {'err': ['invalid']}}
+
+
+def test_event_id_lowercase():
+    manager = EventManager(make_event(event_id='1234ABCD' * 4))
+    manager.normalize()
+    data = manager.get_data()
+
+    assert data['event_id'] == '1234abcd' * 4
+
+    manager = EventManager(make_event(event_id=u'1234ABCD' * 4))
+    manager.normalize()
+    data = manager.get_data()
+
+    assert data['event_id'] == '1234abcd' * 4
