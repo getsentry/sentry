@@ -8,7 +8,6 @@ sentry.plugins.bases.notify
 from __future__ import absolute_import, print_function
 
 import logging
-import requests
 import six
 from six.moves.urllib.parse import (
     urlparse,
@@ -18,6 +17,7 @@ from six.moves.urllib.parse import (
 )
 
 from django import forms
+from requests.exceptions import SSLError, HTTPError
 
 from sentry import digests, ratelimits
 from sentry.digests import get_option_key as get_digest_option_key
@@ -71,7 +71,7 @@ class NotificationPlugin(Plugin):
         try:
             return self.notify_users(event.group, event, triggering_rules=[
                                      r.label for r in notification.rules])
-        except requests.HTTPError as err:
+        except (SSLError, HTTPError) as err:
             self.logger.info('notification-plugin.notify-failed.', extra={
                 'error': six.text_type(err),
                 'plugin': self.slug
