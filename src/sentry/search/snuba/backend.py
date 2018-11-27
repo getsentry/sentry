@@ -237,7 +237,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             # with Django search (for now).
             return EMPTY_RESULT
 
-        if start > end:
+        if start >= end:
             # TODO: This maintains backwards compatability with Django search, but
             # in the future we should find a way to notify the user that their search
             # is invalid.
