@@ -185,6 +185,24 @@ describe('projectGeneralSettings', function() {
     );
   });
 
+  it('disables the form for users without write permissions', function() {
+    routerContext.context.organization.access = ['org:read'];
+    let wrapper = mount(
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
+      routerContext
+    );
+
+    expect(wrapper.find('FormField[disabled=false]')).toHaveLength(0);
+    expect(
+      wrapper
+        .find('Alert')
+        .first()
+        .text()
+    ).toBe(
+      'These settings can only be edited by users with the owner, manager, or admin role.'
+    );
+  });
+
   it('changing slug updates ProjectsStore', async function() {
     let params = {orgId: org.slug, projectId: project.slug};
     ProjectsStore.loadInitialData([project]);
