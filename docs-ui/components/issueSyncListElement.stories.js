@@ -57,6 +57,13 @@ storiesOf('Other|IssueSyncListElement', module)
           onOpen={() => {}}
           onClose={() => {}}
         />
+        <IssueSyncListElement
+          integrationType="jira_server"
+          externalIssueLink="jira.atlassian.net/browse/APP-367"
+          externalIssueId="367"
+          onOpen={() => {}}
+          onClose={() => {}}
+        />
       </StyledIssueSyncList>
     ))
   );
