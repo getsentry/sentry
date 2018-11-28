@@ -12,7 +12,7 @@ import sys
 from django.core.management.base import BaseCommand, CommandError, make_option
 from django.utils.dateparse import parse_datetime
 
-from sentry.models import Event
+from sentry.models import Event, Project, Group
 
 
 class Command(BaseCommand):
@@ -46,7 +46,18 @@ class Command(BaseCommand):
         return Event.objects.filter(id__gte=from_id, id__lte=to_id)
 
     def handle(self, **options):
+
+        def _attach_fks(_events):
+            project_ids = set([event.project_id for event in _events])
+            projects = {p.id: p for p in Project.objects.filter(id__in=project_ids)}
+            group_ids = set([event.group_id for event in _events])
+            groups = {g.id: g for g in Group.objects.filter(id__in=group_ids)}
+            for event in _events:
+                event.project = projects[event.project_id]
+                event.group = groups[event.group_id]
+
         from sentry import eventstream
+        from sentry.utils.query import RangeQuerySetWrapper
 
         from_ts = options['from_ts']
         to_ts = options['to_ts']
@@ -63,10 +74,10 @@ class Command(BaseCommand):
             raise CommandError('Invalid arguments: either use --from/--to-id, or --from/--to-ts.')
 
         count = events.count()
-        self.stdout.write('Events to process: {}'.format(count))
+        self.stdout.write('Events to process: {}\n'.format(count))
 
         if count == 0:
-            self.stdout.write('Nothing to do.')
+            self.stdout.write('Nothing to do.\n')
             sys.exit(0)
 
         if not options['no_input']:
@@ -74,7 +85,7 @@ class Command(BaseCommand):
             if proceed.lower() not in ['yes', 'y']:
                 raise CommandError('Aborted.')
 
-        for event in events:
+        for event in RangeQuerySetWrapper(events, callbacks=(_attach_fks,)):
             primary_hash = event.get_primary_hash()
             eventstream.insert(
                 group=event.group,
@@ -87,4 +98,4 @@ class Command(BaseCommand):
                 skip_consume=True,
             )
 
-        self.stdout.write('Done.')
+        self.stdout.write('Done.\n')
