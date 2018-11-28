@@ -2,6 +2,7 @@
 
 import {isInteger} from 'lodash';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
+import sdk from 'app/utils/sdk';
 
 /**
  * Updates global project selection
@@ -10,6 +11,9 @@ import GlobalSelectionActions from 'app/actions/globalSelectionActions';
  */
 export function updateProjects(projects) {
   if (!isProjectsValid(projects)) {
+    sdk.captureException('Invalid projects selected', {
+      extra: {projects},
+    });
     return;
   }
 
