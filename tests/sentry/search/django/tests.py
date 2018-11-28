@@ -371,12 +371,33 @@ class DjangoSearchBackendTest(TestCase):
     def test_pagination(self):
         results = self.backend.query(self.project, limit=1, sort_by='date')
         assert set(results) == set([self.group1])
+        assert not results.prev.has_results
+        assert results.next.has_results
 
-        results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
+        results = self.backend.query(
+            self.project, cursor=results.next, limit=1, sort_by='date')
         assert set(results) == set([self.group2])
+        assert results.prev.has_results
+        assert not results.next.has_results
 
-        results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
+        # note: previous cursor
+        results = self.backend.query(
+            self.project, cursor=results.prev, limit=1, sort_by='date')
+        assert set(results) == set([self.group1])
+        assert not results.prev.has_results
+        assert results.next.has_results
+
+        results = self.backend.query(
+            self.project, cursor=results.next, limit=1, sort_by='date')
+        assert set(results) == set([self.group2])
+        assert results.prev.has_results
+        assert results.next.has_results
+
+        results = self.backend.query(
+            self.project, cursor=results.next, limit=1, sort_by='date')
         assert set(results) == set([])
+        assert results.prev.has_results
+        assert not results.next.has_results
 
     def test_pagination_with_environment(self):
         for dt in [
