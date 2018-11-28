@@ -67,10 +67,10 @@ def process_resource_change(sender, instance_id, created):
             serialize(instance),
         )
 
-        send_request(servicehook, payload)
+        send_request(servicehook, payload, verify_ssl=True)
 
 
-def send_request(servicehook, payload):
+def send_request(servicehook, payload, verify_ssl=None):
     from sentry import tsdb
     tsdb.incr(tsdb.models.servicehook_fired, servicehook.id)
 
@@ -86,7 +86,7 @@ def send_request(servicehook, payload):
         data=json.dumps(payload),
         headers=headers,
         timeout=5,
-        verify_ssl=True,
+        verify_ssl=(verify_ssl or False),
     )
 
 
