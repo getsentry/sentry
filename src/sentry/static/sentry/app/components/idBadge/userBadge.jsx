@@ -28,7 +28,10 @@ const UserBadge = ({
           hideEmail={hideEmail}
           to={member && orgId && `/settings/${orgId}/members/${member.id}/`}
         >
-          {displayName || userFromPropsOrMember.name || userFromPropsOrMember.email}
+          {displayName ||
+            userFromPropsOrMember.name ||
+            userFromPropsOrMember.email ||
+            userFromPropsOrMember.ipAddress}
         </StyledName>
         {!hideEmail && (
           <StyledEmail>{displayEmail || userFromPropsOrMember.email}</StyledEmail>
