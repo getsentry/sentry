@@ -37,7 +37,7 @@ from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.lang.native.utils import get_sdk_from_event
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
-    GroupEnvironment, GroupHash, GroupRelease, GroupResolution, GroupStatus,
+    GroupEnvironment, GroupHash, GroupLink, GroupRelease, GroupResolution, GroupStatus,
     Project, Release, ReleaseEnvironment, ReleaseProject,
     ReleaseProjectEnvironment, UserReport
 )
@@ -213,6 +213,17 @@ def process_timestamp(value, current_datetime=None):
         raise InvalidTimestamp(EventError.PAST_TIMESTAMP)
 
     return float(value.strftime('%s'))
+
+
+def has_pending_commit_resolution(group):
+    return GroupLink.objects.filter(
+        group_id=group.id,
+        linked_type=GroupLink.LinkedType.commit,
+        relationship=GroupLink.Relationship.resolves,
+    ).extra(
+        where=[
+            "NOT EXISTS(SELECT 1 FROM sentry_releasecommit where commit_id = sentry_grouplink.linked_id)"]
+    ).exists()
 
 
 class HashDiscarded(Exception):
@@ -1319,6 +1330,9 @@ class EventManager(object):
         # we only mark it as a regression if the event's release is newer than
         # the release which we originally marked this as resolved
         elif GroupResolution.has_resolution(group, release):
+            return
+
+        elif has_pending_commit_resolution(group):
             return
 
         if not plugin_is_regression(group, event):

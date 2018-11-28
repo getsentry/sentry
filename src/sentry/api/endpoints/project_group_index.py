@@ -94,8 +94,8 @@ class ValidationError(Exception):
 
 
 class InCommitValidator(serializers.Serializer):
-    commit = serializers.CharField()
-    repository = serializers.CharField()
+    commit = serializers.CharField(required=True)
+    repository = serializers.CharField(required=True)
 
     def validate_repository(self, attrs, source):
         value = attrs[source]
@@ -112,24 +112,33 @@ class InCommitValidator(serializers.Serializer):
         return attrs
 
     def validate(self, attrs):
-        repository = attrs['repository']
+        attrs = super(InCommitValidator, self).validate(attrs)
+        repository = attrs.get('repository')
+        commit = attrs.get('commit')
+        if not repository:
+            raise serializers.ValidationError({
+                'repository': ['Unable to find the given repository.'],
+            })
+        if not commit:
+            raise serializers.ValidationError({
+                'commit': ['Unable to find the given commit.'],
+            })
         try:
             commit = Commit.objects.get(
                 repository_id=repository.id,
-                key=attrs['commit'],
+                key=commit,
             )
-            attrs['commit'] = commit
         except Commit.DoesNotExist:
             raise serializers.ValidationError({
-                'commit': 'Unable to find the given commit.',
+                'commit': ['Unable to find the given commit.'],
             })
-        return attrs
+        return commit
 
 
 class StatusDetailsValidator(serializers.Serializer):
     inNextRelease = serializers.BooleanField()
     inRelease = serializers.CharField()
-    inCommit = InCommitValidator()
+    inCommit = InCommitValidator(required=False)
     ignoreDuration = serializers.IntegerField()
     ignoreCount = serializers.IntegerField()
     # in minutes, max of one week
@@ -291,7 +300,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 user=acting_user, key='self_assign_issue', default='0'
             )
             if self_assign_issue == '1' and not group.assignee_set.exists():
-                result['assignedTo'] = Actor(type=User, id=extract_lazy_object(acting_user).id)
+                result['assignedTo'] = Actor(type=User, id=acting_user.id)
 
     # statsPeriod=24h
     @attach_scenarios([list_project_issues_scenario])
@@ -595,17 +604,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 res_type_str = 'in_release'
                 res_status = GroupResolution.Status.resolved
             elif statusDetails.get('inCommit'):
-                in_commit = statusDetails['inCommit']
-                commit = in_commit['commit']
+                commit = statusDetails['inCommit']
                 activity_type = Activity.SET_RESOLVED_IN_COMMIT
                 activity_data = {
-                    'commit': in_commit['commit'].id,
+                    'commit': commit.id,
                 }
                 status_details = {
-                    'inCommit': {
-                        'commit': in_commit['commit'].key,
-                        'repository': in_commit['repository'].name,
-                    },
+                    'inCommit': serialize(commit, request.user),
                     'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
                 res_type_str = 'in_commit'
@@ -665,25 +670,21 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                             linked_id=commit.id,
                         )
 
-                    # TODO(dcramer): we'd like this to mark things as resolved, but the current
-                    # behavior does not yet do this due to some issues with 'resolved in commit'
-                    if not commit or release:
-                        affected = Group.objects.filter(
-                            id=group.id,
-                        ).update(
-                            status=GroupStatus.RESOLVED,
-                            resolved_at=now,
-                        )
-                        if not resolution:
-                            created = affected
+                    affected = Group.objects.filter(
+                        id=group.id,
+                    ).update(
+                        status=GroupStatus.RESOLVED,
+                        resolved_at=now,
+                    )
+                    if not resolution:
+                        created = affected
 
-                        group.status = GroupStatus.RESOLVED
-                        group.resolved_at = now
-                    else:
-                        created = True
+                    group.status = GroupStatus.RESOLVED
+                    group.resolved_at = now
 
                     self._subscribe_and_assign_issue(
                         acting_user, group, result)
+
                     if created:
                         activity = Activity.objects.create(
                             project=group.project,

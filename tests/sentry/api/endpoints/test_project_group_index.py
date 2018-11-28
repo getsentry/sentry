@@ -993,16 +993,11 @@ class GroupUpdateTest(APITestCase):
         )
         assert response.status_code == 200
         assert response.data['status'] == 'resolved'
-        assert response.data['statusDetails']['inCommit'] == {
-            'commit': commit.key,
-            'repository': repo.name,
-        }
+        assert response.data['statusDetails']['inCommit']['id'] == commit.key
         assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
         group = Group.objects.get(id=group.id)
-        # TODO(dcramer): we'd like this to mark things as resolved, but the current
-        # behavior does not yet do this due to some issues with 'resolved in commit'
-        assert group.status != GroupStatus.RESOLVED
+        assert group.status == GroupStatus.RESOLVED
 
         link = GroupLink.objects.get(group_id=group.id)
         assert link.linked_type == GroupLink.LinkedType.commit
@@ -1061,10 +1056,7 @@ class GroupUpdateTest(APITestCase):
         )
         assert response.status_code == 200
         assert response.data['status'] == 'resolved'
-        assert response.data['statusDetails']['inCommit'] == {
-            'commit': commit.key,
-            'repository': repo.name,
-        }
+        assert response.data['statusDetails']['inCommit']['id'] == commit.key
         assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
         group = Group.objects.get(id=group.id)

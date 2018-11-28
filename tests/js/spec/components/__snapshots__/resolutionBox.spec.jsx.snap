@@ -3,14 +3,91 @@
 exports[`ResolutionBox render() handles default 1`] = `
 <div
   className="box"
+  style={
+    Object {
+      "alignItems": "center",
+      "display": "flex",
+      "flex": 1,
+      "paddingBottom": 15,
+    }
+  }
 >
   <span
     className="icon icon-checkmark"
+    style={
+      Object {
+        "position": "static",
+        "top": 0,
+      }
+    }
   />
   <p
     className="truncate break-all"
+    style={
+      Object {
+        "paddingBottom": 0,
+        "paddingLeft": 16,
+      }
+    }
   >
     This issue has been marked as resolved.
+  </p>
+</div>
+`;
+
+exports[`ResolutionBox render() handles inCommit 1`] = `
+<div
+  className="box"
+  style={
+    Object {
+      "alignItems": "center",
+      "display": "flex",
+      "flex": 1,
+      "paddingBottom": 15,
+    }
+  }
+>
+  <span
+    className="icon icon-checkmark"
+    style={
+      Object {
+        "position": "static",
+        "top": 0,
+      }
+    }
+  />
+  <p
+    className="truncate break-all"
+    style={
+      Object {
+        "paddingBottom": 0,
+        "paddingLeft": 16,
+      }
+    }
+  >
+    <span
+      key="3"
+    >
+      <span
+        key="0"
+      >
+        This issue has been marked as resolved by 
+      </span>
+      <CommitLink
+        commitId="f7f395d14b2fe29a4e253bf1d3094d61e6ad4434"
+        key="1"
+        repository={
+          Object {
+            "externalSlug": "example/repo-name",
+            "id": "4",
+            "name": "example/repo-name",
+            "provider": "github",
+            "status": "active",
+            "url": "https://github.com/example/repo-name",
+          }
+        }
+      />
+    </span>
   </p>
 </div>
 `;
@@ -18,12 +95,32 @@ exports[`ResolutionBox render() handles default 1`] = `
 exports[`ResolutionBox render() handles inNextRelease 1`] = `
 <div
   className="box"
+  style={
+    Object {
+      "alignItems": "center",
+      "display": "flex",
+      "flex": 1,
+      "paddingBottom": 15,
+    }
+  }
 >
   <span
     className="icon icon-checkmark"
+    style={
+      Object {
+        "position": "static",
+        "top": 0,
+      }
+    }
   />
   <p
     className="truncate break-all"
+    style={
+      Object {
+        "paddingBottom": 0,
+        "paddingLeft": 16,
+      }
+    }
   >
     This issue has been marked as resolved in the upcoming release.
   </p>
@@ -33,12 +130,32 @@ exports[`ResolutionBox render() handles inNextRelease 1`] = `
 exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
 <div
   className="box"
+  style={
+    Object {
+      "alignItems": "center",
+      "display": "flex",
+      "flex": 1,
+      "paddingBottom": 15,
+    }
+  }
 >
   <span
     className="icon icon-checkmark"
+    style={
+      Object {
+        "position": "static",
+        "top": 0,
+      }
+    }
   />
   <p
     className="truncate break-all"
+    style={
+      Object {
+        "paddingBottom": 0,
+        "paddingLeft": 16,
+      }
+    }
   >
     <span
       key="3"
@@ -81,12 +198,32 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
 exports[`ResolutionBox render() handles inRelease 1`] = `
 <div
   className="box"
+  style={
+    Object {
+      "alignItems": "center",
+      "display": "flex",
+      "flex": 1,
+      "paddingBottom": 15,
+    }
+  }
 >
   <span
     className="icon icon-checkmark"
+    style={
+      Object {
+        "position": "static",
+        "top": 0,
+      }
+    }
   />
   <p
     className="truncate break-all"
+    style={
+      Object {
+        "paddingBottom": 0,
+        "paddingLeft": 16,
+      }
+    }
   >
     <span
       key="4"
@@ -117,12 +254,32 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
 exports[`ResolutionBox render() handles inRelease with actor 1`] = `
 <div
   className="box"
+  style={
+    Object {
+      "alignItems": "center",
+      "display": "flex",
+      "flex": 1,
+      "paddingBottom": 15,
+    }
+  }
 >
   <span
     className="icon icon-checkmark"
+    style={
+      Object {
+        "position": "static",
+        "top": 0,
+      }
+    }
   />
   <p
     className="truncate break-all"
+    style={
+      Object {
+        "paddingBottom": 0,
+        "paddingLeft": 16,
+      }
+    }
   >
     <span
       key="5"

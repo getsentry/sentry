@@ -350,7 +350,7 @@ class Fixtures(object):
 
         # add commits
         if user:
-            author = self.create_commit_author(project, user)
+            author = self.create_commit_author(project=project, user=user)
             repo = self.create_repo(project, name='organization-{}'.format(project.slug))
             commit = self.create_commit(
                 project=project,
@@ -377,46 +377,47 @@ class Fixtures(object):
         )
         return repo
 
-    def create_commit(self, project, repo, author=None, release=None,
+    def create_commit(self, repo, project=None, author=None, release=None,
                       message=None, key=None, date_added=None):
         commit = Commit.objects.get_or_create(
-            organization_id=project.organization_id,
+            organization_id=repo.organization_id,
             repository_id=repo.id,
             key=key or sha1(uuid4().hex).hexdigest(),
             defaults={
                 'message': message or make_sentence(),
-                'author': author or self.create_commit_author(project),
+                'author': author or self.create_commit_author(organization_id=repo.organization_id),
                 'date_added': date_added or timezone.now(),
             }
         )[0]
 
         if release:
+            assert project
             ReleaseCommit.objects.create(
-                organization_id=project.organization_id,
+                organization_id=repo.organization_id,
                 project_id=project.id,
                 release=release,
                 commit=commit,
                 order=1,
             )
 
-        self.create_commit_file_change(commit, project, '/models/foo.py')
-        self.create_commit_file_change(commit, project, '/worsematch/foo.py')
-        self.create_commit_file_change(commit, project, '/models/other.py')
+        self.create_commit_file_change(commit=commit, filename='/models/foo.py')
+        self.create_commit_file_change(commit=commit, filename='/worsematch/foo.py')
+        self.create_commit_file_change(commit=commit, filename='/models/other.py')
 
         return commit
 
-    def create_commit_author(self, project, user=None):
+    def create_commit_author(self, organization_id=None, project=None, user=None):
         return CommitAuthor.objects.get_or_create(
-            organization_id=project.organization_id,
+            organization_id=organization_id or project.organization_id,
             email=user.email if user else '{}@example.com'.format(make_word()),
             defaults={
                 'name': user.name if user else make_word(),
             }
         )[0]
 
-    def create_commit_file_change(self, commit, project, filename):
+    def create_commit_file_change(self, commit, filename):
         commit_file_change = CommitFileChange.objects.get_or_create(
-            organization_id=project.organization_id,
+            organization_id=commit.organization_id,
             commit=commit,
             filename=filename,
             type='M',

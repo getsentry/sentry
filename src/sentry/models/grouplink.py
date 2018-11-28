@@ -54,4 +54,4 @@ class GroupLink(Model):
         db_table = 'sentry_grouplink'
         unique_together = (('group_id', 'linked_type', 'linked_id'), )
 
-    __repr__ = sane_repr('group_id', 'link', 'datetime')
+    __repr__ = sane_repr('group_id', 'linked_type', 'linked_id', 'relationship', 'datetime')
