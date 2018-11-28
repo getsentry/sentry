@@ -16,8 +16,8 @@ from sentry_sdk.consts import VERSION as SDK_VERSION
 from sentry_sdk.utils import Auth, capture_internal_exceptions
 from sentry_sdk.utils import logger as sdk_logger
 
-from . import metrics
-from .safe import merge_rust_info_frames
+from sentry.utils import metrics
+from sentry.utils.rust import merge_rust_info_frames
 
 UNSAFE_FILES = ('sentry/event_manager.py', 'sentry/tasks/process_buffer.py', )
 
