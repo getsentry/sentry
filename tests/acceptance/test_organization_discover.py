@@ -39,6 +39,7 @@ class OrganizationDiscoverTest(AcceptanceTestCase):
         with self.feature('organizations:discover'):
             self.browser.get(self.path)
             self.browser.wait_until_not('.loading')
+            self.browser.wait_until_not('.is-disabled')
             self.browser.snapshot('discover - query builder')
 
     def test_run_query(self):
