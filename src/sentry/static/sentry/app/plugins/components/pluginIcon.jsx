@@ -56,6 +56,7 @@ export const ICON_PATHS = {
   jira,
   'jira-atlassian-connect': jira,
   'jira-ac': jira,
+  jira_server: jira,
   lighthouse,
   opsgenie,
   pagerduty,
