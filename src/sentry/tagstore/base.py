@@ -62,6 +62,7 @@ class TagStorage(Service):
 
         'get_tag_value_paginator',
         'get_group_tag_value_paginator',
+        'get_tag_value_paginator_for_projects',
         'get_group_tag_value_iter',
 
         'get_group_tag_value_qs',
@@ -305,6 +306,13 @@ class TagStorage(Service):
                                 query=None, order_by='-last_seen'):
         """
         >>> get_tag_value_paginator(1, 2, 'environment', query='prod')
+        """
+        raise NotImplementedError
+
+    def get_tag_value_paginator_for_projects(self, projects, environments, key, start, end,
+                                             query=None, order_by='-last_seen'):
+        """
+        >>> get_tag_value_paginator([1], [2], 'environment', query='prod')
         """
         raise NotImplementedError
 

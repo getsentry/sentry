@@ -465,26 +465,42 @@ class SnubaTagStorage(TagStorage):
 
     def get_tag_value_paginator(self, project_id, environment_id, key, query=None,
                                 order_by='-last_seen'):
+        start, end = self.get_time_range()
+        return self.get_tag_value_paginator_for_projects(
+            [project_id],
+            [environment_id] if environment_id else None,
+            key,
+            start,
+            end,
+            query=query,
+            order_by=order_by,
+        )
+
+    def get_tag_value_paginator_for_projects(self, projects, environments, key, start, end,
+                                             query=None, order_by='-last_seen'):
         from sentry.api.paginator import SequencePaginator
 
         if not order_by == '-last_seen':
             raise ValueError("Unsupported order_by: %s" % order_by)
 
+        snuba_key = snuba.get_snuba_column_name(key)
+
         conditions = []
         if query:
-            conditions.append(['tags_value', 'LIKE', u'%{}%'.format(query)])
+            conditions.append([snuba_key, 'LIKE', u'%{}%'.format(query)])
+        else:
+            conditions.append([snuba_key, '!=', ''])
 
-        start, end = self.get_time_range()
         filters = {
-            'project_id': [project_id],
-            'tags_key': [key],
+            'project_id': projects,
         }
-        if environment_id:
-            filters['environment'] = [environment_id]
+        if environments:
+            filters['environment'] = environments
+
         results = snuba.query(
             start=start,
             end=end,
-            groupby=['tags_value'],
+            groupby=[snuba_key],
             filter_keys=filters,
             aggregations=[
                 ['count()', '', 'times_seen'],
@@ -495,7 +511,7 @@ class SnubaTagStorage(TagStorage):
             orderby=order_by,
             # TODO: This means they can't actually paginate all TagValues.
             limit=1000,
-            referrer='tagstore.get_tag_value_paginator',
+            referrer='tagstore.get_tag_value_paginator_for_projects',
         )
 
         tag_values = [
