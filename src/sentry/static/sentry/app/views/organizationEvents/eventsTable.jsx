@@ -56,7 +56,7 @@ class EventsTable extends React.Component {
     }
 
     return (
-      <Link to={`/${organization.slug}/${project.slug}/issues/?query=${event.eventID}`}>
+      <Link href={`/${organization.slug}/${project.slug}/events/${event.eventID}/`}>
         {trimmedMessage}
       </Link>
     );
