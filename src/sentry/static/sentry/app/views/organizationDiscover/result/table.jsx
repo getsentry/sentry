@@ -47,42 +47,43 @@ export default class ResultTable extends React.Component {
     }
   }
 
-  cellRenderer = ({key, rowIndex, columnIndex, style}) => {
-    const {query, data: {data, meta}} = this.props;
-    const cols = this.getColumnList();
+  getCellRenderer = cols => {
+    return ({key, rowIndex, columnIndex, style}) => {
+      const {query, data: {data, meta}} = this.props;
 
-    const showEventLinks = !query.aggregations.length;
+      const showEventLinks = !query.aggregations.length;
 
-    const isLinkCol = showEventLinks && columnIndex === cols.length;
+      const isLinkCol = showEventLinks && columnIndex === cols.length;
 
-    const isSpacingCol = typeof cols[columnIndex] === 'undefined';
+      const isSpacingCol = typeof cols[columnIndex] === 'undefined';
 
-    const colName = isLinkCol || isSpacingCol ? null : cols[columnIndex].name;
+      const colName = isLinkCol || isSpacingCol ? null : cols[columnIndex].name;
 
-    const isNumberCol =
-      !isLinkCol &&
-      !isSpacingCol &&
-      ['number', 'integer'].includes(meta[columnIndex].type);
+      const isNumberCol =
+        !isLinkCol &&
+        !isSpacingCol &&
+        ['number', 'integer'].includes(meta[columnIndex].type);
 
-    const align = isNumberCol ? 'right' : isLinkCol ? 'center' : 'left';
+      const align = isNumberCol ? 'right' : isLinkCol ? 'center' : 'left';
 
-    if (rowIndex === 0) {
+      if (rowIndex === 0) {
+        return (
+          <TableHeader key={key} style={style} align={align}>
+            <strong>{colName}</strong>
+          </TableHeader>
+        );
+      }
+
+      const value = isLinkCol
+        ? this.getLink(data[rowIndex - 1])
+        : isSpacingCol ? null : getDisplayValue(data[rowIndex - 1][colName]);
+
       return (
-        <TableHeader key={key} style={style} align={align}>
-          <strong>{colName}</strong>
-        </TableHeader>
+        <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} align={align}>
+          {value}
+        </Cell>
       );
-    }
-
-    const value = isLinkCol
-      ? this.getLink(data[rowIndex - 1])
-      : isSpacingCol ? null : getDisplayValue(data[rowIndex - 1][colName]);
-
-    return (
-      <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} align={align}>
-        {value}
-      </Cell>
-    );
+    };
   };
 
   getLink = event => {
@@ -228,6 +229,8 @@ export default class ResultTable extends React.Component {
 
     const visibleRows = this.getMaxVisibleRows(height);
 
+    const cellRenderer = this.getCellRenderer(cols);
+
     return (
       <GridContainer visibleRows={Math.min(data.length, visibleRows) + 1}>
         <AutoSizer>
@@ -254,7 +257,7 @@ export default class ResultTable extends React.Component {
                 fixedRowCount={1}
                 rowHeight={({index}) => this.getRowHeight(index, columnsToCheck)}
                 columnWidth={({index}) => columnWidths[index]}
-                cellRenderer={this.cellRenderer}
+                cellRenderer={cellRenderer}
                 overscanByPixels={800}
               />
             );
