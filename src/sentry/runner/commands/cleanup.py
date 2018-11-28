@@ -205,6 +205,13 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             date_added__lte=timezone.now() - timedelta(hours=48)
         ).delete()
 
+    if is_filtered(models.OrganizationMember) and not silent:
+        click.echo('>> Skipping OrganizationMember')
+    else:
+        click.echo('Removing expired values for OrganizationMember')
+        expired_threshold = timezone.now() - timedelta(days=days)
+        models.OrganizationMember.delete_expired(expired_threshold)
+
     for model in [models.ApiGrant, models.ApiToken]:
         if not silent:
             click.echo(u'Removing expired values for {}'.format(model.__name__))
