@@ -12,7 +12,7 @@ describe('OrganizationDiscoverContainer', function() {
   describe('new query', function() {
     let wrapper;
     const organization = TestStubs.Organization({
-      projects: [TestStubs.Project()],
+      projects: [TestStubs.Project({id: '1', slug: 'test-project'})],
       features: ['discover'],
     });
     beforeEach(async function() {
@@ -39,6 +39,18 @@ describe('OrganizationDiscoverContainer', function() {
       expect(wrapper.state().isLoading).toBe(false);
       expect(queryBuilder.getColumns().some(column => column.name === 'tag1')).toBe(true);
       expect(queryBuilder.getColumns().some(column => column.name === 'tag2')).toBe(true);
+    });
+
+    it('sets active projects from global selection', function() {
+      wrapper = mount(
+        <OrganizationDiscoverContainer
+          location={{query: {}, search: ''}}
+          params={{}}
+          selection={{projects: [1]}}
+        />,
+        TestStubs.routerContext([{organization}])
+      );
+      expect(wrapper.find('MultipleProjectSelector').text()).toBe('test-project');
     });
   });
 
