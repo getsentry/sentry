@@ -158,6 +158,11 @@ def frames_from_rust_info(rust_info):
     return frames[start:end]
 
 
+def strip_backtrace_message(target, field):
+    if target and target.get('field'):
+        target['field'] = target['field'].split('\n\n', 1)[0]
+
+
 def merge_rust_info_frames(event, hint):
     if 'exc_info' not in hint:
         return event
@@ -166,7 +171,8 @@ def merge_rust_info_frames(event, hint):
     if not hasattr(exc_value, 'rust_info') or not exc_value.rust_info:
         return event
 
-    stacktrace = get_path(event, 'exception', 'values', 0, 'stacktrace', 'frames')
+    exception = get_path(event, 'exception', 'values', 0)
+    stacktrace = get_path(exception, 'stacktrace', 'frames')
     if not stacktrace:
         return
 
@@ -174,9 +180,17 @@ def merge_rust_info_frames(event, hint):
     if not frames:
         return
 
+    # Update the platform
     event['platform'] = 'native'
     for frame in stacktrace:
         frame['platform'] = 'python'
 
+    # Extend the stacktrace
     stacktrace.extend(reversed(frames))
+
+    # Remove rust_info from messages
+    strip_backtrace_message(exception, 'value')
+    strip_backtrace_message(event.get('logentry'), 'message')
+    strip_backtrace_message(event.get('logentry'), 'formatted')
+
     return event
