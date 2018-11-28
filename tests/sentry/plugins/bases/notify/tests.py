@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry.integrations.exceptions import ApiError
 from sentry.plugins import NotificationPlugin
 from sentry.plugins.base.structs import Notification
 from sentry.testutils import TestCase
@@ -27,6 +28,7 @@ class NotifyPlugin(TestCase):
 
     def test_notify_failure(self):
         errors = (
+            ApiError('The server is sad'),
             SSLError('[SSL: UNKNOWN_PROTOCOL] unknown protocol (_ssl.c:590)'),
             HTTPError('A bad response'),
         )
