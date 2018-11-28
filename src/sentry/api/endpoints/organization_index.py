@@ -194,7 +194,7 @@ class OrganizationIndexEndpoint(Endpoint):
         if not request.user.is_authenticated():
             return Response({'detail': 'This endpoint requires user info'}, status=401)
 
-        if not features.has('organizations:create', actor=request.user):
+        if not features.has('organizations:create', actor=request.user) or not is_active_superuser(request):
             return Response(
                 {
                     'detail': 'Organizations are not allowed to be created by this user.'

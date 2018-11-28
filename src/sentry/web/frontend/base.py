@@ -150,10 +150,10 @@ class OrganizationMixin(object):
         organization = self.get_active_organization(request)
         if organization:
             url = reverse('sentry-organization-home', args=[organization.slug])
-        elif not features.has('organizations:create'):
-            return self.respond('sentry/no-organization-access.html', status=403)
-        else:
+        elif features.has('organizations:create') and is_active_superuser(request):
             url = '/organizations/new/'
+        else:
+            return self.respond('sentry/no-organization-access.html', status=403)
         return HttpResponseRedirect(url)
 
 
