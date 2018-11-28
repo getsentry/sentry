@@ -9,7 +9,7 @@ import Tooltip from 'app/components/tooltip';
 
 class Button extends React.Component {
   static propTypes = {
-    priority: PropTypes.oneOf(['primary', 'danger', 'link', 'success']),
+    priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
     size: PropTypes.oneOf(['zero', 'small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
