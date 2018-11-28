@@ -10,7 +10,7 @@ from sentry.models import ServiceHook
 
 class Creator(Mediator):
     application = Param('sentry.models.ApiApplication', required=False)
-    actor = Param('sentry.models.User')
+    actor = Param('sentry.db.models.BaseModel')
     project = Param('sentry.models.Project')
     events = Param(Iterable)
     url = Param(six.string_types)
