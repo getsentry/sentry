@@ -91,7 +91,7 @@ export default class ResultTable extends React.Component {
 
     return (
       <Tooltip title={t('Open event')} tooltipOptions={{container: 'body'}}>
-        <Link to={`/${slug}/${projectSlug}/issues/?query=${event.id}`} target="_blank">
+        <Link href={`/${slug}/${projectSlug}/events/${event.id}/`} target="_blank">
           <InlineSvg src="icon-exit" size="1em" />
         </Link>
       </Tooltip>
