@@ -47,43 +47,41 @@ export default class ResultTable extends React.Component {
     }
   }
 
-  getCellRenderer = cols => {
-    return ({key, rowIndex, columnIndex, style}) => {
-      const {query, data: {data, meta}} = this.props;
+  getCellRenderer = cols => ({key, rowIndex, columnIndex, style}) => {
+    const {query, data: {data, meta}} = this.props;
 
-      const showEventLinks = !query.aggregations.length;
+    const showEventLinks = !query.aggregations.length;
 
-      const isLinkCol = showEventLinks && columnIndex === cols.length;
+    const isLinkCol = showEventLinks && columnIndex === cols.length;
 
-      const isSpacingCol = typeof cols[columnIndex] === 'undefined';
+    const isSpacingCol = typeof cols[columnIndex] === 'undefined';
 
-      const colName = isLinkCol || isSpacingCol ? null : cols[columnIndex].name;
+    const colName = isLinkCol || isSpacingCol ? null : cols[columnIndex].name;
 
-      const isNumberCol =
-        !isLinkCol &&
-        !isSpacingCol &&
-        ['number', 'integer'].includes(meta[columnIndex].type);
+    const isNumberCol =
+      !isLinkCol &&
+      !isSpacingCol &&
+      ['number', 'integer'].includes(meta[columnIndex].type);
 
-      const align = isNumberCol ? 'right' : isLinkCol ? 'center' : 'left';
+    const align = isNumberCol ? 'right' : isLinkCol ? 'center' : 'left';
 
-      if (rowIndex === 0) {
-        return (
-          <TableHeader key={key} style={style} align={align}>
-            <strong>{colName}</strong>
-          </TableHeader>
-        );
-      }
-
-      const value = isLinkCol
-        ? this.getLink(data[rowIndex - 1])
-        : isSpacingCol ? null : getDisplayValue(data[rowIndex - 1][colName]);
-
+    if (rowIndex === 0) {
       return (
-        <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} align={align}>
-          {value}
-        </Cell>
+        <TableHeader key={key} style={style} align={align}>
+          <strong>{colName}</strong>
+        </TableHeader>
       );
-    };
+    }
+
+    const value = isLinkCol
+      ? this.getLink(data[rowIndex - 1])
+      : isSpacingCol ? null : getDisplayValue(data[rowIndex - 1][colName]);
+
+    return (
+      <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} align={align}>
+        {value}
+      </Cell>
+    );
   };
 
   getLink = event => {
