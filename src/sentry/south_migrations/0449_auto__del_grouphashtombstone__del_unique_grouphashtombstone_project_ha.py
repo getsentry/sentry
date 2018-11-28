@@ -18,15 +18,6 @@ class Migration(SchemaMigration):
         # Deleting model 'GroupHashTombstone'
         db.delete_table(u'sentry_grouphashtombstone')
 
-        # Changing field 'Release.owner'
-        db.alter_column(
-            'sentry_release',
-            'owner_id',
-            self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
-                to=orm['sentry.User'],
-                null=True,
-                on_delete=models.SET_NULL))
-
     def backwards(self, orm):
         # Adding model 'GroupHashTombstone'
         db.create_table(u'sentry_grouphashtombstone', (
@@ -41,14 +32,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'GroupHashTombstone', fields ['project', 'hash']
         db.create_unique(u'sentry_grouphashtombstone', ['project_id', 'hash'])
-
-        # Changing field 'Release.owner'
-        db.alter_column(
-            'sentry_release',
-            'owner_id',
-            self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
-                to=orm['sentry.User'],
-                null=True))
 
     models = {
         'sentry.activity': {
