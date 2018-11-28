@@ -76,6 +76,7 @@ class RouteSource extends React.Component {
         mapFunc(accountSettingsNavigation),
         mapFunc(projectSettingsNavigation, {
           project: project || {},
+          access: new Set((organization && organization.access) || []),
           features: new Set((project && project.features) || []),
         }),
         mapFunc(organizationSettingsNavigation, {
