@@ -68,7 +68,6 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/integrations/`,
         title: t('Integrations'),
-        show: ({access}) => access.has('org:integrations'),
         description: t('Manage integrations for an organization'),
       },
       {

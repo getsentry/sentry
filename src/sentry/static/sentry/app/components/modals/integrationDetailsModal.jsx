@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
 import {t} from 'app/locale';
+import Access from 'app/components/acl/access';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
@@ -14,6 +15,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import SentryTypes from 'app/sentryTypes';
 import Tag from 'app/views/settings/components/tag.jsx';
+import Tooltip from 'app/components/tooltip';
 import marked, {singleLineRenderer} from 'app/utils/marked';
 import space from 'app/styles/space';
 
@@ -161,7 +163,18 @@ class IntegrationDetailsModal extends React.Component {
               <Button size="small" onClick={closeModal}>
                 {t('Cancel')}
               </Button>
-              <AddButton disabled={disabled} />
+              <Access organization={organization} access={['org:integrations']}>
+                {({hasAccess}) => (
+                  <Tooltip
+                    title={t('You must be an Owner or Manager to install this.')}
+                    disabled={hasAccess}
+                  >
+                    <span>
+                      <AddButton disabled={disabled || !hasAccess} />
+                    </span>
+                  </Tooltip>
+                )}
+              </Access>
             </div>
           )}
         </IntegrationFeatures>
