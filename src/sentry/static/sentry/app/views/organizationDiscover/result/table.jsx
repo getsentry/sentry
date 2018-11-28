@@ -47,9 +47,8 @@ export default class ResultTable extends React.Component {
     }
   }
 
-  cellRenderer = ({key, rowIndex, columnIndex, style}) => {
+  getCellRenderer = cols => ({key, rowIndex, columnIndex, style}) => {
     const {query, data: {data, meta}} = this.props;
-    const cols = this.getColumnList();
 
     const showEventLinks = !query.aggregations.length;
 
@@ -228,6 +227,8 @@ export default class ResultTable extends React.Component {
 
     const visibleRows = this.getMaxVisibleRows(height);
 
+    const cellRenderer = this.getCellRenderer(cols);
+
     return (
       <GridContainer visibleRows={Math.min(data.length, visibleRows) + 1}>
         <AutoSizer>
@@ -254,7 +255,7 @@ export default class ResultTable extends React.Component {
                 fixedRowCount={1}
                 rowHeight={({index}) => this.getRowHeight(index, columnsToCheck)}
                 columnWidth={({index}) => columnWidths[index]}
-                cellRenderer={this.cellRenderer}
+                cellRenderer={cellRenderer}
                 overscanByPixels={800}
               />
             );
