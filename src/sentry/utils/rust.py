@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import re
 import six
 
+from sentry_sdk.hub import Hub
 from sentry_sdk.integrations import Integration
 from sentry_sdk.scope import add_global_event_processor
 
@@ -234,4 +235,10 @@ class RustInfoIntegration(Integration):
 
     @staticmethod
     def setup_once():
-        add_global_event_processor(merge_rust_info_frames)
+        @add_global_event_processor
+        def processor(event, hint):
+            integration = Hub.current.get_integration(RustInfoIntegration)
+            if integration is None:
+                return event
+
+            return merge_rust_info_frames(event, hint)
