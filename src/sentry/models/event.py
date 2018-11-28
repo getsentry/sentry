@@ -25,7 +25,6 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
-from sentry.constants import LOG_LEVELS_MAP
 
 
 class Event(Model):
@@ -69,8 +68,13 @@ class Event(Model):
         state.pop('_project_cache', None)
         state.pop('_group_cache', None)
         state.pop('interfaces', None)
+        state['message'] = state.pop('search_message', None)
 
         return state
+
+    def __setstate__(self, state):
+        state['search_message'] = state.pop('message')
+        Model.__setstate__(self, state)
 
     # Implement a ForeignKey-like accessor for backwards compat
     def _set_group(self, group):
@@ -273,10 +277,14 @@ class Event(Model):
 
     @property
     def level(self):
-        return LOG_LEVELS_MAP.get(self.get_level_display()) or self.group.level
+        # we might want to move to this:
+        # return LOG_LEVELS_MAP.get(self.get_level_display()) or self.group.level
+        return self.group.level
 
     def get_level_display(self):
-        return self.get_tag('level') or self.group.get_level_display()
+        # we might want to move to this:
+        # return self.get_tag('level') or self.group.get_level_display()
+        return self.group.get_level_display()
 
     # deprecated accessors
 

@@ -22,11 +22,14 @@ class EventTest(TestCase):
 
     def test_pickling_compat(self):
         event = self.create_event(
-            data={'tags': [
-                ('logger', 'foobar'),
-                ('site', 'foo'),
-                ('server_name', 'bar'),
-            ]}
+            message='Hello World!',
+            data={
+                'tags': [
+                    ('logger', 'foobar'),
+                    ('site', 'foo'),
+                    ('server_name', 'bar'),
+                ]
+            }
         )
 
         # Ensure we load and memoize the interfaces as well.
@@ -36,6 +39,10 @@ class EventTest(TestCase):
         # does not appear here or it breaks old workers.
         data = pickle.dumps(event, protocol=2)
         assert 'canonical' not in data
+
+        # Make sure the search message is serialized as message
+        assert 'search_message' not in data
+        assert 'Hello World!' in data
 
         # For testing we remove the backwards compat support in the
         # `NodeData` as well.

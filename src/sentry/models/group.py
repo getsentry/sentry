@@ -241,6 +241,15 @@ class Group(Model):
 
     __repr__ = sane_repr('project_id')
 
+    def __getstate__(self):
+        state = Model.__getstate__(self)
+        state['message'] = state.pop('search_message', None)
+        return state
+
+    def __setstate__(self, state):
+        state['search_message'] = state.pop('message')
+        Model.__setstate__(self, state)
+
     def __unicode__(self):
         return "(%s) %s" % (self.times_seen, self.error())
 

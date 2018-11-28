@@ -45,6 +45,7 @@ def test_parse_event_message_version_1():
 
     kwargs = parse_event_message(json.dumps([1, 'insert', event_data, task_state]))
     event = kwargs.pop('event')
+    print(event.__class__)
     assert event.project_id == 1
     assert event.group_id == 2
     assert event.event_id == '00000000000010008080808080808080'
