@@ -23,6 +23,7 @@ SYSTEM_FRAMES = [
 
 OUTER_BORDER_FRAMES = [
     "_ffi_call",
+    "ffi_call",
 ]
 
 INNER_BORDER_FRAMES = [
@@ -33,8 +34,9 @@ INNER_BORDER_FRAMES = [
 
 FRAME_RE = re.compile(r'''(?xm)
     ^
-        [\ ]*(?:\d+:)[\ ]*                  # leading frame number
-        (?P<addr>0x[a-f0-9]+)               # addr
+        [\ ]*                               # leading whitespace
+        (?:\d+:[\ ]*)?                      # leading frame number
+        (?P<addr>0x[a-f0-9]+)?              # instruction address
         [\ ]-[\ ]
         (?P<symbol>[^\r\n]+)
         (?:
@@ -50,9 +52,9 @@ HASH_FUNC_RE = re.compile(r'''(?x)
     ^(.*)::h[a-f0-9]{16}$
 ''')
 
-PATTERN_MATCH_RE = re.compile(r'^(_?\<)+')
+PATTERN_MATCH_RE = re.compile(r'^(_?\<|\w+ as )+')
 
-RUST_CRATE_RE = re.compile(r'^(?:_?<)?([a-zA-Z0-9_]+?)(?:\.\.|::)')
+RUST_CRATE_RE = re.compile(r'([a-zA-Z0-9_]+?)(?:\.\.|::)')
 
 RUST_ESCAPES_RE = re.compile(r'''(?x)
     \$
@@ -124,7 +126,7 @@ def matches_frame(function, patterns):
     return any(starts_with(function, p) for p in patterns)
 
 
-def frame_from_match(match):
+def frame_from_match(match, last_addr):
     """Creates a sentry stack frame from a backtrace entry."""
     symbol = strip_symbol(match.group('symbol'))
     function = demangle_rust(symbol)
@@ -132,13 +134,13 @@ def frame_from_match(match):
     frame = {
         'function': function,
         'in_app': not matches_frame(function, SYSTEM_FRAMES),
-        'instruction_addr': match.group('addr'),
+        'instruction_addr': match.group('addr') or last_addr,
     }
 
     if symbol != function:
         frame['symbol'] = symbol
 
-    package = RUST_CRATE_RE.match(function)
+    package = RUST_CRATE_RE.search(function)
     if package and package.group(1):
         frame['package'] = package.group(1)
 
@@ -163,7 +165,12 @@ def frames_from_rust_info(rust_info):
     Border frames from the python interpreter, FFI calls, panic unwinding and
     backtrace generation are trimmed off.
     """
-    frames = [frame_from_match(m) for m in FRAME_RE.finditer(rust_info)]
+    frames = []
+    last_addr = None
+    for m in FRAME_RE.finditer(rust_info):
+        frame = frame_from_match(m, last_addr)
+        last_addr = frame['instruction_addr']
+        frames.append(frame)
 
     end = next((
         i for i, f in enumerate(frames)
@@ -183,7 +190,7 @@ def strip_backtrace_message(target, field):
     Strips the backtrace off a message, if it contains one.
     """
     if target and isinstance(target.get(field), six.string_types):
-        target[field] = target[field].split('\n\nstacktrace:', 1)[0]
+        target[field] = target[field].split('\n\nstacktrace:', 1)[0].strip()
 
 
 def merge_rust_info_frames(event, hint):
@@ -210,22 +217,20 @@ def merge_rust_info_frames(event, hint):
     if not stacktrace:
         return event
 
-    frames = frames_from_rust_info(exc_value.rust_info)
-    if not frames:
-        return event
-
     # Update the platform
     event['platform'] = 'native'
     for frame in stacktrace:
         frame['platform'] = 'python'
 
-    # Extend the stacktrace
-    stacktrace.extend(reversed(frames))
-
     # Remove rust_info from messages
     strip_backtrace_message(exception, 'value')
     strip_backtrace_message(event.get('logentry'), 'message')
     strip_backtrace_message(event.get('logentry'), 'formatted')
+
+    # Extend the stacktrace
+    frames = frames_from_rust_info(exc_value.rust_info)
+    if frames:
+        stacktrace.extend(reversed(frames))
 
     return event
 
