@@ -378,7 +378,7 @@ export default class OrganizationDiscover extends React.Component {
                 <div>
                   <HeadingContainer>
                     <Heading>
-                      {t('Discover')}  <BetaTag />
+                      {t('Discover')} <BetaTag />
                     </Heading>
                   </HeadingContainer>
                 </div>

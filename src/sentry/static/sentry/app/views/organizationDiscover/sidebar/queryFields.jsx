@@ -1,11 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import TextField from 'app/components/forms/textField';
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
+import Badge from 'app/components/badge';
 
 import Aggregations from '../aggregations';
 import Conditions from '../conditions';
@@ -35,6 +37,15 @@ export default class QueryFields extends React.Component {
     return <PlaceholderText>{text}</PlaceholderText>;
   };
 
+  optionRenderer = ({label, isTag}) => {
+    return (
+      <Flex align="center">
+        {label}
+        {isTag && <Badge text="tag" />}
+      </Flex>
+    );
+  };
+
   render() {
     const {
       queryBuilder,
@@ -53,9 +64,10 @@ export default class QueryFields extends React.Component {
       ({name}) => !NON_CONDITIONS_FIELDS.includes(name)
     );
 
-    const fieldOptions = columns.map(({name}) => ({
+    const fieldOptions = columns.map(({name, isTag}) => ({
       value: name,
       label: name,
+      isTag,
     }));
 
     return (
@@ -84,6 +96,7 @@ export default class QueryFields extends React.Component {
             multiple={true}
             placeholder={this.getSummarizePlaceholder()}
             options={fieldOptions}
+            optionRenderer={this.optionRenderer}
             value={currentQuery.fields}
             onChange={val => onUpdateField('fields', val.map(({value}) => value))}
             clearable={true}
