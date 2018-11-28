@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import re
+import six
 
 from sentry_sdk.integrations import Integration
 from sentry_sdk.scope import add_global_event_processor
@@ -82,12 +83,14 @@ RUST_ESCAPES = {
 
 
 def get_filename(abs_path):
+    """Returns the basename of the given absolute path."""
     return abs_path \
         .rsplit('/', 1)[-1] \
         .rsplit('\\', 1)[-1]
 
 
 def strip_symbol(symbol):
+    """Strips rust function hashes of the given symbol."""
     if symbol:
         match = HASH_FUNC_RE.match(symbol)
         if match:
@@ -97,6 +100,7 @@ def strip_symbol(symbol):
 
 
 def demangle_rust(symbol):
+    """Demangles common escapes in the given rust symbol."""
     return RUST_ESCAPES_RE.sub(
         lambda m: RUST_ESCAPES.get(m.group(1), ''),
         symbol,
@@ -104,6 +108,10 @@ def demangle_rust(symbol):
 
 
 def starts_with(function, pattern):
+    """
+    Returns whether the given function name matches the pattern.
+    This takes trait implementation and name mangling into account.
+    """
     return PATTERN_MATCH_RE \
         .sub('', function) \
         .replace('.', ':') \
@@ -111,10 +119,12 @@ def starts_with(function, pattern):
 
 
 def matches_frame(function, patterns):
+    """Returns whether the given function name matches any of the patterns."""
     return any(starts_with(function, p) for p in patterns)
 
 
 def frame_from_match(match):
+    """Creates a sentry stack frame from a backtrace entry."""
     symbol = strip_symbol(match.group('symbol'))
     function = demangle_rust(symbol)
 
@@ -146,6 +156,12 @@ def frame_from_match(match):
 
 
 def frames_from_rust_info(rust_info):
+    """
+    Extracts a list of frames from the given rust_info string.
+
+    Border frames from the python interpreter, FFI calls, panic unwinding and
+    backtrace generation are trimmed off.
+    """
     frames = [frame_from_match(m) for m in FRAME_RE.finditer(rust_info)]
 
     end = next((
@@ -162,11 +178,25 @@ def frames_from_rust_info(rust_info):
 
 
 def strip_backtrace_message(target, field):
-    if target and target.get('field'):
-        target['field'] = target['field'].split('\n\n', 1)[0]
+    """
+    Strips the backtrace off a message, if it contains one.
+    """
+    if target and isinstance(target.get(field), six.string_types):
+        target[field] = target[field].split('\n\nstacktrace:', 1)[0]
 
 
 def merge_rust_info_frames(event, hint):
+    """
+    Adds rust exception backtraces to the python traceback.
+
+    If there is no rust_info attribute on the exception or the event has no
+    exception, this operation is a noop. Otherwise, it parses the rust backtrace
+    and adds it on top of existing python frames.
+
+    This changes the event's platform to "native" and patches existing frames.
+    Additionally, the traceback is removed from the exception value and logentry
+    interfaces.
+    """
     if 'exc_info' not in hint:
         return event
 
@@ -177,11 +207,11 @@ def merge_rust_info_frames(event, hint):
     exception = get_path(event, 'exception', 'values', 0)
     stacktrace = get_path(exception, 'stacktrace', 'frames')
     if not stacktrace:
-        return
+        return event
 
     frames = frames_from_rust_info(exc_value.rust_info)
     if not frames:
-        return
+        return event
 
     # Update the platform
     event['platform'] = 'native'
