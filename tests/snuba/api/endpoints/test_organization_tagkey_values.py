@@ -25,7 +25,7 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         group = self.create_group(project=project)
 
         self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'apple'}
+            'a' * 32, group=group, datetime=self.day_ago, tags={'fruit': 'apple'}
         )
         self.create_event(
             'b' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'orange'}
@@ -49,7 +49,7 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
         assert [(val['value'], val['count'])
-                for val in response.data] == [('apple', 1), ('orange', 2)]
+                for val in response.data] == [('orange', 2), ('apple', 1)]
 
     def test_bad_key(self):
         user = self.create_user()
@@ -120,16 +120,16 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         group = self.create_group(project=project)
 
         self.create_event(
-            'a' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '3.1.2'},
+            'a' * 32, group=group, datetime=self.day_ago, tags={'sentry:release': '3.1.2'},
         )
         self.create_event(
             'b' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '4.1.2'},
         )
         self.create_event(
-            'c' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '3.1.2'},
+            'c' * 32, group=group, datetime=self.day_ago, tags={'sentry:release': '3.1.2'},
         )
         self.create_event(
-            'd' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '5.1.2'},
+            'd' * 32, group=group, datetime=timezone.now() - timedelta(seconds=10), tags={'sentry:release': '5.1.2'},
         )
 
         url = reverse(
