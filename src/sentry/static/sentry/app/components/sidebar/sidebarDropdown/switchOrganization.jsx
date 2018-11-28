@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
-
+import ConfigStore from 'app/stores/configStore';
 import {t} from 'app/locale';
 import DropdownMenu from 'app/components/dropdownMenu';
 import InlineSvg from 'app/components/inlineSvg';
@@ -23,8 +23,10 @@ class SwitchOrganization extends React.Component {
   };
 
   render() {
-    let {organizations, canCreateOrganization} = this.props;
+    let {organizations} = this.props;
     let hasOrganizations = organizations && !!organizations.length;
+    let user = ConfigStore.get('user');
+    let canCreateOrganization = user.isSuperuser;
 
     return (
       <DropdownMenu isNestedDropdown>
