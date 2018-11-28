@@ -402,25 +402,9 @@ class Group(Model):
         et = eventtypes.get(self.get_event_type())(self.data)
         return et.to_string(self.get_event_metadata())
 
-    def error(self):
-        warnings.warn('Group.error is deprecated, use Group.title', DeprecationWarning)
-        return self.title
-
-    error.short_description = _('error')
-
-    @property
-    def message_short(self):
-        warnings.warn('Group.message_short is deprecated, use Group.title', DeprecationWarning)
-        return self.title
-
     @property
     def organization(self):
         return self.project.organization
-
-    @property
-    def message(self):
-        warnings.warn('Group.message is deprecated. Use Group.search_message instead.')
-        return self.search_message
 
     def get_email_subject(self):
         return '%s - %s' % (
@@ -435,3 +419,23 @@ class Group(Model):
     @classmethod
     def calculate_score(cls, times_seen, last_seen):
         return math.log(float(times_seen or 1)) * 600 + float(last_seen.strftime('%s'))
+
+    # deprecated accessors
+
+    @property
+    def message(self):
+        warnings.warn(
+            'Group.message is deprecated. Use Group.search_message instead.',
+            DeprecationWarning)
+        return self.search_message
+
+    def error(self):
+        warnings.warn('Group.error is deprecated, use Group.title', DeprecationWarning)
+        return self.title
+
+    error.short_description = _('error')
+
+    @property
+    def message_short(self):
+        warnings.warn('Group.message_short is deprecated, use Group.title', DeprecationWarning)
+        return self.title

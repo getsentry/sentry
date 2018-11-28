@@ -70,7 +70,7 @@ class IssueTrackingPlugin(Plugin):
         return '\n'.join(output)
 
     def _get_group_title(self, request, group, event):
-        return event.error()
+        return event.title
 
     def is_configured(self, request, project, **kwargs):
         raise NotImplementedError

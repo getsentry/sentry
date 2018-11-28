@@ -25,6 +25,7 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
+from sentry.constants import LOG_LEVELS_MAP
 
 
 class Event(Model):
@@ -144,12 +145,6 @@ class Event(Model):
         et = eventtypes.get(self.get_event_type())(self.data)
         return et.to_string(self.get_event_metadata())
 
-    def error(self):
-        warnings.warn('Event.error is deprecated, use Event.title', DeprecationWarning)
-        return self.title
-
-    error.short_description = _('error')
-
     @property
     def real_message(self):
         # XXX(mitsuhiko): this is a transitional attribute that should be
@@ -158,11 +153,6 @@ class Event(Model):
         return get_path(self.data, 'logentry', 'formatted') \
             or get_path(self.data, 'logentry', 'message') \
             or ''
-
-    @property
-    def message_short(self):
-        warnings.warn('Event.message_short is deprecated, use Event.title', DeprecationWarning)
-        return self.title
 
     @property
     def organization(self):
@@ -253,23 +243,6 @@ class Event(Model):
         # For a while events did not save the culprit
         return self.data.get('culprit') or self.group.culprit
 
-    # XXX(dcramer): compatibility with plugins
-    def get_level_display(self):
-        warnings.warn(
-            'Event.get_level_display is deprecated. Use Event.tags instead.', DeprecationWarning
-        )
-        return self.group.get_level_display()
-
-    @property
-    def level(self):
-        warnings.warn('Event.level is deprecated. Use Event.tags instead.', DeprecationWarning)
-        return self.group.level
-
-    @property
-    def message(self):
-        warnings.warn('Event.message is deprecated. Use Event.search_message instead.')
-        return self.search_message
-
     @property
     def transaction(self):
         return self.get_tag('transaction')
@@ -297,6 +270,33 @@ class Event(Model):
             )
 
         return self._environment_cache
+
+    @property
+    def level(self):
+        return LOG_LEVELS_MAP.get(self.get_level_display()) or self.group.level
+
+    def get_level_display(self):
+        return self.get_tag('level') or self.group.get_level_display()
+
+    # deprecated accessors
+
+    def error(self):
+        warnings.warn('Event.error is deprecated, use Event.title', DeprecationWarning)
+        return self.title
+
+    error.short_description = _('error')
+
+    @property
+    def message(self):
+        warnings.warn(
+            'Event.message is deprecated. Use Event.search_message instead.',
+            DeprecationWarning)
+        return self.search_message
+
+    @property
+    def message_short(self):
+        warnings.warn('Event.message_short is deprecated, use Event.title', DeprecationWarning)
+        return self.title
 
 
 class EventSubjectTemplate(string.Template):
