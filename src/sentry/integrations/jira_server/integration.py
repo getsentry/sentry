@@ -21,7 +21,8 @@ from sentry.integrations.jira import JiraIntegration
 from sentry.pipeline import PipelineView
 from sentry.utils.hashlib import sha1_text
 from sentry.web.helpers import render_to_response
-from .client import JiraServerClient, JiraServerSetupClient
+from sentry.integrations.jira.client import JiraApiClient
+from .client import JiraServer, JiraServerSetupClient
 
 
 logger = logging.getLogger('sentry.integrations.jira_server')
@@ -208,7 +209,10 @@ class JiraServerIntegration(JiraIntegration):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
-        return JiraServerClient(self)
+        return JiraApiClient(
+            self.model.metadata['base_url'],
+            JiraServer(self.default_identity.data),
+            self.model.metadata['verify_ssl'])
 
     def get_link_issue_config(self, group, **kwargs):
         fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
@@ -221,6 +225,11 @@ class JiraServerIntegration(JiraIntegration):
                 field['url'] = autocomplete_url
                 field['type'] = 'select'
         return fields
+
+    def search_url(self, org_slug):
+        return reverse(
+            'sentry-extensions-jiraserver-search', args=[org_slug, self.model.id]
+        )
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):

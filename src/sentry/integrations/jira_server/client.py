@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import jwt
-import re
 
 from django.core.urlresolvers import reverse
 from django.utils.encoding import force_bytes
@@ -11,7 +10,6 @@ from requests_oauthlib import OAuth1
 from six.moves.urllib.parse import parse_qsl
 
 from sentry.integrations.client import ApiClient, ApiError
-from sentry.utils.cache import cache
 from sentry.utils.http import absolute_uri
 
 
@@ -103,86 +101,33 @@ class JiraServerSetupClient(ApiClient):
         return self._request(*args, **kwargs)
 
 
-class JiraServerClient(ApiClient):
+class JiraServer(object):
     """
-    Client for making authenticated requests to JiraServer
+    Contains the jira-server specifics that a JiraClient needs
+    in order to communicate with jira
     """
 
-    META_URL = '/rest/api/2/issue/createmeta'
-    PRIORITIES_URL = '/rest/api/2/priority'
-    VERSIONS_URL = '/rest/api/2/project/%s/versions'
-    SEARCH_URL = '/rest/api/2/search/'
-    ISSUE_URL = '/rest/api/2/issue/%s'
-
-    def __init__(self, installation):
-        self.installation = installation
-        super(JiraServerClient, self).__init__(self.metadata['verify_ssl'])
-        self.base_url = self.metadata['base_url']
+    def __init__(self, credentials):
+        self.credentials = credentials
 
     @property
-    def identity(self):
-        return self.installation.default_identity
+    def cache_prefix(self):
+        return 'sentry-jira-server:'
 
-    @property
-    def metadata(self):
-        return self.installation.model.metadata
-
-    def request(self, *args, **kwargs):
-        # TODO(mark) Request hooking could be part of the jira style
+    def request_hook(self, method, path, params, **kwargs):
+        """
+        Used by Jira Client to apply the jira-server authentication
+        Which is RSA signed OAuth1
+        """
         if 'auth' not in kwargs:
-            auth_data = self.identity.data
             kwargs['auth'] = OAuth1(
-                client_key=auth_data['consumer_key'],
-                rsa_key=auth_data['private_key'],
-                resource_owner_key=auth_data['access_token'],
-                resource_owner_secret=auth_data['access_token_secret'],
+                client_key=self.credentials['consumer_key'],
+                rsa_key=self.credentials['private_key'],
+                resource_owner_key=self.credentials['access_token'],
+                resource_owner_secret=self.credentials['access_token_secret'],
                 signature_method=SIGNATURE_RSA,
                 signature_type='auth_header')
-        return self._request(*args, **kwargs)
 
-    def get_cached(self, full_url):
-        """
-        Basic Caching mechanism for requests and responses. It only caches responses
-        based on URL
-        """
-        # TODO(mark) This key needs to come from the 'jira style'
-        key = 'sentry-jira-server:' + md5(full_url, self.base_url).hexdigest()
-        cached_result = cache.get(key)
-        if not cached_result:
-            cached_result = self.get(full_url)
-            cache.set(key, cached_result, 60)
-        return cached_result
-
-    def get_valid_statuses(self):
-        # TODO Implement this.
-        return []
-
-    def get_projects_list(self):
-        # TODO Implement this
-        return []
-
-    def get_create_meta(self, project=None):
-        params = {'expand': 'projects.issuetypes.fields'}
-        if project is not None:
-            params['projectIds'] = project
-        return self.get(
-            self.META_URL,
-            params=params,
-        )
-
-    def get_priorities(self):
-        return self.get_cached(self.PRIORITIES_URL)
-
-    def get_versions(self, project):
-        return self.get_cached(self.VERSIONS_URL % project)
-
-    def search_issues(self, query):
-        # check if it looks like an issue id
-        if re.search(r'^[A-Za-z]+-\d+$', query):
-            jql = 'id="%s"' % query.replace('"', '\\"')
-        else:
-            jql = 'text ~ "%s"' % query.replace('"', '\\"')
-        return self.get(self.SEARCH_URL, params={'jql': jql})
-
-    def get_issue(self, issue_id):
-        return self.get(self.ISSUE_URL % (issue_id,))
+        request_spec = kwargs.copy()
+        request_spec.update(dict(method=method, path=path, params=params))
+        return request_spec

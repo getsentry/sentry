@@ -17,7 +17,7 @@ from sentry.integrations.issues import IssueSyncMixin
 from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
 from sentry.utils.http import absolute_uri
 
-from .client import JiraApiClient
+from .client import JiraApiClient, JiraCloud
 
 logger = logging.getLogger('sentry.integrations.jira')
 
@@ -276,7 +276,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_client(self):
         return JiraApiClient(
             self.model.metadata['base_url'],
-            self.model.metadata['shared_secret'],
+            JiraCloud(self.model.metadata['shared_secret']),
+            verify_ssl=True
         )
 
     def get_issue(self, issue_id, **kwargs):
@@ -321,6 +322,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         return {key: [error] for key, error in data.get('errors').items()}
 
+    def search_url(self, org_slug):
+        """
+        Hook method that varies in Jira Server
+        """
+        return reverse(
+            'sentry-extensions-jira-search', args=[org_slug, self.model.id]
+        )
+
     def build_dynamic_field(self, group, field_meta):
         """
         Builds a field based on Jira's meta field information
@@ -341,10 +350,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         elif field_meta.get('autoCompleteUrl') and \
                 (schema.get('items') == 'user' or schema['type'] == 'user'):
             fieldtype = 'select'
-            # TODO(mark) make this a method that comes from the client/style
-            sentry_url = reverse(
-                'sentry-extensions-jira-search', args=[group.organization.slug, self.model.id],
-            )
+            sentry_url = self.search_url(group.organization.slug)
             fkwargs['url'] = '%s?jira_url=%s' % (
                 sentry_url, quote_plus(field_meta['autoCompleteUrl']),
             )
