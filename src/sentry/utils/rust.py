@@ -2,6 +2,9 @@ from __future__ import absolute_import
 
 import re
 
+from sentry_sdk.integrations import Integration
+from sentry_sdk.scope import add_global_event_processor
+
 from sentry.utils.safe import get_path
 
 
@@ -194,3 +197,11 @@ def merge_rust_info_frames(event, hint):
     strip_backtrace_message(event.get('logentry'), 'formatted')
 
     return event
+
+
+class RustInfoIntegration(Integration):
+    identifier = "rust_info"
+
+    @staticmethod
+    def setup_once():
+        add_global_event_processor(merge_rust_info_frames)

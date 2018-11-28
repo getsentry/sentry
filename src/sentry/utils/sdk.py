@@ -17,7 +17,7 @@ from sentry_sdk.utils import Auth, capture_internal_exceptions
 from sentry_sdk.utils import logger as sdk_logger
 
 from sentry.utils import metrics
-from sentry.utils.rust import merge_rust_info_frames
+from sentry.utils.rust import RustInfoIntegration
 
 UNSAFE_FILES = ('sentry/event_manager.py', 'sentry/tasks/process_buffer.py', )
 
@@ -101,10 +101,10 @@ def configure_sdk():
         integrations=[
             DjangoIntegration(),
             CeleryIntegration(),
-            LoggingIntegration(event_level=None)
+            LoggingIntegration(event_level=None),
+            RustInfoIntegration(),
         ],
         transport=capture_event,
-        before_send=merge_rust_info_frames,
         **options
     )
 
