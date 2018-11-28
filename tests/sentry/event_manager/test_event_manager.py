@@ -503,6 +503,95 @@ class EventManagerTest(TransactionTestCase):
 
                 mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
+    @mock.patch('sentry.tasks.activity.send_activity_notifications.delay')
+    @mock.patch('sentry.event_manager.plugin_is_regression')
+    def test_does_not_mark_as_unresolved_with_pending_commit(
+        self, plugin_is_regression, mock_send_activity_notifications_delay
+    ):
+        plugin_is_regression.return_value = True
+
+        repo = self.create_repo(project=self.project)
+        commit = self.create_commit(repo=repo)
+
+        manager = EventManager(
+            make_event(
+                event_id='a' * 32,
+                checksum='a' * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+            )
+        )
+        event = manager.save(self.project.id)
+
+        group = event.group
+
+        group.update(status=GroupStatus.RESOLVED)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_id=commit.id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        manager = EventManager(
+            make_event(
+                event_id='b' * 32,
+                checksum='a' * 32,
+                timestamp=time(),
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+    @mock.patch('sentry.tasks.activity.send_activity_notifications.delay')
+    @mock.patch('sentry.event_manager.plugin_is_regression')
+    def test_mark_as_unresolved_with_released_commit(
+        self, plugin_is_regression, mock_send_activity_notifications_delay
+    ):
+        plugin_is_regression.return_value = True
+
+        release = self.create_release(project=self.project)
+        repo = self.create_repo(project=self.project)
+        commit = self.create_commit(repo=repo, release=release, project=self.project)
+
+        manager = EventManager(
+            make_event(
+                event_id='a' * 32,
+                checksum='a' * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+            )
+        )
+        event = manager.save(self.project.id)
+
+        group = event.group
+
+        group.update(status=GroupStatus.RESOLVED)
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_id=commit.id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        manager = EventManager(
+            make_event(
+                event_id='b' * 32,
+                checksum='a' * 32,
+                timestamp=time(),
+            )
+        )
+
+        event = manager.save(self.project.id)
+        assert event.group_id == group.id
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+
     @mock.patch('sentry.models.Group.is_resolved')
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
         ts = time() - 100

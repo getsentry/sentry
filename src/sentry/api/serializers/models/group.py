@@ -15,7 +15,7 @@ from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.fields.actor import Actor
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
-    Environment, Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
+    Commit, Environment, Group, GroupAssignee, GroupBookmark, GroupLink, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
     GroupShare, GroupStatus, GroupSubscription, GroupSubscriptionReason, User, UserOption,
     UserOptionValue
 )
@@ -187,18 +187,47 @@ class GroupSerializer(Serializer):
             group__in=item_list,
         )}
 
-        resolutions = {
-            i[0]: i[1:]
-            for i in GroupResolution.objects.filter(
-                group__in=item_list,
-            ).values_list(
-                'group',
-                'type',
-                'release__version',
-                'actor_id',
-            )
-        }
-        actor_ids = set(r[-1] for r in six.itervalues(resolutions))
+        resolved_item_list = [i for i in item_list if i.status == GroupStatus.RESOLVED]
+        if resolved_item_list:
+            release_resolutions = {
+                i[0]: i[1:]
+                for i in GroupResolution.objects.filter(
+                    group__in=resolved_item_list,
+                ).values_list(
+                    'group',
+                    'type',
+                    'release__version',
+                    'actor_id',
+                )
+            }
+
+            # due to our laziness, and django's inability to do a reasonable join here
+            # we end up with two queries
+            commit_results = list(Commit.objects.extra(
+                select={
+                    'group_id': 'sentry_grouplink.group_id',
+                },
+                tables=['sentry_grouplink'],
+                where=[
+                    'sentry_grouplink.linked_id = sentry_commit.id',
+                    'sentry_grouplink.group_id IN ({})'.format(
+                        ', '.join(six.text_type(i.id) for i in resolved_item_list)),
+                    'sentry_grouplink.linked_type = %s',
+                    'sentry_grouplink.relationship = %s',
+                ],
+                params=[
+                    int(GroupLink.LinkedType.commit),
+                    int(GroupLink.Relationship.resolves),
+                ]
+            ))
+            commit_resolutions = {
+                i.group_id: d for i, d in itertools.izip(commit_results, serialize(commit_results, user))
+            }
+        else:
+            release_resolutions = {}
+            commit_resolutions = {}
+
+        actor_ids = set(r[-1] for r in six.itervalues(release_resolutions))
         actor_ids.update(r.actor_id for r in six.itervalues(ignore_items))
         if actor_ids:
             users = list(User.objects.filter(
@@ -225,11 +254,16 @@ class GroupSerializer(Serializer):
                     safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
                 )
 
-            resolution = resolutions.get(item.id)
+            resolution_actor = None
+            resolution_type = None
+            resolution = release_resolutions.get(item.id)
             if resolution:
+                resolution_type = 'release'
                 resolution_actor = actors.get(resolution[-1])
-            else:
-                resolution_actor = None
+            if not resolution:
+                resolution = commit_resolutions.get(item.id)
+                if resolution:
+                    resolution_type = 'commit'
 
             ignore_item = ignore_items.get(item.id)
             if ignore_item:
@@ -247,6 +281,7 @@ class GroupSerializer(Serializer):
                 'ignore_until': ignore_item,
                 'ignore_actor': ignore_actor,
                 'resolution': resolution,
+                'resolution_type': resolution_type,
                 'resolution_actor': resolution_actor,
                 'share_id': share_ids.get(item.id),
                 'times_seen': times_seen.get(item.id, 0),
@@ -289,13 +324,15 @@ class GroupSerializer(Serializer):
             status_details['autoResolved'] = True
         if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
-            if attrs['resolution']:
+            if attrs['resolution_type'] == 'release':
                 res_type, res_version, _ = attrs['resolution']
                 if res_type in (GroupResolution.Type.in_next_release, None):
                     status_details['inNextRelease'] = True
                 elif res_type == GroupResolution.Type.in_release:
                     status_details['inRelease'] = res_version
                 status_details['actor'] = attrs['resolution_actor']
+            elif attrs['resolution_type'] == 'commit':
+                status_details['inCommit'] = attrs['resolution']
         elif status == GroupStatus.IGNORED:
             status_label = 'ignored'
         elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
@@ -371,7 +408,8 @@ class StreamGroupSerializer(GroupSerializer):
         '24h': StatsPeriod(24, timedelta(hours=1)),
     }
 
-    def __init__(self, environment_func=None, stats_period=None, matching_event_id=None, matching_event_environment=None):
+    def __init__(self, environment_func=None, stats_period=None,
+                 matching_event_id=None, matching_event_environment=None):
         super(StreamGroupSerializer, self).__init__(environment_func)
 
         if stats_period is not None:
