@@ -66,3 +66,23 @@ class UserTest(TestCase):
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())
         assert result.to_json() == self.interface.to_json()
+
+    def test_trimming(self):
+        u = User.to_python({
+            'name': ['v' * 100, 'v' * 100],
+            'username': ['v' * 100, 'v' * 100],
+        })
+
+        assert len(u.name) <= 128
+        assert len(u.username) <= 128
+
+    def test_extra_keys(self):
+        u = User.to_python({
+            'extra1': 'foo',
+            'data': {'extra2': 'bar'},
+        })
+
+        assert u.data == {
+            'extra1': 'foo',
+            'extra2': 'bar',
+        }

@@ -440,6 +440,7 @@ class EventManager(object):
 
         casts = {
             'environment': lambda v: text(v) if v is not None else v,
+            'event_id': lambda v: v.lower(),
             'fingerprint': lambda v: list(x for x in map(stringify, v) if x is not None) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
             'release': lambda v: text(v) if v is not None else v,
             'dist': lambda v: text(v).strip() if v is not None else v,
@@ -815,7 +816,7 @@ class EventManager(object):
 
         transaction_name = data.get('transaction')
         logger_name = data.get('logger')
-        fingerprint = data.get('fingerprint')
+        fingerprint = data.get('fingerprint') or ['{{ default }}']
         release = data.get('release')
         dist = data.get('dist')
         environment = data.get('environment')
@@ -897,16 +898,18 @@ class EventManager(object):
         # tags are stored as a tuple
         tags = tags.items()
 
+        # Put the actual tags and fingerprint back
         data['tags'] = tags
-        data['fingerprint'] = fingerprint or ['{{ default }}']
+        data['fingerprint'] = fingerprint
 
-        hashes = event.get_hashes(no_fingerprint=fingerprint is None)
+        hashes = event.get_hashes()
 
         event_type = self.get_event_type()
         event_metadata = event_type.get_metadata()
 
         data['type'] = event_type.key
         data['metadata'] = event_metadata
+        data['hashes'] = hashes
 
         # index components into ``Event.search_message``
         # See GH-3248

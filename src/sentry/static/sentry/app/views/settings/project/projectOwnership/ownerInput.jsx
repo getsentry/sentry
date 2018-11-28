@@ -21,6 +21,7 @@ class OwnerInput extends React.Component {
     initialText: PropTypes.string,
     urls: PropTypes.arrayOf(PropTypes.string),
     paths: PropTypes.arrayOf(PropTypes.string),
+    disabled: PropTypes.bool,
   };
 
   constructor(props) {
@@ -127,7 +128,7 @@ class OwnerInput extends React.Component {
   };
 
   render() {
-    let {project, organization, urls, paths} = this.props;
+    let {project, organization, disabled, urls, paths} = this.props;
     let {text, error, initialText} = this.state;
 
     return (
@@ -138,6 +139,7 @@ class OwnerInput extends React.Component {
           organization={organization}
           project={project}
           onAddRule={this.handleAddRule.bind(this)}
+          disabled={disabled}
         />
         <div
           style={{position: 'relative'}}
@@ -152,6 +154,7 @@ class OwnerInput extends React.Component {
               '#example usage\npath:src/example/pipeline/* person@sentry.io #infra\nurl:http://example.com/settings/* #product'
             }
             onChange={this.handleChange}
+            disabled={disabled}
             value={text}
             spellCheck="false"
             autoComplete="off"
@@ -165,7 +168,7 @@ class OwnerInput extends React.Component {
                 size="small"
                 priority="primary"
                 onClick={this.handleUpdateOwnership}
-                disabled={text === initialText}
+                disabled={disabled || text === initialText}
               >
                 {t('Save Changes')}
               </Button>
