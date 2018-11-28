@@ -30,6 +30,8 @@ INNER_BORDER_FRAMES = [
     "std::panicking::begin_panic",
     "failure::error_message::err_msg",
     "failure::backtrace::Backtrace::new",
+    "failure::backtrace::internal::InternalBacktrace::new",
+    "failure::Fail::context",
 ]
 
 FRAME_RE = re.compile(r'''(?xm)
