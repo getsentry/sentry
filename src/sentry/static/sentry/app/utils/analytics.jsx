@@ -66,21 +66,18 @@ metric.measure = function metricMeasure({name, start, end, data, noCleanup} = {}
     throw new Error('Invalid arguments provided to `metric.measure`');
   }
 
-  const {measure, getEntriesByName, clearMarks, clearMeasures} = window.performance;
+  // Can't destructure from performance
+  const {performance} = window;
 
-  measure(name, start, end);
+  performance.measure(name, start, end);
 
   // Retrieve measurement entries
-  getEntriesByName(name, 'measure').forEach(measurement => {
-    metric(measurement.name, measurement.duration, {
-      ...data,
-    });
-  });
+  performance
+    .getEntriesByName(name, 'measure')
+    .forEach(measurement => metric(measurement.name, measurement.duration, data));
 
-  // By default, clean up marks and measurements
+  // By default, clean up measurements
   if (!noCleanup) {
-    clearMarks(start);
-    clearMarks(end);
-    clearMeasures(name);
+    performance.clearMeasures(name);
   }
 };

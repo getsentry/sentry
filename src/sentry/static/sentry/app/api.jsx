@@ -148,7 +148,7 @@ export class Client {
     let method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
     let id = this.uniqueId();
-    metric.mark(`api.request-start-${id}`);
+    metric.mark(`api-request-start-${id}`);
 
     if (!isUndefined(data) && method !== 'GET') {
       data = JSON.stringify(data);
@@ -178,23 +178,25 @@ export class Client {
           Accept: 'application/json; charset=utf-8',
         },
         success: (...args) => {
-          let [resp] = args || [];
+          let [, , xhr] = args || [];
           metric.measure({
             name: 'app.api.request-success',
-            start: `api.request-start-${id}`,
+            start: `api-request-start-${id}`,
             data: {
-              status: resp && resp.statusCode,
+              path,
+              status: xhr && xhr.status,
             },
           });
           this.wrapCallback(id, options.success)(...args);
         },
         error: (...args) => {
-          let [resp] = args || [];
+          let [, , xhr] = args || [];
           metric.measure({
             name: 'app.api.request-error',
-            start: `api.request-start-${id}`,
+            start: `api-request-start-${id}`,
             data: {
-              status: resp && resp.statusCode,
+              path,
+              status: xhr && xhr.status,
             },
           });
           this.handleRequestError(
