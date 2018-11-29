@@ -3,14 +3,13 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
 import {updateOrganization} from 'app/actionCreators/organizations';
-import Alert from 'app/components/alert';
 import ApiMixin from 'app/mixins/apiMixin';
 import AvatarChooser from 'app/components/avatarChooser';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import OrganizationState from 'app/mixins/organizationState';
+import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
 
 const OrganizationSettingsForm = createReactClass({
@@ -45,13 +44,7 @@ const OrganizationSettingsForm = createReactClass({
         }}
         onSubmitError={err => addErrorMessage('Unable to save change')}
       >
-        {!access.has('org:write') && (
-          <Alert type="warning" icon="icon-warning-sm">
-            {t(
-              'These settings can only be edited by users with the owner or manager role.'
-            )}
-          </Alert>
-        )}
+        <PermissionAlert />
         <JsonForm
           features={this.getFeatures()}
           access={access}

@@ -13,13 +13,13 @@ import {
 import {fields} from 'app/data/forms/projectGeneralSettings';
 import {getOrganizationState} from 'app/mixins/organizationState';
 import {t, tct} from 'app/locale';
-import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import ProjectsStore from 'app/stores/projectsStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -233,13 +233,7 @@ class ProjectGeneralSettings extends AsyncView {
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
-        {!access.has('project:write') && (
-          <Alert type="warning" icon="icon-warning-sm">
-            {t(
-              'These settings can only be edited by users with the owner, manager, or admin role.'
-            )}
-          </Alert>
-        )}
+        <PermissionAlert />
 
         <Form
           saveOnBlur
