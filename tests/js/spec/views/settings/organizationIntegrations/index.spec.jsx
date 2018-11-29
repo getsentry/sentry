@@ -55,6 +55,14 @@ describe('OrganizationIntegrations', function() {
         url: `/organizations/${org.slug}/repos/?status=unmigratable`,
         body: [],
       });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-apps/`,
+        body: [],
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        body: [],
+      });
 
       const wrapper = mount(
         <OrganizationIntegrations organization={org} params={params} />,
