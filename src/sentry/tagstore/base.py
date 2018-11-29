@@ -45,6 +45,7 @@ class TagStorage(Service):
         'get_group_tag_value',
         'get_group_tag_values',
         'get_group_list_tag_value',
+        'get_tag_keys_for_projects',
 
         'get_groups_user_counts',
         'get_group_event_filter',
@@ -216,6 +217,13 @@ class TagStorage(Service):
     def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
         """
         >>> get_tag_key(1, 2)
+        """
+        raise NotImplementedError
+
+    def get_tag_keys_for_projects(self, projects, environments, start,
+                                  end, status=TagKeyStatus.VISIBLE):
+        """
+        >>> get_tag_key([1], [2])
         """
         raise NotImplementedError
 

@@ -140,11 +140,23 @@ class SnubaTagStorage(TagStorage):
 
     def __get_tag_keys(self, project_id, group_id, environment_id, limit=1000, keys=None):
         start, end = self.get_time_range()
+        return self.__get_tag_keys_for_projects(
+            [project_id],
+            group_id,
+            [environment_id] if environment_id else None,
+            start,
+            end,
+            limit,
+            keys,
+        )
+
+    def __get_tag_keys_for_projects(self, projects, group_id,
+                                    environments, start, end, limit=1000, keys=None):
         filters = {
-            'project_id': [project_id],
+            'project_id': projects,
         }
-        if environment_id:
-            filters['environment'] = [environment_id]
+        if environments:
+            filters['environment'] = environments
         if group_id is not None:
             filters['issue'] = [group_id]
         if keys is not None:
@@ -211,6 +223,10 @@ class SnubaTagStorage(TagStorage):
     def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
         assert status is TagKeyStatus.VISIBLE
         return self.__get_tag_keys(project_id, None, environment_id)
+
+    def get_tag_keys_for_projects(self, projects, environments, start,
+                                  end, status=TagKeyStatus.VISIBLE):
+        return self.__get_tag_keys_for_projects(projects, None, environments, start, end)
 
     def get_tag_value(self, project_id, environment_id, key, value):
         return self.__get_tag_value(project_id, None, environment_id, key, value)
