@@ -273,7 +273,7 @@ class KafkaEventStream(EventStream):
                 owned_partition_offsets[(topic, partition)] = offset
 
             # Handle revoked partitions by removing them from the owned
-            # partition offsets map, and commiting their offsets.
+            # partition offsets map, and committing  their offsets.
             offsets_to_commit = []
             for topic, partition in set(owned_partition_offsets) - updated_assignment:
                 offset = owned_partition_offsets.pop((topic, partition))
@@ -285,7 +285,7 @@ class KafkaEventStream(EventStream):
 
             if offsets_to_commit:
                 logger.debug(
-                    'Commiting offset(s) for %s revoked partition(s): %r',
+                    'Committing offset(s) for %s revoked partition(s): %r',
                     len(offsets_to_commit),
                     offsets_to_commit)
                 consumer.commit(offsets=offsets_to_commit, asynchronous=False)
@@ -306,7 +306,7 @@ class KafkaEventStream(EventStream):
 
             if offsets_to_commit:
                 logger.debug(
-                    'Commiting offset(s) for %s owned partition(s): %r',
+                    'Committing offset(s) for %s owned partition(s): %r',
                     len(offsets_to_commit),
                     offsets_to_commit)
                 consumer.commit(offsets=offsets_to_commit, asynchronous=False)
