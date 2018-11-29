@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
 import pytz
+import re
 import six
 import time
 import urllib3
@@ -179,6 +180,12 @@ def get_snuba_column_name(name):
     if not name:
         return name
     return SENTRY_SNUBA_MAP.get(name, u'tags[{}]'.format(name))
+
+
+def get_arrayjoin(column):
+    match = re.match(r'^(exception_stacks|exception_frames|contexts)\..+$', column)
+    if match:
+        return match.groups()[0]
 
 
 def transform_aliases_and_query(**kwargs):

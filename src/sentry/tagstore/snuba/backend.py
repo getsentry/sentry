@@ -534,6 +534,7 @@ class SnubaTagStorage(TagStorage):
             orderby=order_by,
             # TODO: This means they can't actually paginate all TagValues.
             limit=1000,
+            arrayjoin=snuba.get_arrayjoin(snuba_key),
             referrer='tagstore.get_tag_value_paginator_for_projects',
         )
 
