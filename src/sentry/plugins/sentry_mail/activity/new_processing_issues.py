@@ -19,7 +19,7 @@ def summarize_issues(issues):
                 extra_info = '%s (%s)' % (extra_info, issue['data']['image_arch'], )
 
         rv.append({
-            'message': EventError.get_message(msg_d),
+            'message': EventError(msg_d).message,
             'extra_info': extra_info,
         })
     return rv
