@@ -5,7 +5,7 @@ import six
 
 from sentry import features
 from sentry.integrations.exceptions import ApiError, IntegrationError
-from sentry.models import Activity, Event, Group, GroupStatus, Organization
+from sentry.models import Activity, Event, ExternalIssue, Group, GroupLink, GroupStatus, Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
@@ -240,7 +240,6 @@ class IssueBasicMixin(object):
         return (default_repo, default_repo)
 
     def get_annotations(self, group):
-        from sentry.models import GroupLink, ExternalIssue
         external_issue_ids = GroupLink.objects.filter(
             group_id=group.id,
             project_id=group.project_id,
