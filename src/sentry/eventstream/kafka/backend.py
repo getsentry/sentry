@@ -260,7 +260,7 @@ class KafkaEventStream(EventStream):
             logger.debug('Received partition assignment: %r', partitions)
 
             for i in partitions:
-                if i.offset is OFFSET_INVALID:
+                if i.offset == OFFSET_INVALID:
                     updated_offset = None
                 elif i.offset < 0:
                     raise Exception(
