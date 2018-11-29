@@ -244,7 +244,7 @@ class KafkaEventStream(EventStream):
 
     def relay(self, consumer_group, commit_log_topic,
               synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
-        logger.info('Starting relay...')
+        logger.debug('Starting relay...')
 
         consumer = SynchronizedConsumer(
             bootstrap_servers=self.producer_configuration['bootstrap.servers'],
@@ -260,7 +260,7 @@ class KafkaEventStream(EventStream):
             for i in partitions:
                 key = (i.topic, i.partition)
                 if key not in owned_partition_offsets:
-                    logger.info('Received new partition assignment: %r', i)
+                    logger.debug('Received new partition assignment: %r', i)
                     if i.offset is OFFSET_INVALID:
                         offset = None
                     else:
@@ -273,7 +273,7 @@ class KafkaEventStream(EventStream):
 
                 owned_partition_offsets[key] = offset
 
-            logger.info(
+            logger.debug(
                 'Received assignment containing %s partitions: %r',
                 len(partitions),
                 partitions)
@@ -297,7 +297,7 @@ class KafkaEventStream(EventStream):
                 offsets_to_commit.append(TopicPartition(i.topic, i.partition, ))
 
             if offsets_to_commit:
-                logger.info(
+                logger.debug(
                     'Commiting offset for %s revoked partitions: %r',
                     len(offsets_to_commit),
                     offsets_to_commit)
@@ -319,7 +319,7 @@ class KafkaEventStream(EventStream):
                 offsets_to_commit.append(TopicPartition((topic, partition, offset)))
 
             if offsets_to_commit:
-                logger.info(
+                logger.debug(
                     'Commiting offset for %s owned partitions: %r',
                     len(offsets_to_commit),
                     offsets_to_commit)
@@ -353,7 +353,7 @@ class KafkaEventStream(EventStream):
         except KeyboardInterrupt:
             pass
 
-        logger.info('Committing offsets and closing consumer...')
+        logger.debug('Committing offsets and closing consumer...')
         commit_offsets()
 
         consumer.close()
