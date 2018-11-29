@@ -102,14 +102,15 @@ describe('OrganizationGeneralSettings', function() {
   });
 
   it('disables the entire form if user does not have write access', async function() {
+    const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: TestStubs.Organization({access: ['org:read']}),
+      body: readOnlyOrg,
     });
     let wrapper = mount(
-      <OrganizationGeneralSettings routes={[]} params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationGeneralSettings routes={[]} params={{orgId: readOnlyOrg.slug}} />,
+      TestStubs.routerContext([{organization: readOnlyOrg}])
     );
 
     wrapper.setState({loading: false});
@@ -119,7 +120,7 @@ describe('OrganizationGeneralSettings', function() {
     expect(wrapper.find('Form FormField[disabled=false]')).toHaveLength(0);
     expect(
       wrapper
-        .find('Alert')
+        .find('PermissionAlert')
         .first()
         .text()
     ).toEqual(

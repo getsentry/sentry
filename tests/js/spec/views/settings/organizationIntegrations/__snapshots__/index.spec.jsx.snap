@@ -71,6 +71,137 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
       </div>
     </Wrapper>
   </SettingsPageHeading>
+  <PermissionAlert
+    access={
+      Array [
+        "org:integrations",
+      ]
+    }
+  >
+    <AccessContainer
+      access={
+        Array [
+          "org:integrations",
+        ]
+      }
+    >
+      <Access
+        access={
+          Array [
+            "org:integrations",
+          ]
+        }
+        configUser={
+          Object {
+            "email": "foo@example.com",
+            "flags": Object {
+              "newsletter_consent_prompt": false,
+            },
+            "hasPasswordAuth": true,
+            "id": "1",
+            "isAuthenticated": true,
+            "name": "Foo Bar",
+            "options": Object {
+              "timezone": "UTC",
+            },
+            "permissions": Set {},
+            "username": "foo@example.com",
+          }
+        }
+        organization={
+          Object {
+            "access": Array [
+              "org:read",
+              "org:write",
+              "org:admin",
+              "project:read",
+              "project:write",
+              "project:admin",
+              "team:read",
+              "team:write",
+              "team:admin",
+            ],
+            "features": Array [],
+            "id": "3",
+            "name": "Organization Name",
+            "onboardingTasks": Array [],
+            "projects": Array [],
+            "scrapeJavaScript": true,
+            "slug": "org-slug",
+            "status": Object {
+              "id": "active",
+              "name": "active",
+            },
+            "teams": Array [],
+          }
+        }
+        renderNoAccessMessage={false}
+        requireAll={true}
+      >
+        <Alert
+          icon="icon-warning-sm"
+          type="warning"
+        >
+          <AlertWrapper
+            className="ref-warning"
+            type="warning"
+          >
+            <Base
+              className="ref-warning css-qx534z-AlertWrapper e1xb5l7j1"
+              type="warning"
+            >
+              <div
+                className="ref-warning css-qx534z-AlertWrapper e1xb5l7j1"
+                is={null}
+                type="warning"
+              >
+                <StyledInlineSvg
+                  size="24px"
+                  src="icon-warning-sm"
+                >
+                  <InlineSvg
+                    className="css-1gojvm3-StyledInlineSvg e1xb5l7j0"
+                    size="24px"
+                    src="icon-warning-sm"
+                  >
+                    <StyledSvg
+                      className="css-1gojvm3-StyledInlineSvg e1xb5l7j0"
+                      height="24px"
+                      viewBox={Object {}}
+                      width="24px"
+                    >
+                      <svg
+                        className="e1xb5l7j0 css-1et2325-StyledSvg-StyledInlineSvg e2idor0"
+                        height="24px"
+                        viewBox={Object {}}
+                        width="24px"
+                      >
+                        <use
+                          href="#test"
+                          xlinkHref="#test"
+                        />
+                      </svg>
+                    </StyledSvg>
+                  </InlineSvg>
+                </StyledInlineSvg>
+                <StyledTextBlock>
+                  <Component
+                    className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                  >
+                    <div
+                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                    >
+                      These settings can only be edited by users with the owner or manager role.
+                    </div>
+                  </Component>
+                </StyledTextBlock>
+              </div>
+            </Base>
+          </AlertWrapper>
+        </Alert>
+      </Access>
+    </AccessContainer>
+  </PermissionAlert>
   <MigrationWarnings
     onInstall={[Function]}
     orgId="org-slug"
@@ -3119,6 +3250,137 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
       </div>
     </Wrapper>
   </SettingsPageHeading>
+  <PermissionAlert
+    access={
+      Array [
+        "org:integrations",
+      ]
+    }
+  >
+    <AccessContainer
+      access={
+        Array [
+          "org:integrations",
+        ]
+      }
+    >
+      <Access
+        access={
+          Array [
+            "org:integrations",
+          ]
+        }
+        configUser={
+          Object {
+            "email": "foo@example.com",
+            "flags": Object {
+              "newsletter_consent_prompt": false,
+            },
+            "hasPasswordAuth": true,
+            "id": "1",
+            "isAuthenticated": true,
+            "name": "Foo Bar",
+            "options": Object {
+              "timezone": "UTC",
+            },
+            "permissions": Set {},
+            "username": "foo@example.com",
+          }
+        }
+        organization={
+          Object {
+            "access": Array [
+              "org:read",
+              "org:write",
+              "org:admin",
+              "project:read",
+              "project:write",
+              "project:admin",
+              "team:read",
+              "team:write",
+              "team:admin",
+            ],
+            "features": Array [],
+            "id": "3",
+            "name": "Organization Name",
+            "onboardingTasks": Array [],
+            "projects": Array [],
+            "scrapeJavaScript": true,
+            "slug": "org-slug",
+            "status": Object {
+              "id": "active",
+              "name": "active",
+            },
+            "teams": Array [],
+          }
+        }
+        renderNoAccessMessage={false}
+        requireAll={true}
+      >
+        <Alert
+          icon="icon-warning-sm"
+          type="warning"
+        >
+          <AlertWrapper
+            className="ref-warning"
+            type="warning"
+          >
+            <Base
+              className="ref-warning css-qx534z-AlertWrapper e1xb5l7j1"
+              type="warning"
+            >
+              <div
+                className="ref-warning css-qx534z-AlertWrapper e1xb5l7j1"
+                is={null}
+                type="warning"
+              >
+                <StyledInlineSvg
+                  size="24px"
+                  src="icon-warning-sm"
+                >
+                  <InlineSvg
+                    className="css-1gojvm3-StyledInlineSvg e1xb5l7j0"
+                    size="24px"
+                    src="icon-warning-sm"
+                  >
+                    <StyledSvg
+                      className="css-1gojvm3-StyledInlineSvg e1xb5l7j0"
+                      height="24px"
+                      viewBox={Object {}}
+                      width="24px"
+                    >
+                      <svg
+                        className="e1xb5l7j0 css-1et2325-StyledSvg-StyledInlineSvg e2idor0"
+                        height="24px"
+                        viewBox={Object {}}
+                        width="24px"
+                      >
+                        <use
+                          href="#test"
+                          xlinkHref="#test"
+                        />
+                      </svg>
+                    </StyledSvg>
+                  </InlineSvg>
+                </StyledInlineSvg>
+                <StyledTextBlock>
+                  <Component
+                    className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                  >
+                    <div
+                      className="css-1h3n7tg-TextBlock-StyledTextBlock e1xb5l7j2"
+                    >
+                      These settings can only be edited by users with the owner or manager role.
+                    </div>
+                  </Component>
+                </StyledTextBlock>
+              </div>
+            </Base>
+          </AlertWrapper>
+        </Alert>
+      </Access>
+    </AccessContainer>
+  </PermissionAlert>
   <MigrationWarnings
     onInstall={[Function]}
     orgId="org-slug"

@@ -4,6 +4,7 @@ import React from 'react';
 import {t} from 'app/locale';
 import GroupTombstones from 'app/views/settings/project/projectFilters/groupTombstones';
 import NavTabs from 'app/components/navTabs';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import ProjectFiltersChart from 'app/views/settings/project/projectFilters/projectFiltersChart';
 import ProjectFiltersSettings from 'app/views/settings/project/projectFilters/projectFiltersSettings';
 import SentryTypes from 'app/sentryTypes';
@@ -26,6 +27,8 @@ class ProjectFilters extends React.Component {
     return (
       <div>
         <SettingsPageHeader title={t('Inbound Data Filters')} />
+        <PermissionAlert />
+
         <TextBlock>
           {t(
             'Filters allow you to prevent Sentry from storing events in certain situations. Filtered events are tracked separately from rate limits, and do not apply to any project quotas.'
