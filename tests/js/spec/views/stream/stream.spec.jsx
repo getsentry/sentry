@@ -319,19 +319,30 @@ describe('Stream', function() {
       expect(wrapper.find('.empty-stream').length).toBeTruthy();
     });
 
-    it('shows "awaiting events" message when no events have been sent', function() {
-      context.project.firstEvent = false; // Set false for this test only
+    describe('no first event sent', function() {
+      it('shows "awaiting events" message when no events have been sent', function() {
+        context.project.firstEvent = false;
+        wrapper.setState({
+          error: false,
+          groupIds: [],
+          loading: false,
+          dataLoading: false,
+        });
 
-      wrapper.setState({
-        error: false,
-        groupIds: [],
-        loading: false,
-        dataLoading: false,
+        expect(wrapper.find(ErrorRobot)).toHaveLength(1);
       });
 
-      expect(wrapper.find(ErrorRobot)).toHaveLength(1);
+      it('does not show "awaiting events" when an event is recieved', function() {
+        context.project.firstEvent = false;
+        wrapper.setState({
+          error: false,
+          groupIds: ['1'],
+          loading: false,
+          dataLoading: false,
+        });
 
-      context.project.firstEvent = true; // Reset for other tests
+        expect(wrapper.find('.ref-group-list').length).toBeTruthy();
+      });
     });
 
     it('does not have real time event updates when events exist', function() {
