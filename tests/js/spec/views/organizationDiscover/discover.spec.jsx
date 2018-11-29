@@ -192,8 +192,8 @@ describe('Discover', function() {
       expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
     });
 
-    it('always requests id and project.id for basic queries', async function() {
-      queryBuilder.updateField('fields', ['message']);
+    it('requests project.id if id is also requested', async function() {
+      queryBuilder.updateField('fields', ['message', 'id']);
       wrapper.instance().runQuery();
       await tick();
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
@@ -222,6 +222,7 @@ describe('Discover', function() {
     });
 
     it('also runs chart query if there are aggregations', async function() {
+      wrapper.instance().updateField('fields', []);
       wrapper.instance().updateField('aggregations', [['count()', null, 'count']]);
       wrapper.instance().runQuery();
       await tick();
