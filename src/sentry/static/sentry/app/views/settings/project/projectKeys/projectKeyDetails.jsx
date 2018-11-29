@@ -30,6 +30,7 @@ import FormField from 'app/views/settings/components/forms/formField';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import SelectField from 'app/views/settings/components/forms/selectField';
@@ -496,6 +497,7 @@ export default class ProjectKeyDetails extends AsyncView {
     return (
       <div className="ref-key-details">
         <SettingsPageHeader title={t('Key Details')} />
+        <PermissionAlert />
 
         <KeyStats params={params} />
 
