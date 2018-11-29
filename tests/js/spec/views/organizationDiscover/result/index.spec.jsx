@@ -16,6 +16,7 @@ describe('Result', function() {
           query: {
             aggregations: [['count()', null, 'count']],
             conditions: [],
+            fields: [],
           },
         },
         byDayQuery: {
@@ -137,6 +138,7 @@ describe('Result', function() {
         ).toBe('query time: 15 ms, 0 rows');
       });
     });
+
     describe('Toggles Visualizations', function() {
       beforeEach(function() {
         wrapper = mount(
