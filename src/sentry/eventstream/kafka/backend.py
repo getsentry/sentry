@@ -323,7 +323,7 @@ class KafkaEventStream(EventStream):
                     logger.debug('Skipping commit of unprocessed partition: %r', (topic, partition))
                     continue
 
-                offsets_to_commit.append(TopicPartition((topic, partition, offset)))
+                offsets_to_commit.append(TopicPartition(topic, partition, offset))
 
             if offsets_to_commit:
                 logger.debug(
