@@ -285,7 +285,7 @@ class KafkaEventStream(EventStream):
 
             if offsets_to_commit:
                 logger.debug(
-                    'Commiting offsets for %s revoked partitions: %r',
+                    'Commiting offset(s) for %s revoked partition(s): %r',
                     len(offsets_to_commit),
                     offsets_to_commit)
                 consumer.commit(offsets=offsets_to_commit, asynchronous=False)
@@ -306,7 +306,7 @@ class KafkaEventStream(EventStream):
 
             if offsets_to_commit:
                 logger.debug(
-                    'Commiting offset for %s owned partitions: %r',
+                    'Commiting offset(s) for %s owned partition(s): %r',
                     len(offsets_to_commit),
                     offsets_to_commit)
                 consumer.commit(offsets=offsets_to_commit, asynchronous=False)
