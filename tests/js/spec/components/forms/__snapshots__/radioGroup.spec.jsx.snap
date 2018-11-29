@@ -143,21 +143,19 @@ exports[`RadioGroup render() renders disabled 1`] = `
           >
             <RadioLineButtonFill
               animate={true}
-              disabled={true}
+              isDisabled={true}
             >
               <div
                 className="css-18ziuuc-RadioLineButtonFill eeb3g7x2"
-                disabled={true}
               />
             </RadioLineButtonFill>
           </div>
         </RadioLineButton>
         <RadioLineText
-          disabled={true}
+          isDisabled={true}
         >
           <div
             className="css-fr9tlv-RadioLineText eeb3g7x3"
-            disabled={true}
           >
             Choice One
           </div>
