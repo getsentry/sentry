@@ -11074,9 +11074,10 @@ send@0.16.2:
     range-parser "~1.2.0"
     statuses "~1.4.0"
 
-sentry-dreamy-components@getsentry/dreamy-components:
-  version "0.0.1"
-  resolved "https://codeload.github.com/getsentry/dreamy-components/tar.gz/cfa56b0b784b0ef911de567117470dfb8de67d39"
+sentry-dreamy-components@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/sentry-dreamy-components/-/sentry-dreamy-components-1.0.0.tgz#e15a3f896e086961b43b611e3a1bb95481b98d01"
+  integrity sha512-8Ls2feP9yAjm/CCgByBNuSToky/rI0xWaqHpyCUXJ6EMELqyJWOlmOOVM50ODp1iKxEioGbalJHqHeUQb7w6Cw==
 
 serialize-javascript@^1.4.0:
   version "1.5.0"
