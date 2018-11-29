@@ -17,6 +17,8 @@ import MultipleProjectSelector from 'app/components/organizations/multipleProjec
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import space from 'app/styles/space';
+import {updateProjects} from 'app/actionCreators/globalSelection';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
 import {getParams} from './utils/getParams';
@@ -59,7 +61,7 @@ class OrganizationEventsContainer extends React.Component {
   static getStateFromRouter(props) {
     const {query} = props.router.location;
     const hasAbsolute = !!query.start && !!query.end;
-    let project = [];
+    let project = props.selection.projects;
     let environment = query.environment || [];
 
     if (defined(query.project) && Array.isArray(query.project)) {
@@ -115,6 +117,10 @@ class OrganizationEventsContainer extends React.Component {
     this.state = {};
   }
 
+  componentDidMount() {
+    this.handleUpdateProjects();
+  }
+
   updateParams = obj => {
     const {router} = this.props;
     // Reset cursor when changing parameters
@@ -150,6 +156,7 @@ class OrganizationEventsContainer extends React.Component {
     this.setState({
       project: projects,
     });
+    updateProjects(projects);
   };
 
   handleChangeEnvironments = environments => {
@@ -234,7 +241,9 @@ class OrganizationEventsContainer extends React.Component {
     );
   }
 }
-export default withRouter(withOrganization(OrganizationEventsContainer));
+export default withRouter(
+  withOrganization(withGlobalSelection(OrganizationEventsContainer))
+);
 export {OrganizationEventsContainer};
 
 const OrganizationEventsContent = styled(Flex)`
