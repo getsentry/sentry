@@ -52,7 +52,7 @@ class EventErrors extends React.Component {
       >
         <span className="icon icon-alert" />
         <p>
-          <a className="pull-right" onClick={this.toggle}>
+          <a className="pull-right errors-toggle" onClick={this.toggle}>
             {isOpen ? t('Hide') : t('Show')}
           </a>
           {tn(
