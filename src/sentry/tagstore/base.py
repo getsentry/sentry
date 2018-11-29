@@ -11,7 +11,10 @@ from __future__ import absolute_import
 import re
 
 from sentry.constants import TAG_LABELS
-from sentry.tagstore.exceptions import TagKeyNotFound, TagValueNotFound, GroupTagKeyNotFound, GroupTagValueNotFound
+from sentry.tagstore.exceptions import (
+    TagKeyNotFound, TagValueNotFound, GroupTagKeyNotFound, GroupTagValueNotFound,
+    InvalidQuery
+)
 from sentry.utils.services import Service, raises
 
 # Valid pattern for tag key names
@@ -309,6 +312,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
+    @raises([InvalidQuery])
     def get_tag_value_paginator_for_projects(self, projects, environments, key, start, end,
                                              query=None, order_by='-last_seen'):
         """

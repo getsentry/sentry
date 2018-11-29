@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError
 from sentry.api.serializers import serialize
 from sentry.tagstore.base import TAG_KEY_RE
+from sentry.tagstore.exceptions import InvalidQuery
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 
 
@@ -22,14 +23,17 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
         # TODO(jess): update this when snuba tagstore is the primary backend for us
         tagstore = SnubaTagStorage()
 
-        paginator = tagstore.get_tag_value_paginator_for_projects(
-            filter_params['project_id'],
-            filter_params.get('environment'),
-            key,
-            filter_params['start'],
-            filter_params['end'],
-            query=request.GET.get('query'),
-        )
+        try:
+            paginator = tagstore.get_tag_value_paginator_for_projects(
+                filter_params['project_id'],
+                filter_params.get('environment'),
+                key,
+                filter_params['start'],
+                filter_params['end'],
+                query=request.GET.get('query'),
+            )
+        except InvalidQuery as exc:
+            return Response({'detail': exc.message}, status=400)
         return self.paginate(
             request=request,
             paginator=paginator,

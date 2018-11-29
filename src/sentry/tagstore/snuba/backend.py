@@ -20,6 +20,7 @@ from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
+    InvalidQuery,
     TagKeyNotFound,
     TagValueNotFound,
 )
@@ -492,7 +493,7 @@ class SnubaTagStorage(TagStorage):
                 try:
                     conditions.append([snuba_key, '=', int(query)])
                 except ValueError:
-                    pass
+                    raise InvalidQuery('project.id must be an integer')
             else:
                 conditions.append([snuba_key, 'IS NOT NULL', None])
         else:

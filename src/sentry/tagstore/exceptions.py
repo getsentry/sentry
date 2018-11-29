@@ -23,3 +23,7 @@ class GroupTagKeyNotFound(Exception):
 
 class GroupTagValueNotFound(Exception):
     pass
+
+
+class InvalidQuery(Exception):
+    pass
