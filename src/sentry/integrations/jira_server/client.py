@@ -108,7 +108,7 @@ class JiraServer(object):
     def cache_prefix(self):
         return 'sentry-jira-server:'
 
-    def request_hook(self, method, path, params, **kwargs):
+    def request_hook(self, method, path, data, params, **kwargs):
         """
         Used by Jira Client to apply the jira-server authentication
         Which is RSA signed OAuth1
@@ -123,5 +123,9 @@ class JiraServer(object):
                 signature_type='auth_header')
 
         request_spec = kwargs.copy()
-        request_spec.update(dict(method=method, path=path, params=params))
+        request_spec.update(dict(
+            method=method,
+            path=path,
+            data=data,
+            params=params))
         return request_spec

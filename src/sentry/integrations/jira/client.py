@@ -35,7 +35,7 @@ class JiraCloud(object):
     def cache_prefix(self):
         return 'sentry-jira-2:'
 
-    def request_hook(self, method, path, params, **kwargs):
+    def request_hook(self, method, path, data, params, **kwargs):
         """
         Used by Jira Client to apply the jira-cloud authentication
         """
@@ -56,7 +56,11 @@ class JiraCloud(object):
             **(url_params or {})
         )
         request_spec = kwargs.copy()
-        request_spec.update(dict(method=method, path=path, params=params))
+        request_spec.update(dict(
+            method=method,
+            path=path,
+            data=data,
+            params=params))
         return request_spec
 
 
@@ -88,7 +92,7 @@ class JiraApiClient(ApiClient):
         Use the request_hook method for our specific style of Jira to
         add authentication data and transform parameters.
         """
-        request_spec = self.jira_style.request_hook(method, path, params, **kwargs)
+        request_spec = self.jira_style.request_hook(method, path, data, params, **kwargs)
         return self._request(**request_spec)
 
     def get_cached(self, full_url):
