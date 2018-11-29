@@ -486,10 +486,20 @@ class SnubaTagStorage(TagStorage):
         snuba_key = snuba.get_snuba_column_name(key)
 
         conditions = []
-        if query:
-            conditions.append([snuba_key, 'LIKE', u'%{}%'.format(query)])
+
+        if snuba_key == 'project_id':
+            if query:
+                try:
+                    conditions.append([snuba_key, '=', int(query)])
+                except ValueError:
+                    pass
+            else:
+                conditions.append([snuba_key, 'IS NOT NULL', None])
         else:
-            conditions.append([snuba_key, '!=', ''])
+            if query:
+                conditions.append([snuba_key, 'LIKE', u'%{}%'.format(query)])
+            else:
+                conditions.append([snuba_key, '!=', ''])
 
         filters = {
             'project_id': projects,

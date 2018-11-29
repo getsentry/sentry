@@ -144,3 +144,46 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert [(val['value'], val['count'])
                 for val in response.data] == [('5.1.2', 1), ('4.1.2', 1), ('3.1.2', 2)]
+
+    def test_project_id(self):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+        other_org = self.create_organization()
+
+        self.login_as(user=user)
+
+        project = self.create_project(organization=org, teams=[team])
+        group = self.create_group(project=project)
+
+        other_project = self.create_project(organization=other_org)
+        other_group = self.create_group(project=other_project)
+
+        self.create_event('a' * 32, group=group, datetime=self.day_ago)
+        self.create_event('b' * 32, group=group, datetime=self.min_ago)
+        self.create_event('c' * 32, group=other_group, datetime=self.day_ago)
+
+        url = reverse(
+            'sentry-api-0-organization-tagkey-values',
+            kwargs={
+                'organization_slug': org.slug,
+                'key': 'project.id',
+            }
+        )
+
+        response = self.client.get(url, format='json')
+        assert response.status_code == 200, response.content
+        projects = {v['value'] for v in response.data}
+        assert project.id in projects
+        assert other_project.id not in projects
+
+        # with query
+        response = self.client.get('%s?query=%s' % (url, project.id), format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        # with query for project not in org
+        response = self.client.get('%s?query=%s' % (url, other_project.id), format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
