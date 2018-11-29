@@ -22,6 +22,7 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ListLink from 'app/components/listLink';
 import NavTabs from 'app/components/navTabs';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
@@ -293,6 +294,7 @@ class ProjectAlertRules extends AsyncView {
             </NavTabs>
           }
         />
+        <PermissionAlert />
         {!!ruleList.length && this.renderResults()}
         {!ruleList.length && this.renderEmpty()}
       </React.Fragment>
