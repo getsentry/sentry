@@ -3,18 +3,12 @@ from __future__ import absolute_import
 import jwt
 
 from django.core.urlresolvers import reverse
-from django.utils.encoding import force_bytes
-from hashlib import md5 as _md5
 from oauthlib.oauth1 import SIGNATURE_RSA
 from requests_oauthlib import OAuth1
 from six.moves.urllib.parse import parse_qsl
 
 from sentry.integrations.client import ApiClient, ApiError
 from sentry.utils.http import absolute_uri
-
-
-def md5(*bits):
-    return _md5(':'.join((force_bytes(bit, errors='replace') for bit in bits)))
 
 
 class JiraServerSetupClient(ApiClient):
