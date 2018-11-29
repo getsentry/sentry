@@ -6,7 +6,7 @@ import pytz
 import six
 from uuid import uuid4
 
-from confluent_kafka import Producer, TopicPartition
+from confluent_kafka import OFFSET_INVALID, Producer, TopicPartition
 from django.utils.functional import cached_property
 
 from sentry import options, quotas
@@ -244,6 +244,8 @@ class KafkaEventStream(EventStream):
 
     def relay(self, consumer_group, commit_log_topic,
               synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
+        logger.info('Starting relay...')
+
         consumer = SynchronizedConsumer(
             bootstrap_servers=self.producer_configuration['bootstrap.servers'],
             consumer_group=consumer_group,
@@ -252,14 +254,76 @@ class KafkaEventStream(EventStream):
             initial_offset_reset=initial_offset_reset,
         )
 
-        consumer.subscribe([self.publish_topic])
+        owned_partition_offsets = {}
 
-        offsets = {}
+        def on_assign(consumer, partitions):
+            for i in partitions:
+                key = (i.topic, i.partition)
+                if key not in owned_partition_offsets:
+                    logger.info('Received new partition assignment: %r', i)
+                    if i.offset is OFFSET_INVALID:
+                        offset = None
+                    else:
+                        assert i.offset > 0, 'unexpected negative offset'
+                        offset = i.offset
+                else:
+                    # TODO: What happens if this is already an owned partition?
+                    # Use the maximum offset, probably?
+                    raise NotImplementedError
+
+                owned_partition_offsets[key] = offset
+
+            logger.info(
+                'Received assignment containing %s partitions: %r',
+                len(partitions),
+                partitions)
+
+        def on_revoke(consumer, partitions):
+            # TODO: Make sure the partition list is the partitions being
+            # /removed/ and not the current state of the assignment.
+            offsets_to_commit = []
+
+            for i in partitions:
+                key = (i.topic, i.partition)
+                if key not in owned_partition_offsets:
+                    logger.warning('Received revocation of unowned partition: %r', i)
+                    continue
+
+                offset = owned_partition_offsets.pop(key)
+                if offset is None:
+                    logger.debug('Skipping commit of unprocessed partition: %r', i)
+                    continue
+
+                offsets_to_commit.append(TopicPartition(i.topic, i.partition, ))
+
+            if offsets_to_commit:
+                logger.info(
+                    'Commiting offset for %s revoked partitions: %r',
+                    len(offsets_to_commit),
+                    offsets_to_commit)
+                consumer.commit(offsets=offsets_to_commit, asynchronous=False)
+
+        consumer.subscribe(
+            [self.publish_topic],
+            on_assign=on_assign,
+            on_revoke=on_revoke,
+        )
 
         def commit_offsets():
-            consumer.commit(offsets=[
-                TopicPartition(topic, partition, offset) for (topic, partition), offset in offsets.items()
-            ], asynchronous=False)
+            offsets_to_commit = []
+            for (topic, partition), offset in owned_partition_offsets.items():
+                if offset is None:
+                    logger.debug('Skipping commit of unprocessed partition: %r', (topic, partition))
+                    continue
+
+                offsets_to_commit.append(TopicPartition((topic, partition, offset)))
+
+            if offsets_to_commit:
+                logger.info(
+                    'Commiting offset for %s owned partitions: %r',
+                    len(offsets_to_commit),
+                    offsets_to_commit)
+                consumer.commit(offsets=offsets_to_commit, asynchronous=False)
 
         try:
             i = 0
@@ -272,8 +336,13 @@ class KafkaEventStream(EventStream):
                 if error is not None:
                     raise Exception(error)
 
+                key = (message.topic(), message.partition())
+                if key not in owned_partition_offsets:
+                    logger.warning('Skipping message for unowned partition: %r', key)
+                    continue
+
                 i = i + 1
-                offsets[(message.topic(), message.partition())] = message.offset() + 1
+                owned_partition_offsets[key] = message.offset() + 1
 
                 payload = parse_event_message(message.value())
                 if payload is not None:
@@ -285,8 +354,6 @@ class KafkaEventStream(EventStream):
             pass
 
         logger.info('Committing offsets and closing consumer...')
-
-        if offsets:
-            commit_offsets()
+        commit_offsets()
 
         consumer.close()
