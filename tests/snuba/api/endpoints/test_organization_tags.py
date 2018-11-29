@@ -45,4 +45,7 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        assert response.data == [{'count': 3, 'tag': 'fruit'}, {'count': 1, 'tag': 'some_tag'}]
+        assert response.data == [
+            {'uniqueValues': 2, 'name': 'Fruit', 'key': 'fruit', 'totalValues': 3},
+            {'uniqueValues': 1, 'name': 'Some Tag', 'key': 'some_tag', 'totalValues': 1},
+        ]
