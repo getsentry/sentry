@@ -31,8 +31,8 @@ describe('RadioGroup', function() {
       );
       expect(wrapper).toMatchSnapshot();
 
-      expect(wrapper.find('RadioLineText').props().disabled).toBe(true);
-      expect(wrapper.find('RadioLineButtonFill').props().disabled).toBe(true);
+      expect(wrapper.find('RadioLineText').props().isDisabled).toBe(true);
+      expect(wrapper.find('RadioLineButtonFill').props().isDisabled).toBe(true);
     });
 
     it('can select a different item', function() {
