@@ -42,6 +42,7 @@ export default function createQueryBuilder(initial = {}, organization) {
   const defaultProjects = organization.projects
     .filter(projects => projects.isMember)
     .map(project => parseInt(project.id, 10));
+  const columns = COLUMNS.map(col => ({...col, isTag: false}));
   let tags = [];
 
   return {
@@ -74,13 +75,13 @@ export default function createQueryBuilder(initial = {}, organization) {
       .then(res => {
         tags = res.data.map(tag => {
           const type = SPECIAL_TAGS[tags.tags_key] || 'string';
-          return {name: tag.tags_key, type};
+          return {name: tag.tags_key, type, isTag: true};
         });
       })
       .catch(err => {
         tags = PROMOTED_TAGS.map(tag => {
           const type = SPECIAL_TAGS[tag] || 'string';
-          return {name: tag, type};
+          return {name: tag, type, isTag: true};
         });
       });
   }
@@ -227,7 +228,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     // If there are no aggregations, always ensure we fetch event ID and
     // project ID so we can display the link to event
     if (type === 'baseQuery') {
-      return !originalQuery.aggregations.length && originalQuery.fields.length
+      return originalQuery.fields.includes('id')
         ? {
             ...originalQuery,
             fields: uniq([...originalQuery.fields, 'id', 'project.id']),
@@ -244,7 +245,7 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @returns {Array<{name: String, type: String}>}
    */
   function getColumns() {
-    return [...COLUMNS, ...tags];
+    return [...columns, ...tags];
   }
 
   /**

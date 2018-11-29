@@ -6,19 +6,23 @@ import pytz
 import six
 from uuid import uuid4
 
-from confluent_kafka import Producer
+from confluent_kafka import Producer, TopicPartition
 from django.utils.functional import cached_property
 
 from sentry import options, quotas
 from sentry.models import Organization
 from sentry.eventstream.base import EventStream
+from sentry.eventstream.kafka.consumer import SynchronizedConsumer
+from sentry.eventstream.kafka.protocol import parse_event_message
+from sentry.tasks.post_process import post_process_group
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
 
-# Beware! Changing this, or the message format/fields themselves requires
-# consideration of all downstream consumers.
+# Beware! Changing this protocol (introducing a new version, or the message
+# format/fields themselves) requires consideration of all downstream consumers.
+# This includes the post-processing relay code!
 EVENT_PROTOCOL_VERSION = 2
 
 # Version 1 format: (1, TYPE, [...REST...])
@@ -96,7 +100,7 @@ class KafkaEventStream(EventStream):
 
         try:
             self.producer.produce(
-                self.publish_topic,
+                topic=self.publish_topic,
                 key=key.encode('utf-8'),
                 value=json.dumps(
                     (EVENT_PROTOCOL_VERSION, _type) + extra_data
@@ -237,3 +241,52 @@ class KafkaEventStream(EventStream):
             extra_data=(state,),
             asynchronous=False
         )
+
+    def relay(self, consumer_group, commit_log_topic,
+              synchronize_commit_group, commit_batch_size=100, initial_offset_reset='latest'):
+        consumer = SynchronizedConsumer(
+            bootstrap_servers=self.producer_configuration['bootstrap.servers'],
+            consumer_group=consumer_group,
+            commit_log_topic=commit_log_topic,
+            synchronize_commit_group=synchronize_commit_group,
+            initial_offset_reset=initial_offset_reset,
+        )
+
+        consumer.subscribe([self.publish_topic])
+
+        offsets = {}
+
+        def commit_offsets():
+            consumer.commit(offsets=[
+                TopicPartition(topic, partition, offset) for (topic, partition), offset in offsets.items()
+            ], asynchronous=False)
+
+        try:
+            i = 0
+            while True:
+                message = consumer.poll(0.1)
+                if message is None:
+                    continue
+
+                error = message.error()
+                if error is not None:
+                    raise Exception(error)
+
+                i = i + 1
+                offsets[(message.topic(), message.partition())] = message.offset() + 1
+
+                payload = parse_event_message(message.value())
+                if payload is not None:
+                    post_process_group.delay(**payload)
+
+                if i % commit_batch_size == 0:
+                    commit_offsets()
+        except KeyboardInterrupt:
+            pass
+
+        logger.info('Committing offsets and closing consumer...')
+
+        if offsets:
+            commit_offsets()
+
+        consumer.close()
