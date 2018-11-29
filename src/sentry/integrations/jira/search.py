@@ -10,11 +10,13 @@ from sentry.models import Integration
 
 
 class JiraSearchEndpoint(IntegrationEndpoint):
+    provider = 'jira'
+
     def _get_integration(self, organization, integration_id):
         return Integration.objects.get(
             organizations=organization,
             id=integration_id,
-            provider='jira',
+            provider=self.provider,
         )
 
     def _get_formatted_user(self, user):
