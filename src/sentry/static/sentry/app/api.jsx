@@ -9,6 +9,7 @@ import {
 } from 'app/constants/apiErrorCodes';
 import {openSudo, redirectToProject} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
+import sdk from 'app/utils/sdk';
 
 export class Request {
   constructor(xhr) {
@@ -142,7 +143,19 @@ export class Client {
   }
 
   request(path, options = {}) {
-    let query = $.param(options.query || '', true);
+    let query;
+    try {
+      query = $.param(options.query || '', true);
+    } catch (err) {
+      sdk.captureException(err, {
+        extra: {
+          path,
+          query: options.query,
+        },
+      });
+
+      throw err;
+    }
     let method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
     let id = this.uniqueId();
