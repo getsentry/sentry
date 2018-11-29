@@ -62,7 +62,6 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/repos/`,
         title: t('Repositories'),
-        show: ({access}) => access.has('org:write'),
         description: t('Manage repositories connected to the organization'),
       },
       {
