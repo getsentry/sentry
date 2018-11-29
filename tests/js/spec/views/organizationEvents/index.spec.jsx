@@ -32,7 +32,11 @@ describe('OrganizationEvents', function() {
     });
 
     wrapper = mount(
-      <OrganizationEventsContainer router={router} organization={organization}>
+      <OrganizationEventsContainer
+        router={router}
+        organization={organization}
+        selection={{projects: []}}
+      >
         <div />
       </OrganizationEventsContainer>,
       TestStubs.routerContext([
@@ -248,6 +252,8 @@ describe('OrganizationEvents', function() {
   });
 
   it('does not update router when toggling environment selector without changes', async function() {
+    expect(router.push).toHaveBeenCalledTimes(1);
+
     wrapper.setProps({
       router: {
         ...router,
@@ -267,7 +273,7 @@ describe('OrganizationEvents', function() {
     wrapper
       .find('MultipleEnvironmentSelector StyledInput')
       .simulate('keyDown', {key: 'Escape'});
-    expect(router.push).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledTimes(1);
   });
 
   it('updates router when changing periods', async function() {
