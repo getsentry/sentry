@@ -47,16 +47,16 @@ describe('groupEvents', function() {
     );
 
     const list = [
-      {searchTerm: '', expectedQuery: {}},
-      {searchTerm: 'test', expectedQuery: {query: 'test'}},
-      {searchTerm: 'environment:production test', expectedQuery: {query: 'test'}},
+      {searchTerm: '', expectedQuery: ''},
+      {searchTerm: 'test', expectedQuery: 'test'},
+      {searchTerm: 'environment:production test', expectedQuery: 'test'},
     ];
 
     list.forEach(item => {
       component.instance().handleSearch(item.searchTerm);
       expect(browserHistory.push).toHaveBeenCalledWith(
         expect.objectContaining({
-          query: item.expectedQuery,
+          query: {query: item.expectedQuery},
         })
       );
     });
