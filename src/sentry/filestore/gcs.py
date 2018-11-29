@@ -24,6 +24,13 @@ from sentry.utils import metrics
 from sentry.net.http import TimeoutAdapter
 
 
+# how many times do we want to try if stuff goes wrong
+GCS_RETRIES = 5
+
+# how long are we willing to wait?
+GCS_TIMEOUT = 6.0
+
+
 # _client cache is a 3-tuple of project_id, credentials, Client
 # this is so if any information changes under it, it invalidates
 # the cache. This scenario is possible since `options` are dynamic
@@ -54,7 +61,7 @@ def try_repeated(func):
             metrics.timing(metrics_key, idx, tags=metrics_tags)
             return result
         except (DataCorruption, TransportError, RequestException) as e:
-            if idx >= 3:
+            if idx >= GCS_RETRIES:
                 metrics_tags.update({'success': '0', 'exception_class': e.__class__.__name__})
                 metrics.timing(metrics_key, idx, tags=metrics_tags)
                 raise
@@ -66,7 +73,7 @@ def get_client(project_id, credentials):
     if _client[2] is None or (project_id, credentials) != (_client[0], _client[1]):
         client = Client(project=project_id, credentials=credentials)
         session = client._http
-        adapter = TimeoutAdapter(timeout=10.0)
+        adapter = TimeoutAdapter(timeout=GCS_TIMEOUT)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
         _client = (project_id, credentials, client)
