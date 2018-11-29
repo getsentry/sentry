@@ -10,31 +10,31 @@ from sentry.models import EventError
         (
             {'type': 'unknown_error'},
             'unknown_error',
-            u'Unknown error',
+            'Unknown error',
             {},
         ),
         (
             {'type': 'unknown_error', 'foo': 'bar'},
             'unknown_error',
-            u'Unknown error',
+            'Unknown error',
             {'foo': 'bar'},
         ),
         (
             {'type': 'invalid_data', 'name': 'foo'},
             'invalid_data',
-            u"Discarded invalid value for parameter 'foo'",
+            'Discarded invalid value',
             {'name': 'foo'}
         ),
         (
             {'type': 'invalid_data'},
             'invalid_data',
-            u"Discarded invalid value for parameter ''",
+            'Discarded invalid value',
             {}
         ),
         (
             {'type': 'INVALID_ERROR_TYPE'},
             'INVALID_ERROR_TYPE',
-            u'Unknown error',
+            'Unknown error',
             {},
         ),
     )

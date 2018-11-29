@@ -1,21 +1,6 @@
 from __future__ import absolute_import
 
 import six
-from string import Formatter
-
-
-class dontexplodedict(object):
-    """
-    A dictionary that won't throw a KeyError and will
-    return back a sensible default value to be used in
-    string formatting.
-    """
-
-    def __init__(self, d=None):
-        self.data = d or {}
-
-    def __getitem__(self, key):
-        return self.data.get(key, '')
 
 
 class EventError(object):
@@ -71,36 +56,36 @@ class EventError(object):
     _messages = {
         UNKNOWN_ERROR: u'Unknown error',
 
-        INVALID_DATA: u'Discarded invalid value for parameter \'{name}\'',
-        INVALID_ATTRIBUTE: u'Discarded invalid parameter \'{name}\'',
-        MISSING_ATTRIBUTE: u'Missing value for required parameter \'{name}\'',
-        VALUE_TOO_LONG: u'Discarded value for \'{name}\' due to exceeding maximum length',
+        INVALID_DATA: u'Discarded invalid value',
+        INVALID_ATTRIBUTE: u'Discarded unknown attribute',
+        MISSING_ATTRIBUTE: u'Missing value for required attribute',
+        VALUE_TOO_LONG: u'Discarded value due to exceeding maximum length',
         FUTURE_TIMESTAMP: u'Invalid timestamp (in future)',
         PAST_TIMESTAMP: u'Invalid timestamp (too old)',
-        INVALID_ENVIRONMENT: u'Environment cannot contain / or newlines.',
+        INVALID_ENVIRONMENT: u'Environment cannot contain "/" or newlines',
 
-        SECURITY_VIOLATION: u'Cannot fetch resource due to security violation on {url}',
-        RESTRICTED_IP: u'Cannot fetch resource due to restricted IP address on {url}',
-        FETCH_GENERIC_ERROR: u'Unable to fetch resource: {url}',
-        FETCH_INVALID_HTTP_CODE: u'HTTP returned {value} response on {url}',
-        FETCH_INVALID_ENCODING: u'Source file was not \'{value}\' encoding: {url}',
-        FETCH_TOO_LARGE: u'Remote file too large: ({max_size:g}MB, {url})',
-        FETCH_TIMEOUT: u'Remote file took too long to load: ({timeout}s, {url})',
+        SECURITY_VIOLATION: u'Cannot fetch resource due to security violation',
+        RESTRICTED_IP: u'Cannot fetch resource due to restricted IP address',
+        FETCH_GENERIC_ERROR: u'Unable to fetch HTTP resource',
+        FETCH_INVALID_HTTP_CODE: u'HTTP returned error response',
+        FETCH_INVALID_ENCODING: u'Source file was not encoded properly',
+        FETCH_TOO_LARGE: u'Remote file too large',
+        FETCH_TIMEOUT: u'Remote file took too long to load',
 
-        JS_GENERIC_FETCH_ERROR: u'Unable to fetch resource: {url}',
-        JS_INVALID_HTTP_CODE: u'HTTP returned {value} response on {url}',
-        JS_INVALID_CONTENT: u'Source file was not JavaScript: {url}',
-        JS_NO_COLUMN: u'Cannot expand sourcemap due to no column information for {url}',
-        JS_MISSING_SOURCE: u'Source code was not found for {url}',
-        JS_INVALID_SOURCEMAP: u'Sourcemap was invalid or not parseable: {url}',
+        JS_GENERIC_FETCH_ERROR: u'Unable to fetch resource',
+        JS_INVALID_HTTP_CODE: u'HTTP returned error response',
+        JS_INVALID_CONTENT: u'Source file was not JavaScript',
+        JS_NO_COLUMN: u'Cannot expand sourcemap due to missing column information',
+        JS_MISSING_SOURCE: u'Source code was not found',
+        JS_INVALID_SOURCEMAP: u'Sourcemap was invalid or not parseable',
         JS_TOO_MANY_REMOTE_SOURCES: u'The maximum number of remote source requests was made',
-        JS_INVALID_SOURCE_ENCODING: u'Source file was not \'{value}\' encoding: {url}',
-        JS_INVALID_SOURCEMAP_LOCATION: u'Invalid location in sourcemap: ({column}, {row})',
-        JS_TOO_LARGE: u'Remote file too large: ({max_size:g}MB, {url})',
-        JS_FETCH_TIMEOUT: u'Remote file took too long to load: ({timeout}s, {url})',
+        JS_INVALID_SOURCE_ENCODING: u'Source file was not encoded properly',
+        JS_INVALID_SOURCEMAP_LOCATION: u'Invalid location in sourcemap',
+        JS_TOO_LARGE: u'Remote file too large',
+        JS_FETCH_TIMEOUT: u'Remote file took too long to load',
 
         NATIVE_NO_CRASHED_THREAD: u'No crashed thread found in crash report',
-        NATIVE_INTERNAL_FAILURE: u'Internal failure when attempting to symbolicate: {error}',
+        NATIVE_INTERNAL_FAILURE: u'Internal failure when attempting to symbolicate',
         NATIVE_BAD_DSYM: u'The debug information file used was broken.',
         NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: u'An optional debug information file was missing.',
         NATIVE_MISSING_DSYM: u'A required debug information file was missing.',
@@ -130,11 +115,7 @@ class EventError(object):
 
     @property
     def message(self):
-        return Formatter().vformat(
-            self._messages.get(self._data['type'], self._messages['unknown_error']),
-            [],
-            dontexplodedict(self._data),
-        )
+        return self._messages.get(self._data['type'], self._messages['unknown_error'])
 
     def get_api_context(self):
         return {
