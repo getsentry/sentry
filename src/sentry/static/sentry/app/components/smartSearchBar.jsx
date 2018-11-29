@@ -28,15 +28,29 @@ export function removeSpace(query = '') {
 }
 class SmartSearchBar extends React.Component {
   static propTypes = {
+    // Class name for search dropdown
+    dropdownClassName: PropTypes.string,
+
     defaultQuery: PropTypes.string,
+
     query: PropTypes.string,
+
+    // Search items to display when there's no tag key
     defaultSearchItems: PropTypes.array.isRequired,
+
+    // Disabled control (e.g. read-only)
     disabled: PropTypes.bool,
+
+    // Input placeholder
     placeholder: PropTypes.string,
 
     // Map of tags
     supportedTags: PropTypes.object,
 
+    // Maximum number of search items to display
+    maxSearchItems: PropTypes.oneOfType([PropTypes.number, PropTypes.bool]),
+
+    // Callback that returns a promise of an array of strings
     onGetTagValues: PropTypes.func,
 
     onSearch: PropTypes.func,
@@ -73,6 +87,7 @@ class SmartSearchBar extends React.Component {
     placeholder: t('Search for events, users, tags, and everything else.'),
     supportedTags: {},
     defaultSearchItems: [],
+    maxSearchItems: 5,
   };
 
   constructor(props) {
@@ -162,9 +177,11 @@ class SmartSearchBar extends React.Component {
    */
   getTagKeys = function(query) {
     const {supportedTags} = this.props;
+
+    // Return all if query is empty
     const tagKeys = Object.keys(supportedTags)
       .map(key => `${key}:`)
-      .filter(key => key.indexOf(query) > -1);
+      .filter(key => (query ? key.indexOf(query) > -1 : true));
 
     // If the environment feature is active and excludeEnvironment = true
     // then remove the environment key
@@ -237,11 +254,17 @@ class SmartSearchBar extends React.Component {
       (terms.length === 1 && terms[0] === this.props.defaultQuery) || // default term
       /^\s+$/.test(query.slice(cursor - 1, cursor + 1))
     ) {
+      let {defaultSearchItems} = this.props;
+
+      if (!defaultSearchItems.length) {
+        return void this.updateAutoCompleteState(this.getTagKeys(''), '');
+      }
+
       // cursor on whitespace
       // show default "help" search terms
       return void this.setState({
         searchTerm: '',
-        searchItems: this.props.defaultSearchItems,
+        searchItems: defaultSearchItems,
         activeSearchItem: 0,
       });
     }
@@ -261,6 +284,10 @@ class SmartSearchBar extends React.Component {
       this.updateAutoCompleteState(autoCompleteItems, matchValue);
     } else {
       let {supportedTags} = this.props;
+
+      // TODO(billy): Better parsing for these examples
+      // sentry:release:
+      // url:"http://with/colon"
       tagName = last.slice(0, index);
       query = last.slice(index + 1);
 
@@ -297,8 +324,10 @@ class SmartSearchBar extends React.Component {
     return this.state.searchItems === this.props.defaultSearchItems;
   };
 
-  updateAutoCompleteState = (autoCompleteItems, tagName) => {
-    autoCompleteItems = autoCompleteItems.map(item => {
+  updateAutoCompleteState = (searchItems, tagName) => {
+    let {maxSearchItems} = this.props;
+
+    searchItems = searchItems.map(item => {
       let out = {
         desc: item,
         value: item,
@@ -324,12 +353,16 @@ class SmartSearchBar extends React.Component {
       return out;
     });
 
-    if (autoCompleteItems.length > 0 && !this.isDefaultDropdown()) {
-      autoCompleteItems[0].active = true;
+    if (searchItems.length > 0 && !this.isDefaultDropdown()) {
+      searchItems[0].active = true;
+    }
+
+    if (typeof maxSearchItems === 'number') {
+      searchItems = searchItems.slice(0, maxSearchItems);
     }
 
     this.setState({
-      searchItems: autoCompleteItems.slice(0, 5), // only show 5
+      searchItems,
       activeSearchItem: 0,
     });
   };
@@ -406,7 +439,7 @@ class SmartSearchBar extends React.Component {
   };
 
   render() {
-    let {className, disabled} = this.props;
+    let {className, dropdownClassName, disabled} = this.props;
 
     return (
       <div
@@ -449,6 +482,7 @@ class SmartSearchBar extends React.Component {
           {(this.state.loading || this.state.searchItems.length > 0) && (
             <DropdownWrapper visible={this.state.dropdownVisible}>
               <SearchDropdown
+                className={dropdownClassName}
                 items={this.state.searchItems}
                 onClick={this.onAutoComplete}
                 loading={this.state.loading}

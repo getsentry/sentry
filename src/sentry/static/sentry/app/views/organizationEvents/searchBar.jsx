@@ -1,3 +1,4 @@
+import {css} from 'react-emotion';
 import {flatten} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -20,7 +21,7 @@ const tagToObjectReducer = (acc, name) => {
   return acc;
 };
 
-const TAGS = COLUMNS.map(({name}) => name).reduce(tagToObjectReducer, {});
+const TAGS = COLUMNS.map(({name}) => name);
 
 class SearchBar extends React.Component {
   static propTypes = {
@@ -32,7 +33,7 @@ class SearchBar extends React.Component {
     super();
 
     this.state = {
-      tags: {},
+      tags: [],
     };
   }
 
@@ -40,7 +41,7 @@ class SearchBar extends React.Component {
     let {api, organization} = this.props;
     fetchOrganizationTagKeys(api, organization.slug).then(results => {
       this.setState({
-        tags: results.map(({tag}) => tag).reduce(tagToObjectReducer, {}),
+        tags: results.map(({tag}) => tag),
       });
     });
   }
@@ -53,23 +54,30 @@ class SearchBar extends React.Component {
     let {api, organization} = this.props;
 
     return fetchOrganizationTagValues(api, organization.slug, tag.key, query).then(
-      results =>
-        flatten(results.filter(({value}) => defined(value)).map(({value}) => value)),
+      results => flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
       () => {
         throw new Error('Unable to fetch project tags');
       }
     );
   };
 
+  getAllTags = (orgTags = []) =>
+    TAGS.concat(orgTags)
+      .sort()
+      .reduce(tagToObjectReducer, {});
+
   render() {
     return (
       <SmartSearchBar
         {...this.props}
         onGetTagValues={this.getTagValues}
-        supportedTags={{
-          ...TAGS,
-          ...this.state.tags,
-        }}
+        supportedTags={this.getAllTags(this.state.tags)}
+        excludeEnvironment
+        maxSearchItems={false}
+        dropdownClassName={css`
+          max-height: 300px;
+          overflow-y: auto;
+        `}
       />
     );
   }
