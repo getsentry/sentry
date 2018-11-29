@@ -19,13 +19,14 @@ const RadioGroup = ({value, disabled, choices, label, onChange, ...props}) => {
           index={index}
           tabIndex={isSelected(id) ? 0 : -1}
           aria-checked={isSelected(id)}
+          disabled={disabled}
         >
           <RadioLineButton>
             {isSelected(id) && (
-              <RadioLineButtonFill isDisabled={disabled} animate={value !== ''} />
+              <RadioLineButtonFill disabled={disabled} animate={value !== ''} />
             )}
           </RadioLineButton>
-          <RadioLineText>{name}</RadioLineText>
+          <RadioLineText disabled={disabled}>{name}</RadioLineText>
         </RadioLineItem>
       ))}
     </div>
@@ -55,7 +56,7 @@ const RadioLineButton = styled.div`
 const RadioLineItem = styled.div`
   display: flex;
   align-items: center;
-  cursor: pointer;
+  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   margin-top: ${p => (p.index ? '0.5em' : '0')};
   outline: none;
 
@@ -70,13 +71,14 @@ const RadioLineButtonFill = styled.div`
   border-radius: 50%;
   background-color: ${p => p.theme.green};
   animation: ${p => (p.animate ? `0.2s ${growIn} ease` : 'none')};
-  opacity: ${p => (p.isDisabled ? 0.4 : null)};
+  opacity: ${p => (p.disabled ? 0.4 : null)};
 `;
 
 const RadioLineText = styled.div`
   margin-left: 0.5em;
   font-size: 0.875em;
   font-weight: bold;
+  opacity: ${p => (p.disabled ? 0.4 : null)};
 `;
 
 export default RadioGroup;
