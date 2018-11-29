@@ -20,7 +20,6 @@ from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
-    InvalidQuery,
     TagKeyNotFound,
     TagValueNotFound,
 )
@@ -31,6 +30,9 @@ from sentry.utils.dates import to_timestamp
 
 SEEN_COLUMN = 'timestamp'
 
+# columns we want to exclude from methods that return
+# all values for a given tag/column
+BLACKLISTED_COLUMNS = frozenset(['project_id'])
 
 tag_value_data_transformers = {
     'first_seen': parse_datetime,
@@ -488,19 +490,13 @@ class SnubaTagStorage(TagStorage):
 
         conditions = []
 
-        if snuba_key == 'project_id':
-            if query:
-                try:
-                    conditions.append([snuba_key, '=', int(query)])
-                except ValueError:
-                    raise InvalidQuery('project.id must be an integer')
-            else:
-                conditions.append([snuba_key, 'IS NOT NULL', None])
+        if snuba_key in BLACKLISTED_COLUMNS:
+            snuba_key = 'tags[%s]' % (key,)
+
+        if query:
+            conditions.append([snuba_key, 'LIKE', u'%{}%'.format(query)])
         else:
-            if query:
-                conditions.append([snuba_key, 'LIKE', u'%{}%'.format(query)])
-            else:
-                conditions.append([snuba_key, '!=', ''])
+            conditions.append([snuba_key, '!=', ''])
 
         filters = {
             'project_id': projects,

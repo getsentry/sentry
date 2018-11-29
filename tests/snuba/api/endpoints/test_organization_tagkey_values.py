@@ -174,21 +174,4 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
-        projects = {v['value'] for v in response.data}
-        assert project.id in projects
-        assert other_project.id not in projects
-
-        # with query
-        response = self.client.get('%s?query=%s' % (url, project.id), format='json')
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-
-        # with query for project not in org
-        response = self.client.get('%s?query=%s' % (url, other_project.id), format='json')
-        assert response.status_code == 200, response.content
         assert len(response.data) == 0
-
-        # with bad query
-        response = self.client.get('%s?query=hi' % (url,), format='json')
-        assert response.status_code == 400, response.content
-        assert response.data['detail'] == 'project.id must be an integer'
