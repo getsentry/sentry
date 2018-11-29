@@ -155,7 +155,11 @@ const LocationWrapper = styled.div`
 
 function Location(props) {
   let {children, ...rest} = props;
-  return <LocationWrapper{...rest}>in <span>{children}</span></LocationWrapper>;
+  return (
+    <LocationWrapper {...rest}>
+      in <span>{children}</span>
+    </LocationWrapper>
+  );
 }
 
 const Message = styled.div`

@@ -207,27 +207,12 @@ def js_lint_format(file_list=None):
     of the lint engine. This uses eslint's `--fix` formatting feature.
     """
     eslint_path = get_node_modules_bin('eslint')
+    project_root = get_project_root()
+    prettier_path = get_prettier_path()
 
     if not os.path.exists(eslint_path):
         print('!! Skipping JavaScript linting and formatting because eslint is not installed.')  # noqa: B314
         return False
-
-    js_file_list = get_js_files(file_list)
-
-    # manually exclude some bad files
-    js_file_list = [x for x in js_file_list if '/javascript/example-project/' not in x]
-
-    return run_formatter([eslint_path, '--fix', ],
-                         js_file_list)
-
-
-def js_format(file_list=None):
-    """
-    We only format JavaScript code as part of this pre-commit hook. It is not part
-    of the lint engine.
-    """
-    project_root = get_project_root()
-    prettier_path = get_prettier_path()
 
     if not is_prettier_valid(project_root, prettier_path):
         return False
@@ -237,9 +222,7 @@ def js_format(file_list=None):
     # manually exclude some bad files
     js_file_list = [x for x in js_file_list if '/javascript/example-project/' not in x]
 
-    return run_formatter([prettier_path,
-                          '--write',
-                          ],
+    return run_formatter([eslint_path, '--fix', ],
                          js_file_list)
 
 
@@ -359,7 +342,6 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
             if js:
                 # run eslint with --fix and skip these linters down below
                 results.append(js_lint_format(file_list))
-                results.append(js_format(file_list))
             if less:
                 results.append(less_format(file_list))
 
