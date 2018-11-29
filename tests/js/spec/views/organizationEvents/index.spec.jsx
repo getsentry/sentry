@@ -269,4 +269,82 @@ describe('OrganizationEvents', function() {
       .simulate('keyDown', {key: 'Escape'});
     expect(router.push).not.toHaveBeenCalled();
   });
+
+  it('updates router when changing periods', async function() {
+    expect(wrapper.state('start')).toEqual(null);
+    expect(wrapper.state('end')).toEqual(null);
+    expect(wrapper.state('period')).toEqual('14d');
+
+    wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+    expect(wrapper.find('[data-test-id="date-range"]')).toHaveLength(0);
+    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {
+        end: '2017-10-17T02:41:20',
+        start: '2017-10-03T02:41:20',
+        utc: 'true',
+      },
+    });
+
+    wrapper.setProps({
+      router: {
+        ...router,
+        location: {
+          pathname: '/organizations/org-slug/events/',
+          query: {
+            end: '2017-10-17T02:41:20',
+            start: '2017-10-03T02:41:20',
+            utc: 'true',
+          },
+        },
+      },
+    });
+
+    expect(wrapper.state('queryValues')).toEqual(
+      expect.objectContaining({
+        end: new Date('2017-10-17T02:41:20.000Z'),
+        start: new Date('2017-10-03T02:41:20.000Z'),
+        utc: true,
+      })
+    );
+
+    // Can switch back to relative date
+    wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+    wrapper.find('SelectorItem[value="7d"]').simulate('click');
+    wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {
+        statsPeriod: '7d',
+        utc: 'true',
+      },
+    });
+
+    wrapper.setProps({
+      router: {
+        ...router,
+        location: {
+          pathname: '/organizations/org-slug/events/',
+          query: {
+            statsPeriod: '7d',
+            utc: 'true',
+          },
+        },
+      },
+    });
+
+    expect(wrapper.state('queryValues')).toEqual(
+      expect.objectContaining({
+        end: null,
+        start: null,
+        period: '7d',
+        utc: true,
+      })
+    );
+  });
 });
