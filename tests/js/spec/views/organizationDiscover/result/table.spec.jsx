@@ -1,30 +1,40 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {shallow, render} from 'enzyme';
 
 import ResultTable from 'app/views/organizationDiscover/result/table';
 
 describe('ResultTable', function() {
   let wrapper;
   beforeEach(function() {
-    wrapper = mount(
+    wrapper = shallow(
       <ResultTable
-        query={{aggregations: [], fields: []}}
+        query={{aggregations: [], fields: ['id', 'project.id', 'issue.id']}}
         data={{
-          data: [],
-          meta: [],
+          data: [{id: '111', 'project.id': 1, 'issue.id': '2'}],
+          meta: [
+            {name: 'id', type: 'string'},
+            {name: 'project.id', type: 'number'},
+            {name: 'issue.id', type: 'string'},
+          ],
         }}
-      />
+      />,
+      {
+        context: {
+          organization: TestStubs.Organization({
+            projects: [TestStubs.Project({id: '1'})],
+          }),
+        },
+      }
     );
-  });
-
-  it('getColumnWidths()', function() {
     const mockCanvas = {
       getContext: () => ({
         measureText: () => ({width: 320}),
       }),
     };
     wrapper.instance().canvas = mockCanvas;
+  });
 
+  it('getColumnWidths()', function() {
     wrapper.setProps({
       data: {data: [{col1: 'foo'}], meta: [{name: 'col1'}]},
       query: {fields: ['col1'], aggregations: []},
@@ -63,5 +73,25 @@ describe('ResultTable', function() {
     expect(wrapper.instance().getRowHeight(1, columnsToCheck)).toBe(31);
     expect(wrapper.instance().getRowHeight(2, columnsToCheck)).toBe(61);
     expect(wrapper.instance().getRowHeight(3, columnsToCheck)).toBe(91);
+  });
+
+  it('getCellRenderer()', function() {
+    const cols = wrapper.instance().getColumnList();
+    const cellRenderer = wrapper.instance().getCellRenderer(cols);
+
+    const expectedCellValues = [
+      {value: 'id', row: 0, col: 0},
+      {value: 'project.id', row: 0, col: 1},
+      {value: 'issue.id', row: 0, col: 2},
+      {value: '111', row: 1, col: 0},
+      {value: '1', row: 1, col: 1},
+      {value: '2', row: 1, col: 2},
+    ];
+
+    expectedCellValues.forEach(function({value, row, col}) {
+      const cell = cellRenderer({rowIndex: row, columnIndex: col});
+      const markup = render(cell);
+      expect(markup.text()).toBe(value);
+    });
   });
 });
