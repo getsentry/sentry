@@ -210,6 +210,7 @@ class JiraServerIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get()
         assert integration.name == 'sentry-bot'
+        assert integration.metadata['domain_name'] == 'jira.example.com'
         assert integration.metadata['base_url'] == 'https://jira.example.com'
         assert integration.metadata['verify_ssl'] is False
         assert integration.metadata['webhook_secret']
