@@ -11,7 +11,7 @@ import sdk from 'app/utils/sdk';
  */
 export function updateProjects(projects) {
   if (!isProjectsValid(projects)) {
-    sdk.captureException('Invalid projects selected', {
+    sdk.captureException(new Error('Invalid projects selected'), {
       extra: {projects},
     });
     return;
