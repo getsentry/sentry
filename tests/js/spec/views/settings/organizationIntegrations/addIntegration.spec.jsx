@@ -43,6 +43,6 @@ describe('AddIntegration', function() {
     };
 
     wrapper.instance().didReceiveMessage(newIntegration);
-    expect(onAdd).toBeCalledWith(newIntegration.data.data);
+    expect(onAdd).toHaveBeenCalledWith(newIntegration.data.data);
   });
 });

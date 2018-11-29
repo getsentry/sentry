@@ -55,7 +55,7 @@ describe('TeamCreate', function() {
       wrapper.instance().handleSubmitSuccess({
         slug: 'new-team',
       });
-      expect(redirectMock).toBeCalledWith('/settings/org/teams/new-team/');
+      expect(redirectMock).toHaveBeenCalledWith('/settings/org/teams/new-team/');
     });
   });
 });

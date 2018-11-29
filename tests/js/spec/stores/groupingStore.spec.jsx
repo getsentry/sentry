@@ -106,8 +106,8 @@ describe('Grouping Store', function() {
     it('initially gets called with correct state values', function() {
       GroupingStore.onFetch([]);
 
-      expect(trigger).toBeCalled();
-      expect(trigger).toBeCalledWith(
+      expect(trigger).toHaveBeenCalled();
+      expect(trigger).toHaveBeenCalledWith(
         expect.objectContaining({
           error: false,
           filteredSimilarItems: [],
@@ -127,7 +127,7 @@ describe('Grouping Store', function() {
         {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
 
-      expect(trigger).toBeCalled();
+      expect(trigger).toHaveBeenCalled();
       let calls = trigger.mock.calls;
       let arg = calls[calls.length - 1][0];
 
@@ -184,7 +184,7 @@ describe('Grouping Store', function() {
         {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
 
-      expect(trigger).toBeCalled();
+      expect(trigger).toHaveBeenCalled();
       let calls = trigger.mock.calls;
       return promise.then(() => {
         let arg = calls[calls.length - 1][0];
@@ -203,7 +203,7 @@ describe('Grouping Store', function() {
         {dataKey: 'similar', endpoint: '/issues/groupId/similar/'},
       ]);
 
-      expect(trigger).toBeCalled();
+      expect(trigger).toHaveBeenCalled();
       let calls = trigger.mock.calls;
       let arg = calls[calls.length - 1][0];
 
@@ -217,7 +217,7 @@ describe('Grouping Store', function() {
         {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
       ]);
 
-      expect(trigger).toBeCalled();
+      expect(trigger).toHaveBeenCalled();
       let calls = trigger.mock.calls;
       return promise.then(() => {
         let arg = calls[calls.length - 1][0];
@@ -251,7 +251,7 @@ describe('Grouping Store', function() {
         {dataKey: 'merged', endpoint: '/issues/groupId/hashes/'},
       ]);
 
-      expect(trigger).toBeCalled();
+      expect(trigger).toHaveBeenCalled();
       let calls = trigger.mock.calls;
       return promise.then(() => {
         let arg = calls[calls.length - 1][0];

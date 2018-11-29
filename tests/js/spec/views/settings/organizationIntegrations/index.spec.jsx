@@ -77,7 +77,7 @@ describe('OrganizationIntegrations', function() {
           .first()
           .simulate('click');
 
-        expect(openIntegrationDetails).toBeCalledWith(options);
+        expect(openIntegrationDetails).toHaveBeenCalledWith(options);
       });
     });
 

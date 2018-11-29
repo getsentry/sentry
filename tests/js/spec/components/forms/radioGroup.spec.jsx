@@ -54,7 +54,7 @@ describe('RadioGroup', function() {
         .find('[role="radio"]')
         .last()
         .simulate('click');
-      expect(mock).toBeCalledWith(expect.any(String), expect.any(Object));
+      expect(mock).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
     });
   });
 });
