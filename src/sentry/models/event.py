@@ -60,7 +60,13 @@ class Event(Model):
     __repr__ = sane_repr('project_id', 'group_id')
 
     @classmethod
-    def get_node_id(cls, project_id, event_id):
+    def generate_node_id(cls, project_id, event_id):
+        """
+        Returns a deterministic node_id for this event based on the project_id
+        and event_id which together are globally unique. The event body should
+        be saved under this key in nodestore so it can be retrieved using the
+        same generated id when we only have project_id and event_id.
+        """
         return md5('{}:{}'.format(project_id, event_id)).hexdigest()
 
     def __getstate__(self):
