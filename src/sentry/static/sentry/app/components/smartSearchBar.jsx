@@ -258,7 +258,7 @@ class SmartSearchBar extends React.Component {
       !terms || // no terms
       terms.length === 0 || // no terms
       (terms.length === 1 && terms[0] === this.props.defaultQuery) || // default term
-      (SearchBar.isTermCompleted(terms[terms.length - 1]) &&
+      (SmartSearchBar.isTermCompleted(terms[terms.length - 1]) &&
         /^\s+$/.test(query.slice(cursor - 1, cursor + 1))) // ends with space AND previous term is not finished (e.g. `browser:"Chr `)
     ) {
       let {defaultSearchItems} = this.props;
@@ -414,40 +414,44 @@ class SmartSearchBar extends React.Component {
     let terms = SmartSearchBar.getQueryTerms(query.slice(0, lastTermIndex));
     let newQuery;
 
-    // If not postfixed with : (tag value), add trailing space
+    // If not postfixed with : (tag value) and not empty, add trailing space
     let lastChar = replaceText.charAt(replaceText.length - 1);
-    replaceText += lastChar === ':' || lastChar === '.' ? '' : ' ';
+    let newReplaceText = replaceText + (lastChar === ':' || lastChar === '' ? '' : ' ');
 
     if (!terms) {
-      newQuery = replaceText;
+      newQuery = newReplaceText;
     } else {
       let last = terms.pop();
+      let matches = query.match(/(\S+:(?:(?:"[^"]*")|(?:[^"]\S*)))/g);
+      console.log('matches', matches);
 
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
       // If last term is a finished term e.g. tag:value or tag:"value", then append new text
-      // if (SearchBar.isTermCompleted(last)) {
-      // newQuery = newQuery.concat(query.slice(lastTermIndex)) + newReplaceText;
-      // } else {
+      if (SmartSearchBar.isTermCompleted(last)) {
+        console.log('term completed:', newQuery, 'last:', last);
+        newQuery = newQuery.concat(query.slice(lastTermIndex)) + newReplaceText;
+      } else {
+        console.log('newReplaceText', newQuery, newReplaceText);
+        newQuery =
+          last.indexOf(':') > -1
+            ? // tag key present: replace everything after colon with newReplaceText
+              // newQuery.replace(/\:"[^"]*"?$|\:[^"]\S*$/, ':' + newReplaceText)
+              newQuery.replace(/\:"[^"]*"?$|\:\S*$/, ':' + newReplaceText)
+            : // no tag key present: replace last token with newReplaceText
+              newQuery.replace(/\S+$/, newReplaceText);
+
+        newQuery = newQuery.concat(query.slice(lastTermIndex));
+      }
+
       // newQuery =
       // last.indexOf(':') > -1
-      // ? // tag key present: replace everything after colon with newReplaceText
-      // // newQuery.replace(/\:"[^"]*"?$|\:[^"]\S*$/, ':' + newReplaceText)
-      // newQuery.replace(/\:"[^"]*"?$|\:\S*$/, ':' + newReplaceText)
-      // : // no tag key present: replace last token with newReplaceText
-      // newQuery.replace(/\S+$/, newReplaceText);
+      // ? // tag key present: replace everything after colon with replaceText
+      // newQuery.replace(/\:"[^"]*"?$|\:\S*$/, ':' + replaceText)
+      // : // no tag key present: replace last token with replaceText
+      // newQuery.replace(/\S+$/, replaceText);
 
       // newQuery = newQuery.concat(query.slice(lastTermIndex));
-      // }
-
-      newQuery =
-        last.indexOf(':') > -1
-          ? // tag key present: replace everything after colon with replaceText
-            newQuery.replace(/\:"[^"]*"?$|\:\S*$/, ':' + replaceText)
-          : // no tag key present: replace last token with replaceText
-            newQuery.replace(/\S+$/, replaceText);
-
-      newQuery = newQuery.concat(query.slice(lastTermIndex));
     }
 
     this.setState(

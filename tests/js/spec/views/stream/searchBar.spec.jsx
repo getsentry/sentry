@@ -32,7 +32,19 @@ describe('SearchBar', function() {
       body: [],
     });
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+
+    MockApiClient.addMockResponse({
+      url: '/projects/123/456/tags/tag/values/',
+      body: [
+        {key: 'tag', value: 'foo', name: 'foo'},
+        {key: 'tag', value: 'bar', name: 'bar'},
+      ],
+    });
+
+>>>>>>> 0c8349f5b8... wip
     environmentTagValuesMock = MockApiClient.addMockResponse({
       url: '/projects/123/456/tags/environment/values/',
       body: [],
@@ -201,6 +213,26 @@ describe('SearchBar', function() {
       setQuery(wrapper, 'browser:"Chrome 70" ');
       wrapper.instance().onAutoComplete('');
       expect(wrapper.find('input').prop('value')).toBe('browser:"Chrome 70" ');
+    });
+
+    it('replaces existing tag value (with quoted value)', function() {
+      setQuery(wrapper, 'browser:"Chrome 71" ');
+      wrapper
+        .find('input')
+        .getDOMNode()
+        .setSelectionRange(8, 8);
+      selectFirstAutocompleteItem(wrapper);
+      expect(wrapper.find('input').prop('value')).toBe('browser:"Chrome 70" ');
+    });
+
+    it('replaces existing tag value (without quoted value)', function() {
+      setQuery(wrapper, 'tag:test1 tag:test2 ');
+      wrapper
+        .find('input')
+        .getDOMNode()
+        .setSelectionRange(14, 14);
+      selectFirstAutocompleteItem(wrapper);
+      expect(wrapper.find('input').prop('value')).toBe('tag:test1 tag:foo');
     });
   });
 });
