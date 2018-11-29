@@ -257,48 +257,35 @@ class KafkaEventStream(EventStream):
         owned_partition_offsets = {}
 
         def on_assign(consumer, partitions):
-            for i in partitions:
-                key = (i.topic, i.partition)
-                if key not in owned_partition_offsets:
-                    logger.debug('Received new partition assignment: %r', i)
-                    if i.offset is OFFSET_INVALID:
-                        offset = None
-                    else:
-                        assert i.offset > 0, 'unexpected negative offset'
-                        offset = i.offset
+            updated_assignment = {(i.topic, i.partition): i.offset for i in partitions}
+
+            # Handle newly assigned partitions by saving them in the owned
+            # partition offsets map.
+            for topic, partition in set(updated_assignment) - set(owned_partition_offsets):
+                logger.debug('Received new partition assignment: %r', (topic, partition))
+
+                offset = updated_assignment[(topic, partition)]
+                if offset is OFFSET_INVALID:
+                    offset = None
                 else:
-                    # TODO: What happens if this is already an owned partition?
-                    # Use the maximum offset, probably?
-                    raise NotImplementedError
+                    assert offset > 0, 'unexpected negative offset'
 
-                owned_partition_offsets[key] = offset
+                owned_partition_offsets[(topic, partition)] = offset
 
-            logger.debug(
-                'Received assignment containing %s partitions: %r',
-                len(partitions),
-                partitions)
-
-        def on_revoke(consumer, partitions):
-            # TODO: Make sure the partition list is the partitions being
-            # /removed/ and not the current state of the assignment.
+            # Handle revoked partitions by removing them from the owned
+            # partition offsets map, and commiting their offsets.
             offsets_to_commit = []
-
-            for i in partitions:
-                key = (i.topic, i.partition)
-                if key not in owned_partition_offsets:
-                    logger.warning('Received revocation of unowned partition: %r', i)
-                    continue
-
-                offset = owned_partition_offsets.pop(key)
+            for topic, partition in set(owned_partition_offsets) - updated_assignment:
+                offset = owned_partition_offsets.pop((topic, partition))
                 if offset is None:
-                    logger.debug('Skipping commit of unprocessed partition: %r', i)
+                    logger.debug('Skipping commit of unprocessed partition: %r', (topic, partition))
                     continue
 
-                offsets_to_commit.append(TopicPartition(i.topic, i.partition, ))
+                offsets_to_commit.append(TopicPartition(topic, partition, offset))
 
             if offsets_to_commit:
                 logger.debug(
-                    'Commiting offset for %s revoked partitions: %r',
+                    'Commiting offsets for %s revoked partitions: %r',
                     len(offsets_to_commit),
                     offsets_to_commit)
                 consumer.commit(offsets=offsets_to_commit, asynchronous=False)
@@ -306,7 +293,6 @@ class KafkaEventStream(EventStream):
         consumer.subscribe(
             [self.publish_topic],
             on_assign=on_assign,
-            on_revoke=on_revoke,
         )
 
         def commit_offsets():
