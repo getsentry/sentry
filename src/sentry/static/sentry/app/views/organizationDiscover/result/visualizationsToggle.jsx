@@ -9,7 +9,7 @@ import {
   ResultViewActions,
   ResultViewButtons,
   ResultViewDropdownButtons,
-  DownloadCsvButton
+  DownloadCsvButton,
 } from '../styles';
 
 class VisualizationsToggle extends React.Component {

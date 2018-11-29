@@ -248,19 +248,19 @@ export default class AccountNotificationFineTuning extends AsyncView {
 
         {field &&
           field.defaultFieldName &&
-            // not implemented yet
-            field.defaultFieldName !== 'weeklyReports' && (
-              <Form
-                saveOnBlur
-                apiMethod="PUT"
-                apiEndpoint={'/users/me/notifications/'}
-                initialData={this.state.notifications}
-              >
-                <JsonForm
-                  title={`Default ${title}`}
-                  fields={[fields[field.defaultFieldName]]}
-                />
-              </Form>
+          // not implemented yet
+          field.defaultFieldName !== 'weeklyReports' && (
+            <Form
+              saveOnBlur
+              apiMethod="PUT"
+              apiEndpoint={'/users/me/notifications/'}
+              initialData={this.state.notifications}
+            >
+              <JsonForm
+                title={`Default ${title}`}
+                fields={[fields[field.defaultFieldName]]}
+              />
+            </Form>
           )}
         <Form
           saveOnBlur
