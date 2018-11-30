@@ -25,6 +25,7 @@ from sentry.digests.notifications import (
     event_to_record,
     unsplit_key,
 )
+from sentry.exceptions import PluginError
 from sentry.integrations.exceptions import ApiError
 from sentry.plugins import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
@@ -72,7 +73,7 @@ class NotificationPlugin(Plugin):
         try:
             return self.notify_users(event.group, event, triggering_rules=[
                                      r.label for r in notification.rules])
-        except (SSLError, HTTPError, ApiError) as err:
+        except (SSLError, HTTPError, ApiError, PluginError) as err:
             self.logger.info('notification-plugin.notify-failed.', extra={
                 'error': six.text_type(err),
                 'plugin': self.slug
