@@ -8,14 +8,10 @@ describe('ResultTable', function() {
   beforeEach(function() {
     wrapper = shallow(
       <ResultTable
-        query={{aggregations: [], fields: ['id', 'project.id', 'issue.id']}}
+        query={{aggregations: [], fields: ['id', 'project.id']}}
         data={{
-          data: [{id: '111', 'project.id': 1, 'issue.id': '2'}],
-          meta: [
-            {name: 'id', type: 'string'},
-            {name: 'project.id', type: 'number'},
-            {name: 'issue.id', type: 'string'},
-          ],
+          data: [{id: '111', 'project.id': 1}],
+          meta: [{name: 'id', type: 'string'}, {name: 'project.id', type: 'number'}],
         }}
       />,
       {
@@ -82,10 +78,8 @@ describe('ResultTable', function() {
     const expectedCellValues = [
       {value: 'id', row: 0, col: 0},
       {value: 'project.id', row: 0, col: 1},
-      {value: 'issue.id', row: 0, col: 2},
       {value: '111', row: 1, col: 0},
       {value: '1', row: 1, col: 1},
-      {value: '2', row: 1, col: 2},
     ];
 
     expectedCellValues.forEach(function({value, row, col}) {
