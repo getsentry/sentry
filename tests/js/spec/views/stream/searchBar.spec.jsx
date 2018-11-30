@@ -8,13 +8,9 @@ describe('SearchBar', function() {
   let sandbox;
   let options;
   let urlTagValuesMock;
-<<<<<<< HEAD
+  let browserTagValuesMock;
   let supportedTags;
   const clickInput = searchBar => searchBar.find('input[name="query"]').simulate('click');
-=======
-  let environmentTagValuesMock;
-  let browserTagValuesMock;
->>>>>>> 4e143b35ed... fix edgecase bugs
 
   beforeEach(function() {
     TagStore.reset();
@@ -29,25 +25,10 @@ describe('SearchBar', function() {
 
     urlTagValuesMock = MockApiClient.addMockResponse({
       url: '/projects/123/456/tags/url/values/',
-      body: [],
-    });
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
-
-    MockApiClient.addMockResponse({
-      url: '/projects/123/456/tags/tag/values/',
       body: [
         {key: 'tag', value: 'foo', name: 'foo'},
         {key: 'tag', value: 'bar', name: 'bar'},
       ],
-    });
-
->>>>>>> 0c8349f5b8... wip
-    environmentTagValuesMock = MockApiClient.addMockResponse({
-      url: '/projects/123/456/tags/environment/values/',
-      body: [],
     });
 
     browserTagValuesMock = MockApiClient.addMockResponse({
@@ -57,7 +38,6 @@ describe('SearchBar', function() {
         {key: 'browser', value: 'Chrome 71', name: 'Chrome 71'},
       ],
     });
->>>>>>> 4e143b35ed... fix edgecase bugs
   });
 
   afterEach(function() {
@@ -143,8 +123,7 @@ describe('SearchBar', function() {
     };
 
     const selectFirstAutocompleteItem = el => {
-      el.instance().updateAutoCompleteItems();
-      el.find('input').simulate('focus');
+      el.find('input').simulate('click');
 
       el
         .find('.search-autocomplete-item')
@@ -211,7 +190,10 @@ describe('SearchBar', function() {
 
     it('does not add anything if autocomplete value is empty string', function() {
       setQuery(wrapper, 'browser:"Chrome 70" ');
-      wrapper.instance().onAutoComplete('');
+      wrapper
+        .find('SmartSearchBar')
+        .instance()
+        .onAutoComplete('');
       expect(wrapper.find('input').prop('value')).toBe('browser:"Chrome 70" ');
     });
 
