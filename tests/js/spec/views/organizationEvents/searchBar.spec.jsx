@@ -4,75 +4,104 @@ import {mount} from 'enzyme';
 import SearchBar from 'app/views/organizationEvents/searchBar';
 import TagStore from 'app/stores/tagStore';
 
+const focusInput = el => el.find('input[name="query"]').simulate('focus');
+const selectFirstAutocompleteItem = el => {
+  focusInput(el);
+
+  el
+    .find('.search-autocomplete-item')
+    .first()
+    .simulate('click');
+  const input = el.find('input');
+  input
+    .getDOMNode()
+    .setSelectionRange(input.prop('value').length, input.prop('value').length);
+  return el;
+};
+const setQuery = (el, query) => {
+  el
+    .find('input')
+    .simulate('change', {target: {value: query}})
+    .getDOMNode()
+    .setSelectionRange(query.length, query.length);
+};
+
 describe('SearchBar', function() {
   let options;
   let tagValuesMock;
   let tagKeysMock;
-  let supportedTags;
   let organization = TestStubs.Organization();
-  const clickInput = searchBar => searchBar.find('input[name="query"]').simulate('click');
+  let props = {
+    organization,
+  };
 
   beforeEach(function() {
-    jest.useFakeTimers();
     TagStore.reset();
     TagStore.onLoadTagsSuccess(TestStubs.Tags());
-    supportedTags = TagStore.getAllTags();
 
     options = TestStubs.routerContext();
 
     tagValuesMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/stack.filename/values/',
-      body: [{count: 2, value: 'test.jsx'}],
+      url: '/organizations/org-slug/tags/gpu/values/',
+      body: [{count: 2, name: 'Nvidia 1080ti'}],
     });
     tagKeysMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
-      body: [{count: 1, tag: 'transaction'}, {count: 2, tag: 'mechanism'}],
+      body: [{count: 3, key: 'gpu'}, {count: 3, key: 'mytag'}],
     });
   });
 
   afterEach(function() {
-    jest.useRealTimers();
     MockApiClient.clearMockResponses();
   });
 
-  it('sets state with complete tag', function() {
-    let props = {
-      supportedTags,
-      organization,
-      projectId: '456',
-      query: 'stack.filename:"fu"',
-    };
-    let searchBar = mount(<SearchBar {...props} />, options);
-    clickInput(searchBar);
-    jest.advanceTimersByTime(301);
-    expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual('"fu"');
-    expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
-    expect(tagValuesMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/tags/stack.filename/values/',
-      expect.objectContaining({data: {query: 'fu'}})
+  it('fetches organization tags on mount', async function() {
+    let wrapper = await mount(<SearchBar {...props} />, options);
+    expect(tagKeysMock).toHaveBeenCalledTimes(1);
+    wrapper.update();
+    expect(wrapper.find('SmartSearchBar').prop('supportedTags')).toEqual(
+      expect.objectContaining({
+        gpu: {key: 'gpu', name: 'gpu'},
+        mytag: {key: 'mytag', name: 'mytag'},
+      })
     );
   });
 
-  it('sets state when value has colon', function() {
-    let props = {
-      supportedTags,
-      organization,
-      projectId: '456',
-      query: 'stack.filename:"http://example.com"',
-    };
-
-    let searchBar = mount(<SearchBar {...props} />, options);
-    clickInput(searchBar);
-    expect(searchBar.state.searchTerm).toEqual();
-    expect(searchBar.find('SearchDropdown').prop('searchSubstring')).toEqual(
-      '"http://example.com"'
-    );
-    expect(searchBar.find('SearchDropdown').prop('items')).toEqual([]);
-    jest.advanceTimersByTime(301);
+  it('searches and selects an event field value', async function() {
+    let wrapper = await mount(<SearchBar {...props} />, options);
+    setQuery(wrapper, 'gpu:');
 
     expect(tagValuesMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/tags/stack.filename/values/',
-      expect.objectContaining({data: {query: 'http://example.com'}})
+      '/organizations/org-slug/tags/gpu/values/',
+      expect.objectContaining({data: {query: ''}})
     );
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('SearchDropdown').prop('searchSubstring')).toEqual('');
+    expect(wrapper.find('SearchDropdown').prop('items')).toEqual([
+      expect.objectContaining({
+        value: '"Nvidia 1080ti"',
+      }),
+    ]);
+
+    selectFirstAutocompleteItem(wrapper);
+    wrapper.update();
+    expect(wrapper.find('input').prop('value')).toBe('gpu:"Nvidia 1080ti" ');
+  });
+
+  it('removes highlight when query is empty', async function() {
+    let wrapper = await mount(<SearchBar {...props} />, options);
+    setQuery(wrapper, 'gpu');
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('.search-description strong').text()).toBe('gpu');
+
+    // Should have nothing highlighted
+    setQuery(wrapper, '');
+    expect(wrapper.find('.search-description strong')).toHaveLength(0);
   });
 });
