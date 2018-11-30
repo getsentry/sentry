@@ -4,7 +4,7 @@ import React from 'react';
 import moment from 'moment';
 
 import {t} from 'app/locale';
-import AreaChart from 'app/components/charts/areaChart';
+import LineChart from 'app/components/charts/lineChart';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 
@@ -99,11 +99,14 @@ class EventsChart extends React.PureComponent {
         >
           {({timeseriesData, previousTimeseriesData}) => {
             return (
-              <AreaChart
+              <LineChart
                 isGroupedByDate
                 useUtc={utc}
                 interval={interval === '1h' ? 'hour' : 'day'}
                 series={timeseriesData}
+                seriesOptions={{
+                  showSymbol: true,
+                }}
                 previousPeriod={previousTimeseriesData}
                 grid={{
                   left: '18px',
