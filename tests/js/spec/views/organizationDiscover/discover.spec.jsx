@@ -237,7 +237,7 @@ describe('Discover', function() {
         ...queryBuilder.getExternal(),
         groupby: ['time'],
         rollup: 60 * 60 * 24,
-        orderby: 'time',
+        orderby: '-time',
       });
     });
   });
