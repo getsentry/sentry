@@ -1,5 +1,5 @@
 import {css} from 'react-emotion';
-import {flatten} from 'lodash';
+import {flatten, memoize} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -23,7 +23,7 @@ const tagToObjectReducer = (acc, name) => {
 
 const TAGS = COLUMNS.map(({name}) => name);
 
-class SearchBar extends React.Component {
+class SearchBar extends React.PureComponent {
   static propTypes = {
     api: PropTypes.object,
     organization: SentryTypes.Organization,
@@ -33,7 +33,7 @@ class SearchBar extends React.Component {
     super();
 
     this.state = {
-      tags: [],
+      tags: {},
     };
   }
 
@@ -41,7 +41,7 @@ class SearchBar extends React.Component {
     let {api, organization} = this.props;
     fetchOrganizationTagKeys(api, organization.slug).then(results => {
       this.setState({
-        tags: results.map(({tag}) => tag),
+        tags: this.getAllTags(results.map(({key}) => key)),
       });
     });
   }
@@ -50,7 +50,7 @@ class SearchBar extends React.Component {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with data when ready
    */
-  getTagValues = (tag, query) => {
+  getTagValues = memoize((tag, query) => {
     let {api, organization} = this.props;
 
     return fetchOrganizationTagValues(api, organization.slug, tag.key, query).then(
@@ -59,7 +59,7 @@ class SearchBar extends React.Component {
         throw new Error('Unable to fetch tags');
       }
     );
-  };
+  }, ({key}, query) => `${key}-${query}`);
 
   getAllTags = (orgTags = []) =>
     TAGS.concat(orgTags)
@@ -71,7 +71,7 @@ class SearchBar extends React.Component {
       <SmartSearchBar
         {...this.props}
         onGetTagValues={this.getTagValues}
-        supportedTags={this.getAllTags(this.state.tags)}
+        supportedTags={this.state.tags}
         excludeEnvironment
         dropdownClassName={css`
           max-height: 300px;
