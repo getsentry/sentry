@@ -23,10 +23,10 @@ const RadioGroup = ({value, disabled, choices, label, onChange, ...props}) => {
         >
           <RadioLineButton>
             {isSelected(id) && (
-              <RadioLineButtonFill isDisabled={disabled} animate={value !== ''} />
+              <RadioLineButtonFill disabled={disabled} animate={value !== ''} />
             )}
           </RadioLineButton>
-          <RadioLineText isDisabled={disabled}>{name}</RadioLineText>
+          <RadioLineText disabled={disabled}>{name}</RadioLineText>
         </RadioLineItem>
       ))}
     </div>
@@ -53,7 +53,7 @@ const RadioLineButton = styled.div`
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
 `;
 
-const RadioLineItem = styled.div`
+const RadioLineItem = styled(({disabled, ...props}) => <div {...props} />)`
   display: flex;
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
@@ -65,20 +65,20 @@ const RadioLineItem = styled.div`
   }
 `;
 
-const RadioLineButtonFill = styled.div`
+const RadioLineButtonFill = styled(({disabled, animate, ...props}) => <div {...props} />)`
   width: 1rem;
   height: 1rem;
   border-radius: 50%;
   background-color: ${p => p.theme.green};
   animation: ${p => (p.animate ? `0.2s ${growIn} ease` : 'none')};
-  opacity: ${p => (p.isDisabled ? 0.4 : null)};
+  opacity: ${p => (p.disabled ? 0.4 : null)};
 `;
 
-const RadioLineText = styled.div`
+const RadioLineText = styled(({disabled, ...props}) => <div {...props} />)`
   margin-left: 0.5em;
   font-size: 0.875em;
   font-weight: bold;
-  opacity: ${p => (p.isDisabled ? 0.4 : null)};
+  opacity: ${p => (p.disabled ? 0.4 : null)};
 `;
 
 export default RadioGroup;
