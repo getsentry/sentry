@@ -20,6 +20,9 @@ def basic_protocol_handler(unsupported_operations):
     # so this function builds a handler function that can deal with both.
 
     def get_task_kwargs_for_insert(operation, event_data, task_state=None):
+        if task_state and task_state.get('skip_consume', False):
+            return None  # nothing to do
+
         event_data['datetime'] = datetime.strptime(
             event_data['datetime'],
             "%Y-%m-%dT%H:%M:%S.%fZ",
@@ -83,7 +86,7 @@ class InvalidVersion(Exception):
     pass
 
 
-def parse_event_message(value):
+def get_task_kwargs_for_message(value):
     """
     Decodes a message body, returning a dictionary of keyword arguments that
     can be applied to a post-processing task, or ``None`` if no task should be

@@ -8,22 +8,22 @@ from sentry.eventstream.kafka.protocol import (
     InvalidPayload,
     InvalidVersion,
     UnexpectedOperation,
-    parse_event_message,
+    get_task_kwargs_for_message,
 )
 from sentry.utils import json
 
 
-def test_parse_event_message_invalid_payload():
+def test_get_task_kwargs_for_message_invalid_payload():
     with pytest.raises(InvalidPayload):
-        parse_event_message('{"format": "invalid"}')
+        get_task_kwargs_for_message('{"format": "invalid"}')
 
 
-def test_parse_event_message_invalid_version():
+def test_get_task_kwargs_for_message_invalid_version():
     with pytest.raises(InvalidVersion):
-        parse_event_message(json.dumps([0, 'insert', {}]))
+        get_task_kwargs_for_message(json.dumps([0, 'insert', {}]))
 
 
-def test_parse_event_message_version_1():
+def test_get_task_kwargs_for_message_version_1():
     event_data = {
         'project_id': 1,
         'group_id': 2,
@@ -43,7 +43,7 @@ def test_parse_event_message_version_1():
         'is_new_group_environment': True,
     }
 
-    kwargs = parse_event_message(json.dumps([1, 'insert', event_data, task_state]))
+    kwargs = get_task_kwargs_for_message(json.dumps([1, 'insert', event_data, task_state]))
     event = kwargs.pop('event')
     assert event.project_id == 1
     assert event.group_id == 2
@@ -63,10 +63,15 @@ def test_parse_event_message_version_1():
     assert not kwargs, 'unexpected values remaining: {!r}'.format(kwargs)
 
 
-def test_parse_event_message_version_1_unsupported_operation():
-    assert parse_event_message(json.dumps([1, 'delete', {}])) is None
+def test_get_task_kwargs_for_message_version_1_skip_consume():
+    assert get_task_kwargs_for_message(json.dumps(
+        [1, 'insert', {}, {'skip_consume': True}])) is None
 
 
-def test_parse_event_message_version_1_unexpected_operation():
+def test_get_task_kwargs_for_message_version_1_unsupported_operation():
+    assert get_task_kwargs_for_message(json.dumps([1, 'delete', {}])) is None
+
+
+def test_get_task_kwargs_for_message_version_1_unexpected_operation():
     with pytest.raises(UnexpectedOperation):
-        parse_event_message(json.dumps([1, 'invalid', {}, {}]))
+        get_task_kwargs_for_message(json.dumps([1, 'invalid', {}, {}]))

@@ -13,7 +13,7 @@ from sentry import options, quotas
 from sentry.models import Organization
 from sentry.eventstream.base import EventStream
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
-from sentry.eventstream.kafka.protocol import parse_event_message
+from sentry.eventstream.kafka.protocol import get_task_kwargs_for_message
 from sentry.tasks.post_process import post_process_group
 from sentry.utils import json
 
@@ -147,6 +147,7 @@ class KafkaEventStream(EventStream):
             'is_sample': is_sample,
             'is_regression': is_regression,
             'is_new_group_environment': is_new_group_environment,
+            'skip_consume': skip_consume,
         },))
 
     def start_delete_groups(self, project_id, group_ids):
@@ -351,9 +352,9 @@ class KafkaEventStream(EventStream):
                 i = i + 1
                 owned_partition_offsets[key] = message.offset() + 1
 
-                payload = parse_event_message(message.value())
-                if payload is not None:
-                    post_process_group.delay(**payload)
+                task_kwargs = get_task_kwargs_for_message(message.value())
+                if task_kwargs is not None:
+                    post_process_group.delay(**task_kwargs)
 
                 if i % commit_batch_size == 0:
                     commit_offsets()
