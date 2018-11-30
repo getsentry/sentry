@@ -1,3 +1,4 @@
+import {Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -101,16 +102,12 @@ const RuleRow = createReactClass({
 
     return (
       <Panel>
-        <PanelHeader
-          css={{paddingTop: 5, paddingBottom: 5}}
-          align="center"
-          justify="space-between"
-        >
+        <PanelHeader align="center" justify="space-between" hasButtons>
           <TextColorLink to={editLink}>
             {data.name} - {environmentName}
           </TextColorLink>
 
-          <div>
+          <Flex>
             <Tooltip
               disabled={canEdit}
               title={t('You do not have permission to edit alert rules.')}
@@ -119,7 +116,7 @@ const RuleRow = createReactClass({
                 data-test-id="edit-rule"
                 style={{marginRight: 5}}
                 disabled={!canEdit}
-                size="small"
+                size="xsmall"
                 to={editLink}
               >
                 {t('Edit Rule')}
@@ -135,10 +132,10 @@ const RuleRow = createReactClass({
                 onConfirm={this.onDelete}
                 disabled={!canEdit}
               >
-                <Button size="small" icon="icon-trash" />
+                <Button size="xsmall" icon="icon-trash" />
               </Confirm>
             </Tooltip>
-          </div>
+          </Flex>
         </PanelHeader>
 
         <PanelBody>
