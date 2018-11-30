@@ -274,12 +274,10 @@ function routes() {
         name="Environments"
         path="environments/"
         component={errorHandler(ProjectEnvironments)}
-      />
-      <Route
-        name="Hidden Environments"
-        path="environments/hidden/"
-        component={errorHandler(ProjectEnvironments)}
-      />
+      >
+        <IndexRoute />
+        <Route path="hidden/" />
+      </Route>
       <Route name="Tags" path="tags/" component={errorHandler(ProjectTags)} />
       <Redirect from="issue-tracking/" to="/settings/:orgId/:projectId/plugins/" />
       <Route

@@ -35,7 +35,6 @@ import space from 'app/styles/space';
 
 const ProjectEnvironments = createReactClass({
   propTypes: {
-    route: PropTypes.object,
     routes: PropTypes.array,
     params: PropTypes.object,
   },
@@ -43,7 +42,7 @@ const ProjectEnvironments = createReactClass({
   mixins: [ApiMixin, Reflux.listenTo(EnvironmentStore, 'onEnvironmentsChange')],
 
   getInitialState() {
-    const isHidden = this.props.route.path === 'environments/hidden/';
+    const isHidden = this.props.location.pathname.endsWith('hidden/');
     const environments = isHidden
       ? EnvironmentStore.getHidden()
       : EnvironmentStore.getActive();
@@ -65,7 +64,7 @@ const ProjectEnvironments = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    const isHidden = nextProps.route.path === 'environments/hidden/';
+    const isHidden = this.props.location.pathname.endsWith('hidden/');
     const environments = isHidden
       ? EnvironmentStore.getHidden()
       : EnvironmentStore.getActive();
@@ -325,15 +324,11 @@ const ProjectEnvironments = createReactClass({
           title={t('Manage Environments')}
           tabs={
             <NavTabs underlined={true}>
-              <ListLink
-                to={`${baseUrl}environments/`}
-                index={true}
-                isActive={() => !this.state.isHidden}
-              >
+              <ListLink to={baseUrl} index={true} isActive={() => !this.state.isHidden}>
                 {t('Environments')}
               </ListLink>
               <ListLink
-                to={`${baseUrl}environments/hidden/`}
+                to={`${baseUrl}hidden/`}
                 index={true}
                 isActive={() => this.state.isHidden}
               >

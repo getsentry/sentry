@@ -7,19 +7,19 @@ import recreateRoute from 'app/utils/recreateRoute';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 
 jest.mock('app/utils/recreateRoute');
-recreateRoute.mockReturnValue('/org-slug/project-slug/settings/');
+recreateRoute.mockReturnValue('/org-slug/project-slug/settings/environments/');
 
 function mountComponent(isHidden) {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
-  let path = isHidden ? 'environments/hidden/' : 'environments/';
+  let pathname = isHidden ? 'environments/hidden/' : 'environments/';
   return mount(
     <ProjectEnvironments
       params={{
         orgId: org.slug,
         projectId: project.slug,
       }}
-      route={{path}}
+      location={{pathname}}
       routes={[]}
     />,
     TestStubs.routerContext()
