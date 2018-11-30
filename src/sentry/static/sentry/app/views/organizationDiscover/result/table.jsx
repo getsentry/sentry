@@ -72,6 +72,11 @@ export default class ResultTable extends React.Component {
       value = this.getEventLink(data[rowIndex - 1]);
     }
 
+    // check for issue.id columm
+    if (columnIndex < cols.length && cols[columnIndex].name === 'issue.id') {
+      value = this.getIssueLink(data[rowIndex - 1]);
+    }
+
     return (
       <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} align={align}>
         {value}
@@ -88,6 +93,20 @@ export default class ResultTable extends React.Component {
       <Tooltip title={t('Open event')}>
         <Link href={`/${slug}/${projectSlug}/events/${event.id}/`} target="_blank">
           {event.id}
+        </Link>
+      </Tooltip>
+    );
+  };
+
+  getIssueLink = event => {
+    const {slug, projects} = this.context.organization;
+    const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
+      .slug;
+
+    return (
+      <Tooltip title={t('Open issue')}>
+        <Link to={`/${slug}/${projectSlug}/issues/${event['issue.id']}`} target="_blank">
+          {event['issue.id']}
         </Link>
       </Tooltip>
     );
