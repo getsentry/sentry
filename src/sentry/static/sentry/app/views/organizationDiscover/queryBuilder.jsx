@@ -228,7 +228,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     // If there are no aggregations, always ensure we fetch event ID and
     // project ID so we can display the link to event
     if (type === 'baseQuery') {
-      return originalQuery.fields.some(field => field === 'id' || field === 'issue.id')
+      return originalQuery.fields.includes('id')
         ? {
             ...originalQuery,
             fields: uniq([...originalQuery.fields, 'id', 'project.id']),
