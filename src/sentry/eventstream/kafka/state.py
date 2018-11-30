@@ -106,20 +106,22 @@ class SynchronizedPartitionStateManager(object):
             previous_state, previous_offsets = self.partitions[(topic, partition)]
             if local_offset < previous_offsets.local:
                 logger.info(
-                    'Local offset has moved backwards (current: %s, previous: %s)',
+                    'Local offset for %s/%s has moved backwards (current: %s, previous: %s)',
+                    topic, partition,
                     local_offset,
                     previous_offsets.local)
             updated_offsets = Offsets(local_offset, previous_offsets.remote)
             updated_state = self.get_state_from_offsets(updated_offsets)
             if previous_state is not updated_state and updated_state not in self.transitions[previous_state]:
                 raise InvalidStateTransition(
-                    'Unexpected state transition from {} to {}'.format(
-                        previous_state, updated_state))
+                    u'Unexpected state transition for {}/{} from {} to {}'.format(
+                        topic, partition, previous_state, updated_state))
             self.partitions[(topic, partition)] = (updated_state, updated_offsets)
             if previous_state is not updated_state:
                 if updated_state == SynchronizedPartitionState.REMOTE_BEHIND:
                     logger.warning(
-                        'Current local offset (%s) exceeds remote offset (%s)!',
+                        'Current local offset for %s/%s (%s) exceeds remote offset (%s)!',
+                        topic, partition,
                         updated_offsets.local,
                         updated_offsets.remote)
                 self.callback(
@@ -140,15 +142,16 @@ class SynchronizedPartitionStateManager(object):
             previous_state, previous_offsets = self.partitions[(topic, partition)]
             if remote_offset < previous_offsets.remote:
                 logger.info(
-                    'Remote offset has moved backwards (current: %s, previous: %s)',
+                    'Remote offset for %s/%s has moved backwards (current: %s, previous: %s)',
+                    topic, partition,
                     remote_offset,
                     previous_offsets.remote)
             updated_offsets = Offsets(previous_offsets.local, remote_offset)
             updated_state = self.get_state_from_offsets(updated_offsets)
             if previous_state is not updated_state and updated_state not in self.transitions[previous_state]:
                 raise InvalidStateTransition(
-                    'Unexpected state transition from {} to {}'.format(
-                        previous_state, updated_state))
+                    u'Unexpected state transition for {}/{} from {} to {}'.format(
+                        topic, partition, previous_state, updated_state))
             self.partitions[(topic, partition)] = (updated_state, updated_offsets)
             if previous_state is not updated_state:
                 self.callback(
