@@ -11,6 +11,10 @@ function formatAxisLabel(value, isTimestamp, utc) {
   return getFormattedDate(value, 'MMM D, YYYY', utc);
 }
 
+function formatDelimeters(value){
+  return value.toLocaleString();
+}
+
 function getFormatter({filter, isGroupedByDate, truncate, utc}) {
   const getFilter = seriesParam => {
     const value = seriesParam.data[1];
@@ -31,8 +35,7 @@ function getFormatter({filter, isGroupedByDate, truncate, utc}) {
         .filter(getFilter)
         .map(
           s =>
-            `<div>${s.marker} ${truncationFormatter(s.seriesName, truncate)}:  ${s
-              .data[1]}</div>`
+            `<div>${s.marker} ${truncationFormatter(s.seriesName, truncate)}:  ${formatDelimeters(s.data[1])}</div>`
         )
         .join(''),
     ].join('');
