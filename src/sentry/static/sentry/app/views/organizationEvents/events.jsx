@@ -3,19 +3,17 @@ import {isEqual} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
 
-import utils from 'app/utils';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
+import utils from 'app/utils';
 import withOrganization from 'app/utils/withOrganization';
-import BetaTag from 'app/components/betaTag';
 
 import {getParams} from './utils/getParams';
 import EventsChart from './eventsChart';
 import EventsTable from './eventsTable';
-import SearchBar from './searchBar';
 
 const parseRowFromLinks = (links, numRows) => {
   links = utils.parseLinkHeader(links);
@@ -80,39 +78,17 @@ class OrganizationEvents extends AsyncView {
     return `Events - ${this.props.organization.slug}`;
   }
 
-  handleSearch = query => {
-    let {router, location} = this.props;
-    router.push({
-      pathname: location.pathname,
-      query: {
-        ...(location.query || {}),
-        query,
-      },
-    });
-  };
-
   renderRowCounts() {
     const {events, eventsPageLinks} = this.state;
     return parseRowFromLinks(eventsPageLinks, events.length);
   }
 
   renderBody() {
-    const {organization, location} = this.props;
+    const {organization} = this.props;
     const {reloading, events, eventsPageLinks} = this.state;
 
     return (
       <React.Fragment>
-        <Flex align="center" justify="space-between" mb={2}>
-          <HeaderTitle>
-            {t('Events')} <BetaTag />
-          </HeaderTitle>
-          <StyledSearchBar
-            query={(location.query && location.query.query) || ''}
-            onSearch={this.handleSearch}
-            organization={organization}
-          />
-        </Flex>
-
         <Panel>
           <EventsChart organization={organization} />
         </Panel>
@@ -129,19 +105,6 @@ class OrganizationEvents extends AsyncView {
     );
   }
 }
-
-const HeaderTitle = styled('h4')`
-  flex: 1;
-  font-size: ${p => p.theme.headerFontSize};
-  line-height: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  flex: 1;
-`;
 
 const RowDisplay = styled('div')`
   color: ${p => p.theme.gray6};
