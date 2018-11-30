@@ -1,9 +1,17 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import {OrganizationEvents} from 'app/views/organizationEvents/events';
+import {OrganizationEvents, parseRowFromLinks} from 'app/views/organizationEvents/events';
 
 jest.mock('app/utils/withLatestContext');
+
+const pageOneLinks =
+  '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
+  '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
+
+const pageTwoLinks =
+  '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", ' +
+  '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:200:0>; rel="next"; results="false"; cursor="0:200:0"';
 
 describe('OrganizationEventsErrors', function() {
   const project = TestStubs.Project({isMember: true});
@@ -15,6 +23,7 @@ describe('OrganizationEventsErrors', function() {
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: (url, opts) => [TestStubs.OrganizationEvent(opts.query)],
+      headers: {Link: pageOneLinks},
     });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -83,5 +92,17 @@ describe('OrganizationEventsErrors', function() {
         },
       })
     );
+  });
+});
+
+describe('parseRowFromLinks', function() {
+  it('calculates rows for first page', function() {
+    expect(parseRowFromLinks(pageOneLinks, 10)).toBe('1-10');
+    expect(parseRowFromLinks(pageOneLinks, 100)).toBe('1-100');
+  });
+
+  it('calculates rows for the second page', function() {
+    expect(parseRowFromLinks(pageTwoLinks, 10)).toBe('101-110');
+    expect(parseRowFromLinks(pageTwoLinks, 100)).toBe('101-200');
   });
 });
