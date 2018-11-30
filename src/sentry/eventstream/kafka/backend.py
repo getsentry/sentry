@@ -257,6 +257,17 @@ class KafkaEventStream(EventStream):
 
         owned_partition_offsets = {}
 
+        def commit(partitions):
+            results = consumer.commit(offsets=partitions, asynchronous=False)
+
+            errors = filter(lambda i: i.error is not None, results)
+            if errors:
+                raise Exception(
+                    'Failed to commit %s/%s partitions: %r' %
+                    (len(errors), len(partitions), errors))
+
+            return results
+
         def on_assign(consumer, partitions):
             logger.debug('Received partition assignment: %r', partitions)
 
@@ -309,7 +320,7 @@ class KafkaEventStream(EventStream):
                     'Committing offset(s) for %s revoked partition(s): %r',
                     len(offsets_to_commit),
                     offsets_to_commit)
-                consumer.commit(offsets=offsets_to_commit, asynchronous=False)
+                commit(offsets_to_commit)
 
         consumer.subscribe(
             [self.publish_topic],
@@ -331,7 +342,7 @@ class KafkaEventStream(EventStream):
                     'Committing offset(s) for %s owned partition(s): %r',
                     len(offsets_to_commit),
                     offsets_to_commit)
-                consumer.commit(offsets=offsets_to_commit, asynchronous=False)
+                commit(offsets_to_commit)
 
         try:
             i = 0
