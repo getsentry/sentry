@@ -26,16 +26,7 @@ export function fetchTags(orgId, projectId) {
   });
 }
 
-export function fetchOrganizationTagValues(api, orgId, tag, query) {
-  return api.requestPromise(`/organizations/${orgId}/tags/${tag}/values/`, {
-    data: {
-      query,
-    },
-    method: 'GET',
-  });
-}
-
-export function fetchOrganizationTagKeys(api, orgId) {
+export function fetchOrganizationTags(api, orgId) {
   return api.requestPromise(`/organizations/${orgId}/tags/`, {
     method: 'GET',
   });

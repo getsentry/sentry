@@ -5,10 +5,8 @@ import React from 'react';
 
 import {COLUMNS} from 'app/views/organizationDiscover/data';
 import {defined} from 'app/utils';
-import {
-  fetchOrganizationTagKeys,
-  fetchOrganizationTagValues,
-} from 'app/actionCreators/tags';
+import {fetchEventFieldValues} from 'app/actionCreators/events';
+import {fetchOrganizationTags} from 'app/actionCreators/tags';
 import SentryTypes from 'app/sentryTypes';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import withApi from 'app/utils/withApi';
@@ -39,7 +37,7 @@ class SearchBar extends React.PureComponent {
 
   componentDidMount() {
     let {api, organization} = this.props;
-    fetchOrganizationTagKeys(api, organization.slug).then(results => {
+    fetchOrganizationTags(api, organization.slug).then(results => {
       this.setState({
         tags: this.getAllTags(results.map(({key}) => key)),
       });
@@ -50,13 +48,13 @@ class SearchBar extends React.PureComponent {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with data when ready
    */
-  getTagValues = memoize((tag, query) => {
+  getEventFieldValues = memoize((tag, query) => {
     let {api, organization} = this.props;
 
-    return fetchOrganizationTagValues(api, organization.slug, tag.key, query).then(
+    return fetchEventFieldValues(api, organization.slug, tag.key, query).then(
       results => flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
       () => {
-        throw new Error('Unable to fetch tags');
+        throw new Error('Unable to fetch event field values');
       }
     );
   }, ({key}, query) => `${key}-${query}`);
@@ -70,7 +68,7 @@ class SearchBar extends React.PureComponent {
     return (
       <SmartSearchBar
         {...this.props}
-        onGetTagValues={this.getTagValues}
+        onGetTagValues={this.getEventFieldValues}
         supportedTags={this.state.tags}
         excludeEnvironment
         dropdownClassName={css`
