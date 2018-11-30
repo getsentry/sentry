@@ -56,7 +56,7 @@ class SearchBar extends React.Component {
     return fetchOrganizationTagValues(api, organization.slug, tag.key, query).then(
       results => flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
       () => {
-        throw new Error('Unable to fetch project tags');
+        throw new Error('Unable to fetch tags');
       }
     );
   };
