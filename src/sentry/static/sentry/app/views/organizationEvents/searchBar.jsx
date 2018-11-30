@@ -73,7 +73,6 @@ class SearchBar extends React.Component {
         onGetTagValues={this.getTagValues}
         supportedTags={this.getAllTags(this.state.tags)}
         excludeEnvironment
-        maxSearchItems={false}
         dropdownClassName={css`
           max-height: 300px;
           overflow-y: auto;

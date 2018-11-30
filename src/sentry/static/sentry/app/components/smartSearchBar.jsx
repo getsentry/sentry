@@ -88,7 +88,6 @@ class SmartSearchBar extends React.Component {
     placeholder: t('Search for events, users, tags, and everything else.'),
     supportedTags: {},
     defaultSearchItems: [],
-    maxSearchItems: 5,
   };
 
   constructor(props) {
