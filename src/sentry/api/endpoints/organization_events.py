@@ -75,3 +75,23 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             ),
             status=200,
         )
+
+
+class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
+
+    def get(self, request, organization):
+        try:
+            snuba_args = self.get_snuba_query_args(request, organization)
+        except OrganizationEventsError as exc:
+            return Response({'detail': exc.message}, status=400)
+
+        data = raw_query(
+            selected_columns=['count'],
+            aggregations=[['count()', '', 'count']],
+            referrer='api.organization-event-meta',
+            **snuba_args
+        )['data'][0]
+
+        return Response({
+            'count': data['count']
+        })

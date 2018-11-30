@@ -507,3 +507,50 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
             (1541066400, [{'count': 1}]),
             (1541070000, [{'count': 2}]),
         ]
+
+
+class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
+    def test_simple(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        project2 = self.create_project()
+        group = self.create_group(project=project)
+        group2 = self.create_group(project=project2)
+        self.create_event('a' * 32, group=group, datetime=self.min_ago)
+        self.create_event('b' * 32, group=group2, datetime=self.min_ago)
+
+        url = reverse(
+            'sentry-api-0-organization-events-meta',
+            kwargs={
+                'organization_slug': project.organization.slug,
+            }
+        )
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['count'] == 2
+
+    def test_search(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
+        self.create_event(
+            'y' * 32,
+            group=group,
+            message="Delet the Data",
+            datetime=self.min_ago,
+        )
+
+        url = reverse(
+            'sentry-api-0-organization-events-meta',
+            kwargs={
+                'organization_slug': project.organization.slug,
+            }
+        )
+        response = self.client.get(url, {'query': 'delet'}, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['count'] == 1
