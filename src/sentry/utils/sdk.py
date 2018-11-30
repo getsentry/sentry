@@ -93,6 +93,7 @@ def configure_sdk():
         import sys
         sys.stderr.write(json.dumps(event))
         sys.stderr.write('\n')
+        return
         internal_transport.capture_event(event)
 
         if upstream_transport is not None:
