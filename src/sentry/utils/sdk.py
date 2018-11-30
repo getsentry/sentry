@@ -89,6 +89,10 @@ def configure_sdk():
         upstream_transport = HttpTransport(options)
 
     def capture_event(event):
+        import json
+        import sys
+        sys.stderr.write(json.dumps(event))
+        sys.stderr.write('\n')
         internal_transport.capture_event(event)
 
         if upstream_transport is not None:
