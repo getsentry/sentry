@@ -234,6 +234,7 @@ theme.charts = {
     CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
   previousPeriod: theme.gray1,
+  symbolSize: 10,
 };
 
 theme.diff = {
