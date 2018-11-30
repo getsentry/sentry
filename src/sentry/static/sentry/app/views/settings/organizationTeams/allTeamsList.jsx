@@ -55,9 +55,13 @@ class AllTeamsList extends React.Component {
     let to = useCreateModal ? '#' : `/organizations/${organization.slug}/teams/new/`;
     return (
       <EmptyMessage>
-        {tct('No teams here. You can always [link:create one].', {
+        {tct('No teams here. [teamCreate]', {
           root: <TextBlock noMargin />,
-          link: <Link to={to} onClick={this.handleCreateTeam} />,
+          teamCreate: access.has('project:admin')
+            ? tct('You can always [link:create one].', {
+                link: <Link to={to} onClick={this.handleCreateTeam} />,
+              })
+            : null,
         })}
       </EmptyMessage>
     );
