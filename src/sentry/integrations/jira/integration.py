@@ -354,6 +354,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             fkwargs['url'] = '%s?jira_url=%s' % (
                 sentry_url, quote_plus(field_meta['autoCompleteUrl']),
             )
+            fkwargs['choices'] = []
         elif schema['type'] in ['timetracking']:
             # TODO: Implement timetracking (currently unsupported alltogether)
             return None
@@ -468,7 +469,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # TODO(jess): are we going to allow ignored fields?
         # ignored_fields = (self.get_option('ignored_fields', group.project) or '').split(',')
         ignored_fields = set(
-            k for k, v in six.iteritems(issue_type_meta['fields']) if v['name'] in HIDDEN_ISSUE_FIELDS['names']
+            k for k, v in six.iteritems(issue_type_meta['fields'])
+            if v['name'] in HIDDEN_ISSUE_FIELDS['names']
         )
         ignored_fields.update(HIDDEN_ISSUE_FIELDS['keys'])
 
