@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 import six
 
+from datetime import datetime
 from mock import patch
 
+from sentry.models import Group
 from sentry.testutils import TestCase
 from sentry.tasks.servicehooks import get_payload_v0, process_service_hook
 from sentry.testutils.helpers.faux import faux
@@ -79,3 +81,24 @@ class TestServiceHooks(TestCase):
             'X-ServiceHook-GUID',
             'X-ServiceHook-Signature',
         ))
+
+    @patch('sentry.models.Group.objects.get')
+    @patch('sentry.tasks.servicehooks.process_resource_change.retry')
+    def test_gracefully_handles_commit_race_condition(self, retry, get):
+        does_not_exist = Group.DoesNotExist()
+
+        # Fail once, then transaction commits, and next retry succeeds
+        get.side_effect = [does_not_exist, None]
+
+        with self.tasks():
+            self.create_group(project=self.project)
+
+        retry.assert_called_with(exc=does_not_exist)
+
+    @patch('sentry.tasks.servicehooks.process_resource_change.delay')
+    def test_does_not_enqueue_tasks_for_resource_updates(self, delay):
+        group = self.create_group(project=self.project)
+        group.update(last_seen=datetime.now())
+
+        # Only called once for the create, not also for the update.
+        delay.assert_called_once_with(Group, group.id)
