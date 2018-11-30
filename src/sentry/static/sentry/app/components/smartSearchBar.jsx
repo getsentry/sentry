@@ -48,7 +48,8 @@ class SmartSearchBar extends React.Component {
     supportedTags: PropTypes.object,
 
     // Maximum number of search items to display
-    maxSearchItems: PropTypes.oneOfType([PropTypes.number, PropTypes.bool]),
+    // or a falsey value for no maximum
+    maxSearchItems: PropTypes.number,
 
     // Callback that returns a promise of an array of strings
     onGetTagValues: PropTypes.func,
@@ -357,7 +358,7 @@ class SmartSearchBar extends React.Component {
       searchItems[0].active = true;
     }
 
-    if (typeof maxSearchItems === 'number') {
+    if (maxSearchItems && maxSearchItems > 0) {
       searchItems = searchItems.slice(0, maxSearchItems);
     }
 
