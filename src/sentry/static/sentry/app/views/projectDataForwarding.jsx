@@ -8,6 +8,7 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/externalLink';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import PluginList from 'app/components/pluginList';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
@@ -93,6 +94,7 @@ class ProjectDataForwarding extends AsyncComponent {
   renderBody() {
     let {params, organization, project} = this.props;
     let plugins = this.forwardingPlugins;
+    let hasAccess = organization.access.includes('project:write');
 
     let pluginsPanel =
       plugins.length > 0 ? (
@@ -133,6 +135,7 @@ class ProjectDataForwarding extends AsyncComponent {
                   }
                 )}
               </TextBlock>
+              <PermissionAlert />
 
               <Alert icon="icon-circle-info">
                 {tct(
@@ -153,7 +156,7 @@ class ProjectDataForwarding extends AsyncComponent {
               )}
 
               <DataForwardingStats params={params} />
-              {hasFeature && pluginsPanel}
+              {hasAccess && hasFeature && pluginsPanel}
             </React.Fragment>
           )}
         </Feature>

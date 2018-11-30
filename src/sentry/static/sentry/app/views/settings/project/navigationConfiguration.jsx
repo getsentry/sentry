@@ -44,7 +44,6 @@ export default function getConfiguration({project}) {
         {
           path: `${pathPrefix}/data-forwarding/`,
           title: t('Data Forwarding'),
-          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/saved-searches/`,
