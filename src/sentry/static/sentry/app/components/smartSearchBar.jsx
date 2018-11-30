@@ -259,6 +259,12 @@ class SmartSearchBar extends React.Component {
       let {defaultSearchItems} = this.props;
 
       if (!defaultSearchItems.length) {
+        // Update searchTerm, otherwise <SearchDropdown> will have wrong state
+        // (e.g. if you delete a query, the last letter will be highlighted if `searchTerm`
+        // does not get updated)
+        this.setState({
+          searchTerm: query,
+        });
         return void this.updateAutoCompleteState(this.getTagKeys(''), '');
       }
 
