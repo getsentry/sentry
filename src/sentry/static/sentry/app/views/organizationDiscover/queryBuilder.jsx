@@ -220,7 +220,7 @@ export default function createQueryBuilder(initial = {}, organization) {
         ...originalQuery,
         groupby: ['time'],
         rollup: 60 * 60 * 24,
-        orderby: 'time',
+        orderby: '-time',
         limit: 1000,
       };
     }
