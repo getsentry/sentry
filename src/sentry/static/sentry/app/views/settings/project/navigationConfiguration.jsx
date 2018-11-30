@@ -36,7 +36,6 @@ export default function getConfiguration({project}) {
           path: `${pathPrefix}/environments/`,
           title: t('Environments'),
           description: t('Manage environments in a project'),
-          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/ownership/`,

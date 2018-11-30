@@ -6,6 +6,7 @@ import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -17,7 +18,7 @@ import {
 } from 'app/actionCreators/environments';
 import {t, tct} from 'app/locale';
 import {update} from 'app/actionCreators/projects';
-import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import Access from 'app/components/acl/access';
 import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
@@ -26,6 +27,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import ListLink from 'app/components/listLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import NavTabs from 'app/components/navTabs';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tag from 'app/views/settings/components/tag';
@@ -342,6 +344,7 @@ const ProjectEnvironments = createReactClass({
             </NavTabs>
           }
         />
+        <PermissionAlert />
 
         <Panel>
           <PanelHeader>
@@ -393,25 +396,31 @@ class EnvironmentRow extends React.Component {
             </Tag>
           )}
         </Flex>
-        <div>
-          {shouldShowSetDefault && (
-            <EnvironmentButton
-              size="xsmall"
-              onClick={() => this.props.onSetAsDefault(environment)}
-            >
-              {t('Set as default')}
-            </EnvironmentButton>
-          )}
+        <Access access={['project:write']}>
+          {({hasAccess}) => (
+            <div>
+              {shouldShowSetDefault && (
+                <EnvironmentButton
+                  size="xsmall"
+                  disabled={!hasAccess}
+                  onClick={() => this.props.onSetAsDefault(environment)}
+                >
+                  {t('Set as default')}
+                </EnvironmentButton>
+              )}
 
-          {shouldShowAction && (
-            <EnvironmentButton
-              size="xsmall"
-              onClick={() => this.props.onHide(environment, !isHidden)}
-            >
-              {actionText}
-            </EnvironmentButton>
+              {shouldShowAction && (
+                <EnvironmentButton
+                  size="xsmall"
+                  disabled={!hasAccess}
+                  onClick={() => this.props.onHide(environment, !isHidden)}
+                >
+                  {actionText}
+                </EnvironmentButton>
+              )}
+            </div>
           )}
-        </div>
+        </Access>
       </PanelItem>
     );
   }
