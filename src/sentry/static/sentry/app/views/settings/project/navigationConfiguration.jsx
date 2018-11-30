@@ -25,7 +25,6 @@ export default function getConfiguration({project}) {
           path: `${pathPrefix}/alerts/`,
           title: t('Alerts'),
           description: t('Manage alerts and alert rules for a project'),
-          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/tags/`,
