@@ -228,7 +228,7 @@ export default function createQueryBuilder(initial = {}, organization) {
     // If id or issue.id is present in query fields, always fetch the project.id
     // so we can generate links
     if (type === 'baseQuery') {
-      return originalQuery.fields.includes('id')
+      return originalQuery.fields.some(field => field === 'id' || field === 'issue.id')
         ? {
             ...originalQuery,
             fields: uniq([...originalQuery.fields, 'project.id']),
