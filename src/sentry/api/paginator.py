@@ -125,16 +125,32 @@ class BasePaginator(object):
             hits = None
 
         offset = cursor.offset
+        # The extra amount is needed so we can decide in the ResultCursor if there is
+        # more on the next page.
+        extra = 1
         # this effectively gets us the before row, and the current (after) row
         # every time. Do not offset if the provided cursor value was empty since
         # there is nothing to traverse past.
+        # We need to actually fetch the before row so that we can compare it to the
+        # cursor value. This allows us to handle an edge case where the first row
+        # for a given cursor is the same row that generated the cursor on the
+        # previous page, but we want to display since it has had its its sort value
+        # updated.
         if cursor.is_prev and cursor.value:
-            offset += 1
+            extra += 1
 
-        # The + 1 is needed so we can decide in the ResultCursor if there is
-        # more on the next page.
-        stop = offset + limit + 1
+        stop = offset + limit + extra
         results = list(queryset[offset:stop])
+
+        if cursor.is_prev and cursor.value:
+            # If the first result is equal to the cursor_value then it's safe to filter
+            # it out, since the value hasn't been updated
+            if results and self.get_item_key(results[0], for_prev=True) == cursor.value:
+                results = results[1:]
+            # Otherwise we may have fetched an extra row, just drop it off the end if so.
+            elif len(results) == offset + limit + extra:
+                results = results[:-1]
+
         if cursor.is_prev:
             results.reverse()
 
