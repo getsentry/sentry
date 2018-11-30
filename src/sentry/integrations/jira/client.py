@@ -22,27 +22,23 @@ def md5(*bits):
     return _md5(':'.join((force_bytes(bit, errors='replace') for bit in bits)))
 
 
-class JiraApiClient(ApiClient):
-    COMMENT_URL = '/rest/api/2/issue/%s/comment'
-    STATUS_URL = '/rest/api/2/status'
-    CREATE_URL = '/rest/api/2/issue'
-    ISSUE_URL = '/rest/api/2/issue/%s'
-    META_URL = '/rest/api/2/issue/createmeta'
-    PRIORITIES_URL = '/rest/api/2/priority'
-    PROJECT_URL = '/rest/api/2/project'
-    SEARCH_URL = '/rest/api/2/search/'
-    VERSIONS_URL = '/rest/api/2/project/%s/versions'
-    USERS_URL = '/rest/api/2/user/assignable/search'
-    SERVER_INFO_URL = '/rest/api/2/serverInfo'
-    ASSIGN_URL = '/rest/api/2/issue/%s/assignee'
-    TRANSITION_URL = '/rest/api/2/issue/%s/transitions'
+class JiraCloud(object):
+    """
+    Contains the jira-cloud specifics that a JiraClient needs
+    in order to communicate with jira
+    """
 
-    def __init__(self, base_url, shared_secret):
-        self.base_url = base_url
+    def __init__(self, shared_secret):
         self.shared_secret = shared_secret
-        super(JiraApiClient, self).__init__(verify_ssl=True)
 
-    def request(self, method, path, data=None, params=None, **kwargs):
+    @property
+    def cache_prefix(self):
+        return 'sentry-jira-2:'
+
+    def request_hook(self, method, path, data, params, **kwargs):
+        """
+        Used by Jira Client to apply the jira-cloud authentication
+        """
         # handle params that are already part of the path
         url_params = dict(parse_qs(urlsplit(path).query))
         url_params.update(params or {})
@@ -59,7 +55,45 @@ class JiraApiClient(ApiClient):
             jwt=encoded_jwt,
             **(url_params or {})
         )
-        return self._request(method, path, data=data, params=params, **kwargs)
+        request_spec = kwargs.copy()
+        request_spec.update(dict(
+            method=method,
+            path=path,
+            data=data,
+            params=params))
+        return request_spec
+
+
+class JiraApiClient(ApiClient):
+    COMMENT_URL = '/rest/api/2/issue/%s/comment'
+    STATUS_URL = '/rest/api/2/status'
+    CREATE_URL = '/rest/api/2/issue'
+    ISSUE_URL = '/rest/api/2/issue/%s'
+    META_URL = '/rest/api/2/issue/createmeta'
+    PRIORITIES_URL = '/rest/api/2/priority'
+    PROJECT_URL = '/rest/api/2/project'
+    SEARCH_URL = '/rest/api/2/search/'
+    VERSIONS_URL = '/rest/api/2/project/%s/versions'
+    USERS_URL = '/rest/api/2/user/assignable/search'
+    SERVER_INFO_URL = '/rest/api/2/serverInfo'
+    ASSIGN_URL = '/rest/api/2/issue/%s/assignee'
+    TRANSITION_URL = '/rest/api/2/issue/%s/transitions'
+
+    def __init__(self, base_url, jira_style, verify_ssl):
+        self.base_url = base_url
+        # `jira_style` encapsulates differences between jira server & jira cloud.
+        # We only support one API version for Jira, but server/cloud require different
+        # authentication mechanisms and caching.
+        self.jira_style = jira_style
+        super(JiraApiClient, self).__init__(verify_ssl)
+
+    def request(self, method, path, data=None, params=None, **kwargs):
+        """
+        Use the request_hook method for our specific style of Jira to
+        add authentication data and transform parameters.
+        """
+        request_spec = self.jira_style.request_hook(method, path, data, params, **kwargs)
+        return self._request(**request_spec)
 
     def get_cached(self, full_url):
         """
@@ -67,7 +101,7 @@ class JiraApiClient(ApiClient):
         based on URL
         TODO: Implement GET attr in cache as well. (see self.create_meta for example)
         """
-        key = 'sentry-jira-2:' + md5(full_url, self.base_url).hexdigest()
+        key = self.jira_style.cache_prefix + md5(full_url, self.base_url).hexdigest()
         cached_result = cache.get(key)
         if not cached_result:
             cached_result = self.get(full_url)
@@ -79,7 +113,7 @@ class JiraApiClient(ApiClient):
 
     def search_issues(self, query):
         # check if it looks like an issue id
-        if re.search(r'^[A-Za-z]+-\d+$', query):
+        if re.search(r'^[A-Z][A-Z0-9]+-\d+$', query):
             jql = 'id="%s"' % query.replace('"', '\\"')
         else:
             jql = 'text ~ "%s"' % query.replace('"', '\\"')
