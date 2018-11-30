@@ -85,6 +85,7 @@ class SearchBar extends React.Component {
         onGetTagValues={this.getTagValues}
         supportedTags={TagStore.getAllTags()}
         defaultSearchItems={SEARCH_ITEMS}
+        maxSearchItems={5}
       />
     );
   }

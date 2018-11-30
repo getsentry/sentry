@@ -117,3 +117,16 @@ export const doEventsRequest = (
     data: results.reduce((acc, {data}) => acc.concat(data), []),
   }));
 };
+
+/**
+ * Get all available values for a given event field name
+ * This includes tags as well.
+ */
+export function fetchEventFieldValues(api, orgId, tag, query) {
+  return api.requestPromise(`/organizations/${orgId}/tags/${tag}/values/`, {
+    data: {
+      query,
+    },
+    method: 'GET',
+  });
+}

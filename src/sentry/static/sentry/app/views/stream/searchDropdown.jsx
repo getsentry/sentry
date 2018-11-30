@@ -41,7 +41,7 @@ class SearchDropdown extends React.PureComponent {
 
   render() {
     return (
-      <div className="search-dropdown">
+      <div className={classNames('search-dropdown', this.props.className)}>
         <ul className="search-helper search-autocomplete-list">
           {this.props.loading ? (
             <li key="loading" className="search-autocomplete-item">
