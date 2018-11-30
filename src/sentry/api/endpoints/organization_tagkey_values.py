@@ -30,6 +30,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
             filter_params['end'],
             query=request.GET.get('query'),
         )
+
         return self.paginate(
             request=request,
             paginator=paginator,

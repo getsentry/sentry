@@ -30,6 +30,9 @@ from sentry.utils.dates import to_timestamp
 
 SEEN_COLUMN = 'timestamp'
 
+# columns we want to exclude from methods that return
+# all values for a given tag/column
+BLACKLISTED_COLUMNS = frozenset(['project_id'])
 
 tag_value_data_transformers = {
     'first_seen': parse_datetime,
@@ -502,6 +505,10 @@ class SnubaTagStorage(TagStorage):
         snuba_key = snuba.get_snuba_column_name(key)
 
         conditions = []
+
+        if snuba_key in BLACKLISTED_COLUMNS:
+            snuba_key = 'tags[%s]' % (key,)
+
         if query:
             conditions.append([snuba_key, 'LIKE', u'%{}%'.format(query)])
         else:
