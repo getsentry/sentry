@@ -111,23 +111,23 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return attrs
 
     def validate_orderby(self, attrs, source):
-        if attrs.get(source):
-            order_by = attrs.get(source).replace('-', '').replace('+', '')
-            fields = attrs.get('fields')
-            aggregations = attrs.get('aggregations')
+        source = attrs.get(source)
 
-            if order_by == 'timestamp' or order_by == 'time':  # timestamp query for charts
-                return attrs
-            elif aggregations and fields:
-                aggregations = set(agg[2] for agg in aggregations)
-                print(aggregations, order_by, any(order_by == agg for agg in aggregations))
+        if source:
+            order_by = source.replace('-', '') if source.startswith('-') else source
+            fields = attrs.get('fields')
+            aggregations = set(agg[2] for agg in attrs.get('aggregations')) if attrs.get('aggregations') else False
+
+            if aggregations and fields:
+                aggregations.add('time')
                 if not any(order_by == agg for agg in aggregations) and not any(order_by == field for field in fields):
-                        raise serializers.ValidationError('Invalid OrderBy - Must be in Fields or Aggregations')
+                    raise serializers.ValidationError('Invalid OrderBy - Must be in Fields or Aggregations')
             elif aggregations:
-                aggregations = set(agg[2] for agg in aggregations)
+                aggregations.add('time')
                 if not any(order_by == agg for agg in aggregations):
                     raise serializers.ValidationError('Invalid OrderBy - Must be in Fields or Aggregations')
             elif fields:
+                print('fields')
                 if not any(order_by == field for field in fields):
                     raise serializers.ValidationError('Invalid OrderBy - Must be in Fields or Aggregations')
 
@@ -151,14 +151,6 @@ class DiscoverQuerySerializer(serializers.Serializer):
         # Handle error (exception_stacks), stack(exception_frames)
         if attrs.get(source):
             conditions = [self.get_condition(condition) for condition in attrs[source]]
-            invalid_functions = [
-                condition for condition in conditions if not isinstance(
-                    condition, list)]
-            if invalid_functions:
-                raise serializers.ValidationError(
-                    u'Invalid condition function, must be list of lists - {}'.format(
-                        invalid_functions)
-                )
             attrs[source] = conditions
         return attrs
 
@@ -180,11 +172,6 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return re.search(pattern, field)
 
     def get_condition(self, condition):
-        if len(condition) != 3:
-            raise serializers.ValidationError(
-                u'Invalid condition function, must be list containing lists of length 3 - {}'.format(
-                    condition)
-            )
         array_field = self.get_array_field(condition[0])
         has_equality_operator = condition[1] in ('=', '!=')
 
