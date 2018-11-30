@@ -7,7 +7,7 @@ from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    Activity, ApiKey, ApiToken, Environment, Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
+    Activity, ApiKey, ApiToken, CommitAuthor, CommitFileChange, Environment, Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils import APITestCase
@@ -491,6 +491,104 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert len(rc_list) == 2
         for rc in rc_list:
             assert rc.organization_id
+
+    def test_commits_with_patch_set(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name='foo', organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={'organization_slug': org.slug})
+        response = self.client.post(
+            url,
+            data={
+                "version": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b",
+                "projects": [project.slug],
+                "commits": [
+                    {
+                        "patch_set": [{"path": "hello.py", "type": "M"}],
+                        "repository": "laurynsentry/helloworld",
+                        "author_email": "lauryndbrown@gmail.com",
+                        "timestamp": "2018-11-29T18:50:28+03:00",
+                        "author_name": "Lauryn Brown",
+                        "message": "made changes to hello.",
+                        "id": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b"
+                    }, {
+                        "patch_set": [{"path": "templates/hello.html", "type": "M"}],
+                        "repository": "laurynsentry/helloworld",
+                        "author_email": "lauryndbrown@gmail.com",
+                        "timestamp": "2018-11-30T22:51:14+03:00",
+                        "author_name": "Lauryn Brown",
+                        "message": "Changed release",
+                        "id": "be2fe070f6d1b8a572b67defc87af2582f9b0d78"
+                    }
+                ]
+            }
+        )
+
+        assert response.status_code == 201, (response.status_code, response.content)
+        assert response.data['version']
+
+        release = Release.objects.get(
+            organization_id=org.id,
+            version=response.data['version'],
+        )
+
+        repo = Repository.objects.get(
+            organization_id=org.id,
+            name='laurynsentry/helloworld',
+        )
+        assert repo.provider is None
+
+        rc_list = list(
+            ReleaseCommit.objects.filter(
+                release=release,
+            ).select_related('commit', 'commit__author').order_by('order')
+        )
+        assert len(rc_list) == 2
+        for rc in rc_list:
+            assert rc.organization_id
+
+        author = CommitAuthor.objects.get(
+            organization_id=org.id,
+            email='lauryndbrown@gmail.com'
+        )
+        assert author.name == 'Lauryn Brown'
+
+        commits = [rc.commit for rc in rc_list]
+        commits.sort(key=lambda c: c.date_added)
+
+        assert commits[0].organization_id == org.id
+        assert commits[0].repository_id == repo.id
+        assert commits[0].key == '2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b'
+        assert commits[0].author_id == author.id
+        assert commits[0].message == 'made changes to hello.'
+
+        assert commits[1].organization_id == org.id
+        assert commits[1].repository_id == repo.id
+        assert commits[1].key == 'be2fe070f6d1b8a572b67defc87af2582f9b0d78'
+        assert commits[1].author_id == author.id
+        assert commits[1].message == 'Changed release'
+
+        file_changes = CommitFileChange.objects.filter(
+            organization_id=org.id
+        )
+
+        file_change = file_changes[0]
+        assert file_change.type == 'M'
+        assert file_change.filename == 'hello.py'
+        assert file_change.commit_id == commits[0].id
+
+        file_change = file_changes[1]
+        assert file_change.type == 'M'
+        assert file_change.filename == 'templates/hello.html'
+        assert file_change.commit_id == commits[1].id
 
     @patch('sentry.tasks.commits.fetch_commits')
     def test_commits_from_provider(self, mock_fetch_commits):
