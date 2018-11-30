@@ -301,9 +301,9 @@ class SmartSearchBar extends React.Component {
 
       // filter existing items immediately, until API can return
       // with actual tag value results
-      let filteredSearchItems = this.state.searchItems.filter(
-        item => query && item.value.indexOf(query) !== -1
-      );
+      let filteredSearchItems = !query
+        ? this.state.searchItems
+        : this.state.searchItems.filter(item => item.value.indexOf(query) !== -1);
 
       this.setState({
         searchTerm: query,

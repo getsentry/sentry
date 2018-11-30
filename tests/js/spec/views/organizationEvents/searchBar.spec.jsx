@@ -91,6 +91,20 @@ describe('SearchBar', function() {
     expect(wrapper.find('input').prop('value')).toBe('gpu:"Nvidia 1080ti" ');
   });
 
+  it('does not requery for event field values if query does not change', async function() {
+    let wrapper = await mount(<SearchBar {...props} />, options);
+    setQuery(wrapper, 'gpu:');
+
+    expect(tagValuesMock).toHaveBeenCalledTimes(1);
+
+    // Click will fire "updateAutocompleteItems"
+    wrapper.find('input').simulate('click');
+
+    await tick();
+    wrapper.update();
+    expect(tagValuesMock).toHaveBeenCalledTimes(1);
+  });
+
   it('removes highlight when query is empty', async function() {
     let wrapper = await mount(<SearchBar {...props} />, options);
     setQuery(wrapper, 'gpu');
