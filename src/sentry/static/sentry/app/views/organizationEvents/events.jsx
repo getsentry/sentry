@@ -83,17 +83,31 @@ class OrganizationEvents extends AsyncView {
     return parseRowFromLinks(eventsPageLinks, events.length);
   }
 
+  renderError() {
+    return this.renderBody();
+  }
+
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderBody() {
     const {organization} = this.props;
-    const {reloading, events, eventsPageLinks} = this.state;
+    const {loading, reloading, events, eventsPageLinks} = this.state;
 
     return (
       <React.Fragment>
+        {this.state.error && super.renderError()}
         <Panel>
-          <EventsChart organization={organization} />
+          <EventsChart loading={loading || reloading} organization={organization} />
         </Panel>
 
-        <EventsTable reloading={reloading} events={events} organization={organization} />
+        <EventsTable
+          loading={!reloading && loading}
+          reloading={reloading}
+          events={events}
+          organization={organization}
+        />
 
         <Flex align="center" justify="space-between">
           <RowDisplay>

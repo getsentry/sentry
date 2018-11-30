@@ -2,7 +2,7 @@ import {mount} from 'enzyme';
 import React from 'react';
 
 import {doEventsRequest} from 'app/actionCreators/events';
-import {EventsRequestWithParams} from 'app/views/organizationEvents/utils/eventsRequest';
+import EventsRequest from 'app/views/organizationEvents/utils/eventsRequest';
 
 const COUNT_OBJ = {
   count: 123,
@@ -38,9 +38,7 @@ describe('EventsRequest', function() {
           data: [[new Date(), [COUNT_OBJ]]],
         })
       );
-      wrapper = mount(
-        <EventsRequestWithParams {...DEFAULTS}>{mock}</EventsRequestWithParams>
-      );
+      wrapper = mount(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
     });
 
     it('makes requests', async function() {
@@ -130,9 +128,9 @@ describe('EventsRequest', function() {
         })
       );
       wrapper = mount(
-        <EventsRequestWithParams {...DEFAULTS} includePrevious={true}>
+        <EventsRequest {...DEFAULTS} includePrevious={true}>
           {mock}
-        </EventsRequestWithParams>
+        </EventsRequest>
       );
 
       await tick();
@@ -205,9 +203,9 @@ describe('EventsRequest', function() {
       );
 
       wrapper = mount(
-        <EventsRequestWithParams {...DEFAULTS} includeTimeseries={true}>
+        <EventsRequest {...DEFAULTS} includeTimeseries={true}>
           {mock}
-        </EventsRequestWithParams>
+        </EventsRequest>
       );
 
       await tick();
@@ -244,13 +242,13 @@ describe('EventsRequest', function() {
       );
 
       wrapper = mount(
-        <EventsRequestWithParams
+        <EventsRequest
           {...DEFAULTS}
           includeTimeseries={true}
           getCategory={() => 'static-category'}
         >
           {mock}
-        </EventsRequestWithParams>
+        </EventsRequest>
       );
 
       await tick();
