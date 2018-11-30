@@ -67,8 +67,8 @@ SENTRY_SNUBA_MAP = {
     # error, stack
     'error.type': 'exception_stacks.type',
     'error.value': 'exception_stacks.value',
-    'error.mechanism_type': 'exception_stacks.mechanism_type',
-    'error.mechanism_handled': 'exception_stacks.mechanism_handled',
+    'error.mechanism': 'exception_stacks.mechanism_type',
+    'error.handled': 'exception_stacks.mechanism_handled',
     'stack.abs_path': 'exception_frames.abs_path',
     'stack.filename': 'exception_frames.filename',
     'stack.package': 'exception_frames.package',
