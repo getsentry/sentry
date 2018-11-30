@@ -13,7 +13,7 @@ export const PROMOTED_TAGS = [
   'environment',
   'site',
   'url',
-  'app_device',
+  'app.device',
   'device',
   'device.family',
   'runtime',
