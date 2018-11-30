@@ -19,7 +19,6 @@ export default function getConfiguration({project}) {
           path: `${pathPrefix}/teams/`,
           title: t('Project Teams'),
           description: t('Manage team access for a project'),
-          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/alerts/`,
