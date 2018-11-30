@@ -10,4 +10,8 @@ from sentry.models import Group
 def resource_changed(sender, instance, created, **kwargs):
     if created:
         from sentry.tasks.servicehooks import process_resource_change
-        process_resource_change.delay(sender, instance.id)
+
+        process_resource_change.delay(
+            sender=sender.__name__,
+            instance_id=instance.id,
+        )
