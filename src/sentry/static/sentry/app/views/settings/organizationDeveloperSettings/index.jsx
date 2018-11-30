@@ -17,7 +17,6 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import {t} from 'app/locale';
 import styled from 'react-emotion';
 import space from 'app/styles/space';
-import {withTheme} from 'emotion-theming';
 
 const api = new Client();
 
@@ -187,11 +186,7 @@ const SentryAppName = styled('div')`
   margin-bottom: 3px;
 `;
 
-const StyledInstallButton = styled(
-  withTheme(({...props}) => {
-    return <Button {...props}>{t('Install')}</Button>;
-  })
-)`
+const StyledInstallButton = styled(props => <Button {...props}>{t('Install')}</Button>)`
   margin-right: ${space(1)};
 `;
 
@@ -200,15 +195,13 @@ const StyledLink = styled(Link)`
   color: ${props => props.theme.textColor};
 `;
 
-const Status = styled(
-  withTheme(({published, ...props}) => {
-    return (
-      <Flex align="center">
-        <div {...props}>{published ? t('published') : t('unpublished')}</div>
-      </Flex>
-    );
-  })
-)`
+const Status = styled(({published, ...props}) => {
+  return (
+    <Flex align="center">
+      <div {...props}>{published ? t('published') : t('unpublished')}</div>
+    </Flex>
+  );
+})`
   color: ${props => (props.published ? props.theme.success : props.theme.gray2)};
   margin-left: ${space(0.5)};
   font-weight: light;
