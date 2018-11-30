@@ -4,6 +4,9 @@ import {mount} from 'enzyme';
 import Condition from 'app/views/organizationDiscover/conditions/condition';
 
 describe('Condition', function() {
+  afterEach(function() {
+    jest.clearAllMocks();
+  });
   describe('render()', function() {
     it('renders text', function() {
       const data = [
@@ -92,10 +95,6 @@ describe('Condition', function() {
       );
     });
 
-    afterEach(function() {
-      jest.clearAllMocks();
-    });
-
     it('handles valid final conditions', function() {
       const conditionList = [
         'col1 = test',
@@ -117,6 +116,28 @@ describe('Condition', function() {
         expect(onChangeMock).not.toHaveBeenCalled();
         expect(focusSpy).toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('handleBlur()', function() {
+    let wrapper;
+    let onChangeMock = jest.fn();
+    beforeEach(function() {
+      const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
+      wrapper = mount(
+        <Condition value={[null, null, null]} onChange={onChangeMock} columns={columns} />
+      );
+    });
+    it('valid condition', function() {
+      const condition = 'col1 IS NULL';
+      wrapper.instance().handleBlur({target: {value: condition}});
+      expect(onChangeMock).toHaveBeenCalledWith(['col1', 'IS NULL', null]);
+    });
+
+    it('invalid condition', function() {
+      const condition = 'col1 -';
+      wrapper.instance().handleBlur({target: {value: condition}});
+      expect(onChangeMock).not.toHaveBeenCalled();
     });
   });
 });
