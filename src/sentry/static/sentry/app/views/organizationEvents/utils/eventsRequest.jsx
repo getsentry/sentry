@@ -2,7 +2,9 @@ import {isEqual, omitBy} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {doEventsRequest} from 'app/actionCreators/events';
+import {t} from 'app/locale';
 import LoadingPanel from 'app/views/organizationHealth/loadingPanel';
 import SentryTypes from 'app/sentryTypes';
 
@@ -125,12 +127,18 @@ class EventsRequest extends React.Component {
 
   fetchData = async () => {
     const {api, ...props} = this.props;
+    let timeseriesData;
 
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
     }));
 
-    const timeseriesData = await doEventsRequest(api, props);
+    try {
+      timeseriesData = await doEventsRequest(api, props);
+    } catch (err) {
+      addErrorMessage(t('Error loading chart data'));
+      timeseriesData = null;
+    }
 
     if (this.unmounting) return;
 
