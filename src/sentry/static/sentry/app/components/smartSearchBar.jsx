@@ -180,9 +180,11 @@ class SmartSearchBar extends React.Component {
     const {supportedTags} = this.props;
 
     // Return all if query is empty
-    const tagKeys = Object.keys(supportedTags)
-      .map(key => `${key}:`)
-      .filter(key => (query ? key.indexOf(query) > -1 : true));
+    let tagKeys = Object.keys(supportedTags).map(key => `${key}:`);
+
+    if (query) {
+      tagKeys = tagKeys.filter(key => key.indexOf(query) > -1);
+    }
 
     // If the environment feature is active and excludeEnvironment = true
     // then remove the environment key
