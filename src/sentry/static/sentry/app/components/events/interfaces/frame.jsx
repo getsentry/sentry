@@ -127,7 +127,23 @@ const Frame = createReactClass({
     // TODO(dcramer): this needs to use a formatted string so it can be
     // localized correctly
 
+    if (defined(data.function)) {
+      title.push(
+        <code key="function" className="function">
+          {data.function}
+        </code>
+      );
+    }
+
     if (defined(data.filename || data.module)) {
+      if (defined(data.function)) {
+        title.push(
+          <span className="in-at" key="in">
+            {' '}
+            in{' '}
+          </span>
+        );
+      }
       // prioritize module name for Java as filename is often only basename
       let shouldPrioritizeModuleName = this.shouldPrioritizeModuleName();
       let pathName = shouldPrioritizeModuleName
@@ -163,22 +179,6 @@ const Frame = createReactClass({
           />
         );
       }
-      if (defined(data.function)) {
-        title.push(
-          <span className="in-at" key="in">
-            {' '}
-            in{' '}
-          </span>
-        );
-      }
-    }
-
-    if (defined(data.function)) {
-      title.push(
-        <code key="function" className="function">
-          {data.function}
-        </code>
-      );
     }
 
     // we don't want to render out zero line numbers which are used to
