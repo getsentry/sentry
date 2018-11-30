@@ -20,6 +20,21 @@ describe('RadioGroup', function() {
       expect(wrapper).toMatchSnapshot();
     });
 
+    it('renders disabled', function() {
+      const wrapper = mount(
+        <RadioGroup
+          name="radio"
+          value="choice_one"
+          disabled={true}
+          choices={[['choice_one', 'Choice One']]}
+        />
+      );
+      expect(wrapper).toMatchSnapshot();
+
+      expect(wrapper.find('RadioLineText').props().disabled).toBe(true);
+      expect(wrapper.find('RadioLineButtonFill').props().disabled).toBe(true);
+    });
+
     it('can select a different item', function() {
       const wrapper = shallow(
         <RadioGroup
