@@ -7,7 +7,9 @@ from mock import patch
 
 from sentry.models import Group
 from sentry.testutils import TestCase
-from sentry.tasks.servicehooks import get_payload_v0, process_service_hook
+from sentry.tasks.servicehooks import (
+    get_payload_v0, process_service_hook, process_resource_change
+)
 from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
 
@@ -101,4 +103,9 @@ class TestServiceHooks(TestCase):
         group.update(last_seen=datetime.now())
 
         # Only called once for the create, not also for the update.
-        delay.assert_called_once_with(Group, group.id)
+        delay.assert_called_once_with(sender='Group', instance_id=group.id)
+
+    @patch('sentry.tasks.servicehooks.safe_urlopen')
+    def test_handles_previous_method_signature(self, safe_urlopen):
+        group = self.create_group(project=self.project)
+        process_resource_change(Group, group.id, True)  # Doesn't raise
