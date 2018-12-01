@@ -40,3 +40,9 @@ EXAMPLE_ISSUE_SEARCH = '''
   ]
 }
 '''
+
+EXAMPLE_USER_SEARCH_RESPONSE = """
+[
+    {"name": "bob", "displayName": "Bobby", "emailAddress": "bob@example.org"}
+]
+"""

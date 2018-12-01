@@ -16,6 +16,7 @@ from sentry.utils.http import absolute_uri
 
 
 JIRA_KEY = '%s.jira' % (urlparse(absolute_uri()).hostname, )
+ISSUE_KEY_RE = re.compile(r'^[A-Z][A-Z0-9]*-\d+$')
 
 
 def md5(*bits):
@@ -113,7 +114,7 @@ class JiraApiClient(ApiClient):
 
     def search_issues(self, query):
         # check if it looks like an issue id
-        if re.search(r'^[A-Z][A-Z0-9]+-\d+$', query):
+        if ISSUE_KEY_RE.match(query):
             jql = 'id="%s"' % query.replace('"', '\\"')
         else:
             jql = 'text ~ "%s"' % query.replace('"', '\\"')
@@ -124,6 +125,15 @@ class JiraApiClient(ApiClient):
 
     def get_projects_list(self):
         return self.get_cached(self.PROJECT_URL)
+
+    def get_project_key_for_id(self, project_id):
+        if not project_id:
+            return ''
+        projects = self.get_projects_list()
+        for project in projects:
+            if project['id'] == project_id:
+                return project['key'].encode('utf-8')
+        return ''
 
     def get_create_meta(self, project=None):
         params = {'expand': 'projects.issuetypes.fields'}
@@ -156,10 +166,14 @@ class JiraApiClient(ApiClient):
         return self.get_cached(self.PRIORITIES_URL)
 
     def get_users_for_project(self, project):
-        return self.get(self.USERS_URL, params={'project': project})
+        # Jira Server wants a project key, while cloud is indifferent.
+        project_key = self.get_project_key_for_id(project)
+        return self.get(self.USERS_URL, params={'project': project_key})
 
     def search_users_for_project(self, project, username):
-        return self.get(self.USERS_URL, params={'project': project, 'username': username})
+        # Jira Server wants a project key, while cloud is indifferent.
+        project_key = self.get_project_key_for_id(project)
+        return self.get(self.USERS_URL, params={'project': project_key, 'username': username})
 
     def search_users_for_issue(self, issue_key, email):
         # not actully in the official documentation, but apparently
