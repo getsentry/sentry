@@ -161,7 +161,7 @@ class Search extends React.Component {
           highlightedIndex,
           onChange,
         }) => {
-          let searchQuery = inputValue.toLowerCase();
+          let searchQuery = inputValue.toLowerCase().trim();
           let isValidSearch = inputValue.length >= minSearch;
 
           this.saveQueryMetrics(searchQuery);
