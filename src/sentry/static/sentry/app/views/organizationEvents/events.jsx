@@ -119,12 +119,10 @@ class OrganizationEvents extends AsyncView {
 
         <EventsTable reloading={reloading} events={events} organization={organization} />
 
-        <div>
-          <RowDisplay>{`rows ${this.renderRowCounts()}`}</RowDisplay>
-          <PaginationWrapper>
-            <Pagination pageLinks={eventsPageLinks} />
-          </PaginationWrapper>
-        </div>
+        <Flex align="center" justify="space-between">
+          <RowDisplay>{t(`Results ${this.renderRowCounts()}`)}</RowDisplay>
+          <Pagination pageLinks={eventsPageLinks} />
+        </Flex>
       </React.Fragment>
     );
   }
@@ -144,16 +142,7 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const RowDisplay = styled('div')`
-  color: #afa3bb;
-  float: left;
-  margin: 20px 0 0 0;
-  padding: 10px 0;
-`;
-
-const PaginationWrapper = styled('div')`
-  width: 60%;
-  display: inline-block;
-  float: right;
+  color: ${p => p.theme.gray6};
 `;
 
 export default withOrganization(OrganizationEvents);
