@@ -1,29 +1,22 @@
 import {Box, Flex} from 'grid-emotion';
 import React from 'react';
-import createReactClass from 'create-react-class';
-import {browserHistory} from 'react-router';
-import {omit, isEqual} from 'lodash';
-import qs from 'query-string';
+import idx from 'idx';
 import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
-import ActionLink from 'app/components/actions/actionLink';
+import Access from 'app/components/acl/access';
+import AsyncComponent from 'app/components/asyncComponent';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import FileSize from 'app/components/fileSize';
-import InlineSvg from 'app/components/inlineSvg';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import Tooltip from 'app/components/tooltip';
-import OrganizationState from 'app/mixins/organizationState';
+import Pagination from 'app/components/pagination';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import Tag from 'app/views/settings/components/tag';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TimeSince from 'app/components/timeSince';
-import Pagination from 'app/components/pagination';
-import SearchBar from 'app/components/searchBar';
-import LinkWithConfirmation from 'app/components/linkWithConfirmation';
-import Tag from 'app/views/settings/components/tag';
+import Tooltip from 'app/components/tooltip';
 import space from 'app/styles/space';
 
 function getFileType(dsym) {
@@ -62,70 +55,18 @@ const DebugSymbolDetails = styled.div`
   margin-top: 4px;
 `;
 
-const ProjectDebugSymbols = createReactClass({
-  displayName: 'ProjectDebugSymbols',
-  mixins: [ApiMixin, OrganizationState],
-
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      debugFiles: [],
-      query: {query: ''},
-      pageLinks: '',
-    };
-  },
-
-  componentDidMount() {
-    this.fetchData();
-  },
-
-  componentWillReceiveProps(nextProps) {
-    const searchHasChanged = !isEqual(
-      omit(qs.parse(nextProps.location.search)),
-      omit(qs.parse(this.props.location.search))
-    );
-
-    if (searchHasChanged) {
-      const queryParams = nextProps.location.query;
-      this.setState(
-        {
-          query: queryParams,
-        },
-        this.fetchData
-      );
-    }
-  },
-
-  fetchData() {
+class ProjectDebugSymbols extends AsyncComponent {
+  getEndpoints() {
     const {orgId, projectId} = this.props.params;
-    const query = {
-      per_page: 20,
-      ...this.state.query,
-    };
 
-    this.setState({
-      loading: true,
-    });
-
-    this.api.request(`/projects/${orgId}/${projectId}/files/dsyms/`, {
-      query,
-      success: (data, _, jqXHR) => {
-        this.setState({
-          error: false,
-          loading: false,
-          debugFiles: data,
-          pageLinks: jqXHR.getResponseHeader('Link'),
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      },
-    });
-  },
+    return [
+      [
+        'debugFiles',
+        `/projects/${orgId}/${projectId}/files/dsyms/`,
+        {query: {query: idx(this.props, p => p.location.query.query)}},
+      ],
+    ];
+  }
 
   onDelete(id) {
     const {orgId, projectId} = this.props.params;
@@ -136,22 +77,7 @@ const ProjectDebugSymbols = createReactClass({
       method: 'DELETE',
       complete: () => this.fetchData(),
     });
-  },
-
-  onSearch(query) {
-    let targetQueryParams = {};
-    if (query !== '') targetQueryParams.query = query;
-
-    let {orgId, projectId} = this.props.params;
-    browserHistory.push({
-      pathname: `/settings/${orgId}/${projectId}/debug-symbols/`,
-      query: targetQueryParams,
-    });
-  },
-
-  renderLoading() {
-    return <LoadingIndicator />;
-  },
+  }
 
   renderNoQueryResults() {
     return (
@@ -159,7 +85,7 @@ const ProjectDebugSymbols = createReactClass({
         <p>{t('Sorry, no releases match your filters.')}</p>
       </EmptyStateWarning>
     );
-  },
+  }
 
   renderEmpty() {
     return (
@@ -167,11 +93,10 @@ const ProjectDebugSymbols = createReactClass({
         <p>{t('There are no debug symbols for this project.')}</p>
       </EmptyStateWarning>
     );
-  },
+  }
 
   renderDsyms() {
     let {orgId, projectId} = this.props.params;
-    let access = this.getAccess();
 
     let rows = this.state.debugFiles.map((dsym, key) => {
       let url = `${this.api
@@ -218,84 +143,75 @@ const ProjectDebugSymbols = createReactClass({
             </DebugSymbolDetails>
           </Box>
 
-          <Box className="text-right">
-            <ActionLink
-              onAction={() => (window.location = url)}
-              className="btn btn-default btn-sm"
-              disabled={!access.has('project:write')}
-              css={{
-                marginRight: space(0.5),
-              }}
-            >
-              <InlineSvg src="icon-download" /> {t('Download')}
-            </ActionLink>
-            <LinkWithConfirmation
-              className="btn btn-danger btn-sm"
-              disabled={!access.has('project:write')}
-              title={t('Delete')}
-              message={t('Are you sure you wish to delete this file?')}
-              onConfirm={() => this.onDelete(dsym.id)}
-            >
-              <InlineSvg src="icon-trash" />
-            </LinkWithConfirmation>
-          </Box>
+          <Access access={['project:write']}>
+            {({hasAccess}) => (
+              <Box>
+                <Button
+                  size="xsmall"
+                  icon="icon-download"
+                  onClick={() => (window.location = url)}
+                  disabled={!hasAccess}
+                  css={{
+                    marginRight: space(0.5),
+                  }}
+                >
+                  {t('Download')}
+                </Button>
+                <Confirm
+                  title={t('Delete')}
+                  message={t('Are you sure you wish to delete this file?')}
+                  disabled={!hasAccess}
+                  onConfirm={() => this.onDelete(dsym.id)}
+                >
+                  <Button
+                    priority="danger"
+                    icon="icon-trash"
+                    size="xsmall"
+                    disabled={!hasAccess}
+                  />
+                </Confirm>
+              </Box>
+            )}
+          </Access>
         </PanelItem>
       );
     });
 
     return rows;
-  },
+  }
 
-  renderStreamBody() {
-    let body;
+  renderDebugSymbols() {
+    return this.state.debugFiles.length > 0 ? this.renderDsyms() : this.renderEmpty();
+  }
 
-    if (this.state.loading) body = this.renderLoading();
-    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.debugFiles.length > 0) body = this.renderDsyms();
-    else if (this.state.query && this.state.query.query !== '')
-      body = this.renderNoQueryResults();
-    else body = this.renderEmpty();
-
-    return body;
-  },
-
-  render() {
+  renderBody() {
     return (
       <React.Fragment>
         <SettingsPageHeader title={t('Debug Information Files')} />
         <TextBlock>
-          {t(
-            `
+          {t(`
           Here you can find all your uploaded debug information files (dSYMs, ProGuard, Breakpad ...).
           This is used to convert addresses and minified function names from crash dumps
-          into function names and locations.
-        `
-          )}
+          into function names and locations.`)}
         </TextBlock>
-
-        <div className="row m-b-1">
-          <div className="col-sm-7" />
-          <div className="col-sm-5">
-            <SearchBar
-              defaultQuery=""
-              placeholder={t('Search for a DIF')}
-              query={this.state.query.query}
-              onSearch={this.onSearch}
-            />
-          </div>
-        </div>
         <Panel>
-          <PanelHeader>
+          <PanelHeader hasButtons>
             <Box w={4.5 / 12}>{t('Debug ID')}</Box>
             <Box flex="1">{t('Name')}</Box>
-            <Box flex="1" />
+            <Box>
+              {this.renderSearchInput({
+                updateRoute: true,
+                placeholder: t('Search DIFs'),
+                className: 'search',
+              })}
+            </Box>
           </PanelHeader>
-          <PanelBody>{this.renderStreamBody()}</PanelBody>
+          <PanelBody>{this.renderDebugSymbols()}</PanelBody>
         </Panel>
-        <Pagination pageLinks={this.state.pageLinks} />
+        <Pagination pageLinks={this.state.debugFilesPageLinks} />
       </React.Fragment>
     );
-  },
-});
+  }
+}
 
 export default ProjectDebugSymbols;
