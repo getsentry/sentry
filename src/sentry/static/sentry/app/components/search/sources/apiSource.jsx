@@ -86,6 +86,34 @@ async function createMemberResults(membersPromise, orgId) {
   }));
 }
 
+async function createLegacyIntegrationResults(pluginsPromise, orgId) {
+  let plugins = (await pluginsPromise) || [];
+  return plugins.map(plugin => ({
+    title: `${plugin.name} (Legacy)`,
+    description: plugin.description,
+    model: plugin,
+    sourceType: 'plugin',
+    resultType: 'integration',
+    to: `/settings/${orgId}/:projectId/plugins/${plugin.id}/`,
+  }));
+}
+
+async function createIntegrationResults(integrationsPromise, orgId) {
+  let {providers} = (await integrationsPromise) || {};
+  return (
+    (providers &&
+      providers.map(provider => ({
+        title: provider.name,
+        description: provider.metadata.description,
+        model: provider,
+        sourceType: 'integration',
+        resultType: 'integration',
+        to: `/settings/${orgId}/integrations/`,
+      }))) ||
+    []
+  );
+}
+
 async function createShortIdLookupResult(shortIdLookupPromise) {
   let shortIdLookup = await shortIdLookupPromise;
   if (!shortIdLookup) return null;
@@ -186,6 +214,8 @@ class ApiSource extends React.Component {
         `/organizations/${orgId}/projects/`,
         `/organizations/${orgId}/teams/`,
         `/organizations/${orgId}/members/`,
+        `/organizations/${orgId}/plugins/?plugins=_all`,
+        `/organizations/${orgId}/config/integrations/`,
       ];
 
       directUrls = [
@@ -249,11 +279,18 @@ class ApiSource extends React.Component {
     //
     // This isn't particularly helpful in its current form because we still wait for all requests to finish before
     // updating state, but you could potentially optimize rendering direct results before all requests are finished.
-    let [organizations, projects, teams, members] = searchRequests;
+    let [organizations, projects, teams, members, plugins, integrations] = searchRequests;
     let [shortIdLookup, eventIdLookup] = directRequests;
 
     let [searchResults, directResults] = await Promise.all([
-      this.getSearchableResults([organizations, projects, teams, members]),
+      this.getSearchableResults([
+        organizations,
+        projects,
+        teams,
+        members,
+        plugins,
+        integrations,
+      ]),
       this.getDirectResults([shortIdLookup, eventIdLookup]),
     ]);
 
@@ -274,13 +311,15 @@ class ApiSource extends React.Component {
   async getSearchableResults(requests) {
     let {params, organization} = this.props;
     let orgId = (params && params.orgId) || (organization && organization.slug);
-    let [organizations, projects, teams, members] = requests;
+    let [organizations, projects, teams, members, plugins, integrations] = requests;
     let searchResults = flatten(
       await Promise.all([
         createOrganizationResults(organizations),
         createProjectResults(projects, orgId),
         createTeamResults(teams, orgId),
         createMemberResults(members, orgId),
+        createLegacyIntegrationResults(plugins, orgId),
+        createIntegrationResults(integrations, orgId),
       ])
     );
 
