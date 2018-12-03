@@ -287,9 +287,12 @@ class GoogleCloudStorage(Storage):
         return cleaned_name
 
     def delete(self, name):
-        name = self._normalize_name(clean_name(name))
+        def _try_delete():
+            normalized_name = self._normalize_name(clean_name(name))
+            self.bucket.delete_blob(self._encode_name(normalized_name))
+
         try:
-            self.bucket.delete_blob(self._encode_name(name))
+            try_repeated(_try_delete)
         except NotFound:
             pass
 
