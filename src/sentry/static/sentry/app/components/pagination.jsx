@@ -10,6 +10,7 @@ export default class Pagination extends React.Component {
     pageLinks: PropTypes.string,
     to: PropTypes.string,
     onCursor: PropTypes.func,
+    className: PropTypes.string,
   };
 
   static contextTypes = {
@@ -24,10 +25,11 @@ export default class Pagination extends React.Component {
         query,
       });
     },
+    className: 'stream-pagination',
   };
 
   render() {
-    let {onCursor, pageLinks} = this.props;
+    let {className, onCursor, pageLinks} = this.props;
     if (!pageLinks) {
       return null;
     }
@@ -49,7 +51,7 @@ export default class Pagination extends React.Component {
     }
 
     return (
-      <div className="stream-pagination clearfix">
+      <div className={'clearfix' + (className ? ` ${className}` : '')}>
         <div className="btn-group pull-right">
           <a
             onClick={() => {
