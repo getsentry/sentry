@@ -84,7 +84,7 @@ export const fields = {
           {name}
         </PlatformWrapper>,
       ]),
-    help: t('The primary platform for this project'),
+    help: t('The primary platform for this project, used purely for aesthetics'),
   },
 
   subjectPrefix: {
