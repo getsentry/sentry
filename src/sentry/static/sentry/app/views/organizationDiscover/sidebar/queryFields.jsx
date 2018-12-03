@@ -27,6 +27,20 @@ export default class QueryFields extends React.Component {
     onUpdateName: PropTypes.func,
   };
 
+  constructor(props) {
+    super(props);
+
+    let orderby = this.props.queryBuilder.getInternal().orderby;
+    const desc = orderby.startsWith('-') ? 'desc' : 'asc';
+    orderby = orderby.replace(/^-/, '');
+
+    this.state = {
+      orderby,
+      order: desc,
+    };
+    console.log("state: ", this.state);
+  }
+
   getSummarizePlaceholder = () => {
     const {queryBuilder} = this.props;
     const query = queryBuilder.getInternal();
@@ -45,6 +59,20 @@ export default class QueryFields extends React.Component {
       </Flex>
     );
   };
+
+  updateOrderBy(field, value) {
+    console.log('update orderby() field, value:', field, value)
+    let orderby;
+    if (value === 'desc' || value === 'asc') {
+      this.setState({order: value})
+      orderby = value === 'desc' ? '-'.concat(this.state.orderby) : this.state.orderby;
+      this.props.onUpdateField('orderby', orderby);
+    } else if (field === 'orderby') {
+      orderby = this.state.order === 'desc' ? '-'.concat(value) : value;
+      this.setState({orderby});
+      this.props.onUpdateField('orderby', orderby);
+    }
+  }
 
   render() {
     const {
@@ -69,6 +97,8 @@ export default class QueryFields extends React.Component {
       label: name,
       isTag,
     }));
+
+    console.log(currentQuery);
 
     return (
       <div>
@@ -128,8 +158,17 @@ export default class QueryFields extends React.Component {
             label={t('Order By')}
             placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
             options={getOrderByOptions(queryBuilder)}
-            value={currentQuery.orderby}
-            onChange={val => onUpdateField('orderby', val.value)}
+            value={this.state.orderby}
+            onChange={val => this.updateOrderBy('orderby', val.value)}
+            disabled={isLoading}
+          />
+          <SelectControl
+            name="orderby"
+            label={t('asc')}
+            placeholder={<PlaceholderText>{t('asc or desc')}</PlaceholderText>}
+            options={[{name: 'asc', label: 'asc'}, {name: 'desc', label: 'desc'}]}
+            value={this.state.order}
+            onChange={val => this.updateOrderBy('asc_desc', val.name)}
             disabled={isLoading}
           />
         </Fieldset>

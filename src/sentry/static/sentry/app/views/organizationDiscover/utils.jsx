@@ -67,8 +67,8 @@ export function getOrderByOptions(queryBuilder) {
 
     return [
       ...acc,
-      {value: name, label: `${name} asc`},
-      {value: `-${name}`, label: `${name} desc`},
+      {value: name, label: name},
+      // {value: `-${name}`, label: `${name} desc`},
     ];
   }, []);
 
