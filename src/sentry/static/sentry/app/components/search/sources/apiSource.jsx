@@ -89,7 +89,7 @@ async function createMemberResults(membersPromise, orgId) {
 async function createLegacyIntegrationResults(pluginsPromise, orgId) {
   let plugins = (await pluginsPromise) || [];
   return plugins.map(plugin => ({
-    title: plugin.name,
+    title: `${plugin.name} (Legacy)`,
     description: plugin.description,
     model: plugin,
     sourceType: 'plugin',
