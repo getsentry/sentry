@@ -711,7 +711,7 @@ class Fixtures(object):
     def create_sentry_app(self, name=None, organization=None, published=False, scopes=(),
                           webhook_url=None, **kwargs):
         if not name:
-            name = 'Test App'
+            name = petname.Generate(2, ' ', letters=10).title()
         if not organization:
             organization = self.create_organization()
         if not webhook_url:

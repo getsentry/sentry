@@ -9,7 +9,7 @@ from sentry.api.bases.sentryapps import (
     SentryAppInstallationPermission,
     SentryAppInstallationBaseEndpoint,
 )
-from sentry.mediators.sentry_app_installations import Creator as SentryAppInstallationCreator
+from sentry.mediators import sentry_app_installations
 
 
 class SentryAppPermissionTest(TestCase):
@@ -71,7 +71,7 @@ class SentryAppInstallationPermissionTest(TestCase):
             organization=self.org,
         )
 
-        self.installation = SentryAppInstallationCreator.run(
+        self.installation = sentry_app_installations.Creator.run(
             slug=self.sentry_app.slug,
             organization=self.org,
             user=self.user,
@@ -120,7 +120,7 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
             organization=self.org,
         )
 
-        self.installation = SentryAppInstallationCreator.run(
+        self.installation = sentry_app_installations.Creator.run(
             slug=self.sentry_app.slug,
             organization=self.org,
             user=self.user,

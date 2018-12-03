@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
 import six
+import pytz
 
 from datetime import datetime, timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
-from sentry.mediators.sentry_app_installations import Creator as \
-    SentryAppInstallationCreator
+from sentry.mediators import sentry_apps, sentry_app_installations
 from sentry.models import ApiApplication, ApiToken
 from sentry.testutils import APITestCase
 
@@ -18,21 +17,21 @@ class TestSentryAppAuthorizations(APITestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        self.sentry_app = SentryAppCreator.run(
+        self.sentry_app = sentry_apps.Creator.run(
             name='nulldb',
             organization=self.create_organization(),
             scopes=('org:read', ),
             webhook_url='http://example.com',
         )
 
-        self.other_sentry_app = SentryAppCreator.run(
+        self.other_sentry_app = sentry_apps.Creator.run(
             name='slowdb',
             organization=self.create_organization(),
             scopes=(),
             webhook_url='http://example.com',
         )
 
-        self.install = SentryAppInstallationCreator.run(
+        self.install = sentry_app_installations.Creator.run(
             organization=self.org,
             slug='nulldb',
             user=self.user,
@@ -84,7 +83,7 @@ class TestSentryAppAuthorizations(APITestCase):
         assert response.status_code == 403
 
     def test_invalid_installation(self):
-        self.install = SentryAppInstallationCreator.run(
+        self.install = sentry_app_installations.Creator.run(
             organization=self.org,
             slug='slowdb',
             user=self.user,
@@ -117,6 +116,7 @@ class TestSentryAppAuthorizations(APITestCase):
         self.install.api_grant.update(expires_at=timezone.now() - timedelta(minutes=2))
         response = self._run_request()
         assert response.status_code == 403
+        assert response.data['error'] == 'Grant has already expired.'
 
     def test_request_with_exchanged_access_token(self):
         response = self._run_request()
@@ -138,3 +138,23 @@ class TestSentryAppAuthorizations(APITestCase):
     def test_state(self):
         response = self._run_request(state='abc123')
         assert response.data['state'] == 'abc123'
+
+    def test_refresh_token_exchange(self):
+        response = self._run_request()
+
+        token_id = response.data['id']
+        token = response.data['token']
+        refresh_token = response.data['refreshToken']
+
+        response = self._run_request(
+            code=None,
+            refresh_token=refresh_token,
+            grant_type='refresh_token',
+        )
+
+        assert response.data['token'] != token
+        assert response.data['refreshToken'] != refresh_token
+        assert response.data['expiresAt'] > datetime.utcnow()
+
+        old_token = ApiToken.objects.get(id=token_id)
+        assert old_token.expires_at < datetime.now(pytz.UTC)
