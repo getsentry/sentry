@@ -207,7 +207,9 @@ exports[`ProjectDebugFiles renders 1`] = `
           <div
             className="css-9vq8an-textStyles"
           >
-            <EmptyStateWarning>
+            <EmptyStateWarning
+              small={false}
+            >
               <EmptyStreamWrapper
                 className="ref-empty-state"
               >
