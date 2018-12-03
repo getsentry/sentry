@@ -55,7 +55,7 @@ export default class ResultTable extends React.Component {
     const isNumberCol =
       !isSpacingCol && ['number', 'integer'].includes(meta[columnIndex].type);
 
-    const align = isNumberCol ? 'right' : 'left';
+    const align = isNumberCol && colName != 'issue.id' ? 'right' : 'left';
 
     if (rowIndex === 0) {
       return (
