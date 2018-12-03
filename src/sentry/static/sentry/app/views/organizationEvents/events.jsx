@@ -3,6 +3,7 @@ import {isEqual} from 'lodash';
 import React from 'react';
 import styled from 'react-emotion';
 
+import utils from 'app/utils';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
@@ -15,6 +16,17 @@ import {getParams} from './utils/getParams';
 import EventsChart from './eventsChart';
 import EventsTable from './eventsTable';
 import SearchBar from './searchBar';
+
+const parseRowFromLinks = (links, numRows) => {
+  links = utils.parseLinkHeader(links);
+  if (!links.previous.results) {
+    return `1-${numRows}`;
+  }
+  let prevStart = links.previous.cursor.split(':')[1];
+  let nextStart = links.next.cursor.split(':')[1];
+  let currentStart = (prevStart + nextStart) / 2 + 1;
+  return `${currentStart}-${currentStart + numRows - 1}`;
+};
 
 class OrganizationEvents extends AsyncView {
   static propTypes = {
@@ -79,6 +91,11 @@ class OrganizationEvents extends AsyncView {
     });
   };
 
+  renderRowCounts() {
+    const {events, eventsPageLinks} = this.state;
+    return parseRowFromLinks(eventsPageLinks, events.length);
+  }
+
   renderBody() {
     const {organization, location} = this.props;
     const {reloading, events, eventsPageLinks} = this.state;
@@ -102,7 +119,10 @@ class OrganizationEvents extends AsyncView {
 
         <EventsTable reloading={reloading} events={events} organization={organization} />
 
-        <Pagination pageLinks={eventsPageLinks} />
+        <Flex align="center" justify="space-between">
+          <RowDisplay>{t(`Results ${this.renderRowCounts()}`)}</RowDisplay>
+          <Pagination pageLinks={eventsPageLinks} />
+        </Flex>
       </React.Fragment>
     );
   }
@@ -121,5 +141,9 @@ const StyledSearchBar = styled(SearchBar)`
   flex: 1;
 `;
 
+const RowDisplay = styled('div')`
+  color: ${p => p.theme.gray6};
+`;
+
 export default withOrganization(OrganizationEvents);
-export {OrganizationEvents};
+export {OrganizationEvents, parseRowFromLinks};
