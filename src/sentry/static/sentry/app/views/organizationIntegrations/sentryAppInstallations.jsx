@@ -22,23 +22,24 @@ export default class SentryAppInstallations extends AsyncView {
 
   redirectUser = data => {
     const {install, app} = data;
-    const {orgId} = this.props;
     const {installs} = this.state;
-    let redirectUrl = `/settings/${orgId}/integrations/`;
 
-    if (app.redirectUrl) {
+    if (!app.redirectUrl) {
+      addSuccessMessage(t(`${app.slug} successfully installed.`));
+      this.setState({installs: [install, ...installs]});
+    } else {
       const url = parseurl({url: app.redirectUrl});
       // Order the query params alphabetically.
       // Otherwise ``qs`` orders them randomly and it's impossible to test.
       const installQuery = JSON.parse(
         JSON.stringify({installationId: install.uuid, code: install.code})
       );
-      const query = Object.assign(qs.parse(url.query), installQuery);
-      redirectUrl = `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(query)}`;
+      // const query = Object.assign(qs.parse(url.query), installQuery);
+      const query = {...qs.parse(url.query), ...installQuery};
+      const redirectUrl = `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(
+        query
+      )}`;
       window.location.assign(redirectUrl);
-    } else {
-      addSuccessMessage(t(`${app.slug} successfully installed.`));
-      this.setState({installs: [install, ...installs]});
     }
   };
 
@@ -50,7 +51,7 @@ export default class SentryAppInstallations extends AsyncView {
     };
 
     const error = err => {
-      addErrorMessage(err.responseJSON);
+      addErrorMessage(t(`Unable to install ${app.name}`));
     };
 
     const opts = {
@@ -74,7 +75,7 @@ export default class SentryAppInstallations extends AsyncView {
 
     const error = err => {
       this.setState({origInstalls});
-      addErrorMessage(err.responseJSON);
+      addErrorMessage(t(`Unable to uninstall ${install.app.name}`));
     };
 
     const opts = {

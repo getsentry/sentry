@@ -5,6 +5,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import SentryAppAvatar from 'app/components/avatar/sentryAppAvatar';
 import PropTypes from 'prop-types';
+import SentryTypes from 'app/sentryTypes';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import styled from 'react-emotion';
@@ -14,7 +15,7 @@ import CircleIndicator from 'app/components/circleIndicator';
 
 export default class SentryApplicationRow extends React.PureComponent {
   static propTypes = {
-    app: PropTypes.object.isRequired,
+    app: SentryTypes.SentryApplication,
     orgId: PropTypes.string.isRequired,
     installs: PropTypes.array,
     onInstall: PropTypes.func,
@@ -27,10 +28,8 @@ export default class SentryApplicationRow extends React.PureComponent {
   };
 
   renderUninstall(install) {
-    const message = (
-      <React.Fragment>
-        Are you sure you want to remove the {install.app.slug} installation ?
-      </React.Fragment>
+    const message = t(
+      `Are you sure you want to remove the ${install.app.slug} installation ?`
     );
     return (
       <Confirm
@@ -39,14 +38,14 @@ export default class SentryApplicationRow extends React.PureComponent {
         onConfirm={() => this.props.onUninstall(install)}
       >
         <StyledButton borderless icon="icon-trash" data-test-id="sentry-app-uninstall">
-          Remove
+          {t('Remove')}
         </StyledButton>
       </Confirm>
     );
   }
 
   render() {
-    let {app, orgId, installs, showPublishStatus} = this.props;
+    const {app, orgId, installs, showPublishStatus} = this.props;
     const isInstalled = installs && installs.length > 0;
 
     return (
@@ -69,7 +68,7 @@ export default class SentryApplicationRow extends React.PureComponent {
               ) : (
                 <React.Fragment>
                   <Status enabled={isInstalled} />
-                  <StyledLink onClick={() => {}}>Learn More</StyledLink>
+                  <StyledLink onClick={() => {}}>{t('Learn More')}</StyledLink>
                 </React.Fragment>
               )}
             </SentryAppDetails>
