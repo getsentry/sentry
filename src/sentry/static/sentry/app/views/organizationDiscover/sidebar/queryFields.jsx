@@ -11,7 +11,7 @@ import Badge from 'app/components/badge';
 
 import Aggregations from '../aggregations';
 import Conditions from '../conditions';
-import {getOrderByOptions} from '../utils';
+import OrderBy from './orderBy';
 import {Fieldset, PlaceholderText, SidebarLabel} from '../styles';
 import {NON_CONDITIONS_FIELDS} from '../data';
 
@@ -26,20 +26,6 @@ export default class QueryFields extends React.Component {
     savedQueryName: PropTypes.string,
     onUpdateName: PropTypes.func,
   };
-
-  constructor(props) {
-    super(props);
-
-    let orderby = this.props.queryBuilder.getInternal().orderby;
-    const desc = orderby.startsWith('-') ? 'desc' : 'asc';
-    orderby = orderby.replace(/^-/, '');
-
-    this.state = {
-      orderby,
-      order: desc,
-    };
-    console.log("state: ", this.state);
-  }
 
   getSummarizePlaceholder = () => {
     const {queryBuilder} = this.props;
@@ -59,20 +45,6 @@ export default class QueryFields extends React.Component {
       </Flex>
     );
   };
-
-  updateOrderBy(field, value) {
-    console.log('update orderby() field, value:', field, value)
-    let orderby;
-    if (value === 'desc' || value === 'asc') {
-      this.setState({order: value})
-      orderby = value === 'desc' ? '-'.concat(this.state.orderby) : this.state.orderby;
-      this.props.onUpdateField('orderby', orderby);
-    } else if (field === 'orderby') {
-      orderby = this.state.order === 'desc' ? '-'.concat(value) : value;
-      this.setState({orderby});
-      this.props.onUpdateField('orderby', orderby);
-    }
-  }
 
   render() {
     const {
@@ -150,25 +122,9 @@ export default class QueryFields extends React.Component {
           />
         </Fieldset>
         <Fieldset>
-          <SidebarLabel htmlFor="orderby" className="control-label">
-            {t('Order by')}
-          </SidebarLabel>
-          <SelectControl
-            name="orderby"
-            label={t('Order By')}
-            placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
-            options={getOrderByOptions(queryBuilder)}
-            value={this.state.orderby}
-            onChange={val => this.updateOrderBy('orderby', val.value)}
-            disabled={isLoading}
-          />
-          <SelectControl
-            name="orderby"
-            label={t('asc')}
-            placeholder={<PlaceholderText>{t('asc or desc')}</PlaceholderText>}
-            options={[{name: 'asc', label: 'asc'}, {name: 'desc', label: 'desc'}]}
-            value={this.state.order}
-            onChange={val => this.updateOrderBy('asc_desc', val.name)}
+          <OrderBy
+            queryBuilder={queryBuilder}
+            onUpdateField={onUpdateField}
             disabled={isLoading}
           />
         </Fieldset>
