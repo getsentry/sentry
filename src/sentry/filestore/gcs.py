@@ -16,7 +16,7 @@ from google.cloud.storage.client import Client
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
 from google.cloud.exceptions import NotFound
-from google.auth.exceptions import TransportError
+from google.auth.exceptions import GoogleAuthError
 from google.resumable_media.common import DataCorruption
 from requests.exceptions import RequestException
 
@@ -60,7 +60,7 @@ def try_repeated(func):
             metrics_tags.update({'success': '1'})
             metrics.timing(metrics_key, idx, tags=metrics_tags)
             return result
-        except (DataCorruption, TransportError, RequestException) as e:
+        except (DataCorruption, GoogleAuthError, RequestException) as e:
             if idx >= GCS_RETRIES:
                 metrics_tags.update({'success': '0', 'exception_class': e.__class__.__name__})
                 metrics.timing(metrics_key, idx, tags=metrics_tags)
