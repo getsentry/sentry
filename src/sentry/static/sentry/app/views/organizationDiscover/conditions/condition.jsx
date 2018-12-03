@@ -155,6 +155,19 @@ export default class Condition extends React.Component {
     return value;
   };
 
+  handleBlur = evt => {
+    const external = getExternal(evt.target.value, this.props.columns);
+    const isValid = isValidCondition(external, this.props.columns);
+    if (isValid) {
+      this.setState(
+        {
+          inputValue: '',
+        },
+        this.props.onChange(external)
+      );
+    }
+  };
+
   newOptionCreator = ({label, labelKey, valueKey}) => {
     label = ignoreCase(label);
     return {
@@ -184,6 +197,7 @@ export default class Condition extends React.Component {
           inputRenderer={this.inputRenderer}
           valueRenderer={this.valueRenderer}
           onInputChange={this.handleInputChange}
+          onBlur={this.handleBlur}
           creatable={true}
           promptTextCreator={text => text}
           shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
