@@ -518,7 +518,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
         group = self.create_group(project=project)
         group2 = self.create_group(project=project2)
         self.create_event('a' * 32, group=group, datetime=self.min_ago)
-        self.create_event('b' * 32, group=group2, datetime=self.min_ago)
+        self.create_event('m' * 32, group=group2, datetime=self.min_ago)
 
         url = reverse(
             'sentry-api-0-organization-events-meta',
@@ -529,7 +529,8 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert 'count' in response.data
+        # this is not exact because of turbo=True
+        assert response.data['count'] == 10
 
     def test_search(self):
         self.login_as(user=self.user)
@@ -538,7 +539,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
         group = self.create_group(project=project)
         self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
         self.create_event(
-            'y' * 32,
+            'm' * 32,
             group=group,
             message="Delet the Data",
             datetime=self.min_ago,
@@ -553,4 +554,5 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
         response = self.client.get(url, {'query': 'delet'}, format='json')
 
         assert response.status_code == 200, response.content
-        assert 'count' in response.data
+        # this is not exact because of turbo=True
+        assert response.data['count'] == 10
