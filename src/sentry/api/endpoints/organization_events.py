@@ -86,12 +86,14 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
             return Response({'detail': exc.message}, status=400)
 
         data = raw_query(
-            selected_columns=['count'],
             aggregations=[['count()', '', 'count']],
             referrer='api.organization-event-meta',
+            turbo=True,
             **snuba_args
         )['data'][0]
 
         return Response({
-            'count': data['count']
+            # this needs to be multiplied to account for the `TURBO_SAMPLE_RATE`
+            # in snuba
+            'count': data['count'] * 10,
         })
