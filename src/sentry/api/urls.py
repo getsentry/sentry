@@ -61,7 +61,7 @@ from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
 from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
 from .endpoints.organization_discover_saved_query_detail import OrganizationDiscoverSavedQueryDetailEndpoint
-from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsStatsEndpoint
+from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint
 from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
@@ -500,6 +500,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/events-stats/$',
         OrganizationEventsStatsEndpoint.as_view(),
         name='sentry-api-0-organization-events-stats'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/events-meta/$',
+        OrganizationEventsMetaEndpoint.as_view(),
+        name='sentry-api-0-organization-events-meta'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/issues/new/$',
