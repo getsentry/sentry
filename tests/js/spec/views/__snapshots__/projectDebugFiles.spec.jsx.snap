@@ -233,6 +233,7 @@ exports[`ProjectDebugFiles renders 1`] = `
     </Component>
   </Panel>
   <Pagination
+    className="stream-pagination"
     onCursor={[Function]}
   />
 </ProjectDebugSymbols>
@@ -289,6 +290,7 @@ exports[`ProjectDebugFiles renders empty 1`] = `
     </PanelBody>
   </Panel>
   <Pagination
+    className="stream-pagination"
     onCursor={[Function]}
   />
 </Fragment>
