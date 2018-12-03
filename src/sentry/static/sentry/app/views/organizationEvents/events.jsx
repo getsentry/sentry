@@ -123,7 +123,7 @@ class OrganizationEvents extends AsyncView {
           <RowDisplay>
             {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
           </RowDisplay>
-          <Pagination pageLinks={eventsPageLinks} />
+          <Pagination pageLinks={eventsPageLinks} className="" />
         </Flex>
       </React.Fragment>
     );

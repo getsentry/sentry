@@ -53,6 +53,7 @@ exports[`groupEvents renders 1`] = `
     </PanelBody>
   </Panel>
   <Pagination
+    className="stream-pagination"
     onCursor={[Function]}
   />
 </div>
