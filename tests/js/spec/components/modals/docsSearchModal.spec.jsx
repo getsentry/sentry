@@ -27,6 +27,17 @@ describe('Docs Search Modal', function() {
       query: 'foo',
       body: TestStubs.Members(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/?plugins=_all',
+      query: 'foo',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      query: 'foo',
+      body: [],
+    });
 
     MockApiClient.addMockResponse({
       url: '/internal/health/',

@@ -67,7 +67,9 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/integrations/`,
         title: t('Integrations'),
-        description: t('Manage integrations for an organization'),
+        description: t(
+          'Manage organization-level integrations, including: Slack, Github, Bitbucket, Jira, and Azure DevOps'
+        ),
       },
       {
         path: `${pathPrefix}/developer-settings/`,
