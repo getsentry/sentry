@@ -53,7 +53,6 @@ export default function getConfiguration({project}) {
         {
           path: `${pathPrefix}/debug-symbols/`,
           title: t('Debug Files'),
-          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/processing-issues/`,
