@@ -582,7 +582,7 @@ class ReleaseDeleteTest(APITestCase):
         )
 
         release.add_project(project)
-        self.create_group(first_release=release)
+        self.create_group(first_release_id=release.id)
 
         self.create_member(teams=[team], user=user, organization=org)
 

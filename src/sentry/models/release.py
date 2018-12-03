@@ -211,7 +211,7 @@ class Release(Model):
                         except IntegrityError:
                             item.delete()
 
-            Group.objects.filter(first_release=release).update(first_release=to_release)
+            Group.objects.filter(first_release_id=release.id).update(first_release_id=to_release.id)
 
             release.delete()
 

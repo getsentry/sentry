@@ -16,7 +16,7 @@ class EventAttachmentsTest(APITestCase):
 
         release = self.create_release(project, self.user)
 
-        group = self.create_group(project=project, first_release=release)
+        group = self.create_group(project=project, first_release_id=release.id)
 
         event1 = self.create_event(
             event_id='a',

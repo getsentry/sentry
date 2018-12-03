@@ -215,7 +215,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         # we don't want to remove the first_release metadata on the Group, and
         # while people might want to kill a release (maybe to remove files),
         # removing the release is prevented
-        if Group.objects.filter(first_release=release).exists():
+        if Group.objects.filter(first_release_id=release.id).exists():
             return Response({"detail": ERR_RELEASE_REFERENCED}, status=400)
 
         # TODO(dcramer): this needs to happen in the queue as it could be a long

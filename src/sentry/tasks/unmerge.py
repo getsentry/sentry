@@ -100,10 +100,10 @@ backfill_fields = {
     'logger': lambda caches, data, event: event.get_tag('logger') or DEFAULT_LOGGER_NAME,
     'first_seen': lambda caches, data, event: event.datetime,
     'active_at': lambda caches, data, event: event.datetime,
-    'first_release': lambda caches, data, event: caches['Release'](
+    'first_release_id': lambda caches, data, event: caches['Release'](
         caches['Project'](event.project_id).organization_id,
         event.get_tag('sentry:release'),
-    ) if event.get_tag('sentry:release') else data.get('first_release', None),
+    ).id if event.get_tag('sentry:release') else data.get('first_release_id', None),
     'times_seen': lambda caches, data, event: data['times_seen'] + 1,
     'score': lambda caches, data, event: Group.calculate_score(
         data['times_seen'] + 1,

@@ -239,7 +239,7 @@ class ReleaseDeleteTest(APITestCase):
         )
         release.add_project(project)
         release.add_project(project2)
-        self.create_group(first_release=release)
+        self.create_group(first_release_id=release.id)
 
         url = reverse(
             'sentry-api-0-project-release-details',

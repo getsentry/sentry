@@ -946,7 +946,7 @@ class EventManager(object):
         }
 
         if release:
-            kwargs['first_release'] = release
+            kwargs['first_release_id'] = release.id
 
         try:
             group, is_new, is_regression, is_sample = self._save_aggregate(
@@ -1243,16 +1243,14 @@ class EventManager(object):
             # it's possible the release was deleted between
             # when we queried for the release and now, so
             # make sure it still exists
-            first_release = kwargs.pop('first_release', None)
+            first_release_id = kwargs.pop('first_release_id', None)
 
             with transaction.atomic():
                 short_id = project.next_short_id()
                 group, group_is_new = Group.objects.create(
                     project=project,
                     short_id=short_id,
-                    first_release_id=Release.objects.filter(
-                        id=first_release.id,
-                    ).values_list('id', flat=True).first() if first_release else None,
+                    first_release_id=first_release_id,
                     **kwargs
                 ), True
 

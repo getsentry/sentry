@@ -670,12 +670,12 @@ class EventManagerTest(TransactionTestCase):
         event = self.make_release_event('1.0', project_id)
 
         group = event.group
-        assert group.first_release.version == '1.0'
+        assert group.get_first_release() == '1.0'
 
         event = self.make_release_event('2.0', project_id)
 
         group = event.group
-        assert group.first_release.version == '1.0'
+        assert group.get_first_release() == '1.0'
 
     def test_release_project_slug(self):
         project = self.create_project(name='foo')
@@ -685,14 +685,14 @@ class EventManagerTest(TransactionTestCase):
         event = self.make_release_event('1.0', project.id)
 
         group = event.group
-        assert group.first_release.version == 'foo-1.0'
+        assert group.get_first_release() == 'foo-1.0'
         release_tag = [v for k, v in event.tags if k == 'sentry:release'][0]
         assert release_tag == 'foo-1.0'
 
         event = self.make_release_event('2.0', project.id)
 
         group = event.group
-        assert group.first_release.version == 'foo-1.0'
+        assert group.get_first_release() == 'foo-1.0'
 
     def test_release_project_slug_long(self):
         project = self.create_project(name='foo')
@@ -705,7 +705,7 @@ class EventManagerTest(TransactionTestCase):
         event = self.make_release_event('a' * partial_version_len, project.id)
 
         group = event.group
-        assert group.first_release.version == 'foo-%s' % ('a' * partial_version_len, )
+        assert group.get_first_release() == 'foo-%s' % ('a' * partial_version_len, )
         release_tag = [v for k, v in event.tags if k == 'sentry:release'][0]
         assert release_tag == 'foo-%s' % ('a' * partial_version_len, )
 

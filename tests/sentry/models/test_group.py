@@ -5,7 +5,6 @@ import six
 from datetime import datetime, timedelta
 
 import pytest
-from django.db.models import ProtectedError
 from django.utils import timezone
 
 from sentry import tagstore
@@ -116,14 +115,10 @@ class GroupTest(TestCase):
         release.add_project(project)
         group = self.create_group(
             project=project,
-            first_release=release,
+            first_release_id=release.id,
         )
 
-        with pytest.raises(ProtectedError):
-            release.delete()
-
-        group = Group.objects.get(id=group.id)
-        assert group.first_release == release
+        assert Group.objects.filter(id=group.id).exists()
 
     def test_save_truncate_message(self):
         assert len(self.create_group(message='x' * 300).message) == 255
@@ -168,15 +163,13 @@ class GroupTest(TestCase):
 
     def test_first_last_release(self):
         project = self.create_project()
-        release = Release.objects.create(
-            version='a',
-            organization_id=project.organization_id,
+        release = self.create_release(
+            project=project,
         )
-        release.add_project(project)
 
         group = self.create_group(
             project=project,
-            first_release=release,
+            first_release_id=release.id,
         )
 
         tagstore.create_group_tag_value(
@@ -184,9 +177,24 @@ class GroupTest(TestCase):
             key='sentry:release', value=release.version
         )
 
-        assert group.first_release == release
+        assert group.first_release_id == release.id
         assert group.get_first_release() == release.version
         assert group.get_last_release() == release.version
+
+    def test_first_last_release_project_bounded(self):
+        project = self.create_project()
+        release = Release.objects.create(
+            version='a',
+            organization_id=project.organization_id,
+        )
+
+        group = self.create_group(
+            project=project,
+            first_release_id=release.id,
+        )
+
+        assert group.first_release_id == release.id
+        assert group.get_first_release() is None
 
     def test_first_release_from_tag(self):
         project = self.create_project()
@@ -205,7 +213,7 @@ class GroupTest(TestCase):
             key='sentry:release', value=release.version
         )
 
-        assert group.first_release is None
+        assert group.first_release_id is None
         assert group.get_first_release() == release.version
         assert group.get_last_release() == release.version
 
@@ -221,7 +229,7 @@ class GroupTest(TestCase):
             project=project,
         )
 
-        assert group.first_release is None
+        assert group.first_release_id is None
         assert group.get_first_release() is None
         assert group.get_last_release() is None
 

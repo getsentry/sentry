@@ -35,7 +35,7 @@ class MergeReleasesTest(TestCase):
         group_release = GroupRelease.objects.create(
             project_id=project.id, release_id=release.id, group_id=1
         )
-        group = self.create_group(project=project, first_release=release)
+        group = self.create_group(project=project, first_release_id=release.id)
         group_resolution = GroupResolution.objects.create(group=group, release=release)
 
         # merge from #1
@@ -58,7 +58,7 @@ class MergeReleasesTest(TestCase):
         group_release2 = GroupRelease.objects.create(
             project_id=project2.id, release_id=release2.id, group_id=2
         )
-        group2 = self.create_group(project=project2, first_release=release2)
+        group2 = self.create_group(project=project2, first_release_id=release2.id)
         group_resolution2 = GroupResolution.objects.create(group=group2, release=release2)
 
         # merge from #2
@@ -81,7 +81,7 @@ class MergeReleasesTest(TestCase):
         group_release3 = GroupRelease.objects.create(
             project_id=project3.id, release_id=release3.id, group_id=3
         )
-        group3 = self.create_group(project=project3, first_release=release3)
+        group3 = self.create_group(project=project3, first_release_id=release3.id)
         group_resolution3 = GroupResolution.objects.create(group=group3, release=release3)
 
         Release.merge(release, [release2, release3])
@@ -122,9 +122,9 @@ class MergeReleasesTest(TestCase):
         assert GroupResolution.objects.get(id=group_resolution3.id).release == release
 
         # Group.first_release
-        assert Group.objects.get(id=group.id).first_release == release
-        assert Group.objects.get(id=group2.id).first_release == release
-        assert Group.objects.get(id=group3.id).first_release == release
+        assert Group.objects.get(id=group.id).first_release_id == release.id
+        assert Group.objects.get(id=group2.id).first_release_id == release.id
+        assert Group.objects.get(id=group3.id).first_release_id == release.id
 
         # Releases are gone
         assert Release.objects.filter(id=release.id).exists()

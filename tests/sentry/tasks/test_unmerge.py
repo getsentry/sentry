@@ -117,7 +117,7 @@ class UnmergeTestCase(TestCase):
             'score': Group.calculate_score(3, now),
             'logger': 'java',
             'times_seen': 3,
-            'first_release': None,
+            'first_release_id': None,
             'culprit': '',
             'data': {
                 'type': 'default',
@@ -140,7 +140,7 @@ class UnmergeTestCase(TestCase):
                 score=Group.calculate_score(3, now),
                 logger='javascript',
                 times_seen=1,
-                first_release=None,
+                first_release_id=None,
                 culprit='',
                 data={
                     'type': 'default',
@@ -183,7 +183,7 @@ class UnmergeTestCase(TestCase):
             'score': Group.calculate_score(3, now),
             'logger': 'java',
             'times_seen': 3,
-            'first_release': None,
+            'first_release_id': None,
         }
 
     @patch('sentry.tasks.unmerge.eventstream')

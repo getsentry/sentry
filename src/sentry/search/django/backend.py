@@ -508,9 +508,21 @@ class DjangoSearchBackend(SearchBackend):
 
             group_queryset = QuerySetBuilder({
                 'first_release': CallbackCondition(
-                    lambda queryset, version: queryset.filter(
-                        first_release__organization_id=project.organization_id,
-                        first_release__version=version,
+                    lambda queryset, version: queryset.extra(
+                        where=[
+                            '{} = {}'.format(
+                                get_sql_column(Group, 'first_release_id'),
+                                get_sql_column(Release, 'id'),
+                            ),
+                            '{} = %s'.format(
+                                get_sql_column(Release, 'organization'),
+                            ),
+                            '{} = %s'.format(
+                                get_sql_column(Release, 'version'),
+                            ),
+                        ],
+                        params=[project.organization_id, version],
+                        tables=[Release._meta.db_table],
                     ),
                 ),
                 'age_from': ScalarCondition('first_seen', 'gt'),

@@ -16,7 +16,7 @@ class EventCommittersTest(APITestCase):
 
         release = self.create_release(project, self.user)
 
-        group = self.create_group(project=project, first_release=release)
+        group = self.create_group(project=project, first_release_id=release.id)
 
         event = self.create_event(
             event_id='a',
@@ -78,13 +78,13 @@ class EventCommittersTest(APITestCase):
         project = self.create_project()
 
         release = self.create_release(
-            project,
-            self.user,
+            project=project,
+            user=self.user,
         )
 
         group = self.create_group(
             project=project,
-            first_release=release,
+            first_release_id=release.id,
         )
 
         event = self.create_event(

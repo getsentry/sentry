@@ -10,7 +10,7 @@ class ProjectReleaseSetupCompletionTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
         release = self.create_release(project, self.user)
-        self.create_group(project=project, first_release=release)
+        self.create_group(project=project, first_release_id=release.id)
 
         repo = Repository.objects.create(
             organization_id=project.organization_id,

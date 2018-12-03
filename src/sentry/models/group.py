@@ -215,7 +215,7 @@ class Group(Model):
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
-    first_release = FlexibleForeignKey('sentry.Release', null=True, on_delete=models.PROTECT)
+    first_release_id = BoundedBigIntegerField(null=True)
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)
@@ -236,7 +236,7 @@ class Group(Model):
         verbose_name_plural = _('grouped messages')
         verbose_name = _('grouped message')
         permissions = (("can_view", "Can view"), )
-        index_together = (('project', 'first_release'), )
+        index_together = (('project', 'first_release_id'), )
         unique_together = (('project', 'short_id'), )
 
     __repr__ = sane_repr('project_id')
@@ -375,7 +375,12 @@ class Group(Model):
         if self.first_release_id is None:
             return tagstore.get_first_release(self.project_id, self.id)
 
-        return self.first_release.version
+        from sentry.models import Release
+
+        try:
+            return Release.objects.get(id=self.first_release_id, projects=self.project_id).version
+        except Release.DoesNotExist:
+            return None
 
     def get_last_release(self):
         return tagstore.get_last_release(self.project_id, self.id)

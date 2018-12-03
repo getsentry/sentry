@@ -19,7 +19,7 @@ class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
 
         tag = Group.objects.filter(
             project=project.id,
-            first_release__isnull=False,
+            first_release_id__isnull=False,
         ).exists()
 
         repo = Repository.objects.filter(

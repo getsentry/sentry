@@ -399,7 +399,7 @@ class MailPluginTest(TestCase):
 
     def test_notify_with_suspect_commits(self):
         release = self.create_release(project=self.project, user=self.user)
-        group = self.create_group(project=self.project, first_release=release)
+        group = self.create_group(project=self.project, first_release_id=release.id)
         event = self.create_event(group=group, tags={'sentry:release': release.version})
 
         notification = Notification(event=event)

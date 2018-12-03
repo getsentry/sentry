@@ -175,9 +175,21 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         else:
             group_queryset = ds.QuerySetBuilder({
                 'first_release': ds.CallbackCondition(
-                    lambda queryset, version: queryset.filter(
-                        first_release__organization_id=project.organization_id,
-                        first_release__version=version,
+                    lambda queryset, version: queryset.extra(
+                        where=[
+                            '{} = {}'.format(
+                                ds.get_sql_column(Group, 'first_release_id'),
+                                ds.get_sql_column(Release, 'id'),
+                            ),
+                            '{} = %s'.format(
+                                ds.get_sql_column(Release, 'organization'),
+                            ),
+                            '{} = %s'.format(
+                                ds.get_sql_column(Release, 'version'),
+                            ),
+                        ],
+                        params=[project.organization_id, version],
+                        tables=[Release._meta.db_table],
                     ),
                 ),
             }).build(

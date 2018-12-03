@@ -26,7 +26,7 @@ class ProjectReleasesTest(AcceptanceTestCase):
             version='1.0',
         )
         self.create_group(
-            first_release=release,
+            first_release_id=release.id,
             project=self.project,
             message='Foo bar',
         )
@@ -61,7 +61,7 @@ class ProjectReleaseDetailsTest(AcceptanceTestCase):
             version='1.0',
         )
         self.create_group(
-            first_release=self.release,
+            first_release_id=self.release.id,
             project=self.project,
             message='Foo bar',
         )
