@@ -35,9 +35,10 @@ class OrganizationPluginsTest(APITestCase):
         # plugins are not bound by a project
         plugins = [
             p for p in
-            filter(lambda p: 'enabled' not in p, response.data)
+            filter(lambda p: 'enabled' in p, response.data)
         ]
-        assert len(plugins) == 3
+        assert len(plugins) == 0
+        assert len(response.data) > 0
 
     def test_exposes_plugins_across_all_org_projects(self):
         url = reverse(
