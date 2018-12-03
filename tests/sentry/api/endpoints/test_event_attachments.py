@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 import six
 
-from datetime import datetime
+from datetime import datetime, timedelta
+from django.utils import timezone
 
 from sentry.models import EventAttachment, File
 from sentry.testutils import APITestCase
@@ -40,6 +41,7 @@ class EventAttachmentsTest(APITestCase):
                 type='image/png',
             ),
             name='hello.png',
+            date_added=timezone.now() - timedelta(days=2),
         )
 
         EventAttachment.objects.create(
@@ -51,6 +53,7 @@ class EventAttachmentsTest(APITestCase):
                 type='image/png',
             ),
             name='hello.png',
+            date_added=timezone.now() - timedelta(days=2),
         )
 
         path = u'/api/0/projects/{}/{}/events/{}/attachments/'.format(
@@ -65,3 +68,10 @@ class EventAttachmentsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(attachment1.id)
+
+        with self.feature('organizations:event-attachments'):
+            with self.options({'system.attachment-retention-days': 1}):
+                response = self.client.get(path)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0

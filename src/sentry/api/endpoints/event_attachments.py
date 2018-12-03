@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
-from sentry import features
+from datetime import timedelta
+from django.utils import timezone
+
+from sentry import features, quotas
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -36,6 +39,12 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
             project_id=project.id,
             event_id=event.event_id,
         ).select_related('file')
+
+        retention = quotas.get_attachment_retention(organization=project.organization)
+        if retention:
+            queryset = queryset.filter(
+                date_added__gte=timezone.now() - timedelta(days=retention)
+            )
 
         return self.paginate(
             request=request,

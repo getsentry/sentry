@@ -2,13 +2,15 @@ from __future__ import absolute_import
 
 import posixpath
 import six
+from datetime import timedelta
+from django.utils import timezone
 
 try:
     from django.http import (CompatibleStreamingHttpResponse as StreamingHttpResponse)
 except ImportError:
     from django.http import StreamingHttpResponse
 
-from sentry import features
+from sentry import features, quotas
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import Event, EventAttachment
 
@@ -40,7 +42,8 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         :pparam string attachment_id: the id of the attachment.
         :auth: required
         """
-        if not features.has('organizations:event-attachments', project.organization, actor=request.user):
+        if not features.has('organizations:event-attachments',
+                            project.organization, actor=request.user):
             return self.respond(status=404)
 
         try:
@@ -50,6 +53,11 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
             )
         except Event.DoesNotExist:
             return self.respond({'detail': 'Event not found'}, status=404)
+
+        retention = quotas.get_attachment_retention(organization=project.organization)
+        if retention:
+            if event.date_added < timezone.now() - timedelta(days=retention):
+                return self.respond({'detail': 'Event not found'}, status=404)
 
         try:
             attachment = EventAttachment.objects.filter(

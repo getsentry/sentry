@@ -47,6 +47,7 @@ class Quota(Service):
     __all__ = (
         'get_maximum_quota', 'get_organization_quota', 'get_project_quota', 'is_rate_limited',
         'translate_quota', 'validate', 'refund', 'get_event_retention',
+        'get_attachment_retention',
     )
 
     def __init__(self, **options):
@@ -137,3 +138,6 @@ class Quota(Service):
 
     def get_event_retention(self, organization):
         return options.get('system.event-retention-days') or None
+
+    def get_attachment_retention(self, organization):
+        return options.get('system.attachment-retention-days') or None
