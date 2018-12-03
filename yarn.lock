@@ -4203,7 +4203,7 @@ echarts-for-react@^2.0.13:
     fast-deep-equal "^2.0.1"
     size-sensor "^0.0.4"
 
-echarts@^4.1.0:
+echarts@4.1.0:
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/echarts/-/echarts-4.1.0.tgz#d588c95f73c1a9928b9c73d5b769751c3185bcdc"
   integrity sha512-gP1e1fNnAj9KJpTDLXV21brklbfJlqeINmpQDJCDta9TX3cPoqyQOiDVcEPzbOVHqgBRgTOwNxC5iGwJ89014A==

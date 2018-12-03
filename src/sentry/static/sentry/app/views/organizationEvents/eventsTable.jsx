@@ -16,6 +16,65 @@ import space from 'app/styles/space';
 
 import EventsContext from './utils/eventsContext';
 
+class EventsTableBody extends React.PureComponent {
+  static propTypes = {
+    events: PropTypes.array,
+    organization: SentryTypes.Organization,
+    utc: PropTypes.bool,
+    projectsMap: PropTypes.object,
+  };
+
+  getEventTitle(event) {
+    const {organization, projectsMap} = this.props;
+    const project = projectsMap.get(event.projectID);
+    const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
+
+    if (!project) {
+      return trimmedMessage;
+    }
+
+    return (
+      <Link href={`/${organization.slug}/${project.slug}/events/${event.eventID}/`}>
+        {trimmedMessage}
+      </Link>
+    );
+  }
+
+  render() {
+    const {events, organization, utc, projectsMap} = this.props;
+
+    return events.map((event, eventIdx) => {
+      const project = projectsMap.get(event.projectID);
+      return (
+        <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx == 0}>
+          <TableData>
+            <EventTitle>{this.getEventTitle(event)}</EventTitle>
+          </TableData>
+
+          <TableData>
+            <Project to={`/${organization.slug}/${project.slug}/`}>
+              <IdBadge
+                project={project}
+                avatarSize={16}
+                displayName={<span>{project.slug}</span>}
+                avatarProps={{consistentWidth: true}}
+              />
+            </Project>
+          </TableData>
+
+          <TableData>
+            <IdBadge user={event.user} hideEmail avatarSize={16} />
+          </TableData>
+
+          <TableData>
+            <StyledDateTime utc={utc} date={new Date(event.dateCreated)} />
+          </TableData>
+        </TableRow>
+      );
+    });
+  }
+}
+
 class EventsTable extends React.Component {
   static propTypes = {
     loading: PropTypes.bool,
@@ -50,22 +109,6 @@ class EventsTable extends React.Component {
     return true;
   }
 
-  getEventTitle(event) {
-    const {organization} = this.props;
-    const project = this.projectsMap.get(event.projectID);
-    const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
-
-    if (!project) {
-      return trimmedMessage;
-    }
-
-    return (
-      <Link href={`/${organization.slug}/${project.slug}/events/${event.eventID}/`}>
-        {trimmedMessage}
-      </Link>
-    );
-  }
-
   render() {
     const {events, organization, loading, reloading, utc} = this.props;
     const hasEvents = events && !!events.length;
@@ -85,35 +128,12 @@ class EventsTable extends React.Component {
         {hasEvents && (
           <StyledPanelBody>
             {reloading && <StyledLoadingIndicator overlay />}
-            {events.map((event, eventIdx) => {
-              const project = this.projectsMap.get(event.projectID);
-              return (
-                <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx == 0}>
-                  <TableData>
-                    <EventTitle>{this.getEventTitle(event)}</EventTitle>
-                  </TableData>
-
-                  <TableData>
-                    <Project to={`/${organization.slug}/${project.slug}/`}>
-                      <IdBadge
-                        project={project}
-                        avatarSize={16}
-                        displayName={<span>{project.slug}</span>}
-                        avatarProps={{consistentWidth: true}}
-                      />
-                    </Project>
-                  </TableData>
-
-                  <TableData>
-                    <IdBadge user={event.user} hideEmail avatarSize={16} />
-                  </TableData>
-
-                  <TableData>
-                    <StyledDateTime utc={utc} date={new Date(event.dateCreated)} />
-                  </TableData>
-                </TableRow>
-              );
-            })}
+            <EventsTableBody
+              projectsMap={this.projectsMap}
+              events={events}
+              organization={organization}
+              utc={utc}
+            />
           </StyledPanelBody>
         )}
       </Panel>
