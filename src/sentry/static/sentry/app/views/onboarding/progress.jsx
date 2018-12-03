@@ -2,8 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import classNames from 'classnames';
-import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
+
+import {analytics} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
+import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
 
 const ProgressNodes = createReactClass({
   displayName: 'ProgressNodes',
@@ -14,6 +16,22 @@ const ProgressNodes = createReactClass({
 
   contextTypes: {
     organization: PropTypes.object,
+  },
+
+  componentDidMount() {
+    let {params} = this.props;
+    let step = this.inferStep();
+    let eventName =
+      step === 1 ? 'onboarding.create_project_viewed' : 'onboarding.configure_viewed';
+
+    let data = {org_id: parseInt(this.context.organization.id, 10)};
+
+    if (step === 2) {
+      data.project = params.projectId;
+      data.platform = params.platform;
+    }
+
+    analytics(eventName, data);
   },
 
   steps: Object.keys(onboardingSteps),
