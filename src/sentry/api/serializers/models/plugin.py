@@ -17,15 +17,16 @@ class PluginSerializer(Serializer):
         from sentry.api.endpoints.project_releases_token import _get_webhook_url
         doc = ''
 
-        release_token = ProjectOption.objects.get_value(self.project, 'sentry:release-token')
-        if release_token is not None:
-            webhook_url = _get_webhook_url(self.project, obj.slug, release_token)
+        if self.project is not None:
+            release_token = ProjectOption.objects.get_value(self.project, 'sentry:release-token')
+            if release_token is not None:
+                webhook_url = _get_webhook_url(self.project, obj.slug, release_token)
 
-            if hasattr(obj, 'get_release_doc_html'):
-                try:
-                    doc = obj.get_release_doc_html(webhook_url)
-                except NotImplementedError:
-                    pass
+                if hasattr(obj, 'get_release_doc_html'):
+                    try:
+                        doc = obj.get_release_doc_html(webhook_url)
+                    except NotImplementedError:
+                        pass
 
         contexts = []
         if hasattr(obj, 'get_custom_contexts'):

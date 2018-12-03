@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import SettingsSearch from 'app/views/settings/components/settingsSearch';
+import {SettingsSearch} from 'app/views/settings/components/settingsSearch';
 import FormSearchStore from 'app/stores/formSearchStore';
 
 import {navigateTo} from 'app/actionCreators/navigation';
@@ -42,6 +42,17 @@ describe('SettingsSearch', function() {
       url: '/organizations/org-slug/members/',
       query: 'foo',
       body: TestStubs.Members(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/plugins/?plugins=_all',
+      query: 'foo',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      query: 'foo',
+      body: [],
     });
   });
 

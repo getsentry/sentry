@@ -3,6 +3,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 const SearchResultWrapper = styled(({highlighted, ...props}) => <div {...props} />)`
+  cursor: pointer;
   display: block;
   color: ${p => p.theme.gray5};
   padding: 10px;

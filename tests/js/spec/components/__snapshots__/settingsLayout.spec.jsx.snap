@@ -21,7 +21,7 @@ exports[`SettingsLayout renders 1`] = `
             routes={Array []}
           />
         </Box>
-        <SettingsSearch
+        <StyledSettingsSearch
           routes={Array []}
         />
       </Flex>

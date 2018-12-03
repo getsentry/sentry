@@ -4,9 +4,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import InlineSvg from 'app/components/inlineSvg';
-import SentryTypes from 'app/sentryTypes';
 import IdBadge from 'app/components/idBadge';
+import InlineSvg from 'app/components/inlineSvg';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import SentryTypes from 'app/sentryTypes';
+import SettingsSearch from 'app/views/settings/components/settingsSearch';
 import highlightFuseMatches from 'app/utils/highlightFuseMatches';
 
 class SearchResult extends React.Component {
@@ -26,6 +28,8 @@ class SearchResult extends React.Component {
         'route',
         'issue',
         'event',
+        'plugin',
+        'integration',
       ]),
       /**
      * The type of result this is, for example:
@@ -40,6 +44,7 @@ class SearchResult extends React.Component {
         'field',
         'issue',
         'event',
+        'integration',
       ]),
       title: PropTypes.string,
       description: PropTypes.node,
@@ -97,11 +102,12 @@ class SearchResult extends React.Component {
 
   renderResultType() {
     let {item} = this.props;
-    let {resultType} = item;
+    let {resultType, model} = item;
 
     let isSettings = resultType === 'settings';
     let isField = resultType === 'field';
     let isRoute = resultType === 'route';
+    let isIntegration = resultType === 'integration';
 
     if (isSettings) {
       return <ResultTypeIcon src="icon-settings" />;
@@ -112,7 +118,11 @@ class SearchResult extends React.Component {
     }
 
     if (isRoute) {
-      return <ResultTypeIcon src="icon-location" />;
+      return <ResultTypeIcon src="icon-link" />;
+    }
+
+    if (isIntegration) {
+      return <StyledPluginIcon pluginId={model.key || model.id} />;
     }
 
     return null;
@@ -149,6 +159,15 @@ const Content = styled(props => <Flex direction="column" {...props} />)`
 const ResultTypeIcon = styled(InlineSvg)`
   color: ${p => p.theme.offWhite};
   font-size: 1.2em;
+  flex-shrink: 0;
+
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  ${SettingsSearch} & {
+    color: inherit;
+  }
+`;
+
+const StyledPluginIcon = styled(PluginIcon)`
   flex-shrink: 0;
 `;
 
