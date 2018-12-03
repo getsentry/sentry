@@ -37,6 +37,8 @@ class OrganizationIntegrations extends AsyncComponent {
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integrations', `/organizations/${orgId}/integrations/`],
       ['plugins', `/organizations/${orgId}/plugins/`, {query}],
+      ['applications', `/organizations/${orgId}/sentry-apps/`],
+      ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
     ];
   }
 
@@ -125,6 +127,7 @@ class OrganizationIntegrations extends AsyncComponent {
   // Rendering
 
   renderBody() {
+    const {reloading, applications, appInstalls} = this.state;
     const providers = this.providers
       .sort((a, b) => b.isInstalled - a.isInstalled)
       .map(provider => (
@@ -156,11 +159,15 @@ class OrganizationIntegrations extends AsyncComponent {
             <Box px={2} flex="1">
               {t('Integrations')}
             </Box>
-            {this.state.reloading && <StyledLoadingIndicator mini />}
+            {reloading && <StyledLoadingIndicator mini />}
           </PanelHeader>
           <PanelBody>
             {providers}
-            <SentryAppInstallations orgId={this.props.params.orgId} />
+            <SentryAppInstallations
+              orgId={this.props.params.orgId}
+              installs={appInstalls}
+              applications={applications}
+            />
           </PanelBody>
         </Panel>
       </React.Fragment>

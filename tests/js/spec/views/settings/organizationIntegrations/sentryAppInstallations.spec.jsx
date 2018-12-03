@@ -21,17 +21,10 @@ describe('Sentry App Installations', function() {
   });
 
   describe('when no Apps exist', () => {
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-apps/`,
-      body: [],
-    });
-
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-app-installations/`,
-      body: [],
-    });
-
-    const wrapper = mount(<SentryAppInstallations orgId={org.slug} />, routerContext);
+    const wrapper = mount(
+      <SentryAppInstallations orgId={org.slug} applications={[]} installs={[]} />,
+      routerContext
+    );
 
     it('no row is displayed', () => {
       expect(wrapper).toMatchSnapshot();
@@ -40,17 +33,14 @@ describe('Sentry App Installations', function() {
   });
 
   describe('when Apps exist', () => {
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-apps/`,
-      body: [sentryApp],
-    });
-
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/sentry-app-installations/`,
-      body: [],
-    });
-
-    let wrapper = mount(<SentryAppInstallations orgId={org.slug} />, routerContext);
+    let wrapper = mount(
+      <SentryAppInstallations
+        orgId={org.slug}
+        applications={[sentryApp]}
+        installs={[]}
+      />,
+      routerContext
+    );
 
     it('displays all Apps owned by the Org', () => {
       expect(wrapper).toMatchSnapshot();
@@ -67,53 +57,40 @@ describe('Sentry App Installations', function() {
       });
 
       it('disallows installation when already installed', () => {
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-apps/`,
-          method: 'GET',
-          body: [sentryApp],
-        });
-
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-app-installations/`,
-          body: [install],
-          method: 'GET',
-        });
-
-        wrapper = mount(<SentryAppInstallations orgId={org.slug} />, routerContext);
-
+        wrapper = mount(
+          <SentryAppInstallations
+            orgId={org.slug}
+            applications={[sentryApp]}
+            installs={[install]}
+          />,
+          routerContext
+        );
         expect(wrapper.find('[icon="icon-trash"]').exists()).toBe(true);
       });
 
       it('redirects the user to the Integrations page when a redirectUrl is not set', () => {
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-apps/`,
-          body: [TestStubs.SentryApp({redirectUrl: null})],
-        });
-
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-app-installations/`,
-          body: [],
-        });
-
-        wrapper = mount(<SentryAppInstallations orgId={org.slug} />, routerContext);
-
+        wrapper = mount(
+          <SentryAppInstallations
+            orgId={org.slug}
+            applications={[TestStubs.SentryApp({redirectUrl: null})]}
+            installs={[]}
+          />,
+          routerContext
+        );
         wrapper.find('[icon="icon-circle-add"]').simulate('click');
         expect(wrapper.state('installs')).toEqual([install]);
       });
 
       it('redirects the user to the App when a redirectUrl is set', () => {
         window.location.assign = jest.fn();
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-apps/`,
-          body: [sentryApp],
-        });
-
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-app-installations/`,
-          body: [],
-        });
-
-        wrapper = mount(<SentryAppInstallations orgId={org.slug} />, routerContext);
+        wrapper = mount(
+          <SentryAppInstallations
+            orgId={org.slug}
+            applications={[sentryApp]}
+            installs={[]}
+          />,
+          routerContext
+        );
 
         wrapper.find('[icon="icon-circle-add"]').simulate('click');
 
@@ -128,17 +105,14 @@ describe('Sentry App Installations', function() {
           redirectUrl: 'https://example.com/setup?hello=1',
         });
 
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-apps/`,
-          body: [sentryAppWithQuery],
-        });
-
-        Client.addMockResponse({
-          url: `/organizations/${org.slug}/sentry-app-installations/`,
-          body: [],
-        });
-
-        wrapper = mount(<SentryAppInstallations orgId={org.slug} />, routerContext);
+        wrapper = mount(
+          <SentryAppInstallations
+            orgId={org.slug}
+            applications={[sentryAppWithQuery]}
+            installs={[]}
+          />,
+          routerContext
+        );
 
         wrapper.find('[icon="icon-circle-add"]').simulate('click');
 
@@ -154,16 +128,15 @@ describe('Sentry App Installations', function() {
             method: 'DELETE',
             body: [],
           });
-          Client.addMockResponse({
-            url: `/organizations/${org.slug}/sentry-apps/`,
-            body: [TestStubs.SentryApp({redirectUrl: null})],
-          });
-          Client.addMockResponse({
-            url: `/organizations/${org.slug}/sentry-app-installations/`,
-            body: [install],
-          });
 
-          wrapper = mount(<SentryAppInstallations orgId={org.slug} />, routerContext);
+          wrapper = mount(
+            <SentryAppInstallations
+              orgId={org.slug}
+              applications={[sentryApp]}
+              installs={[install]}
+            />,
+            routerContext
+          );
 
           wrapper
             .find('[data-test-id="sentry-app-uninstall"]')
@@ -173,7 +146,7 @@ describe('Sentry App Installations', function() {
             .find('[data-test-id="confirm-modal"]')
             .first()
             .simulate('click');
-          expect(response).toBeCalledWith(
+          expect(response).toHaveBeenCalledWith(
             `/sentry-app-installations/${install.uuid}/`,
             expect.objectContaining({method: 'DELETE'})
           );

@@ -2901,6 +2901,8 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
               </PanelItem>
             </ProviderRow>
             <SentryAppInstallations
+              applications={Array []}
+              installs={Array []}
               orgId="org-slug"
             >
               <SideEffect(DocumentTitle)
@@ -4641,6 +4643,8 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
               </PanelItem>
             </ProviderRow>
             <SentryAppInstallations
+              applications={Array []}
+              installs={Array []}
               orgId="org-slug"
             >
               <SideEffect(DocumentTitle)

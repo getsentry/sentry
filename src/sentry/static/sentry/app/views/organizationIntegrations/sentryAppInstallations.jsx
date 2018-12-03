@@ -12,12 +12,14 @@ const api = new Client();
 
 export default class SentryAppInstallations extends AsyncView {
   getEndpoints() {
-    let {orgId} = this.props;
+    return [];
+  }
 
-    return [
-      ['applications', `/organizations/${orgId}/sentry-apps/`],
-      ['installs', `/organizations/${orgId}/sentry-app-installations/`],
-    ];
+  getDefaultState() {
+    return {
+      installs: this.props.installs,
+      applications: this.props.applications,
+    };
   }
 
   redirectUser = data => {

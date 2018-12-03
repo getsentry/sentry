@@ -2,6 +2,25 @@
 
 exports[`Sentry App Installations when Apps exist displays all Apps owned by the Org 1`] = `
 <SentryAppInstallations
+  applications={
+    Array [
+      Object {
+        "clientId": "client-id",
+        "clientSecret": "client-secret",
+        "isAlertable": false,
+        "name": "Sample App",
+        "overview": "This is an app.",
+        "redirectUrl": "https://example/com/setup",
+        "scopes": Array [
+          "project:read",
+        ],
+        "slug": "sample-app",
+        "uuid": "123456123456123456123456",
+        "webhookUrl": "https://example.com/webhook",
+      },
+    ]
+  }
+  installs={Array []}
   orgId="org-slug"
 >
   <SideEffect(DocumentTitle)
@@ -824,6 +843,8 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
 
 exports[`Sentry App Installations when no Apps exist no row is displayed 1`] = `
 <SentryAppInstallations
+  applications={Array []}
+  installs={Array []}
   orgId="org-slug"
 >
   <SideEffect(DocumentTitle)
