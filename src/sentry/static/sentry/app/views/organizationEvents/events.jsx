@@ -120,7 +120,9 @@ class OrganizationEvents extends AsyncView {
         <EventsTable reloading={reloading} events={events} organization={organization} />
 
         <Flex align="center" justify="space-between">
-          <RowDisplay>{t(`Results ${this.renderRowCounts()}`)}</RowDisplay>
+          <RowDisplay>
+            {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
+          </RowDisplay>
           <Pagination pageLinks={eventsPageLinks} />
         </Flex>
       </React.Fragment>
