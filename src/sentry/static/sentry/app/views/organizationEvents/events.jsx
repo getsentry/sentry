@@ -93,11 +93,11 @@ class OrganizationEvents extends AsyncView {
 
   renderBody() {
     const {organization} = this.props;
-    const {loading, reloading, events, eventsPageLinks} = this.state;
+    const {error, loading, reloading, events, eventsPageLinks} = this.state;
 
     return (
       <React.Fragment>
-        {this.state.error && super.renderError()}
+        {error && super.renderError(new Error('Unable to load all required endpoints'))}
         <Panel>
           <EventsChart loading={loading || reloading} organization={organization} />
         </Panel>
@@ -109,12 +109,15 @@ class OrganizationEvents extends AsyncView {
           organization={organization}
         />
 
-        <Flex align="center" justify="space-between">
-          <RowDisplay>
-            {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
-          </RowDisplay>
-          <Pagination pageLinks={eventsPageLinks} className="" />
-        </Flex>
+        {!loading &&
+          !error && (
+            <Flex align="center" justify="space-between">
+              <RowDisplay>
+                {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
+              </RowDisplay>
+              <Pagination pageLinks={eventsPageLinks} className="" />
+            </Flex>
+          )}
       </React.Fragment>
     );
   }
