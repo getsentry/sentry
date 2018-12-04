@@ -4,9 +4,7 @@ import {EventsChart} from 'app/views/organizationEvents/eventsChart';
 import {getLocalDateObject} from 'app/utils/dates';
 import {mount} from 'enzyme';
 
-jest.mock('app/views/organizationEvents/utils/eventsRequest', () => ({
-  EventsRequestWithParams: jest.fn(() => null),
-}));
+jest.mock('app/views/organizationEvents/utils/eventsRequest', () => jest.fn(() => null));
 
 describe('EventsChart', function() {
   let wrapper;
