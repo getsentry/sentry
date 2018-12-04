@@ -14,7 +14,6 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.fields.actor import Actor
 from sentry.constants import LOG_LEVELS, StatsPeriod
-from sentry.integrations import IntegrationFeatures
 from sentry.models import (
     Commit, Environment, Group, GroupAssignee, GroupBookmark, GroupLink, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
     GroupShare, GroupStatus, GroupSubscription, GroupSubscriptionReason, Integration, User, UserOption,
@@ -259,7 +258,7 @@ class GroupSerializer(Serializer):
             for integration in Integration.objects.filter(
                     organizations=item.project.organization_id):
                 if not (integration.has_feature(IntegrationFeatures.ISSUE_BASIC) or integration.has_feature(
-                    IntegrationFeatures.ISSUE_SYNC)):
+                        IntegrationFeatures.ISSUE_SYNC)):
                     continue
 
                 install = integration.get_installation(item.project.organization_id)
