@@ -160,7 +160,9 @@ class OrganizationEvents extends AsyncView {
                   <TotalEventCount
                     organization={organization}
                     location={location}
-                    isAllResults={!parsedLinks.previous.results && !parsedLinks.next.results}
+                    isAllResults={
+                      !parsedLinks.previous.results && !parsedLinks.next.results
+                    }
                     numRows={events.length}
                   />
                 )}
