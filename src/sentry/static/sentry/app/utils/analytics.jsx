@@ -80,6 +80,11 @@ metric.measure = function metricMeasure({name, start, end, data, noCleanup} = {}
     performance.mark(endMarkName);
   }
 
+  // Check if starting mark exists
+  if (!performance.getEntriesByName(start, 'mark').length) {
+    return;
+  }
+
   performance.measure(name, start, endMarkName);
 
   // Retrieve measurement entries
