@@ -28,6 +28,7 @@ OUTER_BORDER_FRAMES = [
 
 INNER_BORDER_FRAMES = [
     "std::panicking::begin_panic",
+    "core::panicking::panic",
     "failure::error_message::err_msg",
     "failure::backtrace::Backtrace::new",
     "failure::backtrace::internal::InternalBacktrace::new",
