@@ -68,12 +68,13 @@ export default class SelectField extends React.Component {
           // Check if value quacks like mobx and get the raw array.
           // Inside Form containers `value` can be a mobx observable
           // which doesn't play nice with downstream code.
+          let val = props.value;
           if (
             multiple &&
-            Array.isArray(props.value) === false &&
-            typeof props.value.peek === 'function'
+            Array.isArray(val) === false &&
+            typeof val.peek === 'function'
           ) {
-            props.value = props.value.peek();
+            val = val.peek();
           }
           return (
             <SelectControl
@@ -82,7 +83,7 @@ export default class SelectField extends React.Component {
               multiple={multiple}
               disabled={disabled}
               onChange={this.handleChange.bind(this, onBlur, onChange)}
-              value={props.value}
+              value={val}
               options={choices.map(([value, label]) => ({
                 value,
                 label,
