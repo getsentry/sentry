@@ -71,6 +71,11 @@ metric.measure = function metricMeasure({name, start, end, data, noCleanup} = {}
   // Can't destructure from performance
   const {performance} = window;
 
+  // Check if starting mark exists
+  if (!performance.getEntriesByName(start, 'mark').length) {
+    return;
+  }
+
   performance.measure(name, start, end);
 
   // Retrieve measurement entries
