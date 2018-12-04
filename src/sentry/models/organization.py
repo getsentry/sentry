@@ -228,6 +228,8 @@ class Organization(Model):
             ApiKey,
             AuditLogEntry,
             Commit,
+            OrganizationAvatar,
+            OrganizationIntegration,
             OrganizationMember,
             OrganizationMemberTeam,
             Project,
@@ -308,7 +310,8 @@ class Organization(Model):
             ).update(organization=to_org)
 
         for model in (
-            Commit, ReleaseCommit, ReleaseEnvironment, ReleaseHeadCommit, Repository, Environment
+            Commit, ReleaseCommit, ReleaseEnvironment, ReleaseHeadCommit, Repository, Environment, OrganizationAvatar,
+            OrganizationIntegration,
         ):
             try:
                 with transaction.atomic():
