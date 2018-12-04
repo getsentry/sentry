@@ -69,9 +69,9 @@ export default class OrderBy extends React.Component {
               name="orderby"
               label={t('asc')}
               placeholder={<PlaceholderText>{t('asc or desc')}</PlaceholderText>}
-              options={[{name: 'asc', label: 'asc'}, {name: 'desc', label: 'desc'}]}
+              options={[{value: 'asc', label: 'asc'}, {value: 'desc', label: 'desc'}]}
               value={{label: this.state.order}}
-              onChange={val => this.updateOrderBy('asc_desc', val.name)}
+              onChange={val => this.updateOrderBy('asc_desc', val.value)}
               disabled={disabled}
               autosize={false}
             />
