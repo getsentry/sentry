@@ -26,6 +26,7 @@ MAX_HASHES = 5000
 
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
+# NOT THREAD SAFE!
 OVERRIDE_OPTIONS = {}
 
 SENTRY_SNUBA_MAP = {
@@ -164,6 +165,8 @@ def timer(name, prefix='snuba.client'):
 @contextmanager
 def options_override(overrides):
     """\
+    NOT THREAD SAFE!
+
     Adds to OVERRIDE_OPTIONS, restoring previous values and removing
     keys that didn't previously exist on exit, so that calls to this
     can be nested.
