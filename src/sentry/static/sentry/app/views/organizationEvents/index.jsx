@@ -8,12 +8,15 @@ import styled from 'react-emotion';
 import {DEFAULT_STATS_PERIOD, DEFAULT_USE_UTC} from 'app/constants';
 import {defined} from 'app/utils';
 import {getLocalDateObject, getUtcDateString} from 'app/utils/dates';
+import {t} from 'app/locale';
+import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import Header from 'app/components/organizations/header';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
+import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import space from 'app/styles/space';
@@ -188,6 +191,17 @@ class OrganizationEventsContainer extends React.Component {
 
   handleUpdateProjects = () => this.handleUpdate('project');
 
+  handleSearch = query => {
+    let {router, location} = this.props;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...(location.query || {}),
+        query,
+      },
+    });
+  };
+
   render() {
     const {organization, children} = this.props;
     const {period, start, end, utc} = this.state;
@@ -234,7 +248,20 @@ class OrganizationEventsContainer extends React.Component {
                 />
               </HeaderItemPosition>
             </Header>
-            <Body>{children}</Body>
+            <Body>
+              <Flex align="center" justify="space-between" mb={2}>
+                <HeaderTitle>
+                  {t('Events')} <BetaTag />
+                </HeaderTitle>
+                <StyledSearchBar
+                  query={(location.query && location.query.query) || ''}
+                  placeholder={t('Search for events, users, tags, and everything else.')}
+                  onSearch={this.handleSearch}
+                />
+              </Flex>
+
+              {children}
+            </Body>
           </OrganizationEventsContent>
         </EventsContext.Provider>
       </Feature>
@@ -258,4 +285,17 @@ const Body = styled('div')`
   flex-direction: column;
   flex: 1;
   padding: ${space(2)} ${space(4)} ${space(3)};
+`;
+
+const HeaderTitle = styled('h4')`
+  flex: 1;
+  font-size: ${p => p.theme.headerFontSize};
+  line-height: ${p => p.theme.headerFontSize};
+  font-weight: normal;
+  color: ${p => p.theme.gray4};
+  margin: 0;
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex: 1;
 `;

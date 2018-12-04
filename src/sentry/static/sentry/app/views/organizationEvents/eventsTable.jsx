@@ -18,6 +18,7 @@ import EventsContext from './utils/eventsContext';
 
 class EventsTable extends React.Component {
   static propTypes = {
+    loading: PropTypes.bool,
     reloading: PropTypes.bool,
     events: PropTypes.array,
     organization: SentryTypes.Organization,
@@ -32,7 +33,10 @@ class EventsTable extends React.Component {
   }
 
   shouldComponentUpdate(nextProps) {
-    if (this.props.reloading !== nextProps.reloading) {
+    if (
+      this.props.reloading !== nextProps.reloading ||
+      this.props.loading !== nextProps.loading
+    ) {
       return true;
     }
 
@@ -63,7 +67,7 @@ class EventsTable extends React.Component {
   }
 
   render() {
-    const {events, organization, reloading, utc} = this.props;
+    const {events, organization, loading, reloading, utc} = this.props;
     const hasEvents = events && !!events.length;
 
     return (
@@ -76,7 +80,8 @@ class EventsTable extends React.Component {
             <div>{t('Time')}</div>
           </TableLayout>
         </PanelHeader>
-        {!hasEvents && <EmptyStateWarning>No events</EmptyStateWarning>}
+        {loading && <LoadingIndicator />}
+        {!loading && !hasEvents && <EmptyStateWarning>No events</EmptyStateWarning>}
         {hasEvents && (
           <StyledPanelBody>
             {reloading && <StyledLoadingIndicator overlay />}

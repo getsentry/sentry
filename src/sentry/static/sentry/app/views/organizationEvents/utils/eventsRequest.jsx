@@ -2,15 +2,17 @@ import {isEqual, omitBy} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {doEventsRequest} from 'app/actionCreators/events';
+import {t} from 'app/locale';
 import LoadingPanel from 'app/views/organizationHealth/loadingPanel';
 import SentryTypes from 'app/sentryTypes';
-import withApi from 'app/utils/withApi';
-import withLatestContext from 'app/utils/withLatestContext';
 
-import EventsContext from './eventsContext';
+const propNamesToIgnore = ['api', 'children', 'organizations', 'project', 'loading'];
+const omitIgnoredProps = props =>
+  omitBy(props, (value, key) => propNamesToIgnore.includes(key));
 
-class EventsRequestWithParams extends React.Component {
+class EventsRequest extends React.Component {
   static propTypes = {
     /**
      * API client instance
@@ -80,6 +82,9 @@ class EventsRequestWithParams extends React.Component {
      */
     timeAggregationSeriesName: PropTypes.string,
 
+    // Initial loading state
+    loading: PropTypes.bool,
+
     showLoading: PropTypes.bool,
   };
 
@@ -99,7 +104,7 @@ class EventsRequestWithParams extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      reloading: false,
+      reloading: false || props.loading,
       timeseriesData: null,
     };
   }
@@ -109,11 +114,6 @@ class EventsRequestWithParams extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    const propNamesToIgnore = ['api', 'children', 'organizations', 'project'];
-
-    const omitIgnoredProps = props =>
-      omitBy(props, (value, key) => propNamesToIgnore.includes(key));
-
     if (isEqual(omitIgnoredProps(prevProps), omitIgnoredProps(this.props))) {
       return;
     }
@@ -127,12 +127,18 @@ class EventsRequestWithParams extends React.Component {
 
   fetchData = async () => {
     const {api, ...props} = this.props;
+    let timeseriesData;
 
     this.setState(state => ({
       reloading: state.timeseriesData !== null,
     }));
 
-    const timeseriesData = await doEventsRequest(api, props);
+    try {
+      timeseriesData = await doEventsRequest(api, props);
+    } catch (err) {
+      addErrorMessage(t('Error loading chart data'));
+      timeseriesData = null;
+    }
 
     if (this.unmounting) return;
 
@@ -260,7 +266,7 @@ class EventsRequestWithParams extends React.Component {
     const {timeseriesData, reloading} = this.state;
 
     // Is "loading" if data is null
-    const loading = reloading || timeseriesData === null;
+    const loading = this.props.loading || reloading || timeseriesData === null;
 
     if (showLoading && loading) {
       return <LoadingPanel />;
@@ -295,27 +301,4 @@ class EventsRequestWithParams extends React.Component {
   }
 }
 
-const EventsRequest = withLatestContext(
-  withApi(
-    class EventsRequest extends React.Component {
-      render() {
-        return (
-          <EventsContext.Consumer>
-            {({projects, environments, period, filters}) => (
-              <EventsRequestWithParams
-                projects={projects}
-                environments={environments}
-                period={period}
-                filters={filters}
-                {...this.props}
-              />
-            )}
-          </EventsContext.Consumer>
-        );
-      }
-    }
-  )
-);
-
 export default EventsRequest;
-export {EventsRequestWithParams};
