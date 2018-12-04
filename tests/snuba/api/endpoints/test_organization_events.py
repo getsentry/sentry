@@ -96,7 +96,12 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        self.create_event('x' * 32, group=group, message="how to make fast", datetime=self.min_ago)
+        event_1 = self.create_event(
+            'x' * 32,
+            group=group,
+            message="how to make fast",
+            datetime=self.min_ago,
+        )
         event_2 = self.create_event(
             'y' * 32,
             group=group,
@@ -117,6 +122,12 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         assert len(response.data) == 1
         assert response.data[0]['eventID'] == event_2.event_id
         assert response.data[0]['message'] == 'Delet the Data'
+
+        response = self.client.get(url, {'query': '!user.email:foo@example.com'}, format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]['eventID'] == event_1.event_id
+        assert response.data[0]['message'] == 'how to make fast'
 
     def test_invalid_search_terms(self):
         self.login_as(user=self.user)
@@ -349,7 +360,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         event_1 = self.create_event(
             'a' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'apple'}
         )
-        self.create_event(
+        event_2 = self.create_event(
             'b' * 32, group=group, datetime=self.min_ago, tags={'fruit': 'orange'}
         )
 
@@ -364,6 +375,10 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_1.event_id])
+        response = self.client.get('%s?query=!fruit:apple' % (base_url,), format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        self.assert_events_in_response(response, [event_2.event_id])
 
     def test_wildcard_search(self):
         user = self.create_user()
@@ -379,14 +394,14 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         event_1 = self.create_event(
             'a' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '3.1.2'}
         )
-        self.create_event(
+        event_2 = self.create_event(
             'b' * 32, group=group, datetime=self.min_ago, tags={'sentry:release': '4.1.2'}
         )
-        event_2 = self.create_event(
+        event_3 = self.create_event(
             'c' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.com'}
         )
 
-        self.create_event(
+        event_4 = self.create_event(
             'd' * 32, group=group, datetime=self.min_ago, user={'email': 'foo@example.commmmmmmm'}
         )
 
@@ -402,10 +417,29 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_1.event_id])
 
+        response = self.client.get('%s?query=!release:3.1.*' % (base_url,), format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        self.assert_events_in_response(
+            response,
+            [event_2.event_id, event_3.event_id, event_4.event_id],
+        )
+
         response = self.client.get('%s?query=user.email:*@example.com' % (base_url,), format='json')
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        self.assert_events_in_response(response, [event_2.event_id])
+        self.assert_events_in_response(response, [event_3.event_id])
+
+        response = self.client.get(
+            '%s?query=!user.email:*@example.com' % (base_url,),
+            format='json',
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        self.assert_events_in_response(
+            response,
+            [event_1.event_id, event_2.event_id, event_4.event_id],
+        )
 
     def test_has_tag(self):
         user = self.create_user()
@@ -445,6 +479,17 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_2.event_id])
+
+        response = self.client.get('%s?query=!has:user.email' % (base_url,), format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        self.assert_events_in_response(response, [event_2.event_id])
+
+        # test custom tag
+        response = self.client.get('%s?query=!has:example_tag' % (base_url,), format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        self.assert_events_in_response(response, [event_1.event_id])
 
 
 class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
