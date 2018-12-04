@@ -452,23 +452,31 @@ describe('Discover', function() {
         />,
         TestStubs.routerContext()
       );
+
+      queryBuilder.fetch = jest.fn(() =>
+        Promise.resolve({timing: {}, data: [], meta: []})
+      );
     });
+
     it('renders example queries', function() {
-      const queries = wrapper.find('IntroContainer').find('li');
+      const queries = wrapper.find('IntroContainer').find('ExampleQuery');
       expect(queries).toHaveLength(3);
-      expect(queries.first().text()).toBe('Last 10 event IDs');
+      expect(queries.first().text()).toContain('Events by stack filename');
     });
 
-    it('updates query builder when clicked', function() {
-      const queries = wrapper.find('IntroContainer').find('li');
-      queries
+    it('runs example query', function() {
+      expect(queryBuilder.fetch).not.toHaveBeenCalled();
+      wrapper
+        .find('IntroContainer')
+        .find('ExampleQuery')
         .first()
-        .find('a')
+        .find('Button')
         .simulate('click');
-
       const query = queryBuilder.getInternal();
-      expect(query.fields).toEqual(['id']);
-      expect(query.limit).toEqual(10);
+      expect(query.fields).toEqual(['stack.filename']);
+      expect(query.aggregations).toEqual([['count()', null, 'count']]);
+      expect(query.conditions).toEqual([]);
+      expect(queryBuilder.fetch).toHaveBeenCalledTimes(2);
     });
   });
 
