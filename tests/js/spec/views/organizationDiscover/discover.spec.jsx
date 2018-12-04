@@ -226,7 +226,7 @@ describe('Discover', function() {
       expect(queryBuilder.getExternal().aggregations).toEqual([]);
     });
 
-    it('also i chart query if there are aggregations', async function() {
+    it('also runs chart query if there are aggregations', async function() {
       wrapper.instance().updateField('fields', []);
       wrapper.instance().updateField('aggregations', [['count()', null, 'count']]);
       wrapper.instance().runQuery();
