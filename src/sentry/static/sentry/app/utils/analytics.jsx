@@ -31,14 +31,16 @@ export function metric(name, value, tags) {
 }
 
 // JSDOM implements window.performance but not window.performance.mark
-const canMark = () =>
+const CAN_MARK =
   window.performance &&
   typeof window.performance.mark === 'function' &&
-  typeof window.performance.measure === 'function';
+  typeof window.performance.measure === 'function' &&
+  typeof window.performance.getEntriesByName === 'function' &&
+  typeof window.performance.clearMeasures === 'function';
 
 metric.mark = function metricMark(name) {
   // Just ignore if browser is old enough that it doesn't support this
-  if (!canMark) {
+  if (!CAN_MARK) {
     return;
   }
 
@@ -58,7 +60,7 @@ metric.mark = function metricMark(name) {
  */
 metric.measure = function metricMeasure({name, start, end, data, noCleanup} = {}) {
   // Just ignore if browser is old enough that it doesn't support this
-  if (!canMark) {
+  if (!CAN_MARK) {
     return;
   }
 
@@ -79,5 +81,6 @@ metric.measure = function metricMeasure({name, start, end, data, noCleanup} = {}
   // By default, clean up measurements
   if (!noCleanup) {
     performance.clearMeasures(name);
+    performance.clearMarks(start);
   }
 };
