@@ -9,25 +9,11 @@ from sentry.api.bases.group import GroupPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import EVENT_ORDERING_KEY
-from sentry.models import Event, Release, UserReport
+from sentry.models import Event
 
 
 class EventDetailsEndpoint(Endpoint):
     permission_classes = (GroupPermission, )
-
-    def _get_release_info(self, request, event):
-        version = event.get_tag('sentry:release')
-        if not version:
-            return None
-        try:
-            release = Release.objects.get(
-                projects=event.project,
-                organization_id=event.project.organization_id,
-                version=version,
-            )
-        except Release.DoesNotExist:
-            return {'version': version}
-        return serialize(release, request.user)
 
     def get(self, request, event_id):
         """
@@ -95,17 +81,7 @@ class EventDetailsEndpoint(Endpoint):
                 prev_event = e
                 break
 
-        try:
-            user_report = UserReport.objects.get(
-                event_id=event.event_id,
-                project=event.project,
-            )
-        except UserReport.DoesNotExist:
-            user_report = None
-
         data = serialize(event, request.user)
-        data['userReport'] = serialize(user_report, request.user)
-        data['release'] = self._get_release_info(request, event)
 
         if next_event:
             data['nextEventID'] = six.text_type(next_event.id)
