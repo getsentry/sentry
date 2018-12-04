@@ -25,20 +25,19 @@ describe('orderBy', function() {
   });
 
   it('Changes direction, preserves field', function() {
-    // console.log(wrapper.debug());
     wrapper.instance().updateDirection('asc');
     wrapper.update();
     console.log(wrapper.props());
+    console.log(wrapper.props().value);
 
-    // console.log(wrapper.instance().getInternal())
 
-    expect(wrapper.instance().getExternal()).toEqual('timestamp');
+    expect(wrapper.instance().getExternal(wrapper.props().value)).toEqual('timestamp');
   });
 
   it('Changes field, preserves direction', function() {
     wrapper.instance().updateField('id');
     wrapper.update();
 
-    expect(wrapper.instance().getExternal()).toEqual('id');
+    expect(wrapper.instance().getExternal(wrapper.props().value)).toEqual('id');
   });
 });
