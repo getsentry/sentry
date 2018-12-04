@@ -16,7 +16,7 @@ from sentry.api.fields.actor import Actor
 from sentry.constants import LOG_LEVELS, StatsPeriod
 from sentry.models import (
     Commit, Environment, Group, GroupAssignee, GroupBookmark, GroupLink, GroupMeta, GroupResolution, GroupSeen, GroupSnooze,
-    GroupShare, GroupStatus, GroupSubscription, GroupSubscriptionReason, User, UserOption,
+    GroupShare, GroupStatus, GroupSubscription, GroupSubscriptionReason, Integration, User, UserOption,
     UserOptionValue
 )
 from sentry.utils.db import attach_foreignkey
@@ -252,6 +252,18 @@ class GroupSerializer(Serializer):
             for plugin in plugins.for_project(project=item.project, version=2):
                 annotations.extend(
                     safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
+                )
+
+            from sentry.integrations import IntegrationFeatures
+            for integration in Integration.objects.filter(
+                    organizations=item.project.organization_id):
+                if not (integration.has_feature(IntegrationFeatures.ISSUE_BASIC) or integration.has_feature(
+                        IntegrationFeatures.ISSUE_SYNC)):
+                    continue
+
+                install = integration.get_installation(item.project.organization_id)
+                annotations.extend(
+                    safe_execute(install.get_annotations, group=item, _with_transaction=False) or ()
                 )
 
             resolution_actor = None
