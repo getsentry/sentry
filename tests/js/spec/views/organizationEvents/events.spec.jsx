@@ -38,6 +38,29 @@ describe('OrganizationEventsErrors', function() {
     });
   });
 
+  it('renders with errors', async function() {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/events/`,
+      statusCode: 500,
+      body: {details: 'Error'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/events-stats/`,
+      statusCode: 500,
+      body: {details: 'Error'},
+    });
+    let wrapper = mount(
+      <OrganizationEvents organization={org} location={{query: {}}} />,
+      TestStubs.routerContext()
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('EventsChart')).toHaveLength(1);
+    expect(wrapper.find('EventsTable')).toHaveLength(1);
+    expect(wrapper.find('RouteError')).toHaveLength(1);
+  });
+
   it('renders events table', async function() {
     let wrapper = mount(
       <OrganizationEvents organization={org} location={{query: {}}} />,
