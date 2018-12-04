@@ -7,6 +7,8 @@ import SentryTypes from 'app/sentryTypes';
 import Link from 'app/components/link';
 import Tooltip from 'app/components/tooltip';
 import Panel from 'app/components/panels/panel';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+
 import {getDisplayValue, getDisplayText} from './utils';
 
 const TABLE_ROW_HEIGHT = 30;
@@ -237,38 +239,43 @@ export default class ResultTable extends React.Component {
     const cellRenderer = this.getCellRenderer(cols);
 
     return (
-      <GridContainer visibleRows={Math.min(data.length, visibleRows) + 1}>
-        <AutoSizer>
-          {size => {
-            const columnWidths = this.getColumnWidths(size.width);
+      <Panel>
+        <Grid visibleRows={Math.min(data.length, visibleRows) + 1}>
+          <AutoSizer>
+            {size => {
+              const columnWidths = this.getColumnWidths(size.width);
 
-            // Since calculating row height might be expensive, we'll only
-            // perform the check against a subset of columns (where col width
-            // has exceeded the max value)
-            const columnsToCheck = columnWidths.reduce((acc, colWidth, idx) => {
-              if (colWidth === MAX_COL_WIDTH) {
-                acc.push(cols[idx].name);
-              }
-              return acc;
-            }, []);
+              // Since calculating row height might be expensive, we'll only
+              // perform the check against a subset of columns (where col width
+              // has exceeded the max value)
+              const columnsToCheck = columnWidths.reduce((acc, colWidth, idx) => {
+                if (colWidth === MAX_COL_WIDTH) {
+                  acc.push(cols[idx].name);
+                }
+                return acc;
+              }, []);
 
-            return (
-              <MultiGrid
-                ref={ref => (this.grid = ref)}
-                width={size.width - 1}
-                height={size.height}
-                rowCount={data.length + 1}
-                columnCount={colCount}
-                fixedRowCount={1}
-                rowHeight={({index}) => this.getRowHeight(index, columnsToCheck)}
-                columnWidth={({index}) => columnWidths[index]}
-                cellRenderer={cellRenderer}
-                overscanByPixels={800}
-              />
-            );
-          }}
-        </AutoSizer>
-      </GridContainer>
+              return (
+                <MultiGrid
+                  ref={ref => (this.grid = ref)}
+                  width={size.width - 1}
+                  height={size.height}
+                  rowCount={data.length + 1}
+                  columnCount={colCount}
+                  fixedRowCount={1}
+                  rowHeight={({index}) => this.getRowHeight(index, columnsToCheck)}
+                  columnWidth={({index}) => columnWidths[index]}
+                  cellRenderer={cellRenderer}
+                  overscanByPixels={800}
+                />
+              );
+            }}
+          </AutoSizer>
+        </Grid>
+        {!data.length && (
+          <EmptyStateWarning small={true}>{t('No results')}</EmptyStateWarning>
+        )}
+      </Panel>
     );
   }
 
@@ -283,7 +290,7 @@ export default class ResultTable extends React.Component {
   }
 }
 
-const GridContainer = styled(({visibleRows, ...props}) => <Panel {...props} />)`
+const Grid = styled(({visibleRows, ...props}) => <div {...props} />)`
   height: ${p =>
     p.visibleRows * TABLE_ROW_HEIGHT_WITH_BORDER +
     2}px; /* cell height + cell border + top and bottom Panel border */

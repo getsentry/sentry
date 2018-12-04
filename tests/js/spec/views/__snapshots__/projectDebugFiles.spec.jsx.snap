@@ -207,7 +207,9 @@ exports[`ProjectDebugFiles renders 1`] = `
           <div
             className="css-9vq8an-textStyles"
           >
-            <EmptyStateWarning>
+            <EmptyStateWarning
+              small={false}
+            >
               <EmptyStreamWrapper
                 className="ref-empty-state"
               >
@@ -282,7 +284,9 @@ exports[`ProjectDebugFiles renders empty 1`] = `
       disablePadding={true}
       flex={false}
     >
-      <EmptyStateWarning>
+      <EmptyStateWarning
+        small={false}
+      >
         <p>
           There are no debug symbols for this project.
         </p>
