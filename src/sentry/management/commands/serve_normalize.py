@@ -16,7 +16,6 @@ import time
 import traceback
 import json
 import resource
-import multiprocessing
 
 from django.core.management.base import BaseCommand, CommandError, make_option
 from django.utils.encoding import force_str
@@ -109,10 +108,6 @@ def handle_data(data):
     })
 
 
-def handle_data_piped(pipe, data):
-    pipe.send(handle_data(data))
-
-
 class MetricCollector(object):
     def __init__(self):
         self.is_linux = sys.platform.startswith('linux')
@@ -168,24 +163,7 @@ class EventNormalizeHandler(SocketServer.BaseRequestHandler):
         self.request.close()
 
     def handle_data(self):
-        from sentry.event_manager import ENABLE_RUST
-        if not ENABLE_RUST:
-            return handle_data(self.data)
-
-        @catch_errors
-        def inner():
-            # TODO: Remove this contraption once we no longer get segfaults
-            parent_conn, child_conn = multiprocessing.Pipe()
-            p = multiprocessing.Process(
-                target=handle_data_piped,
-                args=(child_conn, self.data,)
-            )
-            p.start()
-            p.join(1)
-            assert parent_conn.poll(), "Process crashed"
-            return parent_conn.recv()
-
-        return inner()
+        return handle_data(self.data)
 
 
 class Command(BaseCommand):
