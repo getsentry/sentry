@@ -284,7 +284,9 @@ exports[`ProjectDebugFiles renders empty 1`] = `
       disablePadding={true}
       flex={false}
     >
-      <EmptyStateWarning>
+      <EmptyStateWarning
+        small={false}
+      >
         <p>
           There are no debug symbols for this project.
         </p>
