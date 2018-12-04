@@ -23,6 +23,8 @@ const CreateProject = createReactClass({
 
   propTypes: {
     getDocsUrl: PropTypes.func,
+    onSurveySubmit: PropTypes.func,
+    showSurvey: PropTypes.bool,
   },
 
   contextTypes: {
@@ -148,7 +150,12 @@ const CreateProject = createReactClass({
       <div>
         {error && <h2 className="alert alert-error">{error}</h2>}
         {accessTeams.length ? (
-          <OnboardingProject {...stepProps} />
+          <OnboardingProject
+            onSurveySubmit={this.props.onSurveySubmit}
+            showSurvey={this.props.showSurvey}
+            organization={organization}
+            {...stepProps}
+          />
         ) : (
           <Panel
             title={t('Cannot Create Project')}

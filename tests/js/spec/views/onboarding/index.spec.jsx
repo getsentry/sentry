@@ -30,13 +30,22 @@ describe('OnboardingWizard', function() {
     it('should render NotFound if no matching organization', function() {
       let props = {
         ...baseProps,
+        children: (
+          <Project
+            next={jest.fn()}
+            platform={''}
+            setName={jest.fn()}
+            name={''}
+            setPlatform={jest.fn()}
+          />
+        ),
         params: {
           orgId: 'my-cool-org',
         },
       };
 
       let wrapper = shallow(<OnboardingWizard {...props} />, {
-        organization: {id: '1337', slug: 'testOrg'},
+        organization: {id: '1337', slug: 'testOrg', experiments: {}},
       });
       expect(wrapper).toMatchSnapshot();
     });
@@ -57,7 +66,7 @@ describe('OnboardingWizard', function() {
 
       let wrapper = mount(<OnboardingWizard {...props} />, {
         context: {
-          organization: {id: '1337', slug: 'testOrg'},
+          organization: {id: '1337', slug: 'testOrg', experiments: {}},
           router: TestStubs.router(),
         },
         childContextTypes: {

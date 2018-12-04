@@ -18,6 +18,7 @@ const validHookNames = new Set([
   'metrics:event',
 
   // Specific component customizations
+  'component:onboarding-survey',
   'component:org-auth-view',
   'component:org-members-view',
   'component:releases-tab',

@@ -13,7 +13,7 @@ describe('ProgressNodes', function() {
 
     const baseContext = {
       context: {
-        organization: {id: '1337', slug: 'testOrg'},
+        organization: {id: '1337', slug: 'testOrg', experiments: {}},
       },
     };
 
