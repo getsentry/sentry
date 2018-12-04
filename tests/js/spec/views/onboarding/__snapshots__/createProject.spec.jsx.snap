@@ -904,7 +904,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                           <ForwardRef(SelectPicker)
                             arrowRenderer={[Function]}
                             backspaceRemoves={false}
-                            className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                            className="e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20"
                             clearable={false}
                             deleteRemoves={false}
                             disabled={false}
@@ -927,7 +927,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                             <SelectPicker
                               arrowRenderer={[Function]}
                               backspaceRemoves={false}
-                              className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                              className="e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20"
                               clearable={false}
                               deleteRemoves={false}
                               disabled={false}
@@ -953,7 +953,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                 autosize={true}
                                 backspaceRemoves={false}
                                 backspaceToRemoveMessage="Press backspace to remove {label}"
-                                className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                                className="e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20"
                                 clearAllText="Clear all"
                                 clearRenderer={[Function]}
                                 clearValueText="Clear value"
@@ -1009,7 +1009,7 @@ exports[`CreateProject should deal with incorrect platform name if its provided 
                                 valueKey="value"
                               >
                                 <div
-                                  className="Select e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                                  className="Select e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                 >
                                   <input
                                     disabled={false}
@@ -1641,7 +1641,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                           <ForwardRef(SelectPicker)
                             arrowRenderer={[Function]}
                             backspaceRemoves={false}
-                            className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                            className="e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20"
                             clearable={false}
                             deleteRemoves={false}
                             disabled={false}
@@ -1664,7 +1664,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                             <SelectPicker
                               arrowRenderer={[Function]}
                               backspaceRemoves={false}
-                              className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                              className="e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20"
                               clearable={false}
                               deleteRemoves={false}
                               disabled={false}
@@ -1690,7 +1690,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                 autosize={true}
                                 backspaceRemoves={false}
                                 backspaceToRemoveMessage="Press backspace to remove {label}"
-                                className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                                className="e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20"
                                 clearAllText="Clear all"
                                 clearRenderer={[Function]}
                                 clearValueText="Clear value"
@@ -1746,7 +1746,7 @@ exports[`CreateProject should fill in platform name if its provided by url 1`] =
                                 valueKey="value"
                               >
                                 <div
-                                  className="Select e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                                  className="Select e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                 >
                                   <input
                                     disabled={false}
@@ -2768,7 +2768,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                           <ForwardRef(SelectPicker)
                             arrowRenderer={[Function]}
                             backspaceRemoves={false}
-                            className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                            className="e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20"
                             clearable={false}
                             deleteRemoves={false}
                             disabled={false}
@@ -2791,7 +2791,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                             <SelectPicker
                               arrowRenderer={[Function]}
                               backspaceRemoves={false}
-                              className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                              className="e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20"
                               clearable={false}
                               deleteRemoves={false}
                               disabled={false}
@@ -2817,7 +2817,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                 autosize={true}
                                 backspaceRemoves={false}
                                 backspaceToRemoveMessage="Press backspace to remove {label}"
-                                className="e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20"
+                                className="e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20"
                                 clearAllText="Clear all"
                                 clearRenderer={[Function]}
                                 clearValueText="Clear value"
@@ -2873,7 +2873,7 @@ exports[`CreateProject should fill in project name if its empty when platform is
                                 valueKey="value"
                               >
                                 <div
-                                  className="Select e1qrhqd00 css-pr263a-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                                  className="Select e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                                 >
                                   <input
                                     disabled={false}
