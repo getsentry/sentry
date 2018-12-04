@@ -130,6 +130,11 @@ export default class OrganizationDiscover extends React.Component {
     });
   };
 
+  updateAndRunQuery = query => {
+    this.updateFields(query);
+    this.runQuery();
+  };
+
   handleUpdateTime = ({relative, start, end}) => {
     this.updateFields({
       range: relative,
@@ -395,7 +400,7 @@ export default class OrganizationDiscover extends React.Component {
                     </Heading>
                   </HeadingContainer>
                 </div>
-                <Intro updateQuery={this.updateFields} />
+                <Intro updateQuery={this.updateAndRunQuery} />
               </React.Fragment>
             )}
             {isFetchingQuery && <ResultLoading />}
