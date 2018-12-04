@@ -14,6 +14,7 @@ import Conditions from '../conditions';
 import OrderBy from './orderBy';
 import {Fieldset, PlaceholderText, SidebarLabel} from '../styles';
 import {NON_CONDITIONS_FIELDS} from '../data';
+import {getOrderByFields} from '../utils';
 
 export default class QueryFields extends React.Component {
   static propTypes = {
@@ -121,8 +122,9 @@ export default class QueryFields extends React.Component {
         </Fieldset>
         <Fieldset>
           <OrderBy
-            queryBuilder={queryBuilder}
-            onUpdateField={onUpdateField}
+            value={currentQuery.orderby}
+            columns={getOrderByFields(queryBuilder)}
+            onChange={val => onUpdateField('orderby', val)}
             disabled={isLoading}
           />
         </Fieldset>

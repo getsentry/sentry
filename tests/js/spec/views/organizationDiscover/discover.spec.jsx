@@ -302,7 +302,6 @@ describe('Discover', function() {
         wrapper.instance().updateField('fields', ['message']);
         wrapper.instance().updateField('orderby', 'id');
         wrapper.instance().updateField('limit', 5);
-
         wrapper.instance().runQuery();
         wrapper.update();
       });
@@ -326,11 +325,15 @@ describe('Discover', function() {
       });
 
       it('resets "orderby"', function() {
-        expect(wrapper.find('SelectControl[name="orderby"]').text()).toBe('id asc');
+        expect(wrapper.find('SelectControl[name="orderbyDirection"]').text()).toBe('asc');
+        expect(wrapper.find('SelectControl[name="orderbyField"]').text()).toBe('id');
         wrapper.instance().reset();
         wrapper.update();
-        expect(wrapper.find('SelectControl[name="orderby"]').text()).toBe(
-          'timestamp desc'
+        expect(wrapper.find('SelectControl[name="orderbyDirection"]').text()).toBe(
+          'desc'
+        );
+        expect(wrapper.find('SelectControl[name="orderbyField"]').text()).toBe(
+          'timestamp'
         );
       });
 

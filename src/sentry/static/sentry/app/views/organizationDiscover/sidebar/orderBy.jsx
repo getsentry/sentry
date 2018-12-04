@@ -6,45 +6,47 @@ import {t} from 'app/locale';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
 
-import {getOrderByOptions} from '../utils';
 import {PlaceholderText, SidebarLabel} from '../styles';
 
 export default class OrderBy extends React.Component {
   static propTypes = {
-    queryBuilder: PropTypes.object.isRequired,
-    onUpdateField: PropTypes.func.isRequired,
+    value: PropTypes.string.isRequired,
+    columns: PropTypes.array.isRequired,
+    onChange: PropTypes.func.isRequired,
     disabled: PropTypes.bool.isRequired,
   };
 
-  constructor(props) {
-    super(props);
+  updateField(field) {
+    const orderby = this.getInternal(this.props.value);
+    orderby.field = field;
+    this.props.onChange(this.getExternal(orderby));
+  }
 
-    let orderby = this.props.queryBuilder.getInternal().orderby;
-    const desc = orderby.startsWith('-') ? 'desc' : 'asc';
-    orderby = orderby.replace(/^-/, '');
+  updateDirection(direction) {
+    const orderby = this.getInternal(this.props.value);
+    orderby.direction = direction;
+    this.props.onChange(this.getExternal(orderby));
+  }
 
-    this.state = {
-      orderby,
-      order: desc,
+  // {direction: 'asc', field: 'id'} => 'id'
+  getExternal(value) {
+    return `${value.direction === 'desc' ? '-' : ''}${value.field}`;
+  }
+
+  // 'id' => {direction: 'asc', field: 'id'}
+  getInternal(value) {
+    const direction = value.startsWith('-') ? 'desc' : 'asc';
+    const field = value.replace(/^-/, '');
+    return {
+      direction,
+      field,
     };
   }
 
-  updateOrderBy(field, value) {
-    let orderby;
-    if (value === 'desc' || value === 'asc') {
-      this.setState({order: value});
-      orderby = value === 'desc' ? '-'.concat(this.state.orderby) : this.state.orderby;
-      this.props.onUpdateField('orderby', orderby);
-    } else if (field === 'orderby') {
-      orderby = this.state.order === 'desc' ? '-'.concat(value) : value;
-      this.setState({orderby});
-      this.props.onUpdateField('orderby', orderby);
-    }
-    return value;
-  }
-
   render() {
-    const {disabled, queryBuilder} = this.props;
+    const {disabled, columns, value} = this.props;
+
+    const {direction, field} = this.getInternal(value);
 
     return (
       <React.Fragment>
@@ -54,24 +56,24 @@ export default class OrderBy extends React.Component {
         <Flex>
           <OrderByField>
             <SelectControl
-              name="orderby"
+              name="orderbyField"
               label={t('Order By')}
               placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
-              options={getOrderByOptions(queryBuilder)}
-              value={this.state.orderby}
-              onChange={val => this.updateOrderBy('orderby', val.value)}
+              options={columns}
+              value={field}
+              onChange={val => this.updateField(val.value)}
               disabled={disabled}
               autosize={false}
             />
           </OrderByField>
           <OrderByValue>
             <SelectControl
-              name="orderby"
+              name="orderbyDirection"
               label={t('asc')}
               placeholder={<PlaceholderText>{t('asc or desc')}</PlaceholderText>}
               options={[{value: 'asc', label: 'asc'}, {value: 'desc', label: 'desc'}]}
-              value={{label: this.state.order}}
-              onChange={val => this.updateOrderBy('asc_desc', val.value)}
+              value={direction}
+              onChange={val => this.updateDirection(val.value)}
               disabled={disabled}
               autosize={false}
             />
