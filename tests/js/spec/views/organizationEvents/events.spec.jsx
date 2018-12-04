@@ -18,6 +18,7 @@ describe('OrganizationEventsErrors', function() {
   const org = TestStubs.Organization({projects: [project]});
   let eventsMock;
   let eventsStatsMock;
+  let eventsMetaMock;
 
   beforeEach(function() {
     // Search bar makes this request when mounted
@@ -35,6 +36,10 @@ describe('OrganizationEventsErrors', function() {
       body: (url, opts) => {
         return TestStubs.HealthGraph(opts.query);
       },
+    });
+    eventsMetaMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-meta/',
+      body: {count: 5},
     });
   });
 
@@ -69,6 +74,7 @@ describe('OrganizationEventsErrors', function() {
     await tick();
     wrapper.update();
     expect(eventsStatsMock).toHaveBeenCalled();
+    expect(eventsMetaMock).toHaveBeenCalled();
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
     expect(wrapper.find('IdBadge')).toHaveLength(2);
   });
