@@ -24,6 +24,10 @@ from sentry.utils.dates import to_timestamp
 MAX_ISSUES = 500
 MAX_HASHES = 5000
 
+# Global Snuba request option override dictionary. Only intended
+# to be used with the `options_override` contextmanager below.
+OVERRIDE_OPTIONS = {}
+
 SENTRY_SNUBA_MAP = {
     # general
     'id': 'event_id',
@@ -155,6 +159,32 @@ def timer(name, prefix='snuba.client'):
         yield
     finally:
         metrics.timing(u'{}.{}'.format(prefix, name), time.time() - t)
+
+
+@contextmanager
+def options_override(overrides):
+    """\
+    Adds to OVERRIDE_OPTIONS, restoring previous values and removing
+    keys that didn't previously exist on exit, so that calls to this
+    can be nested.
+    """
+    previous = {}
+    delete = []
+
+    for k, v in overrides.items():
+        try:
+            previous[k] = OVERRIDE_OPTIONS[k]
+        except KeyError:
+            delete.append(k)
+        OVERRIDE_OPTIONS[k] = v
+
+    try:
+        yield
+    finally:
+        for k, v in previous.items():
+            OVERRIDE_OPTIONS[k] = v
+        for k in delete:
+            OVERRIDE_OPTIONS.pop(k)
 
 
 def connection_from_url(url, **kw):
@@ -362,6 +392,8 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'selected_columns': selected_columns,
         'turbo': turbo
     }) if v is not None}
+
+    request.update(OVERRIDE_OPTIONS)
 
     headers = {}
     if referrer:
