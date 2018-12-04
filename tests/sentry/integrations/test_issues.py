@@ -123,17 +123,17 @@ class IssueDefaultTest(TestCase):
         )
         integration.add_organization(self.group.organization, self.user)
 
-        external_issue = ExternalIssue.objects.create(
+        self.external_issue = ExternalIssue.objects.create(
             organization_id=self.group.organization.id,
             integration_id=integration.id,
             key='APP-123',
         )
 
-        GroupLink.objects.create(
+        self.group_link = GroupLink.objects.create(
             group_id=self.group.id,
             project_id=self.group.project_id,
             linked_type=GroupLink.LinkedType.issue,
-            linked_id=external_issue.id,
+            linked_id=self.external_issue.id,
             relationship=GroupLink.Relationship.references,
         )
 
@@ -170,3 +170,19 @@ class IssueDefaultTest(TestCase):
         default_repo, repo_choice = self.installation.get_repository_choices(self.group)
         assert default_repo == 'user/repo2'
         assert repo_choice == [('user/repo1', 'repo1'), ('user/repo2', 'repo2')]
+
+    def test_annotations(self):
+        label = self.installation.get_issue_display_name(self.external_issue)
+        link = self.installation.get_issue_url(self.external_issue.key)
+
+        assert self.installation.get_annotations(self.group) == \
+            ['<a href="%s">%s</a>' % (link, label)]
+
+        integration = Integration.objects.create(
+            provider='example',
+            external_id='4444',
+        )
+        integration.add_organization(self.group.organization, self.user)
+        installation = integration.get_installation(self.group.organization.id)
+
+        assert installation.get_annotations(self.group) == []
