@@ -7,6 +7,7 @@ import {
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'app/constants/apiErrorCodes';
+import {metric} from 'app/utils/analytics';
 import {openSudo, redirectToProject} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
 import sdk from 'app/utils/sdk';
@@ -20,6 +21,7 @@ export class Request {
   cancel() {
     this.alive = false;
     this.xhr.abort();
+    metric('app.api.request-abort', 1);
   }
 }
 
@@ -159,6 +161,7 @@ export class Client {
     let method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
     let id = this.uniqueId();
+    metric.mark(`api-request-start-${id}`);
 
     if (!isUndefined(data) && method !== 'GET') {
       data = JSON.stringify(data);
@@ -187,8 +190,28 @@ export class Client {
         headers: {
           Accept: 'application/json; charset=utf-8',
         },
-        success: this.wrapCallback(id, options.success),
-        error: (...args) =>
+        success: (...args) => {
+          let [, , xhr] = args || [];
+          metric.measure({
+            name: 'app.api.request-success',
+            start: `api-request-start-${id}`,
+            data: {
+              path,
+              status: xhr && xhr.status,
+            },
+          });
+          this.wrapCallback(id, options.success)(...args);
+        },
+        error: (...args) => {
+          let [, , xhr] = args || [];
+          metric.measure({
+            name: 'app.api.request-error',
+            start: `api-request-start-${id}`,
+            data: {
+              path,
+              status: xhr && xhr.status,
+            },
+          });
           this.handleRequestError(
             {
               id,
@@ -196,7 +219,8 @@ export class Client {
               requestOptions: options,
             },
             ...args
-          ),
+          );
+        },
         complete: this.wrapCallback(id, options.complete, true),
       })
     );
