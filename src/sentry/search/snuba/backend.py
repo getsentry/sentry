@@ -127,7 +127,7 @@ class ScalarCondition(Condition):
 
 
 class SnubaSearchBackend(ds.DjangoSearchBackend):
-    def _query(self, project, retention_window_start, group_queryset, tags, environment,
+    def _query(self, projects, retention_window_start, group_queryset, tags, environment,
                sort_by, limit, cursor, count_hits, paginator_options, **parameters):
 
         # TODO: Product decision: we currently search Group.message to handle
@@ -152,7 +152,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                                 ds.get_sql_column(Release, 'version'),
                             ),
                         ],
-                        params=[project.organization_id, version],
+                        params=[projects[0].organization_id, version],
                         tables=[Release._meta.db_table],
                     ),
                 ),
@@ -176,7 +176,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             group_queryset = ds.QuerySetBuilder({
                 'first_release': ds.CallbackCondition(
                     lambda queryset, version: queryset.filter(
-                        first_release__organization_id=project.organization_id,
+                        first_release__organization_id=projects[0].organization_id,
                         first_release__version=version,
                     ),
                 ),
@@ -248,7 +248,8 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # and the result groups are then post-filtered via queries to the Sentry DB
         optimizer_enabled = options.get('snuba.search.pre-snuba-candidates-optimizer')
         if optimizer_enabled:
-            key = 'snuba.search:project.group.count:%s' % project.id
+            key = 'snuba.search:project.group.count:%s' % ','.join(
+                [six.text_type(p.id) for p in projects])
             project_group_count = cache.get(key)
             if not project_group_count:
                 project_group_count = snuba.query(
@@ -261,7 +262,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     end=now,
                     groupby=[],
                     filter_keys={
-                        'project_id': [project.id],
+                        'project_id': [p.id for p in projects],
                     },
                     aggregations=[['uniq', 'group_id', 'group_count']],
                     referrer='search',
@@ -343,7 +344,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             snuba_groups, more_results = snuba_search(
                 start=start,
                 end=end,
-                project_id=project.id,
+                project_ids=[p.id for p in projects],
                 environment_id=environment and environment.id,
                 tags=tags,
                 sort_field=sort_field,
@@ -425,7 +426,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         return paginator_results
 
 
-def snuba_search(start, end, project_id, environment_id, tags,
+def snuba_search(start, end, project_ids, environment_id, tags,
                  sort_field, cursor, candidate_ids, limit, offset, **parameters):
     """
     This function doesn't strictly benefit from or require being pulled out of the main
@@ -440,7 +441,7 @@ def snuba_search(start, end, project_id, environment_id, tags,
     from sentry.search.base import ANY
 
     filters = {
-        'project_id': [project_id],
+        'project_id': project_ids,
     }
 
     if environment_id is not None:
