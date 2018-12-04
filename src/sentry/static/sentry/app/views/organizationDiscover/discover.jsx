@@ -279,7 +279,7 @@ export default class OrganizationDiscover extends React.Component {
   renderSidebarNav() {
     const {view} = this.state;
     const views = [
-      {id: 'query', title: t('New Query')},
+      {id: 'query', title: t('New query')},
       {id: 'saved', title: t('Saved queries')},
     ];
 
