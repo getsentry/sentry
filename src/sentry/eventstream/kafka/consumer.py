@@ -274,6 +274,10 @@ class SynchronizedConsumer(object):
                                  for topic, partition in assignment.keys()])
 
         def revocation_callback(consumer, assignment):
+            for item in assignment:
+                # TODO: This should probably also be removed from the state manager.
+                self.__positions.pop((item.topic, item.partition))
+
             if on_revoke is not None:
                 on_revoke(self, assignment)
 
