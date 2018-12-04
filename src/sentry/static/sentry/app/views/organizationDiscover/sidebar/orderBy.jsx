@@ -13,7 +13,7 @@ export default class OrderBy extends React.Component {
     value: PropTypes.string.isRequired,
     columns: PropTypes.array.isRequired,
     onChange: PropTypes.func.isRequired,
-    disabled: PropTypes.bool.isRequired,
+    disabled: PropTypes.bool,
   };
 
   updateField(field) {
@@ -28,12 +28,18 @@ export default class OrderBy extends React.Component {
     this.props.onChange(this.getExternal(orderby));
   }
 
-  // {direction: 'asc', field: 'id'} => 'id'
+  /**
+   * @param {Object} i.e. {direction: 'asc', field: 'id'}
+   * @returns {String} i.e. 'id'
+   */
   getExternal(value) {
     return `${value.direction === 'desc' ? '-' : ''}${value.field}`;
   }
 
-  // 'id' => {direction: 'asc', field: 'id'}
+  /**
+   * @param {String} i.e.'id'
+   * @returns {Object} i.e. {direction: 'asc', field: 'id'}
+   */
   getInternal(value) {
     const direction = value.startsWith('-') ? 'desc' : 'asc';
     const field = value.replace(/^-/, '');
@@ -69,7 +75,7 @@ export default class OrderBy extends React.Component {
           <OrderByValue>
             <SelectControl
               name="orderbyDirection"
-              label={t('asc')}
+              label={t('Order by Direction')}
               placeholder={<PlaceholderText>{t('asc or desc')}</PlaceholderText>}
               options={[{value: 'asc', label: 'asc'}, {value: 'desc', label: 'desc'}]}
               value={direction}
