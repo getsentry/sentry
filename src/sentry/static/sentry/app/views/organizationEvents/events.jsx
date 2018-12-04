@@ -1,11 +1,14 @@
 import {Flex} from 'grid-emotion';
 import {isEqual} from 'lodash';
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
+import AsyncComponent from 'app/components/asyncComponent';
 import AsyncView from 'app/views/asyncView';
+import Feature from 'app/components/acl/feature';
 import Pagination from 'app/components/pagination';
 import SentryTypes from 'app/sentryTypes';
 import utils from 'app/utils';
@@ -25,6 +28,44 @@ const parseRowFromLinks = (links, numRows) => {
   let currentStart = (prevStart + nextStart) / 2 + 1;
   return `${currentStart}-${currentStart + numRows - 1}`;
 };
+
+class TotalEventCount extends AsyncComponent {
+  static propTypes = {
+    organization: SentryTypes.Organization.isRequired,
+    location: PropTypes.object.isRequired,
+    isAllResults: PropTypes.bool.isRequired,
+    numRows: PropTypes.number.isRequired,
+  };
+
+  getEndpoints() {
+    const {organization, location} = this.props;
+    let {statsPeriod, ...query} = location.query;
+
+    return [
+      [
+        'eventsMeta',
+        `/organizations/${organization.slug}/events-meta/`,
+        {
+          query: getParams({
+            statsPeriod,
+            ...query,
+          }),
+        },
+      ],
+    ];
+  }
+
+  renderBody() {
+    let {eventsMeta} = this.state;
+    let {isAllResults, organization, numRows} = this.props;
+    let count = isAllResults ? numRows : eventsMeta.count;
+    return (
+      <Feature features={['internal-catchall']} organization={organization}>
+        {t(` of ${count}${isAllResults ? '' : ' (estimated)'}`)}
+      </Feature>
+    );
+  }
+}
 
 class OrganizationEvents extends AsyncView {
   static propTypes = {
@@ -92,8 +133,9 @@ class OrganizationEvents extends AsyncView {
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
     const {error, loading, reloading, events, eventsPageLinks} = this.state;
+    let parsedLinks = !loading && !error ? utils.parseLinkHeader(eventsPageLinks) : {};
 
     return (
       <React.Fragment>
@@ -114,6 +156,14 @@ class OrganizationEvents extends AsyncView {
             <Flex align="center" justify="space-between">
               <RowDisplay>
                 {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
+                {events.length && (
+                  <TotalEventCount
+                    organization={organization}
+                    location={location}
+                    isAllResults={!parsedLinks.previous.results && !parsedLinks.next.results}
+                    numRows={events.length}
+                  />
+                )}
               </RowDisplay>
               <Pagination pageLinks={eventsPageLinks} className="" />
             </Flex>
