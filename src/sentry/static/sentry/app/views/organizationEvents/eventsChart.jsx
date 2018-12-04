@@ -106,6 +106,15 @@ class EventsChart extends React.Component {
     );
   };
 
+  handleChartReady = chart => {
+    // Enable zoom immediately instead of having to toggle
+    chart.dispatchAction({
+      type: 'takeGlobalCursor',
+      key: 'dataZoomSelect',
+      dataZoomSelectActive: true,
+    });
+  };
+
   handleZoomRestore = (evt, chart) => {
     if (!this.history.length) {
       return;
@@ -172,14 +181,7 @@ class EventsChart extends React.Component {
           {({timeseriesData, previousTimeseriesData}) => {
             return (
               <LineChart
-                onChartReady={echarts => {
-                  // Enable zoom immediately instead of having to toggle
-                  echarts.dispatchAction({
-                    type: 'takeGlobalCursor',
-                    key: 'dataZoomSelect',
-                    dataZoomSelectActive: true,
-                  });
-                }}
+                onChartReady={this.handleChartReady}
                 isGroupedByDate
                 useUtc={utc}
                 interval={interval === '1h' ? 'hour' : 'day'}
