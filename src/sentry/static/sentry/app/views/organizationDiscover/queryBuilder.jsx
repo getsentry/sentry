@@ -133,7 +133,6 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @returns {Void}
    */
   function updateField(field, value) {
-    console.log('QUERYBUILDER update field: (field, value):', field, value);
     query[field] = value;
 
     // Ignore non valid aggregations (e.g. user halfway inputting data)

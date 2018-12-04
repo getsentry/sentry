@@ -3,6 +3,8 @@ import React from 'react';
 
 import SelectControl from 'app/components/forms/selectControl';
 import {t} from 'app/locale';
+import styled from 'react-emotion';
+import {Flex} from 'grid-emotion';
 
 import {getOrderByOptions} from '../utils';
 import {PlaceholderText, SidebarLabel} from '../styles';
@@ -38,6 +40,7 @@ export default class OrderBy extends React.Component {
       this.setState({orderby});
       this.props.onUpdateField('orderby', orderby);
     }
+    return value;
   }
 
   render() {
@@ -48,25 +51,41 @@ export default class OrderBy extends React.Component {
         <SidebarLabel htmlFor="orderby" className="control-label">
           {t('Order by')}
         </SidebarLabel>
-        <SelectControl
-          name="orderby"
-          label={t('Order By')}
-          placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
-          options={getOrderByOptions(queryBuilder)}
-          value={this.state.orderby}
-          onChange={val => this.updateOrderBy('orderby', val.value)}
-          disabled={disabled}
-        />
-        <SelectControl
-          name="orderby"
-          label={t('asc')}
-          placeholder={<PlaceholderText>{t('asc or desc')}</PlaceholderText>}
-          options={[{name: 'asc', label: 'asc'}, {name: 'desc', label: 'desc'}]}
-          value={this.state.order}
-          onChange={val => this.updateOrderBy('asc_desc', val.name)}
-          disabled={disabled}
-        />
+        <Flex>
+          <OrderByField>
+            <SelectControl
+              name="orderby"
+              label={t('Order By')}
+              placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
+              options={getOrderByOptions(queryBuilder)}
+              value={this.state.orderby}
+              onChange={val => this.updateOrderBy('orderby', val.value)}
+              disabled={disabled}
+              autosize={false}
+            />
+          </OrderByField>
+          <OrderByValue>
+            <SelectControl
+              name="orderby"
+              label={t('asc')}
+              placeholder={<PlaceholderText>{t('asc or desc')}</PlaceholderText>}
+              options={[{name: 'asc', label: 'asc'}, {name: 'desc', label: 'desc'}]}
+              value={{label: this.state.order}}
+              onChange={val => this.updateOrderBy('asc_desc', val.name)}
+              disabled={disabled}
+              autosize={false}
+            />
+          </OrderByValue>
+        </Flex>
       </React.Fragment>
     );
   }
 }
+
+const OrderByField = styled(Flex)`
+  width: calc(100% / 3 * 2);
+`;
+
+const OrderByValue = styled(Flex)`
+  width: calc(100% / 3);
+`;

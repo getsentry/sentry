@@ -70,8 +70,6 @@ export default class QueryFields extends React.Component {
       isTag,
     }));
 
-    console.log(currentQuery);
-
     return (
       <div>
         {savedQuery && (
