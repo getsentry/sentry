@@ -1,4 +1,6 @@
 /* global module */
+import 'app/utils/emotion-setup';
+
 import {AppContainer} from 'react-hot-loader';
 import {renderToStaticMarkup} from 'react-dom/server';
 import * as Emotion from 'emotion';
@@ -17,21 +19,16 @@ import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
 
-import 'app/utils/emotion-setup';
-
+import {metric} from 'app/utils/analytics';
 import Main from 'app/main';
-import * as api from 'app/api';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
+import * as api from 'app/api';
 import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
-//
-// JSDOM implements window.performance but not window.performance.mark
-if (window.performance && typeof window.performance.mark === 'function') {
-  window.performance.mark('sentry-app-init');
-}
+metric.mark('sentry-app-init');
 
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
