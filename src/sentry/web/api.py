@@ -746,7 +746,6 @@ class UnrealView(StoreView):
         event_id = uuid.uuid4().hex
         data = {
             'event_id': event_id,
-            'tags': {'engine.version': request.GET.get('AppVersion')},
             'environment': request.GET.get('AppEnvironment'),
         }
         user_id = request.GET.get('UserID')
