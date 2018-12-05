@@ -130,6 +130,9 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
     def _get_project_count_cache_key(self, project_id):
         return 'snuba.search:project.group.count:%s' % project_id
 
+    def _get_project_id_from_key(self, key):
+        return int(key.split(':')[2])
+
     def _query(self, projects, retention_window_start, group_queryset, tags, environment,
                sort_by, limit, cursor, count_hits, paginator_options, **parameters):
 
@@ -251,16 +254,14 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # and the result groups are then post-filtered via queries to the Sentry DB
         optimizer_enabled = options.get('snuba.search.pre-snuba-candidates-optimizer')
         if optimizer_enabled:
-            counts_by_projects = {}
             missed_projects = []
-            for project in projects:
-                key = self._get_project_count_cache_key(project.id)
-                project_group_count = cache.get(key)
+            keys = [self._get_project_count_cache_key(p.id) for p in projects]
 
-                if project_group_count:
-                    counts_by_projects[project.id] = project_group_count
-                else:
-                    missed_projects.append(project.id)
+            counts_by_projects = {
+                self._get_project_id_from_key(key): count for key, count in cache.get_many(keys).items()
+            }
+
+            missed_projects = {p.id for p in projects} - set(counts_by_projects.keys())
 
             if missed_projects:
                 missing_counts = snuba.query(
@@ -273,17 +274,16 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     end=now,
                     groupby=['project_id'],
                     filter_keys={
-                        'project_id': missed_projects,
+                        'project_id': list(missed_projects),
                     },
                     aggregations=[['uniq', 'group_id', 'group_count']],
                     referrer='search',
                 )
 
-                for project_id, count in missing_counts.items():
-                    key = self._get_project_count_cache_key(project_id)
-                    cache.set(key, count, options.get(
-                        'snuba.search.project-group-count-cache-time')
-                    )
+                cache.set_many({
+                    self._get_project_count_cache_key(project_id): count
+                    for project_id, count in missing_counts.items()
+                }, options.get('snuba.search.project-group-count-cache-time'))
 
                 counts_by_projects.update(missing_counts)
 
