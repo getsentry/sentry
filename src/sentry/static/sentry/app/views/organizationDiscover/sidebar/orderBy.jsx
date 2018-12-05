@@ -63,25 +63,23 @@ export default class OrderBy extends React.Component {
           <OrderByField>
             <SelectControl
               name="orderbyField"
-              label={t('Order By')}
               placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
               options={columns}
               value={field}
               onChange={val => this.updateField(val.value)}
               disabled={disabled}
-              classNamePrefix={'selectField'}
+              autosize={false}
             />
           </OrderByField>
           <OrderByValue>
             <SelectControl
               name="orderbyDirection"
-              label={t('Order by Direction')}
               placeholder={<PlaceholderText>{t('asc or desc')}</PlaceholderText>}
               options={[{value: 'asc', label: 'asc'}, {value: 'desc', label: 'desc'}]}
               value={direction}
               onChange={val => this.updateDirection(val.value)}
               disabled={disabled}
-              classNamePrefix={'selectDirection'}
+              autosize={false}
             />
           </OrderByValue>
         </Flex>
