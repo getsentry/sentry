@@ -36,7 +36,6 @@ export default class SentryAppInstallations extends AsyncView {
       const installQuery = JSON.parse(
         JSON.stringify({installationId: install.uuid, code: install.code})
       );
-      // const query = Object.assign(qs.parse(url.query), installQuery);
       const query = {...qs.parse(url.query), ...installQuery};
       const redirectUrl = `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(
         query
