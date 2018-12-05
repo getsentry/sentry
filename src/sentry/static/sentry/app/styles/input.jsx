@@ -9,7 +9,7 @@ const readOnlyStyle = props =>
 
 const inputStyles = props => {
   return css`
-    color: ${props.disabled ? props.theme.gray1 : props.theme.gray5};
+    color: ${props.disabled ? props.theme.disabled : props.theme.gray5};
     display: block;
     width: 100%;
     background: #fff;
