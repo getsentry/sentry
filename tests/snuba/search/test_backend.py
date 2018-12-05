@@ -25,20 +25,20 @@ class SnubaSearchTest(SnubaTestCase):
         self.backend = SnubaSearchBackend()
         self.environments = {}
 
-        base_datetime = (datetime.utcnow() - timedelta(days=7)).replace(tzinfo=pytz.utc)
+        self.base_datetime = (datetime.utcnow() - timedelta(days=7)).replace(tzinfo=pytz.utc)
         self.group1 = self.create_group(
             project=self.project,
             checksum='a' * 32,
             message='foo',
             times_seen=5,
             status=GroupStatus.UNRESOLVED,
-            last_seen=base_datetime,
-            first_seen=base_datetime - timedelta(days=31),
+            last_seen=self.base_datetime,
+            first_seen=self.base_datetime - timedelta(days=31),
         )
         self.event1 = self.create_event(
             event_id='a' * 32,
             group=self.group1,
-            datetime=base_datetime - timedelta(days=31),
+            datetime=self.base_datetime - timedelta(days=31),
             message='group1',
             stacktrace={
                 'frames': [{
@@ -52,7 +52,7 @@ class SnubaSearchTest(SnubaTestCase):
         self.event3 = self.create_event(
             event_id='c' * 32,
             group=self.group1,
-            datetime=base_datetime,
+            datetime=self.base_datetime,
             message='group1',
             stacktrace={
                 'frames': [{
@@ -70,13 +70,13 @@ class SnubaSearchTest(SnubaTestCase):
             message='bar',
             times_seen=10,
             status=GroupStatus.RESOLVED,
-            last_seen=base_datetime - timedelta(days=30),
-            first_seen=base_datetime - timedelta(days=30),
+            last_seen=self.base_datetime - timedelta(days=30),
+            first_seen=self.base_datetime - timedelta(days=30),
         )
         self.event2 = self.create_event(
             event_id='b' * 32,
             group=self.group2,
-            datetime=base_datetime - timedelta(days=30),
+            datetime=self.base_datetime - timedelta(days=30),
             message='group2',
             stacktrace={
                 'frames': [{
@@ -115,6 +115,7 @@ class SnubaSearchTest(SnubaTestCase):
             is_active=False,
         )
 
+    def set_up_multi_project(self):
         self.project2 = self.create_project(organization=self.project.organization)
         self.group_p2 = self.create_group(
             project=self.project2,
@@ -122,13 +123,13 @@ class SnubaSearchTest(SnubaTestCase):
             message='foo',
             times_seen=6,
             status=GroupStatus.UNRESOLVED,
-            last_seen=base_datetime - timedelta(days=1),
-            first_seen=base_datetime - timedelta(days=31),
+            last_seen=self.base_datetime - timedelta(days=1),
+            first_seen=self.base_datetime - timedelta(days=31),
         )
-        self.event1 = self.create_event(
+        self.event_p2 = self.create_event(
             event_id='a' * 32,
             group=self.group_p2,
-            datetime=base_datetime - timedelta(days=31),
+            datetime=self.base_datetime - timedelta(days=31),
             message='group1',
             stacktrace={
                 'frames': [{
@@ -162,6 +163,7 @@ class SnubaSearchTest(SnubaTestCase):
         assert set(results) == set([self.group2])
 
     def test_query_multi_project(self):
+        self.set_up_multi_project()
         results = self.backend.query([self.project, self.project2], query='foo')
         assert set(results) == set([self.group1, self.group_p2])
 
@@ -185,6 +187,7 @@ class SnubaSearchTest(SnubaTestCase):
         assert set(results) == set([self.group2])
 
     def test_query_with_environment_multi_project(self):
+        self.set_up_multi_project()
         results = self.backend.query(
             [self.project, self.project2],
             environment=self.environments['production'],
@@ -211,6 +214,7 @@ class SnubaSearchTest(SnubaTestCase):
         assert list(results) == [self.group1, self.group2]
 
     def test_sort_multi_project(self):
+        self.set_up_multi_project()
         results = self.backend.query([self.project, self.project2], sort_by='date')
         assert list(results) == [self.group1, self.group_p2, self.group2]
 
