@@ -14,6 +14,7 @@ import time
 from django.conf import settings
 
 from sentry import features
+from sentry.utils import snuba
 from sentry.utils.cache import cache
 from sentry.plugins import plugins
 from sentry.signals import event_processed
@@ -108,13 +109,14 @@ def post_process_group(event, is_new, is_regression, is_sample, is_new_group_env
     # we process snoozes before rules as it might create a regression
     has_reappeared = process_snoozes(event.group)
 
-    rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
-    has_alert = False
-    # TODO(dcramer): ideally this would fanout, but serializing giant
-    # objects back and forth isn't super efficient
-    for callback, futures in rp.apply():
-        has_alert = True
-        safe_execute(callback, event, futures)
+    with snuba.options_override({'consistent': True}):
+        rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
+        has_alert = False
+        # TODO(dcramer): ideally this would fanout, but serializing giant
+        # objects back and forth isn't super efficient
+        for callback, futures in rp.apply():
+            has_alert = True
+            safe_execute(callback, event, futures)
 
     if features.has(
         'projects:servicehooks',

@@ -62,3 +62,12 @@ class SnubaUtilTest(TestCase):
                     ['count()', '', 'count'],
                 ],
             )
+
+    def test_override_options(self):
+        assert snuba.OVERRIDE_OPTIONS == {}
+        with snuba.options_override({'foo': 1}):
+            assert snuba.OVERRIDE_OPTIONS == {'foo': 1}
+            with snuba.options_override({'foo': 2}):
+                assert snuba.OVERRIDE_OPTIONS == {'foo': 2}
+            assert snuba.OVERRIDE_OPTIONS == {'foo': 1}
+        assert snuba.OVERRIDE_OPTIONS == {}
