@@ -744,9 +744,16 @@ class UnrealView(StoreView):
         attachments_enabled = features.has('organizations:event-attachments',
                                            project.organization, actor=request.user)
 
-        data = {}
         event_id = uuid.uuid4().hex
-        data['event_id'] = event_id
+        data = {
+            'event_id': event_id,
+            'environment': request.GET.get('AppEnvironment'),
+        }
+        user_id = request.GET.get('UserID')
+        if user_id:
+            data['user'] = {
+                'id': user_id
+            }
 
         attachments = []
         try:
