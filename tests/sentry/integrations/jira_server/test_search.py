@@ -4,6 +4,7 @@ import responses
 
 from django.core.urlresolvers import reverse
 from exam import fixture
+from six.moves.urllib.parse import urlparse, parse_qs
 
 from sentry.models import (
     Integration,
@@ -15,6 +16,7 @@ from sentry.testutils import APITestCase
 from .testutils import (
     EXAMPLE_PRIVATE_KEY,
     EXAMPLE_ISSUE_SEARCH,
+    EXAMPLE_USER_SEARCH_RESPONSE,
 )
 
 
@@ -117,3 +119,58 @@ class JiraSearchEndpointTest(APITestCase):
         resp = self.client.get('%s?field=externalIssue&query=HSP-1' % (path,))
 
         assert resp.status_code == 404
+
+    @responses.activate
+    def test_assignee_search(self):
+        responses.add(
+            responses.GET,
+            'https://jira.example.org/rest/api/2/project',
+            json=[{'key': 'HSP', 'id': '10000'}],
+            match_querystring=False
+        )
+
+        def responder(request):
+            query = parse_qs(urlparse(request.url).query)
+            assert 'HSP' == query['project'][0]
+            return (200, {}, EXAMPLE_USER_SEARCH_RESPONSE)
+
+        responses.add_callback(
+            responses.GET,
+            'https://jira.example.org/rest/api/2/user/assignable/search',
+            callback=responder,
+            content_type='json',
+            match_querystring=False
+        )
+        org = self.organization
+        self.login_as(self.user)
+
+        path = reverse('sentry-extensions-jiraserver-search', args=[org.slug, self.integration.id])
+
+        resp = self.client.get('%s?project=10000&field=assignee&query=bob' % (path,))
+        assert resp.status_code == 200
+        assert resp.data == [
+            {'value': 'bob', 'label': 'Bobby - bob@example.org (bob)'}
+        ]
+
+    @responses.activate
+    def test_assignee_search_error(self):
+        responses.add(
+            responses.GET,
+            'https://jira.example.org/rest/api/2/project',
+            json=[{'key': 'HSP', 'id': '10000'}],
+            match_querystring=False
+        )
+        responses.add(
+            responses.GET,
+            'https://jira.example.org/rest/api/2/user/assignable/search',
+            status=500,
+            body='Bad things',
+            match_querystring=False
+        )
+        org = self.organization
+        self.login_as(self.user)
+
+        path = reverse('sentry-extensions-jiraserver-search', args=[org.slug, self.integration.id])
+
+        resp = self.client.get('%s?project=10000&field=assignee&query=bob' % (path,))
+        assert resp.status_code == 400

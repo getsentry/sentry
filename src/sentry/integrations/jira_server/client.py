@@ -14,6 +14,8 @@ from sentry.utils.http import absolute_uri
 class JiraServerSetupClient(ApiClient):
     """
     Client for making requests to JiraServer to follow OAuth1 flow.
+
+    Jira OAuth1 docs: https://developer.atlassian.com/server/jira/platform/oauth/
     """
     request_token_url = u'{}/plugins/servlet/oauth/request-token'
     access_token_url = u'{}/plugins/servlet/oauth/access-token'
@@ -99,6 +101,10 @@ class JiraServer(object):
     """
     Contains the jira-server specifics that a JiraClient needs
     in order to communicate with jira
+
+    You can find JIRA REST API docs here:
+
+    https://developer.atlassian.com/server/jira/platform/rest-apis/
     """
 
     def __init__(self, credentials):
