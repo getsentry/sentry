@@ -69,7 +69,7 @@ export default class OrderBy extends React.Component {
               value={field}
               onChange={val => this.updateField(val.value)}
               disabled={disabled}
-              autosize={false}
+              classNamePrefix={'selectField'}
             />
           </OrderByField>
           <OrderByValue>
@@ -81,7 +81,7 @@ export default class OrderBy extends React.Component {
               value={direction}
               onChange={val => this.updateDirection(val.value)}
               disabled={disabled}
-              autosize={false}
+              classNamePrefix={'selectDirection'}
             />
           </OrderByValue>
         </Flex>
