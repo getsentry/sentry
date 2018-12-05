@@ -68,10 +68,12 @@ describe('OnboardingWizard', function() {
         context: {
           organization: {id: '1337', slug: 'testOrg', experiments: {}},
           router: TestStubs.router(),
+          location: {pathname: 'http://lol/', query: {}},
         },
         childContextTypes: {
           router: PropTypes.object,
           organization: PropTypes.object,
+          location: {pathname: 'http://lol/', query: {}},
         },
       });
 

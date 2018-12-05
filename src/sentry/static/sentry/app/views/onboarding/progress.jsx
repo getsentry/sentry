@@ -3,12 +3,10 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 
-
 import {analytics} from 'app/utils/analytics';
-import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
 import ConfigStore from 'app/stores/configStore';
+import HookStore from 'app/stores/hookStore';
 import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
-
 
 const ProgressNodes = createReactClass({
   displayName: 'ProgressNodes',
@@ -63,7 +61,6 @@ const ProgressNodes = createReactClass({
       })
     );
   },
-
 
   inferStep() {
     let {pathname} = this.context.location;
