@@ -15,7 +15,6 @@ from collections import OrderedDict
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from hashlib import md5
 
 from sentry import eventtypes
 from sentry.db.models import (
@@ -58,16 +57,6 @@ class Event(Model):
         index_together = (('group_id', 'datetime'), )
 
     __repr__ = sane_repr('project_id', 'group_id')
-
-    @classmethod
-    def generate_node_id(cls, project_id, event_id):
-        """
-        Returns a deterministic node_id for this event based on the project_id
-        and event_id which together are globally unique. The event body should
-        be saved under this key in nodestore so it can be retrieved using the
-        same generated id when we only have project_id and event_id.
-        """
-        return md5('{}:{}'.format(project_id, event_id)).hexdigest()
 
     def __getstate__(self):
         state = Model.__getstate__(self)
