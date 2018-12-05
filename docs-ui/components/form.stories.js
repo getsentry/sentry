@@ -17,6 +17,7 @@ import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlide
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
 import TextField from 'app/views/settings/components/forms/textField';
+import SelectField from 'app/views/settings/components/forms/selectField';
 import Switch from 'app/components/switch';
 
 class UndoButton extends React.Component {
@@ -144,6 +145,45 @@ storiesOf('Forms|Fields', module)
         <RadioField
           name="radio"
           label="Radio Field"
+          choices={[
+            ['choice_one', 'Choice One'],
+            ['choice_two', 'Choice Two'],
+            ['choice_three', 'Choice Three'],
+          ]}
+        />
+      </Form>
+    ))
+  )
+  .add(
+    'SelectField',
+    withInfo({
+      text: 'Select Field',
+      propTablesExclude: [Form],
+    })(() => (
+      <Form>
+        <SelectField
+          name="select"
+          label="Select Field"
+          choices={[
+            ['choice_one', 'Choice One'],
+            ['choice_two', 'Choice Two'],
+            ['choice_three', 'Choice Three'],
+          ]}
+        />
+      </Form>
+    ))
+  )
+  .add(
+    'SelectField multiple',
+    withInfo({
+      text: 'Select Control w/ multiple',
+      propTablesExclude: [Form],
+    })(() => (
+      <Form>
+        <SelectField
+          name="select"
+          label="Multi Select"
+          multiple={true}
           choices={[
             ['choice_one', 'Choice One'],
             ['choice_two', 'Choice Two'],
