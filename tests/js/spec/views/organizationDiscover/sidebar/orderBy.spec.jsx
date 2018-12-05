@@ -32,7 +32,6 @@ describe('orderBy', function() {
         .prop('options')
     ).toEqual([{value: 'asc', label: 'asc'}, {value: 'desc', label: 'desc'}]);
 
-    //timestmap desc
     expect(
       wrapper
         .find('StyledSelect')
