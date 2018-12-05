@@ -130,6 +130,8 @@ export default class Condition extends React.Component {
   inputRenderer = props => {
     const onChange = evt => {
       if (evt.target.value === '') {
+        // React select won't trigger an onChange event when a value is completely
+        // cleared, so we'll force this before calling onChange
         this.setState({inputValue: evt.target.value}, props.onChange(evt));
       } else {
         props.onChange(evt);
