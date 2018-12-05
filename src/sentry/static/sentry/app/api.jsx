@@ -200,7 +200,9 @@ export class Client {
               status: xhr && xhr.status,
             },
           });
-          this.wrapCallback(id, options.success)(...args);
+          if (!isUndefined(options.success)) {
+            this.wrapCallback(id, options.success)(...args);
+          }
         },
         error: (...args) => {
           let [, , xhr] = args || [];
