@@ -54,9 +54,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
                 'value': i['key']
             } for i in resp.get('issues', [])])
 
-        # TODO: remove jira_url in follow up deploy.
-        jira_url = request.GET.get('jira_url')
-        if jira_url or field in ('assignee', 'reporter'):
+        if field in ('assignee', 'reporter'):
             jira_client = installation.get_client()
             users = []
             try:
