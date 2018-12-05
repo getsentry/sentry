@@ -367,7 +367,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 {
                     'multiple': True,
                     'choices': self.make_choices(field_meta.get('allowedValues')),
-                    'default': []
+                    'default': ''
                 }
             )
 
