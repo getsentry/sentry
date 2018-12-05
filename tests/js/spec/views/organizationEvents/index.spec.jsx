@@ -15,6 +15,10 @@ describe('OrganizationEvents', function() {
 
   beforeAll(async function() {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [{count: 1, tag: 'transaction'}, {count: 2, tag: 'mechanism'}],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),
     });
