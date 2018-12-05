@@ -3,8 +3,6 @@ from __future__ import absolute_import
 import logging
 import six
 
-from six.moves.urllib.parse import quote_plus
-
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
@@ -350,10 +348,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         elif field_meta.get('autoCompleteUrl') and \
                 (schema.get('items') == 'user' or schema['type'] == 'user'):
             fieldtype = 'select'
-            sentry_url = self.search_url(group.organization.slug)
-            fkwargs['url'] = '%s?jira_url=%s' % (
-                sentry_url, quote_plus(field_meta['autoCompleteUrl']),
-            )
+            fkwargs['url'] = self.search_url(group.organization.slug)
             fkwargs['choices'] = []
         elif schema['type'] in ['timetracking']:
             # TODO: Implement timetracking (currently unsupported alltogether)
