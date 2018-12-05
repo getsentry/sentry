@@ -11,7 +11,7 @@ import Badge from 'app/components/badge';
 
 import Aggregations from '../aggregations';
 import Conditions from '../conditions';
-import OrderBy from './orderBy';
+import Orderby from './orderby';
 import {Fieldset, PlaceholderText, SidebarLabel} from '../styles';
 import {NON_CONDITIONS_FIELDS} from '../data';
 import {getOrderByFields} from '../utils';
@@ -121,7 +121,7 @@ export default class QueryFields extends React.Component {
           />
         </Fieldset>
         <Fieldset>
-          <OrderBy
+          <Orderby
             value={currentQuery.orderby}
             columns={getOrderByFields(queryBuilder)}
             onChange={val => onUpdateField('orderby', val)}

@@ -1,14 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
-import SelectControl from 'app/components/forms/selectControl';
-import {t} from 'app/locale';
 import styled from 'react-emotion';
 import {Flex} from 'grid-emotion';
 
+import {t} from 'app/locale';
+import SelectControl from 'app/components/forms/selectControl';
 import {PlaceholderText, SidebarLabel} from '../styles';
 
-export default class OrderBy extends React.Component {
+export default class Orderby extends React.Component {
   static propTypes = {
     value: PropTypes.string.isRequired,
     columns: PropTypes.array.isRequired,
@@ -29,16 +28,16 @@ export default class OrderBy extends React.Component {
   }
 
   /**
-   * @param {Object} i.e. {direction: 'asc', field: 'id'}
-   * @returns {String} i.e. 'id'
+   * @param {Object} value Object containing orderby information
+   * @returns {String} value
    */
   getExternal(value) {
     return `${value.direction === 'desc' ? '-' : ''}${value.field}`;
   }
 
   /**
-   * @param {String} i.e.'id'
-   * @returns {Object} i.e. {direction: 'asc', field: 'id'}
+   * @param {String} value String containing orderby information
+   * @returns {Object} value
    */
   getInternal(value) {
     const direction = value.startsWith('-') ? 'desc' : 'asc';
@@ -56,14 +55,13 @@ export default class OrderBy extends React.Component {
 
     return (
       <React.Fragment>
-        <SidebarLabel htmlFor="orderby" className="control-label">
+        <SidebarLabel className="control-label">
           {t('Order by')}
         </SidebarLabel>
         <Flex>
           <OrderByField>
             <SelectControl
               name="orderbyField"
-              placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
               options={columns}
               value={field}
               onChange={val => this.updateField(val.value)}
@@ -74,7 +72,6 @@ export default class OrderBy extends React.Component {
           <OrderByValue>
             <SelectControl
               name="orderbyDirection"
-              placeholder={<PlaceholderText>{t('asc or desc')}</PlaceholderText>}
               options={[{value: 'asc', label: 'asc'}, {value: 'desc', label: 'desc'}]}
               value={direction}
               onChange={val => this.updateDirection(val.value)}

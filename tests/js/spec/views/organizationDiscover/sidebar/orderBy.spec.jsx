@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import OrderBy from 'app/views/organizationDiscover/sidebar/orderBy';
+import Orderby from 'app/views/organizationDiscover/sidebar/orderby';
 
 describe('orderBy', function() {
   let organization, project, wrapper, onChangeMock, columns;
@@ -12,7 +12,7 @@ describe('orderBy', function() {
     columns = [{value: 'timestamp', label: 'timestamp'}, {value: 'id', label: 'id'}];
 
     wrapper = mount(
-      <OrderBy value={'-timestamp'} columns={columns} onChange={onChangeMock} />,
+      <Orderby value={'-timestamp'} columns={columns} onChange={onChangeMock} />,
       TestStubs.routerContext([{organization}])
     );
   });
