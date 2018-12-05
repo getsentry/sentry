@@ -581,7 +581,7 @@ const GraphToggle = styled.a`
   &:hover,
   &:focus,
   &:active {
-    color: ${p => (p.active ? p.theme.gray4 : p.theme.gray1)};
+    color: ${p => (p.active ? p.theme.gray4 : p.theme.disabled)};
   }
 `;
 

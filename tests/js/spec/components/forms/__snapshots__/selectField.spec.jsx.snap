@@ -169,7 +169,7 @@ exports[`SelectField renders without form context 1`] = `
             <ForwardRef(SelectPicker)
               arrowRenderer={[Function]}
               backspaceRemoves={true}
-              className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
+              className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
               clearable={true}
               deleteRemoves={true}
               disabled={false}
@@ -196,7 +196,7 @@ exports[`SelectField renders without form context 1`] = `
               <SelectPicker
                 arrowRenderer={[Function]}
                 backspaceRemoves={true}
-                className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
+                className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
                 clearable={true}
                 deleteRemoves={true}
                 disabled={false}
@@ -226,7 +226,7 @@ exports[`SelectField renders without form context 1`] = `
                   autosize={true}
                   backspaceRemoves={true}
                   backspaceToRemoveMessage="Press backspace to remove {label}"
-                  className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
+                  className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
                   clearAllText="Clear all"
                   clearRenderer={[Function]}
                   clearValueText="Clear value"
@@ -286,7 +286,7 @@ exports[`SelectField renders without form context 1`] = `
                   valueKey="value"
                 >
                   <div
-                    className="Select e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20 has-value is-clearable is-searchable Select--single"
+                    className="Select e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20 has-value is-clearable is-searchable Select--single"
                   >
                     <input
                       disabled={false}

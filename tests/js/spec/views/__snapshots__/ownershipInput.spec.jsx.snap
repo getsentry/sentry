@@ -233,7 +233,7 @@ exports[`Project Ownership Input renders 1`] = `
                       <ForwardRef(SelectPicker)
                         arrowRenderer={[Function]}
                         backspaceRemoves={false}
-                        className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
+                        className="e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20"
                         clearable={false}
                         deleteRemoves={false}
                         disabled={false}
@@ -260,7 +260,7 @@ exports[`Project Ownership Input renders 1`] = `
                         <SelectPicker
                           arrowRenderer={[Function]}
                           backspaceRemoves={false}
-                          className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
+                          className="e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20"
                           clearable={false}
                           deleteRemoves={false}
                           disabled={false}
@@ -290,7 +290,7 @@ exports[`Project Ownership Input renders 1`] = `
                             autosize={true}
                             backspaceRemoves={false}
                             backspaceToRemoveMessage="Press backspace to remove {label}"
-                            className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
+                            className="e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20"
                             clearAllText="Clear all"
                             clearRenderer={[Function]}
                             clearValueText="Clear value"
@@ -350,7 +350,7 @@ exports[`Project Ownership Input renders 1`] = `
                             valueKey="value"
                           >
                             <div
-                              className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                              className="Select e1qrhqd00 css-douamq-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
                             >
                               <input
                                 disabled={false}
@@ -628,7 +628,7 @@ exports[`Project Ownership Input renders 1`] = `
                         async={true}
                         backspaceRemoves={true}
                         cache={false}
-                        className="css-dovswj-StyledSelect eho28m20"
+                        className="css-1j7mixw-StyledSelect eho28m20"
                         clearable={true}
                         defaultOptions={true}
                         deleteRemoves={true}
@@ -648,7 +648,7 @@ exports[`Project Ownership Input renders 1`] = `
                           async={true}
                           backspaceRemoves={true}
                           cache={false}
-                          className="css-dovswj-StyledSelect eho28m20"
+                          className="css-1j7mixw-StyledSelect eho28m20"
                           clearable={true}
                           defaultOptions={true}
                           deleteRemoves={true}
@@ -669,7 +669,7 @@ exports[`Project Ownership Input renders 1`] = `
                             autoload={true}
                             backspaceRemoves={true}
                             cache={false}
-                            className="css-dovswj-StyledSelect eho28m20"
+                            className="css-1j7mixw-StyledSelect eho28m20"
                             clearable={true}
                             defaultOptions={true}
                             deleteRemoves={true}
@@ -696,7 +696,7 @@ exports[`Project Ownership Input renders 1`] = `
                               backspaceRemoves={true}
                               backspaceToRemoveMessage="Press backspace to remove {label}"
                               cache={false}
-                              className="css-dovswj-StyledSelect eho28m20"
+                              className="css-1j7mixw-StyledSelect eho28m20"
                               clearAllText="Clear all"
                               clearRenderer={[Function]}
                               clearValueText="Clear value"
@@ -748,7 +748,7 @@ exports[`Project Ownership Input renders 1`] = `
                               valueKey="value"
                             >
                               <div
-                                className="Select css-dovswj-StyledSelect eho28m20 is-clearable is-loading is-searchable Select--multi"
+                                className="Select css-1j7mixw-StyledSelect eho28m20 is-clearable is-loading is-searchable Select--multi"
                               >
                                 <div
                                   className="Select-control"
