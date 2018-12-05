@@ -16,7 +16,6 @@ import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
-import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import space from 'app/styles/space';
@@ -24,6 +23,7 @@ import {updateProjects} from 'app/actionCreators/globalSelection';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
+import SearchBar from './searchBar';
 import {getParams} from './utils/getParams';
 import EventsContext from './utils/eventsContext';
 
@@ -254,6 +254,7 @@ class OrganizationEventsContainer extends React.Component {
                   {t('Events')} <BetaTag />
                 </HeaderTitle>
                 <StyledSearchBar
+                  organization={organization}
                   query={(location.query && location.query.query) || ''}
                   placeholder={t('Search for events, users, tags, and everything else.')}
                   onSearch={this.handleSearch}
