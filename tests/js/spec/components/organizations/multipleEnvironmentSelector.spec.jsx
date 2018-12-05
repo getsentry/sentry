@@ -27,6 +27,8 @@ describe('MultipleEnvironmentSelector', function() {
   });
 
   beforeEach(function() {
+    onChange.mockReset();
+    onUpdate.mockReset();
     wrapper = mount(
       <MultipleEnvironmentSelector
         organization={organization}
@@ -75,5 +77,34 @@ describe('MultipleEnvironmentSelector', function() {
       .instance()
       .doUpdate();
     expect(onUpdate).toHaveBeenCalledWith();
+  });
+
+  it('selects multiple environments and uses chevron to update', async function() {
+    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+
+    await wrapper
+      .find('MultipleEnvironmentSelector AutoCompleteItem MultiSelectWrapper')
+      .at(0)
+      .simulate('click');
+
+    expect(onChange).toHaveBeenLastCalledWith(['production'], expect.anything());
+
+    wrapper
+      .find('MultipleEnvironmentSelector AutoCompleteItem MultiSelectWrapper')
+      .at(1)
+      .simulate('click');
+    expect(onChange).toHaveBeenLastCalledWith(
+      ['production', 'staging'],
+      expect.anything()
+    );
+
+    wrapper.find('MultipleEnvironmentSelector StyledChevron').simulate('click');
+    expect(onUpdate).toHaveBeenCalledWith();
+  });
+
+  it('does not update when there are no changes', async function() {
+    await wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    wrapper.find('MultipleEnvironmentSelector StyledChevron').simulate('click');
+    expect(onUpdate).not.toHaveBeenCalled();
   });
 });

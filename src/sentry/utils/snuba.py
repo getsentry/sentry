@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
 import pytz
+import re
 import six
 import time
 import urllib3
@@ -22,6 +23,11 @@ from sentry.utils.dates import to_timestamp
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
 MAX_HASHES = 5000
+
+# Global Snuba request option override dictionary. Only intended
+# to be used with the `options_override` contextmanager below.
+# NOT THREAD SAFE!
+OVERRIDE_OPTIONS = {}
 
 SENTRY_SNUBA_MAP = {
     # general
@@ -67,8 +73,8 @@ SENTRY_SNUBA_MAP = {
     # error, stack
     'error.type': 'exception_stacks.type',
     'error.value': 'exception_stacks.value',
-    'error.mechanism_type': 'exception_stacks.mechanism_type',
-    'error.mechanism_handled': 'exception_stacks.mechanism_handled',
+    'error.mechanism': 'exception_stacks.mechanism_type',
+    'error.handled': 'exception_stacks.mechanism_handled',
     'stack.abs_path': 'exception_frames.abs_path',
     'stack.filename': 'exception_frames.filename',
     'stack.package': 'exception_frames.package',
@@ -156,6 +162,34 @@ def timer(name, prefix='snuba.client'):
         metrics.timing(u'{}.{}'.format(prefix, name), time.time() - t)
 
 
+@contextmanager
+def options_override(overrides):
+    """\
+    NOT THREAD SAFE!
+
+    Adds to OVERRIDE_OPTIONS, restoring previous values and removing
+    keys that didn't previously exist on exit, so that calls to this
+    can be nested.
+    """
+    previous = {}
+    delete = []
+
+    for k, v in overrides.items():
+        try:
+            previous[k] = OVERRIDE_OPTIONS[k]
+        except KeyError:
+            delete.append(k)
+        OVERRIDE_OPTIONS[k] = v
+
+    try:
+        yield
+    finally:
+        for k, v in previous.items():
+            OVERRIDE_OPTIONS[k] = v
+        for k in delete:
+            OVERRIDE_OPTIONS.pop(k)
+
+
 def connection_from_url(url, **kw):
     if url[:1] == '/':
         from sentry.net.http import UnixHTTPConnectionPool
@@ -179,6 +213,12 @@ def get_snuba_column_name(name):
     if not name:
         return name
     return SENTRY_SNUBA_MAP.get(name, u'tags[{}]'.format(name))
+
+
+def get_arrayjoin(column):
+    match = re.match(r'^(exception_stacks|exception_frames|contexts)\..+$', column)
+    if match:
+        return match.groups()[0]
 
 
 def transform_aliases_and_query(**kwargs):
@@ -355,6 +395,8 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'selected_columns': selected_columns,
         'turbo': turbo
     }) if v is not None}
+
+    request.update(OVERRIDE_OPTIONS)
 
     headers = {}
     if referrer:

@@ -4,6 +4,7 @@ import logging
 import six
 
 from django import forms
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
 from six.moves.urllib.parse import urlparse
@@ -20,7 +21,8 @@ from sentry.integrations.jira import JiraIntegration
 from sentry.pipeline import PipelineView
 from sentry.utils.hashlib import sha1_text
 from sentry.web.helpers import render_to_response
-from .client import JiraServerClient, JiraServerSetupClient
+from sentry.integrations.jira.client import JiraApiClient
+from .client import JiraServer, JiraServerSetupClient
 
 
 logger = logging.getLogger('sentry.integrations.jira_server')
@@ -207,7 +209,27 @@ class JiraServerIntegration(JiraIntegration):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
-        return JiraServerClient(self)
+        return JiraApiClient(
+            self.model.metadata['base_url'],
+            JiraServer(self.default_identity.data),
+            self.model.metadata['verify_ssl'])
+
+    def get_link_issue_config(self, group, **kwargs):
+        fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
+        org = group.organization
+        autocomplete_url = reverse(
+            'sentry-extensions-jiraserver-search', args=[org.slug, self.model.id],
+        )
+        for field in fields:
+            if field['name'] == 'externalIssue':
+                field['url'] = autocomplete_url
+                field['type'] = 'select'
+        return fields
+
+    def search_url(self, org_slug):
+        return reverse(
+            'sentry-extensions-jiraserver-search', args=[org_slug, self.model.id]
+        )
 
 
 class JiraServerIntegrationProvider(IntegrationProvider):
@@ -242,7 +264,8 @@ class JiraServerIntegrationProvider(IntegrationProvider):
         install = state['installation_data']
         access_token = state['access_token']
 
-        external_id = '%s:%s' % (urlparse(install['url']).netloc, install['consumer_key'])
+        hostname = urlparse(install['url']).netloc
+        external_id = '%s:%s' % (hostname, install['consumer_key'])
         webhook_secret = sha1_text(install['private_key']).hexdigest()
 
         credentials = {
@@ -261,6 +284,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
             'external_id': external_id,
             'metadata': {
                 'base_url': install['url'],
+                'domain_name': hostname,
                 'verify_ssl': install['verify_ssl'],
                 'webhook_secret': webhook_secret,
             },

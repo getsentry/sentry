@@ -111,7 +111,7 @@ const StacktraceContent = createReactClass({
     if (frames.length > 0 && data.registers) {
       let lastFrame = frames.length - 1;
       frames[lastFrame] = React.cloneElement(frames[lastFrame], {
-        registers: data.registers
+        registers: data.registers,
       });
     }
 

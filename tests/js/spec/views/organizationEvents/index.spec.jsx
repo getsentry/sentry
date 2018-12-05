@@ -15,6 +15,10 @@ describe('OrganizationEvents', function() {
 
   beforeAll(async function() {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [{count: 1, tag: 'transaction'}, {count: 2, tag: 'mechanism'}],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),
     });
@@ -32,7 +36,11 @@ describe('OrganizationEvents', function() {
     });
 
     wrapper = mount(
-      <OrganizationEventsContainer router={router} organization={organization}>
+      <OrganizationEventsContainer
+        router={router}
+        organization={organization}
+        selection={{projects: []}}
+      >
         <div />
       </OrganizationEventsContainer>,
       TestStubs.routerContext([
@@ -248,6 +256,8 @@ describe('OrganizationEvents', function() {
   });
 
   it('does not update router when toggling environment selector without changes', async function() {
+    expect(router.push).toHaveBeenCalledTimes(1);
+
     wrapper.setProps({
       router: {
         ...router,
@@ -267,6 +277,84 @@ describe('OrganizationEvents', function() {
     wrapper
       .find('MultipleEnvironmentSelector StyledInput')
       .simulate('keyDown', {key: 'Escape'});
-    expect(router.push).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledTimes(1);
+  });
+
+  it('updates router when changing periods', async function() {
+    expect(wrapper.state('start')).toEqual(null);
+    expect(wrapper.state('end')).toEqual(null);
+    expect(wrapper.state('period')).toEqual('14d');
+
+    wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+    expect(wrapper.find('[data-test-id="date-range"]')).toHaveLength(0);
+    wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+    wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {
+        end: '2017-10-17T02:41:20',
+        start: '2017-10-03T02:41:20',
+        utc: 'true',
+      },
+    });
+
+    wrapper.setProps({
+      router: {
+        ...router,
+        location: {
+          pathname: '/organizations/org-slug/events/',
+          query: {
+            end: '2017-10-17T02:41:20',
+            start: '2017-10-03T02:41:20',
+            utc: 'true',
+          },
+        },
+      },
+    });
+
+    expect(wrapper.state('queryValues')).toEqual(
+      expect.objectContaining({
+        end: new Date('2017-10-17T02:41:20.000Z'),
+        start: new Date('2017-10-03T02:41:20.000Z'),
+        utc: true,
+      })
+    );
+
+    // Can switch back to relative date
+    wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+    wrapper.find('SelectorItem[value="7d"]').simulate('click');
+    wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/events/',
+      query: {
+        statsPeriod: '7d',
+        utc: 'true',
+      },
+    });
+
+    wrapper.setProps({
+      router: {
+        ...router,
+        location: {
+          pathname: '/organizations/org-slug/events/',
+          query: {
+            statsPeriod: '7d',
+            utc: 'true',
+          },
+        },
+      },
+    });
+
+    expect(wrapper.state('queryValues')).toEqual(
+      expect.objectContaining({
+        end: null,
+        start: null,
+        period: '7d',
+        utc: true,
+      })
+    );
   });
 });

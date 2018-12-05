@@ -29,11 +29,13 @@ describe('Discover', function() {
     });
 
     it('auto-runs saved query', async function() {
+      const savedQuery = TestStubs.DiscoverSavedQuery();
       wrapper = mount(
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          savedQuery={TestStubs.DiscoverSavedQuery()}
+          savedQuery={savedQuery}
+          params={{savedQueryId: savedQuery.id}}
           updateSavedQueryData={jest.fn()}
           toggleEditMode={jest.fn()}
           isLoading={false}
@@ -72,6 +74,7 @@ describe('Discover', function() {
           organization={organization}
           updateSavedQueryData={jest.fn()}
           location={{search: ''}}
+          params={{}}
           toggleEditMode={jest.fn()}
           isLoading={false}
         />,
@@ -79,8 +82,10 @@ describe('Discover', function() {
       );
       expect(wrapper.find('NewQuery')).toHaveLength(1);
       expect(wrapper.find('EditSavedQuery')).toHaveLength(0);
+      const savedQuery = TestStubs.DiscoverSavedQuery();
       wrapper.setProps({
-        savedQuery: TestStubs.DiscoverSavedQuery(),
+        savedQuery,
+        params: {savedQueryId: savedQuery.id},
         isEditingSavedQuery: true,
       });
       wrapper.update();
@@ -192,8 +197,8 @@ describe('Discover', function() {
       expect(wrapper.state().data.baseQuery.data).toEqual(mockResponse);
     });
 
-    it('always requests id and project.id for basic queries', async function() {
-      queryBuilder.updateField('fields', ['message']);
+    it('requests project.id if id is also requested', async function() {
+      queryBuilder.updateField('fields', ['message', 'id']);
       wrapper.instance().runQuery();
       await tick();
       expect(queryBuilder.fetch).toHaveBeenCalledTimes(1);
@@ -222,6 +227,7 @@ describe('Discover', function() {
     });
 
     it('also runs chart query if there are aggregations', async function() {
+      wrapper.instance().updateField('fields', []);
       wrapper.instance().updateField('aggregations', [['count()', null, 'count']]);
       wrapper.instance().runQuery();
       await tick();
@@ -231,7 +237,7 @@ describe('Discover', function() {
         ...queryBuilder.getExternal(),
         groupby: ['time'],
         rollup: 60 * 60 * 24,
-        orderby: 'time',
+        orderby: '-time',
       });
     });
   });
@@ -285,6 +291,7 @@ describe('Discover', function() {
             queryBuilder={queryBuilder}
             organization={organization}
             location={{location: '?fields=something'}}
+            params={{}}
             updateSavedQueryData={jest.fn()}
             toggleEditMode={jest.fn()}
             isLoading={false}
@@ -349,11 +356,13 @@ describe('Discover', function() {
   describe('Saved query', function() {
     let wrapper, deleteMock, updateMock;
     beforeEach(function() {
+      const savedQuery = TestStubs.DiscoverSavedQuery();
       wrapper = mount(
         <Discover
           queryBuilder={queryBuilder}
           organization={organization}
-          savedQuery={TestStubs.DiscoverSavedQuery()}
+          savedQuery={savedQuery}
+          params={{savedQueryId: savedQuery.id}}
           updateSavedQueryData={jest.fn()}
           view="saved"
           location={{search: ''}}
@@ -443,23 +452,31 @@ describe('Discover', function() {
         />,
         TestStubs.routerContext()
       );
+
+      queryBuilder.fetch = jest.fn(() =>
+        Promise.resolve({timing: {}, data: [], meta: []})
+      );
     });
+
     it('renders example queries', function() {
-      const queries = wrapper.find('IntroContainer').find('li');
+      const queries = wrapper.find('IntroContainer').find('ExampleQuery');
       expect(queries).toHaveLength(3);
-      expect(queries.first().text()).toBe('Last 10 event IDs');
+      expect(queries.first().text()).toContain('Events by stack filename');
     });
 
-    it('updates query builder when clicked', function() {
-      const queries = wrapper.find('IntroContainer').find('li');
-      queries
+    it('runs example query', function() {
+      expect(queryBuilder.fetch).not.toHaveBeenCalled();
+      wrapper
+        .find('IntroContainer')
+        .find('ExampleQuery')
         .first()
-        .find('a')
+        .find('Button')
         .simulate('click');
-
       const query = queryBuilder.getInternal();
-      expect(query.fields).toEqual(['id']);
-      expect(query.limit).toEqual(10);
+      expect(query.fields).toEqual(['stack.filename']);
+      expect(query.aggregations).toEqual([['count()', null, 'count']]);
+      expect(query.conditions).toEqual([]);
+      expect(queryBuilder.fetch).toHaveBeenCalledTimes(2);
     });
   });
 

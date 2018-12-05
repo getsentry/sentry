@@ -45,6 +45,7 @@ class TagStorage(Service):
         'get_group_tag_value',
         'get_group_tag_values',
         'get_group_list_tag_value',
+        'get_tag_keys_for_projects',
 
         'get_groups_user_counts',
         'get_group_event_filter',
@@ -62,6 +63,7 @@ class TagStorage(Service):
 
         'get_tag_value_paginator',
         'get_group_tag_value_paginator',
+        'get_tag_value_paginator_for_projects',
         'get_group_tag_value_iter',
 
         'get_group_tag_value_qs',
@@ -218,6 +220,13 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
+    def get_tag_keys_for_projects(self, projects, environments, start,
+                                  end, status=TagKeyStatus.VISIBLE):
+        """
+        >>> get_tag_key([1], [2])
+        """
+        raise NotImplementedError
+
     @raises([TagValueNotFound])
     def get_tag_value(self, project_id, environment_id, key, value):
         """
@@ -305,6 +314,15 @@ class TagStorage(Service):
                                 query=None, order_by='-last_seen'):
         """
         >>> get_tag_value_paginator(1, 2, 'environment', query='prod')
+        """
+        raise NotImplementedError
+
+    def get_tag_value_paginator_for_projects(self, projects, environments, key, start, end,
+                                             query=None, order_by='-last_seen'):
+        """
+        Includes tags and also snuba columns, with the arrayjoin when they are nested.
+        Also supports a query parameter to do a substring match on the tag/column values.
+        >>> get_tag_value_paginator_for_projects([1], [2], 'environment', query='prod')
         """
         raise NotImplementedError
 

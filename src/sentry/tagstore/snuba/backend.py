@@ -30,6 +30,9 @@ from sentry.utils.dates import to_timestamp
 
 SEEN_COLUMN = 'timestamp'
 
+# columns we want to exclude from methods that return
+# all values for a given tag/column
+BLACKLISTED_COLUMNS = frozenset(['project_id'])
 
 tag_value_data_transformers = {
     'first_seen': parse_datetime,
@@ -140,11 +143,23 @@ class SnubaTagStorage(TagStorage):
 
     def __get_tag_keys(self, project_id, group_id, environment_id, limit=1000, keys=None):
         start, end = self.get_time_range()
+        return self.__get_tag_keys_for_projects(
+            [project_id],
+            group_id,
+            [environment_id] if environment_id else None,
+            start,
+            end,
+            limit,
+            keys,
+        )
+
+    def __get_tag_keys_for_projects(self, projects, group_id,
+                                    environments, start, end, limit=1000, keys=None):
         filters = {
-            'project_id': [project_id],
+            'project_id': projects,
         }
-        if environment_id:
-            filters['environment'] = [environment_id]
+        if environments:
+            filters['environment'] = environments
         if group_id is not None:
             filters['issue'] = [group_id]
         if keys is not None:
@@ -211,6 +226,10 @@ class SnubaTagStorage(TagStorage):
     def get_tag_keys(self, project_id, environment_id, status=TagKeyStatus.VISIBLE):
         assert status is TagKeyStatus.VISIBLE
         return self.__get_tag_keys(project_id, None, environment_id)
+
+    def get_tag_keys_for_projects(self, projects, environments, start,
+                                  end, status=TagKeyStatus.VISIBLE):
+        return self.__get_tag_keys_for_projects(projects, None, environments, start, end)
 
     def get_tag_value(self, project_id, environment_id, key, value):
         return self.__get_tag_value(project_id, None, environment_id, key, value)
@@ -465,26 +484,46 @@ class SnubaTagStorage(TagStorage):
 
     def get_tag_value_paginator(self, project_id, environment_id, key, query=None,
                                 order_by='-last_seen'):
+        start, end = self.get_time_range()
+        return self.get_tag_value_paginator_for_projects(
+            [project_id],
+            [environment_id] if environment_id else None,
+            key,
+            start,
+            end,
+            query=query,
+            order_by=order_by,
+        )
+
+    def get_tag_value_paginator_for_projects(self, projects, environments, key, start, end,
+                                             query=None, order_by='-last_seen'):
         from sentry.api.paginator import SequencePaginator
 
         if not order_by == '-last_seen':
             raise ValueError("Unsupported order_by: %s" % order_by)
 
-        conditions = []
-        if query:
-            conditions.append(['tags_value', 'LIKE', u'%{}%'.format(query)])
+        snuba_key = snuba.get_snuba_column_name(key)
 
-        start, end = self.get_time_range()
+        conditions = []
+
+        if snuba_key in BLACKLISTED_COLUMNS:
+            snuba_key = 'tags[%s]' % (key,)
+
+        if query:
+            conditions.append([snuba_key, 'LIKE', u'%{}%'.format(query)])
+        else:
+            conditions.append([snuba_key, '!=', ''])
+
         filters = {
-            'project_id': [project_id],
-            'tags_key': [key],
+            'project_id': projects,
         }
-        if environment_id:
-            filters['environment'] = [environment_id]
+        if environments:
+            filters['environment'] = environments
+
         results = snuba.query(
             start=start,
             end=end,
-            groupby=['tags_value'],
+            groupby=[snuba_key],
             filter_keys=filters,
             aggregations=[
                 ['count()', '', 'times_seen'],
@@ -495,7 +534,8 @@ class SnubaTagStorage(TagStorage):
             orderby=order_by,
             # TODO: This means they can't actually paginate all TagValues.
             limit=1000,
-            referrer='tagstore.get_tag_value_paginator',
+            arrayjoin=snuba.get_arrayjoin(snuba_key),
+            referrer='tagstore.get_tag_value_paginator_for_projects',
         )
 
         tag_values = [

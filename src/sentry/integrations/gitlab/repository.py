@@ -1,8 +1,5 @@
 from __future__ import absolute_import
 
-import dateutil.parser
-
-from django.utils import timezone
 
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.plugins import providers
@@ -107,9 +104,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'author_email': c['author_email'],
                 'author_name': c['author_name'],
                 'message': c['title'],
-                'timestamp': dateutil.parser.parse(
-                    c['created_at'],
-                ).astimezone(timezone.utc) if c['created_at'] else None,
+                'timestamp': self.format_date(c['created_at']),
                 'patch_set': self._get_patchset(client, repo, c['id'])
             } for c in commit_list
         ]

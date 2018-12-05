@@ -5,7 +5,12 @@ import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
 
-import {ResultViewButtons, ResultViewDropdownButtons, DownloadCsvButton} from '../styles';
+import {
+  ResultViewActions,
+  ResultViewButtons,
+  ResultViewDropdownButtons,
+  DownloadCsvButton,
+} from '../styles';
 
 class VisualizationsToggle extends React.Component {
   static propTypes = {
@@ -37,9 +42,7 @@ class VisualizationsToggle extends React.Component {
     const active = opt.id === this.props.visualization;
     return (
       <li key={opt.id} className={classNames({active})}>
-        <a onClick={() => this.props.handleChange(opt.id)}>
-          {opt.name}
-        </a>
+        <a onClick={() => this.props.handleChange(opt.id)}>{opt.name}</a>
       </li>
     );
   };
@@ -59,12 +62,11 @@ class VisualizationsToggle extends React.Component {
     const dropdownTitle = t(`View: ${name}`);
 
     return (
-      <React.Fragment>
-        <ResultViewButtons underlined>
+      <ResultViewActions>
+        <ResultViewButtons>
           {options.map(opt => {
             return this.getButtonItems(opt);
           })}
-          {this.getDownloadCsvButton()}
         </ResultViewButtons>
         <ResultViewDropdownButtons>
           <DropdownLink title={dropdownTitle} className={'btn btn-default btn-sm'}>
@@ -72,9 +74,9 @@ class VisualizationsToggle extends React.Component {
               return this.getMenuItem(opt);
             })}
           </DropdownLink>
-          {this.getDownloadCsvButton()}
         </ResultViewDropdownButtons>
-      </React.Fragment>
+        {this.getDownloadCsvButton()}
+      </ResultViewActions>
     );
   }
 }

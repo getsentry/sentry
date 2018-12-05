@@ -6,8 +6,9 @@ import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import Link from 'app/components/link';
 import Tooltip from 'app/components/tooltip';
-import InlineSvg from 'app/components/inlineSvg';
 import Panel from 'app/components/panels/panel';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+
 import {getDisplayValue, getDisplayText} from './utils';
 
 const TABLE_ROW_HEIGHT = 30;
@@ -15,7 +16,6 @@ const TABLE_ROW_BORDER = 1;
 const TABLE_ROW_HEIGHT_WITH_BORDER = TABLE_ROW_HEIGHT + TABLE_ROW_BORDER;
 const MIN_COL_WIDTH = 100;
 const MAX_COL_WIDTH = 500;
-const LINK_COL_WIDTH = 40;
 const CELL_PADDING = 20;
 const MIN_VISIBLE_ROWS = 6;
 const MAX_VISIBLE_ROWS = 30;
@@ -47,24 +47,17 @@ export default class ResultTable extends React.Component {
     }
   }
 
-  cellRenderer = ({key, rowIndex, columnIndex, style}) => {
-    const {query, data: {data, meta}} = this.props;
-    const cols = this.getColumnList();
+  getCellRenderer = cols => ({key, rowIndex, columnIndex, style}) => {
+    const {data: {data, meta}} = this.props;
 
-    const showEventLinks = !query.aggregations.length;
+    const isSpacingCol = columnIndex === cols.length;
 
-    const isLinkCol = showEventLinks && columnIndex === cols.length;
-
-    const isSpacingCol = typeof cols[columnIndex] === 'undefined';
-
-    const colName = isLinkCol || isSpacingCol ? null : cols[columnIndex].name;
+    const colName = isSpacingCol ? null : cols[columnIndex].name;
 
     const isNumberCol =
-      !isLinkCol &&
-      !isSpacingCol &&
-      ['number', 'integer'].includes(meta[columnIndex].type);
+      !isSpacingCol && ['number', 'integer'].includes(meta[columnIndex].type);
 
-    const align = isNumberCol ? 'right' : isLinkCol ? 'center' : 'left';
+    const align = isNumberCol && colName != 'issue.id' ? 'right' : 'left';
 
     if (rowIndex === 0) {
       return (
@@ -74,9 +67,17 @@ export default class ResultTable extends React.Component {
       );
     }
 
-    const value = isLinkCol
-      ? this.getLink(data[rowIndex - 1])
-      : isSpacingCol ? null : getDisplayValue(data[rowIndex - 1][colName]);
+    let value = isSpacingCol ? null : getDisplayValue(data[rowIndex - 1][colName]);
+
+    // check for id column
+    if (columnIndex < cols.length && cols[columnIndex].name === 'id') {
+      value = this.getEventLink(data[rowIndex - 1]);
+    }
+
+    // check for issue.id columm
+    if (columnIndex < cols.length && cols[columnIndex].name === 'issue.id') {
+      value = this.getIssueLink(data[rowIndex - 1]);
+    }
 
     return (
       <Cell key={key} style={style} isOddRow={rowIndex % 2 === 1} align={align}>
@@ -85,15 +86,29 @@ export default class ResultTable extends React.Component {
     );
   };
 
-  getLink = event => {
+  getEventLink = event => {
     const {slug, projects} = this.context.organization;
     const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
       .slug;
 
     return (
-      <Tooltip title={t('Open event')} tooltipOptions={{container: 'body'}}>
-        <Link to={`/${slug}/${projectSlug}/issues/?query=${event.id}`} target="_blank">
-          <InlineSvg src="icon-exit" size="1em" />
+      <Tooltip title={t('Open event')}>
+        <Link href={`/${slug}/${projectSlug}/events/${event.id}/`} target="_blank">
+          {event.id}
+        </Link>
+      </Tooltip>
+    );
+  };
+
+  getIssueLink = event => {
+    const {slug, projects} = this.context.organization;
+    const projectSlug = projects.find(project => project.id === `${event['project.id']}`)
+      .slug;
+
+    return (
+      <Tooltip title={t('Open issue')}>
+        <Link to={`/${slug}/${projectSlug}/issues/${event['issue.id']}`} target="_blank">
+          {event['issue.id']}
         </Link>
       </Tooltip>
     );
@@ -105,12 +120,10 @@ export default class ResultTable extends React.Component {
   // are less than 20 columns of data to check in total.
   // Adds an empty column at the end with the remaining table width if any.
   getColumnWidths = tableWidth => {
-    const {query, data: {data}} = this.props;
+    const {data: {data}} = this.props;
     const cols = this.getColumnList();
 
     const widths = [];
-
-    const showEventLinks = !query.aggregations.length;
 
     if (cols.length < 20) {
       cols.forEach(col => {
@@ -141,10 +154,6 @@ export default class ResultTable extends React.Component {
       cols.forEach(() => {
         widths.push(MIN_COL_WIDTH);
       });
-    }
-
-    if (showEventLinks) {
-      widths.push(LINK_COL_WIDTH);
     }
 
     const sumOfWidths = widths.reduce((sum, w) => sum + w, 0) + 2;
@@ -181,11 +190,12 @@ export default class ResultTable extends React.Component {
   getColumnList = () => {
     const {query, data: {meta}} = this.props;
 
-    const fields = new Set(query.fields);
+    const fields = new Set([
+      ...(query.fields || []),
+      ...query.aggregations.map(agg => agg[2]),
+    ]);
 
-    return !query.aggregations.length && query.fields.length
-      ? meta.filter(({name}) => fields.has(name))
-      : meta;
+    return meta.filter(({name}) => fields.has(name));
   };
 
   measureText = (text, isHeader) => {
@@ -217,50 +227,55 @@ export default class ResultTable extends React.Component {
   };
 
   renderTable() {
-    const {query, data: {data}, height} = this.props;
+    const {data: {data}, height} = this.props;
 
     const cols = this.getColumnList();
 
-    const showEventLinks = !query.aggregations.length;
-
     // Add one column at the end to make sure table spans full width
-    const colCount = cols.length + (showEventLinks ? 1 : 0) + 1;
+    const colCount = cols.length + 1;
 
     const visibleRows = this.getMaxVisibleRows(height);
 
+    const cellRenderer = this.getCellRenderer(cols);
+
     return (
-      <GridContainer visibleRows={Math.min(data.length, visibleRows) + 1}>
-        <AutoSizer>
-          {size => {
-            const columnWidths = this.getColumnWidths(size.width);
+      <Panel>
+        <Grid visibleRows={Math.min(data.length, visibleRows) + 1}>
+          <AutoSizer>
+            {size => {
+              const columnWidths = this.getColumnWidths(size.width);
 
-            // Since calculating row height might be expensive, we'll only
-            // perform the check against a subset of columns (where col width
-            // has exceeded the max value)
-            const columnsToCheck = columnWidths.reduce((acc, colWidth, idx) => {
-              if (colWidth === MAX_COL_WIDTH) {
-                acc.push(cols[idx].name);
-              }
-              return acc;
-            }, []);
+              // Since calculating row height might be expensive, we'll only
+              // perform the check against a subset of columns (where col width
+              // has exceeded the max value)
+              const columnsToCheck = columnWidths.reduce((acc, colWidth, idx) => {
+                if (colWidth === MAX_COL_WIDTH) {
+                  acc.push(cols[idx].name);
+                }
+                return acc;
+              }, []);
 
-            return (
-              <MultiGrid
-                ref={ref => (this.grid = ref)}
-                width={size.width - 1}
-                height={size.height}
-                rowCount={data.length + 1}
-                columnCount={colCount}
-                fixedRowCount={1}
-                rowHeight={({index}) => this.getRowHeight(index, columnsToCheck)}
-                columnWidth={({index}) => columnWidths[index]}
-                cellRenderer={this.cellRenderer}
-                overscanByPixels={800}
-              />
-            );
-          }}
-        </AutoSizer>
-      </GridContainer>
+              return (
+                <MultiGrid
+                  ref={ref => (this.grid = ref)}
+                  width={size.width - 1}
+                  height={size.height}
+                  rowCount={data.length + 1}
+                  columnCount={colCount}
+                  fixedRowCount={1}
+                  rowHeight={({index}) => this.getRowHeight(index, columnsToCheck)}
+                  columnWidth={({index}) => columnWidths[index]}
+                  cellRenderer={cellRenderer}
+                  overscanByPixels={800}
+                />
+              );
+            }}
+          </AutoSizer>
+        </Grid>
+        {!data.length && (
+          <EmptyStateWarning small={true}>{t('No results')}</EmptyStateWarning>
+        )}
+      </Panel>
     );
   }
 
@@ -275,7 +290,7 @@ export default class ResultTable extends React.Component {
   }
 }
 
-const GridContainer = styled(({visibleRows, ...props}) => <Panel {...props} />)`
+const Grid = styled(({visibleRows, ...props}) => <div {...props} />)`
   height: ${p =>
     p.visibleRows * TABLE_ROW_HEIGHT_WITH_BORDER +
     2}px; /* cell height + cell border + top and bottom Panel border */

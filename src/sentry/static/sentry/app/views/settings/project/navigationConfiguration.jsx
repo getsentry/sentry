@@ -62,6 +62,7 @@ export default function getConfiguration({project}) {
             if (project.processingIssues <= 0) return null;
             return project.processingIssues > 99 ? '99+' : project.processingIssues;
           },
+          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/filters/`,
@@ -110,6 +111,7 @@ export default function getConfiguration({project}) {
         ...plugins.map(plugin => ({
           path: `${pathPrefix}/plugins/${plugin.id}/`,
           title: plugin.name,
+          show: ({access}) => access.has('project:write'),
         })),
       ],
     },
