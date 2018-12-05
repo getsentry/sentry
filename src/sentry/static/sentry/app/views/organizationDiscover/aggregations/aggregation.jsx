@@ -1,4 +1,6 @@
 import React from 'react';
+
+import {Value} from 'react-select';
 import PropTypes from 'prop-types';
 import {Box} from 'grid-emotion';
 import SelectControl from 'app/components/forms/selectControl';
@@ -81,19 +83,31 @@ export default class Aggregation extends React.Component {
   };
 
   inputRenderer = props => {
+    const onChange = evt => {
+      if (evt.target.value === '') {
+        this.setState({inputValue: evt.target.value}, props.onChange(evt));
+      } else {
+        props.onChange(evt);
+      }
+    };
+
     return (
       <input
         type="text"
         {...props}
-        value={props.value || this.state.inputValue}
+        onChange={onChange}
+        value={this.state.inputValue}
         style={{width: '100%', border: 0, backgroundColor: 'transparent'}}
       />
     );
   };
 
-  valueRenderer = option => {
-    const hideValue = this.state.inputValue;
-    return hideValue ? '' : option.value;
+  valueComponent = props => {
+    if (this.state.inputValue) {
+      return null;
+    }
+
+    return <Value {...props} />;
   };
 
   handleInputChange = value => {
@@ -122,7 +136,7 @@ export default class Aggregation extends React.Component {
           backspaceRemoves={false}
           deleteRemoves={false}
           inputRenderer={this.inputRenderer}
-          valueRenderer={this.valueRenderer}
+          valueComponent={this.valueComponent}
           onInputChange={this.handleInputChange}
           disabled={this.props.disabled}
         />
