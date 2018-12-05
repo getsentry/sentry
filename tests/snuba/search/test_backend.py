@@ -963,6 +963,19 @@ class SnubaSearchTest(SnubaTestCase):
         finally:
             options.set('snuba.search.max-pre-snuba-candidates', prev_max_pre)
 
+    def test_optimizer_enabled(self):
+        prev_optimizer_enabled = options.get('snuba.search.pre-snuba-candidates-optimizer')
+        options.set('snuba.search.pre-snuba-candidates-optimizer', True)
+
+        try:
+            results = self.backend.query(
+                [self.project],
+                environment=self.environments['production'],
+                tags={'server': 'example.com'})
+            assert set(results) == set([self.group1])
+        finally:
+            options.set('snuba.search.pre-snuba-candidates-optimizer', prev_optimizer_enabled)
+
     def test_search_out_of_range(self):
         results = self.backend.query(
             [self.project],

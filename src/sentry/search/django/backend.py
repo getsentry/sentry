@@ -312,7 +312,7 @@ class DjangoSearchBackend(SearchBackend):
             if 'environment' in tags:
                 environment_name = tags.pop('environment')
                 assert environment_name is ANY or Environment.objects.get(
-                    projects__in=projects,
+                    projects=project,
                     name=environment_name,
                 ).id == environment.id
 

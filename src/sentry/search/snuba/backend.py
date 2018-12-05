@@ -127,6 +127,9 @@ class ScalarCondition(Condition):
 
 
 class SnubaSearchBackend(ds.DjangoSearchBackend):
+    def _get_project_count_cache_key(self, project_id):
+        return 'snuba.search:project.group.count:%s' % project_id
+
     def _query(self, projects, retention_window_start, group_queryset, tags, environment,
                sort_by, limit, cursor, count_hits, paginator_options, **parameters):
 
@@ -248,11 +251,19 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # and the result groups are then post-filtered via queries to the Sentry DB
         optimizer_enabled = options.get('snuba.search.pre-snuba-candidates-optimizer')
         if optimizer_enabled:
-            key = 'snuba.search:project.group.count:%s' % ','.join(
-                [six.text_type(p.id) for p in projects])
-            project_group_count = cache.get(key)
-            if not project_group_count:
-                project_group_count = snuba.query(
+            counts_by_projects = {}
+            missed_projects = []
+            for project in projects:
+                key = self._get_project_count_cache_key(project.id)
+                project_group_count = cache.get(key)
+
+                if project_group_count:
+                    counts_by_projects[project.id] = project_group_count
+                else:
+                    missed_projects.append(project.id)
+
+            if missed_projects:
+                missing_counts = snuba.query(
                     start=max(
                         filter(None, [
                             retention_window_start,
@@ -260,17 +271,21 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                         ])
                     ),
                     end=now,
-                    groupby=[],
+                    groupby=['project_id'],
                     filter_keys={
-                        'project_id': [p.id for p in projects],
+                        'project_id': missed_projects,
                     },
                     aggregations=[['uniq', 'group_id', 'group_count']],
                     referrer='search',
                 )
 
-                cache.set(key, project_group_count, options.get(
-                    'snuba.search.project-group-count-cache-time')
-                )
+                for project_id, count in missing_counts.items():
+                    key = self._get_project_count_cache_key(project_id)
+                    cache.set(key, count, options.get(
+                        'snuba.search.project-group-count-cache-time')
+                    )
+
+                counts_by_projects.update(missing_counts)
 
             min_candidates = options.get('snuba.search.min-pre-snuba-candidates')
             max_candidates = options.get('snuba.search.max-pre-snuba-candidates')
@@ -280,7 +295,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 min_candidates,
                 min(
                     max_candidates,
-                    project_group_count * candidates_percentage
+                    sum(counts_by_projects.values()) * candidates_percentage
                 )
             )
         else:
