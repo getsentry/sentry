@@ -1,6 +1,8 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
+import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
+import HookStore from 'app/stores/hookStore';
 import ProgressNodes from 'app/views/onboarding/progress';
 
 describe('ProgressNodes', function() {
@@ -14,8 +16,13 @@ describe('ProgressNodes', function() {
     const baseContext = {
       context: {
         organization: {id: '1337', slug: 'testOrg', experiments: {}},
+        location: {pathname: 'http://lol/', query: {}},
       },
     };
+    HookStore.add(
+      'component:onboarding-sidebar',
+      source => (source === 'steps' ? onboardingSteps : stepDescriptions)
+    );
 
     it('should render step 0 if no projectId', function() {
       let wrapper = shallow(<ProgressNodes {...baseProps} />, baseContext);

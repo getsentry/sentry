@@ -18,7 +18,8 @@ const validHookNames = new Set([
   'metrics:event',
 
   // Specific component customizations
-  'component:onboarding-survey',
+  'component:onboarding-survey-view',
+  'component:onboarding-sidebar',
   'component:org-auth-view',
   'component:org-members-view',
   'component:releases-tab',

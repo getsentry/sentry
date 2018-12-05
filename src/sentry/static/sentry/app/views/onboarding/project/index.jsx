@@ -2,13 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import classnames from 'classnames';
 
-import Hook from 'app/components/hook';
 import {analytics} from 'app/utils/analytics';
 import PlatformPicker from 'app/views/onboarding/project/platformpicker';
 import PlatformiconTile from 'app/views/onboarding/project/platformiconTile';
 import SelectField from 'app/components/forms/selectField';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 
 class OnboardingProject extends React.Component {
   static propTypes = {
@@ -20,9 +18,6 @@ class OnboardingProject extends React.Component {
     team: PropTypes.string,
     setTeam: PropTypes.func,
     teams: PropTypes.array,
-    organization: SentryTypes.Organization,
-    onSurveySubmit: PropTypes.func,
-    showSurvey: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -74,15 +69,7 @@ class OnboardingProject extends React.Component {
     );
   };
 
-  renderSurvey = () => {
-    let {organization, onSurveySubmit} = this.props;
-    let params = {organization, onSubmit: onSurveySubmit};
-    return (
-      <Hook name="component:onboarding-survey" params={params} key="onboarding-survey" />
-    );
-  };
-
-  renderBody = () => {
+  render() {
     return (
       <div className="onboarding-info">
         <h4>{t('Choose a language or framework') + ':'}</h4>
@@ -121,10 +108,6 @@ class OnboardingProject extends React.Component {
         </div>
       </div>
     );
-  };
-
-  render() {
-    return <div>{this.props.showSurvey ? this.renderSurvey() : this.renderBody()}</div>;
   }
 }
 

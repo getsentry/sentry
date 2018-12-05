@@ -5,27 +5,21 @@ import classNames from 'classnames';
 
 
 import {analytics} from 'app/utils/analytics';
-
-import {
-  onboardingSteps,
-  onboardingSteps2,
-  stepDescriptions,
-  stepDescriptions2,
-} from 'app/views/onboarding/utils';
-
+import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
 import ConfigStore from 'app/stores/configStore';
 import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
+
 
 const ProgressNodes = createReactClass({
   displayName: 'ProgressNodes',
 
   propTypes: {
     params: PropTypes.object,
-    showSurvey: PropTypes.bool,
   },
 
   contextTypes: {
     organization: PropTypes.object,
+    location: PropTypes.object,
   },
 
   componentDidMount() {
@@ -49,25 +43,36 @@ const ProgressNodes = createReactClass({
   getSteps() {
     let organization = this.context.organization;
 
-    return organization && organization.experiments.OnboardingSurveyExperiment === 1
-      ? onboardingSteps2
-      : onboardingSteps;
+    return (
+      HookStore.get('component:onboarding-sidebar').length &&
+      HookStore.get('component:onboarding-sidebar')[0]('steps', {
+        onboardingSteps,
+        organization,
+      })
+    );
   },
 
   getStepDescriptions() {
-    let {organization} = this.context;
-    return organization && organization.experiments.OnboardingSurveyExperiment === 1
-      ? stepDescriptions2
-      : stepDescriptions;
+    let organization = this.context.organization;
+
+    return (
+      HookStore.get('component:onboarding-sidebar').length &&
+      HookStore.get('component:onboarding-sidebar')[0]('stepDescriptions', {
+        stepDescriptions,
+        organization,
+      })
+    );
   },
 
 
   inferStep() {
+    let {pathname} = this.context.location;
+    let {params} = this.props;
     let steps = this.getSteps();
-    let {params, showSurvey} = this.props;
 
-    if (!params.projectId && showSurvey) return steps.survey;
     if (!params.projectId) return steps.project;
+    if (pathname.indexOf('/survey/') !== -1) return steps.survey;
+
     return steps.configure;
   },
 
@@ -78,7 +83,6 @@ const ProgressNodes = createReactClass({
     });
 
     let descriptions = this.getStepDescriptions();
-
     return (
       <div className={nodeClass} key={stepIndex}>
         <span className={nodeClass} />

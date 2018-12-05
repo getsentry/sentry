@@ -104,17 +104,9 @@ const flattenedPlatforms = [].concat(
 );
 
 const onboardingSteps = {organization: 0, project: 1, configure: 2};
-const onboardingSteps2 = {organization: 0, survey: 1, project: 2, configure: 3};
 
 const stepDescriptions = {
   organization: t('Create an organization in Sentry'),
-  project: t('Tell us about your project'),
-  configure: t('Configure your application and send an event'),
-};
-
-const stepDescriptions2 = {
-  organization: t('Create an organization in Sentry'),
-  survey: t('Tell us a bit about yourself'),
   project: t('Tell us about your project'),
   configure: t('Configure your application and send an event'),
 };
@@ -127,8 +119,6 @@ function getPlatformName(platform) {
 export {
   onboardingSteps,
   stepDescriptions,
-  onboardingSteps2,
-  stepDescriptions2,
   flattenedPlatforms,
   categoryList,
   getPlatformName,

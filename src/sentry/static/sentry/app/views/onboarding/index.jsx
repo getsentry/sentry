@@ -9,29 +9,15 @@ class OnboardingWizard extends React.Component {
     organization: PropTypes.object,
   };
 
-  constructor(props, context) {
-    super(props, context);
-    let {organization} = this.context;
-    this.state = {
-      showSurvey:
-        organization && organization.experiments.OnboardingSurveyExperiment === 1,
-    };
-  }
-
-  handleSurveySubmit = () => {
-    this.setState({showSurvey: false});
-  };
-
   render() {
     return (
       <div className="onboarding-container">
         <DocumentTitle title={'Sentry'} />
         <div className="step-container">
-          <ProgressNodes showSurvey={this.state.showSurvey} params={this.props.params} />
+          <ProgressNodes params={this.props.params} />
           <div>
             {React.cloneElement(this.props.children, {
-              showSurvey: this.state.showSurvey,
-              onSurveySubmit: this.handleSurveySubmit,
+              organization: this.context.organization,
             })}
           </div>
         </div>

@@ -23,8 +23,6 @@ const CreateProject = createReactClass({
 
   propTypes: {
     getDocsUrl: PropTypes.func,
-    onSurveySubmit: PropTypes.func,
-    showSurvey: PropTypes.bool,
   },
 
   contextTypes: {
@@ -65,12 +63,23 @@ const CreateProject = createReactClass({
 
   onTeamCreated() {
     let {router} = this.context;
-
     // After team gets created we need to force OrganizationContext to basically remount
     router.replace({
       pathname: router.location.pathname,
       state: 'refresh',
     });
+  },
+
+  navigateNextUrl(router, docsUrl, surveyUrl) {
+    let {experiments} = this.getOrganization();
+    let showSurvey = experiments.OnboardingSurveyExperiment === 1;
+    router.push(showSurvey ? surveyUrl : docsUrl);
+
+    this.setState({inFlight: false});
+  },
+
+  getSurveyUrl({slug, projectSlug, platform}) {
+    return `/onboarding/${slug}/${projectSlug}/${platform}/survey/`;
   },
 
   createProject() {
@@ -98,9 +107,9 @@ const CreateProject = createReactClass({
         ProjectActions.createSuccess(data);
 
         // navigate to new url _now_
-        const url = this.props.getDocsUrl({slug, projectSlug: data.slug, platform});
-        this.setState({inFlight: false});
-        router.push(url);
+        const docsUrl = this.props.getDocsUrl({slug, projectSlug: data.slug, platform});
+        const surveyUrl = this.getSurveyUrl({slug, projectSlug: data.slug, platform});
+        this.navigateNextUrl(router, docsUrl, surveyUrl);
       },
       error: err => {
         this.setState({
@@ -150,12 +159,7 @@ const CreateProject = createReactClass({
       <div>
         {error && <h2 className="alert alert-error">{error}</h2>}
         {accessTeams.length ? (
-          <OnboardingProject
-            onSurveySubmit={this.props.onSurveySubmit}
-            showSurvey={this.props.showSurvey}
-            organization={organization}
-            {...stepProps}
-          />
+          <OnboardingProject {...stepProps} />
         ) : (
           <Panel
             title={t('Cannot Create Project')}

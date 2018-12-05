@@ -748,6 +748,15 @@ function routes() {
         <Route path="" component={errorHandler(OnboardingWizard)}>
           <IndexRoute component={errorHandler(CreateProject)} />
           <Route
+            path=":projectId/(:platform)/survey/"
+            component={props => {
+              return (
+                HookStore.get('component:onboarding-survey-view').length &&
+                HookStore.get('component:onboarding-survey-view')[0](props)
+              );
+            }}
+          />
+          <Route
             path=":projectId/configure/(:platform)"
             component={errorHandler(OnboardingConfigure)}
           />
