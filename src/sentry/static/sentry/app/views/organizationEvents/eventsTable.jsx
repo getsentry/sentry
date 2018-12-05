@@ -1,4 +1,3 @@
-import {isEqual} from 'lodash';
 import {withRouter, Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -24,31 +23,22 @@ class EventsTableBody extends React.PureComponent {
     projectsMap: PropTypes.object,
   };
 
-  getEventTitle(event) {
-    const {organization, projectsMap} = this.props;
-    const project = projectsMap.get(event.projectID);
-    const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
-
-    if (!project) {
-      return trimmedMessage;
-    }
-
-    return (
-      <Link href={`/${organization.slug}/${project.slug}/events/${event.eventID}/`}>
-        {trimmedMessage}
-      </Link>
-    );
-  }
-
   render() {
     const {events, organization, utc, projectsMap} = this.props;
 
     return events.map((event, eventIdx) => {
       const project = projectsMap.get(event.projectID);
+      const trimmedMessage = event.message.split('\n')[0].substr(0, 100);
       return (
         <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx == 0}>
           <TableData>
-            <EventTitle>{this.getEventTitle(event)}</EventTitle>
+            <EventTitle>
+              <Link
+                href={`/${organization.slug}/${project.slug}/events/${event.eventID}/`}
+              >
+                {trimmedMessage}
+              </Link>
+            </EventTitle>
           </TableData>
 
           <TableData>
@@ -77,11 +67,22 @@ class EventsTableBody extends React.PureComponent {
 
 class EventsTable extends React.Component {
   static propTypes = {
+    // Initial loading state
     loading: PropTypes.bool,
+
+    // When initial data has been loaded, but params have changed
     reloading: PropTypes.bool,
+
+    // Special state when chart has been zoomed
+    zoomChanged: PropTypes.bool,
+
     events: PropTypes.array,
     organization: SentryTypes.Organization,
     utc: PropTypes.bool,
+
+    // When Table is in loading state due to chart zoom but has
+    // completed its new API request
+    onUpdateComplete: PropTypes.func,
   };
 
   constructor(props) {
@@ -92,25 +93,36 @@ class EventsTable extends React.Component {
   }
 
   shouldComponentUpdate(nextProps) {
+    // Update if any of these "loading"-type props change so we can display loader
     if (
       this.props.reloading !== nextProps.reloading ||
+      this.props.zoomChanged !== nextProps.zoomChanged ||
       this.props.loading !== nextProps.loading
     ) {
       return true;
     }
 
+    // If org or events has not changed, then don't re-render
+    // Shallow compare events
     if (
       this.props.organization === nextProps.organization &&
-      isEqual(this.props.events, nextProps.events)
+      this.props.events === nextProps.events
     ) {
       return false;
     }
 
+    // Otherwise update
     return true;
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.onUpdateComplete && prevProps.zoomChanged && this.props.reloading) {
+      this.props.onUpdateComplete();
+    }
+  }
+
   render() {
-    const {events, organization, loading, reloading, utc} = this.props;
+    const {events, organization, loading, reloading, zoomChanged, utc} = this.props;
     const hasEvents = events && !!events.length;
 
     return (
@@ -127,7 +139,7 @@ class EventsTable extends React.Component {
         {!loading && !hasEvents && <EmptyStateWarning>No events</EmptyStateWarning>}
         {hasEvents && (
           <StyledPanelBody>
-            {reloading && <StyledLoadingIndicator overlay />}
+            {(reloading || zoomChanged) && <StyledLoadingIndicator overlay />}
             <EventsTableBody
               projectsMap={this.projectsMap}
               events={events}
