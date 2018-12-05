@@ -121,6 +121,29 @@ describe('Sentry App Installations', function() {
         );
       });
 
+      describe('when installing fails', () => {
+        it('allows for installation retry', () => {
+          Client.addMockResponse({
+            url: `/organizations/${org.slug}/sentry-app-installations/`,
+            method: 'POST',
+            statusCode: 500,
+          });
+
+          wrapper = mount(
+            <SentryAppInstallations
+              orgId={org.slug}
+              applications={[sentryApp]}
+              installs={[]}
+            />,
+            routerContext
+          );
+
+          wrapper.find('[icon="icon-circle-add"]').simulate('click');
+          expect(wrapper.exists('[icon="icon-circle-add"]')).toBe(true);
+          expect(wrapper.state('installs')).toEqual([]);
+        });
+      });
+
       describe('when uninstalling', () => {
         it('must confirm in order to uninstall', () => {
           const response = Client.addMockResponse({
