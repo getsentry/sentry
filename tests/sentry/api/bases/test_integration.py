@@ -25,3 +25,11 @@ class IntegrationEndpointTest(APITestCase):
         resp = IntegrationEndpoint().handle_exception(HttpRequest(), ApiError('This is an error', code=503))
         assert resp.status_code == 503
         assert resp.exception is True
+
+    def test_handle_exception_stdlib(self):
+        resp = IntegrationEndpoint().handle_exception(
+            HttpRequest(),
+            ValueError('This is an error')
+        )
+        assert resp.status_code == 500
+        assert resp.exception is True
