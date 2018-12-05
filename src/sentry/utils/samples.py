@@ -42,6 +42,14 @@ def random_ip():
     )
 
 
+def random_geo():
+    return random.choice([
+        {'country_code': 'US', 'region': 'CA', 'city': 'San Francisco'},
+        {'country_code': 'AU', 'region': 'VIC', 'city': 'Melbourne'},
+        {'country_code': 'GB', 'region': 'H9', 'city': 'London'},
+    ])
+
+
 def random_username():
     return random.choice(
         [
@@ -88,6 +96,7 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
             'email': email,
             'ip_address': ip_address or random_ip(),
             'name': name_for_username(username),
+            'geo': random_geo(),
         }
     ).to_json()
 
