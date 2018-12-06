@@ -137,9 +137,9 @@ class EventNodeStoreTest(TestCase):
     def test_event_node_id(self):
         # Create an event without specifying node_id. A node_id should be generated
         e1 = Event(project_id=1, event_id='abc', data={'foo': 'bar'})
-        assert e1.data.id is not None, "We should have generated a node_id for this event"
-        e1_node_id = e1.data.id
         e1.save()
+        e1_node_id = e1.data.id
+        assert e1.data.id is not None, "We should have generated a node_id for this event"
         e1_body = nodestore.get(e1_node_id)
         assert e1_body == {'foo': 'bar'}, "The event body should be in nodestore"
 
@@ -171,6 +171,23 @@ class EventNodeStoreTest(TestCase):
         e3 = Event.objects.get(project_id=1, event_id='ghi')
         assert e3.data.data == {'baz': 'quux'}, "Event body should be loaded from nodestore"
         assert e3.data.id == '1:ghi', "Loaded event should have the correct node_id"
+
+        # Try load it again, but using the pickled/compressed string we would expect to find
+        # in the column
+        e3_pickled_id = compress(pickle.dumps({'node_id': '1:ghi'}))
+        e3 = Event(project_id=1, event_id='jkl', data=e3_pickled_id)
+        assert e3.data.data == {'baz': 'quux'}, "Event body should be loaded from nodestore"
+
+        # Event with no data should not be saved (or loaded) from nodestore
+        e4 = Event(project_id=1, event_id='mno', data=None)
+        e4.save()
+        assert nodestore.get('1:mno') is None, "We should not have saved anything to nodestore"
+        e4 = Event.objects.get(project_id=1, event_id='mno')
+        assert e4.data.id is None
+        assert e4.data.data == {}  # NodeData returns {} by default
+        Event.objects.bind_nodes([e4], 'data')
+        assert e4.data.id is None
+        assert e4.data.data == {}
 
     def test_screams_bloody_murder_when_ref_fails(self):
         project1 = self.create_project()

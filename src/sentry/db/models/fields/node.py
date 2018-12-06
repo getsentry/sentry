@@ -51,7 +51,6 @@ class NodeData(collections.MutableMapping):
     """
     def __init__(self, field, id, data=None):
         self.field = field
-        assert id is not None
         self.id = id
         self.ref = None
         # ref version is used to discredit a previous ref
@@ -177,7 +176,7 @@ class NodeField(GzippedDictField):
         self.ref_func = kwargs.pop('ref_func', None)
         self.ref_version = kwargs.pop('ref_version', None)
         self.wrapper = kwargs.pop('wrapper', None)
-        self.id_func = kwargs.pop('id_func', lambda x: b64encode(uuid4().bytes))
+        self.id_func = kwargs.pop('id_func', lambda: b64encode(uuid4().bytes))
         super(NodeField, self).__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
@@ -192,6 +191,7 @@ class NodeField(GzippedDictField):
         nodestore.delete(value.id)
 
     def to_python(self, value):
+        node_id = None
         # If value is a string, we assume this is a value we've loaded from the
         # database, it should be decompressed/unpickled, and we should end up
         # with a dict.
@@ -217,15 +217,11 @@ class NodeField(GzippedDictField):
                 # it, and we want to *save* the rest of the body to nodestore.
                 if value == {}:
                     value = None
-            else:
-                node_id = self.id_func(value)
         else:
             # Either we were passed a null/empty value in the constructor, or
-            # we failed to decode the value from the database. In this case,
-            # generate an id, and set the data to an empty dict so that we don't
-            # try and load anything from nodestore.
-            value = {}
-            node_id = self.id_func(value)
+            # we failed to decode the value from the database so we have no id
+            # to load data from, and no data to save.
+            value = None
 
         if value is not None and self.wrapper is not None:
             value = self.wrapper(value)
@@ -242,6 +238,9 @@ class NodeField(GzippedDictField):
         if not value and self.null:
             # save ourselves some storage
             return None
+
+        if value.id is None:
+            value.id = self.id_func()
 
         value.save()
         return compress(pickle.dumps({'node_id': value.id}))
