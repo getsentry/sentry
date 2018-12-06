@@ -255,9 +255,14 @@ class EventsChart extends React.Component {
                 toolBox={ToolBox(
                   {},
                   {
-                    dataZoom: {},
+                    dataZoom: {
+                      title: {
+                        zoom: '',
+                        back: '',
+                      },
+                    },
                     restore: {
-                      title: 'Restore',
+                      title: '',
                     },
                   }
                 )}
