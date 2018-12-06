@@ -68,7 +68,7 @@ class RepositoryRow extends React.Component {
     let isActive = this.isActive;
 
     return (
-      <Access access={['org:write']}>
+      <Access access={['org:admin']}>
         {({hasAccess}) => (
           <StyledRow status={repository.status}>
             <Box p={2} flex="1">
