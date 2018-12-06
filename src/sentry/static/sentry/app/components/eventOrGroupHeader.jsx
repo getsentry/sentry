@@ -79,7 +79,9 @@ class EventOrGroupHeader extends React.Component {
         pathname: `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent
           ? `events/${data.id}/`
           : ''}`,
-        search: `${this.props.query ? `?query=${this.props.query}` : ''}`,
+        search: `${this.props.query
+          ? `?query=${window.encodeURIComponent(this.props.query)}`
+          : ''}`,
       };
       Wrapper = ProjectLink;
     } else {
