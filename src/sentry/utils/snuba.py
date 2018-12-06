@@ -4,6 +4,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
+import os
 import pytz
 import re
 import six
@@ -27,7 +28,9 @@ MAX_HASHES = 5000
 # Global Snuba request option override dictionary. Only intended
 # to be used with the `options_override` contextmanager below.
 # NOT THREAD SAFE!
-OVERRIDE_OPTIONS = {}
+OVERRIDE_OPTIONS = {
+    'consistent': os.environ.get('SENTRY_SNUBA_CONSISTENT', 'false').lower() in ('true', '1')
+}
 
 SENTRY_SNUBA_MAP = {
     # general
