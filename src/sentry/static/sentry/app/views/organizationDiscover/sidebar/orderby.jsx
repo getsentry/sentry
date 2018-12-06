@@ -5,8 +5,8 @@ import {Flex} from 'grid-emotion';
 
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
-import {SidebarLabel} from '../styles';
 import space from 'app/styles/space';
+import {SidebarLabel} from '../styles';
 
 export default class Orderby extends React.Component {
   static propTypes = {
