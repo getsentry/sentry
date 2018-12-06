@@ -6,6 +6,7 @@ import {Flex} from 'grid-emotion';
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 import {SidebarLabel} from '../styles';
+import space from 'app/styles/space';
 
 export default class Orderby extends React.Component {
   static propTypes = {
@@ -83,7 +84,7 @@ export default class Orderby extends React.Component {
 
 const OrderbyField = styled('div')`
   width: calc(100% / 3 * 2);
-  padding-right: 8px;
+  padding-right: ${space(1)};
 `;
 
 const OrderbyValue = styled('div')`
