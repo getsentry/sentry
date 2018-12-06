@@ -19,13 +19,11 @@ export default function getConfiguration({project}) {
           path: `${pathPrefix}/teams/`,
           title: t('Project Teams'),
           description: t('Manage team access for a project'),
-          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/alerts/`,
           title: t('Alerts'),
           description: t('Manage alerts and alert rules for a project'),
-          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/tags/`,
@@ -36,7 +34,6 @@ export default function getConfiguration({project}) {
           path: `${pathPrefix}/environments/`,
           title: t('Environments'),
           description: t('Manage environments in a project'),
-          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/ownership/`,
@@ -47,7 +44,6 @@ export default function getConfiguration({project}) {
         {
           path: `${pathPrefix}/data-forwarding/`,
           title: t('Data Forwarding'),
-          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/saved-searches/`,
@@ -57,7 +53,6 @@ export default function getConfiguration({project}) {
         {
           path: `${pathPrefix}/debug-symbols/`,
           title: t('Debug Files'),
-          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/processing-issues/`,
@@ -67,7 +62,6 @@ export default function getConfiguration({project}) {
             if (project.processingIssues <= 0) return null;
             return project.processingIssues > 99 ? '99+' : project.processingIssues;
           },
-          show: ({access}) => access.has('project:write'),
         },
         {
           path: `${pathPrefix}/filters/`,

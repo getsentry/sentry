@@ -55,5 +55,16 @@ describe('ResolutionBox', function() {
       );
       expect(wrapper).toMatchSnapshot();
     });
+    it('handles inCommit', function() {
+      let wrapper = shallow(
+        <ResolutionBox
+          statusDetails={{
+            inCommit: TestStubs.Commit(),
+          }}
+          params={{orgId: 'org', projectId: 'project'}}
+        />
+      );
+      expect(wrapper).toMatchSnapshot();
+    });
   });
 });

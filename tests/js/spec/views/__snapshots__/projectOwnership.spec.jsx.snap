@@ -8,6 +8,13 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
     <SettingsPageHeading
       title="Issue Owners"
     />
+    <PermissionAlert
+      access={
+        Array [
+          "project:write",
+        ]
+      }
+    />
     <Panel>
       <PanelHeader>
         Ownership Rules

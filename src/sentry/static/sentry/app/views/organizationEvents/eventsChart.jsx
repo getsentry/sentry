@@ -4,12 +4,13 @@ import React from 'react';
 import moment from 'moment';
 
 import {t} from 'app/locale';
-import AreaChart from 'app/components/charts/areaChart';
+import LineChart from 'app/components/charts/lineChart';
+import EventsContext from 'app/views/organizationEvents/utils/eventsContext';
+import EventsRequest from 'app/views/organizationEvents/utils/eventsRequest';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
 
-import {EventsRequestWithParams} from './utils/eventsRequest';
-import EventsContext from './utils/eventsContext';
+const DEFAULT_GET_CATEGORY = () => t('Events');
 
 class EventsChart extends React.PureComponent {
   static propTypes = {
@@ -18,10 +19,6 @@ class EventsChart extends React.PureComponent {
     period: PropTypes.string,
     utc: PropTypes.bool,
   };
-
-  constructor(props) {
-    super(props);
-  }
 
   handleDataZoom = (evt, chart) => {
     const model = chart.getModel();
@@ -89,21 +86,24 @@ class EventsChart extends React.PureComponent {
 
     return (
       <div>
-        <EventsRequestWithParams
+        <EventsRequest
           {...this.props}
           interval={interval}
           showLoading
           query={(location.query && location.query.query) || ''}
-          getCategory={() => t('Events')}
+          getCategory={DEFAULT_GET_CATEGORY}
           includePrevious={!!period}
         >
           {({timeseriesData, previousTimeseriesData}) => {
             return (
-              <AreaChart
+              <LineChart
                 isGroupedByDate
                 useUtc={utc}
                 interval={interval === '1h' ? 'hour' : 'day'}
                 series={timeseriesData}
+                seriesOptions={{
+                  showSymbol: true,
+                }}
                 previousPeriod={previousTimeseriesData}
                 grid={{
                   left: '18px',
@@ -113,7 +113,7 @@ class EventsChart extends React.PureComponent {
               />
             );
           }}
-        </EventsRequestWithParams>
+        </EventsRequest>
       </div>
     );
   }
@@ -121,7 +121,7 @@ class EventsChart extends React.PureComponent {
 
 const EventsChartContainer = withRouter(
   withApi(
-    class EventsChartContainer extends React.Component {
+    class EventsChartWithParams extends React.Component {
       render() {
         return (
           <EventsContext.Consumer>

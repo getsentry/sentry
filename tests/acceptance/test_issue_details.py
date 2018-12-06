@@ -42,7 +42,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.entries')
+        self.wait_until_loaded()
         self.browser.snapshot('issue details python')
 
     def test_cocoa_event(self):
@@ -53,8 +53,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.entries')
-        self.browser.wait_until('[data-test-id="loaded-device-name"]')
+        self.wait_until_loaded()
         self.browser.snapshot('issue details cocoa')
 
     def test_unity_event(self):
@@ -66,8 +65,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.entries')
-        self.browser.wait_until('[data-test-id="loaded-device-name"]')
+        self.wait_until_loaded()
         self.browser.snapshot('issue details unity')
 
     def test_aspnetcore_event(self):
@@ -79,8 +77,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.entries')
-        self.browser.wait_until('[data-test-id="loaded-device-name"]')
+        self.wait_until_loaded()
         self.browser.snapshot('issue details aspnetcore')
 
     def test_javascript_specific_event(self):
@@ -92,8 +89,7 @@ class IssueDetailsTest(AcceptanceTestCase):
             u'/{}/{}/issues/{}/events/{}/'.format(self.org.slug,
                                                   self.project.slug, event.group.id, event.id)
         )
-        self.browser.wait_until('.event-details-container')
-        self.browser.wait_until_not('.loading-indicator')
+        self.wait_until_loaded()
         self.browser.snapshot('issue details javascript - event details')
 
     def test_rust_event(self):
@@ -106,7 +102,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.entries')
+        self.wait_until_loaded()
         self.browser.snapshot('issue details rust')
 
     def test_cordova_event(self):
@@ -117,8 +113,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.entries')
-        self.browser.wait_until('[data-test-id="loaded-device-name"]')
+        self.wait_until_loaded()
         self.browser.snapshot('issue details cordova')
 
     def test_stripped_event(self):
@@ -129,7 +124,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.entries')
+        self.wait_until_loaded()
         self.browser.snapshot('issue details pii stripped')
 
     def test_empty_exception(self):
@@ -140,7 +135,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.entries')
+        self.wait_until_loaded()
         self.browser.snapshot('issue details empty exception')
 
     def test_empty_stacktrace(self):
@@ -151,8 +146,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.entries')
-        self.browser.wait_until('[data-test-id="linked-issues"]')
+        self.wait_until_loaded()
         self.browser.snapshot('issue details empty stacktrace')
 
     def test_invalid_interfaces(self):
@@ -163,7 +157,7 @@ class IssueDetailsTest(AcceptanceTestCase):
         self.browser.get(
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
-        self.browser.wait_until('.entries')
+        self.wait_until_loaded()
         self.browser.click('.errors-toggle')
         self.browser.wait_until('.entries > .errors ul')
         self.browser.snapshot('issue details invalid interfaces')
@@ -178,3 +172,9 @@ class IssueDetailsTest(AcceptanceTestCase):
         )
         self.browser.wait_until('.activity-item')
         self.browser.snapshot('issue activity python')
+
+    def wait_until_loaded(self):
+        self.browser.wait_until('.entries')
+        self.browser.wait_until('[data-test-id="linked-issues"]')
+        self.browser.wait_until('[data-test-id="loaded-device-name"]')
+        self.browser.wait_until_not('.loading-indicator')

@@ -8,6 +8,8 @@ import styled from 'react-emotion';
 import {DEFAULT_STATS_PERIOD, DEFAULT_USE_UTC} from 'app/constants';
 import {defined} from 'app/utils';
 import {getLocalDateObject, getUtcDateString} from 'app/utils/dates';
+import {t} from 'app/locale';
+import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import Header from 'app/components/organizations/header';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
@@ -17,8 +19,11 @@ import MultipleProjectSelector from 'app/components/organizations/multipleProjec
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import space from 'app/styles/space';
+import {updateProjects} from 'app/actionCreators/globalSelection';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
+import SearchBar from './searchBar';
 import {getParams} from './utils/getParams';
 import EventsContext from './utils/eventsContext';
 
@@ -59,7 +64,7 @@ class OrganizationEventsContainer extends React.Component {
   static getStateFromRouter(props) {
     const {query} = props.router.location;
     const hasAbsolute = !!query.start && !!query.end;
-    let project = [];
+    let project = props.selection.projects;
     let environment = query.environment || [];
 
     if (defined(query.project) && Array.isArray(query.project)) {
@@ -115,6 +120,10 @@ class OrganizationEventsContainer extends React.Component {
     this.state = {};
   }
 
+  componentDidMount() {
+    this.handleUpdateProjects();
+  }
+
   updateParams = obj => {
     const {router} = this.props;
     // Reset cursor when changing parameters
@@ -150,6 +159,7 @@ class OrganizationEventsContainer extends React.Component {
     this.setState({
       project: projects,
     });
+    updateProjects(projects);
   };
 
   handleChangeEnvironments = environments => {
@@ -180,6 +190,17 @@ class OrganizationEventsContainer extends React.Component {
   handleUpdateEnvironmments = () => this.handleUpdate('environment');
 
   handleUpdateProjects = () => this.handleUpdate('project');
+
+  handleSearch = query => {
+    let {router, location} = this.props;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...(location.query || {}),
+        query,
+      },
+    });
+  };
 
   render() {
     const {organization, children} = this.props;
@@ -227,14 +248,30 @@ class OrganizationEventsContainer extends React.Component {
                 />
               </HeaderItemPosition>
             </Header>
-            <Body>{children}</Body>
+            <Body>
+              <Flex align="center" justify="space-between" mb={2}>
+                <HeaderTitle>
+                  {t('Events')} <BetaTag />
+                </HeaderTitle>
+                <StyledSearchBar
+                  organization={organization}
+                  query={(location.query && location.query.query) || ''}
+                  placeholder={t('Search for events, users, tags, and everything else.')}
+                  onSearch={this.handleSearch}
+                />
+              </Flex>
+
+              {children}
+            </Body>
           </OrganizationEventsContent>
         </EventsContext.Provider>
       </Feature>
     );
   }
 }
-export default withRouter(withOrganization(OrganizationEventsContainer));
+export default withRouter(
+  withOrganization(withGlobalSelection(OrganizationEventsContainer))
+);
 export {OrganizationEventsContainer};
 
 const OrganizationEventsContent = styled(Flex)`
@@ -249,4 +286,17 @@ const Body = styled('div')`
   flex-direction: column;
   flex: 1;
   padding: ${space(2)} ${space(4)} ${space(3)};
+`;
+
+const HeaderTitle = styled('h4')`
+  flex: 1;
+  font-size: ${p => p.theme.headerFontSize};
+  line-height: ${p => p.theme.headerFontSize};
+  font-weight: normal;
+  color: ${p => p.theme.gray4};
+  margin: 0;
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex: 1;
 `;

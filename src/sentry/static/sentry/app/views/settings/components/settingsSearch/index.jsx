@@ -43,7 +43,11 @@ class SettingsSearch extends React.Component {
   }
 }
 
-export default SettingsSearch;
+// This is so we can use this as a selector for emotion
+const StyledSettingsSearch = styled(SettingsSearch)``;
+
+export default StyledSettingsSearch;
+export {SettingsSearch};
 
 const SearchInputWrapper = styled.div`
   position: relative;

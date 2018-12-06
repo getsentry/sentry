@@ -9,6 +9,8 @@ from contextlib import contextmanager
 
 import pytest
 
+from six.moves import xrange
+
 try:
     from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition
     from sentry.eventstream.kafka.consumer import SynchronizedConsumer
@@ -534,6 +536,7 @@ def collect_messages_recieved(count):
 
 
 @requires_kafka
+@pytest.mark.xfail(reason='assignment during rebalance requires partition rollback to last committed offset', run=False)
 def test_consumer_rebalance_from_uncommitted_offset():
     consumer_group = 'consumer-{}'.format(uuid.uuid1().hex)
     synchronize_commit_group = 'consumer-{}'.format(uuid.uuid1().hex)

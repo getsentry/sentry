@@ -1,16 +1,16 @@
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import SentryTypes from 'app/sentryTypes';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
+import SentryTypes from 'app/sentryTypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const CodeBlock = styled.pre`
   word-break: break-all;
@@ -41,6 +41,7 @@ class ProjectOwnership extends AsyncView {
     return (
       <div>
         <SettingsPageHeader title={t('Issue Owners')} />
+        <PermissionAlert />
         <Panel>
           <PanelHeader>{t('Ownership Rules')}</PanelHeader>
           <PanelBody disablePadding={false}>

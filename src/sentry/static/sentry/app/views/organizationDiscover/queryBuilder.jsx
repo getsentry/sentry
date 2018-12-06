@@ -220,18 +220,18 @@ export default function createQueryBuilder(initial = {}, organization) {
         ...originalQuery,
         groupby: ['time'],
         rollup: 60 * 60 * 24,
-        orderby: 'time',
+        orderby: '-time',
         limit: 1000,
       };
     }
 
-    // If there are no aggregations, always ensure we fetch event ID and
-    // project ID so we can display the link to event
+    // If id or issue.id is present in query fields, always fetch the project.id
+    // so we can generate links
     if (type === 'baseQuery') {
-      return !originalQuery.aggregations.length && originalQuery.fields.length
+      return originalQuery.fields.some(field => field === 'id' || field === 'issue.id')
         ? {
             ...originalQuery,
-            fields: uniq([...originalQuery.fields, 'id', 'project.id']),
+            fields: uniq([...originalQuery.fields, 'project.id']),
           }
         : originalQuery;
     }

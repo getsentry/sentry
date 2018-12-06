@@ -11,26 +11,9 @@ from sentry.models import (
 )
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json
+from .testutils import EXAMPLE_PRIVATE_KEY
 
 import responses
-
-PRIVATE_KEY = '''
------BEGIN RSA PRIVATE KEY-----
-MIICWwIBAAKBgQC1cd9t8sA03awggLiX2gjZxyvOVUPJksLly1E662tttTeR3Wm9
-eo6onNeI8HRD+O4wubUp4h4Chc7DtLDmFEPhUZ8Qkwztiifm99Xo3s0nUq4Pygp5
-AU09KXTEPbzHLh1dnXLcxVLmGDE4drh0NWmYsd/Zp7XNIZq2TRQQ3NTdVQIDAQAB
-AoGAFwMyS0eWiR30TssEnn3Q0Y4pSCoYRuCOR4bZ7pcdMPTi72UdnCKHJWt/Cqc0
-l8piq1tiVsWO+NLvvnKUXRoE4cAyrGrpf1F0uP5zYW71SQALc9wwsjDzuj7BZEuK
-fg35JSceLHWE1WtzPDX5Xg20YPnMrA/xe/RwuPjuBH0wSqECQQDizzmKdKCq0ejy
-3OxEto5knqpSEgRcOk0HDsdgjwkwiZJOj5ECV2FKpNHuu2thGy/aDJyLlmUso8j0
-OpvLAzOvAkEAzMwAgGexTxKm8hy3ilvVn9EvhSKjaIakqY4ONK9LZ4zMiDHI0H6C
-FXlwWX7CJM0YVFMubj8SB8rnIuvFDEBMOwJABHtRyMGbNyTktH/XD1iIIcbc2LhQ
-a74fLYeGOws4hEQDpxfBJsmxO3dcSppbedS+slFTepKjNymZW/IYh/9tMwJAEL5E
-9DqGBn7x4y1x2//yESTbC7lvPqZzY+FXS/tg4NBkEGZxkoolPHg3NTnlyXhzGsHK
-M/04DicKipJYA85l7QJAJ3u67qZXecM/oWTtJToBDuyKGHfdY1564+RbyDEjJJRb
-vz4O/8FQQ1sGjdEBMMrRBCHEG8o3/XDTrB97t45TeA==
------END RSA PRIVATE KEY-----
-'''
 
 
 class JiraServerIntegrationTest(IntegrationTestCase):
@@ -68,7 +51,7 @@ class JiraServerIntegrationTest(IntegrationTestCase):
             'url': 'https://jira.example.com/',
             'verify_ssl': False,
             'consumer_key': 'sentry-bot',
-            'private_key': PRIVATE_KEY
+            'private_key': EXAMPLE_PRIVATE_KEY
         }
         resp = self.client.post(self.setup_path, data=data)
         assert resp.status_code == 200
@@ -93,7 +76,7 @@ class JiraServerIntegrationTest(IntegrationTestCase):
             'url': 'https://jira.example.com/',
             'verify_ssl': False,
             'consumer_key': 'sentry-bot',
-            'private_key': PRIVATE_KEY
+            'private_key': EXAMPLE_PRIVATE_KEY
         }
         resp = self.client.post(self.setup_path, data=data)
         assert resp.status_code == 302
@@ -128,7 +111,7 @@ class JiraServerIntegrationTest(IntegrationTestCase):
             'url': 'https://jira.example.com/',
             'verify_ssl': False,
             'consumer_key': 'sentry-bot',
-            'private_key': PRIVATE_KEY
+            'private_key': EXAMPLE_PRIVATE_KEY
         }
         resp = self.client.post(self.setup_path, data=data)
         assert resp.status_code == 302
@@ -153,7 +136,7 @@ class JiraServerIntegrationTest(IntegrationTestCase):
             'url': 'https://jira.example.com/',
             'verify_ssl': False,
             'consumer_key': 'sentry-bot',
-            'private_key': PRIVATE_KEY
+            'private_key': EXAMPLE_PRIVATE_KEY
         }
         resp = self.client.post(self.setup_path, data=data)
         assert resp.status_code == 302
@@ -210,6 +193,7 @@ class JiraServerIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get()
         assert integration.name == 'sentry-bot'
+        assert integration.metadata['domain_name'] == 'jira.example.com'
         assert integration.metadata['base_url'] == 'https://jira.example.com'
         assert integration.metadata['verify_ssl'] is False
         assert integration.metadata['webhook_secret']
@@ -228,7 +212,7 @@ class JiraServerIntegrationTest(IntegrationTestCase):
         assert identity.data['consumer_key'] == 'sentry-bot'
         assert identity.data['access_token'] == 'valid-token'
         assert identity.data['access_token_secret'] == 'valid-secret'
-        assert identity.data['private_key'] == PRIVATE_KEY
+        assert identity.data['private_key'] == EXAMPLE_PRIVATE_KEY
 
     @responses.activate
     def test_setup_create_webhook(self):

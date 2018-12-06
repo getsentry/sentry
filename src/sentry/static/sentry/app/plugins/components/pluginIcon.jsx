@@ -15,6 +15,7 @@ import gitlab from 'app/../images/integrations/gitlab-logo.png';
 import heroku from 'app/../images/integrations/heroku-logo.png';
 import hipchat from 'app/../images/integrations/hipchat-logo.png';
 import jira from 'app/../images/integrations/jira-logo.png';
+import jiraserver from 'app/../images/integrations/jira-server-logo.png';
 import lighthouse from 'app/../images/integrations/lighthouse-logo.png';
 import opsgenie from 'app/../images/integrations/opsgenie-logo.png';
 import pagerduty from 'app/../images/integrations/pagerduty-logo.png';
@@ -56,6 +57,7 @@ export const ICON_PATHS = {
   jira,
   'jira-atlassian-connect': jira,
   'jira-ac': jira,
+  jira_server: jiraserver,
   lighthouse,
   opsgenie,
   pagerduty,

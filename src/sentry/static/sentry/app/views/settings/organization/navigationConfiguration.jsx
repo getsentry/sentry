@@ -62,13 +62,14 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/repos/`,
         title: t('Repositories'),
-        show: ({access}) => access.has('org:write'),
         description: t('Manage repositories connected to the organization'),
       },
       {
         path: `${pathPrefix}/integrations/`,
         title: t('Integrations'),
-        description: t('Manage integrations for an organization'),
+        description: t(
+          'Manage organization-level integrations, including: Slack, Github, Bitbucket, Jira, and Azure DevOps'
+        ),
       },
       {
         path: `${pathPrefix}/developer-settings/`,
