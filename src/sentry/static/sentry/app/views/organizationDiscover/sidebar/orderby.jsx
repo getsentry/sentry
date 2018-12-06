@@ -29,7 +29,7 @@ export default class Orderby extends React.Component {
 
   /**
    * @param {Object} value Object containing orderby information
-   * @returns {String} value
+   * @returns {String}
    */
   getExternal(value) {
     return `${value.direction === 'desc' ? '-' : ''}${value.field}`;
@@ -37,7 +37,7 @@ export default class Orderby extends React.Component {
 
   /**
    * @param {String} value String containing orderby information
-   * @returns {Object} value
+   * @returns {Object}
    */
   getInternal(value) {
     const direction = value.startsWith('-') ? 'desc' : 'asc';
