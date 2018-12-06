@@ -1,8 +1,9 @@
+import {mount} from 'enzyme';
 import React from 'react';
 
 import {EventsChart} from 'app/views/organizationEvents/eventsChart';
 import {getLocalDateObject} from 'app/utils/dates';
-import {mount} from 'enzyme';
+import {chart, doZoom, mockZoomRange} from '../../../helpers/charts';
 
 jest.mock('app/views/organizationEvents/utils/eventsRequest', () => jest.fn(() => null));
 
@@ -11,52 +12,6 @@ describe('EventsChart', function() {
   let org = TestStubs.Organization();
   let updateParams = jest.fn();
   let render = jest.spyOn(EventsChart.prototype, 'render');
-  let data = [
-    [1543276800000, 0],
-    [1543363200000, 0],
-    [1543449600000, 36],
-    [1543536000000, 40],
-    [1543622400000, 0],
-    [1543708800000, 17],
-    [1543795200000, 104],
-    [1543881600000, 13],
-  ];
-  let model = {
-    xAxis: [
-      {
-        rangeStart: 2,
-        rangeEnd: 5,
-      },
-    ],
-    series: [
-      {
-        data,
-      },
-    ],
-  };
-  let chart = {
-    getModel: jest.fn(() => ({option: model})),
-  };
-
-  // eslint-disable-next-line
-  const doZoom = (wrapper, chart = chart) => {
-    wrapper.instance().handleDataZoom({}, chart);
-    wrapper.instance().handleChartFinished();
-  };
-
-  const mockZoomRange = (rangeStart, rangeEnd) => {
-    chart.getModel.mockImplementation(() => ({
-      option: {
-        ...model,
-        xAxis: [
-          {
-            rangeStart,
-            rangeEnd,
-          },
-        ],
-      },
-    }));
-  };
 
   beforeEach(function() {
     render.mockClear();
