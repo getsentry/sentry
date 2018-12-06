@@ -94,6 +94,7 @@ class OrganizationEventsContainer extends React.Component {
 
       // params from URL will be a string
       utc: typeof query.utc !== 'undefined' ? query.utc === 'true' : DEFAULT_USE_UTC,
+      zoom: typeof query.zoom !== 'undefined' ? query.zoom === '1' : null,
     };
   }
 
@@ -177,13 +178,14 @@ class OrganizationEventsContainer extends React.Component {
     let newValueObj = {
       ...(defined(period) ? {period} : {start, end}),
       utc,
+      zoom: null,
     };
 
     this.updateParams(newValueObj);
   };
 
   handleUpdate = type => {
-    let newValueObj = {[type]: this.state[type]};
+    let newValueObj = {[type]: this.state[type], zoom: null};
     this.updateParams(newValueObj);
   };
 
@@ -198,6 +200,7 @@ class OrganizationEventsContainer extends React.Component {
       query: {
         ...(location.query || {}),
         query,
+        zoom: null,
       },
     });
   };
