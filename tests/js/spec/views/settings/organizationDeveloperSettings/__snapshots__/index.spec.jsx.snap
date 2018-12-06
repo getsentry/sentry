@@ -527,6 +527,7 @@ exports[`Organization Developer Settings when Apps exist displays all Apps owned
                                                         ],
                                                         "getColorPalette": [Function],
                                                         "previousPeriod": "#BDB4C7",
+                                                        "symbolSize": 10,
                                                       },
                                                       "diff": Object {
                                                         "added": "#d8f0e4",
@@ -775,6 +776,7 @@ exports[`Organization Developer Settings when Apps exist displays all Apps owned
                                                                 ],
                                                                 "getColorPalette": [Function],
                                                                 "previousPeriod": "#BDB4C7",
+                                                                "symbolSize": 10,
                                                               },
                                                               "diff": Object {
                                                                 "added": "#d8f0e4",
