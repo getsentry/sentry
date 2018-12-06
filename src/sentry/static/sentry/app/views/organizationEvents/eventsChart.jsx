@@ -262,7 +262,7 @@ class EventsChart extends React.Component {
                       },
                     },
                     restore: {
-                      title: '',
+                      title: ' ',
                     },
                   }
                 )}
