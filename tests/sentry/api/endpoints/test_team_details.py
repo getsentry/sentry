@@ -77,7 +77,7 @@ class TeamDeleteTest(APITestCase):
 
     def assert_team_not_deleted(self, team_id, mock_delete_team):
         """Checks team status, membership in DeletedTeams table, org
-           audit log, and to see that delete function has been called"""
+           audit log, and to see that delete function has not been called"""
 
         team = Team.objects.get(id=team_id)
 
