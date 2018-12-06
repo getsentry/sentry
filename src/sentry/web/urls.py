@@ -227,7 +227,7 @@ urlpatterns += patterns(
         RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
         ),
     url(
-        r'^account/settings/2fa/$',
+        r'^account/settings/2fa/',
         RedirectView.as_view(pattern_name="sentry-account-settings-security", permanent=False),
     ),
     url(
