@@ -4,9 +4,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {COLUMNS} from 'app/views/organizationDiscover/data';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
 import {fetchEventFieldValues} from 'app/actionCreators/events';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
+import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import withApi from 'app/utils/withApi';
@@ -37,11 +39,14 @@ class SearchBar extends React.PureComponent {
 
   componentDidMount() {
     let {api, organization} = this.props;
-    fetchOrganizationTags(api, organization.slug).then(results => {
-      this.setState({
-        tags: this.getAllTags(results.map(({key}) => key)),
-      });
-    });
+    fetchOrganizationTags(api, organization.slug).then(
+      results => {
+        this.setState({
+          tags: this.getAllTags(results.map(({key}) => key)),
+        });
+      },
+      () => addErrorMessage(t('There was a problem fetching tags'))
+    );
   }
 
   /**
