@@ -68,10 +68,19 @@ metric.measure = function metricMeasure({name, start, end, data, noCleanup} = {}
     throw new Error('Invalid arguments provided to `metric.measure`');
   }
 
+  let endMarkName = end;
+
   // Can't destructure from performance
   const {performance} = window;
 
-  performance.measure(name, start, end);
+  // NOTE: Edge REQUIRES an end mark if it is given a start mark
+  // If we don't have an end mark, create one now.
+  if (!end) {
+    endMarkName = `${start}-end`;
+    performance.mark(endMarkName);
+  }
+
+  performance.measure(name, start, endMarkName);
 
   // Retrieve measurement entries
   performance
@@ -82,5 +91,6 @@ metric.measure = function metricMeasure({name, start, end, data, noCleanup} = {}
   if (!noCleanup) {
     performance.clearMeasures(name);
     performance.clearMarks(start);
+    performance.clearMarks(endMarkName);
   }
 };
