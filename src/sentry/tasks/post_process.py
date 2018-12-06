@@ -87,8 +87,8 @@ def check_correct_event_sequencing(event):
 
     # if the key exists, things are executing in the right order, otherwise
     # we're ahead of the stream
-    return redis_clusters.get(cluster_key).get(
-        "_hack_post_process_sampled_events:%s" % event_id) is not None
+    return redis_clusters.get(cluster_key).delete(
+        "_hack_post_process_sampled_events:%s" % event_id) > 0
 
 
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
