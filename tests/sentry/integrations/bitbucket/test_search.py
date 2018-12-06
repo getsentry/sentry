@@ -16,7 +16,7 @@ class BitbucketSearchEndpointTest(APITestCase):
         self.integration = Integration.objects.create(
             provider='bitbucket',
             external_id=self.subject,
-            name='Sample BB',
+            name='meredithanya',
             metadata={
                 'base_url': self.base_url,
                 'shared_secret': self.shared_secret,
@@ -36,7 +36,7 @@ class BitbucketSearchEndpointTest(APITestCase):
     def test_search_issues(self):
         responses.add(
             responses.GET,
-            'https://api.bitbucket.org/2.0/repositories/meredithanya/issues',
+            'https://api.bitbucket.org/2.0/repositories/meredithanya/apples/issues',
             json={
                 'values': [
                     {'id': '123', 'title': 'Issue Title 123'},
@@ -49,7 +49,7 @@ class BitbucketSearchEndpointTest(APITestCase):
             data={
                 'field': 'externalIssue',
                 'query': 'issue',
-                'repo': 'meredithanya'
+                'repo': 'meredithanya/apples'
             }
         )
 
@@ -63,7 +63,7 @@ class BitbucketSearchEndpointTest(APITestCase):
     def test_search_repositories(self):
         responses.add(
             responses.GET,
-            'https://api.bitbucket.org/2.0/repositories/meredithanya/issues',
+            'https://api.bitbucket.org/2.0/repositories/meredithanya',
             json={
                 'values': [
                     {'full_name': 'meredithanya/apples'}
@@ -87,7 +87,7 @@ class BitbucketSearchEndpointTest(APITestCase):
     def test_search_repositories_no_issue_tracker(self):
         responses.add(
             responses.GET,
-            'https://api.bitbucket.org/2.0/repositories/meredithanya/issues',
+            'https://api.bitbucket.org/2.0/repositories/meredithanya/apples/issues',
             json={
                 'type': 'error',
                 'error': {'message': 'Repository has no issue tracker.'}
@@ -99,7 +99,8 @@ class BitbucketSearchEndpointTest(APITestCase):
             data={
                 'field': 'externalIssue',
                 'query': 'issue',
-                'repo': 'meredithanya'
+                'repo': 'meredithanya/apples'
             }
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 400
+        assert resp.content == '{"detail": "Bitbucket Repository has no issue tracker."}'

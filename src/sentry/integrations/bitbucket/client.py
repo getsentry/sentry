@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import datetime
 import jwt
-import six
+
 
 from unidiff import PatchSet
 
@@ -11,7 +11,6 @@ from six.moves.urllib.parse import urlparse
 from sentry.utils.http import absolute_uri
 from sentry.integrations.atlassian_connect import get_query_hash
 from sentry.integrations.client import ApiClient
-from sentry.integrations.exceptions import ApiError
 
 
 BITBUCKET_KEY = '%s.bitbucket' % urlparse(absolute_uri()).hostname
@@ -65,12 +64,7 @@ class BitbucketApiClient(ApiClient):
         headers = {
             'Authorization': 'JWT %s' % encoded_jwt
         }
-        try:
-            return self._request(method, path, data=data, params=params, headers=headers, **kwargs)
-        except ApiError as e:
-            if 'no issue tracker' in six.text_type(e):
-                pass  # TODO(lb): what do I actually do here?
-            raise e
+        return self._request(method, path, data=data, params=params, headers=headers, **kwargs)
 
     def get_issue(self, repo, issue_id):
         return self.get(BitbucketAPIPath.issue.format(
