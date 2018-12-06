@@ -70,8 +70,8 @@ export const doEventsRequest = (
   api,
   {
     organization,
-    projects,
-    environments,
+    project,
+    environment,
     period,
     start,
     end,
@@ -84,8 +84,8 @@ export const doEventsRequest = (
   const shouldDoublePeriod = includePrevious;
   const urlQuery = {
     interval,
-    project: projects,
-    environment: environments,
+    project,
+    environment,
     query,
   };
 

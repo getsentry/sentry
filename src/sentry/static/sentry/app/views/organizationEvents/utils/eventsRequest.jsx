@@ -12,7 +12,7 @@ const propNamesToIgnore = ['api', 'children', 'organizations', 'project', 'loadi
 const omitIgnoredProps = props =>
   omitBy(props, (value, key) => propNamesToIgnore.includes(key));
 
-class EventsRequest extends React.Component {
+class EventsRequest extends React.PureComponent {
   static propTypes = {
     /**
      * API client instance
@@ -24,12 +24,12 @@ class EventsRequest extends React.Component {
     /**
      * List of project ids to query
      */
-    projects: PropTypes.arrayOf(PropTypes.number),
+    project: PropTypes.arrayOf(PropTypes.number),
 
     /**
      * List of environments to query
      */
-    environments: PropTypes.arrayOf(PropTypes.string),
+    environment: PropTypes.arrayOf(PropTypes.string),
 
     /**
      * Relative time period for query.
