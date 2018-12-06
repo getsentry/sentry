@@ -64,10 +64,10 @@ class SnubaUtilTest(TestCase):
             )
 
     def test_override_options(self):
-        assert snuba.OVERRIDE_OPTIONS == {}
+        assert snuba.OVERRIDE_OPTIONS == {'consistent': False}
         with snuba.options_override({'foo': 1}):
-            assert snuba.OVERRIDE_OPTIONS == {'foo': 1}
+            assert snuba.OVERRIDE_OPTIONS == {'foo': 1, 'consistent': False}
             with snuba.options_override({'foo': 2}):
-                assert snuba.OVERRIDE_OPTIONS == {'foo': 2}
-            assert snuba.OVERRIDE_OPTIONS == {'foo': 1}
-        assert snuba.OVERRIDE_OPTIONS == {}
+                assert snuba.OVERRIDE_OPTIONS == {'foo': 2, 'consistent': False}
+            assert snuba.OVERRIDE_OPTIONS == {'foo': 1, 'consistent': False}
+        assert snuba.OVERRIDE_OPTIONS == {'consistent': False}
