@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
+import {analytics} from 'app/utils/analytics';
 import {openModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -72,7 +73,12 @@ class DeleteActions extends React.Component {
     </Feature>
   );
 
-  openDiscardModal = () => openModal(this.renderDiscardModal);
+  openDiscardModal = () => {
+    openModal(this.renderDiscardModal);
+    analytics('feature.discard_group.modal_opened', {
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+  };
 
   render() {
     return (
