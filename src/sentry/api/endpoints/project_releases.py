@@ -10,8 +10,8 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ListField
-from sentry.models import Activity, Environment, Release, ReleaseEnvironment
+from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.models import Activity, CommitFileChange, Environment, Release, ReleaseEnvironment
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.constants import VERSION_LENGTH
 from sentry.signals import release_created
@@ -21,14 +21,14 @@ class CommitPatchSetSerializer(serializers.Serializer):
     path = serializers.CharField(max_length=255)
     type = serializers.CharField(max_length=1)
 
+    def validate_type(self, attrs, source):
+        value = attrs[source]
+        if not CommitFileChange.is_valid_type(value):
+            raise serializers.ValidationError('Commit patch_set type %s is not supported.' % value)
+        return attrs
 
-class CommitSerializerWithPatchSet(serializers.Serializer):
-    id = serializers.CharField(max_length=64)
-    repository = serializers.CharField(max_length=64, required=False)
-    message = serializers.CharField(required=False)
-    author_name = serializers.CharField(max_length=128, required=False)
-    author_email = serializers.EmailField(max_length=75, required=False)
-    timestamp = serializers.DateTimeField(required=False)
+
+class CommitSerializerWithPatchSet(CommitSerializer):
     patch_set = ListField(child=CommitPatchSetSerializer(), required=False, allow_null=False)
 
 

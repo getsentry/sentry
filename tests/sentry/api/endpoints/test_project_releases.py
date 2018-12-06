@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
 
-from sentry.models import Environment, Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment
+from sentry.models import CommitAuthor, CommitFileChange, Environment, Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment, Repository
 from sentry.testutils import APITestCase
 
 
@@ -583,3 +583,145 @@ class ProjectReleaseCreateTest(APITestCase):
         assert len(rc_list) == 2
         for rc in rc_list:
             assert rc.organization_id
+
+
+class ProjectReleaseCreateCommitPatch(APITestCase):
+    def setUp(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        self.org = self.create_organization()
+        self.org.save()
+
+        team = self.create_team(organization=self.org)
+        self.project = self.create_project(name='foo', organization=self.org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=self.org)
+        self.login_as(user=user)
+
+        self.url = reverse(
+            'sentry-api-0-project-releases',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }
+        )
+
+    def assert_commit(self, commit, repo_id, key, author_id, message):
+        assert commit.organization_id == self.org.id
+        assert commit.repository_id == repo_id
+        assert commit.key == key
+        assert commit.author_id == author_id
+        assert commit.message == message
+
+    def assert_file_change(self, file_change, type, filename, commit_id):
+        assert file_change.type == type
+        assert file_change.filename == filename
+        assert file_change.commit_id == commit_id
+
+    def test_commits_with_patch_set(self):
+        response = self.client.post(
+            self.url,
+            data={
+                "version": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b",
+                "projects": [self.project.slug],
+                "commits": [
+                    {
+                        "patch_set": [{"path": "hello.py", "type": "M"}, {"path": "templates/hola.html", "type": "D"}],
+                        "repository": "laurynsentry/helloworld",
+                        "author_email": "lauryndbrown@gmail.com",
+                        "timestamp": "2018-11-29T18:50:28+03:00",
+                        "author_name": "Lauryn Brown",
+                        "message": "made changes to hello.",
+                        "id": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b"
+                    }, {
+                        "patch_set": [{"path": "templates/hello.html", "type": "M"}, {"path": "templates/goodbye.html", "type": "A"}],
+                        "repository": "laurynsentry/helloworld",
+                        "author_email": "lauryndbrown@gmail.com",
+                        "timestamp": "2018-11-30T22:51:14+03:00",
+                        "author_name": "Lauryn Brown",
+                        "message": "Changed release",
+                        "id": "be2fe070f6d1b8a572b67defc87af2582f9b0d78"
+                    }
+                ]
+            }
+        )
+
+        assert response.status_code == 201, (response.status_code, response.content)
+        assert response.data['version']
+
+        release = Release.objects.get(
+            organization_id=self.org.id,
+            version=response.data['version'],
+        )
+
+        repo = Repository.objects.get(
+            organization_id=self.org.id,
+            name='laurynsentry/helloworld',
+        )
+        assert repo.provider is None
+
+        rc_list = list(
+            ReleaseCommit.objects.filter(
+                release=release,
+            ).select_related('commit', 'commit__author')
+        )
+        assert len(rc_list) == 2
+        for rc in rc_list:
+            assert rc.organization_id
+
+        author = CommitAuthor.objects.get(
+            organization_id=self.org.id,
+            email='lauryndbrown@gmail.com'
+        )
+        assert author.name == 'Lauryn Brown'
+
+        commits = [rc.commit for rc in rc_list]
+        commits.sort(key=lambda c: c.date_added)
+
+        self.assert_commit(
+            commit=commits[0],
+            repo_id=repo.id,
+            key='2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b',
+            author_id=author.id,
+            message='made changes to hello.',
+        )
+
+        self.assert_commit(
+            commit=commits[1],
+            repo_id=repo.id,
+            key='be2fe070f6d1b8a572b67defc87af2582f9b0d78',
+            author_id=author.id,
+            message='Changed release',
+        )
+
+        file_changes = CommitFileChange.objects.filter(
+            organization_id=self.org.id
+        ).order_by('filename')
+
+        self.assert_file_change(file_changes[0], 'M', 'hello.py', commits[0].id)
+        self.assert_file_change(file_changes[1], 'A', 'templates/goodbye.html', commits[1].id)
+        self.assert_file_change(file_changes[2], 'M', 'templates/hello.html', commits[1].id)
+        self.assert_file_change(file_changes[3], 'D', 'templates/hola.html', commits[0].id)
+
+    def test_invalid_patch_type(self):
+        response = self.client.post(
+            self.url,
+            data={
+                "version": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b",
+                "projects": [self.project.slug],
+                "commits": [
+                    {
+                        "patch_set": [{"path": "hello.py", "type": "Z"}, {"path": "templates/hola.html", "type": "D"}],
+                        "repository": "laurynsentry/helloworld",
+                        "author_email": "lauryndbrown@gmail.com",
+                        "timestamp": "2018-11-29T18:50:28+03:00",
+                        "author_name": "Lauryn Brown",
+                        "message": "made changes to hello.",
+                        "id": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b"
+                    },
+                ]
+            }
+        )
+
+        assert response.status_code == 400
+        # TODO(lb): What happened to my ValidationError??? this is not as helpful
+        assert response.content == '{"commits": ["patch_set: Incorrect type. Expected value, but got null"]}'

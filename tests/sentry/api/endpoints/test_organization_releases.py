@@ -512,7 +512,7 @@ class OrganizationReleaseCreateTest(APITestCase):
                 "projects": [project.slug],
                 "commits": [
                     {
-                        "patch_set": [{"path": "hello.py", "type": "M"}],
+                        "patch_set": [{"path": "hello.py", "type": "M"}, {"path": "templates/hola.html", "type": "D"}],
                         "repository": "laurynsentry/helloworld",
                         "author_email": "lauryndbrown@gmail.com",
                         "timestamp": "2018-11-29T18:50:28+03:00",
@@ -520,7 +520,7 @@ class OrganizationReleaseCreateTest(APITestCase):
                         "message": "made changes to hello.",
                         "id": "2d1ab93fe4bb42db80890f01f8358fc9f8fbff3b"
                     }, {
-                        "patch_set": [{"path": "templates/hello.html", "type": "M"}],
+                        "patch_set": [{"path": "templates/hello.html", "type": "M"}, {"path": "templates/goodbye.html", "type": "A"}],
                         "repository": "laurynsentry/helloworld",
                         "author_email": "lauryndbrown@gmail.com",
                         "timestamp": "2018-11-30T22:51:14+03:00",
@@ -578,7 +578,7 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         file_changes = CommitFileChange.objects.filter(
             organization_id=org.id
-        )
+        ).order_by('filename')
 
         file_change = file_changes[0]
         assert file_change.type == 'M'
@@ -586,9 +586,19 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert file_change.commit_id == commits[0].id
 
         file_change = file_changes[1]
+        assert file_change.type == 'A'
+        assert file_change.filename == 'templates/goodbye.html'
+        assert file_change.commit_id == commits[1].id
+
+        file_change = file_changes[2]
         assert file_change.type == 'M'
         assert file_change.filename == 'templates/hello.html'
         assert file_change.commit_id == commits[1].id
+
+        file_change = file_changes[3]
+        assert file_change.type == 'D'
+        assert file_change.filename == 'templates/hola.html'
+        assert file_change.commit_id == commits[0].id
 
     @patch('sentry.tasks.commits.fetch_commits')
     def test_commits_from_provider(self, mock_fetch_commits):
