@@ -3175,19 +3175,6 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                 </Base>
               </PanelItem>
             </ProviderRow>
-            <SentryAppInstallations
-              applications={Array []}
-              installs={Array []}
-              orgId="org-slug"
-            >
-              <SideEffect(DocumentTitle)
-                title="Sentry"
-              >
-                <DocumentTitle
-                  title="Sentry"
-                />
-              </SideEffect(DocumentTitle)>
-            </SentryAppInstallations>
           </div>
         </PanelBody>
       </div>
@@ -5052,19 +5039,6 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                 </Base>
               </PanelItem>
             </ProviderRow>
-            <SentryAppInstallations
-              applications={Array []}
-              installs={Array []}
-              orgId="org-slug"
-            >
-              <SideEffect(DocumentTitle)
-                title="Sentry"
-              >
-                <DocumentTitle
-                  title="Sentry"
-                />
-              </SideEffect(DocumentTitle)>
-            </SentryAppInstallations>
           </div>
         </PanelBody>
       </div>

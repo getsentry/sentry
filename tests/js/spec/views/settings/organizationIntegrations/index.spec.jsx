@@ -55,11 +55,11 @@ describe('OrganizationIntegrations', function() {
         url: `/organizations/${org.slug}/repos/?status=unmigratable`,
         body: [],
       });
-      Client.addMockResponse({
+      const sentryAppsRequest = Client.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
       });
-      Client.addMockResponse({
+      const sentryInstallsRequest = Client.addMockResponse({
         url: `/organizations/${org.slug}/sentry-app-installations/`,
         body: [],
       });
@@ -68,6 +68,45 @@ describe('OrganizationIntegrations', function() {
         <OrganizationIntegrations organization={org} params={params} />,
         routerContext
       );
+
+      it('renders with internal-catchall', function() {
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/integrations/`,
+          body: [],
+        });
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/config/integrations/`,
+          body: {providers: [githubProvider, jiraProvider]},
+        });
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/plugins/`,
+          body: [],
+        });
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/repos/?status=unmigratable`,
+          body: [],
+        });
+        const appsRequest = Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [],
+        });
+        const installsRequest = Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-app-installations/`,
+          body: [],
+        });
+        const organization = {...org, features: ['internal-catchall']};
+        mount(
+          <OrganizationIntegrations organization={organization} params={params} />,
+          TestStubs.routerContext([{organization}])
+        );
+        expect(appsRequest).toHaveBeenCalled();
+        expect(installsRequest).toHaveBeenCalled();
+      });
+
+      it('Does`t hit sentry apps endpoints when internal-catchall isn`t present', function() {
+        expect(sentryAppsRequest).not.toHaveBeenCalled();
+        expect(sentryInstallsRequest).not.toHaveBeenCalled();
+      });
 
       it('Displays integration providers', function() {
         expect(wrapper).toMatchSnapshot();

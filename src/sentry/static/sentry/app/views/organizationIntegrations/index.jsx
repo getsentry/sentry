@@ -33,11 +33,16 @@ class OrganizationIntegrations extends AsyncComponent {
   getEndpoints() {
     let {orgId} = this.props.params;
     const query = {plugins: ['vsts', 'github', 'bitbucket']};
-
-    return [
+    let endpoints = [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integrations', `/organizations/${orgId}/integrations/`],
       ['plugins', `/organizations/${orgId}/plugins/`, {query}],
+    ];
+    if (!this.props.organization.features.includes('internal-catchall')) {
+      return endpoints;
+    }
+    return [
+      ...endpoints,
       ['applications', `/organizations/${orgId}/sentry-apps/`],
       ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
     ];
@@ -165,11 +170,13 @@ class OrganizationIntegrations extends AsyncComponent {
           </PanelHeader>
           <PanelBody>
             {providers}
-            <SentryAppInstallations
-              orgId={this.props.params.orgId}
-              installs={appInstalls}
-              applications={applications}
-            />
+            {applications && (
+              <SentryAppInstallations
+                orgId={this.props.params.orgId}
+                installs={appInstalls}
+                applications={applications}
+              />
+            )}
           </PanelBody>
         </Panel>
       </React.Fragment>
