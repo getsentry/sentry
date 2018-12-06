@@ -106,13 +106,11 @@ class OrganizationAuth extends AsyncView {
     );
 
     return (
-      <React.Fragment>
-        <OrganizationAuthList
-          activeProvider={activeProvider}
-          providerList={providerList}
-          onConfigure={this.handleConfigure}
-        />
-      </React.Fragment>
+      <OrganizationAuthList
+        activeProvider={activeProvider}
+        providerList={providerList}
+        onConfigure={this.handleConfigure}
+      />
     );
 
     /* For now this is in django
