@@ -156,15 +156,10 @@ class EventSerializer(Serializer):
         return results
 
     def serialize(self, obj, attrs, user):
-        errors = []
-        for error in obj.data.get('errors', []):
-            message = EventError.get_message(error)
-            error_result = {
-                'type': error['type'],
-                'message': message,
-                'data': {k: v for k, v in six.iteritems(error) if k != 'type'},
-            }
-            errors.append(error_result)
+        errors = [
+            EventError(error).get_api_context() for error
+            in get_path(obj.data, 'errors', filter=True, default=())
+        ]
 
         (message, message_meta) = self._get_legacy_message_with_meta(obj)
         (tags, tags_meta) = self._get_tags_with_meta(obj)

@@ -32,7 +32,6 @@ class EventSerializerTest(TestCase):
         assert len(result['errors']) == 1
         assert 'data' in result['errors'][0]
         assert result['errors'][0]['type'] == EventError.INVALID_DATA
-        assert u'ü' in result['errors'][0]['message']
         assert result['errors'][0]['data'] == {'name': u'ü'}
 
     def test_renamed_attributes(self):

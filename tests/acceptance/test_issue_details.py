@@ -158,6 +158,8 @@ class IssueDetailsTest(AcceptanceTestCase):
             u'/{}/{}/issues/{}/'.format(self.org.slug, self.project.slug, event.group.id)
         )
         self.wait_until_loaded()
+        self.browser.click('.errors-toggle')
+        self.browser.wait_until('.entries > .errors ul')
         self.browser.snapshot('issue details invalid interfaces')
 
     def test_activity_page(self):

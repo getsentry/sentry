@@ -174,6 +174,12 @@ export const Event = PropTypes.shape({
   user: PropTypes.object,
 });
 
+export const EventError = PropTypes.shape({
+  type: PropTypes.string.isRequired,
+  message: PropTypes.string.isRequired,
+  data: PropTypes.object,
+});
+
 export const Tag = PropTypes.shape({
   id: PropTypes.string.isRequired,
   key: PropTypes.string.isRequired,
