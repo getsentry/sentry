@@ -1,13 +1,14 @@
-import React from 'react';
-import PropTypes from 'prop-types';
 import {Link, browserHistory} from 'react-router';
+import PropTypes from 'prop-types';
+import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {analytics} from 'app/utils/analytics';
-import ApiMixin from 'app/mixins/apiMixin';
-import {t} from 'app/locale';
 import {sendSampleEvent} from 'app/actionCreators/projects';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
 
 const ErrorRobot = createReactClass({
   displayName: 'ErrorRobot',
@@ -75,9 +76,11 @@ const ErrorRobot = createReactClass({
       source: 'robot',
     });
 
-    sendSampleEvent(this.api, org.slug, project.slug).then(data => {
-      browserHistory.push(`/${org.slug}/${project.slug}/issues/${data.groupID}/`);
-    });
+    sendSampleEvent(this.api, org.slug, project.slug)
+      .then(data => {
+        browserHistory.push(`/${org.slug}/${project.slug}/issues/${data.groupID}/`);
+      })
+      .catch(() => addErrorMessage(t('Unable to create sample event')));
   },
 
   render() {
