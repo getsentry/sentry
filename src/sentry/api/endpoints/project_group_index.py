@@ -242,7 +242,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
     def _build_query_params_from_request(self, request, project):
         query_kwargs = {
-            'project': project,
+            'projects': [project],
             'sort_by': request.GET.get('sort', DEFAULT_SORT_OPTION),
         }
 
