@@ -40,24 +40,28 @@ const ProgressNodes = createReactClass({
 
   getSteps() {
     let organization = this.context.organization;
+    let user = ConfigStore.get('user');
 
     return (
       HookStore.get('component:onboarding-sidebar').length &&
       HookStore.get('component:onboarding-sidebar')[0]('steps', {
         onboardingSteps,
         organization,
+        user,
       })
     );
   },
 
   getStepDescriptions() {
     let organization = this.context.organization;
+    let user = ConfigStore.get('user');
 
     return (
       HookStore.get('component:onboarding-sidebar').length &&
       HookStore.get('component:onboarding-sidebar')[0]('stepDescriptions', {
         stepDescriptions,
         organization,
+        user,
       })
     );
   },
