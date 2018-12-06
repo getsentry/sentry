@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 from mock import patch
 
@@ -7,43 +9,43 @@ from sentry.models import AuditLogEntry, AuditLogEntryEvent, Team, TeamStatus, D
 from sentry.testutils import APITestCase
 
 
-# class TeamDetailsTest(APITestCase):
-#     def test_simple(self):
-#         team = self.team  # force creation
-#         self.login_as(user=self.user)
-#         url = reverse(
-#             'sentry-api-0-team-details',
-#             kwargs={
-#                 'organization_slug': team.organization.slug,
-#                 'team_slug': team.slug,
-#             }
-#         )
-#         response = self.client.get(url)
-#         assert response.status_code == 200
-#         assert response.data['id'] == six.text_type(team.id)
+class TeamDetailsTest(APITestCase):
+    def test_simple(self):
+        team = self.team  # force creation
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-team-details',
+            kwargs={
+                'organization_slug': team.organization.slug,
+                'team_slug': team.slug,
+            }
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data['id'] == six.text_type(team.id)
 
 
-# class TeamUpdateTest(APITestCase):
-#     def test_simple(self):
-#         team = self.team  # force creation
-#         self.login_as(user=self.user)
-#         url = reverse(
-#             'sentry-api-0-team-details',
-#             kwargs={
-#                 'organization_slug': team.organization.slug,
-#                 'team_slug': team.slug,
-#             }
-#         )
-#         resp = self.client.put(
-#             url, data={
-#                 'name': 'hello world',
-#                 'slug': 'foobar',
-#             }
-#         )
-#         assert resp.status_code == 200, resp.content
-#         team = Team.objects.get(id=team.id)
-#         assert team.name == 'hello world'
-#         assert team.slug == 'foobar'
+class TeamUpdateTest(APITestCase):
+    def test_simple(self):
+        team = self.team  # force creation
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-team-details',
+            kwargs={
+                'organization_slug': team.organization.slug,
+                'team_slug': team.slug,
+            }
+        )
+        resp = self.client.put(
+            url, data={
+                'name': 'hello world',
+                'slug': 'foobar',
+            }
+        )
+        assert resp.status_code == 200, resp.content
+        team = Team.objects.get(id=team.id)
+        assert team.name == 'hello world'
+        assert team.slug == 'foobar'
 
 
 class TeamDeleteTest(APITestCase):
