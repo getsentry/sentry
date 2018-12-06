@@ -170,19 +170,19 @@ class SnubaSearchTest(SnubaTestCase):
     def test_query_with_environment(self):
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             query='foo')
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             query='bar')
         assert set(results) == set([])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['staging'],
+            environments=[self.environments['staging']],
             query='bar')
         assert set(results) == set([self.group2])
 
@@ -190,13 +190,13 @@ class SnubaSearchTest(SnubaTestCase):
         self.set_up_multi_project()
         results = self.backend.query(
             [self.project, self.project2],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             query='foo')
         assert set(results) == set([self.group1, self.group_p2])
 
         results = self.backend.query(
             [self.project, self.project2],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             query='bar')
         assert set(results) == set([])
 
@@ -245,28 +245,28 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             sort_by='date',
         )
         assert list(results) == [self.group2, self.group1]
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             sort_by='new',
         )
         assert list(results) == [self.group2, self.group1]
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             sort_by='freq',
         )
         assert list(results) == [self.group2, self.group1]
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             sort_by='priority',
         )
         assert list(results) == [self.group2, self.group1]
@@ -281,19 +281,19 @@ class SnubaSearchTest(SnubaTestCase):
     def test_status_with_environment(self):
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             status=GroupStatus.UNRESOLVED)
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['staging'],
+            environments=[self.environments['staging']],
             status=GroupStatus.RESOLVED)
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             status=GroupStatus.RESOLVED)
         assert set(results) == set([])
 
@@ -334,37 +334,37 @@ class SnubaSearchTest(SnubaTestCase):
     def test_tags_with_environment(self):
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             tags={'server': 'example.com'})
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['staging'],
+            environments=[self.environments['staging']],
             tags={'server': 'example.com'})
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['staging'],
+            environments=[self.environments['staging']],
             tags={'server': ANY})
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             tags={'url': 'http://example.com'})
         assert set(results) == set([])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['staging'],
+            environments=[self.environments['staging']],
             tags={'url': 'http://example.com'})
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['staging'],
+            environments=[self.environments['staging']],
             tags={'server': 'bar.example.com'})
         assert set(results) == set([])
 
@@ -375,13 +375,13 @@ class SnubaSearchTest(SnubaTestCase):
     def test_bookmarked_by_with_environment(self):
         results = self.backend.query(
             [self.project],
-            environment=self.environments['staging'],
+            environments=[self.environments['staging']],
             bookmarked_by=self.user)
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             bookmarked_by=self.user)
         assert set(results) == set([])
 
@@ -456,7 +456,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             sort_by='date',
             limit=1,
             count_hits=True,
@@ -466,7 +466,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             sort_by='date',
             limit=1,
             cursor=results.next,
@@ -477,7 +477,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             sort_by='date',
             limit=1,
             cursor=results.next,
@@ -513,7 +513,7 @@ class SnubaSearchTest(SnubaTestCase):
     def test_age_filter_with_environment(self):
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             age_from=self.group1.first_seen,
             age_from_inclusive=True,
         )
@@ -521,7 +521,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             age_to=self.group1.first_seen,
             age_to_inclusive=True,
         )
@@ -529,7 +529,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             age_from=self.group1.first_seen,
             age_from_inclusive=False,
         )
@@ -550,7 +550,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             age_from=self.group1.first_seen,
             age_from_inclusive=False,
         )
@@ -558,7 +558,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['development'],
+            environments=[self.environments['development']],
             age_from=self.group1.first_seen,
             age_from_inclusive=False,
         )
@@ -610,7 +610,7 @@ class SnubaSearchTest(SnubaTestCase):
     def test_last_seen_filter_with_environment(self):
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=True,
         )
@@ -618,7 +618,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             last_seen_to=self.group1.last_seen,
             last_seen_to_inclusive=True,
         )
@@ -626,7 +626,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=False,
         )
@@ -649,7 +649,7 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=False,
         )
@@ -658,7 +658,7 @@ class SnubaSearchTest(SnubaTestCase):
         results = self.backend.query(
             [self.project],
             date_to=self.group1.last_seen + timedelta(days=1),
-            environment=self.environments['development'],
+            environments=[self.environments['development']],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=False,
         )
@@ -667,7 +667,7 @@ class SnubaSearchTest(SnubaTestCase):
         results = self.backend.query(
             [self.project],
             date_to=self.group1.last_seen + timedelta(days=1),
-            environment=self.environments['development'],
+            environments=[self.environments['development']],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=True,
         )
@@ -700,21 +700,21 @@ class SnubaSearchTest(SnubaTestCase):
     def test_date_filter_with_environment(self):
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             date_from=self.event2.datetime,
         )
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             date_to=self.event1.datetime + timedelta(minutes=1),
         )
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['staging'],
+            environments=[self.environments['staging']],
             date_from=self.event1.datetime,
             date_to=self.event2.datetime + timedelta(minutes=1),
         )
@@ -730,19 +730,19 @@ class SnubaSearchTest(SnubaTestCase):
     def test_unassigned_with_environment(self):
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             unassigned=True)
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['staging'],
+            environments=[self.environments['staging']],
             unassigned=False)
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             unassigned=False)
         assert set(results) == set([])
 
@@ -782,13 +782,13 @@ class SnubaSearchTest(SnubaTestCase):
     def test_assigned_to_with_environment(self):
         results = self.backend.query(
             [self.project],
-            environment=self.environments['staging'],
+            environments=[self.environments['staging']],
             assigned_to=self.user)
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
             [self.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             assigned_to=self.user)
         assert set(results) == set([])
 
@@ -802,14 +802,14 @@ class SnubaSearchTest(SnubaTestCase):
     def test_subscribed_by_with_environment(self):
         results = self.backend.query(
             [self.group1.project],
-            environment=self.environments['production'],
+            environments=[self.environments['production']],
             subscribed_by=self.user,
         )
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
             [self.group1.project],
-            environment=self.environments['staging'],
+            environments=[self.environments['staging']],
             subscribed_by=self.user,
         )
         assert set(results) == set([])
@@ -860,13 +860,13 @@ class SnubaSearchTest(SnubaTestCase):
 
         # latest in environment
         environment = self.environment
-        result = get_latest_release([self.project], environment)
+        result = get_latest_release([self.project], [environment])
         assert result == new.version
 
         with pytest.raises(Release.DoesNotExist):
             # environment with no releases
             environment = self.create_environment()
-            result = get_latest_release([self.project], environment)
+            result = get_latest_release([self.project], [environment])
             assert result == new.version
 
     @mock.patch('sentry.utils.snuba.query')
@@ -974,7 +974,7 @@ class SnubaSearchTest(SnubaTestCase):
         try:
             results = self.backend.query(
                 [self.project],
-                environment=self.environments['production'],
+                environments=[self.environments['production']],
                 tags={'server': 'example.com'})
             assert set(results) == set([self.group1])
         finally:
