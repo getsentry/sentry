@@ -55,9 +55,7 @@ export default class Orderby extends React.Component {
 
     return (
       <React.Fragment>
-        <SidebarLabel className="control-label">
-          {t('Order by')}
-        </SidebarLabel>
+        <SidebarLabel className="control-label">{t('Order by')}</SidebarLabel>
         <Flex>
           <OrderbyField>
             <SelectControl
