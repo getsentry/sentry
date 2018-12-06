@@ -128,3 +128,55 @@ class OrganizationMemberTest(TestCase):
         assert member.token_expires_at
         expires_at = timezone.now() + timedelta(days=INVITE_DAYS_VALID)
         assert member.token_expires_at.date() == expires_at.date()
+
+    def test_delete_expired_clear(self):
+        organization = self.create_organization()
+        ninety_one_days = timezone.now() - timedelta(days=1)
+        member = OrganizationMember.objects.create(
+            organization=organization,
+            role='member',
+            email='test@example.com',
+            token='abc-def',
+            token_expires_at=ninety_one_days
+        )
+        OrganizationMember.delete_expired(timezone.now())
+        assert OrganizationMember.objects.filter(id=member.id).first() is None
+
+    def test_delete_expired_miss(self):
+        organization = self.create_organization()
+        tomorrow = timezone.now() + timedelta(days=1)
+        member = OrganizationMember.objects.create(
+            organization=organization,
+            role='member',
+            email='test@example.com',
+            token='abc-def',
+            token_expires_at=tomorrow
+        )
+        OrganizationMember.delete_expired(timezone.now())
+        assert OrganizationMember.objects.get(id=member.id)
+
+    def test_delete_expired_leave_claimed(self):
+        user = self.create_user()
+        organization = self.create_organization()
+        member = OrganizationMember.objects.create(
+            organization=organization,
+            role='member',
+            user=user,
+            email='test@example.com',
+            token='abc-def',
+            token_expires_at='2018-01-01 10:00:00'
+        )
+        OrganizationMember.delete_expired(timezone.now())
+        assert OrganizationMember.objects.get(id=member.id)
+
+    def test_delete_expired_leave_null_expires(self):
+        organization = self.create_organization()
+        member = OrganizationMember.objects.create(
+            organization=organization,
+            role='member',
+            email='test@example.com',
+            token='abc-def',
+            token_expires_at=None
+        )
+        OrganizationMember.delete_expired(timezone.now())
+        assert OrganizationMember.objects.get(id=member.id)
