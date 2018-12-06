@@ -163,42 +163,42 @@ class DjangoSearchBackendTest(TestCase):
                 )
 
     def test_query(self):
-        results = self.backend.query(self.project, query='foo')
+        results = self.backend.query([self.project], query='foo')
         assert set(results) == set([self.group1])
 
-        results = self.backend.query(self.project, query='bar')
+        results = self.backend.query([self.project], query='bar')
         assert set(results) == set([self.group2])
 
     def test_query_with_environment(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             query='foo')
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             query='bar')
         assert set(results) == set([])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['staging'],
             query='bar')
         assert set(results) == set([self.group2])
 
     def test_sort(self):
-        results = self.backend.query(self.project, sort_by='date')
+        results = self.backend.query([self.project], sort_by='date')
         assert list(results) == [self.group1, self.group2]
 
-        results = self.backend.query(self.project, sort_by='new')
+        results = self.backend.query([self.project], sort_by='new')
         assert list(results) == [self.group2, self.group1]
 
-        results = self.backend.query(self.project, sort_by='freq')
+        results = self.backend.query([self.project], sort_by='freq')
         assert list(results) == [self.group2, self.group1]
 
-        results = self.backend.query(self.project, sort_by='priority')
+        results = self.backend.query([self.project], sort_by='priority')
         assert list(results) == [self.group1, self.group2]
 
     def test_sort_with_environment(self):
@@ -214,114 +214,114 @@ class DjangoSearchBackendTest(TestCase):
             self._setup_tags_for_event(event)
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             sort_by='date',
         )
         assert list(results) == [self.group2, self.group1]
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             sort_by='new',
         )
         assert list(results) == [self.group2, self.group1]
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             sort_by='freq',
         )
         assert list(results) == [self.group2, self.group1]
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             sort_by='priority',
         )
         assert list(results) == [self.group2, self.group1]
 
     def test_status(self):
-        results = self.backend.query(self.project, status=GroupStatus.UNRESOLVED)
+        results = self.backend.query([self.project], status=GroupStatus.UNRESOLVED)
         assert set(results) == set([self.group1])
 
-        results = self.backend.query(self.project, status=GroupStatus.RESOLVED)
+        results = self.backend.query([self.project], status=GroupStatus.RESOLVED)
         assert set(results) == set([self.group2])
 
     def test_status_with_environment(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             status=GroupStatus.UNRESOLVED)
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['staging'],
             status=GroupStatus.RESOLVED)
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             status=GroupStatus.RESOLVED)
         assert set(results) == set([])
 
     def test_tags(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             tags={'environment': 'staging'})
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             tags={'environment': 'example.com'})
         assert set(results) == set([])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             tags={'environment': ANY})
         assert set(results) == set([self.group2, self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             tags={'environment': 'staging',
                   'server': 'example.com'})
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             tags={'environment': 'staging',
                   'server': ANY})
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             tags={'environment': 'staging',
                   'server': 'bar.example.com'})
         assert set(results) == set([])
 
     def test_tags_with_environment(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             tags={'server': 'example.com'})
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['staging'],
             tags={'server': 'example.com'})
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['staging'],
             tags={'server': ANY})
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['staging'],
             tags={
                 'environment': ANY,
@@ -330,52 +330,52 @@ class DjangoSearchBackendTest(TestCase):
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             tags={'url': 'http://example.com'})
         assert set(results) == set([])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['staging'],
             tags={'url': 'http://example.com'})
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['staging'],
             tags={'server': 'bar.example.com'})
         assert set(results) == set([])
 
     def test_bookmarked_by(self):
-        results = self.backend.query(self.project, bookmarked_by=self.user)
+        results = self.backend.query([self.project], bookmarked_by=self.user)
         assert set(results) == set([self.group2])
 
     def test_bookmarked_by_with_environment(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['staging'],
             bookmarked_by=self.user)
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             bookmarked_by=self.user)
         assert set(results) == set([])
 
     def test_project(self):
-        results = self.backend.query(self.create_project(name='other'))
+        results = self.backend.query([self.create_project(name='other')])
         assert set(results) == set([])
 
     def test_pagination(self):
-        results = self.backend.query(self.project, limit=1, sort_by='date')
+        results = self.backend.query([self.project], limit=1, sort_by='date')
         assert set(results) == set([self.group1])
 
-        results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
+        results = self.backend.query([self.project], cursor=results.next, limit=1, sort_by='date')
         assert set(results) == set([self.group2])
 
-        results = self.backend.query(self.project, cursor=results.next, limit=1, sort_by='date')
+        results = self.backend.query([self.project], cursor=results.next, limit=1, sort_by='date')
         assert set(results) == set([])
 
     def test_pagination_with_environment(self):
@@ -391,7 +391,7 @@ class DjangoSearchBackendTest(TestCase):
             self._setup_tags_for_event(event)
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             sort_by='date',
             limit=1,
@@ -401,7 +401,7 @@ class DjangoSearchBackendTest(TestCase):
         assert results.hits == 2
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             sort_by='date',
             limit=1,
@@ -412,7 +412,7 @@ class DjangoSearchBackendTest(TestCase):
         assert results.hits == 2
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             sort_by='date',
             limit=1,
@@ -424,21 +424,21 @@ class DjangoSearchBackendTest(TestCase):
 
     def test_age_filter(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             age_from=self.group2.first_seen,
             age_from_inclusive=True,
         )
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             age_to=self.group1.first_seen + timedelta(minutes=1),
             age_to_inclusive=True,
         )
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             age_from=self.group1.first_seen,
             age_from_inclusive=True,
             age_to=self.group1.first_seen + timedelta(minutes=1),
@@ -448,7 +448,7 @@ class DjangoSearchBackendTest(TestCase):
 
     def test_age_filter_with_environment(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             age_from=self.group1.first_seen,
             age_from_inclusive=True,
@@ -456,7 +456,7 @@ class DjangoSearchBackendTest(TestCase):
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             age_to=self.group1.first_seen,
             age_to_inclusive=True,
@@ -464,7 +464,7 @@ class DjangoSearchBackendTest(TestCase):
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             age_from=self.group1.first_seen,
             age_from_inclusive=False,
@@ -482,7 +482,7 @@ class DjangoSearchBackendTest(TestCase):
         self._setup_tags_for_event(event)
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             age_from=self.group1.first_seen,
             age_from_inclusive=False,
@@ -490,7 +490,7 @@ class DjangoSearchBackendTest(TestCase):
         assert set(results) == set([])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['development'],
             age_from=self.group1.first_seen,
             age_from_inclusive=False,
@@ -499,21 +499,21 @@ class DjangoSearchBackendTest(TestCase):
 
     def test_last_seen_filter(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=True,
         )
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             last_seen_to=self.group2.last_seen + timedelta(minutes=1),
             last_seen_to_inclusive=True,
         )
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=True,
             last_seen_to=self.group1.last_seen + timedelta(minutes=1),
@@ -523,7 +523,7 @@ class DjangoSearchBackendTest(TestCase):
 
     def test_last_seen_filter_with_environment(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=True,
@@ -531,7 +531,7 @@ class DjangoSearchBackendTest(TestCase):
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             last_seen_to=self.group1.last_seen,
             last_seen_to_inclusive=True,
@@ -539,7 +539,7 @@ class DjangoSearchBackendTest(TestCase):
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=False,
@@ -557,7 +557,7 @@ class DjangoSearchBackendTest(TestCase):
         self._setup_tags_for_event(event)
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=False,
@@ -565,7 +565,7 @@ class DjangoSearchBackendTest(TestCase):
         assert set(results) == set([])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['development'],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=False,
@@ -574,19 +574,19 @@ class DjangoSearchBackendTest(TestCase):
 
     def test_date_filter(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             date_from=self.event2.datetime,
         )
         assert set(results) == set([self.group1, self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             date_to=self.event1.datetime + timedelta(minutes=1),
         )
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             date_from=self.event1.datetime,
             date_to=self.event2.datetime + timedelta(minutes=1),
         )
@@ -598,21 +598,21 @@ class DjangoSearchBackendTest(TestCase):
     )
     def test_date_filter_with_environment(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             date_from=self.event2.datetime,
         )
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             date_to=self.event1.datetime + timedelta(minutes=1),
         )
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['staging'],
             date_from=self.event1.datetime,
             date_to=self.event2.datetime + timedelta(minutes=1),
@@ -620,33 +620,33 @@ class DjangoSearchBackendTest(TestCase):
         assert set(results) == set([self.group2])
 
     def test_unassigned(self):
-        results = self.backend.query(self.project, unassigned=True)
+        results = self.backend.query([self.project], unassigned=True)
         assert set(results) == set([self.group1])
 
-        results = self.backend.query(self.project, unassigned=False)
+        results = self.backend.query([self.project], unassigned=False)
         assert set(results) == set([self.group2])
 
     def test_unassigned_with_environment(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             unassigned=True)
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['staging'],
             unassigned=False)
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             unassigned=False)
         assert set(results) == set([])
 
     def test_assigned_to(self):
-        results = self.backend.query(self.project, assigned_to=self.user)
+        results = self.backend.query([self.project], assigned_to=self.user)
         assert set(results) == set([self.group2])
 
         # test team assignee
@@ -658,12 +658,12 @@ class DjangoSearchBackendTest(TestCase):
         ga.update(team=self.team, user=None)
         assert GroupAssignee.objects.get(id=ga.id).user is None
 
-        results = self.backend.query(self.project, assigned_to=self.user)
+        results = self.backend.query([self.project], assigned_to=self.user)
         assert set(results) == set([self.group2])
 
         # test when there should be no results
         other_user = self.create_user()
-        results = self.backend.query(self.project, assigned_to=other_user)
+        results = self.backend.query([self.project], assigned_to=other_user)
         assert set(results) == set([])
 
         owner = self.create_user()
@@ -675,39 +675,39 @@ class DjangoSearchBackendTest(TestCase):
         )
 
         # test that owners don't see results for all teams
-        results = self.backend.query(self.project, assigned_to=owner)
+        results = self.backend.query([self.project], assigned_to=owner)
         assert set(results) == set([])
 
     def test_assigned_to_with_environment(self):
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['staging'],
             assigned_to=self.user)
         assert set(results) == set([self.group2])
 
         results = self.backend.query(
-            self.project,
+            [self.project],
             environment=self.environments['production'],
             assigned_to=self.user)
         assert set(results) == set([])
 
     def test_subscribed_by(self):
         results = self.backend.query(
-            self.group1.project,
+            [self.group1.project],
             subscribed_by=self.user,
         )
         assert set(results) == set([self.group1])
 
     def test_subscribed_by_with_environment(self):
         results = self.backend.query(
-            self.group1.project,
+            [self.group1.project],
             environment=self.environments['production'],
             subscribed_by=self.user,
         )
         assert set(results) == set([self.group1])
 
         results = self.backend.query(
-            self.group1.project,
+            [self.group1.project],
             environment=self.environments['staging'],
             subscribed_by=self.user,
         )
@@ -717,7 +717,7 @@ class DjangoSearchBackendTest(TestCase):
         with pytest.raises(Release.DoesNotExist):
             # no releases exist period
             environment = None
-            result = get_latest_release(self.project, environment)
+            result = get_latest_release([self.project], environment)
 
         old = Release.objects.create(
             organization_id=self.project.organization_id,
@@ -754,16 +754,16 @@ class DjangoSearchBackendTest(TestCase):
 
         # latest overall (no environment filter)
         environment = None
-        result = get_latest_release(self.project, environment)
+        result = get_latest_release([self.project], environment)
         assert result == newest.version
 
         # latest in environment
         environment = self.environment
-        result = get_latest_release(self.project, environment)
+        result = get_latest_release([self.project], environment)
         assert result == new.version
 
         with pytest.raises(Release.DoesNotExist):
             # environment with no releases
             environment = self.create_environment()
-            result = get_latest_release(self.project, environment)
+            result = get_latest_release([self.project], environment)
             assert result == new.version
