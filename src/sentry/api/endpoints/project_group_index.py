@@ -277,7 +277,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             query_kwargs.update(extra_query_kwargs)
 
         try:
-            query_kwargs['environment'] = self._get_environment_from_request(
+            environment = self._get_environment_from_request(
                 request,
                 project.organization_id,
             )
@@ -286,6 +286,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             # from `sentry.api.paginator.BasePaginator.get_result`.
             result = CursorResult([], None, None, hits=0, max_hits=1000)
         else:
+            query_kwargs['environments'] = [environment] if environment is not None else environment
             result = search.query(**query_kwargs)
         return result, query_kwargs
 
