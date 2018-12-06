@@ -39,7 +39,7 @@ export function getQueryStringFromQuery(query) {
   return `?${queryProperties.join('&')}`;
 }
 
-export function getOrderByFields(queryBuilder) {
+export function getOrderbyFields(queryBuilder) {
   const columns = queryBuilder.getColumns();
   const query = queryBuilder.getInternal();
 

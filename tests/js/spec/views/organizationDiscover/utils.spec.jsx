@@ -1,7 +1,7 @@
 import {
   getQueryFromQueryString,
   getQueryStringFromQuery,
-  getOrderByFields,
+  getOrderbyFields,
   parseSavedQuery,
   generateQueryName,
 } from 'app/views/organizationDiscover/utils';
@@ -46,19 +46,19 @@ describe('getQueryStringFromQuery()', function() {
   });
 });
 
-describe('getOrderByFields()', function() {
+describe('getOrderbyFields()', function() {
   const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
   const queryBuilder = createQueryBuilder({}, organization);
 
   it('allows ordering by all fields when no aggregations except project.name and issue.id', function() {
-    expect(getOrderByFields(queryBuilder)).toHaveLength(COLUMNS.length - 2);
+    expect(getOrderbyFields(queryBuilder)).toHaveLength(COLUMNS.length - 2);
   });
 
   it('allows ordering by aggregations with aggregations and no fields', function() {
     queryBuilder.updateField('fields', []);
     queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
-    const options = getOrderByFields(queryBuilder);
+    const options = getOrderbyFields(queryBuilder);
     expect(options).toHaveLength(1);
     expect(options).toEqual([{label: 'count', value: 'count'}]);
   });
@@ -67,7 +67,7 @@ describe('getOrderByFields()', function() {
     queryBuilder.updateField('fields', ['message']);
     queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
-    const options = getOrderByFields(queryBuilder);
+    const options = getOrderbyFields(queryBuilder);
     expect(options).toHaveLength(2);
     expect(options).toEqual([
       {label: 'message', value: 'message'},

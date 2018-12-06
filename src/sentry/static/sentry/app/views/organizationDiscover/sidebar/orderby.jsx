@@ -59,36 +59,35 @@ export default class Orderby extends React.Component {
           {t('Order by')}
         </SidebarLabel>
         <Flex>
-          <OrderByField>
+          <OrderbyField>
             <SelectControl
               name="orderbyField"
               options={columns}
               value={field}
               onChange={val => this.updateField(val.value)}
               disabled={disabled}
-              autosize={false}
             />
-          </OrderByField>
-          <OrderByValue>
+          </OrderbyField>
+          <OrderbyValue>
             <SelectControl
               name="orderbyDirection"
               options={[{value: 'asc', label: 'asc'}, {value: 'desc', label: 'desc'}]}
               value={direction}
               onChange={val => this.updateDirection(val.value)}
               disabled={disabled}
-              autosize={false}
             />
-          </OrderByValue>
+          </OrderbyValue>
         </Flex>
       </React.Fragment>
     );
   }
 }
 
-const OrderByField = styled(Flex)`
+const OrderbyField = styled('div')`
   width: calc(100% / 3 * 2);
+  padding-right: 8px;
 `;
 
-const OrderByValue = styled(Flex)`
+const OrderbyValue = styled('div')`
   width: calc(100% / 3);
 `;
