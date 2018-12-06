@@ -24,10 +24,10 @@ class OrganizationEventsTest(AcceptanceTestCase):
     def test_no_access(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.snapshot('events - no access')
+        self.browser.snapshot('global events - no access')
 
     def test_events_empty(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until('[data-test-id="empty-state"]')
-            self.browser.snapshot('events - default')
+            self.browser.snapshot('global events - empty')
