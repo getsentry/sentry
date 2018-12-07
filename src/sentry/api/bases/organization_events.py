@@ -16,6 +16,10 @@ class OrganizationEventsError(Exception):
     pass
 
 
+class NoProjects(Exception):
+    pass
+
+
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_project_ids(self, request, organization):
@@ -86,6 +90,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             project_ids = self.get_project_ids(request, organization)
         except ValueError:
             raise OrganizationEventsError('Invalid project ids')
+
+        if not project_ids:
+            raise NoProjects
 
         environments = self.get_environments(request, organization)
         params = {
