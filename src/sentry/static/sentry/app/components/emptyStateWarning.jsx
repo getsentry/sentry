@@ -27,7 +27,7 @@ class EmptyStateWarning extends React.Component {
     }
 
     return (
-      <EmptyStreamWrapper className="ref-empty-state">
+      <EmptyStreamWrapper data-test-id="empty-state">
         <Icon className="icon icon-exclamation" />
         {this.props.children}
       </EmptyStreamWrapper>
