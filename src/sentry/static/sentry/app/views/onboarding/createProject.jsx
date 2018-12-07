@@ -86,10 +86,6 @@ const CreateProject = createReactClass({
     this.setState({inFlight: false});
   },
 
-  getSurveyUrl({slug, projectSlug, platform}) {
-    return `/onboarding/${slug}/${projectSlug}/${platform}/survey/`;
-  },
-
   createProject() {
     let {router} = this.context;
     let {slug} = this.getOrganization();
