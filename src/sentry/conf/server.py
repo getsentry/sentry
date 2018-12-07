@@ -800,8 +800,6 @@ SENTRY_FEATURES = {
     'organizations:internal-catchall': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
-    # Enable gitlab integration currently available to early adopters only.
-    'organizations:gitlab-integration': False,
     # Enable jira server integration currently available to internal users only.
     'organizations:jira-server-integration': False,
 
