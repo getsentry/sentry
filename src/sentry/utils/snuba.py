@@ -372,7 +372,8 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         if start > end:
             raise QueryOutsideRetentionError
 
-    start, end = shrink_time_window(filter_keys.get('issue'), start, end)
+    if referrer != 'tsdb':
+        start, end = shrink_time_window(filter_keys.get('issue'), start, end)
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
