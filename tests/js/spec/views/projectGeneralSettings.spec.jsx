@@ -1,10 +1,12 @@
 import {browserHistory} from 'react-router';
-import {mount} from 'enzyme';
 import React from 'react';
 
-import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
+import {mount} from 'enzyme';
 import ProjectContext from 'app/views/projects/projectContext';
+import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
 import ProjectsStore from 'app/stores/projectsStore';
+
+import {selectByValue} from '../../helpers/select';
 
 jest.mock('jquery');
 
@@ -201,6 +203,44 @@ describe('projectGeneralSettings', function() {
     ).toBe(
       'These settings can only be edited by users with the owner, manager, or admin role.'
     );
+  });
+
+  it('changing project platform updates ProjectsStore', async function() {
+    let params = {orgId: org.slug, projectId: project.slug};
+    ProjectsStore.loadInitialData([project]);
+    putMock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {
+        ...project,
+        platform: 'javascript',
+      },
+    });
+    let wrapper = mount(
+      <ProjectContext orgId={org.slug} projectId={project.slug}>
+        <ProjectGeneralSettings
+          routes={[]}
+          location={routerContext.context.location}
+          params={params}
+        />
+      </ProjectContext>,
+      routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    // Change slug to new-slug
+    selectByValue(wrapper, 'javascript');
+
+    // Slug does not save on blur
+    expect(putMock).toHaveBeenCalled();
+
+    await tick();
+    await tick();
+    wrapper.update();
+
+    // updates ProjectsStore
+    expect(ProjectsStore.itemsById['2'].platform).toBe('javascript');
   });
 
   it('changing slug updates ProjectsStore', async function() {
