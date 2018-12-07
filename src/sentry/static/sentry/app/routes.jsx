@@ -36,7 +36,6 @@ import ProjectDataForwarding from 'app/views/projectDataForwarding';
 import ProjectDebugFiles from 'app/views/projectDebugFiles';
 import ProjectDetails from 'app/views/projectDetails';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
-import ProjectEvents from 'app/views/projectEvents';
 import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
 import ProjectInstallOverview from 'app/views/projectInstall/overview';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
@@ -903,7 +902,6 @@ function routes() {
 
           <Route path="searches/:searchId/" component={errorHandler(Stream)} />
           <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
-          <Route path="events/" component={errorHandler(ProjectEvents)} />
           <Route path="releases/" component={errorHandler(ProjectReleases)} />
           <Route
             name="releaseDetails"

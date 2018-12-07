@@ -36,7 +36,6 @@ class ProjectHeader extends React.Component {
     let {project, environments, activeEnvironment} = this.props;
     let navSection = this.props.activeSection;
     let org = this.props.organization;
-    let features = new Set(project.features);
     let allEnvironmentsLabel = t('All environments');
 
     let pagesWithEnvironments = new Set([
@@ -67,13 +66,6 @@ class ProjectHeader extends React.Component {
                   {t('Issues')}
                 </ProjectLink>
               </li>
-              {features.has('global-events') && (
-                <li className={navSection == 'events' ? 'active' : ''}>
-                  <ProjectLink to={`/${org.slug}/${project.slug}/events/`}>
-                    {t('Events')}
-                  </ProjectLink>
-                </li>
-              )}
               <li className={navSection == 'dashboard' ? 'active' : ''}>
                 <ProjectLink to={`/${org.slug}/${project.slug}/dashboard/`}>
                   {t('Overview')}
