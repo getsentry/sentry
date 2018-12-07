@@ -491,6 +491,21 @@ class OrganizationEventsEndpointTest(OrganizationEventsTestBase):
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_1.event_id])
 
+    def test_no_projects(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+
+        url = reverse(
+            'sentry-api-0-organization-events',
+            kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
 
 class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
     def test_simple(self):
@@ -553,6 +568,21 @@ class OrganizationEventsStatsEndpointTest(OrganizationEventsTestBase):
             (1541070000, [{'count': 2}]),
         ]
 
+    def test_no_projects(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+
+        url = reverse(
+            'sentry-api-0-organization-events-stats',
+            kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 0
+
 
 class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
     def test_simple(self):
@@ -601,3 +631,18 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsTestBase):
         assert response.status_code == 200, response.content
         # this is not exact because of turbo=True
         assert response.data['count'] == 10
+
+    def test_no_projects(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+
+        url = reverse(
+            'sentry-api-0-organization-events-meta',
+            kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['count'] == 0
