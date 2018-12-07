@@ -1,9 +1,14 @@
+import {Flex} from 'grid-emotion';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {extractMultilineFields} from 'app/utils';
+import {flattenedPlatforms} from 'app/views/onboarding/utils';
 import {t, tct, tn} from 'app/locale';
+import Platformicon from 'app/components/platformicon';
 import getDynamicText from 'app/utils/getDynamicText';
 import slugify from 'app/utils/slugify';
+import space from 'app/styles/space';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/:projectId/';
@@ -65,6 +70,21 @@ export const fields = {
     saveOnBlur: false,
     saveMessageAlertType: 'info',
     saveMessage: t('You will be redirected to the new project slug after saving'),
+  },
+
+  platform: {
+    name: 'platform',
+    type: 'array',
+    label: t('Platform'),
+    choices: () =>
+      flattenedPlatforms.map(({id, name}) => [
+        id,
+        <PlatformWrapper key={id}>
+          <StyledPlatformicon platform={id} size="20" />
+          {name}
+        </PlatformWrapper>,
+      ]),
+    help: t('The primary platform for this project, used only for aesthetics'),
   },
 
   subjectPrefix: {
@@ -261,3 +281,11 @@ export const fields = {
     help: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
   },
 };
+
+const PlatformWrapper = styled(Flex)`
+  align-items: center;
+`;
+const StyledPlatformicon = styled(Platformicon)`
+  border-radius: 3px;
+  margin-right: ${space(1)};
+`;

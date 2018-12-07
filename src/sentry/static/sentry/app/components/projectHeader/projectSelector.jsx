@@ -52,12 +52,6 @@ const ProjectHeaderProjectSelector = withRouter(
     };
 
     render() {
-      let {organization: org} = this.props;
-
-      // TODO(billy): Only show platform icons for internal users
-      const internalOnly =
-        org && org.features && org.features.includes('internal-catchall');
-
       return (
         <ProjectSelector {...this.props} onSelect={this.handleSelect}>
           {({getActorProps, selectedItem, activeProject}) => (
@@ -65,8 +59,7 @@ const ProjectHeaderProjectSelector = withRouter(
               {activeProject ? (
                 <IdBadge
                   project={activeProject}
-                  avatarSize={16}
-                  hideAvatar={!internalOnly}
+                  avatarSize={20}
                   displayName={
                     <ProjectNameLink {...this.getProjectUrlProps(activeProject)}>
                       {this.getProjectLabel(activeProject)}
@@ -121,4 +114,5 @@ const ProjectNameLink = styled(Link)`
   font-size: 20px;
   line-height: 1.2;
   font-weight: 600;
+  margin-left: ${space(0.25)};
 `;

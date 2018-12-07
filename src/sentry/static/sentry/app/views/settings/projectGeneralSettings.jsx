@@ -20,6 +20,7 @@ import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
+import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -250,12 +251,14 @@ class ProjectGeneralSettings extends AsyncView {
               // Container will redirect after stores get updated with new slug
               this.props.onChangeSlug(resp.slug);
             }
+            // This will update our project context
+            ProjectActions.updateSuccess(resp);
           }}
         >
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            fields={[fields.slug, fields.name]}
+            fields={[fields.slug, fields.name, fields.platform]}
           />
 
           <JsonForm
