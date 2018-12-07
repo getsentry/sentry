@@ -34,7 +34,7 @@ describe('RepositoryRow', function() {
       expect(wrapper.find('Confirm').props().disabled).toEqual(false);
 
       // No cancel button
-      expect(wrapper.find('Button[icon="icon-circle-close"]')).toHaveLength(0);
+      expect(wrapper.find('Button[data-test-id="repo-cancel"]')).toHaveLength(0);
     });
 
     it('displays cancel pending button', function() {
@@ -48,7 +48,7 @@ describe('RepositoryRow', function() {
       expect(wrapper.find('Button[icon="icon-trash"]').props().disabled).toEqual(true);
 
       // Cancel button active
-      let cancel = wrapper.find('Button[icon="icon-circle-close"]');
+      let cancel = wrapper.find('Button[data-test-id="repo-cancel"]');
       expect(cancel).toHaveLength(1);
       expect(cancel.props().disabled).toEqual(false);
     });
@@ -78,7 +78,7 @@ describe('RepositoryRow', function() {
       );
 
       // Cancel should be disabled
-      expect(wrapper.find('Button[icon="icon-circle-close"]').props().disabled).toEqual(
+      expect(wrapper.find('Button[data-test-id="repo-cancel"]').props().disabled).toEqual(
         true
       );
     });
@@ -131,7 +131,7 @@ describe('RepositoryRow', function() {
         <RepositoryRow repository={pendingRepo} api={api} orgId={organization.slug} />,
         routerContext
       );
-      wrapper.find('Button[icon="icon-circle-close"]').simulate('click');
+      wrapper.find('Button[data-test-id="repo-cancel"]').simulate('click');
       await wrapper.update();
 
       expect(cancel).toHaveBeenCalled();

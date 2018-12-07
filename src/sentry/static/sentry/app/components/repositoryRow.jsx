@@ -10,6 +10,7 @@ import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import SpreadLayout from 'app/components/spreadLayout';
+import space from 'app/styles/space';
 
 class RepositoryRow extends React.Component {
   static propTypes = {
@@ -71,48 +72,40 @@ class RepositoryRow extends React.Component {
       <Access access={['org:admin']}>
         {({hasAccess}) => (
           <StyledRow status={repository.status}>
-            <Box p={2} flex="1">
-              <Flex direction="column">
-                <Box pb={1}>
-                  <strong>{repository.name}</strong>
-                  {!isActive && <small> — {this.getStatusLabel(repository)}</small>}
-                  {repository.status === 'pending_deletion' && (
-                    <Button
-                      size="xsmall"
-                      borderless
-                      icon="icon-circle-close"
-                      onClick={this.cancelDelete}
-                      disabled={!hasAccess}
-                      data-test-id="repo-cancel"
-                    >
-                      {t('Cancel')}
-                    </Button>
-                  )}
-                </Box>
-                <Box>
-                  {showProvider && (
-                    <small>{repository.provider.name}&nbsp;&mdash;&nbsp;</small>
-                  )}
-                  {repository.url && (
-                    <small>
-                      <a href={repository.url}>
-                        {repository.url.replace('https://', '')}
-                      </a>
-                    </small>
-                  )}
-                </Box>
-              </Flex>
-            </Box>
+            <Flex direction="column">
+              <RepositoryTitle>
+                <strong>{repository.name}</strong>
+                {!isActive && <small> &mdash; {this.getStatusLabel(repository)}</small>}
+                {repository.status === 'pending_deletion' && (
+                  <StyledButton
+                    size="xsmall"
+                    onClick={this.cancelDelete}
+                    disabled={!hasAccess}
+                    data-test-id="repo-cancel"
+                  >
+                    {t('Cancel')}
+                  </StyledButton>
+                )}
+              </RepositoryTitle>
+              <Box>
+                {showProvider && (
+                  <small>{repository.provider.name}&nbsp;&mdash;&nbsp;</small>
+                )}
+                {repository.url && (
+                  <small>
+                    <a href={repository.url}>{repository.url.replace('https://', '')}</a>
+                  </small>
+                )}
+              </Box>
+            </Flex>
 
-            <Box p={2}>
-              <Confirm
-                disabled={!hasAccess || (!isActive && repository.status !== 'disabled')}
-                onConfirm={this.deleteRepo}
-                message={t('Are you sure you want to remove this repository?')}
-              >
-                <Button size="xsmall" icon="icon-trash" disabled={!hasAccess} />
-              </Confirm>
-            </Box>
+            <Confirm
+              disabled={!hasAccess || (!isActive && repository.status !== 'disabled')}
+              onConfirm={this.deleteRepo}
+              message={t('Are you sure you want to remove this repository?')}
+            >
+              <Button size="xsmall" icon="icon-trash" disabled={!hasAccess} />
+            </Confirm>
           </StyledRow>
         )}
       </Access>
@@ -122,6 +115,10 @@ class RepositoryRow extends React.Component {
 
 const StyledRow = styled(SpreadLayout)`
   border-bottom: 1px solid ${p => p.theme.borderLight};
+  /* shorter top padding because of title lineheight */
+  padding: ${space(1)} ${space(2)} ${space(2)};
+  flex: 1;
+  align-items: space-between;
 
   ${p =>
     p.status === 'disabled' &&
@@ -133,6 +130,16 @@ const StyledRow = styled(SpreadLayout)`
   &:last-child {
     border-bottom: none;
   }
+`;
+
+const StyledButton = styled(Button)`
+  margin-left: ${space(1)};
+`;
+
+const RepositoryTitle = styled(Box)`
+  margin-bottom: ${space(1)};
+  /* accomodate cancel button height */
+  line-height: 26px;
 `;
 
 export default RepositoryRow;
