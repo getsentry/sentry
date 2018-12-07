@@ -213,11 +213,9 @@ class OrganizationEventsContainer extends React.Component {
       organization.projects && organization.projects.filter(({isMember}) => isMember);
 
     return (
-      <Feature features={['global-views']} renderDisabled>
-        <EventsContext.Provider
-          value={{actions: this.actions, ...this.state.queryValues}}
-        >
-          <OrganizationEventsContent>
+      <EventsContext.Provider value={{actions: this.actions, ...this.state.queryValues}}>
+        <OrganizationEventsContent>
+          <Feature features={['global-views']} renderDisabled>
             <Header>
               <HeaderItemPosition>
                 <MultipleProjectSelector
@@ -266,9 +264,9 @@ class OrganizationEventsContainer extends React.Component {
 
               {children}
             </Body>
-          </OrganizationEventsContent>
-        </EventsContext.Provider>
-      </Feature>
+          </Feature>
+        </OrganizationEventsContent>
+      </EventsContext.Provider>
     );
   }
 }
