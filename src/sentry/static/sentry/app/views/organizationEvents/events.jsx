@@ -166,7 +166,7 @@ class OrganizationEvents extends AsyncView {
             <Flex align="center" justify="space-between">
               <RowDisplay>
                 {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
-                {events.length && (
+                {!!events.length && (
                   <TotalEventCount
                     organization={organization}
                     location={location}
