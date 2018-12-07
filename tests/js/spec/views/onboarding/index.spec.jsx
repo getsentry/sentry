@@ -30,15 +30,6 @@ describe('OnboardingWizard', function() {
     it('should render NotFound if no matching organization', function() {
       let props = {
         ...baseProps,
-        children: (
-          <Project
-            next={jest.fn()}
-            platform={''}
-            setName={jest.fn()}
-            name={''}
-            setPlatform={jest.fn()}
-          />
-        ),
         params: {
           orgId: 'my-cool-org',
         },

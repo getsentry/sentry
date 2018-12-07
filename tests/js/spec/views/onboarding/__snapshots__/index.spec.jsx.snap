@@ -17,18 +17,7 @@ exports[`OnboardingWizard render() should render NotFound if no matching organiz
         }
       }
     />
-    <div>
-      <OnboardingProject
-        name=""
-        next={[MockFunction]}
-        platform=""
-        setName={[MockFunction]}
-        setPlatform={[MockFunction]}
-        setTeam={[Function]}
-        team=""
-        teams={Array []}
-      />
-    </div>
+    <div />
   </div>
 </div>
 `;
