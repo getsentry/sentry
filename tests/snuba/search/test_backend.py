@@ -186,6 +186,16 @@ class SnubaSearchTest(SnubaTestCase):
             query='bar')
         assert set(results) == set([self.group2])
 
+    def test_multi_environments(self):
+        self.set_up_multi_project()
+        results = self.backend.query(
+            [self.project, self.project2],
+            environments=[
+                self.environments['production'],
+                self.environments['staging']
+            ])
+        assert set(results) == set([self.group1, self.group2, self.group_p2])
+
     def test_query_with_environment_multi_project(self):
         self.set_up_multi_project()
         results = self.backend.query(
