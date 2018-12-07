@@ -836,8 +836,6 @@ SENTRY_FEATURES = {
     'projects:discard-groups': False,
     # DEPRECATED: pending removal
     'projects:dsym': False,
-    # DEPRECATED: pending removal.
-    'projects:global-events': False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     'projects:minidump': True,
