@@ -49,3 +49,19 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
             {'uniqueValues': 2, 'name': 'Fruit', 'key': 'fruit', 'totalValues': 3},
             {'uniqueValues': 1, 'name': 'Some Tag', 'key': 'some_tag', 'totalValues': 1},
         ]
+
+    def test_no_projects(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        self.login_as(user=user)
+
+        url = reverse(
+            'sentry-api-0-organization-tags',
+            kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        response = self.client.get(url, format='json')
+        assert response.status_code == 200, response.content
+        assert response.data == []
