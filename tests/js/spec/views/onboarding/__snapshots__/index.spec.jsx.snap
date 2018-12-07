@@ -130,13 +130,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
         <OnboardingProject
           name=""
           next={[MockFunction]}
-          organization={
-            Object {
-              "experiments": Object {},
-              "id": "1337",
-              "slug": "testOrg",
-            }
-          }
           platform=""
           setName={[MockFunction]}
           setPlatform={[MockFunction]}
@@ -153,13 +146,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
             <PlatformPicker
               name=""
               next={[MockFunction]}
-              organization={
-                Object {
-                  "experiments": Object {},
-                  "id": "1337",
-                  "slug": "testOrg",
-                }
-              }
               platform=""
               setName={[MockFunction]}
               setPlatform={[MockFunction]}
@@ -1256,13 +1242,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
         <OnboardingProject
           name=""
           next={[MockFunction]}
-          organization={
-            Object {
-              "experiments": Object {},
-              "id": "1337",
-              "slug": "testOrg",
-            }
-          }
           platform=""
           setName={[MockFunction]}
           setPlatform={
@@ -1293,13 +1272,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
             <PlatformPicker
               name=""
               next={[MockFunction]}
-              organization={
-                Object {
-                  "experiments": Object {},
-                  "id": "1337",
-                  "slug": "testOrg",
-                }
-              }
               platform=""
               setName={[MockFunction]}
               setPlatform={

@@ -64,7 +64,7 @@ const ProgressNodes = createReactClass({
     let steps = this.getAsset('steps');
 
     if (!params.projectId) return steps.project;
-    if (pathname.indexOf('/survey/') !== -1) return steps.survey;
+    if (params.projectId && pathname.indexOf('/configure/') === -1) return steps.survey;
 
     return steps.configure;
   },
