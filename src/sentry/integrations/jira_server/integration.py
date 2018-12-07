@@ -310,4 +310,9 @@ class JiraServerIntegrationProvider(IntegrationProvider):
                 'error': six.text_type(err),
                 'external_id': external_id,
             })
-            raise IntegrationError('Could not create issue webhook in Jira')
+            try:
+                details = err.json['messages'][0].values().pop()
+            except Exception:
+                details = ''
+            message = u'Could not create issue webhook in Jira. {}'.format(details)
+            raise IntegrationError(message)
