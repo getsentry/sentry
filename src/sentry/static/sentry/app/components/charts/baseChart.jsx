@@ -5,6 +5,7 @@ import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import echarts from 'echarts/lib/echarts';
 
+import {DEFAULT_USE_UTC} from 'app/constants';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 
@@ -108,6 +109,9 @@ class BaseChart extends React.Component {
 
     // How is data grouped (affects formatting of axis labels and tooltips)
     interval: PropTypes.oneOf(['hour', 'day']),
+
+    // Formats dates as UTC?
+    utc: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -124,6 +128,7 @@ class BaseChart extends React.Component {
     yAxis: {},
     isGroupedByDate: false,
     interval: 'day',
+    utc: DEFAULT_USE_UTC,
   };
 
   handleChartReady = (...args) => {
@@ -155,6 +160,7 @@ class BaseChart extends React.Component {
       isGroupedByDate,
       interval,
       previousPeriod,
+      utc,
 
       devicePixelRatio,
       height,
@@ -194,7 +200,9 @@ class BaseChart extends React.Component {
           color: colors || this.getColorPalette(),
           grid: Grid(grid),
           tooltip:
-            tooltip !== null ? Tooltip({interval, isGroupedByDate, ...tooltip}) : null,
+            tooltip !== null
+              ? Tooltip({interval, isGroupedByDate, utc, ...tooltip})
+              : null,
           legend: legend ? Legend({...legend}) : null,
           yAxis: yAxis !== null ? YAxis(yAxis) : null,
           xAxis:
@@ -203,6 +211,7 @@ class BaseChart extends React.Component {
                   ...xAxis,
                   interval,
                   isGroupedByDate,
+                  utc,
                 })
               : null,
           series: !previousPeriod

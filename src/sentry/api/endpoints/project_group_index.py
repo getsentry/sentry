@@ -22,15 +22,15 @@ from sentry.api.serializers.models.group import (
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, Environment, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
+    Activity, Commit, Environment, Group, GroupAssignee, GroupBookmark, GroupLink, GroupHash, GroupResolution,
     GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
-    GroupHashTombstone, GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption, User, Team
+    GroupTombstone, Release, Repository, TOMBSTONE_FIELDS_FROM_GROUP, UserOption, User, Team
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
 from sentry.receivers import DEFAULT_SAVED_SEARCHES
 from sentry.search.utils import InvalidQuery, parse_query
-from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release, issue_deleted
+from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release, issue_deleted, resolved_with_commit
 from sentry.tasks.deletion import delete_groups
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
@@ -93,9 +93,52 @@ class ValidationError(Exception):
     pass
 
 
+class InCommitValidator(serializers.Serializer):
+    commit = serializers.CharField(required=True)
+    repository = serializers.CharField(required=True)
+
+    def validate_repository(self, attrs, source):
+        value = attrs[source]
+        project = self.context['project']
+        try:
+            attrs[source] = Repository.objects.get(
+                organization_id=project.organization_id,
+                name=value,
+            )
+        except Repository.DoesNotExist:
+            raise serializers.ValidationError(
+                'Unable to find the given repository.'
+            )
+        return attrs
+
+    def validate(self, attrs):
+        attrs = super(InCommitValidator, self).validate(attrs)
+        repository = attrs.get('repository')
+        commit = attrs.get('commit')
+        if not repository:
+            raise serializers.ValidationError({
+                'repository': ['Unable to find the given repository.'],
+            })
+        if not commit:
+            raise serializers.ValidationError({
+                'commit': ['Unable to find the given commit.'],
+            })
+        try:
+            commit = Commit.objects.get(
+                repository_id=repository.id,
+                key=commit,
+            )
+        except Commit.DoesNotExist:
+            raise serializers.ValidationError({
+                'commit': ['Unable to find the given commit.'],
+            })
+        return commit
+
+
 class StatusDetailsValidator(serializers.Serializer):
     inNextRelease = serializers.BooleanField()
     inRelease = serializers.CharField()
+    inCommit = InCommitValidator(required=False)
     ignoreDuration = serializers.IntegerField()
     ignoreCount = serializers.IntegerField()
     # in minutes, max of one week
@@ -134,10 +177,14 @@ class StatusDetailsValidator(serializers.Serializer):
 
     def validate_inNextRelease(self, attrs, source):
         project = self.context['project']
-        if not Release.objects.filter(
-            projects=project,
-            organization_id=project.organization_id,
-        ).exists():
+        try:
+            attrs[source] = Release.objects.filter(
+                projects=project,
+                organization_id=project.organization_id,
+            ).extra(select={
+                'sort': 'COALESCE(date_released, date_added)',
+            }).order_by('-sort')[0]
+        except IndexError:
             raise serializers.ValidationError(
                 'No release data present in the system to form a basis for \'Next Release\''
             )
@@ -195,7 +242,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
     def _build_query_params_from_request(self, request, project):
         query_kwargs = {
-            'project': project,
+            'projects': [project],
             'sort_by': request.GET.get('sort', DEFAULT_SORT_OPTION),
         }
 
@@ -253,7 +300,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 user=acting_user, key='self_assign_issue', default='0'
             )
             if self_assign_issue == '1' and not group.assignee_set.exists():
-                result['assignedTo'] = Actor(type=User, id=extract_lazy_object(acting_user).id)
+                result['assignedTo'] = Actor(type=User, id=acting_user.id)
 
     # statsPeriod=24h
     @attach_scenarios([list_project_issues_scenario])
@@ -418,6 +465,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"resolvedInNextRelease"``,
                               ``"unresolved"``, and ``"ignored"``.
+        :param map statusDetails: additional details about the resolution.
+                                  Valid values are ``"inRelease"``, ``"inNextRelease"``,
+                                  ``"inCommit"``,  ``"ignoreDuration"``, ``"ignoreCount"``,
+                                  ``"ignoreWindow"``, ``"ignoreUserCount"``, and
+                                  ``"ignoreUserWindow"``.
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
@@ -512,9 +564,14 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         statusDetails = result.pop('statusDetails', result)
         status = result.get('status')
+        release = None
+        commit = None
+
         if status in ('resolved', 'resolvedInNextRelease'):
             if status == 'resolvedInNextRelease' or statusDetails.get('inNextRelease'):
-                release = Release.objects.filter(
+                # XXX(dcramer): this code is copied between the inNextRelease validator
+                # due to the status vs statusDetails field
+                release = statusDetails.get('inNextRelease') or Release.objects.filter(
                     projects=project,
                     organization_id=project.organization_id,
                 ).extra(select={
@@ -546,8 +603,18 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 res_type = GroupResolution.Type.in_release
                 res_type_str = 'in_release'
                 res_status = GroupResolution.Status.resolved
+            elif statusDetails.get('inCommit'):
+                commit = statusDetails['inCommit']
+                activity_type = Activity.SET_RESOLVED_IN_COMMIT
+                activity_data = {
+                    'commit': commit.id,
+                }
+                status_details = {
+                    'inCommit': serialize(commit, request.user),
+                    'actor': serialize(extract_lazy_object(request.user), request.user),
+                }
+                res_type_str = 'in_commit'
             else:
-                release = None
                 res_type_str = 'now'
                 activity_type = Activity.SET_RESOLVED
                 activity_data = {}
@@ -555,8 +622,29 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
             now = timezone.now()
 
+            # if we've specified a commit, let's see if its already been released
+            # this will allow us to associate the resolution to a release as if we
+            # were simply using 'inRelease' above
+            # Note: this is different than the way commit resolution works on deploy
+            # creation, as a given deploy is connected to an explicit release, and
+            # in this case we're simply choosing the most recent release which contains
+            # the commit.
+            if commit and not release:
+                try:
+                    release = Release.objects.filter(
+                        projects=project,
+                        releasecommit__commit=commit,
+                    ).extra(select={
+                        'sort': 'COALESCE(date_released, date_added)',
+                    }).order_by('-sort')[0]
+                    res_type = GroupResolution.Type.in_release
+                    res_status = GroupResolution.Status.resolved
+                except IndexError:
+                    release = None
+
             for group in group_list:
                 with transaction.atomic():
+                    resolution = None
                     if release:
                         resolution_params = {
                             'release': release,
@@ -572,8 +660,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         if not created:
                             resolution.update(
                                 datetime=timezone.now(), **resolution_params)
-                    else:
-                        resolution = None
+
+                    if commit:
+                        GroupLink.objects.create(
+                            group_id=group.id,
+                            project_id=group.project_id,
+                            linked_type=GroupLink.LinkedType.commit,
+                            relationship=GroupLink.Relationship.resolves,
+                            linked_id=commit.id,
+                        )
 
                     affected = Group.objects.filter(
                         id=group.id,
@@ -604,13 +699,21 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         if not is_bulk:
                             activity.send_notification()
 
-                issue_resolved_in_release.send_robust(
-                    group=group,
-                    project=project,
-                    user=acting_user,
-                    resolution_type=res_type_str,
-                    sender=self.__class__,
-                )
+                if release:
+                    issue_resolved_in_release.send_robust(
+                        group=group,
+                        project=project,
+                        user=acting_user,
+                        resolution_type=res_type_str,
+                        sender=type(self),
+                    )
+                elif commit:
+                    resolved_with_commit.send_robust(
+                        organization_id=group.project.organization_id,
+                        user=request.user,
+                        group=group,
+                        sender=type(self),
+                    )
 
                 kick_off_status_syncs.apply_async(kwargs={
                     'project_id': group.project_id,
@@ -979,13 +1082,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         ]).update(status=GroupStatus.PENDING_DELETION)
 
         eventstream_state = eventstream.start_delete_groups(project.id, group_ids)
-
-        GroupHashTombstone.tombstone_groups(
-            project_id=project.id,
-            group_ids=group_ids,
-        )
-
         transaction_id = uuid4().hex
+
+        GroupHash.objects.filter(
+            project_id=project.id,
+            group__id__in=group_ids,
+        ).delete()
 
         delete_groups.apply_async(
             kwargs={

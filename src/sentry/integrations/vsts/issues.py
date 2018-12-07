@@ -59,6 +59,7 @@ class VstsIssueSync(IssueSyncMixin):
         return default_project, project_choices
 
     def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'vsts_integration'
         fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
         # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
         # Workitems (issues) are associated with the project not the repository.
@@ -143,13 +144,18 @@ class VstsIssueSync(IssueSyncMixin):
         assignee = None
 
         if assign is True:
-            vsts_users = client.get_users(self.model.name)
             sentry_emails = [email.email.lower() for email in user.get_verified_emails()]
+            continuation_token = None
+            while True:
+                vsts_users = client.get_users(self.model.name, continuation_token)
+                continuation_token = vsts_users.headers.get('X-MS-ContinuationToken')
+                for vsts_user in vsts_users['value']:
+                    vsts_email = vsts_user.get(u'mailAddress')
+                    if vsts_email and vsts_email.lower() in sentry_emails:
+                        assignee = vsts_user['mailAddress']
+                        break
 
-            for vsts_user in vsts_users['value']:
-                vsts_email = vsts_user.get(u'mailAddress')
-                if vsts_email and vsts_email.lower() in sentry_emails:
-                    assignee = vsts_user['mailAddress']
+                if not continuation_token:
                     break
 
             if assignee is None:

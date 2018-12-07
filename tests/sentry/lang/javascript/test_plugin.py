@@ -37,7 +37,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Http': {
+            'request': {
                 'url':
                 'http://example.com',
                 'headers': [
@@ -82,7 +82,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Http': {
+            'request': {
                 'url':
                 'http://example.com',
                 'headers': [
@@ -120,7 +120,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Http': {
+            'request': {
                 'url':
                 'http://example.com',
                 'headers': [
@@ -151,7 +151,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -191,7 +191,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         event = Event.objects.get()
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -213,7 +213,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -250,7 +250,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         event = Event.objects.get()
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -264,10 +264,10 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Message': {
+            'logentry': {
                 'message': u'ReferenceError: Impossible de d\xe9finir une propri\xe9t\xe9 \xab foo \xbb : objet non extensible'
             },
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -286,10 +286,10 @@ class JavascriptIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        message = event.interfaces['sentry.interfaces.Message']
+        message = event.interfaces['logentry']
         assert message.message == 'ReferenceError: Cannot define property \'foo\': object is not extensible'
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         assert exception.values[0].value == 'Too many files'
         assert exception.values[1].value == 'foo: an unexpected failure occurred while trying to obtain metadata information'
 
@@ -324,7 +324,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -364,7 +364,7 @@ class JavascriptIntegrationTest(TestCase):
             }
         ]
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -406,7 +406,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -446,7 +446,7 @@ class JavascriptIntegrationTest(TestCase):
             }
         ]
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -497,7 +497,7 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'release': 'abc',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -519,9 +519,9 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         assert len(frame_list) == 1
@@ -569,7 +569,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -598,9 +598,9 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -742,7 +742,7 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'release': 'abc',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -770,9 +770,9 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -900,7 +900,7 @@ class JavascriptIntegrationTest(TestCase):
             'platform': 'javascript',
             'release': 'abc',
             'dist': 'foo',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -928,9 +928,9 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -975,7 +975,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1014,7 +1014,7 @@ class JavascriptIntegrationTest(TestCase):
             }
         ]
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -1051,7 +1051,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1085,7 +1085,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1125,7 +1125,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1152,7 +1152,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code == 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == []
+        assert 'errors' not in event.data
 
     @responses.activate
     def test_html_response_for_js(self):
@@ -1177,7 +1177,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1260,7 +1260,7 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'node',
             'release': 'nodeabc123',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1314,7 +1314,7 @@ class JavascriptIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         assert len(frame_list) == 6
@@ -1369,7 +1369,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'node',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1422,7 +1422,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         # This one should not process, so this one should be none.

@@ -12,10 +12,10 @@ class LocalhostFilterTest(TestCase):
 
     def get_mock_data(self, client_ip=None, url=None):
         return {
-            'sentry.interfaces.User': {
+            'user': {
                 'ip_address': client_ip,
             },
-            'sentry.interfaces.Http': {
+            'request': {
                 'url': url,
             }
         }

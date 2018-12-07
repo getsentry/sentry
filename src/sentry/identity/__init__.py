@@ -12,7 +12,6 @@ from .vsts_extension import *  # NOQA
 from .bitbucket import *  # NOQA
 from .gitlab import *  # NOQA
 
-
 default_manager = IdentityManager()
 all = default_manager.all
 get = default_manager.get

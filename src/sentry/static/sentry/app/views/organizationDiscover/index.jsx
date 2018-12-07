@@ -1,11 +1,13 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import jQuery from 'jquery';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
+
+import {updateProjects} from 'app/actionCreators/globalSelection';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import Discover from './discover';
 import createQueryBuilder from './queryBuilder';
@@ -17,44 +19,49 @@ import {
   getView,
 } from './utils';
 
-import {
-  DiscoverWrapper,
-  DiscoverContainer,
-  Sidebar,
-  Body,
-  PageTitle,
-  TopBar,
-  LoadingContainer,
-} from './styles';
+import {DiscoverWrapper} from './styles';
 
-export default class OrganizationDiscoverContainer extends React.Component {
+class OrganizationDiscoverContainer extends React.Component {
   static contextTypes = {
     organization: SentryTypes.Organization,
   };
 
-  constructor(props) {
-    super(props);
+  static propTypes = {
+    selection: PropTypes.object.isRequired,
+  };
+
+  constructor(props, context) {
+    super(props, context);
+
     this.state = {
       isLoading: true,
       savedQuery: null,
-      view: getView(props.location.query.view),
+      view: getView(props.params, props.location.query.view),
     };
+
+    const {search} = props.location;
+    const {organization} = context;
+
+    const query = getQueryFromQueryString(search);
+    if (query.hasOwnProperty('projects')) {
+      // Update global store with projects from querystring
+      updateProjects(query.projects);
+    } else {
+      // Update query with global projects
+      query.projects = props.selection.projects;
+    }
+
+    this.queryBuilder = createQueryBuilder(query, organization);
   }
 
   componentDidMount() {
     jQuery(document.body).addClass('body-discover');
 
     const {savedQueryId} = this.props.params;
-    const {search} = this.props.location;
-    const {organization} = this.context;
 
     if (savedQueryId) {
       this.fetchSavedQuery(savedQueryId).then(this.loadTags);
     } else {
-      this.queryBuilder = createQueryBuilder(
-        getQueryFromQueryString(search),
-        organization
-      );
       this.loadTags();
     }
   }
@@ -62,6 +69,11 @@ export default class OrganizationDiscoverContainer extends React.Component {
   componentWillReceiveProps(nextProps) {
     if (!nextProps.params.savedQueryId) {
       this.setState({savedQuery: null});
+      // Reset querybuilder if we're switching from a saved query
+      if (this.props.params.savedQueryId) {
+        const projects = nextProps.selection.projects;
+        this.queryBuilder.reset({projects});
+      }
       return;
     }
 
@@ -70,7 +82,7 @@ export default class OrganizationDiscoverContainer extends React.Component {
     }
 
     if (nextProps.location.query.view !== this.props.location.query.view) {
-      this.setState({view: getView(nextProps.location.query.view)});
+      this.setState({view: getView(nextProps.params, nextProps.location.query.view)});
     }
   }
 
@@ -136,22 +148,6 @@ export default class OrganizationDiscoverContainer extends React.Component {
     );
   }
 
-  renderLoading() {
-    return (
-      <DiscoverContainer>
-        <Sidebar>
-          <PageTitle>{t('Discover')}</PageTitle>
-        </Sidebar>
-        <Body>
-          <TopBar />
-          <LoadingContainer>
-            <LoadingIndicator />
-          </LoadingContainer>
-        </Body>
-      </DiscoverContainer>
-    );
-  }
-
   render() {
     const {isLoading, savedQuery, view} = this.state;
 
@@ -165,23 +161,23 @@ export default class OrganizationDiscoverContainer extends React.Component {
     return (
       <DocumentTitle title={`Discover - ${organization.slug} - Sentry`}>
         <DiscoverWrapper>
-          {isLoading ? (
-            this.renderLoading()
-          ) : (
-            <Discover
-              organization={organization}
-              queryBuilder={this.queryBuilder}
-              location={location}
-              params={params}
-              savedQuery={savedQuery}
-              isEditingSavedQuery={this.props.location.query.editing === 'true'}
-              updateSavedQueryData={this.updateSavedQuery}
-              view={view}
-              toggleEditMode={this.toggleEditMode}
-            />
-          )}
+          <Discover
+            isLoading={isLoading}
+            organization={organization}
+            queryBuilder={this.queryBuilder}
+            location={location}
+            params={params}
+            savedQuery={savedQuery}
+            isEditingSavedQuery={this.props.location.query.editing === 'true'}
+            updateSavedQueryData={this.updateSavedQuery}
+            view={view}
+            toggleEditMode={this.toggleEditMode}
+          />
         </DiscoverWrapper>
       </DocumentTitle>
     );
   }
 }
+
+export default withGlobalSelection(OrganizationDiscoverContainer);
+export {OrganizationDiscoverContainer};

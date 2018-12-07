@@ -174,6 +174,12 @@ export const Event = PropTypes.shape({
   user: PropTypes.object,
 });
 
+export const EventError = PropTypes.shape({
+  type: PropTypes.string.isRequired,
+  message: PropTypes.string.isRequired,
+  data: PropTypes.object,
+});
+
 export const Tag = PropTypes.shape({
   id: PropTypes.string.isRequired,
   key: PropTypes.string.isRequired,
@@ -298,6 +304,13 @@ export const PluginsStore = PropTypes.shape({
   plugins: PropTypes.arrayOf(PluginShape),
   error: PropTypes.object,
   pageLinks: PropTypes.any,
+});
+
+export const AuthProvider = PropTypes.shape({
+  key: PropTypes.string,
+  name: PropTypes.string,
+  requiredFeature: PropTypes.string,
+  disables2FA: PropTypes.bool,
 });
 
 export const ProjectDsn = {
@@ -835,6 +848,7 @@ let SentryTypes = {
     id: PropTypes.string.isRequired,
   }),
   Actor,
+  AuthProvider,
   Config,
   Deploy,
   DiscoverSavedQuery,

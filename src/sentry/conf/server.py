@@ -448,7 +448,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
     'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
     'sentry.tagstore.tasks', 'sentry.tasks.assemble', 'sentry.tasks.integrations',
-    'sentry.tasks.files',
+    'sentry.tasks.files', 'sentry.tasks.app_platform',
 )
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
@@ -679,6 +679,10 @@ LOGGING = {
         'sentry': {
             'level': 'INFO',
         },
+        'sentry.minidumps': {
+            'handlers': ['internal'],
+            'propagate': False,
+        },
         # This only needs to go to Sentry for now.
         'sentry.similarity': {
             'handlers': ['internal'],
@@ -780,7 +784,7 @@ SENTRY_FEATURES = {
     # Enable attaching arbitrary files to events.
     'organizations:event-attachments': False,
     # Enable the organization wide events stream interface.
-    'organizations:events-stream': False,
+    'organizations:global-views': False,
     # Enable the interface and functionality for unmerging event groups.
     'organizations:group-unmerge': False,
     # Enable the 'health' interface.
@@ -798,6 +802,8 @@ SENTRY_FEATURES = {
     'organizations:invite-members': True,
     # Enable gitlab integration currently available to early adopters only.
     'organizations:gitlab-integration': False,
+    # Enable jira server integration currently available to internal users only.
+    'organizations:jira-server-integration': False,
 
     # DEPRECATED: pending removal.
     'organizations:js-loader': False,
@@ -1315,12 +1321,13 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     'sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider',
     'sentry.integrations.gitlab.GitlabIntegrationProvider',
     'sentry.integrations.jira.JiraIntegrationProvider',
+    'sentry.integrations.jira_server.JiraServerIntegrationProvider',
     'sentry.integrations.vsts.VstsIntegrationProvider',
     'sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider',
 )
 
 SENTRY_INTERNAL_INTEGRATIONS = (
-    'vsts-extension',
+    'jira_server',
 )
 
 
@@ -1413,6 +1420,14 @@ SENTRY_RELAY_WHITELIST_PK = []
 # When open registration is not permitted then only relays in the
 # whitelist can register.
 SENTRY_RELAY_OPEN_REGISTRATION = False
+
+# GeoIP
+# Used for looking up IP addresses.
+# For example /usr/local/share/GeoIP/GeoIPCity.dat
+GEOIP_PATH = None
+# Same file but in the newer format. Both are required.
+# For example /usr/local/share/GeoIP/GeoIPCity.mmdb
+GEOIP_PATH_MMDB = None
 
 # CDN
 # If this is an absolute url like e.g.: https://js.sentry-cdn.com/

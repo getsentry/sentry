@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pytest
 import mock
 import logging
 
@@ -20,6 +21,14 @@ def make_event(**kwargs):
     }
     result.update(kwargs)
     return result
+
+
+def test_tags_none():
+    manager = EventManager(make_event(tags=None))
+    manager.normalize()
+    data = manager.get_data()
+
+    assert not data.get('tags')
 
 
 def test_tags_as_list():
@@ -44,27 +53,34 @@ def test_interface_is_relabeled():
     data = manager.get_data()
 
     assert data['user'] == {'id': '1'}
-    # data is a CanonicalKeyDict, so we need to check .keys() explicitly
-    assert 'sentry.interfaces.User' not in data.keys()
 
 
-def test_does_default_ip_address_to_user():
-    manager = EventManager(
-        make_event(
-            **{
-                'sentry.interfaces.Http': {
-                    'url': 'http://example.com',
-                    'env': {
-                        'REMOTE_ADDR': '127.0.0.1',
-                    }
-                }
-            }
-        )
-    )
+def test_interface_none():
+    manager = EventManager(make_event(user=None))
     manager.normalize()
     data = manager.get_data()
 
-    assert data['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+    assert 'user' not in data
+
+
+@pytest.mark.parametrize('user', ['missing', None, {}, {'ip_address': None}])
+def test_does_default_ip_address_to_user(user):
+    event = {
+        'request': {
+            'url': 'http://example.com',
+            'env': {
+                'REMOTE_ADDR': '127.0.0.1',
+            }
+        }
+    }
+    if user != 'missing':
+        event['user'] = user
+
+    manager = EventManager(make_event(**event))
+    manager.normalize()
+    data = manager.get_data()
+
+    assert data['user']['ip_address'] == '127.0.0.1'
 
 
 @mock.patch('sentry.interfaces.geo.Geo.from_ip_address')
@@ -81,7 +97,7 @@ def test_does_geo_from_ip(from_ip_address_mock):
     manager = EventManager(
         make_event(
             **{
-                'sentry.interfaces.User': {
+                'user': {
                     'ip_address': '192.168.0.1',
                 },
             }
@@ -90,8 +106,8 @@ def test_does_geo_from_ip(from_ip_address_mock):
 
     manager.normalize()
     data = manager.get_data()
-    assert data['sentry.interfaces.User']['ip_address'] == '192.168.0.1'
-    assert data['sentry.interfaces.User']['geo'] == geo
+    assert data['user']['ip_address'] == '192.168.0.1'
+    assert data['user']['geo'] == geo
 
 
 @mock.patch('sentry.interfaces.geo.geo_by_addr')
@@ -101,7 +117,7 @@ def test_skips_geo_with_no_result(geo_by_addr_mock):
     manager = EventManager(
         make_event(
             **{
-                'sentry.interfaces.User': {
+                'user': {
                     'ip_address': '127.0.0.1',
                 },
             }
@@ -109,21 +125,21 @@ def test_skips_geo_with_no_result(geo_by_addr_mock):
     )
     manager.normalize()
     data = manager.get_data()
-    assert data['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
-    assert 'geo' not in data['sentry.interfaces.User']
+    assert data['user']['ip_address'] == '127.0.0.1'
+    assert 'geo' not in data['user']
 
 
 def test_does_default_ip_address_if_present():
     manager = EventManager(
         make_event(
             **{
-                'sentry.interfaces.Http': {
+                'request': {
                     'url': 'http://example.com',
                     'env': {
                         'REMOTE_ADDR': '127.0.0.1',
                     }
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     'ip_address': '192.168.0.1',
                 },
             }
@@ -131,7 +147,7 @@ def test_does_default_ip_address_if_present():
     )
     manager.normalize()
     data = manager.get_data()
-    assert data['sentry.interfaces.User']['ip_address'] == '192.168.0.1'
+    assert data['user']['ip_address'] == '192.168.0.1'
 
 
 def test_long_culprit():
@@ -160,7 +176,7 @@ def test_long_message():
     )
     manager.normalize()
     data = manager.get_data()
-    assert len(data['sentry.interfaces.Message']['message']) == \
+    assert len(data['logentry']['message']) == \
         settings.SENTRY_MAX_MESSAGE_LENGTH
 
 
@@ -191,12 +207,42 @@ def test_logger():
     assert not any(e.get('name') == 'logger' for e in data['errors'])
 
 
+def test_moves_stacktrace_to_exception():
+    manager = EventManager(
+        make_event(
+            exception={
+                'type': 'MyException',
+            },
+            stacktrace={
+                'frames': [
+                    {
+                        'lineno': 1,
+                        'filename': 'foo.py',
+                    }, {
+                        'lineno': 1,
+                        'filename': 'bar.py',
+                    }
+                ]
+            }
+        )
+    )
+    manager.normalize()
+    data = manager.get_data()
+
+    frames = data['exception']['values'][0]['stacktrace']['frames']
+    assert frames[0]['lineno'] == 1
+    assert frames[0]['filename'] == 'foo.py'
+    assert frames[1]['lineno'] == 1
+    assert frames[1]['filename'] == 'bar.py'
+    assert 'stacktrace' not in data
+
+
 def test_bad_interfaces_no_exception():
     manager = EventManager(
         make_event(
             **{
-                'sentry.interfaces.User': None,
-                'sentry.interfaces.Http': None,
+                'user': None,
+                'request': None,
                 'sdk': 'A string for sdk is not valid'
             }
         ),
@@ -208,7 +254,7 @@ def test_bad_interfaces_no_exception():
         make_event(
             **{
                 'errors': {},
-                'sentry.interfaces.Http': {},
+                'request': {},
             }
         )
     )
@@ -225,3 +271,17 @@ def test_event_pii():
     manager.normalize()
     data = manager.get_data()
     assert data['_meta']['message'] == {'': {'err': ['invalid']}}
+
+
+def test_event_id_lowercase():
+    manager = EventManager(make_event(event_id='1234ABCD' * 4))
+    manager.normalize()
+    data = manager.get_data()
+
+    assert data['event_id'] == '1234abcd' * 4
+
+    manager = EventManager(make_event(event_id=u'1234ABCD' * 4))
+    manager.normalize()
+    data = manager.get_data()
+
+    assert data['event_id'] == '1234abcd' * 4

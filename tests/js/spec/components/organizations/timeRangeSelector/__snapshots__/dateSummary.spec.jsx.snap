@@ -4,72 +4,66 @@ exports[`DateSummary renders 1`] = `
 <DateSummary
   end={2017-10-17T02:38:00.000Z}
   start={2017-10-14T02:38:00.000Z}
-  useUtc={true}
+  utc={true}
 >
-  <Flex
-    align="center"
+  <DateGroupWrapper
+    hasTime={true}
   >
-    <Base
-      align="center"
-      className="css-5ipae5"
+    <div
+      className="css-1eqyixq-DateGroupWrapper eyxmd2r0"
     >
-      <div
-        className="css-5ipae5"
-        is={null}
-      >
-        <DateGroup>
-          <div
-            className="css-8ah8mg-DateGroup eyxmd2r0"
+      <DateGroup>
+        <div
+          className="css-8ah8mg-DateGroup eyxmd2r1"
+        >
+          <Date
+            hasTime={true}
           >
-            <Date
-              hasTime={true}
+            <div
+              className="css-1gi0kmy-Date eyxmd2r2"
             >
-              <div
-                className="css-1j322kv-Date eyxmd2r1"
-              >
-                Oct 14, 2017
-                <Time>
-                  <div
-                    className="css-101687m-Time eyxmd2r2"
-                  >
-                    02:38
-                  </div>
-                </Time>
-              </div>
-            </Date>
-          </div>
-        </DateGroup>
-        <DateRangeDivider>
-          <span
-            className="css-1qowu2b-DateRangeDivider eyxmd2r3"
+              Oct 14, 2017
+              <Time>
+                <div
+                  className="css-ul1hyh-Time eyxmd2r3"
+                >
+                  02:38
+                </div>
+              </Time>
+            </div>
+          </Date>
+        </div>
+      </DateGroup>
+      <DateRangeDivider>
+        <span
+          className="css-1qowu2b-DateRangeDivider eyxmd2r4"
+        >
+          to
+        </span>
+      </DateRangeDivider>
+      <DateGroup>
+        <div
+          className="css-8ah8mg-DateGroup eyxmd2r1"
+        >
+          <Date
+            hasTime={true}
           >
-            to
-          </span>
-        </DateRangeDivider>
-        <DateGroup>
-          <div
-            className="css-8ah8mg-DateGroup eyxmd2r0"
-          >
-            <Date
-              hasTime={true}
+            <div
+              className="css-1gi0kmy-Date eyxmd2r2"
             >
-              <div
-                className="css-1j322kv-Date eyxmd2r1"
-              >
-                Oct 17, 2017
-                <Time>
-                  <div
-                    className="css-101687m-Time eyxmd2r2"
-                  >
-                    02:38
-                  </div>
-                </Time>
-              </div>
-            </Date>
-          </div>
-        </DateGroup>
-      </div>
-    </Base>
-  </Flex>
+              Oct 17, 2017
+              <Time>
+                <div
+                  className="css-ul1hyh-Time eyxmd2r3"
+                >
+                  02:38
+                </div>
+              </Time>
+            </div>
+          </Date>
+        </div>
+      </DateGroup>
+    </div>
+  </DateGroupWrapper>
 </DateSummary>
 `;

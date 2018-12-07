@@ -7,7 +7,7 @@ from sentry.plugins import providers
 from sentry.models import Integration
 from sentry.utils.http import absolute_uri
 
-from sentry.integrations.exceptions import ApiError
+from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models.apitoken import generate_token
 
 from .webhook import parse_raw_user_email, parse_raw_user_name
@@ -18,17 +18,17 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:
-            raise ValueError('Bitbucket requires an integration id.')
-
-        try:
-            integration_model = Integration.objects.get(id=integration_id)
-        except Integration.DoesNotExist as error:
-            self.handle_api_error(error)
+            raise IntegrationError('Bitbucket requires an integration id.')
+        integration_model = Integration.objects.get(
+            id=integration_id,
+            organizations=organization_id,
+            provider='bitbucket',
+        )
 
         return integration_model.get_installation(organization_id)
 
     def get_repository_data(self, organization, config):
-        installation = self.get_installation(config['installation'], organization.id)
+        installation = self.get_installation(config.get('installation'), organization.id)
         client = installation.get_client()
         try:
             repo = client.get_repo(config['identifier'])
@@ -57,7 +57,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         return secret
 
     def build_repository_config(self, organization, data):
-        installation = self.get_installation(data['installation'], organization.id)
+        installation = self.get_installation(data.get('installation'), organization.id)
         client = installation.get_client()
         try:
             resp = client.create_hook(
@@ -103,6 +103,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'author_email': parse_raw_user_email(c['author']['raw']),
                 'author_name': parse_raw_user_name(c['author']['raw']),
                 'message': c['message'],
+                'timestamp': self.format_date(c['date']),
                 'patch_set': c.get('patch_set'),
             } for c in commit_list
         ]
@@ -126,3 +127,6 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 installation.raise_error(e)
             else:
                 return self._format_commits(repo, res)
+
+    def repository_external_slug(self, repo):
+        return repo.name

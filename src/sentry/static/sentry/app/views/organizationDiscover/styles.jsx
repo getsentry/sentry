@@ -4,10 +4,14 @@ import {Flex, Box} from 'grid-emotion';
 import {keyframes} from 'emotion';
 
 import space from 'app/styles/space';
+import {slideInLeft} from 'app/styles/animations';
 
 import {Panel, PanelItem} from 'app/components/panels';
+import Button from 'app/components/button';
 import NavTabs from 'app/components/navTabs';
 import Link from 'app/components/link';
+import Header from 'app/components/organizations/header';
+import theme from 'app/utils/theme';
 
 const HEADER_HEIGHT = 60;
 
@@ -18,12 +22,19 @@ export const DiscoverWrapper = styled(Flex)`
 export const DiscoverContainer = styled(Flex)`
   width: 100%;
   height: 100vh;
+  position: relative;
 
   margin-bottom: -20px;
 
   .control-group {
     margin-bottom: 0; /* Do not want the global control-group margins  */
   }
+`;
+
+export const DiscoverHeader = styled(Header)`
+  position: absolute;
+  top: 0;
+  left: 0;
 `;
 
 export const PageTitle = styled.h2`
@@ -34,30 +45,67 @@ export const PageTitle = styled.h2`
   margin: 0;
   align-items: center;
   padding-left: ${space(4)};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
   height: ${HEADER_HEIGHT}px;
 `;
 
+export const ResultViewActions = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid ${p => p.theme.borderLight};
+  margin-bottom: ${space(3)};
+
+  @media (max-width: ${theme.breakpoints[1]}) {
+    justify-content: flex-start;
+  }
+`;
+
+export const ResultViewButtons = styled(NavTabs)`
+  margin-bottom: 0;
+
+  @media (max-width: ${theme.breakpoints[1]}) {
+    display: none;
+  }
+`;
+
+export const ResultViewDropdownButtons = styled('div')`
+  display: none;
+  @media (max-width: ${theme.breakpoints[1]}) {
+    display: flex;
+    margin-bottom: ${space(2)};
+  }
+`;
+
+export const DownloadCsvButton = styled(Button)`
+  @media (max-width: ${theme.breakpoints[1]}) {
+    margin-left: ${space(0.5)};
+    top: 0;
+  }
+`;
+
 export const Sidebar = styled(props => (
-  <Flex {...props} direction="column" w={[320, 320, 320, 380]} />
+  <Flex {...props} direction="column" w={[300, 300, 300, 360]} />
 ))`
   border-right: 1px solid ${p => p.theme.borderDark};
   min-width: 320px;
   position: relative;
+  padding-top: ${HEADER_HEIGHT}px;
 `;
 
 export const Body = styled(Flex)`
   flex: 1;
   flex-direction: column;
   overflow: hidden;
+  padding-top: ${HEADER_HEIGHT}px;
 `;
 
 export const BodyContent = styled(Flex)`
   flex: 1;
   flex-direction: column;
-  padding: ${space(1.5)} 32px 32px 32px;
+  padding: ${space(3)} ${space(4)} ${space(4)} ${space(4)};
   overflow-y: scroll;
   position: relative;
+  background: ${p => p.theme.whiteDark};
 `;
 
 export const LoadingContainer = styled(Flex)`
@@ -66,13 +114,8 @@ export const LoadingContainer = styled(Flex)`
   height: 100%;
 `;
 
-export const TopBar = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  height: ${HEADER_HEIGHT}px;
-`;
-
 export const SidebarTabs = styled(props => <NavTabs {...props} underlined={true} />)`
-  padding: 20px 30px 0;
+  padding: ${space(3)} ${space(3)} 0;
   margin: 0;
 `;
 
@@ -81,16 +124,22 @@ export const PlaceholderText = styled.div`
   font-size: 15px;
 `;
 
+export const HeadingContainer = styled(Flex)`
+  min-width: 70px;
+  margin: ${space(1)} 0 ${space(2)};
+  align-items: center;
+`;
+
 export const Heading = styled.h2`
-  font-size: 20px;
-  line-height: 24px;
+  font-size: ${p => p.theme.headerFontSize};
+  line-height: ${p => p.theme.headerFontSize};
   font-weight: normal;
   color: ${p => p.theme.gray4};
   margin: 0;
 `;
 
 export const Fieldset = styled.fieldset`
-  margin: ${space(3)} ${space(4)};
+  margin: ${space(3)};
 `;
 
 export const SelectListItem = styled(Flex)`
@@ -172,6 +221,7 @@ export const ChartNote = styled(Box)`
 export const SavedQueryAction = styled(Link)`
   color: ${p => p.theme.gray6};
   margin-left: ${space(2)};
+  display: flex;
 `;
 
 export const SavedQueryWrapper = styled('div')`
@@ -182,6 +232,7 @@ export const SavedQueryWrapper = styled('div')`
 export const SavedQueryList = styled(Panel)`
   margin: 0;
   border: 0;
+  overflow: hidden;
 `;
 
 export const SavedQueryListItem = styled(({isActive, ...props}) => (
@@ -202,15 +253,6 @@ export const SavedQueryUpdated = styled('div')`
   color: ${p => p.theme.gray6};
 `;
 
-const slidein = keyframes`
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 0;
-  }
-`;
-
 export const QueryPanelContainer = styled('div')`
   position: absolute;
   width: calc(100% + 1px); /* Add 1px for border */
@@ -218,7 +260,7 @@ export const QueryPanelContainer = styled('div')`
   background-color: white;
   top: ${HEADER_HEIGHT}px;
   border-right: 1px solid ${p => p.theme.borderLight};
-  animation: ${slidein} 0.6s ease-in;
+  animation: ${slideInLeft} 0.2s ease-in;
   overflow-y: scroll;
 `;
 

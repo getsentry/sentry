@@ -247,7 +247,9 @@ export default class AccountNotificationFineTuning extends AsyncView {
         {description && <TextBlock>{description}</TextBlock>}
 
         {field &&
-          field.defaultFieldName && (
+          field.defaultFieldName &&
+          // not implemented yet
+          field.defaultFieldName !== 'weeklyReports' && (
             <Form
               saveOnBlur
               apiMethod="PUT"

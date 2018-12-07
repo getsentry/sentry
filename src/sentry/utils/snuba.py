@@ -4,37 +4,41 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
-from itertools import chain
-from operator import or_
+import os
 import pytz
+import re
 import six
 import time
 import urllib3
 
 from django.conf import settings
-from django.db.models import Q
 
-from sentry import quotas, options
-from sentry.event_manager import HASH_RE
+from sentry import quotas
 from sentry.models import (
-    Environment, Group, GroupHash, GroupHashTombstone, GroupRelease,
+    Environment, Group, GroupRelease,
     Organization, Project, Release, ReleaseProject
 )
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
-from functools import reduce
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
 MAX_HASHES = 5000
 
+# Global Snuba request option override dictionary. Only intended
+# to be used with the `options_override` contextmanager below.
+# NOT THREAD SAFE!
+OVERRIDE_OPTIONS = {
+    'consistent': os.environ.get('SENTRY_SNUBA_CONSISTENT', 'false').lower() in ('true', '1')
+}
+
 SENTRY_SNUBA_MAP = {
     # general
-    'event_id': 'event_id',
-    'project_id': 'project_id',
+    'id': 'event_id',
+    'project.id': 'project_id',
     'platform': 'platform',
     'message': 'message',
-    'issue': 'issue',
+    'issue.id': 'issue',
     'timestamp': 'timestamp',
     'time': 'time',
     'type': 'type',
@@ -72,8 +76,8 @@ SENTRY_SNUBA_MAP = {
     # error, stack
     'error.type': 'exception_stacks.type',
     'error.value': 'exception_stacks.value',
-    'error.mechanism_type': 'exception_stacks.mechanism_type',
-    'error.mechanism_handled': 'exception_stacks.mechanism_handled',
+    'error.mechanism': 'exception_stacks.mechanism_type',
+    'error.handled': 'exception_stacks.mechanism_handled',
     'stack.abs_path': 'exception_frames.abs_path',
     'stack.filename': 'exception_frames.filename',
     'stack.package': 'exception_frames.package',
@@ -99,6 +103,51 @@ class SnubaError(Exception):
     pass
 
 
+class UnqualifiedQueryError(SnubaError):
+    """
+    Exception raised when no project_id qualifications were provided in the
+    query or could be derived from other filter criteria.
+    """
+
+
+class UnexpectedResponseError(SnubaError):
+    """
+    Exception raised when the Snuba API server returns an unexpected response
+    type (e.g. not JSON.)
+    """
+
+
+class QueryExecutionError(SnubaError):
+    """
+    Exception raised when a query failed to execute.
+    """
+
+
+class RateLimitExceeded(SnubaError):
+    """
+    Exception raised when a query cannot be executed due to rate limits.
+    """
+
+
+class SchemaValidationError(QueryExecutionError):
+    """
+    Exception raised when a query is not valid.
+    """
+
+
+class QueryMemoryLimitExceeded(QueryExecutionError):
+    """
+    Exception raised when a query would exceed the memory limit.
+    """
+
+
+class QueryIllegalTypeOfArgument(QueryExecutionError):
+    """
+    Exception raised when a function in the query is provided an invalid
+    argument type.
+    """
+
+
 class QueryOutsideRetentionError(Exception):
     pass
 
@@ -114,6 +163,34 @@ def timer(name, prefix='snuba.client'):
         yield
     finally:
         metrics.timing(u'{}.{}'.format(prefix, name), time.time() - t)
+
+
+@contextmanager
+def options_override(overrides):
+    """\
+    NOT THREAD SAFE!
+
+    Adds to OVERRIDE_OPTIONS, restoring previous values and removing
+    keys that didn't previously exist on exit, so that calls to this
+    can be nested.
+    """
+    previous = {}
+    delete = []
+
+    for k, v in overrides.items():
+        try:
+            previous[k] = OVERRIDE_OPTIONS[k]
+        except KeyError:
+            delete.append(k)
+        OVERRIDE_OPTIONS[k] = v
+
+    try:
+        yield
+    finally:
+        for k, v in previous.items():
+            OVERRIDE_OPTIONS[k] = v
+        for k in delete:
+            OVERRIDE_OPTIONS.pop(k)
 
 
 def connection_from_url(url, **kw):
@@ -141,6 +218,12 @@ def get_snuba_column_name(name):
     return SENTRY_SNUBA_MAP.get(name, u'tags[{}]'.format(name))
 
 
+def get_arrayjoin(column):
+    match = re.match(r'^(exception_stacks|exception_frames|contexts)\..+$', column)
+    if match:
+        return match.groups()[0]
+
+
 def transform_aliases_and_query(**kwargs):
     """
     Convert aliases in selected_columns, groupby, aggregation, conditions,
@@ -161,6 +244,7 @@ def transform_aliases_and_query(**kwargs):
     groupby = kwargs['groupby']
     aggregations = kwargs['aggregations']
     conditions = kwargs['conditions'] or []
+    filter_keys = kwargs['filter_keys']
 
     for (idx, col) in enumerate(selected_columns):
         name = get_snuba_column_name(col)
@@ -175,6 +259,10 @@ def transform_aliases_and_query(**kwargs):
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
         aggregation[1] = get_snuba_column_name(aggregation[1])
+
+    for (col, _value) in six.iteritems(filter_keys):
+        name = get_snuba_column_name(col)
+        filter_keys[name] = filter_keys.pop(col)
 
     def handle_condition(cond):
         if isinstance(cond, (list, tuple)) and len(cond):
@@ -217,7 +305,7 @@ def transform_aliases_and_query(**kwargs):
 def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
               aggregations=None, rollup=None, arrayjoin=None, limit=None, offset=None,
               orderby=None, having=None, referrer=None, is_grouprelease=False,
-              selected_columns=None, totals=None, limitby=None):
+              selected_columns=None, totals=None, limitby=None, turbo=False):
     """
     Sends a query to snuba.
 
@@ -271,7 +359,8 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
                 conditions.append((col, 'IN', keys))
 
     if not project_ids:
-        raise SnubaError("No project_id filter, or none could be inferred from other filters.")
+        raise UnqualifiedQueryError(
+            "No project_id filter, or none could be inferred from other filters.")
 
     # any project will do, as they should all be from the same organization
     project = Project.objects.get(pk=project_ids[0])
@@ -283,21 +372,8 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         if start > end:
             raise QueryOutsideRetentionError
 
-    use_group_id_column = options.get('snuba.use_group_id_column')
-    issues = None
-    if not use_group_id_column:
-        # If the grouping, aggregation, or any of the conditions reference `issue`
-        # we need to fetch the issue definitions (issue -> fingerprint hashes)
-        aggregate_cols = [a[1] for a in aggregations]
-        condition_cols = all_referenced_columns(conditions)
-        all_cols = groupby + aggregate_cols + condition_cols + selected_columns
-        get_issues = 'issue' in all_cols
-
-        if get_issues:
-            with timer('get_project_issues'):
-                issues = get_project_issues(project_ids, filter_keys.get('issue'))
-
-    start, end = shrink_time_window(filter_keys.get('issue'), start, end)
+    if referrer != 'tsdb':
+        start, end = shrink_time_window(filter_keys.get('issue'), start, end)
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
@@ -315,15 +391,16 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'project': project_ids,
         'aggregations': aggregations,
         'granularity': rollup,
-        'use_group_id_column': use_group_id_column,
-        'issues': issues,
         'arrayjoin': arrayjoin,
         'limit': limit,
         'offset': offset,
         'limitby': limitby,
         'orderby': orderby,
         'selected_columns': selected_columns,
+        'turbo': turbo
     }) if v is not None}
+
+    request.update(OVERRIDE_OPTIONS)
 
     headers = {}
     if referrer:
@@ -339,11 +416,24 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     try:
         body = json.loads(response.data)
     except ValueError:
-        raise SnubaError(u"Could not decode JSON response: {}".format(response.data))
+        raise UnexpectedResponseError(u"Could not decode JSON response: {}".format(response.data))
 
     if response.status != 200:
         if body.get('error'):
-            raise SnubaError(body['error'])
+            error = body['error']
+            if response.status == 429:
+                raise RateLimitExceeded(error['message'])
+            elif error['type'] == 'schema':
+                raise SchemaValidationError(error['message'])
+            elif error['type'] == 'clickhouse':
+                if error['code'] == 43:
+                    raise QueryIllegalTypeOfArgument(error['message'])
+                elif error['code'] == 241:
+                    raise QueryMemoryLimitExceeded(error['message'])
+                else:
+                    raise QueryExecutionError(error['message'])
+            else:
+                raise SnubaError(error['message'])
         else:
             raise SnubaError(u'HTTP {}'.format(response.status))
 
@@ -369,7 +459,10 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
             referrer=referrer, is_grouprelease=is_grouprelease, totals=totals, limitby=limitby
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
-        return OrderedDict()
+        if totals:
+            return OrderedDict(), {}
+        else:
+            return OrderedDict()
 
     # Validate and scrub response, and translate snuba keys back to IDs
     aggregate_cols = [a[2] for a in aggregations]
@@ -406,34 +499,6 @@ def nest_groups(data, groups, aggregate_cols):
             (k, nest_groups(v, rest, aggregate_cols)) for k, v in six.iteritems(inter)
         )
 
-
-def is_condition(cond_or_list):
-    # A condition is a 3-tuple, where the middle element is an operator string,
-    # eg ">=" or "IN". We should possibly validate that it is one of the
-    # allowed operators.
-    return len(cond_or_list) == 3 and isinstance(cond_or_list[1], six.string_types)
-
-
-def all_referenced_columns(conditions):
-    # Get the set of colummns that are represented by an entire set of conditions
-
-    # First flatten to remove the AND/OR nesting.
-    flat_conditions = list(chain(*[[c] if is_condition(c) else c for c in conditions]))
-    return list(set(chain(*[columns_in_expr(c[0]) for c in flat_conditions])))
-
-
-def columns_in_expr(expr):
-    # Get the set of columns that are referenced by a single column expression.
-    # Either it is a simple string with the column name, or a nested function
-    # that could reference multiple columns
-    cols = []
-    if isinstance(expr, six.string_types):
-        cols.append(expr)
-    elif (isinstance(expr, (list, tuple)) and len(expr) >= 2
-          and isinstance(expr[1], (list, tuple))):
-        for func_arg in expr[1]:
-            cols.extend(columns_in_expr(func_arg))
-    return cols
 
 # The following are functions for resolving information from sentry models
 # about projects, environments, and issues (groups). Having this snuba
@@ -542,55 +607,6 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     return (forward, reverse)
 
 
-def get_project_issues(project_ids, issue_ids=None):
-    """
-    Get a list of issues and associated fingerprint hashes for a list of
-    project ids. If issue_ids is set, then return only those issues.
-
-    Returns a list: [(group_id, project_id, [(hash1, tomestone_date), ...]), ...]
-    """
-    if issue_ids:
-        issue_ids = issue_ids[:MAX_ISSUES]
-        hashes = GroupHash.objects.filter(
-            group_id__in=issue_ids
-        )[:MAX_HASHES]
-    else:
-        hashes = GroupHash.objects.filter(
-            project__in=project_ids,
-            group_id__isnull=False,
-        )[:MAX_HASHES]
-
-    hashes = [h for h in hashes if HASH_RE.match(h.hash)]
-    if not hashes:
-        return []
-
-    hashes_by_project = {}
-    for h in hashes:
-        hashes_by_project.setdefault(h.project_id, []).append(h.hash)
-
-    tombstones = GroupHashTombstone.objects.filter(
-        reduce(or_, (Q(project_id=pid, hash__in=hshes)
-                     for pid, hshes in six.iteritems(hashes_by_project)))
-    )
-
-    tombstones_by_project = {}
-    for tombstone in tombstones:
-        tombstones_by_project.setdefault(
-            tombstone.project_id, {}
-        )[tombstone.hash] = tombstone.deleted_at
-
-    # return [(gid, pid, [(hash, tombstone_date), (hash, tombstone_date), ...]), ...]
-    result = {}
-    for h in hashes:
-        tombstone_date = tombstones_by_project.get(h.project_id, {}).get(h.hash, None)
-        pair = (
-            h.hash,
-            tombstone_date.strftime("%Y-%m-%d %H:%M:%S") if tombstone_date else None
-        )
-        result.setdefault((h.group_id, h.project_id), []).append(pair)
-    return [k + (v,) for k, v in result.items()][:MAX_ISSUES]
-
-
 def get_related_project_ids(column, ids):
     """
     Get the project_ids from a model that has a foreign key to project.
@@ -615,10 +631,13 @@ def insert_raw(data):
     data = json.dumps(data)
     try:
         with timer('snuba_insert_raw'):
-            return _snuba_pool.urlopen(
+            resp = _snuba_pool.urlopen(
                 'POST', '/tests/insert',
                 body=data,
             )
+            if resp.status != 200:
+                raise SnubaError("Non-200 response from Snuba insert!")
+            return resp
     except urllib3.exceptions.HTTPError as err:
         raise SnubaError(err)
 

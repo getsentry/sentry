@@ -5,7 +5,7 @@ import six
 
 from sentry import features
 from sentry.integrations.exceptions import ApiError, IntegrationError
-from sentry.models import Activity, Event, Group, GroupStatus, Organization
+from sentry.models import Activity, Event, ExternalIssue, Group, GroupLink, GroupStatus, Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
@@ -18,7 +18,7 @@ class IssueBasicMixin(object):
         return False
 
     def get_group_title(self, group, event, **kwargs):
-        return event.error()
+        return event.title
 
     def get_issue_url(self, key):
         """
@@ -35,10 +35,13 @@ class IssueBasicMixin(object):
         return '\n\n'.join(result)
 
     def get_group_description(self, group, event, **kwargs):
+        params = {}
+        if kwargs.get('link_referrer'):
+            params['referrer'] = kwargs.get('link_referrer')
         output = [
             u'Sentry Issue: [{}]({})'.format(
                 group.qualified_short_id,
-                absolute_uri(group.get_absolute_url()),
+                absolute_uri(group.get_absolute_url(params=params)),
             )
         ]
         body = self.get_group_body(group, event)
@@ -214,7 +217,11 @@ class IssueBasicMixin(object):
             defaults = self.get_project_defaults(group.project_id)
             repo = params.get('repo', defaults.get('repo'))
 
-        default_repo = repo or repo_choices[0][0]
+        try:
+            default_repo = repo or repo_choices[0][0]
+        except IndexError:
+            return '', repo_choices
+
         # If a repo has been selected outside of the default list of
         # repos, stick it onto the front of the list so that it can be
         # selected.
@@ -231,6 +238,26 @@ class IssueBasicMixin(object):
         Returns the choice for the default repo in a tuple to be added to the list of repository choices
         """
         return (default_repo, default_repo)
+
+    def get_annotations(self, group):
+        external_issue_ids = GroupLink.objects.filter(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            relationship=GroupLink.Relationship.references,
+        ).values_list('linked_id', flat=True)
+
+        external_issues = ExternalIssue.objects.filter(
+            id__in=external_issue_ids,
+            integration_id=self.model.id,
+        )
+        annotations = []
+        for ei in external_issues:
+            link = self.get_issue_url(ei.key)
+            label = self.get_issue_display_name(ei) or ei.key
+            annotations.append('<a href="%s">%s</a>' % (link, label))
+
+        return annotations
 
 
 class IssueSyncMixin(IssueBasicMixin):

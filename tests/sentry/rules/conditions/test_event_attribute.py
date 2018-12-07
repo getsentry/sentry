@@ -9,21 +9,21 @@ class EventAttributeConditionTest(RuleTestCase):
 
     def get_event(self):
         event = self.create_event(
-            message='hello world',
             platform='php',
             data={
+                'message': 'hello world',
                 'type': 'error',
-                'sentry.interfaces.Http': {
+                'request': {
                     'method': 'GET',
                     'url': 'http://example.com',
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     'id': '1',
                     'ip_address': '127.0.0.1',
                     'email': 'foo@example.com',
                     'username': 'foo',
                 },
-                'sentry.interfaces.Exception': {
+                'exception': {
                     'values': [
                         {
                             'type': 'SyntaxError',

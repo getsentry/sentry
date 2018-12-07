@@ -135,7 +135,6 @@ STACKTRACE_INTERFACE_SCHEMA = {
             'type': 'array',
             # To validate individual frames use FRAME_INTERFACE_SCHEMA
             'items': {},
-            'minItems': 1,
         },
         'frames_omitted': {
             'type': 'array',
@@ -145,7 +144,7 @@ STACKTRACE_INTERFACE_SCHEMA = {
         },
         'registers': {'type': 'object'},
     },
-    'required': ['frames'],
+    'required': [],
     # `additionalProperties: {'not': {}}` forces additional properties to
     # individually fail with errors that identify the key, so they can be deleted.
     'additionalProperties': {'not': {}},
@@ -227,9 +226,6 @@ EXCEPTION_INTERFACE_SCHEMA = {
             # To validate stacktraces use STACKTRACE_INTERFACE_SCHEMA
             'type': 'object',
             'properties': {
-                # The code allows for the possibility of an empty
-                # {"frames":[]} object, this sucks and should go.
-                # STACKTRACE_INTERFACE_SCHEMA enforces at least 1
                 'frames': {'type': 'array'},
             },
         },
@@ -256,7 +252,28 @@ GEO_INTERFACE_SCHEMA = {
     'additionalProperties': False,
 }
 
-TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out
+TEMPLATE_INTERFACE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'abs_path': {'type': 'string'},
+        'filename': {'type': 'string'},
+        'context_line': {'type': 'string'},
+        'lineno': {
+            'type': 'number',
+            'minimum': 1,
+        },
+        'pre_context': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+        'post_context': {
+            'type': 'array',
+            'items': {'type': 'string'}
+        },
+    },
+    'required': ['lineno', 'context_line'],
+    'additionalProperties': False,
+}
 MESSAGE_INTERFACE_SCHEMA = {'type': 'object'}
 
 TAGS_DICT_SCHEMA = {
@@ -665,6 +682,7 @@ then be transformed into the requisite interface.
 """
 INPUT_SCHEMAS = {
     'sentry.interfaces.Csp': CSP_SCHEMA,
+    'csp': CSP_SCHEMA,
     'hpkp': HPKP_SCHEMA,
     'expectct': EXPECT_CT_SCHEMA,
     'expectstaple': EXPECT_STAPLE_SCHEMA,
@@ -694,6 +712,7 @@ INTERFACE_SCHEMAS = {
 
     # Security reports
     'sentry.interfaces.Csp': CSP_INTERFACE_SCHEMA,
+    'csp': CSP_INTERFACE_SCHEMA,
     'hpkp': HPKP_INTERFACE_SCHEMA,
     'expectct': EXPECT_CT_INTERFACE_SCHEMA,
     'expectstaple': EXPECT_STAPLE_INTERFACE_SCHEMA,

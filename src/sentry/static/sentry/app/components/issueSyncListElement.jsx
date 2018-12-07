@@ -9,6 +9,7 @@ import Hovercard from 'app/components/hovercard';
 const hoverCardContainer = css`
   display: flex;
   align-items: center;
+  min-width: 0; /* flex-box overflow workaround */
 `;
 
 const hoverCardStyles = css`
@@ -19,7 +20,7 @@ const hoverCardStyles = css`
 class IssueSyncElement extends React.Component {
   static propTypes = {
     externalIssueLink: PropTypes.string,
-    externalIssueId: PropTypes.number,
+    externalIssueId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     externalIssueKey: PropTypes.string,
     externalIssueDisplayName: PropTypes.string,
     onOpen: PropTypes.func,
@@ -48,6 +49,7 @@ class IssueSyncElement extends React.Component {
       case 'github_enterprise':
         return <IntegrationIcon src="icon-github" />;
       case 'jira':
+      case 'jira_server':
         return <IntegrationIcon src="icon-jira" />;
       case 'vsts':
         return <IntegrationIcon src="icon-vsts" />;
@@ -67,6 +69,8 @@ class IssueSyncElement extends React.Component {
         return 'GitHub Enterprise';
       case 'vsts':
         return 'Azure DevOps';
+      case 'jira_server':
+        return 'Jira Server';
       default:
         return capitalize(type);
     }
@@ -138,6 +142,7 @@ const IntegrationIcon = styled(InlineSvg)`
   width: ${space(3)};
   height: ${space(3)};
   cursor: pointer;
+  flex-shrink: 0;
 `;
 
 const IntegrationLink = styled('a')`
@@ -148,6 +153,9 @@ const IntegrationLink = styled('a')`
   border-bottom: 1px solid ${p => p.theme.gray4};
   cursor: pointer;
   line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &,
   &:hover {

@@ -176,7 +176,7 @@ class RavenIntegrationTest(TransactionTestCase):
         group = Group.objects.get()
         assert group.event_set.count() == 1
         instance = group.event_set.get()
-        assert instance.data['sentry.interfaces.Message']['message'] == 'foo'
+        assert instance.data['logentry']['message'] == 'foo'
 
 
 class SentryRemoteTest(TestCase):
@@ -503,10 +503,11 @@ class CspReportTest(TestCase):
         assert Event.objects.count() == 1
         e = Event.objects.all()[0]
         Event.objects.bind_nodes([e], 'data')
-        assert output['message'] == e.data['sentry.interfaces.Message']['message']
+        assert output['message'] == e.data['logentry']['message']
         for key, value in six.iteritems(output['tags']):
             assert e.get_tag(key) == value
-        self.assertDictContainsSubset(output['data'], e.data, e.data)
+        for key, value in six.iteritems(output['data']):
+            assert e.data[key] == value
 
     def assertReportRejected(self, input):
         resp = self._postCspWithHeader(input)

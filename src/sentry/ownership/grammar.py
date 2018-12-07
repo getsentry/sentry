@@ -96,7 +96,7 @@ class Matcher(namedtuple('Matcher', 'type pattern')):
 
     def test_url(self, data):
         try:
-            url = data['sentry.interfaces.Http']['url']
+            url = data['request']['url']
         except KeyError:
             return False
         return fnmatch(url, self.pattern)
@@ -198,13 +198,13 @@ class OwnershipVisitor(NodeVisitor):
 
 def _iter_frames(data):
     try:
-        for frame in data['sentry.interfaces.Stacktrace']['frames']:
+        for frame in data['stacktrace']['frames']:
             yield frame
     except KeyError:
         pass
 
     try:
-        values = data['sentry.interfaces.Exception']['values']
+        values = data['exception']['values']
     except KeyError:
         return
 

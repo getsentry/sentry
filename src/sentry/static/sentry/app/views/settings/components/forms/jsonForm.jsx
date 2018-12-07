@@ -41,6 +41,10 @@ class JsonForm extends React.Component {
      * Renders inside of PanelBody
      */
     renderHeader: PropTypes.func,
+    /**
+     * Disables the entire form
+     */
+    disabled: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
   };
 
   static defaultProps = {
@@ -90,6 +94,7 @@ class JsonForm extends React.Component {
       fields,
 
       access,
+      disabled,
       features,
       additionalFieldProps,
       renderFooter,
@@ -102,6 +107,7 @@ class JsonForm extends React.Component {
     let hasFormGroups = defined(forms);
     let formPanelProps = {
       access,
+      disabled,
       features,
       additionalFieldProps,
       renderFooter,
@@ -159,6 +165,10 @@ class FormPanel extends React.Component {
      * Renders inside of PanelBody before PanelBody close
      */
     renderFooter: PropTypes.func,
+    /**
+     * Disables the entire form panel.
+     */
+    disabled: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
   };
 
   render() {
@@ -166,6 +176,7 @@ class FormPanel extends React.Component {
       title,
       fields,
       access,
+      disabled,
       additionalFieldProps,
       renderFooter,
       renderHeader,
@@ -190,9 +201,17 @@ class FormPanel extends React.Component {
             // eslint-disable-next-line no-unused-vars
             let {defaultValue, ...fieldWithoutDefaultValue} = field;
 
+            // Allow the form panel disabled prop to override the fields
+            // disabled prop, with fallback to the fields disabled state.
+            if (disabled === true) {
+              fieldWithoutDefaultValue.disabled = true;
+              fieldWithoutDefaultValue.disabledReason = undefined;
+            }
+
             return (
               <FieldFromConfig
                 access={access}
+                disabled={disabled}
                 key={field.name}
                 {...otherProps}
                 {...additionalFieldProps}

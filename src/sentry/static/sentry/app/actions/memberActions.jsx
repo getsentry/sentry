@@ -7,7 +7,7 @@ const MemberActions = Reflux.createActions([
   'updateSuccess',
   'resendMemberInvite',
   'resendMemberInviteSuccess',
-  'resendMemberInviteError'
+  'resendMemberInviteError',
 ]);
 
 export default MemberActions;

@@ -1,10 +1,7 @@
 from __future__ import absolute_import
 
-import dateutil.parser
 import logging
 import six
-
-from django.utils import timezone
 
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Integration
@@ -95,9 +92,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'author_email': c['commit']['author'].get('email'),
                 'author_name': c['commit']['author'].get('name'),
                 'message': c['commit']['message'],
-                'timestamp': dateutil.parser.parse(
-                    c['commit']['author'].get('date'),
-                ).astimezone(timezone.utc) if c['commit']['author'].get('date') else None,
+                'timestamp': self.format_date(c['commit']['author'].get('date')),
                 'patch_set': self._get_patchset(client, repo_name, c['sha'])
             } for c in commit_list
         ]
@@ -142,4 +137,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         return changes
 
     def pull_request_url(self, repo, pull_request):
-        return u'{}/pulls/{}'.format(repo.url, pull_request.key)
+        return u'{}/pull/{}'.format(repo.url, pull_request.key)
+
+    def repository_external_slug(self, repo):
+        return repo.name

@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.utils.safe import trim
+import six
+
+from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
 from .base import BaseEvent
@@ -22,21 +24,16 @@ class ErrorEvent(BaseEvent):
     key = 'error'
 
     def has_metadata(self):
-        try:
-            exception = self.data['sentry.interfaces.Exception']['values'][-1]
-            exception['type']
-            exception['value']
-            return True
-        except Exception:
-            return False
+        exception = get_path(self.data, 'exception', 'values', -1)
+        return exception and any(v is not None for v in six.itervalues(exception))
 
     def get_metadata(self):
-        exception = self.data['sentry.interfaces.Exception']['values'][-1]
+        exception = get_path(self.data, 'exception', 'values', -1)
 
         # in some situations clients are submitting non-string data for these
         rv = {
-            'type': trim(exception.get('type', 'Error'), 128),
-            'value': trim(exception.get('value', ''), 1024),
+            'type': trim(get_path(exception, 'type', default='Error'), 128),
+            'value': trim(get_path(exception, 'value', default=''), 1024),
         }
 
         # Attach crash location

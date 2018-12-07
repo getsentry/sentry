@@ -4,6 +4,9 @@ import {mount} from 'enzyme';
 import Condition from 'app/views/organizationDiscover/conditions/condition';
 
 describe('Condition', function() {
+  afterEach(function() {
+    jest.clearAllMocks();
+  });
   describe('render()', function() {
     it('renders text', function() {
       const data = [
@@ -45,19 +48,22 @@ describe('Condition', function() {
     });
 
     it('renders operator options for string column', function() {
-      const options = wrapper.instance().filterOptions([], 'col1');
+      wrapper.setState({inputValue: 'col1'});
+      const options = wrapper.instance().filterOptions([]);
       expect(options).toHaveLength(6);
       expect(options[0]).toEqual({value: 'col1 =', label: 'col1 ='});
     });
 
     it('renders operator options for number column', function() {
-      const options = wrapper.instance().filterOptions([], 'col2');
+      wrapper.setState({inputValue: 'col2'});
+      const options = wrapper.instance().filterOptions([]);
       expect(options).toHaveLength(8);
       expect(options[0]).toEqual({value: 'col2 >', label: 'col2 >'});
     });
 
     it('renders operator options for datetime column', function() {
-      const options = wrapper.instance().filterOptions([], 'col3');
+      wrapper.setState({inputValue: 'col3'});
+      const options = wrapper.instance().filterOptions([]);
       expect(options).toHaveLength(8);
       expect(options[0]).toEqual({value: 'col3 >', label: 'col3 >'});
       expect(options[1]).toEqual({value: 'col3 <', label: 'col3 <'});
@@ -70,7 +76,8 @@ describe('Condition', function() {
     });
 
     it('limits operators to = and != for array fields', function() {
-      const options = wrapper.instance().filterOptions([], 'error.type');
+      wrapper.setState({inputValue: 'error.type'});
+      const options = wrapper.instance().filterOptions([]);
       expect(options).toHaveLength(2);
       expect(options[0].value).toEqual('error.type =');
       expect(options[1].value).toEqual('error.type !=');
@@ -86,10 +93,6 @@ describe('Condition', function() {
       wrapper = mount(
         <Condition value={[null, null, null]} onChange={onChangeMock} columns={columns} />
       );
-    });
-
-    afterEach(function() {
-      jest.clearAllMocks();
     });
 
     it('handles valid final conditions', function() {
@@ -113,6 +116,28 @@ describe('Condition', function() {
         expect(onChangeMock).not.toHaveBeenCalled();
         expect(focusSpy).toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('handleBlur()', function() {
+    let wrapper;
+    let onChangeMock = jest.fn();
+    beforeEach(function() {
+      const columns = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
+      wrapper = mount(
+        <Condition value={[null, null, null]} onChange={onChangeMock} columns={columns} />
+      );
+    });
+    it('valid condition', function() {
+      const condition = 'col1 IS NULL';
+      wrapper.instance().handleBlur({target: {value: condition}});
+      expect(onChangeMock).toHaveBeenCalledWith(['col1', 'IS NULL', null]);
+    });
+
+    it('invalid condition', function() {
+      const condition = 'col1 -';
+      wrapper.instance().handleBlur({target: {value: condition}});
+      expect(onChangeMock).not.toHaveBeenCalled();
     });
   });
 });

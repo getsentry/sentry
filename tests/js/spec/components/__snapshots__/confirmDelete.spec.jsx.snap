@@ -106,7 +106,9 @@ exports[`ConfirmDelete renders 1`] = `
                           <label
                             className="css-jq43rd-FieldDescription-inlineStyle e12jefmo0"
                           >
-                            <FieldLabel>
+                            <FieldLabel
+                              disabled={false}
+                            >
                               <div
                                 className="css-qzvhly-FieldLabel ejkuyjq0"
                               >

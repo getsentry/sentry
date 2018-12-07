@@ -1,22 +1,59 @@
 import {Flex} from 'grid-emotion';
+import {isDate, isEqual, isEqualWith} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_STATS_PERIOD, DEFAULT_USE_UTC} from 'app/constants';
 import {defined} from 'app/utils';
 import {getLocalDateObject, getUtcDateString} from 'app/utils/dates';
-import {getParams} from 'app/views/organizationEvents/utils';
-import EventsContext from 'app/views/organizationEvents/eventsContext';
+import {t} from 'app/locale';
+import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
+import Header from 'app/components/organizations/header';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
+import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import space from 'app/styles/space';
+import {updateProjects} from 'app/actionCreators/globalSelection';
+import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
+
+import SearchBar from './searchBar';
+import {getParams} from './utils/getParams';
+import EventsContext from './utils/eventsContext';
+
+// `lodash.isEqual` does not compare date objects properly?
+const dateComparator = (value, other) => {
+  if (isDate(value) && isDate(other)) {
+    return +value === +other;
+  }
+
+  // returning undefined will use default comparator
+  return undefined;
+};
+
+const isEqualWithDates = (a, b) => isEqualWith(a, b, dateComparator);
+const isEqualWithEmptyArrays = (newQuery, current) => {
+  // We will only get empty arrays from `newQuery`
+  // Can't use isEqualWith because keys are unbalanced (guessing)
+  return isEqual(
+    Object.entries(newQuery)
+      .filter(([, value]) => !Array.isArray(value) || !!value.length)
+      .reduce(
+        (acc, [key, value]) => ({
+          ...acc,
+          [key]: value,
+        }),
+        {}
+      ),
+    current
+  );
+};
 
 class OrganizationEventsContainer extends React.Component {
   static propTypes = {
@@ -24,10 +61,10 @@ class OrganizationEventsContainer extends React.Component {
     router: PropTypes.object,
   };
 
-  static getInitialStateFromRouter(props) {
+  static getStateFromRouter(props) {
     const {query} = props.router.location;
     const hasAbsolute = !!query.start && !!query.end;
-    let project = [];
+    let project = props.selection.projects;
     let environment = query.environment || [];
 
     if (defined(query.project) && Array.isArray(query.project)) {
@@ -48,18 +85,31 @@ class OrganizationEventsContainer extends React.Component {
       end = getLocalDateObject(end);
     }
 
-    const values = {
+    return {
       project,
       environment,
       period: query.statsPeriod || (hasAbsolute ? null : DEFAULT_STATS_PERIOD),
       start: start || null,
       end: end || null,
-    };
 
-    return {
-      ...values,
-      queryValues: {...values},
+      // params from URL will be a string
+      utc: typeof query.utc !== 'undefined' ? query.utc === 'true' : DEFAULT_USE_UTC,
+      zoom: typeof query.zoom !== 'undefined' ? query.zoom === '1' : null,
     };
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    const values = OrganizationEventsContainer.getStateFromRouter(props);
+
+    // Update `queryValues` if URL parameters change
+    if (!isEqualWithDates(state.queryValues, values)) {
+      return {
+        ...values,
+        queryValues: values,
+      };
+    }
+
+    return null;
   }
 
   constructor(props) {
@@ -68,8 +118,11 @@ class OrganizationEventsContainer extends React.Component {
     this.actions = {
       updateParams: this.updateParams,
     };
+    this.state = {};
+  }
 
-    this.state = OrganizationEventsContainer.getInitialStateFromRouter(props);
+  componentDidMount() {
+    this.handleUpdateProjects();
   }
 
   updateParams = obj => {
@@ -92,6 +145,11 @@ class OrganizationEventsContainer extends React.Component {
       newQuery.end = getUtcDateString(newQuery.end);
     }
 
+    // Only push new location if query params has changed because this will cause a heavy re-render
+    if (isEqualWithEmptyArrays(newQuery, router.location.query)) {
+      return;
+    }
+
     router.push({
       pathname: router.location.pathname,
       query: newQuery,
@@ -99,110 +157,124 @@ class OrganizationEventsContainer extends React.Component {
   };
 
   handleChangeProjects = projects => {
-    this.setState(state => ({
+    this.setState({
       project: projects,
-    }));
+    });
+    updateProjects(projects);
   };
 
   handleChangeEnvironments = environments => {
-    this.setState(state => ({
+    this.setState({
       environment: environments,
-    }));
+    });
   };
 
-  handleChangeTime = ({start, end, relative}) => {
-    this.setState({start, end, period: relative});
+  handleChangeTime = ({start, end, relative, utc}) => {
+    this.setState({start, end, period: relative, utc});
   };
 
   handleUpdatePeriod = () => {
-    this.setState(({period, start, end, ...state}) => {
-      let newValueObj = {
-        ...(defined(period) ? {period} : {start, end}),
-      };
+    let {period, start, end, utc} = this.state;
+    let newValueObj = {
+      ...(defined(period) ? {period} : {start, end}),
+      utc,
+      zoom: null,
+    };
 
-      this.updateParams(newValueObj);
-
-      const {
-        period: _period, // eslint-disable-line no-unused-vars
-        start: _start, // eslint-disable-line no-unused-vars
-        end: _end, // eslint-disable-line no-unused-vars
-        ...queryValues
-      } = state.queryValues;
-
-      return {
-        queryValues: {
-          ...queryValues,
-          ...newValueObj,
-        },
-      };
-    });
+    this.updateParams(newValueObj);
   };
 
   handleUpdate = type => {
-    this.setState(state => {
-      let newValueObj = {[type]: state[type]};
-      this.updateParams(newValueObj);
-      return {
-        queryValues: {
-          ...state.queryValues,
-          ...newValueObj,
-        },
-      };
-    });
+    let newValueObj = {[type]: this.state[type], zoom: null};
+    this.updateParams(newValueObj);
   };
 
   handleUpdateEnvironmments = () => this.handleUpdate('environment');
 
   handleUpdateProjects = () => this.handleUpdate('project');
 
+  handleSearch = query => {
+    let {router, location} = this.props;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...(location.query || {}),
+        query,
+        zoom: null,
+      },
+    });
+  };
+
   render() {
     const {organization, children} = this.props;
-    const {period, start, end} = this.state;
+    const {period, start, end, utc} = this.state;
 
     const projects =
       organization.projects && organization.projects.filter(({isMember}) => isMember);
 
     return (
-      <Feature features={['events-stream']} renderDisabled>
+      <Feature features={['global-views']} renderDisabled>
         <EventsContext.Provider
           value={{actions: this.actions, ...this.state.queryValues}}
         >
           <OrganizationEventsContent>
             <Header>
-              <MultipleProjectSelector
-                organization={organization}
-                projects={projects}
-                value={this.state.project}
-                onChange={this.handleChangeProjects}
-                onUpdate={this.handleUpdateProjects}
-              />
+              <HeaderItemPosition>
+                <MultipleProjectSelector
+                  organization={organization}
+                  projects={projects}
+                  value={this.state.project}
+                  onChange={this.handleChangeProjects}
+                  onUpdate={this.handleUpdateProjects}
+                />
+              </HeaderItemPosition>
               <HeaderSeparator />
-              <MultipleEnvironmentSelector
-                organization={organization}
-                value={this.state.environment}
-                onChange={this.handleChangeEnvironments}
-                onUpdate={this.handleUpdateEnvironmments}
-              />
+              <HeaderItemPosition>
+                <MultipleEnvironmentSelector
+                  organization={organization}
+                  value={this.state.environment}
+                  onChange={this.handleChangeEnvironments}
+                  onUpdate={this.handleUpdateEnvironmments}
+                />
+              </HeaderItemPosition>
               <HeaderSeparator />
-              <TimeRangeSelector
-                showAbsolute
-                showRelative
-                relative={period}
-                start={start}
-                end={end}
-                onChange={this.handleChangeTime}
-                onUpdate={this.handleUpdatePeriod}
-              />
-              <HeaderSeparator />
+              <HeaderItemPosition>
+                <TimeRangeSelector
+                  showAbsolute
+                  showRelative
+                  relative={period}
+                  start={start}
+                  end={end}
+                  utc={utc}
+                  onChange={this.handleChangeTime}
+                  onUpdate={this.handleUpdatePeriod}
+                />
+              </HeaderItemPosition>
             </Header>
-            <Body>{children}</Body>
+            <Body>
+              <Flex align="center" justify="space-between" mb={2}>
+                <HeaderTitle>
+                  {t('Events')} <BetaTag />
+                </HeaderTitle>
+                <StyledSearchBar
+                  organization={organization}
+                  query={(location.query && location.query.query) || ''}
+                  placeholder={t('Search for events, users, tags, and everything else.')}
+                  onSearch={this.handleSearch}
+                />
+              </Flex>
+
+              {children}
+            </Body>
           </OrganizationEventsContent>
         </EventsContext.Provider>
       </Feature>
     );
   }
 }
-export default withRouter(withOrganization(OrganizationEventsContainer));
+export default withRouter(
+  withOrganization(withGlobalSelection(OrganizationEventsContainer))
+);
 export {OrganizationEventsContainer};
 
 const OrganizationEventsContent = styled(Flex)`
@@ -212,15 +284,22 @@ const OrganizationEventsContent = styled(Flex)`
   margin-bottom: -20px; /* <footer> has margin-top: 20px; */
 `;
 
-const Header = styled(Flex)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-  font-size: 18px;
-  height: 60px;
-`;
-
 const Body = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: ${space(3)};
+  padding: ${space(2)} ${space(4)} ${space(3)};
+`;
+
+const HeaderTitle = styled('h4')`
+  flex: 1;
+  font-size: ${p => p.theme.headerFontSize};
+  line-height: ${p => p.theme.headerFontSize};
+  font-weight: normal;
+  color: ${p => p.theme.gray4};
+  margin: 0;
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex: 1;
 `;

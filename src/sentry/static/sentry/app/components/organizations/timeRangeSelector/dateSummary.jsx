@@ -1,8 +1,6 @@
 /**
  * Displays and formats absolute DateTime ranges
  */
-
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -33,16 +31,16 @@ class DateSummary extends React.Component {
      */
     end: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
 
-    useUtc: PropTypes.bool,
+    utc: PropTypes.bool,
   };
 
   formatDate(date) {
-    return getFormattedDate(date, 'll', {local: !this.props.useUtc});
+    return getFormattedDate(date, 'll', {local: !this.props.utc});
   }
 
   formatTime(date, withSeconds = false) {
     return getFormattedDate(date, `HH:mm${withSeconds ? ':ss' : ''}`, {
-      local: !this.props.useUtc,
+      local: !this.props.utc,
     });
   }
 
@@ -57,7 +55,7 @@ class DateSummary extends React.Component {
       endTimeFormatted !== DEFAULT_DAY_END_TIME;
 
     return (
-      <Flex className={className} align="center">
+      <DateGroupWrapper className={className} hasTime={shouldShowTimes}>
         <DateGroup>
           <Date hasTime={shouldShowTimes}>
             {this.formatDate(start)}
@@ -74,10 +72,16 @@ class DateSummary extends React.Component {
             </Date>
           </DateGroup>
         </React.Fragment>
-      </Flex>
+      </DateGroupWrapper>
     );
   }
 }
+
+const DateGroupWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  transform: translateY(${p => (p.hasTime ? '-5px' : '0')});
+`;
 
 const DateGroup = styled('div')`
   display: flex;
@@ -87,15 +91,15 @@ const DateGroup = styled('div')`
 `;
 
 const Date = styled('div')`
-  ${p => p.hasTime && 'margin-top: 10px'};
+  ${p => p.hasTime && 'margin-top: 9px'};
   display: flex;
   flex-direction: column;
   align-items: flex-end;
 `;
 
 const Time = styled('div')`
-  font-size: 0.8em;
-  line-height: 0.8em;
+  font-size: 0.7em;
+  line-height: 0.7em;
   opacity: 0.5;
 `;
 

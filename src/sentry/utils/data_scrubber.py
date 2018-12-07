@@ -12,6 +12,7 @@ import six
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
 from sentry.constants import DEFAULT_SCRUBBED_FIELDS, FILTER_MASK, NOT_SCRUBBED_VALUES
+from sentry.utils.safe import get_path
 
 
 def varmap(func, var, context=None, name=None):
@@ -74,26 +75,26 @@ class SensitiveDataFilter(object):
 
     def apply(self, data):
         # TODO(dcramer): move this into each interface
-        if 'sentry.interfaces.Stacktrace' in data:
-            self.filter_stacktrace(data['sentry.interfaces.Stacktrace'])
+        if 'stacktrace' in data:
+            self.filter_stacktrace(data['stacktrace'])
 
-        if 'sentry.interfaces.Exception' in data:
-            for exc in data['sentry.interfaces.Exception']['values']:
+        if 'exception' in data:
+            for exc in get_path(data, 'exception', 'values', filter=True) or ():
                 if exc.get('stacktrace'):
                     self.filter_stacktrace(exc['stacktrace'])
 
-        if 'sentry.interfaces.Breadcrumbs' in data:
-            for crumb in data['sentry.interfaces.Breadcrumbs'].get('values') or ():
+        if 'breadcrumbs' in data:
+            for crumb in data['breadcrumbs'].get('values') or ():
                 self.filter_crumb(crumb)
 
-        if 'sentry.interfaces.Http' in data:
-            self.filter_http(data['sentry.interfaces.Http'])
+        if 'request' in data:
+            self.filter_http(data['request'])
 
-        if 'sentry.interfaces.User' in data:
-            self.filter_user(data['sentry.interfaces.User'])
+        if 'user' in data:
+            self.filter_user(data['user'])
 
-        if 'sentry.interfaces.Csp' in data:
-            self.filter_csp(data['sentry.interfaces.Csp'])
+        if 'csp' in data:
+            self.filter_csp(data['csp'])
 
         if 'extra' in data:
             data['extra'] = varmap(self.sanitize, data['extra'])

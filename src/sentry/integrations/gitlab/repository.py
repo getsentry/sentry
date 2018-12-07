@@ -1,10 +1,7 @@
 from __future__ import absolute_import
 
-import dateutil.parser
 
-from django.utils import timezone
-
-from sentry.integrations.exceptions import ApiError
+from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.plugins import providers
 from sentry.models import Integration
 
@@ -14,20 +11,18 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:
-            raise ValueError('%s requires an integration_id' % self.name)
+            raise IntegrationError('%s requires an integration id.' % self.name)
 
-        try:
-            integration_model = Integration.objects.get(
-                id=integration_id,
-                organizations=organization_id,
-            )
-        except Integration.DoesNotExist as error:
-            self.handle_api_error(error)
+        integration_model = Integration.objects.get(
+            id=integration_id,
+            organizations=organization_id,
+            provider='gitlab',
+        )
 
         return integration_model.get_installation(organization_id)
 
     def get_repository_data(self, organization, config):
-        installation = self.get_installation(config['installation'], organization.id)
+        installation = self.get_installation(config.get('installation'), organization.id)
         client = installation.get_client()
 
         repo_id = config['identifier']
@@ -48,7 +43,8 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(self, organization, data):
-        installation = self.get_installation(data['installation'],
+
+        installation = self.get_installation(data.get('installation'),
                                              organization.id)
         client = installation.get_client()
         hook_id = None
@@ -108,9 +104,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'author_email': c['author_email'],
                 'author_name': c['author_name'],
                 'message': c['title'],
-                'timestamp': dateutil.parser.parse(
-                    c['created_at'],
-                ).astimezone(timezone.utc) if c['created_at'] else None,
+                'timestamp': self.format_date(c['created_at']),
                 'patch_set': self._get_patchset(client, repo, c['id'])
             } for c in commit_list
         ]
@@ -154,3 +148,6 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def pull_request_url(self, repo, pull_request):
         return u'{}/merge_requests/{}'.format(repo.url, pull_request.key)
+
+    def repository_external_slug(self, repo):
+        return repo.config['project_id']

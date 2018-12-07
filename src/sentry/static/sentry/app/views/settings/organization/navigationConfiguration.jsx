@@ -10,7 +10,6 @@ const organizationNavigation = [
         path: `${pathPrefix}/`,
         title: t('General Settings'),
         index: true,
-        show: ({access}) => access.has('org:write'),
         description: t('Configure general settings for an organization'),
       },
       {
@@ -39,8 +38,6 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/auth/`,
         title: t('Auth'),
-        show: ({organization, access, features}) =>
-          features.has('sso-basic') && access.has('org:admin'),
         description: t('Configure single sign-on'),
       },
       {
@@ -64,14 +61,14 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/repos/`,
         title: t('Repositories'),
-        show: ({access}) => access.has('org:write'),
         description: t('Manage repositories connected to the organization'),
       },
       {
         path: `${pathPrefix}/integrations/`,
         title: t('Integrations'),
-        show: ({access}) => access.has('org:integrations'),
-        description: t('Manage integrations for an organization'),
+        description: t(
+          'Manage organization-level integrations, including: Slack, Github, Bitbucket, Jira, and Azure DevOps'
+        ),
       },
       {
         path: `${pathPrefix}/developer-settings/`,

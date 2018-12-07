@@ -24,9 +24,9 @@ from hashlib import sha1
 from loremipsum import Generator
 from uuid import uuid4
 
+from sentry.event_manager import EventManager
 from sentry.constants import SentryAppStatus
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
-from sentry.mediators.service_hooks import Creator as ServiceHookCreator
+from sentry.mediators import sentry_apps, sentry_app_installations, service_hooks
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
@@ -62,7 +62,7 @@ DEFAULT_EVENT_DATA = {
     'modules': {
         'raven': '3.1.13'
     },
-    'sentry.interfaces.Http': {
+    'request': {
         'cookies': {},
         'data': {},
         'env': {},
@@ -71,7 +71,7 @@ DEFAULT_EVENT_DATA = {
         'query_string': '',
         'url': 'http://example.com',
     },
-    'sentry.interfaces.Stacktrace': {
+    'stacktrace': {
         'frames': [
             {
                 'abs_path':
@@ -90,12 +90,12 @@ DEFAULT_EVENT_DATA = {
                 'raven.base',
                 'post_context': [
                     '                },', '            })', '',
-                    "        if 'sentry.interfaces.Stacktrace' in data:",
+                    "        if 'stacktrace' in data:",
                     '            if self.include_paths:'
                 ],
                 'pre_context': [
                     '', '            data.update({',
-                    "                'sentry.interfaces.Stacktrace': {",
+                    "                'stacktrace': {",
                     "                    'frames': get_stack_info(frames,",
                     '                        list_max_length=self.list_max_length,'
                 ],
@@ -106,10 +106,10 @@ DEFAULT_EVENT_DATA = {
                     'event_type': 'raven.events.Message',
                     'frames': '<generator object iter_stack_frames at 0x103fef050>',
                     'handler': '<raven.events.Message object at 0x103feb710>',
-                    'k': 'sentry.interfaces.Message',
+                    'k': 'logentry',
                     'public_key': None,
                     'result': {
-                        'sentry.interfaces.Message':
+                        'logentry':
                         "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
                     },
                     'self': '<raven.base.Client object at 0x104397f10>',
@@ -135,12 +135,12 @@ DEFAULT_EVENT_DATA = {
                 'raven.base',
                 'post_context': [
                     '                },', '            })', '',
-                    "        if 'sentry.interfaces.Stacktrace' in data:",
+                    "        if 'stacktrace' in data:",
                     '            if self.include_paths:'
                 ],
                 'pre_context': [
                     '', '            data.update({',
-                    "                'sentry.interfaces.Stacktrace': {",
+                    "                'stacktrace': {",
                     "                    'frames': get_stack_info(frames,",
                     '                        list_max_length=self.list_max_length,'
                 ],
@@ -151,10 +151,10 @@ DEFAULT_EVENT_DATA = {
                     'event_type': 'raven.events.Message',
                     'frames': '<generator object iter_stack_frames at 0x103fef050>',
                     'handler': '<raven.events.Message object at 0x103feb710>',
-                    'k': 'sentry.interfaces.Message',
+                    'k': 'logentry',
                     'public_key': None,
                     'result': {
-                        'sentry.interfaces.Message':
+                        'logentry':
                         "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
                     },
                     'self': '<raven.base.Client object at 0x104397f10>',
@@ -350,7 +350,7 @@ class Fixtures(object):
 
         # add commits
         if user:
-            author = self.create_commit_author(project, user)
+            author = self.create_commit_author(project=project, user=user)
             repo = self.create_repo(project, name='organization-{}'.format(project.slug))
             commit = self.create_commit(
                 project=project,
@@ -377,46 +377,47 @@ class Fixtures(object):
         )
         return repo
 
-    def create_commit(self, project, repo, author=None, release=None,
+    def create_commit(self, repo, project=None, author=None, release=None,
                       message=None, key=None, date_added=None):
         commit = Commit.objects.get_or_create(
-            organization_id=project.organization_id,
+            organization_id=repo.organization_id,
             repository_id=repo.id,
             key=key or sha1(uuid4().hex).hexdigest(),
             defaults={
                 'message': message or make_sentence(),
-                'author': author or self.create_commit_author(project),
+                'author': author or self.create_commit_author(organization_id=repo.organization_id),
                 'date_added': date_added or timezone.now(),
             }
         )[0]
 
         if release:
+            assert project
             ReleaseCommit.objects.create(
-                organization_id=project.organization_id,
+                organization_id=repo.organization_id,
                 project_id=project.id,
                 release=release,
                 commit=commit,
                 order=1,
             )
 
-        self.create_commit_file_change(commit, project, '/models/foo.py')
-        self.create_commit_file_change(commit, project, '/worsematch/foo.py')
-        self.create_commit_file_change(commit, project, '/models/other.py')
+        self.create_commit_file_change(commit=commit, filename='/models/foo.py')
+        self.create_commit_file_change(commit=commit, filename='/worsematch/foo.py')
+        self.create_commit_file_change(commit=commit, filename='/models/other.py')
 
         return commit
 
-    def create_commit_author(self, project, user=None):
+    def create_commit_author(self, organization_id=None, project=None, user=None):
         return CommitAuthor.objects.get_or_create(
-            organization_id=project.organization_id,
+            organization_id=organization_id or project.organization_id,
             email=user.email if user else '{}@example.com'.format(make_word()),
             defaults={
                 'name': user.name if user else make_word(),
             }
         )[0]
 
-    def create_commit_file_change(self, commit, project, filename):
+    def create_commit_file_change(self, commit, filename):
         commit_file_change = CommitFileChange.objects.get_or_create(
-            organization_id=project.organization_id,
+            organization_id=commit.organization_id,
             commit=commit,
             filename=filename,
             type='M',
@@ -456,7 +457,7 @@ class Fixtures(object):
 
         return useremail
 
-    def create_event(self, event_id=None, **kwargs):
+    def create_event(self, event_id=None, normalize=True, **kwargs):
         if event_id is None:
             event_id = uuid4().hex
         if 'group' not in kwargs:
@@ -472,7 +473,11 @@ class Fixtures(object):
             kwargs['data']['tags'] = tags
         if kwargs.get('stacktrace'):
             stacktrace = kwargs.pop('stacktrace')
-            kwargs['data']['sentry.interfaces.Stacktrace'] = stacktrace
+            kwargs['data']['stacktrace'] = stacktrace
+
+        user = kwargs.pop('user', None)
+        if user is not None:
+            kwargs['data']['user'] = user
 
         kwargs['data'].setdefault(
             'errors', [{
@@ -483,22 +488,21 @@ class Fixtures(object):
 
         # maintain simple event fixtures by supporting the legacy message
         # parameter just like our API would
-        if 'sentry.interfaces.Message' not in kwargs['data']:
-            kwargs['data']['sentry.interfaces.Message'] = {
+        if 'logentry' not in kwargs['data']:
+            kwargs['data']['logentry'] = {
                 'message': kwargs.get('message') or '<unlabeled event>',
             }
 
-        if 'type' not in kwargs['data']:
-            kwargs['data'].update(
-                {
-                    'type': 'default',
-                    'metadata': {
-                        'title': kwargs['data']['sentry.interfaces.Message']['message'],
-                    },
-                }
-            )
+        if normalize:
+            manager = EventManager(CanonicalKeyDict(kwargs['data']),
+                                   for_store=False)
+            manager.normalize()
+            kwargs['data'] = manager.get_data()
+            kwargs['message'] = manager.get_search_message()
 
-        kwargs['data'] = CanonicalKeyDict(kwargs.pop('data'))
+        else:
+            assert 'message' not in kwargs, 'do not pass message this way'
+
         event = Event(event_id=event_id, **kwargs)
         EventMapping.objects.create(
             project_id=event.project.id,
@@ -538,7 +542,7 @@ class Fixtures(object):
                 "extra": {
                     "session:duration": 40364
                 },
-                "sentry.interfaces.Exception": {
+                "exception": {
                     "exc_omitted": null,
                     "values": [{
                         "stacktrace": {
@@ -569,20 +573,20 @@ class Fixtures(object):
                         "module": null
                     }]
                 },
-                "sentry.interfaces.Http": {
+                "request": {
                     "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
                     "headers": [
                         ["Referer", "https://sentry.io/welcome/"],
                         ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
                     ]
                 },
-                "sentry.interfaces.User": {
+                "user": {
                     "ip_address": "0.0.0.0",
                     "id": "41656",
                     "email": "test@example.com"
                 },
                 "version": "7",
-                "sentry.interfaces.Breadcrumbs": {
+                "breadcrumbs": {
                     "values": [
                         {
                             "category": "xhr",
@@ -713,7 +717,7 @@ class Fixtures(object):
         if not webhook_url:
             webhook_url = 'https://example.com/webhook'
 
-        app = SentryAppCreator.run(
+        app = sentry_apps.Creator.run(
             name=name,
             organization=organization,
             scopes=scopes,
@@ -724,6 +728,13 @@ class Fixtures(object):
             app.update(status=SentryAppStatus.PUBLISHED)
 
         return app
+
+    def create_sentry_app_installation(self, organization=None, slug=None, user=None):
+        return sentry_app_installations.Creator.run(
+            slug=(slug or self.create_sentry_app().slug),
+            organization=(organization or self.create_organization()),
+            user=(user or self.create_user()),
+        )
 
     def create_service_hook(self, actor=None, project=None, events=None, url=None, **kwargs):
         if not actor:
@@ -736,7 +747,7 @@ class Fixtures(object):
         if not url:
             url = 'https://example/sentry/webhook'
 
-        return ServiceHookCreator.run(
+        return service_hooks.Creator.run(
             actor=actor,
             project=project,
             events=events,

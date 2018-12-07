@@ -5,7 +5,6 @@ import pytest
 
 from exam import fixture
 
-from django.core.urlresolvers import reverse
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
@@ -16,7 +15,7 @@ from sentry.models import (
     PullRequest,
     Repository,
 )
-from sentry.testutils import PluginTestCase
+from sentry.testutils import IntegrationRepositoryTestCase
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.utils import json
 
@@ -27,13 +26,11 @@ from .testutils import (
 )
 
 
-class GitLabRepositoryProviderTest(PluginTestCase):
+class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = 'integrations:gitlab'
 
     def setUp(self):
-        responses.reset()
         super(GitLabRepositoryProviderTest, self).setUp()
-        self.login_as(self.user)
         self.integration = Integration.objects.create(
             provider='gitlab',
             name='Example GitLab',
@@ -74,7 +71,11 @@ class GitLabRepositoryProviderTest(PluginTestCase):
     def provider(self):
         return GitlabRepositoryProvider('gitlab')
 
-    def create_repository(self, repository_config, integration_id, organization_slug=None):
+    def tearDown(self):
+        super(GitLabRepositoryProviderTest, self).tearDown()
+        responses.reset()
+
+    def add_create_repository_responses(self, repository_config):
         responses.add(
             responses.GET,
             u'https://example.gitlab.com/api/v4/projects/%s' % self.gitlab_id,
@@ -85,20 +86,6 @@ class GitLabRepositoryProviderTest(PluginTestCase):
             u'https://example.gitlab.com/api/v4/projects/%s/hooks' % self.gitlab_id,
             json={'id': 99}
         )
-
-        with self.feature({'organizations:repos': True}):
-            response = self.client.post(
-                path=reverse(
-                    'sentry-api-0-organization-repositories',
-                    args=[organization_slug or self.organization.slug]
-                ),
-                data={
-                    'provider': self.provider_name,
-                    'installation': integration_id,
-                    'identifier': repository_config['id'],
-                }
-            )
-        return response
 
     def assert_repository(self, repository_config, organization_id=None):
         instance = self.integration.metadata['instance']
@@ -147,16 +134,21 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         assert response.status_code == 201
         self.assert_repository(self.default_repository_config)
 
-    def test_create_repository_null_installation_id(self):
+    def test_create_repository_data_no_installation_id(self):
         response = self.create_repository(self.default_repository_config, None)
-        assert response.status_code == 500
+        assert response.status_code == 400
+        self.assert_error_message(response, 'validation', 'requires an integration id')
 
-    def test_create_repository_integration_does_not_exist(self):
+    def test_create_repository_data_integration_does_not_exist(self):
         integration_id = self.integration.id
         self.integration.delete()
 
         response = self.create_repository(self.default_repository_config, integration_id)
-        assert response.status_code == 500  # TODO(lb): shouldn't this result in a 404?
+        assert response.status_code == 404
+        self.assert_error_message(
+            response,
+            'not found',
+            'Integration matching query does not exist.')
 
     def test_create_repository_org_given_has_no_installation(self):
         organization = self.create_organization(owner=self.user)
@@ -164,7 +156,7 @@ class GitLabRepositoryProviderTest(PluginTestCase):
             self.default_repository_config,
             self.integration.id,
             organization.slug)
-        assert response.status_code == 500
+        assert response.status_code == 404
 
     @responses.activate
     def test_create_repository_get_project_request_fails(self):
@@ -173,20 +165,27 @@ class GitLabRepositoryProviderTest(PluginTestCase):
             u'https://example.gitlab.com/api/v4/projects/%s' % self.gitlab_id,
             status=503,
         )
-        response = self.create_repository(self.default_repository_config, self.integration.id)
-        # TODO(lb): it gives a 400 which I'm not sure makes sense here
-        assert response.status_code == 400
+        response = self.create_repository(
+            self.default_repository_config,
+            self.integration.id,
+            add_responses=False)
+        assert response.status_code == 503
 
     @responses.activate
     def test_create_repository_integration_create_webhook_failure(self):
+        responses.add(
+            responses.GET,
+            u'https://example.gitlab.com/api/v4/projects/%s' % self.gitlab_id,
+            json=self.default_repository_config
+        )
         responses.add(
             responses.POST,
             u'https://example.gitlab.com/api/v4/projects/%s/hooks' % self.gitlab_id,
             status=503,
         )
         response = self.create_repository(self.default_repository_config,
-                                          self.integration.id)
-        assert response.status_code == 400
+                                          self.integration.id, add_responses=False)
+        assert response.status_code == 503
 
     @responses.activate
     def test_on_delete_repository_remove_webhook(self):
@@ -307,3 +306,11 @@ class GitLabRepositoryProviderTest(PluginTestCase):
         pull = PullRequest(key=99)
         result = self.provider.pull_request_url(repo, pull)
         assert result == 'https://example.gitlab.com/getsentry/projects/example-repo/merge_requests/99'
+
+    @responses.activate
+    def test_repository_external_slug(self):
+        response = self.create_repository(self.default_repository_config,
+                                          self.integration.id)
+        repo = Repository.objects.get(pk=response.data['id'])
+        result = self.provider.repository_external_slug(repo)
+        assert result == repo.config['project_id']

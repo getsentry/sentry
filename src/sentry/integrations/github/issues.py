@@ -46,10 +46,11 @@ class GitHubIssueBasic(IssueBasicMixin):
         return (default_repo, default_repo.split('/')[1])
 
     def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'github_integration'
         fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
-        assignees = self.get_allowed_assignees(default_repo)
+        assignees = self.get_allowed_assignees(default_repo) if default_repo else []
 
         org = group.organization
         autocomplete_url = reverse(
@@ -137,7 +138,10 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'name': 'comment',
                 'label': 'Comment',
                 'default': u'Sentry issue: [{issue_id}]({url})'.format(
-                    url=absolute_uri(group.get_absolute_url()),
+                    url=absolute_uri(
+                        group.get_absolute_url(
+                            params={
+                                'referrer': 'github_integration'})),
                     issue_id=group.qualified_short_id,
                 ),
                 'type': 'textarea',

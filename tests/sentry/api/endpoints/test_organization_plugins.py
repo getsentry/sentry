@@ -16,6 +16,30 @@ class OrganizationPluginsTest(APITestCase):
 
         self.login_as(user=self.user)
 
+    def test_exposes_all_plugins_available_no_enabled_state(self):
+        url = reverse(
+            'sentry-api-0-organization-plugins',
+            kwargs={'organization_slug': self.projectA.organization.slug}
+        )
+
+        url = u'{}?{}'.format(url, 'plugins=_all')
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200, \
+            (response.status_code, response.content)
+
+        # should have these plugins:
+        # issuetrackingplugin2, webhooks, mail
+        # none of the plugins should have an 'enabled' key since these
+        # plugins are not bound by a project
+        plugins = [
+            p for p in
+            filter(lambda p: 'enabled' in p, response.data)
+        ]
+        assert len(plugins) == 0
+        assert len(response.data) > 0
+
     def test_exposes_plugins_across_all_org_projects(self):
         url = reverse(
             'sentry-api-0-organization-plugins',

@@ -16,10 +16,53 @@ from sentry.utils.http import absolute_uri
 
 
 JIRA_KEY = '%s.jira' % (urlparse(absolute_uri()).hostname, )
+ISSUE_KEY_RE = re.compile(r'^[A-Z][A-Z0-9]*-\d+$')
 
 
 def md5(*bits):
     return _md5(':'.join((force_bytes(bit, errors='replace') for bit in bits)))
+
+
+class JiraCloud(object):
+    """
+    Contains the jira-cloud specifics that a JiraClient needs
+    in order to communicate with jira
+    """
+
+    def __init__(self, shared_secret):
+        self.shared_secret = shared_secret
+
+    @property
+    def cache_prefix(self):
+        return 'sentry-jira-2:'
+
+    def request_hook(self, method, path, data, params, **kwargs):
+        """
+        Used by Jira Client to apply the jira-cloud authentication
+        """
+        # handle params that are already part of the path
+        url_params = dict(parse_qs(urlsplit(path).query))
+        url_params.update(params or {})
+        path = path.split('?')[0]
+
+        jwt_payload = {
+            'iss': JIRA_KEY,
+            'iat': datetime.datetime.utcnow(),
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
+            'qsh': get_query_hash(path, method.upper(), url_params),
+        }
+        encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
+        params = dict(
+            jwt=encoded_jwt,
+            **(url_params or {})
+        )
+        request_spec = kwargs.copy()
+        request_spec.update(dict(
+            method=method,
+            path=path,
+            data=data,
+            params=params))
+        return request_spec
 
 
 class JiraApiClient(ApiClient):
@@ -37,29 +80,21 @@ class JiraApiClient(ApiClient):
     ASSIGN_URL = '/rest/api/2/issue/%s/assignee'
     TRANSITION_URL = '/rest/api/2/issue/%s/transitions'
 
-    def __init__(self, base_url, shared_secret):
+    def __init__(self, base_url, jira_style, verify_ssl):
         self.base_url = base_url
-        self.shared_secret = shared_secret
-        super(JiraApiClient, self).__init__(verify_ssl=True)
+        # `jira_style` encapsulates differences between jira server & jira cloud.
+        # We only support one API version for Jira, but server/cloud require different
+        # authentication mechanisms and caching.
+        self.jira_style = jira_style
+        super(JiraApiClient, self).__init__(verify_ssl)
 
     def request(self, method, path, data=None, params=None, **kwargs):
-        # handle params that are already part of the path
-        url_params = dict(parse_qs(urlsplit(path).query))
-        url_params.update(params or {})
-        path = path.split('?')[0]
-
-        jwt_payload = {
-            'iss': JIRA_KEY,
-            'iat': datetime.datetime.utcnow(),
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
-            'qsh': get_query_hash(path, method.upper(), url_params),
-        }
-        encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
-        params = dict(
-            jwt=encoded_jwt,
-            **(url_params or {})
-        )
-        return self._request(method, path, data=data, params=params, **kwargs)
+        """
+        Use the request_hook method for our specific style of Jira to
+        add authentication data and transform parameters.
+        """
+        request_spec = self.jira_style.request_hook(method, path, data, params, **kwargs)
+        return self._request(**request_spec)
 
     def get_cached(self, full_url):
         """
@@ -67,7 +102,7 @@ class JiraApiClient(ApiClient):
         based on URL
         TODO: Implement GET attr in cache as well. (see self.create_meta for example)
         """
-        key = 'sentry-jira-2:' + md5(full_url, self.base_url).hexdigest()
+        key = self.jira_style.cache_prefix + md5(full_url, self.base_url).hexdigest()
         cached_result = cache.get(key)
         if not cached_result:
             cached_result = self.get(full_url)
@@ -79,7 +114,7 @@ class JiraApiClient(ApiClient):
 
     def search_issues(self, query):
         # check if it looks like an issue id
-        if re.search(r'^[A-Za-z]+-\d+$', query):
+        if ISSUE_KEY_RE.match(query):
             jql = 'id="%s"' % query.replace('"', '\\"')
         else:
             jql = 'text ~ "%s"' % query.replace('"', '\\"')
@@ -90,6 +125,15 @@ class JiraApiClient(ApiClient):
 
     def get_projects_list(self):
         return self.get_cached(self.PROJECT_URL)
+
+    def get_project_key_for_id(self, project_id):
+        if not project_id:
+            return ''
+        projects = self.get_projects_list()
+        for project in projects:
+            if project['id'] == project_id:
+                return project['key'].encode('utf-8')
+        return ''
 
     def get_create_meta(self, project=None):
         params = {'expand': 'projects.issuetypes.fields'}
@@ -122,10 +166,14 @@ class JiraApiClient(ApiClient):
         return self.get_cached(self.PRIORITIES_URL)
 
     def get_users_for_project(self, project):
-        return self.get(self.USERS_URL, params={'project': project})
+        # Jira Server wants a project key, while cloud is indifferent.
+        project_key = self.get_project_key_for_id(project)
+        return self.get(self.USERS_URL, params={'project': project_key})
 
     def search_users_for_project(self, project, username):
-        return self.get(self.USERS_URL, params={'project': project, 'username': username})
+        # Jira Server wants a project key, while cloud is indifferent.
+        project_key = self.get_project_key_for_id(project)
+        return self.get(self.USERS_URL, params={'project': project_key, 'username': username})
 
     def search_users_for_issue(self, issue_key, email):
         # not actully in the official documentation, but apparently

@@ -56,7 +56,7 @@ class TagStorageTest(SnubaTestCase):
                     'sentry:release': 100 * r,
                     'sentry:user': u"id:user{}".format(r),
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     'id': u"user{}".format(r),
                     'email': u"user{}@sentry.io".format(r)
                 }
@@ -76,7 +76,7 @@ class TagStorageTest(SnubaTestCase):
                     'environment': self.proj1env1.name,
                     'sentry:user': "id:user1",
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     'id': "user1"
                 }
             },
@@ -96,12 +96,12 @@ class TagStorageTest(SnubaTestCase):
         result.sort(key=lambda r: r.key)
         assert result[0].key == 'baz'
         assert result[0].top_values[0].value == 'quux'
-        # assert result[0].values_seen == 1
-        # assert result[0].count == 2
+        assert result[0].values_seen == 1
+        assert result[0].count == 2
 
         assert result[3].key == 'sentry:release'
-        # assert result[3].values_seen == 2
-        # assert result[3].count == 2
+        assert result[3].values_seen == 2
+        assert result[3].count == 2
         top_release_values = result[3].top_values
         assert len(top_release_values) == 2
         assert set(v.value for v in top_release_values) == set(['100', '200'])

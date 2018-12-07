@@ -38,12 +38,15 @@ const GroupEventDetails = createReactClass({
   },
 
   fetchData() {
-    let eventId = this.props.params.eventId || 'latest';
+    const eventId = this.props.params.eventId || 'latest';
+    const groupId = this.getGroup().id;
+    const orgSlug = this.getOrganization().slug;
+    const projSlug = this.getProject().slug;
 
     let url =
       eventId === 'latest' || eventId === 'oldest'
-        ? '/issues/' + this.getGroup().id + '/events/' + eventId + '/'
-        : '/events/' + eventId + '/';
+        ? `/issues/${groupId}/events/${eventId}/`
+        : `/projects/${orgSlug}/${projSlug}/events/${eventId}/`;
 
     this.setState({
       loading: true,
@@ -59,9 +62,9 @@ const GroupEventDetails = createReactClass({
         });
 
         this.api.bulkUpdate({
-          orgId: this.getOrganization().slug,
-          projectId: this.getProject().slug,
-          itemIds: [this.getGroup().id],
+          orgId: orgSlug,
+          projectId: projSlug,
+          itemIds: [groupId],
           failSilently: true,
           data: {hasSeen: true},
         });

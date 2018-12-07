@@ -8,21 +8,21 @@ const TYPES = {
 export const PROMOTED_TAGS = [
   'level',
   'logger',
-  'server_name',
+  'server.name',
   'transaction',
   'environment',
   'site',
   'url',
-  'app_device',
+  'app.device',
   'device',
-  'device_family',
+  'device.family',
   'runtime',
-  'runtime_name',
+  'runtime.name',
   'browser',
-  'browser_name',
+  'browser.name',
   'os',
-  'os_name',
-  'os_rooted',
+  'os.name',
+  'os.rooted',
   'sentry:release',
 ];
 
@@ -32,15 +32,14 @@ export const SPECIAL_TAGS = {
 };
 
 export const COLUMNS = [
-  {name: 'event_id', type: TYPES.STRING},
-  {name: 'issue', type: TYPES.STRING},
-  {name: 'project_id', type: TYPES.STRING},
-  {name: 'project_name', type: TYPES.STRING}, // Not a snuba column
+  {name: 'id', type: TYPES.STRING},
+  {name: 'issue.id', type: TYPES.STRING},
+  {name: 'project.id', type: TYPES.STRING},
+  {name: 'project.name', type: TYPES.STRING},
   {name: 'platform', type: TYPES.STRING},
   {name: 'message', type: TYPES.STRING},
   {name: 'primary_hash', type: TYPES.STRING},
   {name: 'timestamp', type: TYPES.DATETIME},
-  {name: 'received', type: TYPES.DATETIME},
 
   {name: 'user.id', type: TYPES.STRING},
   {name: 'user.username', type: TYPES.STRING},
@@ -49,8 +48,8 @@ export const COLUMNS = [
 
   {name: 'sdk.name', type: TYPES.STRING},
   {name: 'sdk.version', type: TYPES.STRING},
-  {name: 'tags_key', type: TYPES.STRING},
-  {name: 'tags_value', type: TYPES.STRING},
+  // {name: 'tags_key', type: TYPES.STRING},
+  // {name: 'tags_value', type: TYPES.STRING},
   {name: 'contexts.key', type: TYPES.STRING},
   {name: 'contexts.value', type: TYPES.STRING},
   {name: 'http.method', type: TYPES.STRING},
@@ -73,8 +72,8 @@ export const COLUMNS = [
   {name: 'geo.city', type: TYPES.STRING},
   {name: 'error.type', type: TYPES.STRING},
   {name: 'error.value', type: TYPES.STRING},
-  {name: 'error.mechanism_type', type: TYPES.STRING},
-  {name: 'error.mechanism_handled', type: TYPES.STRING},
+  {name: 'error.mechanism', type: TYPES.STRING},
+  {name: 'error.handled', type: TYPES.STRING},
   {name: 'stack.abs_path', type: TYPES.STRING},
   {name: 'stack.filename', type: TYPES.STRING},
   {name: 'stack.package', type: TYPES.STRING},
@@ -85,6 +84,10 @@ export const COLUMNS = [
   {name: 'stack.lineno', type: TYPES.STRING},
   {name: 'stack.stack_level', type: TYPES.STRING},
 ];
+
+export const NON_SNUBA_FIELDS = ['issue.id', 'project.name'];
+
+export const NON_CONDITIONS_FIELDS = [...NON_SNUBA_FIELDS, 'project.id'];
 
 export const CONDITION_OPERATORS = [
   '>',

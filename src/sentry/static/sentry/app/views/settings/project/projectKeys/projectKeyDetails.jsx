@@ -30,6 +30,7 @@ import FormField from 'app/views/settings/components/forms/formField';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import SelectField from 'app/views/settings/components/forms/selectField';
@@ -37,10 +38,9 @@ import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import TextField from 'app/views/settings/components/forms/textField';
 import getDynamicText from 'app/utils/getDynamicText';
-
-import TextCopyInput from '../../components/forms/textCopyInput';
 
 const RATE_LIMIT_FORMAT_MAP = new Map([
   [0, 'None'],
@@ -168,9 +168,8 @@ const KeyStats = createReactClass({
 
 class KeyRateLimitsForm extends React.Component {
   static propTypes = {
-    organization: PropTypes.object.isRequired,
-    project: PropTypes.object.isRequired,
     data: SentryTypes.ProjectKey.isRequired,
+    disabled: PropTypes.bool,
   };
 
   handleChangeWindow = (onChange, onBlur, currentValueObj, value, e) => {
@@ -192,7 +191,7 @@ class KeyRateLimitsForm extends React.Component {
   };
 
   render() {
-    let {data, project, organization} = this.props;
+    let {data, disabled} = this.props;
     let {keyId, orgId, projectId} = this.props.params;
     let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
 
@@ -211,7 +210,7 @@ class KeyRateLimitsForm extends React.Component {
           renderDisabled={({children, ...props}) =>
             children({...props, renderDisabled: disabledAlert})}
         >
-          {({hasFeature, features, renderDisabled}) => (
+          {({hasFeature, features, organization, project, renderDisabled}) => (
             <Panel>
               <PanelHeader>{t('Rate Limits')}</PanelHeader>
 
@@ -229,6 +228,7 @@ class KeyRateLimitsForm extends React.Component {
                   className="rate-limit-group"
                   name="rateLimit"
                   label={t('Rate Limit')}
+                  disabled={disabled || !hasFeature}
                   validate={({id, form, model}) => {
                     let isValid =
                       form &&
@@ -256,7 +256,7 @@ class KeyRateLimitsForm extends React.Component {
                           min={0}
                           value={value && value.count}
                           placeholder={t('Count')}
-                          disabled={!hasFeature}
+                          disabled={disabled || !hasFeature}
                           onChange={this.handleChangeCount.bind(this, onChange, value)}
                           onBlur={this.handleChangeCount.bind(this, onBlur, value)}
                         />
@@ -271,7 +271,7 @@ class KeyRateLimitsForm extends React.Component {
                           value={value && value.window}
                           placeholder={t('Window')}
                           formatLabel={formatRateLimitWindow}
-                          disabled={!hasFeature}
+                          disabled={disabled || !hasFeature}
                           onChange={this.handleChangeWindow.bind(
                             this,
                             onChange,
@@ -296,8 +296,6 @@ const KeySettings = createReactClass({
   displayName: 'KeySettings',
 
   propTypes: {
-    organization: PropTypes.object.isRequired,
-    project: PropTypes.object.isRequired,
     data: SentryTypes.ProjectKey.isRequired,
     onRemove: PropTypes.func.isRequired,
   },
@@ -333,7 +331,7 @@ const KeySettings = createReactClass({
 
   render() {
     let {keyId, orgId, projectId} = this.props.params;
-    let {data, organization, project} = this.props;
+    let {data} = this.props;
     let apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
     const loaderLink = getDynamicText({
       value: data.dsn.cdn,
@@ -341,134 +339,143 @@ const KeySettings = createReactClass({
     });
 
     return (
-      <React.Fragment>
-        <Form
-          saveOnBlur
-          allowUndo
-          apiEndpoint={apiEndpoint}
-          apiMethod="PUT"
-          initialData={data}
-        >
-          <Panel>
-            <PanelHeader>{t('Details')}</PanelHeader>
+      <Access access={['project:write']}>
+        {({hasAccess}) => (
+          <React.Fragment>
+            <Form
+              saveOnBlur
+              allowUndo
+              apiEndpoint={apiEndpoint}
+              apiMethod="PUT"
+              initialData={data}
+            >
+              <Panel>
+                <PanelHeader>{t('Details')}</PanelHeader>
 
-            <PanelBody>
-              <TextField name="name" label={t('Name')} required={false} />
-
-              <BooleanField
-                name="isActive"
-                label={t('Enabled')}
-                required={false}
-                help={
-                  'Accept events from this key? This may be used to temporarily suspend a key.'
-                }
-              />
-              <Field label={t('Created')}>
-                <div className="controls">
-                  <DateTime date={data.dateCreated} />
-                </div>
-              </Field>
-            </PanelBody>
-          </Panel>
-        </Form>
-
-        <KeyRateLimitsForm
-          params={this.props.params}
-          data={data}
-          organization={organization}
-          project={project}
-        />
-
-        <Feature features={['organizations:js-loader']}>
-          <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
-            <Panel>
-              <PanelHeader>{t('CDN')}</PanelHeader>
-              <PanelBody>
-                <Field
-                  help={tct(
-                    'Copy this script into your website to setup our JavaScript SDK without any additional configuration. [link]',
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/platforms/javascript/browser/">
-                          What does the script provide?
-                        </ExternalLink>
-                      ),
+                <PanelBody>
+                  <TextField
+                    name="name"
+                    label={t('Name')}
+                    disabled={!hasAccess}
+                    required={false}
+                  />
+                  <BooleanField
+                    name="isActive"
+                    label={t('Enabled')}
+                    required={false}
+                    disabled={!hasAccess}
+                    help={
+                      'Accept events from this key? This may be used to temporarily suspend a key.'
                     }
+                  />
+                  <Field label={t('Created')}>
+                    <div className="controls">
+                      <DateTime date={data.dateCreated} />
+                    </div>
+                  </Field>
+                </PanelBody>
+              </Panel>
+            </Form>
+
+            <KeyRateLimitsForm
+              params={this.props.params}
+              data={data}
+              disabled={!hasAccess}
+            />
+
+            <Feature features={['organizations:js-loader']}>
+              <Form
+                saveOnBlur
+                apiEndpoint={apiEndpoint}
+                apiMethod="PUT"
+                initialData={data}
+              >
+                <Panel>
+                  <PanelHeader>{t('CDN')}</PanelHeader>
+                  <PanelBody>
+                    <Field
+                      help={tct(
+                        'Copy this script into your website to setup our JavaScript SDK without any additional configuration. [link]',
+                        {
+                          link: (
+                            <ExternalLink href="https://docs.sentry.io/platforms/javascript/browser/">
+                              What does the script provide?
+                            </ExternalLink>
+                          ),
+                        }
+                      )}
+                      inline={false}
+                      flexibleControlStateSize
+                    >
+                      <TextCopyInput
+                      >{`<script src='${loaderLink}' crossorigin="anonymous"></script>`}</TextCopyInput>
+                    </Field>
+                    <SelectField
+                      name="browserSdkVersion"
+                      choices={data.browserSdk ? data.browserSdk.choices : []}
+                      placeholder={t('4.x')}
+                      allowClear={false}
+                      enabled={!hasAccess}
+                      help={t('Select the version of the SDK that should be loaded')}
+                    />
+                  </PanelBody>
+                </Panel>
+              </Form>
+            </Feature>
+
+            <Panel>
+              <PanelHeader>{t('Credentials')}</PanelHeader>
+              <PanelBody>
+                <PanelAlert type="info" icon="icon-circle-exclamation">
+                  {t(
+                    'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
                   )}
-                  inline={false}
-                  flexibleControlStateSize
-                >
-                  <TextCopyInput
-                  >{`<script src='${loaderLink}' crossorigin="anonymous"></script>`}</TextCopyInput>
-                </Field>
-                <SelectField
-                  name="browserSdkVersion"
-                  choices={data.browserSdk ? data.browserSdk.choices : []}
-                  placeholder={t('4.x')}
-                  allowClear={false}
-                  help={t('Select the version of the SDK that should be loaded')}
+                </PanelAlert>
+
+                <ProjectKeyCredentials
+                  projectId={`${data.projectId}`}
+                  data={data}
+                  showPublicKey
+                  showSecretKey
+                  showProjectId
                 />
               </PanelBody>
             </Panel>
-          </Form>
-        </Feature>
 
-        <Panel>
-          <PanelHeader>{t('Credentials')}</PanelHeader>
-          <PanelBody>
-            <PanelAlert type="info" icon="icon-circle-exclamation">
-              {t(
-                'Your credentials are coupled to a public and secret key. Different clients will require different credentials, so make sure you check the documentation before plugging things in.'
-              )}
-            </PanelAlert>
-
-            <ProjectKeyCredentials
-              projectId={`${data.projectId}`}
-              data={data}
-              showPublicKey
-              showSecretKey
-              showProjectId
-            />
-          </PanelBody>
-        </Panel>
-
-        <Access access={['project:admin']}>
-          <Panel>
-            <PanelHeader>{t('Revoke Key')}</PanelHeader>
-            <PanelBody>
-              <Field
-                label={t('Revoke Key')}
-                help={t(
-                  'Revoking this key will immediately remove and suspend the credentials. This action is irreversible.'
-                )}
-              >
-                <div>
-                  <Confirm
-                    priority="danger"
-                    message={t(
-                      'Are you sure you want to revoke this key? This will immediately remove and suspend the credentials.'
+            <Access access={['project:admin']}>
+              <Panel>
+                <PanelHeader>{t('Revoke Key')}</PanelHeader>
+                <PanelBody>
+                  <Field
+                    label={t('Revoke Key')}
+                    help={t(
+                      'Revoking this key will immediately remove and suspend the credentials. This action is irreversible.'
                     )}
-                    onConfirm={this.handleRemove}
-                    confirmText={t('Revoke Key')}
                   >
-                    <Button priority="danger">{t('Revoke Key')}</Button>
-                  </Confirm>
-                </div>
-              </Field>
-            </PanelBody>
-          </Panel>
-        </Access>
-      </React.Fragment>
+                    <div>
+                      <Confirm
+                        priority="danger"
+                        message={t(
+                          'Are you sure you want to revoke this key? This will immediately remove and suspend the credentials.'
+                        )}
+                        onConfirm={this.handleRemove}
+                        confirmText={t('Revoke Key')}
+                      >
+                        <Button priority="danger">{t('Revoke Key')}</Button>
+                      </Confirm>
+                    </div>
+                  </Field>
+                </PanelBody>
+              </Panel>
+            </Access>
+          </React.Fragment>
+        )}
+      </Access>
     );
   },
 });
 
 export default class ProjectKeyDetails extends AsyncView {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-  };
-
   getTitle() {
     return t('Key Details');
   }
@@ -486,21 +493,15 @@ export default class ProjectKeyDetails extends AsyncView {
   renderBody() {
     let {data} = this.state;
     let {params} = this.props;
-    let {organization, project} = this.context;
 
     return (
       <div className="ref-key-details">
         <SettingsPageHeader title={t('Key Details')} />
+        <PermissionAlert />
 
         <KeyStats params={params} />
 
-        <KeySettings
-          organization={organization}
-          project={project}
-          params={params}
-          data={data}
-          onRemove={this.handleRemove}
-        />
+        <KeySettings params={params} data={data} onRemove={this.handleRemove} />
       </div>
     );
   }

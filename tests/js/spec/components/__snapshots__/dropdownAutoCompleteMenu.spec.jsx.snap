@@ -41,6 +41,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
     resetInputOnClose={true}
   >
     <DropdownMenu
+      closeOnEscape={true}
       isOpen={true}
       keepMenuOpen={false}
       onClickOutside={[Function]}
@@ -62,7 +63,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-shq4iz-StyledMenu-getMenuBorderRadius ejumqxq7"
+                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq7"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
@@ -138,7 +139,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-2znhnp-AutoCompleteItem ejumqxq3"
+                          className="css-1dzvpw9-AutoCompleteItem ejumqxq3"
                           onClick={[Function]}
                         >
                           <div>
@@ -153,7 +154,7 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-zryfsl-AutoCompleteItem ejumqxq3"
+                          className="css-1sp52yo-AutoCompleteItem ejumqxq3"
                           onClick={[Function]}
                         >
                           <div>
@@ -215,6 +216,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
     resetInputOnClose={true}
   >
     <DropdownMenu
+      closeOnEscape={true}
       isOpen={true}
       keepMenuOpen={false}
       onClickOutside={[Function]}
@@ -236,7 +238,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
               onMouseLeave={[Function]}
             >
               <div
-                className="css-shq4iz-StyledMenu-getMenuBorderRadius ejumqxq7"
+                className="css-1fwqu7l-StyledMenu-getMenuBorderRadius ejumqxq7"
                 onClick={[Function]}
                 onMouseDown={[Function]}
                 onMouseEnter={[Function]}
@@ -297,7 +299,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-2znhnp-AutoCompleteItem ejumqxq3"
+                          className="css-1dzvpw9-AutoCompleteItem ejumqxq3"
                           onClick={[Function]}
                         >
                           <div>
@@ -312,7 +314,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-zryfsl-AutoCompleteItem ejumqxq3"
+                          className="css-1sp52yo-AutoCompleteItem ejumqxq3"
                           onClick={[Function]}
                         >
                           <div>
@@ -327,7 +329,7 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
                         onClick={[Function]}
                       >
                         <div
-                          className="css-zryfsl-AutoCompleteItem ejumqxq3"
+                          className="css-1sp52yo-AutoCompleteItem ejumqxq3"
                           onClick={[Function]}
                         >
                           <div>

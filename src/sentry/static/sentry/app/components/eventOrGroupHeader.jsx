@@ -79,7 +79,9 @@ class EventOrGroupHeader extends React.Component {
         pathname: `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent
           ? `events/${data.id}/`
           : ''}`,
-        search: `${this.props.query ? `?query=${this.props.query}` : ''}`,
+        search: `${this.props.query
+          ? `?query=${window.encodeURIComponent(this.props.query)}`
+          : ''}`,
       };
       Wrapper = ProjectLink;
     } else {
@@ -155,7 +157,11 @@ const LocationWrapper = styled.div`
 
 function Location(props) {
   let {children, ...rest} = props;
-  return <LocationWrapper{...rest}>in <span>{children}</span></LocationWrapper>;
+  return (
+    <LocationWrapper {...rest}>
+      in <span>{children}</span>
+    </LocationWrapper>
+  );
 }
 
 const Message = styled.div`

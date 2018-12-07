@@ -11,7 +11,7 @@ from __future__ import absolute_import
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase',
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase', 'IntegrationRepositoryTestCase',
 )
 
 import base64
@@ -272,6 +272,21 @@ class BaseTestCase(Fixtures, Exam):
             return self.client.post(
                 path,
                 data=data,
+                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
+                **extra
+            )
+
+    def _postUnrealWithHeader(self, upload_unreal_crash, data=None, key=None, **extra):
+        path = reverse(
+            'sentry-api-unreal',
+            kwargs={
+                'project_id': self.project.id,
+                'sentry_key': self.projectkey.public_key})
+        with self.tasks():
+            return self.client.post(
+                path,
+                data=upload_unreal_crash,
+                content_type='application/octet-stream',
                 HTTP_USER_AGENT=DEFAULT_USER_AGENT,
                 **extra
             )
@@ -811,7 +826,7 @@ class SnubaTestCase(TestCase):
             'group_id': event.group_id,
             'event_id': event.event_id,
             'project_id': event.project_id,
-            'message': event.message,
+            'message': event.real_message,
             'platform': event.platform,
             'datetime': event.datetime,
             'data': dict(data),
@@ -828,9 +843,6 @@ class SnubaTestCase(TestCase):
         doesn't run them through the 'real' event pipeline. In a perfect
         world all test events would go through the full regular pipeline.
         """
-
-        from sentry.event_manager import get_hashes_from_fingerprint, md5_from_hash
-
         event = super(SnubaTestCase, self).create_event(*args, **kwargs)
 
         data = event.data.data
@@ -850,15 +862,7 @@ class SnubaTestCase(TestCase):
                 group_id=event.group_id,
             )
 
-        if 'user' in tags:
-            user = tags.pop('user')
-            data['user'] = user
-
-        hashes = get_hashes_from_fingerprint(
-            event,
-            data.get('fingerprint', ['{{ default }}']),
-        )
-        primary_hash = md5_from_hash(hashes[0])
+        primary_hash = event.get_primary_hash()
 
         grouphash, _ = GroupHash.objects.get_or_create(
             project=event.project,
@@ -880,3 +884,42 @@ class SnubaTestCase(TestCase):
             settings.SENTRY_SNUBA + '/tests/insert',
             data=json.dumps(events)
         ).status_code == 200
+
+
+class IntegrationRepositoryTestCase(APITestCase):
+    def setUp(self):
+        super(IntegrationRepositoryTestCase, self).setUp()
+        self.login_as(self.user)
+
+    def add_create_repository_responses(self, repository_config):
+        raise NotImplementedError
+
+    def create_repository(self, repository_config, integration_id,
+                          organization_slug=None, add_responses=True):
+        if add_responses:
+            self.add_create_repository_responses(repository_config)
+        with self.feature({'organizations:repos': True}):
+            if not integration_id:
+                data = {
+                    'provider': self.provider_name,
+                    'identifier': repository_config['id'],
+                }
+            else:
+                data = {
+                    'provider': self.provider_name,
+                    'installation': integration_id,
+                    'identifier': repository_config['id'],
+                }
+
+            response = self.client.post(
+                path=reverse(
+                    'sentry-api-0-organization-repositories',
+                    args=[organization_slug or self.organization.slug]
+                ),
+                data=data
+            )
+        return response
+
+    def assert_error_message(self, response, error_type, error_message):
+        assert response.data['error_type'] == error_type
+        assert error_message in response.data['errors']['__all__']

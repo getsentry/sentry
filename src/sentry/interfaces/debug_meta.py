@@ -5,7 +5,7 @@ import uuid
 
 __all__ = ('DebugMeta', )
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 
 from symbolic import parse_addr, normalize_debug_id
 
@@ -95,6 +95,8 @@ class DebugMeta(Interface):
     """
 
     ephemeral = False
+    path = 'debug_meta'
+    external_type = 'debugmeta'
 
     @classmethod
     def to_python(cls, data):
@@ -113,6 +115,13 @@ class DebugMeta(Interface):
             sdk_info=cls.normalize_sdk_info(data.get('sdk_info')),
             is_debug_build=is_debug_build,
         )
+
+    def to_json(self):
+        return prune_empty_keys({
+            'images': self.images or None,
+            'sdk_info': self.sdk_info or None,
+            'is_debug_build': self.is_debug_build
+        })
 
     @staticmethod
     def normalize_image(image):
@@ -142,6 +151,3 @@ class DebugMeta(Interface):
             }
         except KeyError as e:
             raise InterfaceValidationError('Missing value for sdk_info: %s' % e.args[0])
-
-    def get_path(self):
-        return 'debug_meta'

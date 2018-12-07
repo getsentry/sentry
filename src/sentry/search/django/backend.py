@@ -164,7 +164,7 @@ def get_sort_clause(sort_by):
         return SORT_CLAUSES[sort_by]
 
 
-def assigned_to_filter(queryset, actor, project):
+def assigned_to_filter(queryset, actor, projects):
     from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     if isinstance(actor, Team):
@@ -174,24 +174,24 @@ def assigned_to_filter(queryset, actor, project):
         id__in=OrganizationMemberTeam.objects.filter(
             organizationmember__in=OrganizationMember.objects.filter(
                 user=actor,
-                organization_id=project.organization_id,
+                organization_id=projects[0].organization_id,
             ),
             is_active=True,
         ).values('team')
     )
 
     return queryset.filter(
-        Q(assignee_set__user=actor, assignee_set__project=project) |
+        Q(assignee_set__user=actor, assignee_set__project__in=projects) |
         Q(assignee_set__team__in=teams)
     )
 
 
-def get_latest_release(project, environment):
+def get_latest_release(projects, environment):
     from sentry.models import Release
 
     release_qs = Release.objects.filter(
-        organization_id=project.organization_id,
-        projects=project,
+        organization_id=projects[0].organization_id,
+        projects__in=projects,
     )
 
     if environment is not None:
@@ -207,10 +207,14 @@ def get_latest_release(project, environment):
 
 
 class DjangoSearchBackend(SearchBackend):
-    def query(self, project, tags=None, environment=None, sort_by='date', limit=100,
+    def query(self, projects, tags=None, environment=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
 
-        from sentry.models import Group, GroupStatus, GroupSubscription, Release
+        from sentry.models import Group, GroupAssignee, GroupStatus, GroupSubscription, Release
+
+        # ensure projects are from same org
+        if len({p.organization_id for p in projects}) != 1:
+            raise RuntimeError('Cross organization search not supported')
 
         if paginator_options is None:
             paginator_options = {}
@@ -220,10 +224,10 @@ class DjangoSearchBackend(SearchBackend):
 
         try:
             if tags.get('sentry:release') == 'latest':
-                tags['sentry:release'] = get_latest_release(project, environment)
+                tags['sentry:release'] = get_latest_release(projects, environment)
 
             if parameters.get('first_release') == 'latest':
-                parameters['first_release'] = get_latest_release(project, environment)
+                parameters['first_release'] = get_latest_release(projects, environment)
         except Release.DoesNotExist:
             # no matches could possibly be found from this point on
             return Paginator(Group.objects.none()).get_result()
@@ -239,22 +243,24 @@ class DjangoSearchBackend(SearchBackend):
             ),
             'bookmarked_by': CallbackCondition(
                 lambda queryset, user: queryset.filter(
-                    bookmark_set__project=project,
+                    bookmark_set__project__in=projects,
                     bookmark_set__user=user,
                 ),
             ),
             'assigned_to': CallbackCondition(
-                functools.partial(assigned_to_filter, project=project),
+                functools.partial(assigned_to_filter, projects=projects),
             ),
             'unassigned': CallbackCondition(
-                lambda queryset, unassigned: queryset.filter(
-                    assignee_set__isnull=unassigned,
+                lambda queryset, unassigned: (queryset.exclude if unassigned else queryset.filter)(
+                    id__in=GroupAssignee.objects.filter(
+                        project_id__in=[p.id for p in projects],
+                    ).values_list('group_id', flat=True),
                 ),
             ),
             'subscribed_by': CallbackCondition(
                 lambda queryset, user: queryset.filter(
                     id__in=GroupSubscription.objects.filter(
-                        project=project,
+                        project__in=projects,
                         user=user,
                         is_active=True,
                     ).values_list('group'),
@@ -263,7 +269,7 @@ class DjangoSearchBackend(SearchBackend):
             'active_at_from': ScalarCondition('active_at', 'gt'),
             'active_at_to': ScalarCondition('active_at', 'lt'),
         }).build(
-            Group.objects.filter(project=project).exclude(status__in=[
+            Group.objects.filter(project__in=projects).exclude(status__in=[
                 GroupStatus.PENDING_DELETION,
                 GroupStatus.DELETION_IN_PROGRESS,
                 GroupStatus.PENDING_MERGE,
@@ -272,7 +278,7 @@ class DjangoSearchBackend(SearchBackend):
         )
 
         # filter out groups which are beyond the retention period
-        retention = quotas.get_event_retention(organization=project.organization)
+        retention = quotas.get_event_retention(organization=projects[0].organization)
         if retention:
             retention_window_start = timezone.now() - timedelta(days=retention)
         else:
@@ -287,14 +293,20 @@ class DjangoSearchBackend(SearchBackend):
         # This is a punt because the SnubaSearchBackend (a subclass) shares so much that it
         # seemed better to handle all the shared initialization and then handoff to the
         # actual backend.
-        return self._query(project, retention_window_start, group_queryset, tags,
+        return self._query(projects, retention_window_start, group_queryset, tags,
                            environment, sort_by, limit, cursor, count_hits,
                            paginator_options, **parameters)
 
-    def _query(self, project, retention_window_start, group_queryset, tags, environment,
+    def _query(self, projects, retention_window_start, group_queryset, tags, environment,
                sort_by, limit, cursor, count_hits, paginator_options, **parameters):
 
         from sentry.models import (Group, Environment, Event, GroupEnvironment, Release)
+
+        # this backend only supports search within one project
+        if len(projects) != 1:
+            raise NotImplementedError
+
+        project = projects[0]
 
         if environment is not None:
             if 'environment' in tags:

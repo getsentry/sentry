@@ -50,6 +50,7 @@ export default class SelectOwners extends React.Component {
     value: PropTypes.array,
     onChange: PropTypes.func,
     onInputChange: PropTypes.func,
+    disabled: PropTypes.bool,
   };
 
   constructor(...args) {
@@ -309,6 +310,7 @@ export default class SelectOwners extends React.Component {
         defaultOptions
         async
         clearable
+        disabled={this.props.disabled}
         cache={false}
         valueComponent={ValueComponent}
         placeholder={t('Add Owners')}

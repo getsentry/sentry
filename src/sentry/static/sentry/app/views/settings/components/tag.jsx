@@ -17,7 +17,9 @@ const getBorder = p =>
         : p.theme.gray1};`
     : '';
 
-const TagTextStyled = styled(({priority, size, border, ...props}) => <Box {...props} />)`
+const TagTextStyled = styled(({priority, size, border, inline, ...props}) => (
+  <Box {...props} />
+))`
   display: inline-flex;
   padding: ${p => (p.size == 'small' ? '0.1em 0.4em 0.2em' : '0.35em 0.8em 0.4em')};
   font-size: 75%;
@@ -29,7 +31,7 @@ const TagTextStyled = styled(({priority, size, border, ...props}) => <Box {...pr
   border-radius: ${p => (p.size == 'small' ? '0.25em' : '2em')};
   text-transform: lowercase;
   font-weight: ${p => (p.size == 'small' ? 'bold' : 'normal')};
-  background-color: ${p =>
+  background: ${p =>
     p.priority ? p.theme.alert[p.priority].background : p.theme.offWhite2};
   ${p => getBorder(p)};
   ${p => getMarginLeft(p)};
@@ -47,6 +49,7 @@ Tag.propTypes = {
   size: PropTypes.string,
   border: PropTypes.bool,
   icon: PropTypes.string,
+  inline: PropTypes.bool,
 };
 
 const StyledInlineSvg = styled(InlineSvg)`

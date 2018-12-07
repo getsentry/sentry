@@ -1,4 +1,6 @@
 /* global module */
+import 'app/utils/emotion-setup';
+
 import {AppContainer} from 'react-hot-loader';
 import {renderToStaticMarkup} from 'react-dom/server';
 import * as Emotion from 'emotion';
@@ -17,13 +19,16 @@ import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
 
-import 'app/utils/emotion-setup';
-
+import {metric} from 'app/utils/analytics';
 import Main from 'app/main';
-import * as api from 'app/api';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
+import * as api from 'app/api';
 import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
+
+// Used for operational metrics to determine that the application js
+// bundle was loaded by browser.
+metric.mark('sentry-app-init');
 
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
@@ -158,6 +163,8 @@ export default {
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
     ReleaseLanding: require('app/views/projectReleases/releaseLanding').default,
     ReleaseProgress: require('app/views/projectReleases/releaseProgress').default,
+    CreateSampleEvent: require('app/components/createSampleEvent').default,
+    InstallPromptBanner: require('app/components/installPromptBanner').default,
     SentryTypes: require('app/sentryTypes').default,
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
@@ -173,6 +180,7 @@ export default {
     U2fSign: require('app/components/u2fsign').default,
     Waiting: require('app/views/onboarding/configure/waiting').default,
     Badge: require('app/components/badge').default,
+    Tag: require('app/views/settings/components/tag').default,
     Switch: require('app/components/switch').default,
     GlobalModal: require('app/components/globalModal').default,
     SetupWizard: require('app/components/setupWizard').default,

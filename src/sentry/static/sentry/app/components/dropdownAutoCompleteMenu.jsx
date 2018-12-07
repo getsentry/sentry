@@ -173,10 +173,19 @@ class DropdownAutoCompleteMenu extends React.Component {
     if (items[0] && items[0].items) {
       //if the first item has children, we assume it is a group
       return _.flatMap(this.filterGroupedItems(items, inputValue), item => {
-        return [
-          {...item, groupLabel: true},
-          ...item.items.map(groupedItem => ({...groupedItem, index: itemCount++})),
-        ];
+        const groupItems = item.items.map(groupedItem => ({
+          ...groupedItem,
+          index: itemCount++,
+        }));
+
+        // Make sure we don't add the group label to list of items
+        // if we try to hide it, otherwise it will render if the list
+        // is using virtualized rows (because of fixed row heights)
+        if (item.hideGroupLabel) {
+          return groupItems;
+        }
+
+        return [{...item, groupLabel: true}, ...groupItems];
       });
     }
 
@@ -231,11 +240,9 @@ class DropdownAutoCompleteMenu extends React.Component {
     const {index} = item;
 
     return item.groupLabel ? (
-      !item.hideGroupLabel && (
-        <LabelWithBorder style={style} key={item.label || item.id}>
-          {item.label && <GroupLabel>{item.label}</GroupLabel>}
-        </LabelWithBorder>
-      )
+      <LabelWithBorder style={style} key={item.label || item.id}>
+        {item.label && <GroupLabel>{item.label}</GroupLabel>}
+      </LabelWithBorder>
     ) : (
       <AutoCompleteItem
         size={itemSize}
@@ -506,7 +513,7 @@ const AutoCompleteItem = styled('div')`
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
   padding: ${p => getItemPaddingForSize(p.size)};
   cursor: pointer;
-  border-bottom: 1px solid ${p => p.theme.borderLighter};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
 
   &:last-child {
     border-bottom: none;
@@ -540,7 +547,7 @@ const GroupLabel = styled('div')`
 
 const StyledMenu = styled('div')`
   background: #fff;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: calc(100% - 1px);
   min-width: 250px;
@@ -571,4 +578,4 @@ const EmptyMessage = styled('div')`
 
 export default DropdownAutoCompleteMenu;
 
-export {StyledMenu};
+export {StyledMenu, AutoCompleteRoot};

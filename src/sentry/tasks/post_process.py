@@ -8,12 +8,14 @@ sentry.tasks.post_process
 
 from __future__ import absolute_import, print_function
 
+from hashlib import md5
 import logging
 import time
 
 from django.conf import settings
 
 from sentry import features
+from sentry.utils import snuba
 from sentry.utils.cache import cache
 from sentry.plugins import plugins
 from sentry.signals import event_processed
@@ -69,85 +71,112 @@ def check_event_already_post_processed(event):
     return not result
 
 
+def check_correct_event_sequencing(event):
+    sample_rate = getattr(settings, 'SENTRY_POST_PROCESSING_SEQUENCING_SAMPLE_RATE', None)
+    if sample_rate is None:
+        return  # no decision
+
+    cluster_key = getattr(settings, 'SENTRY_POST_PROCESSING_SEQUENCING_REDIS_CLUSTER', None)
+    if cluster_key is None:
+        return  # no decision
+
+    event_id = event.event_id.encode('utf-8')
+    _hash = int(md5(event_id).hexdigest(), 16)
+    if not _hash % sample_rate == 0:
+        return  # no decision
+
+    # if the key exists, things are executing in the right order, otherwise
+    # we're ahead of the stream
+    return redis_clusters.get(cluster_key).delete(
+        "_hack_post_process_sampled_events:%s" % event_id) > 0
+
+
 @instrumented_task(name='sentry.tasks.post_process.post_process_group')
 def post_process_group(event, is_new, is_regression, is_sample, is_new_group_environment, **kwargs):
     """
     Fires post processing hooks for a group.
     """
-    if check_event_already_post_processed(event):
-        logger.info('post_process.skipped', extra={
-            'project_id': event.project_id,
-            'event_id': event.event_id,
-            'reason': 'duplicate',
-        })
-        return
+    with snuba.options_override({'consistent': True}):
+        if check_event_already_post_processed(event):
+            logger.info('post_process.skipped', extra={
+                'project_id': event.project_id,
+                'event_id': event.event_id,
+                'reason': 'duplicate',
+            })
+            return
 
-    # NOTE: we must pass through the full Event object, and not an
-    # event_id since the Event object may not actually have been stored
-    # in the database due to sampling.
-    from sentry.models import Project
-    from sentry.models.group import get_group_with_redirect
-    from sentry.rules.processor import RuleProcessor
-    from sentry.tasks.servicehooks import process_service_hook
+        if check_correct_event_sequencing(event) is False:
+            logger.info('post_processing.out-of-sequence', {
+                'project_id': event.project_id,
+                'event_id': event.event_id,
+            })
 
-    # Re-bind Group since we're pickling the whole Event object
-    # which may contain a stale Group.
-    event.group, _ = get_group_with_redirect(event.group_id)
-    event.group_id = event.group.id
+        # NOTE: we must pass through the full Event object, and not an
+        # event_id since the Event object may not actually have been stored
+        # in the database due to sampling.
+        from sentry.models import Project
+        from sentry.models.group import get_group_with_redirect
+        from sentry.rules.processor import RuleProcessor
+        from sentry.tasks.servicehooks import process_service_hook
 
-    project_id = event.group.project_id
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
+        # Re-bind Group since we're pickling the whole Event object
+        # which may contain a stale Group.
+        event.group, _ = get_group_with_redirect(event.group_id)
+        event.group_id = event.group.id
 
-    # Re-bind Project since we're pickling the whole Event object
-    # which may contain a stale Project.
-    event.project = Project.objects.get_from_cache(id=project_id)
+        project_id = event.group.project_id
+        with configure_scope() as scope:
+            scope.set_tag("project", project_id)
 
-    _capture_stats(event, is_new)
+        # Re-bind Project since we're pickling the whole Event object
+        # which may contain a stale Project.
+        event.project = Project.objects.get_from_cache(id=project_id)
 
-    # we process snoozes before rules as it might create a regression
-    has_reappeared = process_snoozes(event.group)
+        _capture_stats(event, is_new)
 
-    rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
-    has_alert = False
-    # TODO(dcramer): ideally this would fanout, but serializing giant
-    # objects back and forth isn't super efficient
-    for callback, futures in rp.apply():
-        has_alert = True
-        safe_execute(callback, event, futures)
+        # we process snoozes before rules as it might create a regression
+        has_reappeared = process_snoozes(event.group)
 
-    if features.has(
-        'projects:servicehooks',
-        project=event.project,
-    ):
-        allowed_events = set(['event.created'])
-        if has_alert:
-            allowed_events.add('event.alert')
+        rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
+        has_alert = False
+        # TODO(dcramer): ideally this would fanout, but serializing giant
+        # objects back and forth isn't super efficient
+        for callback, futures in rp.apply():
+            has_alert = True
+            safe_execute(callback, event, futures)
 
-        if allowed_events:
-            for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
-                if any(e in allowed_events for e in events):
-                    process_service_hook.delay(
-                        servicehook_id=servicehook_id,
-                        event=event,
-                    )
+        if features.has(
+            'projects:servicehooks',
+            project=event.project,
+        ):
+            allowed_events = set(['event.created'])
+            if has_alert:
+                allowed_events.add('event.alert')
 
-    for plugin in plugins.for_project(event.project):
-        plugin_post_process_group(
-            plugin_slug=plugin.slug,
+            if allowed_events:
+                for servicehook_id, events in _get_service_hooks(project_id=event.project_id):
+                    if any(e in allowed_events for e in events):
+                        process_service_hook.delay(
+                            servicehook_id=servicehook_id,
+                            event=event,
+                        )
+
+        for plugin in plugins.for_project(event.project):
+            plugin_post_process_group(
+                plugin_slug=plugin.slug,
+                event=event,
+                is_new=is_new,
+                is_regresion=is_regression,
+                is_sample=is_sample,
+            )
+
+        event_processed.send_robust(
+            sender=post_process_group,
+            project=event.project,
+            group=event.group,
             event=event,
-            is_new=is_new,
-            is_regresion=is_regression,
-            is_sample=is_sample,
+            primary_hash=kwargs.get('primary_hash'),
         )
-
-    event_processed.send_robust(
-        sender=post_process_group,
-        project=event.project,
-        group=event.group,
-        event=event,
-        primary_hash=kwargs.get('primary_hash'),
-    )
 
 
 def process_snoozes(group):

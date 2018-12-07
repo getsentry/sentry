@@ -1,6 +1,8 @@
 import Reflux from 'reflux';
 import _ from 'lodash';
 
+import sdk from 'app/utils/sdk';
+
 const validHookNames = new Set([
   // Additional routes
   'routes',
@@ -13,14 +15,14 @@ const validHookNames = new Set([
   'analytics:log-experiment',
 
   // Operational metrics
-  'metrics:gauge',
-  'metrics:increment',
+  'metrics:event',
 
   // Specific component customizations
   'component:org-auth-view',
   'component:org-members-view',
   'component:releases-tab',
-  'component:sample-event',
+  'component:create-sample-event',
+  'component:install-prompt-banner',
 
   // Additional settings
   'settings:organization-navigation',
@@ -42,6 +44,9 @@ const validHookNames = new Set([
   'feature-disabled:data-forwarding',
   'feature-disabled:custom-inbound-filters',
   'feature-disabled:rate-limits',
+  'feature-disabled:sso-basic',
+  'feature-disabled:sso-rippling',
+  'feature-disabled:sso-saml2',
 
   // TODO(epurkhiser): These are not used anymore and should be removed
   'organization:sidebar',
@@ -63,6 +68,9 @@ const HookStore = Reflux.createStore({
     if (!validHookNames.has(hookName)) {
       // eslint-disable-next-line no-console
       console.error('Invalid hook name: ' + hookName);
+      sdk.captureException(new Error('Invalid hook name'), {
+        extra: {hookName},
+      });
     }
     if (_.isUndefined(this.hooks[hookName])) {
       this.hooks[hookName] = [];

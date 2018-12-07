@@ -11,9 +11,9 @@ from mock import patch, Mock
 
 from sentry import tagstore
 from sentry.models import (
-    Activity, ApiToken, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupHashTombstone,
+    Activity, ApiToken, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupLink, GroupResolution, GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupTombstone, ExternalIssue, Integration, Release, UserOption, OrganizationIntegration
+    GroupTombstone, ExternalIssue, Integration, Release, OrganizationIntegration, UserOption
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase
@@ -958,6 +958,166 @@ class GroupUpdateTest(APITestCase):
         )
         assert activity.data['version'] == ''
 
+    def test_set_resolved_in_explicit_commit_unreleased(self):
+        repo = self.create_repo(
+            project=self.project,
+            name=self.project.name,
+        )
+        commit = self.create_commit(
+            project=self.project,
+            repo=repo,
+        )
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = u'{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(
+            url,
+            data={
+                'status': 'resolved',
+                'statusDetails': {
+                    'inCommit': {
+                        'commit': commit.key,
+                        'repository': repo.name,
+                    },
+                },
+            },
+            format='json'
+        )
+        assert response.status_code == 200
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inCommit']['id'] == commit.key
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        link = GroupLink.objects.get(group_id=group.id)
+        assert link.linked_type == GroupLink.LinkedType.commit
+        assert link.relationship == GroupLink.Relationship.resolves
+        assert link.linked_id == commit.id
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_COMMIT,
+        )
+        assert activity.data['commit'] == commit.id
+
+    def test_set_resolved_in_explicit_commit_released(self):
+        release = self.create_release(
+            project=self.project,
+        )
+        repo = self.create_repo(
+            project=self.project,
+            name=self.project.name,
+        )
+        commit = self.create_commit(
+            project=self.project,
+            repo=repo,
+            release=release,
+        )
+
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = u'{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(
+            url,
+            data={
+                'status': 'resolved',
+                'statusDetails': {
+                    'inCommit': {
+                        'commit': commit.key,
+                        'repository': repo.name,
+                    },
+                },
+            },
+            format='json'
+        )
+        assert response.status_code == 200
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inCommit']['id'] == commit.key
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        link = GroupLink.objects.get(group_id=group.id)
+        assert link.project_id == self.project.id
+        assert link.linked_type == GroupLink.LinkedType.commit
+        assert link.relationship == GroupLink.Relationship.resolves
+        assert link.linked_id == commit.id
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_COMMIT,
+        )
+        assert activity.data['commit'] == commit.id
+
+        resolution = GroupResolution.objects.get(
+            group=group,
+        )
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+
+    def test_set_resolved_in_explicit_commit_missing(self):
+        repo = self.create_repo(
+            project=self.project,
+            name=self.project.name,
+        )
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = u'{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(
+            url,
+            data={
+                'status': 'resolved',
+                'statusDetails': {
+                    'inCommit': {
+                        'commit': 'a' * 40,
+                        'repository': repo.name,
+                    },
+                },
+            },
+            format='json'
+        )
+        assert response.status_code == 400
+        assert response.data['statusDetails'][0]['inCommit'][0]['commit']
+
     def test_set_unresolved(self):
         release = self.create_release(project=self.project, version='abc')
         group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
@@ -1620,9 +1780,6 @@ class GroupDeleteTest(APITestCase):
             group4=group4,
         )
 
-        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
-            set()
-
         response = self.client.delete(url, format='json')
 
         mock_eventstream_api.start_delete_groups.assert_called_once_with(
@@ -1641,9 +1798,6 @@ class GroupDeleteTest(APITestCase):
 
         assert Group.objects.get(id=group4.id).status != GroupStatus.PENDING_DELETION
         assert GroupHash.objects.filter(group_id=group4.id).exists()
-
-        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
-            set([hashes[0], hashes[1]])
 
         Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
 
@@ -1666,9 +1820,6 @@ class GroupDeleteTest(APITestCase):
         assert Group.objects.filter(id=group4.id).exists()
         assert GroupHash.objects.filter(group_id=group4.id).exists()
 
-        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
-            set([hashes[0], hashes[1]])
-
     def test_bulk_delete(self):
         groups = []
         for i in range(10, 41):
@@ -1690,9 +1841,6 @@ class GroupDeleteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
-            set()
-
         # if query is '' it defaults to is:unresolved
         url = self.path + '?query='
         response = self.client.delete(url, format='json')
@@ -1702,9 +1850,6 @@ class GroupDeleteTest(APITestCase):
         for group in groups:
             assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
             assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
-            set(hashes)
 
         Group.objects.filter(
             id__in=[
@@ -1719,6 +1864,3 @@ class GroupDeleteTest(APITestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
-            set(hashes)

@@ -6,6 +6,7 @@ import responses
 import six
 from symbolic import SourceMapTokenMatch
 
+from copy import deepcopy
 from mock import patch
 from requests.exceptions import RequestException
 
@@ -533,76 +534,112 @@ class TrimLineTest(TestCase):
         ) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
 
 
-def test_get_culprit_is_patched():
-    from sentry.lang.javascript.plugin import fix_culprit, generate_modules
+class GenerateModulesTest(TestCase):
+    def test_get_culprit_is_patched(self):
+        from sentry.lang.javascript.plugin import fix_culprit, generate_modules
 
-    data = {
-        'message': 'hello',
-        'platform': 'javascript',
-        'sentry.interfaces.Exception': {
-            'values': [
-                {
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 4,
-                                'colno': 0,
-                                'function': 'thing',
-                            },
-                            {
-                                'abs_path': 'http://example.com/bar.js',
-                                'filename': 'bar.js',
-                                'lineno': 1,
-                                'colno': 0,
-                                'function': 'oops',
-                            },
-                        ],
-                    },
-                }
-            ],
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/foo.js',
+                                    'filename': 'foo.js',
+                                    'lineno': 4,
+                                    'colno': 0,
+                                    'function': 'thing',
+                                },
+                                {
+                                    'abs_path': 'http://example.com/bar.js',
+                                    'filename': 'bar.js',
+                                    'lineno': 1,
+                                    'colno': 0,
+                                    'function': 'oops',
+                                },
+                            ],
+                        },
+                    }
+                ],
+            }
         }
-    }
-    generate_modules(data)
-    fix_culprit(data)
-    assert data['culprit'] == 'bar in oops'
+        generate_modules(data)
+        fix_culprit(data)
+        assert data['culprit'] == 'bar in oops'
 
-
-def test_ensure_module_names():
-    from sentry.lang.javascript.plugin import generate_modules
-    data = {
-        'message': 'hello',
-        'platform': 'javascript',
-        'sentry.interfaces.Exception': {
-            'values': [
-                {
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'filename': 'foo.js',
-                                'lineno': 4,
-                                'colno': 0,
-                                'function': 'thing',
-                            },
-                            {
-                                'abs_path': 'http://example.com/foo/bar.js',
-                                'filename': 'bar.js',
-                                'lineno': 1,
-                                'colno': 0,
-                                'function': 'oops',
-                            },
-                        ],
-                    },
-                }
-            ],
+    def test_ensure_module_names(self):
+        from sentry.lang.javascript.plugin import generate_modules
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'filename': 'foo.js',
+                                    'lineno': 4,
+                                    'colno': 0,
+                                    'function': 'thing',
+                                },
+                                {
+                                    'abs_path': 'http://example.com/foo/bar.js',
+                                    'filename': 'bar.js',
+                                    'lineno': 1,
+                                    'colno': 0,
+                                    'function': 'oops',
+                                },
+                            ],
+                        },
+                    }
+                ],
+            }
         }
-    }
-    generate_modules(data)
-    exc = data['sentry.interfaces.Exception']['values'][0]
-    assert exc['stacktrace']['frames'][1]['module'] == 'foo/bar'
+        generate_modules(data)
+        exc = data['exception']['values'][0]
+        assert exc['stacktrace']['frames'][1]['module'] == 'foo/bar'
+
+    def test_generate_modules_skips_none(self):
+        from sentry.lang.javascript.plugin import fix_culprit, generate_modules
+
+        expected = {
+            'culprit': '',
+            'exception': {
+                'values': [
+                    None,
+                    {},
+                    {
+                        'value': 'MyError',
+                        'stacktrace': None,
+                    },
+                    {
+                        'value': 'MyError',
+                        'stacktrace': {
+                            'frames': None,
+                        },
+                    },
+                    {
+                        'value': 'MyError',
+                        'stacktrace': {
+                            'frames': [
+                                None
+                            ],
+                        },
+                    },
+                ]
+            }
+        }
+
+        actual = deepcopy(expected)
+        generate_modules(actual)
+        fix_culprit(actual)
+        assert actual == expected
 
 
 class ErrorMappingTest(TestCase):
@@ -624,7 +661,7 @@ class ErrorMappingTest(TestCase):
         for x in range(3):
             data = {
                 'platform': 'javascript',
-                'sentry.interfaces.Exception': {
+                'exception': {
                     'values': [
                         {
                             'type':
@@ -659,7 +696,7 @@ class ErrorMappingTest(TestCase):
 
             assert rewrite_exception(data)
 
-            assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+            assert data['exception']['values'][0]['value'] == (
                 'Component.render(): A valid React element (or null) must be '
                 'returned. You may have returned undefined, an array or '
                 'some other invalid object.'
@@ -680,7 +717,7 @@ class ErrorMappingTest(TestCase):
 
         data = {
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type':
@@ -709,7 +746,7 @@ class ErrorMappingTest(TestCase):
 
         assert rewrite_exception(data)
 
-        assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+        assert data['exception']['values'][0]['value'] == (
             'Component.getChildContext(): key "" is not defined in '
             'childContextTypes.'
         )
@@ -729,7 +766,7 @@ class ErrorMappingTest(TestCase):
 
         data = {
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type':
@@ -755,7 +792,23 @@ class ErrorMappingTest(TestCase):
 
         assert rewrite_exception(data)
 
-        assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+        assert data['exception']['values'][0]['value'] == (
             '<redacted>.getChildContext(): key "<redacted>" is not defined in '
             'childContextTypes.'
         )
+
+    @responses.activate
+    def test_skip_none_values(self):
+        expected = {
+            'exception': {
+                'values': [
+                    None,
+                    {},
+                ]
+            }
+        }
+
+        actual = deepcopy(expected)
+        assert not rewrite_exception(actual)
+
+        assert actual == expected

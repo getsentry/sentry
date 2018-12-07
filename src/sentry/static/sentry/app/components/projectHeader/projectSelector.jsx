@@ -119,5 +119,6 @@ const SelectProject = styled('span')`
 const ProjectNameLink = styled(Link)`
   color: ${p => p.theme.textColor};
   font-size: 20px;
+  line-height: 1.2;
   font-weight: 600;
 `;

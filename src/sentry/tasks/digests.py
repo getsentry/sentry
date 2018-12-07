@@ -14,6 +14,7 @@ from sentry.models import (
     ProjectOption,
 )
 from sentry.tasks.base import instrumented_task
+from sentry.utils import snuba
 
 logger = logging.getLogger(__name__)
 
@@ -54,12 +55,13 @@ def deliver_digest(key, schedule_timestamp=None):
         project, get_option_key(plugin.get_conf_key(), 'minimum_delay')
     )
 
-    try:
-        with digests.digest(key, minimum_delay=minimum_delay) as records:
-            digest = build_digest(project, records)
-    except InvalidState as error:
-        logger.info('Skipped digest delivery: %s', error, exc_info=True)
-        return
+    with snuba.options_override({'consistent': True}):
+        try:
+            with digests.digest(key, minimum_delay=minimum_delay) as records:
+                digest = build_digest(project, records)
+        except InvalidState as error:
+            logger.info('Skipped digest delivery: %s', error, exc_info=True)
+            return
 
-    if digest:
-        plugin.notify_digest(project, digest)
+        if digest:
+            plugin.notify_digest(project, digest)

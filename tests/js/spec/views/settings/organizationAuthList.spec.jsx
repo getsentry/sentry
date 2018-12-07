@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 
 import OrganizationAuthList from 'app/views/settings/organizationAuth/organizationAuthList';
 
@@ -28,54 +28,77 @@ describe('OrganizationAuthList', function() {
     expect(wrapper).toMatchSnapshot();
   });
 
-  it('renders require 2fa warning', function() {
-    let wrapper = shallow(
-      <OrganizationAuthList
-        orgId="org-slug"
-        onSendReminders={() => {}}
-        providerList={TestStubs.AuthProvidersSaml()}
-      />,
-      {
-        context: {
-          organization: TestStubs.Organization({require2FA: true}),
-        },
-      }
-    );
-
-    expect(wrapper.find('PanelAlert[type="warning"]')).toHaveLength(1);
-  });
-
-  it('does not render warning without saml available', function() {
-    let wrapper = shallow(
+  it('renders for members', function() {
+    let wrapper = mount(
       <OrganizationAuthList
         orgId="org-slug"
         onSendReminders={() => {}}
         providerList={TestStubs.AuthProviders()}
+        activeProvider={TestStubs.AuthProviders()[0]}
       />,
-      {
-        context: {
-          organization: TestStubs.Organization({require2FA: true}),
+      TestStubs.routerContext([
+        {
+          organization: TestStubs.Organization({access: ['org:read']}),
         },
-      }
+      ])
     );
 
-    expect(wrapper.find('PanelAlert[type="warning"]')).toHaveLength(0);
+    expect(wrapper.find('ProviderItem ActiveIndicator')).toHaveLength(1);
   });
 
-  it('does not render warning without require 2fa enabled', function() {
-    let wrapper = shallow(
-      <OrganizationAuthList
-        orgId="org-slug"
-        onSendReminders={() => {}}
-        providerList={TestStubs.AuthProvidersSaml()}
-      />,
-      {
-        context: {
-          organization: TestStubs.Organization({require2FA: false}),
-        },
-      }
-    );
+  describe('with 2fa warning', function() {
+    const require2fa = {require2FA: true};
+    const withSAML = {features: ['sso-saml2']};
 
-    expect(wrapper.find('PanelAlert[type="warning"]')).toHaveLength(0);
+    it('renders', function() {
+      let context = TestStubs.routerContext([
+        {organization: TestStubs.Organization({...require2fa, ...withSAML})},
+      ]);
+
+      let wrapper = shallow(
+        <OrganizationAuthList
+          orgId="org-slug"
+          onSendReminders={() => {}}
+          providerList={TestStubs.AuthProviders()}
+        />,
+        context
+      );
+
+      expect(wrapper.find('PanelAlert[type="warning"]').exists()).toBe(true);
+    });
+
+    it('does not render warning without saml available', function() {
+      let context = TestStubs.routerContext([
+        {organization: TestStubs.Organization({...require2fa})},
+      ]);
+
+      let wrapper = shallow(
+        <OrganizationAuthList
+          orgId="org-slug"
+          onSendReminders={() => {}}
+          providerList={TestStubs.AuthProviders()}
+        />,
+        context
+      );
+
+      expect(wrapper.find('PanelAlert[type="warning"]').exists()).toBe(false);
+    });
+
+    it('does not render without require 2fa enabled', function() {
+      let context = TestStubs.routerContext([
+        {organization: TestStubs.Organization({...withSAML})},
+      ]);
+
+      let wrapper = shallow(
+        <OrganizationAuthList
+          orgId="org-slug"
+          onSendReminders={() => {}}
+          providerList={TestStubs.AuthProviders()}
+        />,
+        context
+      );
+
+      expect(wrapper.find('PanelAlert[type="warning"]').exists()).toBe(false);
+    });
   });
 });

@@ -49,12 +49,17 @@ class StacktraceTest(TestCase):
         )
 
     def test_null_values(self):
+        sink = {}
+
+        assert Stacktrace.to_python({}).to_json() == sink
+        assert Stacktrace.to_python({'frames': None}).to_json() == sink
+        assert Stacktrace.to_python({'frames': []}).to_json() == sink
+
         # TODO(markus): Should eventually generate frames: [None]
-        assert Stacktrace.to_python({'frames': [None]}).to_json() == \
-            {'frames': [], 'frames_omitted': None, 'registers': None}
+        assert Stacktrace.to_python({'frames': [None]}).to_json() == {}
 
     def test_null_values_in_frames(self):
-        sink = {'frames': [{}], 'frames_omitted': None, 'registers': None}
+        sink = {'frames': [{}]}
 
         assert Stacktrace.to_python({'frames': [{}]}).to_json() == sink
         assert Stacktrace.to_python({'frames': [{'abs_path': None}]}).to_json() == sink
@@ -63,9 +68,9 @@ class StacktraceTest(TestCase):
         # Simple test to ensure legacy data works correctly with the ``Frame``
         # objects
         event = self.event
-        interface = Stacktrace.to_python(event.data['sentry.interfaces.Stacktrace'])
+        interface = Stacktrace.to_python(event.data['stacktrace'])
         assert len(interface.frames) == 2
-        assert interface == event.interfaces['sentry.interfaces.Stacktrace']
+        assert interface == event.interfaces['stacktrace']
 
     def test_filename(self):
         Stacktrace.to_python(dict(frames=[{
@@ -797,17 +802,6 @@ class StacktraceTest(TestCase):
         result = interface.to_string(event)
         get_stacktrace.assert_called_once_with(event, system_frames=False, max_frames=10)
         self.assertEquals(result, get_stacktrace.return_value)
-
-    @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
-    @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_stacktrace')
-    def test_get_traceback_response(self, get_stacktrace):
-        event = mock.Mock(spec=Event())
-        event.message = 'foo'
-        get_stacktrace.return_value = 'bar'
-        interface = Stacktrace.to_python(dict(frames=[{'lineno': 1, 'filename': 'foo.py'}]))
-        result = interface.get_traceback(event)
-        get_stacktrace.assert_called_once_with(event, newest_first=None)
-        self.assertEquals(result, 'foo\n\nbar')
 
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_only_filename(self):

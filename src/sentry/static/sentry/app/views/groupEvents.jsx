@@ -104,7 +104,7 @@ const GroupEvents = createReactClass({
 
     query = getQueryStringWithoutEnvironment(query);
     let targetQueryParams = {...this.props.location.query};
-    if (query !== '') targetQueryParams.query = query;
+    targetQueryParams.query = query;
     let {groupId, orgId, projectId} = this.props.params;
 
     browserHistory.push({

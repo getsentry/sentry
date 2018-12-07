@@ -1,21 +1,20 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import classNames from 'classnames';
-import {Box, Flex} from 'grid-emotion';
+import {throttle} from 'lodash';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import getDynamicText from 'app/utils/getDynamicText';
-import Link from 'app/components/link';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
-import space from 'app/styles/space';
 import InlineSvg from 'app/components/inlineSvg';
 
-import {getChartData, getChartDataByDay, downloadAsCsv, getRowsPageRange} from './utils';
+import {getChartData, getChartDataByDay, getRowsPageRange, downloadAsCsv} from './utils';
 import Table from './table';
 import Pagination from './pagination';
+import VisualizationsToggle from './visualizationsToggle';
 import {
+  HeadingContainer,
   Heading,
   ResultSummary,
   ResultContainer,
@@ -39,7 +38,13 @@ export default class Result extends React.Component {
     super();
     this.state = {
       view: 'table',
+      height: null,
+      width: null,
     };
+  }
+
+  componentDidMount() {
+    window.addEventListener('resize', this.throttledUpdateDimensions);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -59,11 +64,35 @@ export default class Result extends React.Component {
         view: 'table',
       });
     }
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.throttledUpdateDimensions);
+  }
+
+  setDimensions = ref => {
+    this.container = ref;
+    if (ref && this.state.height === null) {
+      this.updateDimensions();
+    }
+  };
+
+  updateDimensions = () => {
+    if (!this.container) return;
 
     this.setState({
-      savedQueryName: null,
+      height: this.container.clientHeight,
+      width: this.container.clientWidth,
     });
-  }
+  };
+
+  throttledUpdateDimensions = throttle(this.updateDimensions, 200, {trailing: true});
+
+  handleToggleVisualizations = opt => {
+    this.setState({
+      view: opt,
+    });
+  };
 
   renderToggle() {
     const {baseQuery, byDayQuery} = this.props.data;
@@ -81,32 +110,17 @@ export default class Result extends React.Component {
       );
     }
 
-    const linkClasses = 'btn btn-default btn-sm';
+    const handleCsvDownload = () => downloadAsCsv(baseQuery.data);
 
     return (
-      <Flex flex="1" justify="flex-end">
-        <div className="btn-group">
-          {options.map(opt => {
-            const active = opt.id === this.state.view;
-            return (
-              <a
-                key={opt.id}
-                className={classNames('btn btn-default btn-sm', {active})}
-                onClick={() => {
-                  this.setState({view: opt.id});
-                }}
-              >
-                {opt.name}
-              </a>
-            );
-          })}
-        </div>
-        <Box ml={1}>
-          <Link className={linkClasses} onClick={() => downloadAsCsv(baseQuery.data)}>
-            {t('Export CSV')}
-          </Link>
-        </Box>
-      </Flex>
+      <div>
+        <VisualizationsToggle
+          options={options}
+          handleChange={this.handleToggleVisualizations}
+          handleCsvDownload={handleCsvDownload}
+          visualization={this.state.view}
+        />
+      </div>
     );
   }
 
@@ -137,23 +151,19 @@ export default class Result extends React.Component {
 
   renderSavedQueryHeader() {
     return (
-      <Flex align="center">
+      <React.Fragment>
         <Heading>
           {getDynamicText({value: this.props.savedQuery.name, fixed: 'saved query'})}
         </Heading>
         <SavedQueryAction onClick={this.props.onToggleEdit}>
           <InlineSvg src="icon-edit" />
         </SavedQueryAction>
-      </Flex>
+      </React.Fragment>
     );
   }
 
   renderQueryResultHeader() {
-    return (
-      <Flex>
-        <Heading>{t('Result')}</Heading>
-      </Flex>
-    );
+    return <Heading>{t('Result')}</Heading>;
   }
 
   render() {
@@ -177,18 +187,19 @@ export default class Result extends React.Component {
 
     return (
       <ResultContainer>
-        <Flex align="center" mb={space(2)}>
-          <Box flex="1">
+        <div>
+          <HeadingContainer>
             {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
-          </Box>
+          </HeadingContainer>
           {this.renderToggle()}
-        </Flex>
-        <ResultInnerContainer innerRef={ref => (this.container = ref)}>
+        </div>
+        <ResultInnerContainer innerRef={this.setDimensions}>
           {view === 'table' && (
             <Table
               data={baseQuery.data}
               query={baseQuery.query}
-              height={this.container && this.container.clientHeight}
+              height={this.state.height}
+              width={this.state.width}
             />
           )}
           {view === 'line' && (

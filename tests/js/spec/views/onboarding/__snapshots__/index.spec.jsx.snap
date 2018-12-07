@@ -931,7 +931,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                               <ForwardRef(SelectPicker)
                                 arrowRenderer={[Function]}
                                 backspaceRemoves={false}
-                                className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
+                                className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
                                 clearable={false}
                                 deleteRemoves={false}
                                 disabled={false}
@@ -947,7 +947,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                                 <SelectPicker
                                   arrowRenderer={[Function]}
                                   backspaceRemoves={false}
-                                  className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
+                                  className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
                                   clearable={false}
                                   deleteRemoves={false}
                                   disabled={false}
@@ -966,7 +966,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                                     autosize={true}
                                     backspaceRemoves={false}
                                     backspaceToRemoveMessage="Press backspace to remove {label}"
-                                    className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
+                                    className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
                                     clearAllText="Clear all"
                                     clearRenderer={[Function]}
                                     clearValueText="Clear value"
@@ -1015,7 +1015,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                                     valueKey="value"
                                   >
                                     <div
-                                      className="Select e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
+                                      className="Select e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
                                     >
                                       <div
                                         className="Select-control"
@@ -2071,7 +2071,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                               <ForwardRef(SelectPicker)
                                 arrowRenderer={[Function]}
                                 backspaceRemoves={false}
-                                className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
+                                className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
                                 clearable={false}
                                 deleteRemoves={false}
                                 disabled={false}
@@ -2087,7 +2087,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                                 <SelectPicker
                                   arrowRenderer={[Function]}
                                   backspaceRemoves={false}
-                                  className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
+                                  className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
                                   clearable={false}
                                   deleteRemoves={false}
                                   disabled={false}
@@ -2106,7 +2106,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                                     autosize={true}
                                     backspaceRemoves={false}
                                     backspaceToRemoveMessage="Press backspace to remove {label}"
-                                    className="e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20"
+                                    className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
                                     clearAllText="Clear all"
                                     clearRenderer={[Function]}
                                     clearValueText="Clear value"
@@ -2155,7 +2155,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                                     valueKey="value"
                                   >
                                     <div
-                                      className="Select e1qrhqd00 css-7y4fj5-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
+                                      className="Select e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
                                     >
                                       <div
                                         className="Select-control"

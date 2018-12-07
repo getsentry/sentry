@@ -701,14 +701,19 @@ const Stream = createReactClass({
   renderStreamBody() {
     let body;
     let project = this.getProject();
+
+    if (project.firstEvent) {
+      ConfigStore.set('sentFirstEvent', project.firstEvent);
+    }
+
     if (this.state.dataLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
-    } else if (!project.firstEvent) {
-      body = this.renderAwaitingEvents();
     } else if (this.state.groupIds.length > 0) {
       body = this.renderGroupNodes(this.state.groupIds, this.state.statsPeriod);
+    } else if (!project.firstEvent) {
+      body = this.renderAwaitingEvents();
     } else {
       body = this.renderEmpty();
     }

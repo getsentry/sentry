@@ -381,9 +381,10 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
     with configure_scope() as scope:
         scope.set_tag("project", project_id)
 
+    event = None
     try:
         manager = EventManager(data)
-        event = manager.save(project_id)
+        event = manager.save(project_id, assume_normalized=True)
 
         # Always load attachments from the cache so we can later prune them.
         # Only save them if the event-attachments feature is active, though.
@@ -430,7 +431,12 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
     finally:
         if cache_key:
             default_cache.delete(cache_key)
-            attachment_cache.delete(cache_key)
+
+            # For the unlikely case that we did not manage to persist the
+            # event we also delete the key always.
+            if event is None or \
+               features.has('organizations:event-attachments', event.project.organization, actor=None):
+                attachment_cache.delete(cache_key)
 
         if start_time:
             metrics.timing(

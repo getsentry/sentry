@@ -10,7 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
 from sentry.integrations import IntegrationFeatures
 from sentry.integrations.exceptions import IntegrationError, IntegrationFormError
-from sentry.models import ExternalIssue, GroupLink, Integration
+from sentry.models import Activity, ExternalIssue, GroupLink, Integration
 from sentry.signals import integration_issue_created, integration_issue_linked
 
 MISSING_FEATURE_MESSAGE = 'Your organization does not have access to this feature.'
@@ -27,6 +27,21 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                                       actor=user)
 
         return has_issue_sync or has_issue_basic
+
+    def create_issue_activity(self, request, group, installation, external_issue):
+        issue_information = {
+            'title': external_issue.title,
+            'provider': installation.model.get_provider().name,
+            'location': installation.get_issue_url(external_issue.key),
+            'label': installation.get_issue_display_name(external_issue) or external_issue.key,
+        }
+        Activity.objects.create(
+            project=group.project,
+            group=group,
+            type=Activity.CREATE_ISSUE,
+            user=request.user,
+            data=issue_information,
+        )
 
     def get(self, request, group, integration_id):
         if not self._has_issue_feature(group.organization, request.user):
@@ -142,6 +157,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except IntegrityError:
             return Response({'non_field_errors': ['That issue is already linked']}, status=400)
 
+        self.create_issue_activity(request, group, installation, external_issue)
+
         # TODO(jess): would be helpful to return serialized external issue
         # once we have description, title, etc
         url = data.get('url') or installation.get_issue_url(external_issue.key)
@@ -213,6 +230,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 sender=self.__class__,
             )
         installation.store_issue_last_defaults(group.project_id, request.DATA)
+
+        self.create_issue_activity(request, group, installation, external_issue)
 
         # TODO(jess): return serialized issue
         url = data.get('url') or installation.get_issue_url(external_issue.key)

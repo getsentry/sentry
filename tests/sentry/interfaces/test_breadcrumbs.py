@@ -8,7 +8,7 @@ from sentry.testutils import TestCase
 
 class BreadcrumbsTest(TestCase):
     def test_path(self):
-        assert Breadcrumbs().get_path() == 'sentry.interfaces.Breadcrumbs'
+        assert Breadcrumbs().get_path() == 'breadcrumbs'
 
     def test_simple(self):
         result = Breadcrumbs.to_python(

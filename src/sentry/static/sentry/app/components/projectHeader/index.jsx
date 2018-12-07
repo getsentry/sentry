@@ -37,7 +37,6 @@ class ProjectHeader extends React.Component {
     let navSection = this.props.activeSection;
     let org = this.props.organization;
     let features = new Set(project.features);
-    let access = new Set(org.access);
     let allEnvironmentsLabel = t('All environments');
 
     let pagesWithEnvironments = new Set([
@@ -90,13 +89,9 @@ class ProjectHeader extends React.Component {
                   {t('Releases')}
                 </ProjectLink>
               </li>
-              {access.has('project:write') && (
-                <li className={navSection == 'settings' ? 'active' : ''}>
-                  <Link to={`/settings/${org.slug}/${project.slug}/`}>
-                    {t('Settings')}
-                  </Link>
-                </li>
-              )}
+              <li className={navSection == 'settings' ? 'active' : ''}>
+                <Link to={`/settings/${org.slug}/${project.slug}/`}>{t('Settings')}</Link>
+              </li>
             </NavTabs>
           </div>
           {showEnvironmentsToggle && (

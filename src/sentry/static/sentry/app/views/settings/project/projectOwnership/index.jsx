@@ -1,16 +1,16 @@
 import React from 'react';
 import styled from 'react-emotion';
 
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import AsyncView from 'app/views/asyncView';
-
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
-import SentryTypes from 'app/sentryTypes';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
+import SentryTypes from 'app/sentryTypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const CodeBlock = styled.pre`
   word-break: break-all;
@@ -29,19 +29,19 @@ class ProjectOwnership extends AsyncView {
 
   getEndpoints() {
     let {organization, project} = this.props;
-    return [
-      ['project', `/projects/${organization.slug}/${project.slug}/`],
-      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
-    ];
+    return [['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`]];
   }
 
   renderBody() {
     let {project, organization} = this.props;
     let {ownership} = this.state;
 
+    const disabled = !organization.access.includes('project:write');
+
     return (
       <div>
         <SettingsPageHeader title={t('Issue Owners')} />
+        <PermissionAlert />
         <Panel>
           <PanelHeader>{t('Ownership Rules')}</PanelHeader>
           <PanelBody disablePadding={false}>
@@ -80,7 +80,11 @@ class ProjectOwnership extends AsyncView {
                 url:http://example.com/settings/* #product
               </CodeBlock>
             </Block>
-            <OwnerInput {...this.props} initialText={ownership.raw || ''} />
+            <OwnerInput
+              {...this.props}
+              disabled={disabled}
+              initialText={ownership.raw || ''}
+            />
           </PanelBody>
         </Panel>
 
@@ -103,6 +107,7 @@ class ProjectOwnership extends AsyncView {
                     help: t(
                       'Issue owners will receive notifications for issues they are responsible for.'
                     ),
+                    disabled,
                   },
                 ],
               },

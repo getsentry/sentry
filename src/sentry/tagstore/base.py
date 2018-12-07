@@ -45,6 +45,7 @@ class TagStorage(Service):
         'get_group_tag_value',
         'get_group_tag_values',
         'get_group_list_tag_value',
+        'get_tag_keys_for_projects',
 
         'get_groups_user_counts',
         'get_group_event_filter',
@@ -62,6 +63,7 @@ class TagStorage(Service):
 
         'get_tag_value_paginator',
         'get_group_tag_value_paginator',
+        'get_tag_value_paginator_for_projects',
         'get_group_tag_value_iter',
 
         'get_group_tag_value_qs',
@@ -218,6 +220,13 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
+    def get_tag_keys_for_projects(self, projects, environments, start,
+                                  end, status=TagKeyStatus.VISIBLE):
+        """
+        >>> get_tag_key([1], [2])
+        """
+        raise NotImplementedError
+
     @raises([TagValueNotFound])
     def get_tag_value(self, project_id, environment_id, key, value):
         """
@@ -308,6 +317,15 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
+    def get_tag_value_paginator_for_projects(self, projects, environments, key, start, end,
+                                             query=None, order_by='-last_seen'):
+        """
+        Includes tags and also snuba columns, with the arrayjoin when they are nested.
+        Also supports a query parameter to do a substring match on the tag/column values.
+        >>> get_tag_value_paginator_for_projects([1], [2], 'environment', query='prod')
+        """
+        raise NotImplementedError
+
     def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
         """
         >>> get_group_tag_value_iter(1, 2, 3, 'environment')
@@ -345,7 +363,8 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
+    def get_top_group_tag_values(self, project_id, group_id,
+                                 environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
         """
         >>> get_top_group_tag_values(1, 2, 3, 'key1')
         """
@@ -400,14 +419,17 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_keys_and_top_values(self, project_id, group_id, environment_id, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT):
+    def get_group_tag_keys_and_top_values(
+            self, project_id, group_id, environment_id, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT):
 
         # If keys is unspecified, we will grab all tag keys for this group.
         tag_keys = self.get_group_tag_keys(project_id, group_id, environment_id, keys=keys)
 
         for tk in tag_keys:
-            tk.top_values = self.get_top_group_tag_values(project_id, group_id, environment_id, tk.key, limit=value_limit)
+            tk.top_values = self.get_top_group_tag_values(
+                project_id, group_id, environment_id, tk.key, limit=value_limit)
             if tk.count is None:
-                tk.count = self.get_group_tag_value_count(project_id, group_id, environment_id, tk.key)
+                tk.count = self.get_group_tag_value_count(
+                    project_id, group_id, environment_id, tk.key)
 
         return tag_keys

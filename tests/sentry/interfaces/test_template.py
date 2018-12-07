@@ -2,10 +2,11 @@
 
 from __future__ import absolute_import
 
-import mock
-
 from exam import fixture
+import mock
+import pytest
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.template import Template
 from sentry.models import Event
 from sentry.testutils import TestCase
@@ -28,12 +29,17 @@ class TemplateTest(TestCase):
         self.assertEquals(result['context_line'], 'hello world')
         self.assertEquals(result['lineno'], 1)
 
-    def test_null_values(self):
-        sink = {}
-
-        assert Template.to_python({}).to_json() == sink
-        assert Template.to_python({"lineno": None}).to_json() == sink
-        assert Template.to_python({"lineno": 0}).to_json() == {"lineno": 0}
+    def test_required_attributes(self):
+        with pytest.raises(InterfaceValidationError):
+            Template.to_python({})
+        with pytest.raises(InterfaceValidationError):
+            Template.to_python({"lineno": None, "context_line": ""})
+        with pytest.raises(InterfaceValidationError):
+            Template.to_python({"lineno": 0, "context_line": ""})
+        with pytest.raises(InterfaceValidationError):
+            Template.to_python({"lineno": 1})
+        with pytest.raises(InterfaceValidationError):
+            Template.to_python({"lineno": 1, "context_line": 42})
 
     def test_get_hash(self):
         result = self.interface.get_hash()
