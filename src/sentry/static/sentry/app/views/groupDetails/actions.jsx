@@ -22,6 +22,7 @@ import ResolveActions from 'app/components/actions/resolve';
 import SentryTypes from 'app/sentryTypes';
 import ShareIssue from 'app/components/shareIssue';
 import space from 'app/styles/space';
+import {uniqueId} from 'app/utils/guid';
 
 class DeleteActions extends React.Component {
   static propTypes = {
@@ -208,7 +209,7 @@ const GroupDetailsActions = createReactClass({
     let group = this.getGroup();
     let project = this.getProject();
     let org = this.getOrganization();
-    let id = this.api.uniqueId();
+    let id = uniqueId();
     let loadingIndicator = IndicatorStore.add(t('Discarding event..'));
 
     GroupActions.discard(id, group.id);
