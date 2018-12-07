@@ -73,17 +73,15 @@ const CreateProject = createReactClass({
 
   navigateNextUrl(data) {
     let organization = this.getOrganization();
-    let {slug, projectSlug, platform} = data;
-    const docsUrl = this.props.getDocsUrl({slug, projectSlug, platform});
 
     let url =
       HookStore.get('utils:onboarding-survey-url').length &&
       organization.projects.length === 0
         ? HookStore.get('utils:onboarding-survey-url')[0](data, organization)
-        : docsUrl;
+        : data.docsUrl;
 
-    data.router.push(url);
     this.setState({inFlight: false});
+    data.router.push(url);
   },
 
   createProject() {
@@ -111,7 +109,8 @@ const CreateProject = createReactClass({
         ProjectActions.createSuccess(data);
 
         // navigate to new url _now_
-        this.navigateNextUrl({router, slug, projectSlug: data.slug, platform});
+        const docsUrl = this.props.getDocsUrl({slug, projectSlug: data.slug, platform});
+        this.navigateNextUrl({router, slug, projectSlug: data.slug, platform, docsUrl});
       },
       error: err => {
         this.setState({

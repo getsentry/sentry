@@ -21,6 +21,8 @@ const ProgressNodes = createReactClass({
   },
 
   componentDidMount() {
+    let {organization} = this.context;
+    let user = ConfigStore.get('user');
     let {params} = this.props;
     let step = this.inferStep();
     let eventName =
@@ -34,17 +36,19 @@ const ProgressNodes = createReactClass({
     }
 
     analytics(eventName, data);
+
+    HookStore.get('analytics:onboarding-survey-log').length &&
+      HookStore.get('analytics:onboarding-survey-log')[0](organization, user);
   },
 
   steps: Object.keys(onboardingSteps),
 
   getAsset(type) {
-    let organization = this.context.organization;
-    let user = ConfigStore.get('user');
+    let {organization} = this.context;
 
     let hook =
       HookStore.get('sidebar:onboarding-assets').length &&
-      HookStore.get('sidebar:onboarding-assets')[0]({organization, user});
+      HookStore.get('sidebar:onboarding-assets')[0]({organization});
 
     let asset, hookAsset;
     if (type === 'steps') {
