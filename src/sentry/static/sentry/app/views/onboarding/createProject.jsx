@@ -11,6 +11,7 @@ import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
+import HookStore from 'app/stores/hookStore';
 import OnboardingProject from 'app/views/onboarding/project';
 import OrganizationState from 'app/mixins/organizationState';
 import PanelAlert from 'app/components/panels/panelAlert';
@@ -70,11 +71,18 @@ const CreateProject = createReactClass({
     });
   },
 
-  navigateNextUrl(router, docsUrl, surveyUrl) {
-    let {experiments} = this.getOrganization();
-    let showSurvey = experiments.OnboardingSurveyExperiment === 1;
-    router.push(showSurvey ? surveyUrl : docsUrl);
+  navigateNextUrl(data) {
+    let organization = this.getOrganization();
+    let {slug, projectSlug, platform} = data;
+    const docsUrl = this.props.getDocsUrl({slug, projectSlug, platform});
 
+    let url =
+      HookStore.get('utils:onboarding-survey-url').length &&
+      organization.projects.length === 0
+        ? HookStore.get('utils:onboarding-survey-url')[0](data, organization)
+        : docsUrl;
+
+    data.router.push(url);
     this.setState({inFlight: false});
   },
 
@@ -107,9 +115,7 @@ const CreateProject = createReactClass({
         ProjectActions.createSuccess(data);
 
         // navigate to new url _now_
-        const docsUrl = this.props.getDocsUrl({slug, projectSlug: data.slug, platform});
-        const surveyUrl = this.getSurveyUrl({slug, projectSlug: data.slug, platform});
-        this.navigateNextUrl(router, docsUrl, surveyUrl);
+        this.navigateNextUrl({router, slug, projectSlug: data.slug, platform});
       },
       error: err => {
         this.setState({

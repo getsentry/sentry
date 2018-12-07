@@ -20,6 +20,7 @@ const validHookNames = new Set([
 
   // Specific component customizations
   'sidebar:onboarding-assets',
+  'utils:onboarding-survey-url',
   'component:org-auth-view',
   'component:org-members-view',
   'component:releases-tab',
