@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
-from mock import patch
 from datetime import datetime
+
 from django.core.urlresolvers import reverse
+from exam import fixture
+from mock import patch
+from six.moves.urllib.parse import quote
 
 from sentry.models import (
     Activity, Environment, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject, ReleaseProjectEnvironment, Repository
@@ -11,67 +14,84 @@ from sentry.testutils import APITestCase
 
 
 class ReleaseDetailsTest(APITestCase):
-    def test_simple(self):
-        user = self.create_user(is_staff=False, is_superuser=False)
-        org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
 
-        team1 = self.create_team(organization=org)
-        team2 = self.create_team(organization=org)
+    @fixture
+    def user_1(self):
+        return self.create_user(is_staff=False, is_superuser=False)
 
-        project = self.create_project(teams=[team1], organization=org)
-        project2 = self.create_project(teams=[team2], organization=org)
+    @fixture
+    def team_1(self):
+        return self.create_team(organization=self.organization)
 
-        release = Release.objects.create(
-            organization_id=org.id,
-            version='abcabcabc',
-        )
-        release2 = Release.objects.create(
-            organization_id=org.id,
-            version='12345678',
-        )
-        release.add_project(project)
-        release2.add_project(project2)
+    @fixture
+    def team_2(self):
+        return self.create_team(organization=self.organization)
 
-        environment = Environment.objects.create(
-            organization_id=org.id,
+    @fixture
+    def project_1(self):
+        return self.create_project(teams=[self.team_1], organization=self.organization)
+
+    @fixture
+    def project_2(self):
+        return self.create_project(teams=[self.team_2], organization=self.organization)
+
+    @fixture
+    def release_1(self):
+        release = Release.objects.create(organization_id=self.organization.id, version='abcabcabc')
+        release.add_project(self.project_1)
+        return release
+
+    @fixture
+    def release_2(self):
+        release = Release.objects.create(organization_id=self.organization.id, version='12345678')
+        release.add_project(self.project_2)
+        return release
+
+    @fixture
+    def environment(self):
+        return Environment.objects.create(
+            organization_id=self.organization.id,
             name='prod',
         )
-        environment.add_project(project)
-        environment.add_project(project2)
 
-        self.create_member(teams=[team1], user=user, organization=org)
-
-        self.login_as(user=user)
+    def test_simple(self):
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.environment.add_project(self.project_1)
+        self.environment.add_project(self.project_2)
+        self.create_member(teams=[self.team_1], user=self.user_1, organization=self.organization)
+        self.login_as(user=self.user_1)
 
         ReleaseProjectEnvironment.objects.create(
-            project_id=project.id,
-            release_id=release.id,
-            environment_id=environment.id,
+            project_id=self.project_1.id,
+            release_id=self.release_1.id,
+            environment_id=self.environment.id,
             new_issues_count=5,
         )
-        ReleaseProject.objects.filter(project=project, release=release).update(new_groups=5)
+        ReleaseProject.objects.filter(
+            project=self.project_1,
+            release=self.release_1,
+        ).update(new_groups=5)
 
         url = reverse(
             'sentry-api-0-organization-release-details',
             kwargs={
-                'organization_slug': org.slug,
-                'version': release.version,
+                'organization_slug': self.organization.slug,
+                'version': self.release_1.version,
             }
         )
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert response.data['version'] == release.version
+        assert response.data['version'] == self.release_1.version
         assert response.data['newGroups'] == 5
 
         # no access
         url = reverse(
             'sentry-api-0-organization-release-details',
             kwargs={
-                'organization_slug': org.slug,
-                'version': release2.version,
+                'organization_slug': self.organization.slug,
+                'version': self.release_2.version,
             }
         )
         response = self.client.get(url)
@@ -79,37 +99,68 @@ class ReleaseDetailsTest(APITestCase):
 
     def test_multiple_projects(self):
         user = self.create_user(is_staff=False, is_superuser=False)
-        org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
-
-        team1 = self.create_team(organization=org)
-        team2 = self.create_team(organization=org)
-
-        project = self.create_project(teams=[team1], organization=org)
-        project2 = self.create_project(teams=[team2], organization=org)
-
-        release = Release.objects.create(
-            organization_id=org.id,
-            version='abcabcabc',
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.release_1.add_project(self.project_2)
+        self.create_member(
+            teams=[self.team_1, self.team_2],
+            user=user,
+            organization=self.organization,
         )
-        release.add_project(project)
-        release.add_project(project2)
-
-        self.create_member(teams=[team1, team2], user=user, organization=org)
-
         self.login_as(user=user)
 
         url = reverse(
             'sentry-api-0-organization-release-details',
             kwargs={
-                'organization_slug': org.slug,
-                'version': release.version,
+                'organization_slug': self.organization.slug,
+                'version': self.release_1.version,
             }
         )
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
+
+    def test_encoded_version(self):
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version='test/some/slashes',
+        )
+        release.add_project(self.project_1)
+        self.create_member(teams=[self.team_1], user=self.user_1, organization=self.organization)
+        self.login_as(user=self.user_1)
+
+        url = reverse(
+            'sentry-api-0-organization-release-details',
+            kwargs={
+                'organization_slug': self.organization.slug,
+                'version': quote(release.version, safe=''),
+            }
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data['version'] == release.version
+
+    def test_version_with_encoded_chars(self):
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version='test%2Fsome%2Fslashes',
+        )
+        release.add_project(self.project_1)
+        self.create_member(teams=[self.team_1], user=self.user_1, organization=self.organization)
+        self.login_as(user=self.user_1)
+
+        url = reverse(
+            'sentry-api-0-organization-release-details',
+            kwargs={
+                'organization_slug': self.organization.slug,
+                'version': quote(release.version, safe=''),
+            }
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data['version'] == release.version
 
 
 class UpdateReleaseDetailsTest(APITestCase):

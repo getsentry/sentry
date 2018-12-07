@@ -7,6 +7,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.api.utils import get_release
 from sentry.models import (
     Group,
     GroupLink,
@@ -34,7 +35,7 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
         :auth: required
         """
         try:
-            release = Release.objects.get(version=version, organization=project.organization)
+            release = get_release(version=version, organization=project.organization)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 

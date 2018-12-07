@@ -3,8 +3,15 @@ from __future__ import absolute_import
 import datetime
 
 from django.utils import timezone
+from exam import fixture
+from six.moves.urllib.parse import quote
 
-from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.api.utils import (
+    get_date_range_from_params,
+    get_release,
+    InvalidParams,
+)
+from sentry.models import Release
 from sentry.testutils import TestCase
 
 
@@ -36,3 +43,23 @@ class GetDateRangeFromParamsTest(TestCase):
 
         with self.assertRaises(InvalidParams):
             get_date_range_from_params({'start': '2018-11-01'})
+
+
+class GetReleaseTest(TestCase):
+
+    @fixture
+    def org(self):
+        return self.create_organization('test', self.user)
+
+    def test_slashes(self):
+        version = 'test/some/slashes'
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release == get_release(self.org, version)
+        assert release == get_release(self.org, quote(version, ''))
+
+    def test_contains_encoding(self):
+        # Make sure that if a release contains encoded characters that we can
+        # still fetch it
+        version = 'test%2Fsome%2Fslashes'
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release == get_release(self.org, version)

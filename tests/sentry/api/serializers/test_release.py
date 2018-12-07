@@ -6,6 +6,7 @@ import datetime
 import six
 
 from django.utils import timezone
+from six.moves.urllib.parse import quote
 from uuid import uuid4
 
 from sentry import tagstore
@@ -107,6 +108,7 @@ class ReleaseSerializerTest(TestCase):
         result = serialize(release, user)
         assert result['version'] == release.version
         assert result['shortVersion'] == release.version
+        assert result['safeVersion'] == release.version
         # should be sum of all projects
         assert result['newGroups'] == 2
         # should be tags from all projects
@@ -452,6 +454,22 @@ class ReleaseSerializerTest(TestCase):
         )
         release.add_project(project)
         serialize(release)
+
+    def test_encoded_version(self):
+        """
+        Testing when a repo gets deleted leaving dangling last commit id and author_ids
+        Made the decision that the Serializer must handle the data even in the case that the
+        commit_id or the author_ids point to records that do not exist.
+        """
+
+        project = self.create_project()
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='version/with/slashes',
+        )
+        result = serialize(release)
+        assert result['version'] == release.version
+        assert result['safeVersion'] == quote(release.version, safe='')
 
 
 class ReleaseRefsSerializerTest(TestCase):

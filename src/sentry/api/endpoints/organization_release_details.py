@@ -14,6 +14,7 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseHeadCommitSerializer,
 )
+from sentry.api.utils import get_release
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.constants import VERSION_LENGTH
@@ -74,8 +75,8 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=organization.id,
+            release = get_release(
+                organization=organization,
                 version=version,
             )
         except Release.DoesNotExist:
@@ -120,10 +121,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=organization,
-                version=version,
-            )
+            release = get_release(organization=organization, version=version)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -202,10 +200,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=organization.id,
-                version=version,
-            )
+            release = get_release(organization=organization, version=version)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 

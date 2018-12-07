@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from six.moves.urllib.parse import unquote
+
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -26,10 +28,17 @@ class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
             release = Release.objects.distinct().get(
                 organization_id=organization.id,
                 projects__in=self.get_allowed_projects(request, organization),
-                version=version,
+                version=unquote(version),
             )
         except Release.DoesNotExist:
-            raise ResourceDoesNotExist
+            try:
+                release = Release.objects.distinct().get(
+                    organization_id=organization.id,
+                    projects__in=self.get_allowed_projects(request, organization),
+                    version=version,
+                )
+            except Release.DoesNotExist:
+                raise ResourceDoesNotExist
 
         queryset = ReleaseCommit.objects.filter(
             release=release,

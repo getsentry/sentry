@@ -12,6 +12,7 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_release
 from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
 from sentry.signals import deploy_created
 
@@ -44,7 +45,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         :pparam string version: the version identifier of the release.
         """
         try:
-            release = Release.objects.get(
+            release = get_release(
                 version=version,
                 organization=organization,
             )
@@ -86,7 +87,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                                       current time is used.
         """
         try:
-            release = Release.objects.get(
+            release = get_release(
                 version=version,
                 organization=organization,
             )

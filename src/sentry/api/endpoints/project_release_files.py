@@ -11,6 +11,7 @@ from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_release
 from sentry.models import File, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -69,8 +70,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=project.organization_id,
+            release = get_release(
+                organization=project.organization,
                 projects=project,
                 version=version,
             )
@@ -120,8 +121,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=project.organization_id,
+            release = get_release(
+                organization=project.organization,
                 projects=project,
                 version=version,
             )

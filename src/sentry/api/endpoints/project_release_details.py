@@ -7,6 +7,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.api.utils import get_release
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.constants import VERSION_LENGTH
@@ -39,8 +40,8 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=project.organization_id,
+            release = get_release(
+                organization=project.organization,
                 projects=project,
                 version=version,
             )
@@ -73,8 +74,8 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=project.organization_id,
+            release = get_release(
+                organization=project.organization,
                 projects=project,
                 version=version,
             )
@@ -133,8 +134,8 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=project.organization_id,
+            release = get_release(
+                organization=project.organization,
                 projects=project,
                 version=version,
             )

@@ -9,6 +9,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_release
 from sentry.models import Release, ReleaseFile
 try:
     from django.http import (CompatibleStreamingHttpResponse as StreamingHttpResponse)
@@ -52,10 +53,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=organization.id,
-                version=version,
-            )
+            release = get_release(organization=organization, version=version)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -94,10 +92,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=organization.id,
-                version=version,
-            )
+            release = get_release(organization=organization, version=version)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -141,10 +136,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=organization.id,
-                version=version,
-            )
+            release = get_release(organization=organization, version=version)
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 

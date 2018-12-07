@@ -5,6 +5,7 @@ import six
 from collections import defaultdict
 from django.db.models import Sum
 from itertools import izip
+from six.moves.urllib.parse import quote
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
@@ -256,6 +257,7 @@ class ReleaseSerializer(Serializer):
         d = {
             'version': obj.version,
             'shortVersion': obj.short_version,
+            'safeVersion': quote(obj.version, safe=''),
             'ref': obj.ref,
             'url': obj.url,
             'dateReleased': obj.date_released,

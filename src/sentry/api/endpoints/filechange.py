@@ -6,6 +6,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_release
 from sentry.models import CommitFileChange, Release, ReleaseCommit
 from rest_framework.response import Response
 
@@ -26,7 +27,7 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
+            release = get_release(
                 organization=organization,
                 version=version,
             )

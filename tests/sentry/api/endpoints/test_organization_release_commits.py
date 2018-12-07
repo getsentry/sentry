@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from six.moves.urllib.parse import quote
 
 from sentry.models import Commit, Release, ReleaseCommit, Repository
 from sentry.testutils import APITestCase
@@ -58,3 +59,43 @@ class ReleaseCommitsListTest(APITestCase):
         assert len(response.data) == 2
         assert response.data[0]['id'] == commit2.key
         assert response.data[1]['id'] == commit.key
+
+    def test_encoded_version(self):
+        project = self.create_project(
+            name='foo',
+        )
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='version/with/slashes',
+        )
+        release.add_project(project)
+        repo = Repository.objects.create(
+            organization_id=project.organization_id,
+            name=project.name,
+        )
+        commit = Commit.objects.create(
+            organization_id=project.organization_id,
+            repository_id=repo.id,
+            key='a' * 40,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+        url = reverse(
+            'sentry-api-0-organization-release-commits',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': quote(release.version, safe=''),
+            }
+        )
+
+        self.login_as(user=self.user)
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == commit.key

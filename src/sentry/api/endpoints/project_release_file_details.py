@@ -8,6 +8,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.utils import get_release
 from sentry.models import Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 try:
@@ -102,8 +103,8 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=project.organization_id,
+            release = get_release(
+                organization=project.organization,
                 projects=project,
                 version=version,
             )
@@ -144,8 +145,8 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=project.organization_id,
+            release = get_release(
+                organization=project.organization,
                 projects=project,
                 version=version,
             )
@@ -192,8 +193,8 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         try:
-            release = Release.objects.get(
-                organization_id=project.organization_id,
+            release = get_release(
+                organization=project.organization,
                 projects=project,
                 version=version,
             )

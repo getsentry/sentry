@@ -3,7 +3,9 @@ from __future__ import absolute_import
 from datetime import timedelta
 
 from django.utils import timezone
+from six.moves.urllib.parse import unquote
 
+from sentry.models import Release
 from sentry.search.utils import parse_datetime_string, InvalidQuery
 from sentry.utils.dates import parse_stats_period
 
@@ -40,3 +42,18 @@ def get_date_range_from_params(params):
             raise InvalidParams('start must be before end')
 
     return (start, end)
+
+
+def get_release(organization, version, projects=None):
+    """
+    Fetches a Release. Attempts to fetch using an unquoted `version`, and if unsuccessful attempts to fetch using
+    the originally provided value. Mostly in place for backwards compatibility, also handles versions that
+    contain strings that look like encoded characters.
+    """
+    params = {}
+    if projects is not None:
+        params['projects'] = projects
+    try:
+        return Release.objects.get(organization=organization, version=unquote(version), **params)
+    except Release.DoesNotExist:
+        return Release.objects.get(organization=organization, version=version, **params)
