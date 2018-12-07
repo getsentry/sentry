@@ -81,7 +81,35 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
           </div>
           <div
             className="progress-nodes"
-          />
+          >
+            <div
+              className="node done"
+              key="0"
+            >
+              <span
+                className="node done"
+              />
+              Create an organization in Sentry
+            </div>
+            <div
+              className="node active"
+              key="1"
+            >
+              <span
+                className="node active"
+              />
+              Tell us about your project
+            </div>
+            <div
+              className="node"
+              key="2"
+            >
+              <span
+                className="node"
+              />
+              Configure your application and send an event
+            </div>
+          </div>
           <div
             className="stuck"
           >
@@ -1179,7 +1207,35 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
           </div>
           <div
             className="progress-nodes"
-          />
+          >
+            <div
+              className="node done"
+              key="0"
+            >
+              <span
+                className="node done"
+              />
+              Create an organization in Sentry
+            </div>
+            <div
+              className="node active"
+              key="1"
+            >
+              <span
+                className="node active"
+              />
+              Tell us about your project
+            </div>
+            <div
+              className="node"
+              key="2"
+            >
+              <span
+                className="node"
+              />
+              Configure your application and send an event
+            </div>
+          </div>
           <div
             className="stuck"
           >

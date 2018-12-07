@@ -38,38 +38,30 @@ const ProgressNodes = createReactClass({
 
   steps: Object.keys(onboardingSteps),
 
-  getSteps() {
+  getAsset(type) {
     let organization = this.context.organization;
     let user = ConfigStore.get('user');
 
-    return (
-      HookStore.get('component:onboarding-sidebar').length &&
-      HookStore.get('component:onboarding-sidebar')[0]('steps', {
-        onboardingSteps,
-        organization,
-        user,
-      })
-    );
-  },
+    let hook =
+      HookStore.get('sidebar:onboarding-assets').length &&
+      HookStore.get('sidebar:onboarding-assets')[0]({organization, user});
 
-  getStepDescriptions() {
-    let organization = this.context.organization;
-    let user = ConfigStore.get('user');
+    let asset, hookAsset;
+    if (type === 'steps') {
+      asset = onboardingSteps;
+      hookAsset = hook[0];
+    } else {
+      asset = stepDescriptions;
+      hookAsset = hook[1];
+    }
 
-    return (
-      HookStore.get('component:onboarding-sidebar').length &&
-      HookStore.get('component:onboarding-sidebar')[0]('stepDescriptions', {
-        stepDescriptions,
-        organization,
-        user,
-      })
-    );
+    return hook ? hookAsset : asset;
   },
 
   inferStep() {
     let {pathname} = this.context.location;
     let {params} = this.props;
-    let steps = this.getSteps();
+    let steps = this.getAsset('steps');
 
     if (!params.projectId) return steps.project;
     if (pathname.indexOf('/survey/') !== -1) return steps.survey;
@@ -83,7 +75,7 @@ const ProgressNodes = createReactClass({
       active: stepIndex === this.inferStep(),
     });
 
-    let descriptions = this.getStepDescriptions();
+    let descriptions = this.getAsset('descriptions');
     return (
       <div className={nodeClass} key={stepIndex}>
         <span className={nodeClass} />
@@ -95,7 +87,7 @@ const ProgressNodes = createReactClass({
   render() {
     let config = ConfigStore.getConfig();
     let {slug} = this.context.organization;
-    let steps = Object.keys(this.getSteps());
+    let steps = Object.keys(this.getAsset('steps'));
 
     return (
       <div className="onboarding-sidebar">
