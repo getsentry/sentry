@@ -76,15 +76,18 @@ class RepositoryRow extends React.Component {
                 <Box pb={1}>
                   <strong>{repository.name}</strong>
                   {!isActive && <small> — {this.getStatusLabel(repository)}</small>}
-                  {hasAccess &&
-                    repository.status === 'pending_deletion' && (
-                      <small>
-                        {' '}
-                        (
-                        <a onClick={this.cancelDelete}>{t('Cancel')}</a>
-                        )
-                      </small>
-                    )}
+                  {repository.status === 'pending_deletion' && (
+                    <Button
+                      size="xsmall"
+                      borderless
+                      icon="icon-circle-close"
+                      onClick={this.cancelDelete}
+                      disabled={!hasAccess}
+                      data-test-id="repo-cancel"
+                    >
+                      {t('Cancel')}
+                    </Button>
+                  )}
                 </Box>
                 <Box>
                   {showProvider && (
