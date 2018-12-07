@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 
 import OrganizationAuthList from 'app/views/settings/organizationAuth/organizationAuthList';
 
@@ -26,6 +26,24 @@ describe('OrganizationAuthList', function() {
     );
 
     expect(wrapper).toMatchSnapshot();
+  });
+
+  it('renders for members', function() {
+    let wrapper = mount(
+      <OrganizationAuthList
+        orgId="org-slug"
+        onSendReminders={() => {}}
+        providerList={TestStubs.AuthProviders()}
+        activeProvider={TestStubs.AuthProviders()[0]}
+      />,
+      TestStubs.routerContext([
+        {
+          organization: TestStubs.Organization({access: ['org:read']}),
+        },
+      ])
+    );
+
+    expect(wrapper.find('ProviderItem ActiveIndicator')).toHaveLength(1);
   });
 
   describe('with 2fa warning', function() {

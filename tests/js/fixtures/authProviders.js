@@ -8,8 +8,8 @@ export function AuthProviders(params = []) {
     },
     {
       disables2FA: true,
-      key: 'dummy',
-      name: 'Dummy',
+      key: 'dummy2',
+      name: 'Dummy SAML',
       requiredFeature: 'organizations:sso-saml2',
     },
     ...params,
