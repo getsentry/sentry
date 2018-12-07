@@ -108,7 +108,7 @@ class ReleaseSerializerTest(TestCase):
         result = serialize(release, user)
         assert result['version'] == release.version
         assert result['shortVersion'] == release.version
-        assert result['safeVersion'] == release.version
+        assert result['slug'] == release.version
         # should be sum of all projects
         assert result['newGroups'] == 2
         # should be tags from all projects
@@ -456,12 +456,6 @@ class ReleaseSerializerTest(TestCase):
         serialize(release)
 
     def test_encoded_version(self):
-        """
-        Testing when a repo gets deleted leaving dangling last commit id and author_ids
-        Made the decision that the Serializer must handle the data even in the case that the
-        commit_id or the author_ids point to records that do not exist.
-        """
-
         project = self.create_project()
         release = Release.objects.create(
             organization_id=project.organization_id,
@@ -469,7 +463,7 @@ class ReleaseSerializerTest(TestCase):
         )
         result = serialize(release)
         assert result['version'] == release.version
-        assert result['safeVersion'] == quote(release.version, safe='')
+        assert result['slug'] == quote(release.version, safe='')
 
 
 class ReleaseRefsSerializerTest(TestCase):
