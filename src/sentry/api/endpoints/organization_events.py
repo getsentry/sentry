@@ -6,7 +6,7 @@ from functools32 import partial
 
 from rest_framework.response import Response
 
-from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError
+from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventsError, NoProjects
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SnubaEvent
@@ -25,15 +25,19 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             snuba_args = self.get_snuba_query_args(request, organization)
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
-
-        data_fn = partial(
-            # extract 'data' from raw_query result
-            lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
-            selected_columns=SnubaEvent.selected_columns,
-            orderby='-timestamp',
-            referrer='api.organization-events',
-            **snuba_args
-        )
+        except NoProjects:
+            # return empty result if org doesn't have projects
+            # or user doesn't have access to projects in org
+            data_fn = lambda *args, **kwargs: []
+        else:
+            data_fn = partial(
+                # extract 'data' from raw_query result
+                lambda *args, **kwargs: raw_query(*args, **kwargs)['data'],
+                selected_columns=SnubaEvent.selected_columns,
+                orderby='-timestamp',
+                referrer='api.organization-events',
+                **snuba_args
+            )
 
         return self.paginate(
             request=request,
@@ -50,6 +54,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             snuba_args = self.get_snuba_query_args(request, organization)
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
+        except NoProjects:
+            return Response({'data': []})
 
         interval = parse_stats_period(request.GET.get('interval', '1h'))
         if interval is None:
@@ -84,6 +90,8 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
             snuba_args = self.get_snuba_query_args(request, organization)
         except OrganizationEventsError as exc:
             return Response({'detail': exc.message}, status=400)
+        except NoProjects:
+            return Response({'count': 0})
 
         data = raw_query(
             aggregations=[['count()', '', 'count']],
