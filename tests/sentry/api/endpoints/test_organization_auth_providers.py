@@ -13,21 +13,13 @@ class OrganizationAuthProvidersPermissionTest(PermissionTestCase):
             args=[self.organization.slug]
         )
 
-    def test_teamless_admin_cannot_load(self):
-        with self.feature('organizations:sso-basic'):
-            self.assert_teamless_admin_cannot_access(self.path)
-
-    def test_team_admin_cannot_load(self):
-        with self.feature('organizations:sso-basic'):
-            self.assert_team_admin_cannot_access(self.path)
-
-    def test_manager_cannot_load(self):
-        with self.feature('organizations:sso-basic'):
-            self.assert_role_cannot_access(self.path, 'manager')
-
     def test_owner_can_load(self):
         with self.feature('organizations:sso-basic'):
             self.assert_owner_can_access(self.path)
+
+    def test_member_can_get(self):
+        with self.feature('organizations:sso-basic'):
+            self.assert_member_can_access(self.path)
 
 
 class OrganizationAuthProviders(APITestCase):
