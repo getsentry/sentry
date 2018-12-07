@@ -787,8 +787,6 @@ SENTRY_FEATURES = {
     'organizations:global-views': False,
     # Enable the interface and functionality for unmerging event groups.
     'organizations:group-unmerge': False,
-    # Enable the 'health' interface.
-    'organizations:health': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     'organizations:integrations-issue-basic': False,

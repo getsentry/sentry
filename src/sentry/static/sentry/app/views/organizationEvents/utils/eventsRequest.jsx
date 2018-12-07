@@ -5,8 +5,9 @@ import React from 'react';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {doEventsRequest} from 'app/actionCreators/events';
 import {t} from 'app/locale';
-import LoadingPanel from 'app/views/organizationHealth/loadingPanel';
 import SentryTypes from 'app/sentryTypes';
+
+import LoadingPanel from '../loadingPanel';
 
 const propNamesToIgnore = ['api', 'children', 'organizations', 'project', 'loading'];
 const omitIgnoredProps = props =>
