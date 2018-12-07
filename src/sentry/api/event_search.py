@@ -297,7 +297,7 @@ def get_snuba_query_args(query=None, params=None):
                 # - Checking that a value isn't present. In some cases the column will be null,
                 # and in other cases an empty string. To generalize this we convert values in the
                 # column to an empty string and just check for that.
-                snuba_name = ['ifnull', [snuba_name, "''"]]
+                snuba_name = ['ifNull', [snuba_name, "''"]]
 
             if _filter.value.is_wildcard():
                 kwargs['conditions'].append(

@@ -280,7 +280,7 @@ class EventSearchTest(TestCase):
     def test_negation_get_snuba_query_args(self):
         assert get_snuba_query_args('!user.email:foo@example.com') == {
             'conditions': [
-                [['ifnull', ['email', "''"]], '!=', 'foo@example.com'],
+                [['ifNull', ['email', "''"]], '!=', 'foo@example.com'],
             ],
             'filter_keys': {},
         }
@@ -309,7 +309,7 @@ class EventSearchTest(TestCase):
     def test_get_snuba_query_args_negated_wildcard(self):
         assert get_snuba_query_args('!release:3.1.* user.email:*@example.com') == {
             'conditions': [
-                [['match', [['ifnull', ['tags[sentry:release]', "''"]], "'^3\\.1\\..*$'"]], '!=', 1],
+                [['match', [['ifNull', ['tags[sentry:release]', "''"]], "'^3\\.1\\..*$'"]], '!=', 1],
                 [['match', ['email', "'^.*\\@example\\.com$'"]], '=', 1],
             ],
             'filter_keys': {},
@@ -318,13 +318,13 @@ class EventSearchTest(TestCase):
     def test_get_snuba_query_args_has(self):
         assert get_snuba_query_args('has:release') == {
             'filter_keys': {},
-            'conditions': [[['ifnull', ['tags[sentry:release]', "''"]], '!=', '']]
+            'conditions': [[['ifNull', ['tags[sentry:release]', "''"]], '!=', '']]
         }
 
     def test_get_snuba_query_args_not_has(self):
         assert get_snuba_query_args('!has:release') == {
             'filter_keys': {},
-            'conditions': [[['ifnull', ['tags[sentry:release]', "''"]], '=', '']]
+            'conditions': [[['ifNull', ['tags[sentry:release]', "''"]], '=', '']]
         }
 
     def test_convert_endpoint_params(self):
