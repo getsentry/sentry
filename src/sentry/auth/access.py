@@ -259,6 +259,8 @@ def from_member(member, scopes=None):
 
     team_memberships = member.get_teams()
     if member.organization.flags.allow_joinleave:
+        # an org having open membership means anyone could in theory join any
+        # team, so for permission purposes, pretend they've joined them all
         team_access = list(member.organization.team_set.all())
     else:
         team_access = team_memberships
