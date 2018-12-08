@@ -221,7 +221,7 @@ class EventsChart extends React.Component {
   };
 
   render() {
-    const {period, utc, location} = this.props;
+    const {period, utc, query} = this.props;
 
     let interval = '1d';
     let xAxisOptions = {};
@@ -240,7 +240,7 @@ class EventsChart extends React.Component {
           {...this.props}
           interval={interval}
           showLoading
-          query={(location.query && location.query.query) || ''}
+          query={query}
           getCategory={DEFAULT_GET_CATEGORY}
           includePrevious={!!period}
         >
