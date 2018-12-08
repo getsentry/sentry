@@ -1,4 +1,4 @@
-import {pick, isDate, isEqualWith} from 'lodash';
+import {pick, isDate, isEqual, isEqualWith} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -35,6 +35,7 @@ class EventsChart extends React.Component {
     organization: SentryTypes.Organization,
     actions: PropTypes.object,
     period: PropTypes.string,
+    query: PropTypes.string,
     start: PropTypes.instanceOf(Date),
     end: PropTypes.instanceOf(Date),
     utc: PropTypes.bool,
@@ -59,6 +60,15 @@ class EventsChart extends React.Component {
     const periodKeys = ['period', 'start', 'end'];
     const nextPeriod = pick(nextProps, periodKeys);
     const currentPeriod = pick(this.props, periodKeys);
+    const otherKeys = ['query', 'project', 'environment'];
+
+    // Exception for these parameters -- needs to re-render chart
+    if (
+      !nextProps.zoom &&
+      !isEqual(pick(nextProps, otherKeys), pick(this.props, otherKeys))
+    ) {
+      return true;
+    }
 
     // do not update if we are zooming or if period via props does not change
     if (nextProps.zoom || isEqualWithDates(currentPeriod, nextPeriod)) {

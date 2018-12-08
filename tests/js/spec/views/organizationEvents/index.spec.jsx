@@ -42,6 +42,7 @@ describe('OrganizationEvents', function() {
           router={router}
           organization={organization}
           selection={{projects: []}}
+          location={router.location}
         >
           <div />
         </OrganizationEventsContainer>,
