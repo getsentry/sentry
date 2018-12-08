@@ -42,10 +42,16 @@ describe('EventsChart', function() {
     expect(render).toHaveBeenCalledTimes(2);
   });
 
+  it('re-renders if query from props changes', function() {
+    wrapper.setProps({query: 'newQuery'});
+    wrapper.update();
+    expect(render).toHaveBeenCalledTimes(2);
+  });
+
   it('re-renders if project from props changes', function() {
     wrapper.setProps({project: [2]});
     wrapper.update();
-    expect(render).toHaveBeenCalledTimes(1);
+    expect(render).toHaveBeenCalledTimes(2);
   });
 
   it('does not re-render if zoomed', function() {
