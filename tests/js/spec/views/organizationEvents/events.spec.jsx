@@ -164,6 +164,7 @@ describe('OrganizationEventsErrors', function() {
           router={router}
           organization={org}
           selection={{projects: []}}
+          location={location}
         >
           <OrganizationEvents
             location={location}
