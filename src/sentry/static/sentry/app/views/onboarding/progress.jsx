@@ -24,18 +24,25 @@ const ProgressNodes = createReactClass({
     let {organization} = this.context;
     let user = ConfigStore.get('user');
     let {params} = this.props;
+
     let step = this.inferStep();
-    let eventName =
-      step === 1 ? 'onboarding.create_project_viewed' : 'onboarding.configure_viewed';
+    let isFirstStep = step === 1;
+    let isLastStep = step === Object.keys(this.getAsset('steps')).length - 1;
 
-    let data = {org_id: parseInt(this.context.organization.id, 10)};
+    let eventName = isFirstStep
+      ? 'onboarding.create_project_viewed'
+      : 'onboarding.configure_viewed';
 
-    if (step === 2) {
+    let data = {org_id: parseInt(organization.id, 10)};
+
+    if (isLastStep) {
       data.project = params.projectId;
       data.platform = params.platform;
     }
 
-    analytics(eventName, data);
+    if (isFirstStep || isLastStep) {
+      analytics(eventName, data);
+    }
 
     HookStore.get('analytics:onboarding-survey-log').length &&
       HookStore.get('analytics:onboarding-survey-log')[0](organization, user);
