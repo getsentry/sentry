@@ -53,7 +53,7 @@ describe('EventsChart', function() {
     let newParams = {
       statsPeriod: null,
       start: '2018-11-29T00:00:00',
-      end: '2018-12-02T23:59:59',
+      end: '2018-12-02T00:00:00',
       zoom: '1',
     };
     expect(updateParams).toHaveBeenCalledWith(newParams);
@@ -81,14 +81,14 @@ describe('EventsChart', function() {
     ]);
     expect(wrapper.instance().currentPeriod.period).toEqual(null);
     expect(wrapper.instance().currentPeriod.start).toEqual('2018-11-29T00:00:00');
-    expect(wrapper.instance().currentPeriod.end).toEqual('2018-12-02T23:59:59');
+    expect(wrapper.instance().currentPeriod.end).toEqual('2018-12-02T00:00:00');
 
     // Zoom again
     mockZoomRange(3, 5);
     doZoom(wrapper, chart);
     expect(wrapper.instance().currentPeriod.period).toEqual(null);
     expect(wrapper.instance().currentPeriod.start).toEqual('2018-11-30T00:00:00');
-    expect(wrapper.instance().currentPeriod.end).toEqual('2018-12-02T23:59:59');
+    expect(wrapper.instance().currentPeriod.end).toEqual('2018-12-02T00:00:00');
 
     expect(wrapper.instance().history[0]).toEqual({
       period: '14d',
@@ -96,18 +96,18 @@ describe('EventsChart', function() {
       end: null,
     });
     expect(wrapper.instance().history[1].start).toEqual('2018-11-29T00:00:00');
-    expect(wrapper.instance().history[1].end).toEqual('2018-12-02T23:59:59');
+    expect(wrapper.instance().history[1].end).toEqual('2018-12-02T00:00:00');
 
     // go back in history
     mockZoomRange(null, null);
     doZoom(wrapper, chart);
     expect(wrapper.instance().currentPeriod.period).toEqual(null);
     expect(wrapper.instance().currentPeriod.start).toEqual('2018-11-29T00:00:00');
-    expect(wrapper.instance().currentPeriod.end).toEqual('2018-12-02T23:59:59');
+    expect(wrapper.instance().currentPeriod.end).toEqual('2018-12-02T00:00:00');
     newParams = {
       statsPeriod: null,
       start: '2018-11-29T00:00:00',
-      end: '2018-12-02T23:59:59',
+      end: '2018-12-02T00:00:00',
       zoom: '1',
     };
     expect(updateParams).toHaveBeenCalledWith(newParams);

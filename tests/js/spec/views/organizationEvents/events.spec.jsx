@@ -200,7 +200,7 @@ describe('OrganizationEventsErrors', function() {
       newParams = {
         zoom: '1',
         start: '2018-11-29T00:00:00',
-        end: '2018-12-02T23:59:59',
+        end: '2018-12-02T00:00:00',
       };
 
       expect(router.push).toHaveBeenLastCalledWith(
@@ -221,13 +221,13 @@ describe('OrganizationEventsErrors', function() {
 
       wrapper.update();
       expect(wrapper.state('start')).toEqual(getLocalDateObject('2018-11-29T00:00:00'));
-      expect(wrapper.state('end')).toEqual(getLocalDateObject('2018-12-02T23:59:59'));
+      expect(wrapper.state('end')).toEqual(getLocalDateObject('2018-12-02T00:00:00'));
 
       expect(wrapper.find('TimeRangeSelector').prop('start')).toEqual(
         getLocalDateObject('2018-11-29T00:00:00')
       );
       expect(wrapper.find('TimeRangeSelector').prop('end')).toEqual(
-        getLocalDateObject('2018-12-02T23:59:59')
+        getLocalDateObject('2018-12-02T00:00:00')
       );
     });
   });
