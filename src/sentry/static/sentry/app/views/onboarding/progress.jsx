@@ -3,7 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import classNames from 'classnames';
 
-import {analytics} from 'app/utils/analytics';
+import {analytics, amplitude} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import {onboardingSteps, stepDescriptions} from 'app/views/onboarding/utils';
@@ -29,19 +29,23 @@ const ProgressNodes = createReactClass({
     let isFirstStep = step === 1;
     let isLastStep = step === Object.keys(this.getAsset('steps')).length - 1;
 
-    let eventName = isFirstStep
-      ? 'onboarding.create_project_viewed'
-      : 'onboarding.configure_viewed';
-
-    let data = {org_id: parseInt(organization.id, 10)};
-
-    if (isLastStep) {
-      data.project = params.projectId;
-      data.platform = params.platform;
-    }
-
-    if (isFirstStep || isLastStep) {
-      analytics(eventName, data);
+    if (isFirstStep) {
+      analytics('onboarding.create_project_viewed', {
+        org_id: parseInt(organization.id, 10),
+      });
+      amplitude('Viewed Onboarding Create Project', parseInt(organization.id, 10));
+    } else if (isLastStep) {
+      let data = {
+        project: params.projectId,
+        platform: params.platform,
+      };
+      amplitude(
+        'Viewed Onboarding Installation Instructions',
+        parseInt(organization.id, 10),
+        data
+      );
+      data.org_id = parseInt(organization.id, 10);
+      analytics('onboarding.configure_viewed', data);
     }
 
     HookStore.get('analytics:onboarding-survey-log').length &&

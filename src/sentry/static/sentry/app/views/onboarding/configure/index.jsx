@@ -3,7 +3,7 @@ import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
 import sdk from 'app/utils/sdk';
-import {analytics} from 'app/utils/analytics';
+import {analytics, amplitude} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import Hook from 'app/components/hook';
 import ProjectContext from 'app/views/projects/projectContext';
@@ -89,7 +89,10 @@ const Configure = createReactClass({
   },
 
   submit() {
-    analytics('onboarding.complete', {project: this.props.params.projectId});
+    let {projectId} = this.props.params;
+    let {organization} = this.context;
+    analytics('onboarding.complete', {project: projectId});
+    amplitude('Completed Onboarding', parseInt(organization.id, 10), {projectId});
     this.redirectUrl();
   },
 
