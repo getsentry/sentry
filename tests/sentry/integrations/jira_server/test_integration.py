@@ -276,3 +276,33 @@ class JiraServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, 'webhook')
 
         assert Integration.objects.count() == 0
+
+    @responses.activate
+    def test_setup_create_webhook_failure_forbidden(self):
+        responses.add(
+            responses.POST,
+            'https://jira.example.com/plugins/servlet/oauth/request-token',
+            status=200,
+            content_type='text/plain',
+            body='oauth_token=abc123&oauth_token_secret=def456')
+        responses.add(
+            responses.POST,
+            'https://jira.example.com/plugins/servlet/oauth/access-token',
+            status=200,
+            content_type='text/plain',
+            body='oauth_token=valid-token&oauth_token_secret=valid-secret')
+        responses.add(
+            responses.POST,
+            'https://jira.example.com/rest/webhooks/1.0/webhook',
+            status=403,
+            json={"messages": [
+                {
+                    "key": "You do not have permission to create WebHook 'Sentry Issue Sync'."
+                }
+            ]})
+
+        resp = self.install_integration()
+        self.assertContains(resp, 'You do not have permission to create')
+        self.assertContains(resp, 'Could not create issue webhook')
+
+        assert Integration.objects.count() == 0

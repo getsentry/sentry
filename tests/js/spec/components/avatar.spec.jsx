@@ -143,10 +143,7 @@ describe('Avatar', function() {
         platform: 'java',
       });
       let avatar = mount(<Avatar project={project} />);
-      expect(avatar.find('PlatformList').prop('platforms')).toEqual([
-        'python',
-        'javascript',
-      ]);
+      expect(avatar.find('PlatformList').prop('platforms')).toEqual(['java']);
     });
 
     it('displays a fallback platform list for project Avatar using the `platform` specified during onboarding', function() {

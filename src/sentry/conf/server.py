@@ -233,6 +233,7 @@ MIDDLEWARE_CLASSES = (
     # TODO(dcramer): kill this once we verify its safe
     # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'sentry.middleware.tracing.SentryTracingMiddleware',
     'sentry.debug.middleware.DebugMiddleware',
 )
 
@@ -787,8 +788,6 @@ SENTRY_FEATURES = {
     'organizations:global-views': False,
     # Enable the interface and functionality for unmerging event groups.
     'organizations:group-unmerge': False,
-    # Enable the 'health' interface.
-    'organizations:health': False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     'organizations:integrations-issue-basic': False,
@@ -800,8 +799,6 @@ SENTRY_FEATURES = {
     'organizations:internal-catchall': False,
     # Enable inviting members to organizations.
     'organizations:invite-members': True,
-    # Enable gitlab integration currently available to early adopters only.
-    'organizations:gitlab-integration': False,
     # Enable jira server integration currently available to internal users only.
     'organizations:jira-server-integration': False,
 
@@ -838,8 +835,6 @@ SENTRY_FEATURES = {
     'projects:discard-groups': False,
     # DEPRECATED: pending removal
     'projects:dsym': False,
-    # DEPRECATED: pending removal.
-    'projects:global-events': False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     'projects:minidump': True,
@@ -1191,7 +1186,7 @@ SENTRY_ROLES = (
     }, {
         'id': 'admin',
         'name': 'Admin',
-        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
+        'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).',
         'scopes': set(
             [
                 'event:read',

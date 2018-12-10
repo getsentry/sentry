@@ -1,8 +1,6 @@
 import React from 'react';
 import styled from 'react-emotion';
 
-import HealthPanelChart from 'app/views/organizationHealth/styles/healthPanelChart';
-
 const LoadingMask = styled('div')`
   background-color: ${p => p.theme.offWhite};
   border-radius: ${p => p.theme.borderRadius};
@@ -14,11 +12,13 @@ const LoadingMask = styled('div')`
 `;
 
 const LoadingPanel = styled(props => (
-  <HealthPanelChart {...props}>
+  <div {...props}>
     <LoadingMask />
-  </HealthPanelChart>
+  </div>
 ))`
   flex: 1;
+  flex-shrink: 0;
+  overflow: hidden;
   height: 200px;
   position: relative;
   border-color: transparent;

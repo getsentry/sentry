@@ -56,7 +56,6 @@ default_manager.add('organizations:discover', OrganizationFeature)  # NOQA
 default_manager.add('organizations:event-attachments', OrganizationFeature)  # NOQA
 default_manager.add('organizations:global-views', OrganizationFeature)  # NOQA
 default_manager.add('organizations:group-unmerge', OrganizationFeature)  # NOQA
-default_manager.add('organizations:health', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-basic', OrganizationFeature)  # NOQA
 default_manager.add('organizations:integrations-issue-sync', OrganizationFeature)  # NOQA
 default_manager.add('organizations:internal-catchall', OrganizationFeature)  # NOQA
@@ -79,7 +78,6 @@ default_manager.add('organizations:large-debug-files', OrganizationFeature)  # N
 
 # Project scoped features
 default_manager.add('projects:similarity-view', ProjectFeature)  # NOQA
-default_manager.add('projects:global-events', ProjectFeature)  # NOQA
 default_manager.add('projects:data-forwarding', ProjectFeature)  # NOQA
 default_manager.add('projects:rate-limits', ProjectFeature)  # NOQA
 default_manager.add('projects:sample-events', ProjectFeature)  # NOQA

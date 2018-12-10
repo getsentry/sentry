@@ -89,6 +89,7 @@ class OrganizationEventsContainer extends React.Component {
       project,
       environment,
       period: query.statsPeriod || (hasAbsolute ? null : DEFAULT_STATS_PERIOD),
+      query: query.query || null,
       start: start || null,
       end: end || null,
 
@@ -197,27 +198,25 @@ class OrganizationEventsContainer extends React.Component {
     let {router, location} = this.props;
     router.push({
       pathname: location.pathname,
-      query: {
+      query: getParams({
         ...(location.query || {}),
         query,
         zoom: null,
-      },
+      }),
     });
   };
 
   render() {
-    const {organization, children} = this.props;
+    const {organization, location, children} = this.props;
     const {period, start, end, utc} = this.state;
 
     const projects =
       organization.projects && organization.projects.filter(({isMember}) => isMember);
 
     return (
-      <Feature features={['global-views']} renderDisabled>
-        <EventsContext.Provider
-          value={{actions: this.actions, ...this.state.queryValues}}
-        >
-          <OrganizationEventsContent>
+      <EventsContext.Provider value={{actions: this.actions, ...this.state.queryValues}}>
+        <OrganizationEventsContent>
+          <Feature features={['global-views']} renderDisabled>
             <Header>
               <HeaderItemPosition>
                 <MultipleProjectSelector
@@ -266,9 +265,9 @@ class OrganizationEventsContainer extends React.Component {
 
               {children}
             </Body>
-          </OrganizationEventsContent>
-        </EventsContext.Provider>
-      </Feature>
+          </Feature>
+        </OrganizationEventsContent>
+      </EventsContext.Provider>
     );
   }
 }
