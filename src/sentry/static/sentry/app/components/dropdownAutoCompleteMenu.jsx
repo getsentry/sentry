@@ -89,6 +89,11 @@ class DropdownAutoCompleteMenu extends React.Component {
     blendCorner: PropTypes.bool,
 
     /**
+     * Hides the default filter input
+     */
+    hideInput: PropTypes.bool,
+
+    /**
      * Max height of dropdown menu. Units are assumed as `px` if number, otherwise will assume string has units
      */
     maxHeight: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -280,6 +285,7 @@ class DropdownAutoCompleteMenu extends React.Component {
       searchPlaceholder,
       itemSize,
       busy,
+      hideInput,
       emptyHidesInput,
       ...props
     } = this.props;
@@ -322,7 +328,7 @@ class DropdownAutoCompleteMenu extends React.Component {
 
           // Hide the input when we have no items to filter, only if
           // emptyHidesInput is set to true.
-          let showInput = hasItems || !emptyHidesInput;
+          let showInput = !hideInput && (hasItems || !emptyHidesInput);
 
           let renderedFooter =
             typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
