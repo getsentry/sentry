@@ -3,9 +3,10 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.urlresolvers import reverse
+from exam import fixture
 
 from sentry.models import CommitAuthor, CommitFileChange, Environment, Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment, Repository
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, ReleaseCommitPatchTest
 
 
 class ProjectReleaseListTest(APITestCase):
@@ -585,37 +586,16 @@ class ProjectReleaseCreateTest(APITestCase):
             assert rc.organization_id
 
 
-class ProjectReleaseCreateCommitPatch(APITestCase):
-    def setUp(self):
-        user = self.create_user(is_staff=False, is_superuser=False)
-        self.org = self.create_organization()
-        self.org.save()
-
-        team = self.create_team(organization=self.org)
-        self.project = self.create_project(name='foo', organization=self.org, teams=[team])
-
-        self.create_member(teams=[team], user=user, organization=self.org)
-        self.login_as(user=user)
-
-        self.url = reverse(
+class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
+    @fixture
+    def url(self):
+        return reverse(
             'sentry-api-0-project-releases',
             kwargs={
                 'organization_slug': self.project.organization.slug,
                 'project_slug': self.project.slug,
             }
         )
-
-    def assert_commit(self, commit, repo_id, key, author_id, message):
-        assert commit.organization_id == self.org.id
-        assert commit.repository_id == repo_id
-        assert commit.key == key
-        assert commit.author_id == author_id
-        assert commit.message == message
-
-    def assert_file_change(self, file_change, type, filename, commit_id):
-        assert file_change.type == type
-        assert file_change.filename == filename
-        assert file_change.commit_id == commit_id
 
     def test_commits_with_patch_set(self):
         response = self.client.post(
