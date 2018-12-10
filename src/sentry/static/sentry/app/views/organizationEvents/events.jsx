@@ -61,7 +61,7 @@ class TotalEventCount extends AsyncComponent {
     let count = isAllResults ? numRows : eventsMeta.count;
     return (
       <Feature features={['internal-catchall']} organization={organization}>
-        {t(` of ${count}${isAllResults ? '' : ' (estimated)'}`)}
+        {t(` of ${count.toLocaleString()}${isAllResults ? '' : ' (estimated)'}`)}
       </Feature>
     );
   }
