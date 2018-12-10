@@ -191,7 +191,6 @@ export class Client {
             name: 'app.api.request-success',
             start: `api-request-start-${id}`,
             data: {
-              path,
               status: xhr && xhr.status,
             },
           });
@@ -205,7 +204,6 @@ export class Client {
             name: 'app.api.request-error',
             start: `api-request-start-${id}`,
             data: {
-              path,
               status: xhr && xhr.status,
             },
           });
