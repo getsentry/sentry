@@ -320,7 +320,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                             ],
                                             "getColorPalette": [Function],
                                             "previousPeriod": "#BDB4C7",
-                                            "symbolSize": 10,
+                                            "symbolSize": 6,
                                           },
                                           "diff": Object {
                                             "added": "#d8f0e4",
@@ -586,7 +586,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                                                     ],
                                                     "getColorPalette": [Function],
                                                     "previousPeriod": "#BDB4C7",
-                                                    "symbolSize": 10,
+                                                    "symbolSize": 6,
                                                   },
                                                   "diff": Object {
                                                     "added": "#d8f0e4",
