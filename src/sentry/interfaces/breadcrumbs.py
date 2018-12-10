@@ -92,9 +92,9 @@ class Breadcrumbs(Interface):
         data = crumb.get('data')
         if data:
             try:
-                for key, value in six.iteritems(crumb['data']):
+                for key, value in six.iteritems(data):
                     if not isinstance(value, six.string_types):
-                        crumb['data'][key] = json.dumps(value)
+                        data[key] = json.dumps(value)
             except AttributeError:
                 # TODO(dcramer): we dont want to discard the the rest of the
                 # crumb, but it'd be nice if we could record an error
@@ -103,9 +103,9 @@ class Breadcrumbs(Interface):
                 #         type(crumb['data']),
                 #     )
                 # )
-                pass
+                del crumb["data"]
             else:
-                data = trim(crumb['data'], 4096)
+                data = trim(data, 4096)
 
         return {
             'type': ty,
