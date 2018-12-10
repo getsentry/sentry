@@ -16,7 +16,7 @@ from sentry.utils.http import absolute_uri
 
 
 JIRA_KEY = '%s.jira' % (urlparse(absolute_uri()).hostname, )
-ISSUE_KEY_RE = re.compile(r'^[A-Z][A-Z0-9]*-\d+$')
+ISSUE_KEY_RE = re.compile(r'^[A-Za-z][A-Za-z0-9]*-\d+$')
 
 
 def md5(*bits):
