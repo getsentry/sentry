@@ -86,7 +86,7 @@ class Command(BaseCommand):
             if proceed.lower() not in ['yes', 'y']:
                 raise CommandError('Aborted.')
 
-        for event in RangeQuerySetWrapper(events, callbacks=(_attach_related,)):
+        for event in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
             primary_hash = event.get_primary_hash()
             eventstream.insert(
                 group=event.group,
