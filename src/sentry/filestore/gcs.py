@@ -20,6 +20,7 @@ from google.auth.exceptions import TransportError, RefreshError
 from google.resumable_media.common import DataCorruption
 from requests.exceptions import RequestException
 
+from sentry.http import OpenSSLError
 from sentry.utils import metrics
 from sentry.net.http import TimeoutAdapter
 
@@ -60,7 +61,7 @@ def try_repeated(func):
             metrics_tags.update({'success': '1'})
             metrics.timing(metrics_key, idx, tags=metrics_tags)
             return result
-        except (DataCorruption, TransportError, RefreshError, RequestException) as e:
+        except (DataCorruption, TransportError, RefreshError, RequestException, OpenSSLError) as e:
             if idx >= GCS_RETRIES:
                 metrics_tags.update({'success': '0', 'exception_class': e.__class__.__name__})
                 metrics.timing(metrics_key, idx, tags=metrics_tags)
