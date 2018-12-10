@@ -11,7 +11,7 @@ from __future__ import absolute_import
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase', 'IntegrationRepositoryTestCase',
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase', 'IntegrationRepositoryTestCase', 'ReleaseCommitPatchTest'
 )
 
 import base64
@@ -923,3 +923,32 @@ class IntegrationRepositoryTestCase(APITestCase):
     def assert_error_message(self, response, error_type, error_message):
         assert response.data['error_type'] == error_type
         assert error_message in response.data['errors']['__all__']
+
+
+class ReleaseCommitPatchTest(APITestCase):
+    def setUp(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        self.org = self.create_organization()
+        self.org.save()
+
+        team = self.create_team(organization=self.org)
+        self.project = self.create_project(name='foo', organization=self.org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=self.org)
+        self.login_as(user=user)
+
+    @fixture
+    def url(self):
+        raise NotImplementedError
+
+    def assert_commit(self, commit, repo_id, key, author_id, message):
+        assert commit.organization_id == self.org.id
+        assert commit.repository_id == repo_id
+        assert commit.key == key
+        assert commit.author_id == author_id
+        assert commit.message == message
+
+    def assert_file_change(self, file_change, type, filename, commit_id):
+        assert file_change.type == type
+        assert file_change.filename == filename
+        assert file_change.commit_id == commit_id
