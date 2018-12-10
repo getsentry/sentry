@@ -47,7 +47,7 @@ class Command(BaseCommand):
 
     def handle(self, **options):
 
-        def _attach_fks(_events):
+        def _attach_related(_events):
             project_ids = set([event.project_id for event in _events])
             projects = {p.id: p for p in Project.objects.filter(id__in=project_ids)}
             group_ids = set([event.group_id for event in _events])
@@ -55,6 +55,7 @@ class Command(BaseCommand):
             for event in _events:
                 event.project = projects[event.project_id]
                 event.group = groups[event.group_id]
+            Event.objects.bind_nodes(_events, 'data')
 
         from sentry import eventstream
         from sentry.utils.query import RangeQuerySetWrapper
@@ -85,7 +86,7 @@ class Command(BaseCommand):
             if proceed.lower() not in ['yes', 'y']:
                 raise CommandError('Aborted.')
 
-        for event in RangeQuerySetWrapper(events, callbacks=(_attach_fks,)):
+        for event in RangeQuerySetWrapper(events, callbacks=(_attach_related,)):
             primary_hash = event.get_primary_hash()
             eventstream.insert(
                 group=event.group,
