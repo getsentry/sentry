@@ -650,7 +650,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   ],
                                                   "getColorPalette": [Function],
                                                   "previousPeriod": "#BDB4C7",
-                                                  "symbolSize": 10,
+                                                  "symbolSize": 6,
                                                 },
                                                 "diff": Object {
                                                   "added": "#d8f0e4",
@@ -916,7 +916,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                           ],
                                                           "getColorPalette": [Function],
                                                           "previousPeriod": "#BDB4C7",
-                                                          "symbolSize": 10,
+                                                          "symbolSize": 6,
                                                         },
                                                         "diff": Object {
                                                           "added": "#d8f0e4",
@@ -2063,7 +2063,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   ],
                                                   "getColorPalette": [Function],
                                                   "previousPeriod": "#BDB4C7",
-                                                  "symbolSize": 10,
+                                                  "symbolSize": 6,
                                                 },
                                                 "diff": Object {
                                                   "added": "#d8f0e4",
@@ -2329,7 +2329,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                           ],
                                                           "getColorPalette": [Function],
                                                           "previousPeriod": "#BDB4C7",
-                                                          "symbolSize": 10,
+                                                          "symbolSize": 6,
                                                         },
                                                         "diff": Object {
                                                           "added": "#d8f0e4",
@@ -3767,7 +3767,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                   ],
                                                   "getColorPalette": [Function],
                                                   "previousPeriod": "#BDB4C7",
-                                                  "symbolSize": 10,
+                                                  "symbolSize": 6,
                                                 },
                                                 "diff": Object {
                                                   "added": "#d8f0e4",
@@ -4033,7 +4033,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                           ],
                                                           "getColorPalette": [Function],
                                                           "previousPeriod": "#BDB4C7",
-                                                          "symbolSize": 10,
+                                                          "symbolSize": 6,
                                                         },
                                                         "diff": Object {
                                                           "added": "#d8f0e4",
@@ -4526,7 +4526,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                   ],
                                                   "getColorPalette": [Function],
                                                   "previousPeriod": "#BDB4C7",
-                                                  "symbolSize": 10,
+                                                  "symbolSize": 6,
                                                 },
                                                 "diff": Object {
                                                   "added": "#d8f0e4",
@@ -4792,7 +4792,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                           ],
                                                           "getColorPalette": [Function],
                                                           "previousPeriod": "#BDB4C7",
-                                                          "symbolSize": 10,
+                                                          "symbolSize": 6,
                                                         },
                                                         "diff": Object {
                                                           "added": "#d8f0e4",

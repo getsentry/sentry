@@ -3,7 +3,7 @@ import 'echarts/lib/component/tooltip';
 import {getFormattedDate} from 'app/utils/dates';
 import {truncationFormatter} from '../utils';
 
-function formatAxisLabel(value, isTimestamp, utc) {
+function defaultFormatAxisLabel(value, isTimestamp, utc) {
   if (!isTimestamp) {
     return value;
   }
@@ -15,7 +15,7 @@ function valueFormatter(value) {
   return value.toLocaleString();
 }
 
-function getFormatter({filter, isGroupedByDate, truncate, utc}) {
+function getFormatter({filter, isGroupedByDate, truncate, formatAxisLabel, utc}) {
   const getFilter = seriesParam => {
     const value = seriesParam.data[1];
     if (typeof filter === 'function') {
@@ -28,7 +28,11 @@ function getFormatter({filter, isGroupedByDate, truncate, utc}) {
   return seriesParams => {
     const label =
       seriesParams.length &&
-      formatAxisLabel(seriesParams[0].axisValueLabel, isGroupedByDate, utc);
+      (formatAxisLabel || defaultFormatAxisLabel)(
+        seriesParams[0].axisValueLabel,
+        isGroupedByDate,
+        utc
+      );
     return [
       `<div>${truncationFormatter(label, truncate)}</div>`,
       seriesParams
@@ -46,9 +50,10 @@ function getFormatter({filter, isGroupedByDate, truncate, utc}) {
 }
 
 export default function Tooltip(
-  {filter, isGroupedByDate, formatter, truncate, utc, ...props} = {}
+  {filter, isGroupedByDate, formatter, truncate, utc, formatAxisLabel, ...props} = {}
 ) {
-  formatter = formatter || getFormatter({filter, isGroupedByDate, truncate, utc});
+  formatter =
+    formatter || getFormatter({filter, isGroupedByDate, truncate, utc, formatAxisLabel});
 
   return {
     show: true,

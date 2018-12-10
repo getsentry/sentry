@@ -23,7 +23,7 @@ export default function ToolBox(options, features = {}) {
   return {
     right: 0,
     top: 0,
-    itemSize: 20,
+    itemSize: 16,
 
     feature: getFeatures(features),
     ...options,
