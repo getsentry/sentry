@@ -23,6 +23,7 @@ export default class Condition extends React.Component {
     super(props);
     this.state = {
       inputValue: '',
+      isOpen: false,
     };
   }
 
@@ -37,6 +38,7 @@ export default class Condition extends React.Component {
       this.setState(
         {
           inputValue: '',
+          isOpen: false,
         },
         this.props.onChange(external)
       );
@@ -56,6 +58,7 @@ export default class Condition extends React.Component {
     if (this.state.inputValue === '') {
       this.setState({
         inputValue: getInternal(this.props.value),
+        isOpen: true,
       });
     }
   };

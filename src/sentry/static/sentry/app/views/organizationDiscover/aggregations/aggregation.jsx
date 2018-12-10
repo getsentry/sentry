@@ -22,6 +22,7 @@ export default class Aggregation extends React.Component {
     super(props);
     this.state = {
       inputValue: '',
+      isOpen: false,
     };
   }
 
@@ -69,7 +70,7 @@ export default class Aggregation extends React.Component {
     if (option.value === 'uniq' || option.value === 'avg') {
       this.setState({inputValue: option.value}, this.focus);
     } else {
-      this.setState({inputValue: option.value});
+      this.setState({inputValue: option.value, isOpen: false});
       this.props.onChange(getExternal(option.value));
     }
   };
@@ -78,6 +79,7 @@ export default class Aggregation extends React.Component {
     if (this.state.inputValue === '') {
       this.setState({
         inputValue: getInternal(this.props.value),
+        isOpen: true,
       });
     }
   };
@@ -105,7 +107,7 @@ export default class Aggregation extends React.Component {
   };
 
   valueComponent = props => {
-    if (this.state.inputValue) {
+    if (this.state.isOpen) {
       return null;
     }
 
