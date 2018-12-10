@@ -1,7 +1,7 @@
 import {
   getQueryFromQueryString,
   getQueryStringFromQuery,
-  getOrderByOptions,
+  getOrderbyFields,
   parseSavedQuery,
   generateQueryName,
 } from 'app/views/organizationDiscover/utils';
@@ -46,37 +46,32 @@ describe('getQueryStringFromQuery()', function() {
   });
 });
 
-describe('getOrderByOptions()', function() {
+describe('getOrderbyFields()', function() {
   const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
   const queryBuilder = createQueryBuilder({}, organization);
 
   it('allows ordering by all fields when no aggregations except project.name and issue.id', function() {
-    expect(getOrderByOptions(queryBuilder)).toHaveLength((COLUMNS.length - 2) * 2);
+    expect(getOrderbyFields(queryBuilder)).toHaveLength(COLUMNS.length - 2);
   });
 
   it('allows ordering by aggregations with aggregations and no fields', function() {
     queryBuilder.updateField('fields', []);
     queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
-    const options = getOrderByOptions(queryBuilder);
-    expect(options).toHaveLength(2);
-    expect(options).toEqual([
-      {label: 'count asc', value: 'count'},
-      {label: 'count desc', value: '-count'},
-    ]);
+    const options = getOrderbyFields(queryBuilder);
+    expect(options).toHaveLength(1);
+    expect(options).toEqual([{label: 'count', value: 'count'}]);
   });
 
   it('allows ordering by aggregations and fields', function() {
     queryBuilder.updateField('fields', ['message']);
     queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
-    const options = getOrderByOptions(queryBuilder);
-    expect(options).toHaveLength(4);
+    const options = getOrderbyFields(queryBuilder);
+    expect(options).toHaveLength(2);
     expect(options).toEqual([
-      {label: 'message asc', value: 'message'},
-      {label: 'message desc', value: '-message'},
-      {label: 'count asc', value: 'count'},
-      {label: 'count desc', value: '-count'},
+      {label: 'message', value: 'message'},
+      {label: 'count', value: 'count'},
     ]);
   });
 });
