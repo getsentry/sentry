@@ -1,4 +1,5 @@
 import React from 'react';
+import {Value} from 'react-select';
 import PropTypes from 'prop-types';
 import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
@@ -22,6 +23,7 @@ export default class Condition extends React.Component {
     super(props);
     this.state = {
       inputValue: '',
+      isOpen: false,
     };
   }
 
@@ -36,6 +38,7 @@ export default class Condition extends React.Component {
       this.setState(
         {
           inputValue: '',
+          isOpen: false,
         },
         this.props.onChange(external)
       );
@@ -55,6 +58,7 @@ export default class Condition extends React.Component {
     if (this.state.inputValue === '') {
       this.setState({
         inputValue: getInternal(this.props.value),
+        isOpen: true,
       });
     }
   };
@@ -127,19 +131,33 @@ export default class Condition extends React.Component {
   };
 
   inputRenderer = props => {
+    const onChange = evt => {
+      if (evt.target.value === '') {
+        // React select won't trigger an onChange event when a value is completely
+        // cleared, so we'll force this before calling onChange
+        this.setState({inputValue: evt.target.value}, props.onChange(evt));
+      } else {
+        props.onChange(evt);
+      }
+    };
+
     return (
       <input
         type="text"
         {...props}
+        onChange={onChange}
         value={this.state.inputValue}
         style={{width: '100%', border: 0, zIndex: 1000, backgroundColor: 'transparent'}}
       />
     );
   };
 
-  valueRenderer = option => {
-    const hideValue = this.state.inputValue;
-    return hideValue ? '' : option.value;
+  valueComponent = props => {
+    if (this.state.inputValue) {
+      return null;
+    }
+
+    return <Value {...props} />;
   };
 
   shouldKeyDownEventCreateNewOption = keyCode => {
@@ -195,7 +213,7 @@ export default class Condition extends React.Component {
           deleteRemoves={false}
           isValidNewOption={this.isValidNewOption}
           inputRenderer={this.inputRenderer}
-          valueRenderer={this.valueRenderer}
+          valueComponent={this.valueComponent}
           onInputChange={this.handleInputChange}
           onBlur={this.handleBlur}
           creatable={true}
