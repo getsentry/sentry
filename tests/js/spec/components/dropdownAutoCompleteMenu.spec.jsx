@@ -141,4 +141,14 @@ describe('DropdownAutoCompleteMenu', function() {
     wrapper.find('StyledInput').simulate('change', {target: {value: 'U-S-A'}});
     expect(wrapper.find('EmptyMessage').text()).toBe('No search results');
   });
+
+  it('hides filter with `hideInput` prop', function() {
+    const wrapper = mount(
+      <DropdownAutoCompleteMenu isOpen={true} items={items} hideInput>
+        {() => 'Click Me!'}
+      </DropdownAutoCompleteMenu>,
+      routerContext
+    );
+    expect(wrapper.find('StyledInput')).toHaveLength(0);
+  });
 });
