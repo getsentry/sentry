@@ -212,11 +212,11 @@ def process_timestamp(value, meta, current_datetime=None):
         current_datetime = datetime.now()
 
     if value > current_datetime + ALLOWED_FUTURE_DELTA:
-        meta.add_error(EventError.FUTURE_TIMESTAMP)
+        meta.add_error(EventError.FUTURE_TIMESTAMP, value.isoformat())
         return None
 
     if value < current_datetime - timedelta(days=30):
-        meta.add_error(EventError.PAST_TIMESTAMP)
+        meta.add_error(EventError.PAST_TIMESTAMP, value.isoformat())
         return None
 
     return float(value.strftime('%s'))
