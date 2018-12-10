@@ -24,6 +24,7 @@ from sentry.db.models import (
 
 from sentry.models import CommitFileChange
 
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.retries import TimedRetryPolicy
@@ -534,6 +535,7 @@ class Release(Model):
                 Group.objects.filter(
                     id=group_id,
                 ).update(status=GroupStatus.RESOLVED)
+                metrics.incr('group.resolved', instance='in_commit')
 
             kick_off_status_syncs.apply_async(kwargs={
                 'project_id': group_project_lookup[group_id],
