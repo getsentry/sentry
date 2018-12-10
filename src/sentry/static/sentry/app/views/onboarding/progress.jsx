@@ -23,29 +23,13 @@ const ProgressNodes = createReactClass({
   componentDidMount() {
     let {organization} = this.context;
     let user = ConfigStore.get('user');
-    let {params} = this.props;
-
     let step = this.inferStep();
-    let isFirstStep = step === 1;
-    let isLastStep = step === Object.keys(this.getAsset('steps')).length - 1;
 
-    if (isFirstStep) {
+    if (step === 1) {
       analytics('onboarding.create_project_viewed', {
         org_id: parseInt(organization.id, 10),
       });
       amplitude('Viewed Onboarding Create Project', parseInt(organization.id, 10));
-    } else if (isLastStep) {
-      let data = {
-        project: params.projectId,
-        platform: params.platform,
-      };
-      amplitude(
-        'Viewed Onboarding Installation Instructions',
-        parseInt(organization.id, 10),
-        data
-      );
-      data.org_id = parseInt(organization.id, 10);
-      analytics('onboarding.configure_viewed', data);
     }
 
     HookStore.get('analytics:onboarding-survey-log').length &&
@@ -103,7 +87,6 @@ const ProgressNodes = createReactClass({
     let config = ConfigStore.getConfig();
     let {slug} = this.context.organization;
     let steps = Object.keys(this.getAsset('steps'));
-
     return (
       <div className="onboarding-sidebar">
         <div className="sentry-flag">

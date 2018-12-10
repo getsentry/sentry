@@ -90,7 +90,10 @@ function routes() {
     hooksOrgRoutes.push(cb());
   });
 
-  let hooksSurveyRoute = [HookStore.get('routes:onboarding-survey')[0]()];
+  let hooksSurveyRoute = [];
+  HookStore.get('routes:onboarding-survey').forEach(cb => {
+    hooksSurveyRoute.push(cb());
+  });
 
   const accountSettingsRoutes = (
     <React.Fragment>

@@ -38,6 +38,24 @@ const Configure = createReactClass({
     }, 2000);
   },
 
+  componentDidMount() {
+    let {organization} = this.context;
+    let {params} = this.props;
+    let data = {
+      project: params.projectId,
+      platform: params.platform,
+    };
+
+    amplitude(
+      'Viewed Onboarding Installation Instructions',
+      parseInt(organization.id, 10),
+      data
+    );
+
+    data.org_id = parseInt(organization.id, 10);
+    analytics('onboarding.configure_viewed', data);
+  },
+
   componentWillUpdate(nextProps, nextState) {
     if (
       !this.state.isFirstTimePolling &&
