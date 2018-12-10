@@ -11,9 +11,10 @@ import Badge from 'app/components/badge';
 
 import Aggregations from '../aggregations';
 import Conditions from '../conditions';
-import {getOrderByOptions} from '../utils';
+import Orderby from './orderby';
 import {Fieldset, PlaceholderText, SidebarLabel} from '../styles';
 import {NON_CONDITIONS_FIELDS} from '../data';
+import {getOrderbyFields} from '../utils';
 
 export default class QueryFields extends React.Component {
   static propTypes = {
@@ -120,16 +121,10 @@ export default class QueryFields extends React.Component {
           />
         </Fieldset>
         <Fieldset>
-          <SidebarLabel htmlFor="orderby" className="control-label">
-            {t('Order by')}
-          </SidebarLabel>
-          <SelectControl
-            name="orderby"
-            label={t('Order By')}
-            placeholder={<PlaceholderText>{t('Order by...')}</PlaceholderText>}
-            options={getOrderByOptions(queryBuilder)}
+          <Orderby
             value={currentQuery.orderby}
-            onChange={val => onUpdateField('orderby', val.value)}
+            columns={getOrderbyFields(queryBuilder)}
+            onChange={val => onUpdateField('orderby', val)}
             disabled={isLoading}
           />
         </Fieldset>
