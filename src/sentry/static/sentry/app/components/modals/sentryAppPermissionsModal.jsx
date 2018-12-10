@@ -3,9 +3,7 @@ import React from 'react';
 
 import Button from 'app/components/button';
 import {capitalize} from 'lodash';
-import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
-import Tooltip from 'app/components/tooltip';
 import {Panel, PanelItem} from 'app/components/panels';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
@@ -13,8 +11,8 @@ import styled from 'react-emotion';
 
 class SentryAppPermissionsModal extends React.Component {
   static propTypes = {
-    closeModal: PropTypes.func,
-    onInstall: PropTypes.func,
+    closeModal: PropTypes.func.isRequired,
+    onInstall: PropTypes.func.isRequired,
     Body: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
     Header: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
     app: SentryTypes.SentryApplication.isRequired,
@@ -66,9 +64,14 @@ class SentryAppPermissionsModal extends React.Component {
     const topScopes = this.getTopScopes();
     Object.entries(topScopes).forEach(([resource, scope]) => {
       // releases are a weird one off permission scope, either you
-      // have project:releases or you don't
+      // have project:releases or you don't so we'll add it to Admin
+      // if that scope is present
       if (resource === 'releases') {
-        permissions.releases = true;
+        if (permissions.admin) {
+          permissions.admin.push('Releases');
+        } else {
+          permissions.admin = ['Releases'];
+        }
         return;
       }
       if (!permissions[scope]) {
@@ -84,24 +87,11 @@ class SentryAppPermissionsModal extends React.Component {
     const permissions = this.getPermissions();
     return (
       <React.Fragment>
-        {permissions.releases && (
-          <PanelItem key="read">
-            <p>
-              {'All access to '}
-              <strong>{t('releases')}</strong>
-              <Tooltip
-                title={'Releases are all access (create, edit and delete) or no access.'}
-              >
-                <StyledInlineSvg src="icon-circle-question" size="1.2em" />
-              </Tooltip>
-            </p>
-          </PanelItem>
-        )}
         {permissions.read && (
           <PanelItem key="read">
             <p>
               <strong>{t('Read')}</strong>
-              {` access to ${permissions.read.join(', ')}`}
+              {t(` access to ${permissions.read.join(', ')}`)}
             </p>
           </PanelItem>
         )}
@@ -109,9 +99,9 @@ class SentryAppPermissionsModal extends React.Component {
           <PanelItem key="write">
             <p>
               <strong>{t('Read')}</strong>
-              {' and '}
+              {t(' and ')}
               <strong>{t('write')}</strong>
-              {` access to ${permissions.write.join(', ')}`}
+              {t(` access to ${permissions.write.join(', ')}`)}
             </p>
           </PanelItem>
         )}
@@ -119,7 +109,7 @@ class SentryAppPermissionsModal extends React.Component {
           <PanelItem key="admin">
             <p>
               <strong>{t('Admin')}</strong>
-              {` access to ${permissions.admin.join(', ')}`}
+              {t(` access to ${permissions.admin.join(', ')}`)}
             </p>
           </PanelItem>
         )}
@@ -136,22 +126,24 @@ class SentryAppPermissionsModal extends React.Component {
         </Header>
         <Body>
           <Title>
-            {'Install on your '}
+            {t('Install on your ')}
             <strong>{orgId}</strong>
-            {' organization with the following permissions:'}
+            {t(' organization with the following permissions:')}
           </Title>
           <Panel>{this.renderPermissions()}</Panel>
         </Body>
         <div className="modal-footer">
           {!app.redirectUrl && (
             <RedirectionInfo>
-              {`After installation you'll be redirected to the ${app.name} service to finish setup.`}
+              {t(
+                `After installation you'll be redirected to the ${app.name} service to finish setup.`
+              )}
             </RedirectionInfo>
           )}
           <StyledButton priority="success" onClick={() => this.onInstall()}>
-            Install
+            {t('Install')}
           </StyledButton>
-          <StyledButton onClick={closeModal}>Cancel</StyledButton>
+          <StyledButton onClick={closeModal}>{t('Cancel')}</StyledButton>
         </div>
       </React.Fragment>
     );
@@ -159,11 +151,6 @@ class SentryAppPermissionsModal extends React.Component {
 }
 
 export default SentryAppPermissionsModal;
-
-const StyledInlineSvg = styled(InlineSvg)`
-  margin-left: 8px;
-  color: ${p => p.theme.gray2};
-`;
 
 const StyledButton = styled(Button)`
   margin-left: ${space(1)};
