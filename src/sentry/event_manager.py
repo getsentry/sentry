@@ -188,7 +188,7 @@ def process_timestamp(value, meta, current_datetime=None):
         try:
             value = datetime.fromtimestamp(float(value))
         except Exception:
-            meta.add_error('invalid timestamp', value)
+            meta.add_error(EventError.INVALID_DATA, value)
             return None
     elif not isinstance(value, datetime):
         # all timestamps are in UTC, but the marker is optional
@@ -205,18 +205,18 @@ def process_timestamp(value, meta, current_datetime=None):
         try:
             value = datetime.strptime(value, fmt)
         except Exception:
-            meta.add_error('invalid timestamp format', value)
+            meta.add_error(EventError.INVALID_DATA, value)
             return None
 
     if current_datetime is None:
         current_datetime = datetime.now()
 
     if value > current_datetime + ALLOWED_FUTURE_DELTA:
-        meta.add_error('invalid timestamp (in future)')
+        meta.add_error(EventError.FUTURE_TIMESTAMP)
         return None
 
     if value < current_datetime - timedelta(days=30):
-        meta.add_error('invalid timestamp (too old)')
+        meta.add_error(EventError.PAST_TIMESTAMP)
         return None
 
     return float(value.strftime('%s'))
@@ -306,8 +306,18 @@ else:
             return scoreclause_sql(self, connection)
 
 
-class InvalidTimestamp(Exception):
-    pass
+def add_meta_errors(errors, meta):
+    for field_meta in meta:
+        original_value = field_meta.get().get('val')
+
+        for i, (err_type, err_data) in enumerate(field_meta.iter_errors()):
+            error = dict(err_data)
+            error['type'] = err_type
+            if field_meta.path:
+                error['name'] = field_meta.path
+            if i == 0 and original_value is not None:
+                error['value'] = original_value
+            errors.append(error)
 
 
 def _decode_event(data, content_encoding):
@@ -476,7 +486,9 @@ class EventManager(object):
                 try:
                     data[c] = casts[c](value)
                 except Exception as e:
-                    meta.enter(c).add_error(e, value)
+                    meta.enter(c).add_error(EventError.INVALID_DATA, value, {
+                        'reason': six.text_type(e),
+                    })
 
         data['timestamp'] = process_timestamp(data.get('timestamp'),
                                               meta.enter('timestamp'))
@@ -537,7 +549,7 @@ class EventManager(object):
                 interface = get_interface(k)
             except ValueError:
                 logger.debug('Ignored unknown attribute: %s', k)
-                meta.enter(k).add_error('unknown attribute')
+                meta.enter(k).add_error(EventError.INVALID_ATTRIBUTE)
                 continue
 
             normalized = interface.normalize(value, meta.enter(k))
@@ -661,18 +673,8 @@ class EventManager(object):
         # Merge meta errors into the errors array. We need to iterate over the
         # raw meta instead of data due to pruned null values.
         errors = data.get('errors') or []
-        for key, field_meta in six.iteritems(meta.raw()):
-            if key == '':
-                continue
-
-            field_meta = Meta(field_meta)
-            original_value = field_meta.get().get('val')
-
-            for i, err in enumerate(field_meta.get_errors()):
-                error = {'type': EventError.GENERAL, 'name': key, 'message': err}
-                if i == 0 and original_value is not None:
-                    error['value'] = original_value
-                errors.append(error)
+        add_meta_errors(errors, meta)
+        add_meta_errors(errors, meta.enter('tags'))
 
         if errors:
             data['errors'] = errors

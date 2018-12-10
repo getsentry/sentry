@@ -7,6 +7,7 @@ import six
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
+from sentry.models.eventerror import EventError
 from sentry.utils.canonical import get_canonical_name
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
@@ -130,7 +131,7 @@ class Interface(object):
         defaults where data is missing but does not need to handle interface
         validation.
         """
-        return data and cls(**data)
+        return cls(**data) if data is not None else None
 
     @classmethod
     def _normalize(cls, data, meta):
@@ -161,7 +162,9 @@ class Interface(object):
         # Interface data is required to be a JSON object. Places where the
         # protocol permits lists must be casted to a values wrapper first.
         if not isinstance(data, Mapping):
-            meta.add_error('expected %s' % (cls.__name__,), data)
+            meta.add_error(EventError.INVALID_DATA, data, {
+                'reason': 'expected %s' % (cls.__name__,),
+            })
             return None
 
         try:
@@ -174,7 +177,9 @@ class Interface(object):
                 logger.error('Discarded invalid value for interface: %s (%r)',
                              cls.path, data, exc_info=True)
 
-            meta.add_error(e, value=data)
+            meta.add_error(EventError.INVALID_DATA, data, {
+                'reason': six.text_type(e)
+            })
             return None
 
         # As with input data, empty interface data is coerced to None after

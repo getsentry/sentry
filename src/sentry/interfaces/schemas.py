@@ -774,7 +774,7 @@ def validate_and_default_interface(data, interface, name=None, meta=None,
                     default = schema['properties'][p]['default']
                     data[p] = default() if callable(default) else default
                 else:
-                    meta.add_error("missing required field '%s'" % p)
+                    meta.add_error(EventError.MISSING_ATTRIBUTE, data={'name': p})
                     errors.append({'type': EventError.MISSING_ATTRIBUTE, 'name': p})
 
     validator_errors = list(validator.iter_errors(data))
@@ -788,14 +788,11 @@ def validate_and_default_interface(data, interface, name=None, meta=None,
         is_max = ve.validator.startswith('max')
         if is_max:
             error_type = EventError.VALUE_TOO_LONG
-            error_msg = 'value too long'
         elif key == 'environment':
             error_type = EventError.INVALID_ENVIRONMENT
-            error_msg = 'value cannot contain / or newlines'
         else:
             error_type = EventError.INVALID_DATA
-            error_msg = 'invalid value'
-        meta.enter(key).add_error(error_msg, data[key])
+        meta.enter(key).add_error(error_type, data[key])
         errors.append({'type': error_type, 'name': name or key, 'value': data[key]})
 
         if 'default' in ve.schema:

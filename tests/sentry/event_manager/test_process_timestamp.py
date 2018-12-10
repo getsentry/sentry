@@ -34,15 +34,15 @@ class ProcessTimestampTest(TestCase):
 
     def test_invalid_timestamp(self):
         assert process_timestamp('foo', self.meta) is None
-        assert len(self.meta.get_errors()) == 1
+        assert len(list(self.meta.iter_errors())) == 1
 
     def test_invalid_numeric_timestamp(self):
         assert process_timestamp('100000000000000000000.0', self.meta) is None
-        assert len(self.meta.get_errors()) == 1
+        assert len(list(self.meta.iter_errors())) == 1
 
     def test_future_timestamp(self):
         assert process_timestamp('2052-01-01T10:30:45Z', self.meta) is None
-        assert len(self.meta.get_errors()) == 1
+        assert len(list(self.meta.iter_errors())) == 1
 
     def test_long_microseconds_value(self):
         assert process_timestamp(
