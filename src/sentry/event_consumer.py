@@ -116,10 +116,9 @@ class BatchingKafkaConsumer(object):
     """
 
     def __init__(self, topics, worker, max_batch_size, max_batch_time,
-                 bootstrap_servers, group_id, producer=None,
-                 auto_offset_reset='error',
-                 queued_max_messages_kbytes=settings.DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
-                 queued_min_messages=settings.DEFAULT_QUEUED_MIN_MESSAGES):
+                 bootstrap_servers, group_id, auto_offset_reset='error',
+                 queued_max_messages_kbytes=settings.CONSUMER_DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
+                 queued_min_messages=settings.CONSUMER_DEFAULT_QUEUED_MIN_MESSAGES):
         assert isinstance(worker, AbstractBatchWorker)
         self.worker = worker
 
@@ -140,8 +139,6 @@ class BatchingKafkaConsumer(object):
             topics, bootstrap_servers, group_id, auto_offset_reset,
             queued_max_messages_kbytes, queued_min_messages
         )
-
-        self.producer = producer
 
     def create_consumer(self, topics, bootstrap_servers, group_id, auto_offset_reset,
                         queued_max_messages_kbytes, queued_min_messages):
@@ -187,9 +184,6 @@ class BatchingKafkaConsumer(object):
 
     def _run_once(self):
         self._flush()
-
-        if self.commit_log_topic:
-            self.producer.poll(0.0)
 
         msg = self.consumer.poll(timeout=1.0)
 
@@ -289,7 +283,13 @@ class BatchingKafkaConsumer(object):
 
 class EventConsumerWorker(AbstractBatchWorker):
     def process_message(self, message):
-        return json.loads(message.value())
+        value = json.loads(message.value())
+
+        if value.get('should_process', False):
+            return value
+        else:
+            # TODO: ???
+            pass
 
     def flush_batch(self, batch):
         for event in batch:

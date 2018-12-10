@@ -12,17 +12,17 @@ from sentry.runner.decorators import configuration
               help='Topic to consume raw events from.')
 @click.option('--consumer-group', default='snuba-consumers',
               help='Consumer group use for consuming the raw events topic.')
-@click.option('--bootstrap-server', default=settings.DEFAULT_BROKERS, multiple=True,
+@click.option('--bootstrap-server', default=settings.CONSUMER_DEFAULT_BROKERS, multiple=True,
               help='Kafka bootstrap server to use.')
-@click.option('--max-batch-size', default=settings.DEFAULT_MAX_BATCH_SIZE,
+@click.option('--max-batch-size', default=settings.CONSUMER_DEFAULT_MAX_BATCH_SIZE,
               help='Max number of messages to batch in memory before writing to Kafka.')
-@click.option('--max-batch-time-ms', default=settings.DEFAULT_MAX_BATCH_TIME_MS,
+@click.option('--max-batch-time-ms', default=settings.CONSUMER_DEFAULT_MAX_BATCH_TIME_MS,
               help='Max length of time to buffer messages in memory before writing to Kafka.')
 @click.option('--auto-offset-reset', default='error', type=click.Choice(['error', 'earliest', 'latest']),
               help='Kafka consumer auto offset reset.')
-@click.option('--queued-max-messages-kbytes', default=settings.DEFAULT_QUEUED_MAX_MESSAGE_KBYTES, type=int,
+@click.option('--queued-max-messages-kbytes', default=settings.CONSUMER_DEFAULT_QUEUED_MAX_MESSAGE_KBYTES, type=int,
               help='Maximum number of kilobytes per topic+partition in the local consumer queue.')
-@click.option('--queued-min-messages', default=settings.DEFAULT_QUEUED_MIN_MESSAGES, type=int,
+@click.option('--queued-min-messages', default=settings.CONSUMER_DEFAULT_QUEUED_MIN_MESSAGES, type=int,
               help='Minimum number of messages per topic+partition librdkafka tries to maintain in the local consumer queue.')
 @configuration
 def storeconsumer(store_events_topic, consumer_group, bootstrap_server, max_batch_size,
