@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import datetime
 import jwt
 import re
+import json
 from hashlib import md5 as _md5
 from six.moves.urllib.parse import parse_qs, urlparse, urlsplit
 
@@ -96,17 +97,21 @@ class JiraApiClient(ApiClient):
         request_spec = self.jira_style.request_hook(method, path, data, params, **kwargs)
         return self._request(**request_spec)
 
-    def get_cached(self, full_url):
+    def get_cached(self, url, params=None):
         """
-        Basic Caching mechanism for requests and responses. It only caches responses
-        based on URL
-        TODO: Implement GET attr in cache as well. (see self.create_meta for example)
+        Basic Caching mechanism for Jira metadata which changes infrequently
         """
-        key = self.jira_style.cache_prefix + md5(full_url, self.base_url).hexdigest()
+        query = ''
+        if params:
+            query = json.dumps(params, sort_keys=True)
+        key = self.jira_style.cache_prefix + md5(url, query, self.base_url).hexdigest()
         cached_result = cache.get(key)
         if not cached_result:
-            cached_result = self.get(full_url)
-            cache.set(key, cached_result, 60)
+            cached_result = self.get(url, params=params)
+            # This timeout is completely arbitrary. Jira doesn't give us any
+            # caching headers to work with. Ideally we want a duration that
+            # lets the user make their second jira issue with cached data.
+            cache.set(key, cached_result, 240)
         return cached_result
 
     def get_issue(self, issue_id):
@@ -139,7 +144,7 @@ class JiraApiClient(ApiClient):
         params = {'expand': 'projects.issuetypes.fields'}
         if project is not None:
             params['projectIds'] = project
-        return self.get(
+        return self.get_cached(
             self.META_URL,
             params=params,
         )
@@ -168,31 +173,35 @@ class JiraApiClient(ApiClient):
     def get_users_for_project(self, project):
         # Jira Server wants a project key, while cloud is indifferent.
         project_key = self.get_project_key_for_id(project)
-        return self.get(self.USERS_URL, params={'project': project_key})
+        return self.get_cached(self.USERS_URL, params={'project': project_key})
 
     def search_users_for_project(self, project, username):
         # Jira Server wants a project key, while cloud is indifferent.
         project_key = self.get_project_key_for_id(project)
-        return self.get(self.USERS_URL, params={'project': project_key, 'username': username})
+        return self.get_cached(
+            self.USERS_URL,
+            params={'project': project_key, 'username': username})
 
     def search_users_for_issue(self, issue_key, email):
         # not actully in the official documentation, but apparently
         # you can pass email as the username param see:
         # https://community.atlassian.com/t5/Answers-Developer-Questions/JIRA-Rest-API-find-JIRA-user-based-on-user-s-email-address/qaq-p/532715
-        return self.get(self.USERS_URL, params={'issueKey': issue_key, 'username': email})
+        return self.get_cached(
+            self.USERS_URL,
+            params={'issueKey': issue_key, 'username': email})
 
     def create_issue(self, raw_form_data):
         data = {'fields': raw_form_data}
         return self.post(self.CREATE_URL, data=data)
 
     def get_server_info(self):
-        return self.request('GET', self.SERVER_INFO_URL)
+        return self.get(self.SERVER_INFO_URL)
 
     def get_valid_statuses(self):
-        return self.request('GET', self.STATUS_URL)
+        return self.get_cached(self.STATUS_URL)
 
     def get_transitions(self, issue_key):
-        return self.get(self.TRANSITION_URL % issue_key)['transitions']
+        return self.get_cached(self.TRANSITION_URL % issue_key)['transitions']
 
     def transition_issue(self, issue_key, transition_id):
         return self.post(self.TRANSITION_URL % issue_key, {
