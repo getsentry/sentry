@@ -91,8 +91,12 @@ def merge_process_state_event(data, state, cfi=None):
         'image_addr': '0x%x' % module.addr,
         'image_size': module.size,
         'name': module.name,
-    } for module in state.modules()]
+    } for module in state.modules() if is_valid_module_id(module.id)]
     data.setdefault('debug_meta', {})['images'] = images
+
+
+def is_valid_module_id(id):
+    return id is not None and id != '000000000000000000000000000000000'
 
 
 def frames_from_minidump_thread(thread):
