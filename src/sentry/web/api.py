@@ -487,6 +487,7 @@ class StoreView(APIView):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
+    type_name = 'store'
 
     def post(self, request, **kwargs):
         try:
@@ -575,7 +576,7 @@ class StoreView(APIView):
                         },
                         'remote_addr': remote_addr,
                         'agent': request.META.get('HTTP_USER_AGENT'),
-                        'helper_cls': '.'.join((type(helper).__module__, type(helper).__name__)),
+                        'type': type(self).type_name,
                         # Whether or not the Kafka consumer is in charge
                         # of actually processing this event.
                         'should_process': process_in_kafka,
@@ -594,6 +595,7 @@ class StoreView(APIView):
 
 
 class MinidumpView(StoreView):
+    type_name = 'minidump'
     helper_cls = MinidumpApiHelper
     content_types = ('multipart/form-data', )
 
@@ -761,6 +763,7 @@ class MinidumpView(StoreView):
 
 # Endpoint used by the Unreal Engine 4 (UE4) Crash Reporter.
 class UnrealView(StoreView):
+    type_name = 'unreal'
     content_types = ('application/octet-stream', )
 
     def _dispatch(self, request, helper, sentry_key, project_id=None, origin=None, *args, **kwargs):
@@ -851,6 +854,7 @@ class StoreSchemaView(BaseView):
 
 
 class SecurityReportView(StoreView):
+    type_name = 'security'
     helper_cls = SecurityApiHelper
     content_types = (
         'application/csp-report',
@@ -964,3 +968,10 @@ def crossdomain_xml(request, project_id):
     response['Content-Type'] = 'application/xml'
 
     return response
+
+
+type_name_to_view = {
+    v.type_name: v for v in [
+        StoreView, SecurityReportView, UnrealView, MinidumpView
+    ]
+}

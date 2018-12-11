@@ -2,23 +2,26 @@ from __future__ import absolute_import, print_function
 
 from sentry.coreapi import Auth
 from sentry.event_manager import EventManager
-from sentry.web.api import process_event
+from sentry.web.api import process_event, type_name_to_view
 
 
 def process_event_from_kafka(message):
     from sentry.models import Project
-    from sentry.utils.imports import import_string
 
     project = Project.objects.get_from_cache(pk=message['project_id'])
 
-    helper_cls = import_string(message['helper_cls'])
+    view = type_name_to_view[message['type']]
+    helper_cls = view.helper_cls
     remote_addr = message['remote_addr']
     helper = helper_cls(
         agent=message['agent'],
         project_id=project.id,
         ip_address=remote_addr,
     )
+
     auth = Auth(message['auth'], message['auth'].pop('is_public'))
+    helper.context.bind_auth(auth)
+
     key = helper.project_key_from_auth(auth)
     data = message['data']
     version = data['version']
