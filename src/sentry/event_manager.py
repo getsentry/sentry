@@ -181,6 +181,7 @@ def plugin_is_regression(group, event):
 
 
 def process_timestamp(value, meta, current_datetime=None):
+    original_value = value
     if value is None:
         return None
 
@@ -188,7 +189,7 @@ def process_timestamp(value, meta, current_datetime=None):
         try:
             value = datetime.fromtimestamp(float(value))
         except Exception:
-            meta.add_error(EventError.INVALID_DATA, value)
+            meta.add_error(EventError.INVALID_DATA, original_value)
             return None
     elif not isinstance(value, datetime):
         # all timestamps are in UTC, but the marker is optional
@@ -205,18 +206,18 @@ def process_timestamp(value, meta, current_datetime=None):
         try:
             value = datetime.strptime(value, fmt)
         except Exception:
-            meta.add_error(EventError.INVALID_DATA, value)
+            meta.add_error(EventError.INVALID_DATA, original_value)
             return None
 
     if current_datetime is None:
         current_datetime = datetime.now()
 
     if value > current_datetime + ALLOWED_FUTURE_DELTA:
-        meta.add_error(EventError.FUTURE_TIMESTAMP, value.isoformat())
+        meta.add_error(EventError.FUTURE_TIMESTAMP, original_value)
         return None
 
     if value < current_datetime - timedelta(days=30):
-        meta.add_error(EventError.PAST_TIMESTAMP, value.isoformat())
+        meta.add_error(EventError.PAST_TIMESTAMP, original_value)
         return None
 
     return float(value.strftime('%s'))
