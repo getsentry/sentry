@@ -117,7 +117,7 @@ export const StyledInlineSvg = styled(InlineSvg)`
 export const DiscoverDocs = styled('span')`
   align-items: center;
   display: flex;
-  margin: ${space(3)};
+  margin: 25px ${space(3)};
   justify-content: space-between;
 `;
 
