@@ -129,7 +129,7 @@ export const AddIcon = styled(InlineSvg)`
   width: 20px;
   height: 20px;
   margin-right: 8px;
-  color: ${p => p.theme.gray2};
+  color: ${p => p.theme.gray4};
 `;
 
 export const AlertBox = styled(Box)`
