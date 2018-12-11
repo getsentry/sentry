@@ -1317,6 +1317,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     'sentry.integrations.gitlab.GitlabIntegrationProvider',
     'sentry.integrations.jira.JiraIntegrationProvider',
     'sentry.integrations.jira_server.JiraServerIntegrationProvider',
+    'sentry.integrations.splunk.SplunkIntegrationProvider',
     'sentry.integrations.vsts.VstsIntegrationProvider',
     'sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider',
 )

@@ -1,0 +1,71 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block wrapperclass %} narrow {% endblock %}
+{% block modal_header_signout %} {% endblock %}
+
+{% block css %}
+  {{ block.super }}
+  <style>
+    ol li {
+      padding: 5px 0px;
+    }
+    ol ol li:last-child {
+        padding-bottom: 0;
+    }
+  </style>
+{% endblock %}
+
+{% block title %} {% trans "Splunk Setup" %} | {{ block.super }} {% endblock %}
+
+{% block main %}
+<form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    {% if form %}
+        <input type="hidden" name="op" value="config" />
+        <h3>{% trans "Step 2: Connect Sentry to Splunk" %}</h3>
+        <p>{% trans "Configure the HEC endpoint in Sentry." %}</p>
+        {{ form|as_crispy_errors }}
+
+        {% for field in form %}
+        {{ field|as_crispy_field }}
+        {% endfor %}
+
+        <fieldset class="form-actions clearfix">
+        <div class="pull-right">
+            <a class="btn btn-default" href="{% url "sentry-extension-setup" "splunk" %}">{% trans "Back" %}</a>
+            <button type="submit" class="btn btn-primary">{% trans "Submit" %}</button>
+        </div>
+        </fieldset>
+    {% else %}
+    <h3>{% trans "Step 1: Create an HTTP Input for Sentry " %}</h2>
+
+    <p>{% trans "To configure Splunk with Sentry, you will need to create an HEC (HTTP Event Collector) Input for Sentry in your Splunk instance." %}</p>
+    <ol>
+        <li>{% blocktrans %}From the <strong>Settings</strong> menu, click <strong>Data inputs</strong>.{% endblocktrans %}</li>
+        <li>{% blocktrans %}On the Data inputs page, under <strong>Local inputs</strong>, click <strong>HTTP Event Collector</strong>.{% endblocktrans %}</li>
+        <li>{% blocktrans %}Click <strong>New Token</strong>.{% endblocktrans %}</li>
+        <li>{% trans "On the Select Source page:" %}
+            <ol>
+                <li>{% blocktrans %}In the <strong>Name</strong> field, put "sentry".{% endblocktrans %}</li>
+                <li>{% blocktrans %}When you're done, click <strong>Next</strong>.{% endblocktrans %}</li>
+            </ol>
+        </li>
+        <li>{% trans "On the Input Settings page:" %}
+            <ol>
+                <li>{% blocktrans %}Choose an <strong>Index</strong> where you want to store Sentry events.{% endblocktrans %}</li>
+                <li>{% blocktrans %}When you're done, click <strong>Review</strong>.{% endblocktrans %}</li>
+            </ol>
+        </li>
+        <li>{% blocktrans %}Click <strong>Submit</strong>.{% endblocktrans %}</li>
+    </ol>
+    <p><small>Note: For more detailed instructions on configuring inputs, see <a href="http://dev.splunk.com/view/event-collector/SP-CAAAE7C">Splunk's documentation</a>.</small></p>
+    <div class="form-actions clearfix">
+        <div class="pull-right">
+            <button type="submit" class="btn btn-primary">{% trans "Next" %}</button>
+        </div>
+    </div>
+    {% endif %}
+</form>
+{% endblock %}

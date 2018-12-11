@@ -81,6 +81,7 @@ class IntegrationFeatures(Enum):
     COMMITS = 'commits'
     CHAT_UNFURL = 'chat-unfurl'
     ALERT_RULE = 'alert-rule'
+    DATA_FORWARDING = 'data-forwarding'
 
 
 class IntegrationProvider(PipelineProvider):

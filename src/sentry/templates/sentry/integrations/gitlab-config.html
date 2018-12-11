@@ -4,10 +4,13 @@
 {% load i18n %}
 
 {% block css %}
-  <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
+  {{ block.super }}
   <style>
     ol li {
-      padding:10px 0px;
+      padding: 5px 0px;
+    }
+    ol ol li:last-child {
+        padding-bottom: 0;
     }
     .code-list {
       padding: 10px;
