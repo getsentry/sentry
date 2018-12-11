@@ -262,7 +262,7 @@ class RedisBuffer(Buffer):
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
         if not client.set(lock_key, '1', nx=True, ex=10):
-            metrics.incr('buffer.revoked', tags={'reason': 'locked'})
+            metrics.incr('buffer.revoked', tags={'reason': 'locked'}, skip_internal=False)
             self.logger.debug('buffer.revoked.locked', extra={'redis_key': key})
             return
 
@@ -277,7 +277,7 @@ class RedisBuffer(Buffer):
             values = pipe.execute()[0]
 
             if not values:
-                metrics.incr('buffer.revoked', tags={'reason': 'empty'})
+                metrics.incr('buffer.revoked', tags={'reason': 'empty'}, skip_internal=False)
                 self.logger.debug('buffer.revoked.empty', extra={'redis_key': key})
                 return
 

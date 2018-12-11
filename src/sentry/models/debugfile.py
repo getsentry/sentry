@@ -745,7 +745,7 @@ class DIFCache(object):
 
             metrics.incr('%s.failed' % cls.cache_name, tags={
                 'error': e.__class__.__name__,
-            })
+            }, skip_internal=False)
 
             return None, None, e.message
 

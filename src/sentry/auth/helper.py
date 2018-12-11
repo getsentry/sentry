@@ -144,7 +144,7 @@ def handle_existing_identity(auth_provider, provider, organization,
         return HttpResponseRedirect(auth.get_login_redirect(request))
 
     state.clear()
-    metrics.incr('sso.login-success', tags={'provider': provider.key})
+    metrics.incr('sso.login-success', tags={'provider': provider.key}, skip_internal=False)
 
     return HttpResponseRedirect(auth.get_login_redirect(request))
 
@@ -831,7 +831,7 @@ class AuthHelper(object):
         metrics.incr('sso.error', tags={
             'provider': self.provider.key,
             'flow': self.state.flow
-        })
+        }, skip_internal=False)
 
         messages.add_message(
             self.request,

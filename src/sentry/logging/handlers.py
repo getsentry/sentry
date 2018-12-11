@@ -126,4 +126,4 @@ class MetricsLogHandler(logging.Handler):
         key = whitespace_re.sub("_", key)
         key = metrics_badchars_re.sub("", key)
         key = ".".join(key.split(".")[:3])
-        metrics.incr(key)
+        metrics.incr(key, skip_internal=False)

@@ -421,7 +421,7 @@ class MessageBuilder(object):
                 _with_transaction=False,
             )
             extra['message_id'] = message.extra_headers['Message-Id']
-            metrics.incr('email.queued', instance=self.type)
+            metrics.incr('email.queued', instance=self.type, skip_internal=False)
             if fmt == LoggingFormat.HUMAN:
                 extra['message_to'] = self.format_to(message.to),
                 log_mail_queued()
@@ -434,7 +434,7 @@ class MessageBuilder(object):
 def send_messages(messages, fail_silently=False):
     connection = get_connection(fail_silently=fail_silently)
     sent = connection.send_messages(messages)
-    metrics.incr('email.sent', len(messages))
+    metrics.incr('email.sent', len(messages), skip_internal=False)
     for message in messages:
         extra = {
             'message_id': message.extra_headers['Message-Id'],

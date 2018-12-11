@@ -123,7 +123,7 @@ class SlackNotifyServiceAction(EventAction):
 
         key = u'slack:{}:{}'.format(integration_id, channel)
 
-        metrics.incr('notifications.sent', instance='slack.notification')
+        metrics.incr('notifications.sent', instance='slack.notification', skip_internal=False)
         yield self.future(send_notification, key=key)
 
     def render_label(self):

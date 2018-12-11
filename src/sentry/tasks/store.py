@@ -64,7 +64,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
         data = default_cache.get(cache_key)
 
     if data is None:
-        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'pre'})
+        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'pre'}, skip_internal=False)
         error_logger.error('preprocess.failed.empty', extra={'cache_key': cache_key})
         return
 
@@ -118,7 +118,12 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
     data = default_cache.get(cache_key)
 
     if data is None:
-        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'process'})
+        metrics.incr(
+            'events.failed',
+            tags={
+                'reason': 'cache',
+                'stage': 'process'},
+            skip_internal=False)
         error_logger.error('process.failed.empty', extra={'cache_key': cache_key})
         return
 
@@ -282,7 +287,7 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
     delete_raw_event(project_id, event_id)
     data = default_cache.get(cache_key)
     if data is None:
-        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'raw'})
+        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'raw'}, skip_internal=False)
         error_logger.error('process.failed_raw.empty', extra={'cache_key': cache_key})
         return True
 
@@ -375,7 +380,12 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
     # reprocessing reports correctly or they will screw up the UI.  So
     # to future proof this correctly we just handle this case here.
     if not data:
-        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
+        metrics.incr(
+            'events.failed',
+            tags={
+                'reason': 'cache',
+                'stage': 'post'},
+            skip_internal=False)
         return
 
     with configure_scope() as scope:

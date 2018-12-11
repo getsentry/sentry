@@ -312,7 +312,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
 
             if not candidate_ids:
                 # no matches could possibly be found from this point on
-                metrics.incr('snuba.search.no_candidates')
+                metrics.incr('snuba.search.no_candidates', skip_internal=False)
                 return EMPTY_RESULT
             elif len(candidate_ids) > num_candidates:
                 # If the pre-filter query didn't include anything to significantly
@@ -324,7 +324,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 # want Snuba to do all the filtering/sorting it can and *then* apply
                 # this queryset to the results from Snuba, which we call
                 # post-filtering.
-                metrics.incr('snuba.search.too_many_candidates')
+                metrics.incr('snuba.search.too_many_candidates', skip_internal=False)
                 candidate_ids = None
 
         sort_field = sort_strategies[sort_by]

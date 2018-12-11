@@ -66,7 +66,7 @@ def test_emit(record, out, handler, logger):
 def test_log_to_metric(metrics):
     logger = logging.getLogger('django.request')
     logger.warn("CSRF problem")
-    metrics.incr.assert_called_once_with('django.request.csrf_problem')
+    metrics.incr.assert_called_once_with('django.request.csrf_problem', skip_internal=False)
 
     metrics.reset_mock()
 

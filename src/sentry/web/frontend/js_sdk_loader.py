@@ -62,7 +62,7 @@ class JavaScriptSdkLoader(BaseView):
         else:
             tmpl = 'sentry/js-sdk-loader.js.tmpl'
 
-        metrics.incr('js-sdk-loader.rendered', instance=instance)
+        metrics.incr('js-sdk-loader.rendered', instance=instance, skip_internal=False)
 
         response = render_to_response(tmpl, context, content_type="text/javascript")
 
