@@ -67,7 +67,17 @@ class Breadcrumbs(Interface):
 
     def to_json(self):
         return prune_empty_keys({
-            'values': [prune_empty_keys(crumb) for crumb in self.values] or None
+            'values': [
+                prune_empty_keys({
+                    'type': crumb['type'],
+                    'level': crumb['level'],
+                    'timestamp': crumb['timestamp'],
+                    'message': crumb['message'],
+                    'category': crumb['category'],
+                    'event_id': crumb['event_id'],
+                    'data': crumb['data'] or None
+                }) for crumb in self.values
+            ] or None
         })
 
     @classmethod
