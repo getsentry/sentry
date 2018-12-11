@@ -586,6 +586,9 @@ describe('Discover', function() {
       // Hide date picker
       wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
 
+      await tick();
+      wrapper.update();
+
       // Should make request for the last 14 days as an absolute date range
       expect(query).toHaveBeenLastCalledWith(
         expect.anything(),

@@ -149,7 +149,11 @@ class OrganizationEvents extends AsyncView {
       <React.Fragment>
         {error && super.renderError(new Error('Unable to load all required endpoints'))}
         <Panel>
-          <EventsChart organization={organization} onZoom={this.handleZoom} />
+          <EventsChart
+            zoom={!!location.query.zoom}
+            organization={organization}
+            onZoom={this.handleZoom}
+          />
         </Panel>
 
         <EventsTable

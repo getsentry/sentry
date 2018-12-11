@@ -1,17 +1,23 @@
 import {mount} from 'enzyme';
 import React from 'react';
 
+import {chart, doZoom, mockZoomRange} from 'app-test-helpers/charts';
+import {createStubs} from 'app-test-helpers/createStubs';
+
 import {EventsChart} from 'app/views/organizationEvents/eventsChart';
 import {getLocalDateObject} from 'app/utils/dates';
-import {chart, doZoom, mockZoomRange} from '../../../helpers/charts';
+import {updateParams} from 'app/actionCreators/globalSelection';
 
 jest.mock('app/views/organizationEvents/utils/eventsRequest', () => jest.fn(() => null));
 
+jest.mock('app/actionCreators/globalSelection', () => ({
+  updateParams: jest.fn(),
+}));
+
 describe('EventsChart', function() {
-  let wrapper;
-  let org = TestStubs.Organization();
-  let updateParams = jest.fn();
+  const {router, routerContext, org} = createStubs();
   let render = jest.spyOn(EventsChart.prototype, 'render');
+  let wrapper;
 
   beforeEach(function() {
     render.mockClear();
@@ -23,12 +29,13 @@ describe('EventsChart', function() {
         organization={org}
         project={[]}
         environment={[]}
-        actions={{updateParams}}
         period="14d"
         start={null}
         end={null}
         utc={false}
-      />
+        router={router}
+      />,
+      routerContext
     );
   });
 
@@ -57,17 +64,17 @@ describe('EventsChart', function() {
   it('does not re-render if zoomed', function() {
     doZoom(wrapper, chart);
     let newParams = {
-      statsPeriod: null,
+      period: null,
       start: '2018-11-29T00:00:00',
       end: '2018-12-02T00:00:00',
       zoom: '1',
     };
-    expect(updateParams).toHaveBeenCalledWith(newParams);
+    expect(updateParams).toHaveBeenCalledWith(newParams, router);
     wrapper.setProps({
-      period: newParams.statsPeriod,
+      period: newParams.period,
       start: getLocalDateObject(newParams.start),
       end: getLocalDateObject(newParams.end),
-      zoom: '1',
+      zoom: true,
     });
     wrapper.update();
 
@@ -111,17 +118,17 @@ describe('EventsChart', function() {
     expect(wrapper.instance().currentPeriod.start).toEqual('2018-11-29T00:00:00');
     expect(wrapper.instance().currentPeriod.end).toEqual('2018-12-02T00:00:00');
     newParams = {
-      statsPeriod: null,
+      period: null,
       start: '2018-11-29T00:00:00',
       end: '2018-12-02T00:00:00',
       zoom: '1',
     };
-    expect(updateParams).toHaveBeenCalledWith(newParams);
+    expect(updateParams).toHaveBeenCalledWith(newParams, router);
     wrapper.setProps({
-      period: newParams.statsPeriod,
+      period: newParams.period,
       start: getLocalDateObject(newParams.start),
       end: getLocalDateObject(newParams.end),
-      zoom: '1',
+      zoom: true,
     });
     wrapper.update();
 
@@ -149,13 +156,18 @@ describe('EventsChart', function() {
       end: null,
     });
     newParams = {
-      statsPeriod: '14d',
+      period: '14d',
       start: null,
       end: null,
       zoom: '1',
     };
-    expect(updateParams).toHaveBeenCalledWith(newParams);
-    wrapper.setProps(newParams);
+    expect(updateParams).toHaveBeenCalledWith(newParams, router);
+    wrapper.setProps({
+      period: '14d',
+      start: null,
+      end: null,
+      zoom: true,
+    });
     wrapper.update();
 
     expect(wrapper.instance().history).toHaveLength(0);

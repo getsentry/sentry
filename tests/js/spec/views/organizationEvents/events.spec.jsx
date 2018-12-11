@@ -3,11 +3,12 @@ import React from 'react';
 import {EventsChart} from 'app/views/organizationEvents/eventsChart';
 import {EventsTable} from 'app/views/organizationEvents/eventsTable';
 import {OrganizationEvents, parseRowFromLinks} from 'app/views/organizationEvents/events';
-import {OrganizationEventsContainer} from 'app/views/organizationEvents';
+import {chart, doZoom} from 'app-test-helpers/charts';
+import {createStubs} from 'app-test-helpers/createStubs';
 import {getLocalDateObject} from 'app/utils/dates';
+import {mockRouterPush} from 'app-test-helpers/mockRouterPush';
 import {mount} from 'enzyme';
-
-import {chart, doZoom} from '../../../helpers/charts';
+import OrganizationEventsContainer from 'app/views/organizationEvents';
 
 jest.mock('app/utils/withLatestContext');
 
@@ -20,9 +21,20 @@ const pageTwoLinks =
   '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:200:0>; rel="next"; results="false"; cursor="0:200:0"';
 
 describe('OrganizationEventsErrors', function() {
-  const project = TestStubs.Project({isMember: true});
-  const org = TestStubs.Organization({projects: [project], features: ['global-views']});
-  const routerContext = TestStubs.routerContext([{organization: org}]);
+  const {organization, router, routerContext} = createStubs({
+    projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
+    organization: {
+      features: ['global-views'],
+    },
+    router: {
+      location: {
+        pathname: '/organizations/org-slug/events/',
+        query: {},
+      },
+    },
+  });
+  const org = organization;
+
   let eventsMock;
   let eventsStatsMock;
   let eventsMetaMock;
@@ -143,13 +155,6 @@ describe('OrganizationEventsErrors', function() {
   });
 
   describe('Events Integration', function() {
-    const location = {
-      pathname: '/organizations/org-slug/events/',
-      query: {},
-    };
-    const router = TestStubs.router({
-      location,
-    });
     let chartRender = jest.spyOn(EventsChart.prototype, 'render');
     let tableRender = jest.spyOn(EventsTable.prototype, 'render');
     let wrapper;
@@ -158,22 +163,22 @@ describe('OrganizationEventsErrors', function() {
     beforeEach(function() {
       chartRender.mockClear();
       tableRender.mockClear();
+      router.location.query = {
+        ...router.location.query,
+        zoom: '1',
+      };
 
       wrapper = mount(
         <OrganizationEventsContainer
           router={router}
           organization={org}
-          selection={{projects: [], environments: [], datetime: {}}}
-          location={location}
+          location={router.location}
         >
-          <OrganizationEvents
-            location={location}
-            organization={org}
-            selection={{projects: [], environments: [], datetime: {}}}
-          />
+          <OrganizationEvents location={router.location} organization={org} />
         </OrganizationEventsContainer>,
         routerContext
       );
+      mockRouterPush(wrapper, router);
     });
 
     it('renders', function() {
@@ -189,6 +194,7 @@ describe('OrganizationEventsErrors', function() {
       wrapper.update();
 
       doZoom(wrapper.find('EventsChart').first(), chart);
+      await tick();
       wrapper.update();
 
       // After zooming, chart should not re-render, but table does
@@ -204,25 +210,13 @@ describe('OrganizationEventsErrors', function() {
         end: '2018-12-02T00:00:00',
       };
 
-      expect(router.push).toHaveBeenLastCalledWith(
+      expect(routerContext.context.router.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
           query: newParams,
         })
       );
 
-      wrapper.setProps({
-        router: {
-          ...router,
-          location: {
-            ...router.location,
-            query: newParams,
-          },
-        },
-      });
-
       wrapper.update();
-      expect(wrapper.state('start')).toEqual(getLocalDateObject('2018-11-29T00:00:00'));
-      expect(wrapper.state('end')).toEqual(getLocalDateObject('2018-12-02T00:00:00'));
 
       expect(wrapper.find('TimeRangeSelector').prop('start')).toEqual(
         getLocalDateObject('2018-11-29T00:00:00')
