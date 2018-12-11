@@ -1,36 +1,11 @@
 from __future__ import absolute_import
 
-import json
-
-from mock import patch
+import responses
 
 from django.core.urlresolvers import reverse
 
-from sentry.integrations.bitbucket.client import BitbucketApiClient
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-
-SAMPLE_ISSUE_SEARCH_RESPONSE = """
-{
-    "values": [
-        {
-            "title": "Sample issue, fix meh",
-            "id": 5
-        }
-    ]
-}
-"""
-
-SAMPLE_REPO_SEARCH_RESPONSE = """
-{
-    "values": [
-        {
-            "name": "Apples",
-            "full_name": "meredithanya/apples"
-        }
-    ]
-}
-"""
 
 
 class BitbucketSearchEndpointTest(APITestCase):
@@ -41,7 +16,7 @@ class BitbucketSearchEndpointTest(APITestCase):
         self.integration = Integration.objects.create(
             provider='bitbucket',
             external_id=self.subject,
-            name='Sample BB',
+            name='meredithanya',
             metadata={
                 'base_url': self.base_url,
                 'shared_secret': self.shared_secret,
@@ -49,32 +24,83 @@ class BitbucketSearchEndpointTest(APITestCase):
             }
         )
 
-    @patch.object(BitbucketApiClient, 'search_issues',
-                  return_value=json.loads(SAMPLE_ISSUE_SEARCH_RESPONSE.strip()))
-    def test_search_issues(self, mock_search_issues):
-        org = self.organization
         self.login_as(self.user)
+        self.integration.add_organization(self.organization, self.user)
+        self.path = reverse(
+            'sentry-extensions-bitbucket-search',
+            args=[
+                self.organization.slug,
+                self.integration.id])
 
-        self.integration.add_organization(org, self.user)
+    @responses.activate
+    def test_search_issues(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/meredithanya/apples/issues',
+            json={
+                'values': [
+                    {'id': '123', 'title': 'Issue Title 123'},
+                    {'id': '456', 'title': 'Issue Title 456'},
+                ]
+            }
+        )
+        resp = self.client.get(
+            self.path,
+            data={
+                'field': 'externalIssue',
+                'query': 'issue',
+                'repo': 'meredithanya/apples'
+            }
+        )
 
-        path = reverse('sentry-extensions-bitbucket-search', args=[org.slug, self.integration.id])
-        resp = self.client.get('%s?field=externalIssue&repo=meredithanya&query=issue' % (path,))
+        assert resp.status_code == 200
         assert resp.data == [
-            {'label': '#5 Sample issue, fix meh', 'value': 5}
+            {'label': '#123 Issue Title 123', 'value': '123'},
+            {'label': '#456 Issue Title 456', 'value': '456'}
         ]
-        mock_search_issues.assert_called_with('meredithanya', 'title~"issue"')
 
-    @patch.object(BitbucketApiClient, 'search_repositories',
-                  return_value=json.loads(SAMPLE_REPO_SEARCH_RESPONSE.strip()))
-    def test_search_repositories(self, mock_search_repositories):
-        org = self.organization
-        self.login_as(self.user)
+    @responses.activate
+    def test_search_repositories(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/meredithanya',
+            json={
+                'values': [
+                    {'full_name': 'meredithanya/apples'}
+                ]
+            }
+        )
+        resp = self.client.get(
+            self.path,
+            data={
+                'field': 'repo',
+                'query': 'apple',
+            }
+        )
 
-        self.integration.add_organization(org, self.user)
-
-        path = reverse('sentry-extensions-bitbucket-search', args=[org.slug, self.integration.id])
-        resp = self.client.get('%s?field=repo&query=apple' % (path,))
+        assert resp.status_code == 200
         assert resp.data == [
             {'label': 'meredithanya/apples', 'value': 'meredithanya/apples'}
         ]
-        mock_search_repositories.assert_called_with('Sample BB', 'name~"apple"')
+
+    @responses.activate
+    def test_search_repositories_no_issue_tracker(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/meredithanya/apples/issues',
+            json={
+                'type': 'error',
+                'error': {'message': 'Repository has no issue tracker.'}
+            },
+            status=404
+        )
+        resp = self.client.get(
+            self.path,
+            data={
+                'field': 'externalIssue',
+                'query': 'issue',
+                'repo': 'meredithanya/apples'
+            }
+        )
+        assert resp.status_code == 400
+        assert resp.content == '{"detail": "Bitbucket Repository has no issue tracker."}'
