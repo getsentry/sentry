@@ -109,7 +109,7 @@ describe('Sentry App Installations', function() {
           routerContext
         );
         wrapper.instance().install(app);
-        await tick;
+        await tick();
         wrapper.update();
         expect(wrapper.state('installs')).toEqual([install]);
         expect(wrapper.find('[icon="icon-trash"]').exists()).toBe(true);
@@ -129,7 +129,7 @@ describe('Sentry App Installations', function() {
 
         wrapper.find('[icon="icon-circle-add"]').simulate('click');
         wrapper.instance().install(sentryApp);
-        await tick;
+        await tick();
         expect(window.location.assign).toHaveBeenCalledWith(
           `${sentryApp.redirectUrl}?code=${install.code}&installationId=${install.uuid}`
         );
@@ -153,7 +153,7 @@ describe('Sentry App Installations', function() {
 
         wrapper.find('[icon="icon-circle-add"]').simulate('click');
         wrapper.instance().install(sentryAppWithQuery);
-        await tick;
+        await tick();
         expect(window.location.assign).toHaveBeenCalledWith(
           `https://example.com/setup?code=${install.code}&hello=1&installationId=${install.uuid}`
         );
@@ -177,7 +177,7 @@ describe('Sentry App Installations', function() {
             routerContext
           );
           wrapper.instance().install(sentryApp);
-          await tick;
+          await tick();
           expect(wrapper.exists('[icon="icon-circle-add"]')).toBe(true);
           expect(wrapper.state('installs')).toEqual([]);
         });
