@@ -71,6 +71,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             groupby=['time'],
             rollup=rollup,
             referrer='api.organization-events-stats',
+            limit=10000,
             **snuba_args
         )
 
