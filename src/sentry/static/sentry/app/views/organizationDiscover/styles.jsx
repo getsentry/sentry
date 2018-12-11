@@ -114,7 +114,7 @@ export const StyledInlineSvg = styled(InlineSvg)`
   justify-content: flex-end;
 `;
 
-export const DicsoverDocs = styled('span')`
+export const DiscoverDocs = styled('span')`
   align-items: center;
   display: flex;
   margin: ${space(3)};
@@ -130,10 +130,6 @@ export const AddIcon = styled(InlineSvg)`
   height: 20px;
   margin-right: 8px;
   color: ${p => p.theme.gray4};
-`;
-
-export const AlertBox = styled(Box)`
-  margin: 0 20px;
 `;
 
 export const Body = styled(Flex)`
