@@ -6,7 +6,7 @@ import DocumentTitle from 'react-document-title';
 import jQuery from 'jquery';
 import SentryTypes from 'app/sentryTypes';
 
-import {updateProjects} from 'app/actionCreators/globalSelection';
+import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import Discover from './discover';
@@ -49,6 +49,20 @@ class OrganizationDiscoverContainer extends React.Component {
     } else {
       // Update query with global projects
       query.projects = props.selection.projects;
+    }
+
+    if (['range', 'start', 'end'].some(key => query.hasOwnProperty(key))) {
+      // Update global store with datetime from querystring
+      updateDateTime({
+        start: query.start || null,
+        end: query.end || null,
+        range: query.range || null,
+      });
+    } else {
+      // Update query with global projects
+      query.start = props.selection.datetime.start;
+      query.end = props.selection.datetime.end;
+      query.range = props.selection.datetime.range;
     }
 
     this.queryBuilder = createQueryBuilder(query, organization);
