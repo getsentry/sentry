@@ -70,7 +70,7 @@ def get_project_key():
 class SentryInternalFilter(logging.Filter):
     def filter(self, record):
         # TODO(mattrobenolt): handle an upstream Sentry
-        metrics.incr('internal.uncaptured.logs')
+        metrics.incr('internal.uncaptured.logs', skip_internal=False)
         return is_current_event_safe()
 
 
@@ -129,7 +129,7 @@ class InternalTransport(Transport):
                 return
 
             if not is_current_event_safe():
-                metrics.incr('internal.uncaptured.events')
+                metrics.incr('internal.uncaptured.events', skip_internal=False)
                 sdk_logger.warn('internal-error.unsafe-stacktrace')
                 return
 
