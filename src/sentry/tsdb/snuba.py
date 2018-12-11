@@ -70,9 +70,11 @@ class SnubaTSDB(BaseTSDB):
 
         aggregations = [[aggregation, model_aggregate, 'aggregate']]
 
-        # For historical compatibility with bucket-counted TSDB implementations
-        # we grab the original bucketed series and add the rollup time to the
-        # timestamp of the last bucket to get the end time.
+        # For historical compatibility with redis TSDB implementations we grab
+        # the original bucketed series and add the rollup time to the timestamp
+        # of the last bucket so we should end up with.
+        #       start = beginning of first bucket
+        #       end = end of last bucket
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
         start = to_datetime(series[0])
         end = to_datetime(series[-1] + rollup)

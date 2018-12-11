@@ -75,6 +75,33 @@ class BaseTSDBTest(TestCase):
         )
 
     @mock.patch('django.utils.timezone.now')
+    def test_range_excludes_expired_buckets(self, now):
+        # Start at 5 minutes and 5 seconds past the hour.
+        now.return_value = datetime(2010, 10, 10, 0, 5, 5, tzinfo=pytz.utc)
+
+        # 30 10-second buckets, 5 minutes total
+        rollup, count = (10, 30)
+
+        # A naive expectation is that we can get everything from 00:00:05 -
+        # 00:05:05 which, when rounding to bucket boundaries would mean getting
+        # all the buckets from the one starting at 00:00:00 up to the one
+        # starting at 00:05:00 (ending at 00:05:10) which is 31 buckets.
+        start = now() - timedelta(seconds=(rollup * count))
+
+        # *But* the bucket starting at 00:00:00 has already expired in
+        # RedisTSDB as it was created in redis with a TTL of exactly 300
+        # seconds and expired at 00:05:00. In SnubaTSDB that data still exists
+        # so if we want compatible results, we cannot query the time range that
+        # corresponds to expired buckets in RedisTSDB. So we really need to
+        # start counting at 00:00:10
+        rlp, series = self.tsdb.get_optimal_rollup_series(start, now(), rollup=10)
+
+        assert rlp == rollup
+        assert len(series) == count
+        assert series[0] == to_timestamp(datetime(2010, 10, 10, 0, 0, 10, tzinfo=pytz.utc))
+        assert series[-1] == to_timestamp(datetime(2010, 10, 10, 0, 5, 0, tzinfo=pytz.utc))
+
+    @mock.patch('django.utils.timezone.now')
     def test_get_optimal_rollup_series_offset_intervals(self, now):
         # This test is a funny one (notice it doesn't return a range that
         # includes the start position.) This occurs because the algorithm for

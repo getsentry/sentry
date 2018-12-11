@@ -154,15 +154,6 @@ class BaseTSDB(Service):
 
         self.rollups = OrderedDict(rollups)
 
-        # The ``SENTRY_TSDB_LEGACY_ROLLUPS`` setting should be used to store
-        # previous rollup configuration values after they are modified in
-        # ``SENTRY_TSDB_ROLLUPS``. The values can be removed after the new
-        # rollup period is full of new data.
-        if legacy_rollups is None:
-            legacy_rollups = getattr(settings, 'SENTRY_TSDB_LEGACY_ROLLUPS', {})
-
-        self.__legacy_rollups = legacy_rollups
-
     def validate_arguments(self, models, environment_ids):
         if any(e is not None for e in environment_ids):
             unsupported_models = set(models) - self.models_with_environment_support
@@ -233,6 +224,10 @@ class BaseTSDB(Service):
         if rollup is None:
             rollup = self.get_optimal_rollup(start, end)
 
+        now = timezone.now()
+        earliest = to_datetime(self.get_earliest_timestamp(rollup, now))
+        start = max(start, earliest)
+        start = min(start, end)
         # This attempts to create a range with a duration as close as possible
         # to the requested interval using the requested (or inferred) rollup
         # resolution. This result always includes the ``end`` timestamp, but
@@ -281,13 +276,17 @@ class BaseTSDB(Service):
         """
         Calculate the earliest available timestamp for a rollup.
         """
+        # TODO when we no longer use redis TSDB, this can go away as there
+        # will be no buckets to expire.
         if timestamp is None:
             timestamp = timezone.now()
 
-        samples = self.__legacy_rollups.get(rollup)
-        if samples is None:
-            samples = self.rollups[rollup]
+        if rollup not in self.rollups:
+            # We don't know how many samples there are so assume series
+            # is infinite.
+            return 0
 
+        samples = self.rollups[rollup]
         lifespan = timedelta(seconds=rollup * (samples - 1))
         return self.normalize_to_epoch(
             timestamp - lifespan,
