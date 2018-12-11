@@ -163,13 +163,13 @@ describe('OrganizationEventsErrors', function() {
         <OrganizationEventsContainer
           router={router}
           organization={org}
-          selection={{projects: []}}
+          selection={{projects: [], environments: [], datetime: {}}}
           location={location}
         >
           <OrganizationEvents
             location={location}
             organization={org}
-            selection={{projects: []}}
+            selection={{projects: [], environments: [], datetime: {}}}
           />
         </OrganizationEventsContainer>,
         routerContext
