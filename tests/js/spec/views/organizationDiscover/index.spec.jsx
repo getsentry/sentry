@@ -1,10 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {mount} from 'enzyme';
+import {browserHistory} from 'react-router';
 
 import {OrganizationDiscoverContainer} from 'app/views/organizationDiscover';
 
 describe('OrganizationDiscoverContainer', function() {
+  beforeEach(function() {
+    browserHistory.push = jest.fn();
+  });
+
   afterEach(function() {
     MockApiClient.clearMockResponses();
   });
@@ -113,6 +118,14 @@ describe('OrganizationDiscoverContainer', function() {
 
       expect(savedQueryMock).toHaveBeenCalledTimes(1);
       expect(nextQueryMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('toggles edit mode', function() {
+      wrapper.instance().toggleEditMode();
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/discover/saved/1/',
+        query: {editing: 'true'},
+      });
     });
   });
 
