@@ -42,7 +42,7 @@ import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 import ProjectReleases from 'app/views/projectReleases';
 import ProjectSavedSearches from 'app/views/projectSavedSearches';
 import ProjectSettings from 'app/views/projectSettings';
-import ProjectUserFeedback from 'app/views/projectUserFeedback';
+import ProjectUserFeedback from 'app/views/userFeedback/project';
 import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ReleaseAllEvents from 'app/views/releaseAllEvents';
