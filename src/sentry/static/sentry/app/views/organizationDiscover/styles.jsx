@@ -122,10 +122,11 @@ export const DiscoverDocs = styled('span')`
 `;
 
 export const DocsLabel = styled('span')`
+  font-size: 15px;
   flex-grow: 1;
 `;
 
-export const AddIcon = styled(InlineSvg)`
+export const DocsIcon = styled(InlineSvg)`
   width: 20px;
   height: 20px;
   margin-right: 8px;

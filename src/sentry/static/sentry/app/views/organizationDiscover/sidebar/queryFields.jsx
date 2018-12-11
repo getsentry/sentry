@@ -22,7 +22,7 @@ import {
   StyledInlineSvg,
   DiscoverDocs,
   DocsLabel,
-  AddIcon,
+  DocsIcon,
 } from '../styles';
 import Orderby from './orderby';
 import {NON_CONDITIONS_FIELDS} from '../data';
@@ -155,7 +155,7 @@ export default class QueryFields extends React.Component {
         <DocsSeparator />
         <TextLink href="https://docs.sentry.io/product/discover/">
           <DiscoverDocs>
-            <AddIcon src="icon-docs" />
+            <DocsIcon src="icon-docs" />
             <DocsLabel>{t('Discover Documentation')}</DocsLabel>
             <StyledInlineSvg src="icon-chevron-right" size="1em" />
           </DiscoverDocs>
