@@ -10,7 +10,8 @@ def process_event_from_kafka(message):
 
     project = Project.objects.get_from_cache(pk=message['project_id'])
 
-    view = type_name_to_view[message['type']]
+    event_type = message['type']
+    view = type_name_to_view[event_type]
     helper_cls = view.helper_cls
     remote_addr = message['remote_addr']
     helper = helper_cls(
@@ -38,4 +39,5 @@ def process_event_from_kafka(message):
     event_manager._normalized = True
     del data
 
-    return process_event(event_manager, project, key, remote_addr, helper, attachments=None)
+    return process_event(event_type, event_manager, project, key,
+                         remote_addr, helper, attachments=None)

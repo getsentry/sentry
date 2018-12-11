@@ -91,8 +91,10 @@ def api(func):
     return wrapped
 
 
-def process_event(event_manager, project, key, remote_addr, helper, attachments):
-    event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
+def process_event(event_type, event_manager, project, key, remote_addr, helper, attachments):
+    sender = type_name_to_view[event_type]
+
+    event_received.send_robust(ip=remote_addr, project=project, sender=sender)
 
     start_time = time()
     tsdb_start_time = to_datetime(start_time)
@@ -126,7 +128,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
         event_filtered.send_robust(
             ip=remote_addr,
             project=project,
-            sender=process_event,
+            sender=sender,
         )
         raise APIForbidden('Event dropped due to filter: %s' % (filter_reason,))
 
@@ -165,7 +167,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
             ip=remote_addr,
             project=project,
             reason_code=rate_limit.reason_code if rate_limit else None,
-            sender=process_event,
+            sender=sender,
         )
         if rate_limit is not None:
             raise APIRateLimited(rate_limit.retry_after)
@@ -239,7 +241,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
         ip=remote_addr,
         data=data,
         project=project,
-        sender=process_event,
+        sender=sender,
     )
 
     return event_id
@@ -548,6 +550,8 @@ class StoreView(APIView):
         self.pre_normalize(event_manager, helper)
         event_manager.normalize()
 
+        event_type = type(self).type_name
+
         # TODO: Some form of coordination between the Kafka consumer
         # and this method (the 'relay') to decide whether a 429 should
         # be returned here.
@@ -576,7 +580,7 @@ class StoreView(APIView):
                         },
                         'remote_addr': remote_addr,
                         'agent': request.META.get('HTTP_USER_AGENT'),
-                        'type': type(self).type_name,
+                        'type': event_type,
                         # Whether or not the Kafka consumer is in charge
                         # of actually processing this event.
                         'should_process': process_in_kafka,
@@ -591,7 +595,8 @@ class StoreView(APIView):
                     return event_manager.get_data()['event_id']
 
         # Everything after this will eventually be done in a Kafka consumer.
-        return process_event(event_manager, project, key, remote_addr, helper, attachments)
+        return process_event(event_type, event_manager, project,
+                             key, remote_addr, helper, attachments)
 
 
 class MinidumpView(StoreView):
