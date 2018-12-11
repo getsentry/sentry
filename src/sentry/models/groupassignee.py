@@ -18,6 +18,7 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr, \
     BaseManager
 from sentry.models.activity import Activity
 from sentry.signals import issue_assigned
+from sentry.utils import metrics
 
 
 def get_user_project_ids(users):
@@ -193,6 +194,7 @@ class GroupAssigneeManager(BaseManager):
                 },
             )
             activity.send_notification()
+            metrics.incr('group.assignee.change', instance='assigned', skip_internal=True)
             # sync Sentry assignee to external issues
             if assignee_type == 'user' and features.has(
                     'organizations:integrations-issue-sync', group.organization, actor=acting_user):
@@ -215,6 +217,7 @@ class GroupAssigneeManager(BaseManager):
                 user=acting_user,
             )
             activity.send_notification()
+            metrics.incr('group.assignee.change', instance='deassigned', skip_internal=True)
             # sync Sentry assignee to external issues
             if features.has('organizations:integrations-issue-sync',
                             group.organization, actor=acting_user):
