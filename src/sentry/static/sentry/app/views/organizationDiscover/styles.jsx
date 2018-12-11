@@ -115,7 +115,7 @@ export const StyledInlineSvg = styled(InlineSvg)`
 `;
 
 export const DicsoverDocs = styled('span')`
-  line-height: 1;
+  align-items: center;
   display: flex;
   margin: ${space(3)};
   justify-content: space-between;
@@ -126,8 +126,8 @@ export const DocsLabel = styled('span')`
 `;
 
 export const AddIcon = styled(InlineSvg)`
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
   margin-right: 8px;
   color: ${p => p.theme.gray2};
 `;
