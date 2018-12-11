@@ -13,6 +13,7 @@ import Link from 'app/components/link';
 import Header from 'app/components/organizations/header';
 import theme from 'app/utils/theme';
 import InlineSvg from 'app/components/inlineSvg';
+import ExternalLink from 'app/components/externalLink';
 
 const HEADER_HEIGHT = 60;
 
@@ -108,6 +109,10 @@ export const DocsSeparator = styled('div')`
   flex-grow: 1;
   margin: ${space(3)} ${space(3)} 0;
   border-bottom: 1px solid ${p => p.theme.borderLight};
+`;
+
+export const DocsLink = styled(ExternalLink)`
+  color: inherit;
 `;
 
 export const StyledInlineSvg = styled(InlineSvg)`

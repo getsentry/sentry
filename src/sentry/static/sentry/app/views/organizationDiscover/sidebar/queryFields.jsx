@@ -8,7 +8,6 @@ import TextField from 'app/components/forms/textField';
 import NumberField from 'app/components/forms/numberField';
 import SelectControl from 'app/components/forms/selectControl';
 import Badge from 'app/components/badge';
-import TextLink from 'app/components/textLink';
 
 import Aggregations from '../aggregations';
 import Conditions from '../conditions';
@@ -23,6 +22,7 @@ import {
   DiscoverDocs,
   DocsLabel,
   DocsIcon,
+  DocsLink,
 } from '../styles';
 import Orderby from './orderby';
 import {NON_CONDITIONS_FIELDS} from '../data';
@@ -153,13 +153,13 @@ export default class QueryFields extends React.Component {
         <FieldSeparator />
         <Fieldset>{actions}</Fieldset>
         <DocsSeparator />
-        <TextLink href="https://docs.sentry.io/product/discover/">
+        <DocsLink href="https://docs.sentry.io/product/discover/">
           <DiscoverDocs>
             <DocsIcon src="icon-docs" />
             <DocsLabel>{t('Discover Documentation')}</DocsLabel>
             <StyledInlineSvg src="icon-chevron-right" size="1em" />
           </DiscoverDocs>
-        </TextLink>
+        </DocsLink>
       </QueryFieldsSidebar>
     );
   }
