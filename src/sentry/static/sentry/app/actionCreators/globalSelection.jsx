@@ -23,3 +23,21 @@ export function updateProjects(projects) {
 function isProjectsValid(projects) {
   return Array.isArray(projects) && projects.every(project => isInteger(project));
 }
+
+/**
+ * Updates datetime selection
+ *
+ * @param {Object} datetime Object with start, end, range keys
+ */
+export function updateDateTime(datetime) {
+  GlobalSelectionActions.updateDateTime(datetime);
+}
+
+/**
+ * Updates global environment selection
+ *
+ * @param {String[]} environments List of environments
+ */
+export function updateEnvironments(environments) {
+  GlobalSelectionActions.updateEnvironments(environments);
+}

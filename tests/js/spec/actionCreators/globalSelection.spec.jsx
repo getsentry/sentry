@@ -18,4 +18,6 @@ describe('GlobalSelection ActionCreators', function() {
       expect(updateProjectsMock).not.toHaveBeenCalled();
     });
   });
+
+  describe('updateEnvironments()', function() {});
 });
