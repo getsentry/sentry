@@ -623,7 +623,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 status_details = {}
 
             now = timezone.now()
-            metrics.incr('group.resolved', instance=res_type_str)
+            metrics.incr('group.resolved', instance=res_type_str, skip_internal=True)
 
             # if we've specified a commit, let's see if its already been released
             # this will allow us to associate the resolution to a release as if we
@@ -743,7 +743,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 ).delete()
 
                 if new_status == GroupStatus.IGNORED:
-                    metrics.incr('group.ignored')
+                    metrics.incr('group.ignored', skip_internal=True)
 
                     ignore_duration = (
                         statusDetails.pop('ignoreDuration', None) or

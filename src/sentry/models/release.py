@@ -535,7 +535,7 @@ class Release(Model):
                 Group.objects.filter(
                     id=group_id,
                 ).update(status=GroupStatus.RESOLVED)
-                metrics.incr('group.resolved', instance='in_commit')
+                metrics.incr('group.resolved', instance='in_commit', skip_internal=True)
 
             kick_off_status_syncs.apply_async(kwargs={
                 'project_id': group_project_lookup[group_id],
