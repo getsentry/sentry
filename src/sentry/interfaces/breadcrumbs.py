@@ -113,7 +113,7 @@ class Breadcrumbs(Interface):
                 #         type(crumb['data']),
                 #     )
                 # )
-                del crumb["data"]
+                data = None
             else:
                 data = trim(data, 4096)
 
