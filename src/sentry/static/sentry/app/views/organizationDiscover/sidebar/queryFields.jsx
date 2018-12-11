@@ -16,7 +16,6 @@ import {
   PlaceholderText,
   SidebarLabel,
   QueryFieldsSidebar,
-  FieldSeparator,
   DocsSeparator,
   StyledInlineSvg,
   DiscoverDocs,
@@ -150,7 +149,6 @@ export default class QueryFields extends React.Component {
             disabled={isLoading}
           />
         </Fieldset>
-        <FieldSeparator />
         <Fieldset>{actions}</Fieldset>
         <DocsSeparator />
         <DocsLink href="https://docs.sentry.io/product/discover/">

@@ -100,11 +100,6 @@ export const QueryFieldsSidebar = styled(Flex)`
   justify-content: flex-start;
 `;
 
-export const FieldSeparator = styled('div')`
-  margin: ${space(4)} ${space(3)} 0 ${space(3)};
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-`;
-
 export const DocsSeparator = styled('div')`
   flex-grow: 1;
   margin: ${space(3)} ${space(3)} 0;
