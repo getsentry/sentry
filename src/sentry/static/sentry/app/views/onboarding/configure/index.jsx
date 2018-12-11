@@ -110,7 +110,11 @@ const Configure = createReactClass({
     let {projectId} = this.props.params;
     let {organization} = this.context;
     analytics('onboarding.complete', {project: projectId});
-    amplitude('Completed Onboarding', parseInt(organization.id, 10), {projectId});
+    amplitude(
+      'Completed Onboarding Installation Instructions',
+      parseInt(organization.id, 10),
+      {projectId}
+    );
     this.redirectUrl();
   },
 
