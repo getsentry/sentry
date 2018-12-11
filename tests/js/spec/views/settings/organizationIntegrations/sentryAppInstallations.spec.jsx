@@ -3,7 +3,12 @@ import React from 'react';
 
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
-import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
+import {openSentryAppPermissionModal} from 'app/actionCreators/modal';
+import {SentryAppInstallations} from 'app/views/organizationIntegrations/sentryAppInstallations';
+
+jest.mock('app/actionCreators/modal', () => ({
+  openSentryAppPermissionModal: jest.fn(),
+}));
 
 describe('Sentry App Installations', function() {
   let org = TestStubs.Organization();
@@ -13,6 +18,7 @@ describe('Sentry App Installations', function() {
     app: {slug: sentryApp.slug, uuid: 'f4d972ba-1177-4974-943e-4800fe8c7d05'},
     code: '50624ecb-7aac-49d6-934a-83e53677560f',
   });
+  let api = new Client();
 
   let routerContext = TestStubs.routerContext();
 
@@ -22,7 +28,12 @@ describe('Sentry App Installations', function() {
 
   describe('when no Apps exist', () => {
     const wrapper = mount(
-      <SentryAppInstallations orgId={org.slug} applications={[]} installs={[]} />,
+      <SentryAppInstallations
+        api={api}
+        orgId={org.slug}
+        applications={[]}
+        installs={[]}
+      />,
       routerContext
     );
 
@@ -35,6 +46,7 @@ describe('Sentry App Installations', function() {
   describe('when Apps exist', () => {
     let wrapper = mount(
       <SentryAppInstallations
+        api={api}
         orgId={org.slug}
         applications={[sentryApp]}
         installs={[]}
@@ -59,6 +71,7 @@ describe('Sentry App Installations', function() {
       it('disallows installation when already installed', () => {
         wrapper = mount(
           <SentryAppInstallations
+            api={api}
             orgId={org.slug}
             applications={[sentryApp]}
             installs={[install]}
@@ -68,23 +81,45 @@ describe('Sentry App Installations', function() {
         expect(wrapper.find('[icon="icon-trash"]').exists()).toBe(true);
       });
 
-      it('redirects the user to the Integrations page when a redirectUrl is not set', () => {
+      it('install button opens permissions modal', () => {
         wrapper = mount(
           <SentryAppInstallations
+            api={api}
             orgId={org.slug}
-            applications={[TestStubs.SentryApp({redirectUrl: null})]}
+            applications={[sentryApp]}
             installs={[]}
           />,
           routerContext
         );
         wrapper.find('[icon="icon-circle-add"]').simulate('click');
-        expect(wrapper.state('installs')).toEqual([install]);
+        expect(openSentryAppPermissionModal).toHaveBeenCalledWith(
+          expect.objectContaining({app: sentryApp, orgId: org.slug})
+        );
       });
 
-      it('redirects the user to the App when a redirectUrl is set', () => {
+      it('sentry app is shown as installed', async () => {
+        const app = TestStubs.SentryApp({redirectUrl: null});
+        wrapper = mount(
+          <SentryAppInstallations
+            api={api}
+            orgId={org.slug}
+            applications={[app]}
+            installs={[]}
+          />,
+          routerContext
+        );
+        wrapper.instance().install(app);
+        await tick;
+        wrapper.update();
+        expect(wrapper.state('installs')).toEqual([install]);
+        expect(wrapper.find('[icon="icon-trash"]').exists()).toBe(true);
+      });
+
+      it('redirects the user to the App when a redirectUrl is set', async () => {
         window.location.assign = jest.fn();
         wrapper = mount(
           <SentryAppInstallations
+            api={api}
             orgId={org.slug}
             applications={[sentryApp]}
             installs={[]}
@@ -93,13 +128,14 @@ describe('Sentry App Installations', function() {
         );
 
         wrapper.find('[icon="icon-circle-add"]').simulate('click');
-
+        wrapper.instance().install(sentryApp);
+        await tick;
         expect(window.location.assign).toHaveBeenCalledWith(
           `${sentryApp.redirectUrl}?code=${install.code}&installationId=${install.uuid}`
         );
       });
 
-      it('handles a redirectUrl with pre-existing query params', () => {
+      it('handles a redirectUrl with pre-existing query params', async () => {
         window.location.assign = jest.fn();
         const sentryAppWithQuery = TestStubs.SentryApp({
           redirectUrl: 'https://example.com/setup?hello=1',
@@ -107,6 +143,7 @@ describe('Sentry App Installations', function() {
 
         wrapper = mount(
           <SentryAppInstallations
+            api={api}
             orgId={org.slug}
             applications={[sentryAppWithQuery]}
             installs={[]}
@@ -115,14 +152,15 @@ describe('Sentry App Installations', function() {
         );
 
         wrapper.find('[icon="icon-circle-add"]').simulate('click');
-
+        wrapper.instance().install(sentryAppWithQuery);
+        await tick;
         expect(window.location.assign).toHaveBeenCalledWith(
           `https://example.com/setup?code=${install.code}&hello=1&installationId=${install.uuid}`
         );
       });
 
       describe('when installing fails', () => {
-        it('allows for installation retry', () => {
+        it('allows for installation retry', async () => {
           Client.addMockResponse({
             url: `/organizations/${org.slug}/sentry-app-installations/`,
             method: 'POST',
@@ -131,14 +169,15 @@ describe('Sentry App Installations', function() {
 
           wrapper = mount(
             <SentryAppInstallations
+              api={api}
               orgId={org.slug}
               applications={[sentryApp]}
               installs={[]}
             />,
             routerContext
           );
-
-          wrapper.find('[icon="icon-circle-add"]').simulate('click');
+          wrapper.instance().install(sentryApp);
+          await tick;
           expect(wrapper.exists('[icon="icon-circle-add"]')).toBe(true);
           expect(wrapper.state('installs')).toEqual([]);
         });
@@ -154,6 +193,7 @@ describe('Sentry App Installations', function() {
 
           wrapper = mount(
             <SentryAppInstallations
+              api={api}
               orgId={org.slug}
               applications={[sentryApp]}
               installs={[install]}
