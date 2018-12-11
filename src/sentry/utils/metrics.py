@@ -83,7 +83,7 @@ class InternalMetrics(object):
 internal = InternalMetrics()
 
 
-def incr(key, amount=1, instance=None, tags=None, skip_internal=False):
+def incr(key, amount=1, instance=None, tags=None, skip_internal=True):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
     if not skip_internal and _should_sample():
         internal.incr(key, instance, tags, amount)
