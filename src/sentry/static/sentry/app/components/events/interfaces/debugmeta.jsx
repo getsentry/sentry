@@ -19,7 +19,7 @@ class DebugMetaInterface extends React.Component {
       return null;
     }
 
-    let name = img.name.split(/^[a-z]:\\/i.test(img.name) ? '\\' : '/').pop();
+    let name = img.name.split(/^([a-z]:\\|\\\\)/i.test(img.name) ? '\\' : '/').pop();
     if (name == 'dyld_sim') return null; // this is only for simulator builds
 
     let version = null;

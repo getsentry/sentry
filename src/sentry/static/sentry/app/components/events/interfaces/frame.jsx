@@ -17,7 +17,7 @@ import Truncate from 'app/components/truncate';
 import space from 'app/styles/space';
 
 export function trimPackage(pkg) {
-  let pieces = pkg.split(/^[a-z]:\\/i.test(pkg) ? '\\' : '/');
+  let pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');
   let filename = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
   return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
 }

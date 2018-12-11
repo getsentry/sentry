@@ -45,7 +45,7 @@ class EventErrorItem extends React.Component {
 
     if (typeof data.image_path === 'string') {
       // Separate the image name for readability
-      let separator = /^[a-z]:\\/i.test(data.image_path) ? '\\' : '/';
+      let separator = /^([a-z]:\\|\\\\)/i.test(data.image_path) ? '\\' : '/';
       let path = data.image_path.split(separator);
       data.image_name = path.splice(-1, 1)[0];
       data.image_path = path.length ? path.join(separator) + separator : '';

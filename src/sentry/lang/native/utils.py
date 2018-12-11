@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)\s+(.*)')
 
 # Regular expression to guess whether we're dealing with Windows or Unix paths
-WINDOWS_PATH_RE = re.compile(r'^[a-z]:\\', re.IGNORECASE)
+WINDOWS_PATH_RE = re.compile(r'^([a-z]:\\|\\\\)', re.IGNORECASE)
 
 AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
 
