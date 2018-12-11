@@ -142,10 +142,9 @@ class ProjectDebugSymbols extends AsyncComponent {
                 ))}
             </DebugSymbolDetails>
           </Box>
-
-          <Access access={['project:write']}>
-            {({hasAccess}) => (
-              <Box>
+          <Box>
+            <Access access={['project:releases']}>
+              {({hasAccess}) => (
                 <Button
                   size="xsmall"
                   icon="icon-download"
@@ -157,22 +156,33 @@ class ProjectDebugSymbols extends AsyncComponent {
                 >
                   {t('Download')}
                 </Button>
-                <Confirm
-                  title={t('Delete')}
-                  message={t('Are you sure you wish to delete this file?')}
-                  disabled={!hasAccess}
-                  onConfirm={() => this.onDelete(dsym.id)}
+              )}
+            </Access>
+            <Access access={['project:write']}>
+              {({hasAccess}) => (
+                <Tooltip
+                  disabled={hasAccess}
+                  title={t('You do not have permission to delete debug files.')}
                 >
-                  <Button
-                    priority="danger"
-                    icon="icon-trash"
-                    size="xsmall"
-                    disabled={!hasAccess}
-                  />
-                </Confirm>
-              </Box>
-            )}
-          </Access>
+                  <span>
+                    <Confirm
+                      title={t('Delete')}
+                      message={t('Are you sure you wish to delete this file?')}
+                      onConfirm={() => this.onDelete(dsym.id)}
+                      disabled={!hasAccess}
+                    >
+                      <Button
+                        priority="danger"
+                        icon="icon-trash"
+                        size="xsmall"
+                        disabled={!hasAccess}
+                      />
+                    </Confirm>
+                  </span>
+                </Tooltip>
+              )}
+            </Access>
+          </Box>
         </PanelItem>
       );
     });
