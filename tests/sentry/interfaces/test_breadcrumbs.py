@@ -62,3 +62,18 @@ class BreadcrumbsTest(TestCase):
         )
         assert len(result.values) == 1
         assert result.values[0]['data'] == {'extra': '{"foo":"bar"}'}
+
+    def test_string_data(self):
+        result = Breadcrumbs.to_python(
+            dict(
+                values=[
+                    {
+                        'type': 'message',
+                        'timestamp': 1458857193.973275,
+                        'data': 'must be a mapping'
+                    }
+                ]
+            )
+        )
+        assert len(result.values) == 1
+        assert not result.values[0].get('data')

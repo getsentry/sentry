@@ -355,6 +355,10 @@ def test_fingerprints():
     assert "fingerprint" not in data
     assert "errors" not in data
 
+    data = validate_and_normalize({"fingerprint": [""]})
+    assert data['fingerprint'] == ['']
+    assert "errors" not in data
+
 
 def test_messages():
     # Just 'message': wrap it in interface
