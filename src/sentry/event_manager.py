@@ -667,9 +667,7 @@ class EventManager(object):
         if server_name is not None:
             set_tag(data, 'server_name', server_name)
 
-        for key in ('fingerprint', 'modules', 'user', 'request', 'contexts',
-                    'breadcrumbs', 'exception', 'stacktrace', 'threads',
-                    'tags', 'extra', 'debug_meta', 'sdk', 'errors'):
+        for key in ('fingerprint', 'modules', 'tags', 'extra'):
             if not data.get(key):
                 data.pop(key, None)
 
