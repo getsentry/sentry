@@ -84,7 +84,6 @@ class UserUpdateTest(APITestCase):
                     'language': 'fr',
                     'clock24Hours': True,
                     'extra': True,
-                    'seenReleaseBroadcast': True,
                 }
             }
         )
@@ -96,10 +95,6 @@ class UserUpdateTest(APITestCase):
         # note: email should not change, removed support for email changing from this endpoint
         assert user.email == 'a@example.com'
         assert user.username == 'a@example.com'
-        assert UserOption.objects.get_value(
-            user=user,
-            key='seen_release_broadcast',
-        ) is True
         assert UserOption.objects.get_value(user=self.user, key='timezone') == 'UTC'
         assert UserOption.objects.get_value(user=self.user, key='stacktrace_order') == '2'
         assert UserOption.objects.get_value(user=self.user, key='language') == 'fr'
