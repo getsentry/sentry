@@ -41,8 +41,8 @@ export default class SavedQueries extends React.Component {
     // Update saved query if any name / details have been updated
     if (
       nextProps.savedQuery &&
-      this.state.topSavedQuery &&
-      nextProps.savedQuery.id === this.state.topSavedQuery.id
+      (!this.state.topSavedQuery ||
+        nextProps.savedQuery.id === this.state.topSavedQuery.id)
     ) {
       this.setState({
         topSavedQuery: nextProps.savedQuery,
