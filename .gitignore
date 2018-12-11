@@ -1,7 +1,9 @@
 .cache/
 .coverage
+.direnv/
 .storybook-out/
 .DS_Store
+.env.override
 *.egg-info
 *.pyc
 *.log

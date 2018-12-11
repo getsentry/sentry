@@ -25,12 +25,18 @@
         "*.jsx": "javascriptreact"
     },
 
+    "[html]": {
+        "editor.tabSize": 2
+    },
+
     "[javascript]": {
-        "editor.formatOnSave": true
+        "editor.formatOnSave": true,
+        "editor.tabSize": 2
     },
 
     "[javascriptreact]": {
-        "editor.formatOnSave": true
+        "editor.formatOnSave": true,
+        "editor.tabSize": 2
     },
 
     "[less]": {
@@ -38,7 +44,8 @@
     },
 
     "[python]": {
-        "editor.formatOnSave": true
+        "editor.formatOnSave": true,
+        "editor.tabSize": 4
     },
 
     "python.linting.pylintEnabled": false,
