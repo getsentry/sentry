@@ -61,7 +61,7 @@ class TotalEventCount extends AsyncComponent {
     let count = isAllResults ? numRows : eventsMeta.count;
     return (
       <Feature features={['internal-catchall']} organization={organization}>
-        {t(` of ${count}${isAllResults ? '' : ' (estimated)'}`)}
+        {t(` of ${count.toLocaleString()}${isAllResults ? '' : ' (estimated)'}`)}
       </Feature>
     );
   }
@@ -80,6 +80,7 @@ class OrganizationEvents extends AsyncView {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
+    // Always update if state changes
     if (this.state !== nextState) {
       return true;
     }
@@ -88,6 +89,7 @@ class OrganizationEvents extends AsyncView {
       key => !isEqual(this.props.location[key], nextProps.location[key])
     );
 
+    // Always update if query parameters change
     if (isDiff) {
       return true;
     }
@@ -119,6 +121,12 @@ class OrganizationEvents extends AsyncView {
     return `Events - ${this.props.organization.slug}`;
   }
 
+  handleZoom = () => this.setState({zoomed: true});
+
+  // Table is considered to be updated when table is in a
+  // reloading state due to chart zoom, but reloading has been finished
+  handleTableUpdateComplete = () => this.setState({zoomed: false});
+
   renderRowCounts() {
     const {events, eventsPageLinks} = this.state;
     return parseRowFromLinks(eventsPageLinks, events.length);
@@ -141,14 +149,16 @@ class OrganizationEvents extends AsyncView {
       <React.Fragment>
         {error && super.renderError(new Error('Unable to load all required endpoints'))}
         <Panel>
-          <EventsChart loading={loading || reloading} organization={organization} />
+          <EventsChart organization={organization} onZoom={this.handleZoom} />
         </Panel>
 
         <EventsTable
           loading={!reloading && loading}
           reloading={reloading}
+          zoomChanged={this.state.zoomed}
           events={events}
           organization={organization}
+          onUpdateComplete={this.handleTableUpdateComplete}
         />
 
         {!loading &&
@@ -156,7 +166,7 @@ class OrganizationEvents extends AsyncView {
             <Flex align="center" justify="space-between">
               <RowDisplay>
                 {events.length ? t(`Results ${this.renderRowCounts()}`) : t('No Results')}
-                {events.length && (
+                {!!events.length && (
                   <TotalEventCount
                     organization={organization}
                     location={location}

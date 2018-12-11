@@ -3,8 +3,6 @@ from __future__ import absolute_import
 import logging
 import six
 
-from six.moves.urllib.parse import quote_plus
-
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
@@ -31,7 +29,7 @@ FEATURE_DESCRIPTIONS = [
     FeatureDescription(
         """
         Create and link Sentry issue groups directly to a Jira ticket in any of your
-        projects, providing a quick way to jump from Sentry bug to tracked ticket!
+        projects, providing a quick way to jump from a Sentry bug to tracked ticket!
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
@@ -350,10 +348,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         elif field_meta.get('autoCompleteUrl') and \
                 (schema.get('items') == 'user' or schema['type'] == 'user'):
             fieldtype = 'select'
-            sentry_url = self.search_url(group.organization.slug)
-            fkwargs['url'] = '%s?jira_url=%s' % (
-                sentry_url, quote_plus(field_meta['autoCompleteUrl']),
-            )
+            fkwargs['url'] = self.search_url(group.organization.slug)
             fkwargs['choices'] = []
         elif schema['type'] in ['timetracking']:
             # TODO: Implement timetracking (currently unsupported alltogether)
@@ -367,7 +362,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 {
                     'multiple': True,
                     'choices': self.make_choices(field_meta.get('allowedValues')),
-                    'default': []
+                    'default': ''
                 }
             )
 
@@ -480,6 +475,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         dynamic_fields = issue_type_meta['fields'].keys()
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
+
         # build up some dynamic fields based on required shit.
         for field in dynamic_fields:
             if field in standard_fields or field in [x.strip() for x in ignored_fields]:
@@ -528,6 +524,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 continue
             elif field == 'summary':
                 cleaned_data['summary'] = data['title']
+                continue
+            elif field == 'labels' and 'labels' in data:
+                labels = [
+                    label.strip()
+                    for label in data['labels'].split(',')
+                    if label.strip()
+                ]
+                cleaned_data['labels'] = labels
                 continue
             if field in data.keys():
                 v = data.get(field)

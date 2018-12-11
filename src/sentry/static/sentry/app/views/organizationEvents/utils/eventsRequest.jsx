@@ -5,14 +5,15 @@ import React from 'react';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {doEventsRequest} from 'app/actionCreators/events';
 import {t} from 'app/locale';
-import LoadingPanel from 'app/views/organizationHealth/loadingPanel';
 import SentryTypes from 'app/sentryTypes';
+
+import LoadingPanel from '../loadingPanel';
 
 const propNamesToIgnore = ['api', 'children', 'organizations', 'project', 'loading'];
 const omitIgnoredProps = props =>
   omitBy(props, (value, key) => propNamesToIgnore.includes(key));
 
-class EventsRequest extends React.Component {
+class EventsRequest extends React.PureComponent {
   static propTypes = {
     /**
      * API client instance
@@ -24,12 +25,12 @@ class EventsRequest extends React.Component {
     /**
      * List of project ids to query
      */
-    projects: PropTypes.arrayOf(PropTypes.number),
+    project: PropTypes.arrayOf(PropTypes.number),
 
     /**
      * List of environments to query
      */
-    environments: PropTypes.arrayOf(PropTypes.string),
+    environment: PropTypes.arrayOf(PropTypes.string),
 
     /**
      * Relative time period for query.

@@ -73,6 +73,9 @@ class CanonicalKeyView(collections.Mapping):
 
         raise KeyError(key)
 
+    def __repr__(self):
+        return self.data.__repr__()
+
 
 class CanonicalKeyDict(collections.MutableMapping):
     def __init__(self, data, legacy=None):
@@ -125,6 +128,9 @@ class CanonicalKeyDict(collections.MutableMapping):
 
     def __delitem__(self, key):
         del self.data[self._norm_func(key)]
+
+    def __repr__(self):
+        return self.data.__repr__()
 
 
 CANONICAL_TYPES = (CanonicalKeyDict, CanonicalKeyView)

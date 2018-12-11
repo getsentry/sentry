@@ -211,10 +211,11 @@ exports[`ProjectDebugFiles renders 1`] = `
               small={false}
             >
               <EmptyStreamWrapper
-                className="ref-empty-state"
+                data-test-id="empty-state"
               >
                 <div
-                  className="ref-empty-state css-n38n5f-EmptyStreamWrapper ernlsnc0"
+                  className="css-n38n5f-EmptyStreamWrapper ernlsnc0"
+                  data-test-id="empty-state"
                 >
                   <Icon
                     className="icon icon-exclamation"

@@ -536,7 +536,7 @@ def collect_messages_recieved(count):
 
 
 @requires_kafka
-@pytest.mark.xfail(reason='assignment during rebalance requires partition rollback to last committed offset')
+@pytest.mark.xfail(reason='assignment during rebalance requires partition rollback to last committed offset', run=False)
 def test_consumer_rebalance_from_uncommitted_offset():
     consumer_group = 'consumer-{}'.format(uuid.uuid1().hex)
     synchronize_commit_group = 'consumer-{}'.format(uuid.uuid1().hex)

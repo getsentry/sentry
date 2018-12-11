@@ -2,6 +2,7 @@ import 'echarts/lib/component/dataZoom';
 
 const DEFAULT = {
   type: 'inside',
+  zoomOnMouseWheel: 'shift',
   throttle: 50,
 };
 

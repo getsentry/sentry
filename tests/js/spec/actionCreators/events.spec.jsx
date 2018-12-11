@@ -7,8 +7,8 @@ describe('Events ActionCreator', function() {
   const project = TestStubs.Project();
   const opts = {
     organization,
-    projects: [project.id],
-    environments: [],
+    project: [project.id],
+    environment: [],
   };
 
   let mock;

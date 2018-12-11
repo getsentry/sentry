@@ -201,3 +201,19 @@ class OrganizationTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
+
+    def test_no_projects(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        self.login_as(user=user)
+        url = reverse(
+            'sentry-api-0-organization-tagkey-values',
+            kwargs={
+                'organization_slug': org.slug,
+                'key': 'fruit',
+            }
+        )
+
+        response = self.client.get(url, format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0

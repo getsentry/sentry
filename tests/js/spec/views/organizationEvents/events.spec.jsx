@@ -1,7 +1,13 @@
 import React from 'react';
+
+import {EventsChart} from 'app/views/organizationEvents/eventsChart';
+import {EventsTable} from 'app/views/organizationEvents/eventsTable';
+import {OrganizationEvents, parseRowFromLinks} from 'app/views/organizationEvents/events';
+import {OrganizationEventsContainer} from 'app/views/organizationEvents';
+import {getLocalDateObject} from 'app/utils/dates';
 import {mount} from 'enzyme';
 
-import {OrganizationEvents, parseRowFromLinks} from 'app/views/organizationEvents/events';
+import {chart, doZoom} from '../../../helpers/charts';
 
 jest.mock('app/utils/withLatestContext');
 
@@ -15,10 +21,18 @@ const pageTwoLinks =
 
 describe('OrganizationEventsErrors', function() {
   const project = TestStubs.Project({isMember: true});
-  const org = TestStubs.Organization({projects: [project]});
+  const org = TestStubs.Organization({projects: [project], features: ['global-views']});
+  const routerContext = TestStubs.routerContext([{organization: org}]);
   let eventsMock;
   let eventsStatsMock;
   let eventsMetaMock;
+
+  beforeAll(function() {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/environments/`,
+      body: TestStubs.Environments(),
+    });
+  });
 
   beforeEach(function() {
     // Search bar makes this request when mounted
@@ -56,7 +70,7 @@ describe('OrganizationEventsErrors', function() {
     });
     let wrapper = mount(
       <OrganizationEvents organization={org} location={{query: {}}} />,
-      TestStubs.routerContext()
+      routerContext
     );
     await tick();
     wrapper.update();
@@ -69,7 +83,7 @@ describe('OrganizationEventsErrors', function() {
   it('renders events table', async function() {
     let wrapper = mount(
       <OrganizationEvents organization={org} location={{query: {}}} />,
-      TestStubs.routerContext()
+      routerContext
     );
     await tick();
     wrapper.update();
@@ -92,7 +106,7 @@ describe('OrganizationEventsErrors', function() {
           },
         }}
       />,
-      TestStubs.routerContext()
+      routerContext
     );
 
     expect(eventsMock).toHaveBeenCalledWith(
@@ -126,6 +140,97 @@ describe('OrganizationEventsErrors', function() {
         },
       })
     );
+  });
+
+  describe('Events Integration', function() {
+    const location = {
+      pathname: '/organizations/org-slug/events/',
+      query: {},
+    };
+    const router = TestStubs.router({
+      location,
+    });
+    let chartRender = jest.spyOn(EventsChart.prototype, 'render');
+    let tableRender = jest.spyOn(EventsTable.prototype, 'render');
+    let wrapper;
+    let newParams;
+
+    beforeEach(function() {
+      chartRender.mockClear();
+      tableRender.mockClear();
+
+      wrapper = mount(
+        <OrganizationEventsContainer
+          router={router}
+          organization={org}
+          selection={{projects: []}}
+          location={location}
+        >
+          <OrganizationEvents
+            location={location}
+            organization={org}
+            selection={{projects: []}}
+          />
+        </OrganizationEventsContainer>,
+        routerContext
+      );
+    });
+
+    it('renders', function() {
+      expect(chartRender).toHaveBeenCalledTimes(1);
+      expect(tableRender).toHaveBeenCalledTimes(1);
+    });
+
+    it('zooms using chart', async function() {
+      expect(tableRender).toHaveBeenCalledTimes(1);
+      expect(chartRender).toHaveBeenCalledTimes(1);
+
+      await tick();
+      wrapper.update();
+
+      doZoom(wrapper.find('EventsChart').first(), chart);
+      wrapper.update();
+
+      // After zooming, chart should not re-render, but table does
+      expect(chartRender).toHaveBeenCalledTimes(1);
+
+      // Table should be in loading state
+      expect(tableRender).toHaveBeenCalledTimes(2);
+      expect(wrapper.find('EventsTable').prop('zoomChanged')).toBe(true);
+
+      newParams = {
+        zoom: '1',
+        start: '2018-11-29T00:00:00',
+        end: '2018-12-02T00:00:00',
+      };
+
+      expect(router.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          query: newParams,
+        })
+      );
+
+      wrapper.setProps({
+        router: {
+          ...router,
+          location: {
+            ...router.location,
+            query: newParams,
+          },
+        },
+      });
+
+      wrapper.update();
+      expect(wrapper.state('start')).toEqual(getLocalDateObject('2018-11-29T00:00:00'));
+      expect(wrapper.state('end')).toEqual(getLocalDateObject('2018-12-02T00:00:00'));
+
+      expect(wrapper.find('TimeRangeSelector').prop('start')).toEqual(
+        getLocalDateObject('2018-11-29T00:00:00')
+      );
+      expect(wrapper.find('TimeRangeSelector').prop('end')).toEqual(
+        getLocalDateObject('2018-12-02T00:00:00')
+      );
+    });
   });
 });
 

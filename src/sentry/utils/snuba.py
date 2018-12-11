@@ -4,6 +4,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
+import os
 import pytz
 import re
 import six
@@ -23,6 +24,13 @@ from sentry.utils.dates import to_timestamp
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
 MAX_HASHES = 5000
+
+# Global Snuba request option override dictionary. Only intended
+# to be used with the `options_override` contextmanager below.
+# NOT THREAD SAFE!
+OVERRIDE_OPTIONS = {
+    'consistent': os.environ.get('SENTRY_SNUBA_CONSISTENT', 'false').lower() in ('true', '1')
+}
 
 SENTRY_SNUBA_MAP = {
     # general
@@ -155,6 +163,34 @@ def timer(name, prefix='snuba.client'):
         yield
     finally:
         metrics.timing(u'{}.{}'.format(prefix, name), time.time() - t)
+
+
+@contextmanager
+def options_override(overrides):
+    """\
+    NOT THREAD SAFE!
+
+    Adds to OVERRIDE_OPTIONS, restoring previous values and removing
+    keys that didn't previously exist on exit, so that calls to this
+    can be nested.
+    """
+    previous = {}
+    delete = []
+
+    for k, v in overrides.items():
+        try:
+            previous[k] = OVERRIDE_OPTIONS[k]
+        except KeyError:
+            delete.append(k)
+        OVERRIDE_OPTIONS[k] = v
+
+    try:
+        yield
+    finally:
+        for k, v in previous.items():
+            OVERRIDE_OPTIONS[k] = v
+        for k in delete:
+            OVERRIDE_OPTIONS.pop(k)
 
 
 def connection_from_url(url, **kw):
@@ -336,7 +372,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         if start > end:
             raise QueryOutsideRetentionError
 
-    start, end = shrink_time_window(filter_keys.get('issue'), start, end)
+    start = shrink_time_window(filter_keys.get('issue'), start)
 
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
@@ -362,6 +398,8 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'selected_columns': selected_columns,
         'turbo': turbo
     }) if v is not None}
+
+    request.update(OVERRIDE_OPTIONS)
 
     headers = {}
     if referrer:
@@ -603,13 +641,20 @@ def insert_raw(data):
         raise SnubaError(err)
 
 
-def shrink_time_window(issues, start, end):
+def shrink_time_window(issues, start):
+    """\
+    If a single issue is passed in, shrink the `start` parameter to be briefly before
+    the `first_seen` in order to hopefully eliminate a large percentage of rows scanned.
+
+    Note that we don't shrink `end` based on `last_seen` because that value is updated
+    asynchronously by buffers, and will cause queries to skip recently seen data on
+    stale groups.
+    """
     if issues and len(issues) == 1:
         group = Group.objects.get(pk=issues[0])
         start = max(start, naiveify_datetime(group.first_seen) - timedelta(minutes=5))
-        end = min(end, naiveify_datetime(group.last_seen) + timedelta(minutes=5))
 
-    return start, end
+    return start
 
 
 def naiveify_datetime(dt):

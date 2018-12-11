@@ -11,6 +11,8 @@ import {metric} from 'app/utils/analytics';
 import {openSudo, redirectToProject} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
 import sdk from 'app/utils/sdk';
+import {uniqueId} from 'app/utils/guid';
+import * as tracing from 'app/utils/tracing';
 
 export class Request {
   constructor(xhr) {
@@ -50,15 +52,6 @@ export class Client {
     }
     this.baseUrl = options.baseUrl || '/api/0';
     this.activeRequests = {};
-  }
-
-  uniqueId() {
-    let s4 = () => {
-      return Math.floor((1 + Math.random()) * 0x10000)
-        .toString(16)
-        .substring(1);
-    };
-    return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
   }
 
   /**
@@ -160,7 +153,7 @@ export class Client {
     }
     let method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
-    let id = this.uniqueId();
+    let id = uniqueId();
     metric.mark(`api-request-start-${id}`);
 
     if (!isUndefined(data) && method !== 'GET') {
@@ -189,6 +182,8 @@ export class Client {
         contentType: 'application/json',
         headers: {
           Accept: 'application/json; charset=utf-8',
+          'X-Transaction-ID': tracing.getTransactionId(),
+          'X-Span-ID': tracing.getSpanId(),
         },
         success: (...args) => {
           let [, , xhr] = args || [];
@@ -196,11 +191,12 @@ export class Client {
             name: 'app.api.request-success',
             start: `api-request-start-${id}`,
             data: {
-              path,
               status: xhr && xhr.status,
             },
           });
-          this.wrapCallback(id, options.success)(...args);
+          if (!isUndefined(options.success)) {
+            this.wrapCallback(id, options.success)(...args);
+          }
         },
         error: (...args) => {
           let [, , xhr] = args || [];
@@ -208,7 +204,6 @@ export class Client {
             name: 'app.api.request-error',
             start: `api-request-start-${id}`,
             data: {
-              path,
               status: xhr && xhr.status,
             },
           });
@@ -266,7 +261,7 @@ export class Client {
   bulkDelete(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
     let query = paramsToQueryArgs(params);
-    let id = this.uniqueId();
+    let id = uniqueId();
 
     GroupActions.delete(id, params.itemIds);
 
@@ -289,7 +284,7 @@ export class Client {
   bulkUpdate(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
     let query = paramsToQueryArgs(params);
-    let id = this.uniqueId();
+    let id = uniqueId();
 
     GroupActions.update(id, params.itemIds, params.data);
 
@@ -313,7 +308,7 @@ export class Client {
   merge(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
     let query = paramsToQueryArgs(params);
-    let id = this.uniqueId();
+    let id = uniqueId();
 
     GroupActions.merge(id, params.itemIds);
 

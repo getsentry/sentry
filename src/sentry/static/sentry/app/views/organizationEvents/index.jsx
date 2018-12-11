@@ -16,7 +16,6 @@ import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
-import SearchBar from 'app/components/searchBar';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import space from 'app/styles/space';
@@ -24,6 +23,7 @@ import {updateProjects} from 'app/actionCreators/globalSelection';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
+import SearchBar from './searchBar';
 import {getParams} from './utils/getParams';
 import EventsContext from './utils/eventsContext';
 
@@ -89,11 +89,13 @@ class OrganizationEventsContainer extends React.Component {
       project,
       environment,
       period: query.statsPeriod || (hasAbsolute ? null : DEFAULT_STATS_PERIOD),
+      query: query.query || null,
       start: start || null,
       end: end || null,
 
       // params from URL will be a string
       utc: typeof query.utc !== 'undefined' ? query.utc === 'true' : DEFAULT_USE_UTC,
+      zoom: typeof query.zoom !== 'undefined' ? query.zoom === '1' : null,
     };
   }
 
@@ -177,13 +179,14 @@ class OrganizationEventsContainer extends React.Component {
     let newValueObj = {
       ...(defined(period) ? {period} : {start, end}),
       utc,
+      zoom: null,
     };
 
     this.updateParams(newValueObj);
   };
 
   handleUpdate = type => {
-    let newValueObj = {[type]: this.state[type]};
+    let newValueObj = {[type]: this.state[type], zoom: null};
     this.updateParams(newValueObj);
   };
 
@@ -195,26 +198,25 @@ class OrganizationEventsContainer extends React.Component {
     let {router, location} = this.props;
     router.push({
       pathname: location.pathname,
-      query: {
+      query: getParams({
         ...(location.query || {}),
         query,
-      },
+        zoom: null,
+      }),
     });
   };
 
   render() {
-    const {organization, children} = this.props;
+    const {organization, location, children} = this.props;
     const {period, start, end, utc} = this.state;
 
     const projects =
       organization.projects && organization.projects.filter(({isMember}) => isMember);
 
     return (
-      <Feature features={['global-views']} renderDisabled>
-        <EventsContext.Provider
-          value={{actions: this.actions, ...this.state.queryValues}}
-        >
-          <OrganizationEventsContent>
+      <EventsContext.Provider value={{actions: this.actions, ...this.state.queryValues}}>
+        <OrganizationEventsContent>
+          <Feature features={['global-views']} renderDisabled>
             <Header>
               <HeaderItemPosition>
                 <MultipleProjectSelector
@@ -254,6 +256,7 @@ class OrganizationEventsContainer extends React.Component {
                   {t('Events')} <BetaTag />
                 </HeaderTitle>
                 <StyledSearchBar
+                  organization={organization}
                   query={(location.query && location.query.query) || ''}
                   placeholder={t('Search for events, users, tags, and everything else.')}
                   onSearch={this.handleSearch}
@@ -262,9 +265,9 @@ class OrganizationEventsContainer extends React.Component {
 
               {children}
             </Body>
-          </OrganizationEventsContent>
-        </EventsContext.Provider>
-      </Feature>
+          </Feature>
+        </OrganizationEventsContent>
+      </EventsContext.Provider>
     );
   }
 }

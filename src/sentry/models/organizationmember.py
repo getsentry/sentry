@@ -309,3 +309,16 @@ class OrganizationMember(Model):
 
     def get_scopes(self):
         return roles.get(self.role).scopes
+
+    @classmethod
+    def delete_expired(cls, threshold):
+        """
+        Delete un-accepted member invitations that expired
+        ``threshold`` days ago.
+        """
+        cls.objects.filter(
+            token_expires_at__lt=threshold,
+            user_id__exact=None,
+        ).exclude(
+            email__exact=None
+        ).delete()
