@@ -3,8 +3,13 @@ from __future__ import absolute_import
 import datetime
 
 from django.utils import timezone
+from freezegun import freeze_time
 
-from sentry.api.utils import get_date_range_from_params, InvalidParams
+from sentry.api.utils import (
+    get_date_range_from_params,
+    InvalidParams,
+    MAX_STATS_PERIOD,
+)
 from sentry.testutils import TestCase
 
 
@@ -36,3 +41,13 @@ class GetDateRangeFromParamsTest(TestCase):
 
         with self.assertRaises(InvalidParams):
             get_date_range_from_params({'start': '2018-11-01'})
+
+    @freeze_time("2018-12-11 03:21:34")
+    def test_no_params(self):
+        start, end = get_date_range_from_params({})
+        assert start == timezone.now() - MAX_STATS_PERIOD
+        assert end == timezone.now()
+
+        start, end = get_date_range_from_params({}, optional=True)
+        assert start is None
+        assert end is None

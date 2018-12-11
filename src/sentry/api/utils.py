@@ -15,8 +15,20 @@ class InvalidParams(Exception):
     pass
 
 
-def get_date_range_from_params(params):
-    # Returns (start, end) or raises an `InvalidParams` exception
+def get_date_range_from_params(params, optional=False):
+    """
+    Gets a date range from standard date range params we pass to the api.
+    If `statsPeriod` is passed then convert to a time delta and make sure it
+    fits within our min/max period length. Values are in the format
+    <number><period_type>, where period type is one of `s` (seconds),
+    `m` (minutes), `h` (hours) or `d` (days).
+    :param params:
+    If `start` end `end` are passed, validate them, convert to `datetime` and
+    returns them if valid.
+    :param optional: When True, if no params passed then return `(None, None)`.
+    :return: A length 2 tuple containing start/end or raises an `InvalidParams`
+    exception
+    """
     now = timezone.now()
 
     end = now
@@ -38,5 +50,7 @@ def get_date_range_from_params(params):
             raise InvalidParams(exc.message)
         if start > end:
             raise InvalidParams('start must be before end')
+    elif optional:
+        return None, None
 
-    return (start, end)
+    return start, end
