@@ -169,7 +169,7 @@ def test_reserved_tags():
     assert data["tags"] == [("foo", "bar")]
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_data"
-    assert data["errors"][0]["name"] == "tags"
+    assert data["errors"][0]["name"] == "tags.0"
     assert data["errors"][0]["value"] == ("release", "abc123")
 
 
@@ -180,7 +180,7 @@ def test_tag_value():
     assert data["tags"] == [("biz", "baz")]
     assert len(data["errors"]) == 1
     assert data["errors"][0]["type"] == "invalid_data"
-    assert data["errors"][0]["name"] == "tags"
+    assert data["errors"][0]["name"] == "tags.0"
     assert data["errors"][0]["value"] == ("foo", "b\nar")
 
 
