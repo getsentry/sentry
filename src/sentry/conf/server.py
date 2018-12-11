@@ -813,6 +813,8 @@ SENTRY_FEATURES = {
     'organizations:repos': True,
     # DEPCREATED: pending removal.
     'organizations:require-2fa': False,
+    # Sentry 10 - multi project interfaces.
+    'organizations:sentry10': False,
     # Enable basic SSO functionality, providing configurable single signon
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
