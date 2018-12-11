@@ -27,7 +27,7 @@ describe('OrganizationDiscoverContainer', function() {
         <OrganizationDiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
-          selection={{}}
+          selection={{datetime: {}}}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -46,7 +46,11 @@ describe('OrganizationDiscoverContainer', function() {
         <OrganizationDiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
-          selection={{projects: [1]}}
+          selection={{
+            projects: [1],
+            environments: [],
+            datetime: {start: null, end: null, range: '14d'},
+          }}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -80,7 +84,7 @@ describe('OrganizationDiscoverContainer', function() {
         <OrganizationDiscoverContainer
           location={{query: {}, search: ''}}
           params={{savedQueryId: 1}}
-          selection={{}}
+          selection={{datetime: {}}}
         />,
         {
           ...TestStubs.routerContext([{organization}, {organization: PropTypes.object}]),
@@ -119,7 +123,7 @@ describe('OrganizationDiscoverContainer', function() {
         <OrganizationDiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
-          selection={{}}
+          selection={{datetime: {}}}
         />,
         TestStubs.routerContext([{organization}])
       );
