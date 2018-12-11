@@ -38,6 +38,16 @@ export default class SavedQueries extends React.Component {
     if (!nextProps.savedQuery && this.props.savedQuery !== nextProps.savedQuery) {
       this.fetchAll();
     }
+
+    // Update query in the list with new data
+    if (nextProps.savedQuery && nextProps.savedQuery !== this.props.savedQuery) {
+      const data = this.state.data.map(
+        savedQuery =>
+          savedQuery.id === nextProps.savedQuery.id ? nextProps.savedQuery : savedQuery
+      );
+      this.setState({data});
+    }
+
     // Update saved query if any name / details have been updated
     if (
       nextProps.savedQuery &&
