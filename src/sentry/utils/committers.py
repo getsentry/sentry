@@ -217,5 +217,8 @@ def get_event_file_committers(project, event, frame_limit=25):
     )
 
     committers = _get_committers(annotated_frames, relevant_commits)
-    metrics.incr('feature.owners.has-committers', instance='hit' if committers else 'miss')
+    metrics.incr(
+        'feature.owners.has-committers',
+        instance='hit' if committers else 'miss',
+        skip_internal=False)
     return committers

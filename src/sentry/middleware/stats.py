@@ -11,12 +11,12 @@ from sentry.utils import metrics
 
 class ResponseCodeMiddleware(object):
     def process_response(self, request, response):
-        metrics.incr('response', instance=six.text_type(response.status_code))
+        metrics.incr('response', instance=six.text_type(response.status_code), skip_internal=False)
         return response
 
     def process_exception(self, request, exception):
         if not isinstance(exception, Http404):
-            metrics.incr('response', instance='500')
+            metrics.incr('response', instance='500', skip_internal=False)
 
 
 class RequestTimingMiddleware(object):
@@ -59,7 +59,8 @@ class RequestTimingMiddleware(object):
             tags={
                 'method': request.method,
                 'status_code': status_code,
-            }
+            },
+            skip_internal=False,
         )
 
         if not hasattr(request, '_start_time'):
