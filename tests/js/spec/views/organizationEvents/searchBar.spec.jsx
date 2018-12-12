@@ -118,4 +118,30 @@ describe('SearchBar', function() {
     setQuery(wrapper, '');
     expect(wrapper.find('.search-description strong')).toHaveLength(0);
   });
+
+  it('ignores negation ("!") at the beginning of search term', async function() {
+    let wrapper = await mount(<SearchBar {...props} />, options);
+
+    setQuery(wrapper, '!gp');
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('.search-autocomplete-item')).toHaveLength(1);
+    expect(wrapper.find('.search-autocomplete-item').text()).toBe('gpu:');
+  });
+
+  it('ignores wildcard ("*") at the beginning of tag value query', async function() {
+    let wrapper = await mount(<SearchBar {...props} />, options);
+
+    setQuery(wrapper, '!gpu:*');
+    await tick();
+    wrapper.update();
+
+    expect(tagValuesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/tags/gpu/values/',
+      expect.objectContaining({data: {query: ''}})
+    );
+    selectFirstAutocompleteItem(wrapper);
+    expect(wrapper.find('input').prop('value')).toBe('!gpu:*"Nvidia 1080ti" ');
+  });
 });

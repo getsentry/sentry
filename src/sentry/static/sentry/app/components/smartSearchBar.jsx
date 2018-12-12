@@ -6,6 +6,7 @@ import classNames from 'classnames';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {t} from 'app/locale';
 import MemberListStore from 'app/stores/memberListStore';
 import SearchDropdown from 'app/views/stream/searchDropdown';
@@ -34,6 +35,11 @@ class SmartSearchBar extends React.Component {
     defaultQuery: PropTypes.string,
 
     query: PropTypes.string,
+
+    /**
+     * Prepare query value before filtering dropdown items
+     */
+    prepareQuery: PropTypes.func,
 
     // Search items to display when there's no tag key
     defaultSearchItems: PropTypes.array.isRequired,
@@ -176,13 +182,15 @@ class SmartSearchBar extends React.Component {
    * e.g. ['is:', 'assigned:', 'url:', 'release:']
    */
   getTagKeys = function(query) {
-    const {supportedTags} = this.props;
+    const {supportedTags, prepareQuery} = this.props;
 
     // Return all if query is empty
     let tagKeys = Object.keys(supportedTags).map(key => `${key}:`);
 
     if (query) {
-      tagKeys = tagKeys.filter(key => key.indexOf(query) > -1);
+      const preparedQuery =
+        typeof prepareQuery === 'function' ? prepareQuery(query) : query;
+      tagKeys = tagKeys.filter(key => key.indexOf(preparedQuery) > -1);
     }
 
     // If the environment feature is active and excludeEnvironment = true
@@ -291,19 +299,24 @@ class SmartSearchBar extends React.Component {
       this.setState({searchTerm: matchValue});
       this.updateAutoCompleteState(autoCompleteItems, matchValue);
     } else {
-      let {supportedTags} = this.props;
+      let {supportedTags, prepareQuery} = this.props;
 
       // TODO(billy): Better parsing for these examples
       // sentry:release:
       // url:"http://with/colon"
       tagName = last.slice(0, index);
+
+      // e.g. given "!gpu" we want "gpu"
+      tagName = tagName.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
       query = last.slice(index + 1);
+      const preparedQuery =
+        typeof prepareQuery === 'function' ? prepareQuery(query) : query;
 
       // filter existing items immediately, until API can return
       // with actual tag value results
-      let filteredSearchItems = !query
+      let filteredSearchItems = !preparedQuery
         ? this.state.searchItems
-        : this.state.searchItems.filter(item => item.value.indexOf(query) !== -1);
+        : this.state.searchItems.filter(item => item.value.indexOf(preparedQuery) !== -1);
 
       this.setState({
         searchTerm: query,
@@ -321,7 +334,7 @@ class SmartSearchBar extends React.Component {
 
       return void (tag.predefined ? this.getPredefinedTagValues : this.getTagValues)(
         tag,
-        query,
+        preparedQuery,
         this.updateAutoCompleteState
       );
     }
@@ -420,12 +433,17 @@ class SmartSearchBar extends React.Component {
 
       newQuery = query.slice(0, lastTermIndex); // get text preceding last term
 
+      const prefix = newQuery.startsWith(NEGATION_OPERATOR) ? NEGATION_OPERATOR : '';
+      const valuePrefix = newQuery.endsWith(SEARCH_WILDCARD) ? SEARCH_WILDCARD : '';
+
+      // newQuery is "<term>:"
+      // replaceText should be the selected value
       newQuery =
         last.indexOf(':') > -1
           ? // tag key present: replace everything after colon with replaceText
-            newQuery.replace(/\:"[^"]*"?$|\:\S*$/, ':' + replaceText)
+            newQuery.replace(/\:"[^"]*"?$|\:\S*$/, `:${valuePrefix}` + replaceText)
           : // no tag key present: replace last token with replaceText
-            newQuery.replace(/\S+$/, replaceText);
+            newQuery.replace(/\S+$/, `${prefix}${replaceText}`);
 
       newQuery = newQuery.concat(query.slice(lastTermIndex));
     }
