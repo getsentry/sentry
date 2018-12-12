@@ -18,8 +18,8 @@ from sentry.signals import release_created
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('CreateNewOrganizationRelease')
-def create_new_org_release_scenario(runner):
+@scenario('CreateNewOrganizationReleaseWithRef')
+def create_new_org_release_ref_scenario(runner):
     runner.request(
         method='POST',
         path='/organizations/%s/releases/' % (runner.org.slug, ),
@@ -27,6 +27,33 @@ def create_new_org_release_scenario(runner):
             'version': '2.0rc2',
             'ref': '6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb',
             'projects': [runner.default_project.slug],
+        }
+    )
+
+
+@scenario('CreateNewOrganizationReleaseWithCommits')
+def create_new_org_release_commit_scenario(runner):
+    runner.request(
+        method='POST',
+        path='/organizations/%s/releases/' % (runner.org.slug, ),
+        data={
+            'version': '2.0rc2',
+            'projects': [runner.default_project.slug],
+            'commits': [
+                {
+                    "patch_set": [
+                        {"path": "path/to/added-file.html", "type": "A"},
+                        {"path": "path/to/modified-file.html", "type": "M"},
+                        {"path": "path/to/deleted-file.html", "type": "D"}
+                    ],
+                    "repository": "owner-name/repo-name",
+                    "author_name": "Author Name",
+                    "author_email": "author_email@example.com",
+                    "timestamp": "2018-09-20T11:50:22+03:00",
+                    "message": "This is the commit message.",
+                    "id": "8371445ab8a9facd271df17038ff295a48accae7"
+                }
+            ]
         }
     )
 
@@ -101,7 +128,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             on_results=lambda x: serialize(x, request.user),
         )
 
-    @attach_scenarios([create_new_org_release_scenario])
+    @attach_scenarios([create_new_org_release_ref_scenario, create_new_org_release_commit_scenario])
     def post(self, request, organization):
         """
         Create a New Release for an Organization
@@ -130,8 +157,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         :param array commits: an optional list of commit data to be associated
                               with the release. Commits must include parameters
                               ``id`` (the sha of the commit), and can optionally
-                              include ``repository``, ``message``, ``author_name``,
-                              ``author_email``, and ``timestamp``.
+                              include ``repository``, ``message``, ``patch_set``,
+                              ``author_name``, ``author_email``, and ``timestamp``.
         :param array refs: an optional way to indicate the start and end commits
                            for each repository included in a release. Head commits
                            must include parameters ``repository`` and ``commit``
