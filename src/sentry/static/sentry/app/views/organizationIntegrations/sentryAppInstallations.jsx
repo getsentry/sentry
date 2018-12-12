@@ -1,22 +1,29 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import {groupBy} from 'lodash';
 import parseurl from 'parseurl';
 import qs from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import AsyncView from 'app/views/asyncView';
-import {Client} from 'app/api';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import {t} from 'app/locale';
+import {
+  installSentryApp,
+  uninstallSentryApp,
+} from 'app/actionCreators/sentryAppInstallations';
+import {openSentryAppPermissionModal} from 'app/actionCreators/modal';
+import withApi from 'app/utils/withApi';
 
-const api = new Client();
+class SentryAppInstallations extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
+    orgId: PropTypes.string.isRequired,
+    installs: PropTypes.array.isRequired,
+    applications: PropTypes.array.isRequired,
+  };
 
-export default class SentryAppInstallations extends AsyncView {
-  getEndpoints() {
-    return [];
-  }
-
-  getDefaultState() {
-    return {
+  constructor(props) {
+    super(props);
+    this.state = {
       installs: this.props.installs,
       applications: this.props.applications,
     };
@@ -45,54 +52,40 @@ export default class SentryAppInstallations extends AsyncView {
   };
 
   install = app => {
-    const {orgId} = this.props;
-
-    const success = install => {
-      this.redirectUser({install: {...install}, app: {...app}});
-    };
-
-    const error = err => {
-      addErrorMessage(t(`Unable to install ${app.name}`));
-    };
-
-    const opts = {
-      method: 'POST',
-      data: {slug: app.slug},
-      success,
-      error,
-    };
-
-    api.request(`/organizations/${orgId}/sentry-app-installations/`, opts);
+    const {orgId, api} = this.props;
+    installSentryApp(api, orgId, app).then(
+      data => {
+        this.redirectUser({install: {...data}, app: {...app}});
+      },
+      () => {}
+    );
   };
 
   uninstall = install => {
+    const {api} = this.props;
     const origInstalls = [...this.state.installs];
     const installs = this.state.installs.filter(i => install.uuid != i.uuid);
-    this.setState({installs});
 
-    const success = () => {
-      addSuccessMessage(t(`${install.app.slug} successfully uninstalled.`));
-    };
+    uninstallSentryApp(api, install).then(
+      () => this.setState({installs}),
+      () => {
+        this.setState({origInstalls});
+        addErrorMessage(t(`Unable to uninstall ${install.app.name}`));
+      }
+    );
+  };
 
-    const error = err => {
-      this.setState({origInstalls});
-      addErrorMessage(t(`Unable to uninstall ${install.app.name}`));
-    };
-
-    const opts = {
-      method: 'DELETE',
-      success,
-      error,
-    };
-
-    api.request(`/sentry-app-installations/${install.uuid}/`, opts);
+  openModal = app => {
+    const {orgId} = this.props;
+    const onInstall = () => this.install(app);
+    openSentryAppPermissionModal({app, orgId, onInstall});
   };
 
   get installsByApp() {
     return groupBy(this.state.installs, install => install.app.slug);
   }
 
-  renderBody() {
+  render() {
     let {orgId} = this.props;
     let isEmpty = this.state.applications.length === 0;
 
@@ -105,7 +98,7 @@ export default class SentryAppInstallations extends AsyncView {
                 key={app.uuid}
                 app={app}
                 orgId={orgId}
-                onInstall={this.install}
+                onInstall={() => this.openModal(app)}
                 onUninstall={this.uninstall}
                 installs={this.installsByApp[app.slug]}
               />
@@ -115,3 +108,6 @@ export default class SentryAppInstallations extends AsyncView {
     );
   }
 }
+
+export default withApi(SentryAppInstallations);
+export {SentryAppInstallations};

@@ -141,3 +141,13 @@ export function openDocsSearchModal() {
       });
     });
 }
+
+export function openSentryAppPermissionModal(options = {}) {
+  import(/* webpackChunkName: "SentryAppPermissionsModal" */ 'app/components/modals/sentryAppPermissionsModal')
+    .then(mod => mod.default)
+    .then(Modal => {
+      openModal(deps => <Modal {...deps} {...options} />, {
+        modalClassName: 'sentry-app-permissions',
+      });
+    });
+}
