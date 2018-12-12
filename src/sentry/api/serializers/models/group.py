@@ -158,9 +158,9 @@ class GroupSerializer(Serializer):
             project_id = item_list[0].project_id
             item_ids = [g.id for g in item_list]
             user_counts = tagstore.get_groups_user_counts(
-                project_id,
+                [project_id],
                 item_ids,
-                environment_id=environment and environment.id,
+                environment_ids=environment and [environment.id],
             )
             first_seen = {}
             last_seen = {}

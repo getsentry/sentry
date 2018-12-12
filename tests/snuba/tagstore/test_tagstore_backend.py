@@ -230,9 +230,9 @@ class TagStorageTest(SnubaTestCase):
 
     def test_get_groups_user_counts(self):
         assert self.ts.get_groups_user_counts(
-            project_id=self.proj1.id,
+            project_ids=[self.proj1.id],
             group_ids=[self.proj1group1.id, self.proj1group2.id],
-            environment_id=self.proj1env1.id
+            environment_ids=[self.proj1env1.id]
         ) == {
             self.proj1group1.id: 2,
             self.proj1group2.id: 1,

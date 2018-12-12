@@ -731,15 +731,19 @@ class V2TagStorage(TagStorage):
 
         return {'id__in': set(matches)}
 
-    def get_groups_user_counts(self, project_id, group_ids, environment_id):
+    def get_groups_user_counts(self, project_ids, group_ids, environment_ids):
+        # only the snuba backend supports multi project/env
+        if len(project_ids) > 1 or environment_ids and len(environment_ids) > 1:
+            raise NotImplementedError
+
         qs = models.GroupTagKey.objects.filter(
-            project_id=project_id,
+            project_id=project_ids[0],
             group_id__in=group_ids,
-            _key__project_id=project_id,
+            _key__project_id=project_ids[0],
             _key__key='sentry:user',
         )
 
-        qs = self._add_environment_filter(qs, environment_id)
+        qs = self._add_environment_filter(qs, environment_ids and environment_ids[0])
 
         return defaultdict(int, qs.values_list('group_id', 'values_seen'))
 
@@ -783,7 +787,8 @@ class V2TagStorage(TagStorage):
         qs = self._add_environment_filter(qs, environment_id)
         return qs.aggregate(t=Sum('times_seen'))['t']
 
-    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
+    def get_top_group_tag_values(self, project_id, group_id,
+                                 environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
         if db.is_postgres():
             environment_id = AGGREGATE_ENVIRONMENT_ID if environment_id is None else environment_id
 
