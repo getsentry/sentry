@@ -42,7 +42,6 @@ import ProjectInstallPlatform from 'app/views/projectInstall/platform';
 import ProjectReleases from 'app/views/projectReleases';
 import ProjectSavedSearches from 'app/views/projectSavedSearches';
 import ProjectSettings from 'app/views/projectSettings';
-import ProjectUserFeedback from 'app/views/userFeedback/project';
 import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectPluginDetails from 'app/views/projectPluginDetails';
 import ReleaseAllEvents from 'app/views/releaseAllEvents';
@@ -874,7 +873,12 @@ function routes() {
             <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
             <Route path="commits/" component={errorHandler(ReleaseCommits)} />
           </Route>
-          <Route path="user-feedback/" component={errorHandler(ProjectUserFeedback)} />
+          <Route
+            path="user-feedback/"
+            componentPromise={() =>
+              import(/*webpackChunkName: "ProjectUserFeedback"*/ './views/userFeedback/project')}
+            component={errorHandler(LazyLoad)}
+          />
 
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
             <Redirect from="teams/" to="/settings/:orgId/:projectId/teams/" />
