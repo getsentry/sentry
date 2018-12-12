@@ -71,3 +71,7 @@ export const DEFAULT_RELATIVE_PERIODS = {
   '14d': t('Last 14 days'),
   '30d': t('Last 30 days'),
 };
+
+// Special Search characters
+export const NEGATION_OPERATOR = '!';
+export const SEARCH_WILDCARD = '*';

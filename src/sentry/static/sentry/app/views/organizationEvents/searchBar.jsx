@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import {COLUMNS} from 'app/views/organizationDiscover/data';
+import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {defined} from 'app/utils';
 import {fetchEventFieldValues} from 'app/actionCreators/events';
@@ -22,6 +23,11 @@ const tagToObjectReducer = (acc, name) => {
 };
 
 const TAGS = COLUMNS.map(({name}) => name);
+
+const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
+  `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
+  'g'
+);
 
 class SearchBar extends React.PureComponent {
   static propTypes = {
@@ -69,12 +75,20 @@ class SearchBar extends React.PureComponent {
       .sort()
       .reduce(tagToObjectReducer, {});
 
+  /**
+   * Prepare query string (e.g. strip special characters like negation operator)
+   */
+  prepareQuery = query => {
+    return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
+  };
+
   render() {
     return (
       <SmartSearchBar
         {...this.props}
         onGetTagValues={this.getEventFieldValues}
         supportedTags={this.state.tags}
+        prepareQuery={this.prepareQuery}
         excludeEnvironment
         dropdownClassName={css`
           max-height: 300px;
