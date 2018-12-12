@@ -23,14 +23,6 @@ def make_event(**kwargs):
     return result
 
 
-def test_tags_none():
-    manager = EventManager(make_event(tags=None))
-    manager.normalize()
-    data = manager.get_data()
-
-    assert not data.get('tags')
-
-
 def test_tags_as_list():
     manager = EventManager(make_event(tags=[('foo', 'bar')]))
     manager.normalize()
@@ -48,19 +40,11 @@ def test_tags_as_dict():
 
 
 def test_interface_is_relabeled():
-    manager = EventManager(make_event(user={'id': '1'}))
+    manager = EventManager(make_event(**{"sentry.interfaces.User": {'id': '1'}}))
     manager.normalize()
     data = manager.get_data()
 
     assert data['user'] == {'id': '1'}
-
-
-def test_interface_none():
-    manager = EventManager(make_event(user=None))
-    manager.normalize()
-    data = manager.get_data()
-
-    assert 'user' not in data
 
 
 @pytest.mark.parametrize('user', ['missing', None, {}, {'ip_address': None}])
@@ -290,10 +274,10 @@ def test_event_id_lowercase():
 @pytest.mark.parametrize('key', [
     'fingerprint', 'modules', 'user', 'request', 'contexts',
     'breadcrumbs', 'exception', 'stacktrace', 'threads', 'tags',
-    'extra', 'debug_meta', 'sdk'
+    'extra', 'debug_meta', 'sdk', 'repos'
 ])
-@pytest.mark.parametrize('value', [{}, []])
-def test_removes_some_empty_containers(key, value):
+@pytest.mark.parametrize('value', [{}, [], None])
+def test_removes_some_empty_interfaces(key, value):
     event = make_event()
     event[key] = value
 
