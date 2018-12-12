@@ -285,3 +285,14 @@ def test_removes_some_empty_interfaces(key, value):
     manager.normalize()
     data = manager.get_data()
     assert key not in data
+
+
+def test_returns_cannonical_dict():
+    from sentry.utils.canonical import CanonicalKeyDict
+
+    event = make_event()
+
+    manager = EventManager(event)
+    assert isinstance(manager.get_data(), CanonicalKeyDict)
+    manager.normalize()
+    assert isinstance(manager.get_data(), CanonicalKeyDict)

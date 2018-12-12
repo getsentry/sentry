@@ -687,7 +687,7 @@ class EventManager(object):
         elif '_meta' in data:
             del data['_meta']
 
-        self._data = prune_empty_keys(data)
+        self._data = CanonicalKeyDict(prune_empty_keys(data))
 
     def should_filter(self):
         '''
