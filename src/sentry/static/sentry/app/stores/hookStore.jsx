@@ -8,16 +8,20 @@ const validHookNames = new Set([
   'routes',
   'routes:admin',
   'routes:organization',
+  'routes:onboarding-survey',
 
   // Analytics and tracking hooks
   'amplitude:event',
   'analytics:event',
   'analytics:log-experiment',
+  'analytics:onboarding-survey-log',
 
   // Operational metrics
   'metrics:event',
 
   // Specific component customizations
+  'sidebar:onboarding-assets',
+  'utils:onboarding-survey-url',
   'component:org-auth-view',
   'component:org-members-view',
   'component:releases-tab',
