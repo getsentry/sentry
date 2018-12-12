@@ -3,7 +3,10 @@ from __future__ import absolute_import
 from mock import patch
 
 from base64 import b64encode
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -955,6 +958,23 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         )
         release4.add_project(project2)
 
+        release5 = Release.objects.create(
+            organization_id=org.id,
+            version='5',
+        )
+        release5.add_project(project1)
+        release5.add_project(project2)
+        ReleaseEnvironment.objects.create(
+            organization_id=org.id,
+            release_id=release5.id,
+            environment_id=env1.id,
+        )
+        ReleaseEnvironment.objects.create(
+            organization_id=org.id,
+            release_id=release5.id,
+            environment_id=env2.id,
+        )
+
         self.project1 = project1
         self.project2 = project2
 
@@ -962,6 +982,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         self.release2 = release2
         self.release3 = release3
         self.release4 = release4
+        self.release5 = release5
 
         self.env1 = env1
         self.env2 = env2
@@ -992,10 +1013,10 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             }
         )
         response = self.client.get(url + '?environment=' + self.env1.name, format='json')
-        self.assert_releases(response, [self.release1])
+        self.assert_releases(response, [self.release1, self.release5])
 
         response = self.client.get(url + '?environment=' + self.env2.name, format='json')
-        self.assert_releases(response, [self.release2, self.release3])
+        self.assert_releases(response, [self.release2, self.release3, self.release5])
 
     def test_empty_environment(self):
         url = reverse(
@@ -1022,7 +1043,10 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             }
         )
         response = self.client.get(url, format='json')
-        self.assert_releases(response, [self.release1, self.release2, self.release3, self.release4])
+        self.assert_releases(
+            response,
+            [self.release1, self.release2, self.release3, self.release4, self.release5],
+        )
 
     def test_invalid_environment(self):
         url = reverse(
@@ -1032,7 +1056,39 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             }
         )
         response = self.client.get(url + '?environment=' + 'invalid_environment', format='json')
-        self.assert_releases(response, [])
+        assert response.status_code == 404
+
+    def test_specify_project_ids(self):
+        url = reverse(
+            'sentry-api-0-organization-releases',
+            kwargs={'organization_slug': self.org.slug},
+        )
+        response = self.client.get(url, format='json', data={'project': self.project1.id})
+        self.assert_releases(response, [self.release1, self.release3, self.release5])
+        response = self.client.get(url, format='json', data={'project': self.project2.id})
+        self.assert_releases(response, [self.release2, self.release4, self.release5])
+        response = self.client.get(
+            url,
+            format='json',
+            data={'project': [self.project1.id, self.project2.id]},
+        )
+        self.assert_releases(
+            response,
+            [self.release1, self.release2, self.release3, self.release4, self.release5],
+        )
+
+    def test_date_range(self):
+        url = reverse('sentry-api-0-organization-releases',
+                      kwargs={'organization_slug': self.org.slug})
+        response = self.client.get(
+            url,
+            format='json',
+            data={
+                'start': (datetime.now() - timedelta(days=1)).isoformat() + 'Z',
+                'end': datetime.now().isoformat() + 'Z',
+            },
+        )
+        self.assert_releases(response, [self.release4, self.release5])
 
 
 class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
