@@ -11,13 +11,13 @@ describe('ProgressNodes', function() {
       },
     };
 
-    const baseContext = {
-      context: {
-        organization: {id: '1337', slug: 'testOrg'},
-      },
-    };
-
     it('should render step 0 if no projectId', function() {
+      let baseContext = {
+        context: {
+          organization: {id: '1337', slug: 'testOrg', experiments: {}},
+          location: {pathname: 'http://onboarding/lol/', query: {}},
+        },
+      };
       let wrapper = shallow(<ProgressNodes {...baseProps} />, baseContext);
 
       expect(wrapper.find('.node')).toHaveLength(6);
@@ -36,6 +36,15 @@ describe('ProgressNodes', function() {
     });
 
     it('should render step 1 if has projectId', function() {
+      let baseContext = {
+        context: {
+          organization: {id: '1337', slug: 'testOrg', experiments: {}},
+          location: {
+            pathname: 'http://onboarding/lol/projectSlug/configure/platform/',
+            query: {},
+          },
+        },
+      };
       let props = {
         ...baseProps,
         params: {

@@ -11,6 +11,7 @@ import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
+import HookStore from 'app/stores/hookStore';
 import OnboardingProject from 'app/views/onboarding/project';
 import OrganizationState from 'app/mixins/organizationState';
 import PanelAlert from 'app/components/panels/panelAlert';
@@ -63,12 +64,24 @@ const CreateProject = createReactClass({
 
   onTeamCreated() {
     let {router} = this.context;
-
     // After team gets created we need to force OrganizationContext to basically remount
     router.replace({
       pathname: router.location.pathname,
       state: 'refresh',
     });
+  },
+
+  navigateNextUrl(data) {
+    let organization = this.getOrganization();
+
+    let url =
+      HookStore.get('utils:onboarding-survey-url').length &&
+      organization.projects.length === 0
+        ? HookStore.get('utils:onboarding-survey-url')[0](data, organization)
+        : data.docsUrl;
+
+    this.setState({inFlight: false});
+    data.router.push(url);
   },
 
   createProject() {
@@ -96,9 +109,8 @@ const CreateProject = createReactClass({
         ProjectActions.createSuccess(data);
 
         // navigate to new url _now_
-        const url = this.props.getDocsUrl({slug, projectSlug: data.slug, platform});
-        this.setState({inFlight: false});
-        router.push(url);
+        const docsUrl = this.props.getDocsUrl({slug, projectSlug: data.slug, platform});
+        this.navigateNextUrl({router, slug, projectSlug: data.slug, platform, docsUrl});
       },
       error: err => {
         this.setState({

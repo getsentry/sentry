@@ -89,6 +89,11 @@ function routes() {
     hooksOrgRoutes.push(cb());
   });
 
+  let hooksSurveyRoute = [];
+  HookStore.get('routes:onboarding-survey').forEach(cb => {
+    hooksSurveyRoute.push(cb());
+  });
+
   const accountSettingsRoutes = (
     <React.Fragment>
       <IndexRedirect to="details/" />
@@ -746,6 +751,7 @@ function routes() {
       <Route path="/onboarding/:orgId/" component={errorHandler(OrganizationContext)}>
         <Route path="" component={errorHandler(OnboardingWizard)}>
           <IndexRoute component={errorHandler(CreateProject)} />
+          {hooksSurveyRoute}
           <Route
             path=":projectId/configure/(:platform)"
             component={errorHandler(OnboardingConfigure)}
