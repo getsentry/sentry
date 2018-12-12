@@ -212,7 +212,8 @@ class SnubaTSDB(BaseTSDB):
         The output is a 2-tuple of ([level_1_keys], [all_level_2_keys])
         """
         if isinstance(items, collections.Mapping):
-            return (items.keys(), list(set.union(*(set(v) for v in items.values()))))
+            return (items.keys(), list(set.union(*(set(v)
+                                                   for v in items.values())) if items else []))
         elif isinstance(items, (collections.Sequence, collections.Set)):
             return (items, None)
         else:
