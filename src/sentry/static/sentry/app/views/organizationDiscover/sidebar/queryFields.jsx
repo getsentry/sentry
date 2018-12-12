@@ -11,8 +11,19 @@ import Badge from 'app/components/badge';
 
 import Aggregations from '../aggregations';
 import Conditions from '../conditions';
+import {
+  Fieldset,
+  PlaceholderText,
+  SidebarLabel,
+  QueryFieldsSidebar,
+  DocsSeparator,
+  StyledInlineSvg,
+  DiscoverDocs,
+  DocsLabel,
+  DocsIcon,
+  DocsLink,
+} from '../styles';
 import Orderby from './orderby';
-import {Fieldset, PlaceholderText, SidebarLabel} from '../styles';
 import {NON_CONDITIONS_FIELDS} from '../data';
 import {getOrderbyFields} from '../utils';
 
@@ -72,7 +83,7 @@ export default class QueryFields extends React.Component {
     }));
 
     return (
-      <div>
+      <QueryFieldsSidebar>
         {savedQuery && (
           <Fieldset>
             <React.Fragment>
@@ -139,7 +150,15 @@ export default class QueryFields extends React.Component {
           />
         </Fieldset>
         <Fieldset>{actions}</Fieldset>
-      </div>
+        <DocsSeparator />
+        <DocsLink href="https://docs.sentry.io/product/discover/">
+          <DiscoverDocs>
+            <DocsIcon src="icon-docs" />
+            <DocsLabel>{t('Discover Documentation')}</DocsLabel>
+            <StyledInlineSvg src="icon-chevron-right" size="1em" />
+          </DiscoverDocs>
+        </DocsLink>
+      </QueryFieldsSidebar>
     );
   }
 }
