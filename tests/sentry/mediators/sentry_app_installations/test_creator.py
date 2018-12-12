@@ -25,7 +25,7 @@ class TestCreator(TestCase):
         )
 
     def test_creates_api_authorization(self):
-        install, grant = self.creator.call()
+        self.creator.call()
 
         assert ApiAuthorization.objects.get(
             application=self.sentry_app.application,
@@ -34,20 +34,20 @@ class TestCreator(TestCase):
         )
 
     def test_creates_installation(self):
-        install, grant = self.creator.call()
+        install = self.creator.call()
         assert install.pk
 
     def test_creates_api_grant(self):
-        install, grant = self.creator.call()
-        assert grant.pk
+        install = self.creator.call()
+        assert install.api_grant.pk
 
     @patch('sentry.tasks.app_platform.installation_webhook.delay')
     def test_notifies_service(self, installation_webhook):
-        install, _ = self.creator.call()
+        install = self.creator.call()
         installation_webhook.assert_called_once_with(install.id, self.user.id)
 
     def test_associations(self):
-        install, grant = self.creator.call()
+        install = self.creator.call()
 
-        assert install.api_grant == grant
+        assert install.api_grant is not None
         assert install.authorization is not None
