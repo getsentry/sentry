@@ -407,7 +407,6 @@ class Release(Model):
                         author, created = CommitAuthor.objects.create_or_update(
                             organization_id=self.organization_id,
                             email=author_email,
-                            defaults=author_data,
                             values=author_data)
                         if not created:
                             author = CommitAuthor.objects.get(
@@ -429,7 +428,6 @@ class Release(Model):
                         organization_id=self.organization_id,
                         repository_id=repo.id,
                         key=data['id'],
-                        defaults=commit_data,
                         values=commit_data)
                     if not created:
                         commit = Commit.objects.get(
@@ -444,16 +442,15 @@ class Release(Model):
 
                     patch_set = data.get('patch_set', [])
                     for patched_file in patch_set:
-                        commit_file_data = {
-                            'filename': patched_file['path'],
-                            'type': patched_file['type'],
-                        }
-                        CommitFileChange.objects.create_or_update(
-                            organization_id=self.organization.id,
-                            commit=commit,
-                            defaults=commit_file_data,
-                            values=commit_file_data
-                        )
+                        try:
+                            CommitFileChange.objects.create(
+                                organization_id=self.organization.id,
+                                commit=commit,
+                                filename=patched_file['path'],
+                                type=patched_file['type'],
+                            )
+                        except IntegrityError:
+                            pass
 
                     try:
                         ReleaseCommit.objects.create(
