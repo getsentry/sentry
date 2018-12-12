@@ -31,183 +31,389 @@ exports[`SuggestedOwners render() should not show owners committers without feat
     <div
       className="avatar-grid"
     >
-      <span
-        className="avatar-grid-item"
-        key="1:user"
-        onClick={[Function]}
-        style={
+      <SuggestedOwnersHovercard
+        actor={
           Object {
-            "cursor": "pointer",
+            "id": "1",
+            "name": "Jane Doe",
+            "type": "user",
           }
         }
+        key="1:undefined:Jane Doe:0"
+        rules={Array []}
       >
-        <Tooltip
-          title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
-          tooltipOptions={
-            Object {
-              "container": "body",
-              "html": true,
-              "template": "<div class=\\"tooltip\\" role=\\"tooltip\\"><div class=\\"tooltip-arrow\\"></div><div class=\\"tooltip-inner tooltip-owners\\"></div></div>",
-            }
+        <Hovercard
+          body={
+            <HovercardBody>
+              <React.Fragment>
+                <div
+                  className="divider"
+                >
+                  <h6>
+                    Ownership Rules
+                  </h6>
+                </div>
+                <SuggestionReason>
+                  Suggested based on Project Ownership settings
+                </SuggestionReason>
+                <ul />
+              </React.Fragment>
+            </HovercardBody>
           }
+          containerClassName="avatar-grid-item"
+          displayTimeout={100}
+          header={
+            <React.Fragment>
+              <HovercardHeader>
+                <HovercardActorAvatar
+                  actor={
+                    Object {
+                      "id": "1",
+                      "name": "Jane Doe",
+                      "type": "user",
+                    }
+                  }
+                />
+                Jane Doe
+              </HovercardHeader>
+            </React.Fragment>
+          }
+          key="user:undefined"
         >
-          <ActorAvatar
-            actor={
+          <Container
+            className="avatar-grid-item"
+            innerRef={
               Object {
-                "id": "1",
-                "name": "Jane Doe",
-                "type": "user",
+                "current": <span
+                  class="avatar-grid-item css-s35yzd-Container e38w1je1"
+                >
+                  <span
+                    class="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
+                    style="cursor: pointer;"
+                  >
+                    <svg
+                      class="css-1r4mnb9-Svg e1knxa8x0"
+                      viewBox="0 0 120 120"
+                    >
+                      <rect
+                        fill="#f868bc"
+                        height="120"
+                        rx="15"
+                        ry="15"
+                        width="120"
+                        x="0"
+                        y="0"
+                      />
+                      <text
+                        fill="#FFFFFF"
+                        font-size="65"
+                        style="dominant-baseline: central;"
+                        text-anchor="middle"
+                        x="50%"
+                        y="50%"
+                      >
+                        JD
+                      </text>
+                    </svg>
+                  </span>
+                </span>,
               }
             }
-            className="tip"
-            hasTooltip={false}
-            title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
+            onMouseEnter={[Function]}
+            onMouseLeave={[Function]}
           >
-            <Avatar
-              className="tip"
-              hasTooltip={false}
-              title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
-              user={
-                Object {
-                  "email": "janedoe@example.com",
-                  "id": "1",
-                  "name": "Jane Doe",
-                }
-              }
+            <span
+              className="avatar-grid-item css-s35yzd-Container e38w1je1"
+              onMouseEnter={[Function]}
+              onMouseLeave={[Function]}
             >
-              <UserAvatar
-                className="tip"
-                gravatar={false}
-                hasTooltip={false}
-                title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
-                user={
+              <ActorAvatar
+                actor={
                   Object {
-                    "email": "janedoe@example.com",
                     "id": "1",
                     "name": "Jane Doe",
+                    "type": "user",
+                  }
+                }
+                hasTooltip={false}
+                onClick={[Function]}
+                style={
+                  Object {
+                    "cursor": "pointer",
                   }
                 }
               >
-                <BaseAvatar
-                  className="tip"
-                  gravatarId="janedoe@example.com"
+                <Avatar
                   hasTooltip={false}
-                  letterId="janedoe@example.com"
-                  round={true}
-                  style={Object {}}
-                  title="Jane Doe"
-                  tooltip="Jane Doe (janedoe@example.com)"
-                  type="letter_avatar"
-                  uploadPath="avatar"
+                  onClick={[Function]}
+                  style={
+                    Object {
+                      "cursor": "pointer",
+                    }
+                  }
+                  user={
+                    Object {
+                      "email": "janedoe@example.com",
+                      "id": "1",
+                      "name": "Jane Doe",
+                    }
+                  }
                 >
-                  <Tooltip
-                    disabled={true}
-                    title="Jane Doe (janedoe@example.com)"
+                  <UserAvatar
+                    gravatar={false}
+                    hasTooltip={false}
+                    onClick={[Function]}
+                    style={
+                      Object {
+                        "cursor": "pointer",
+                      }
+                    }
+                    user={
+                      Object {
+                        "email": "janedoe@example.com",
+                        "id": "1",
+                        "name": "Jane Doe",
+                      }
+                    }
                   >
-                    <StyledBaseAvatar
-                      className="avatar tip"
-                      loaded={true}
+                    <BaseAvatar
+                      gravatarId="janedoe@example.com"
+                      hasTooltip={false}
+                      letterId="janedoe@example.com"
+                      onClick={[Function]}
                       round={true}
-                      style={Object {}}
+                      style={
+                        Object {
+                          "cursor": "pointer",
+                        }
+                      }
+                      title="Jane Doe"
+                      tooltip="Jane Doe (janedoe@example.com)"
+                      type="letter_avatar"
+                      uploadPath="avatar"
                     >
-                      <span
-                        className="avatar tip css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
-                        style={Object {}}
+                      <Tooltip
+                        disabled={true}
+                        title="Jane Doe (janedoe@example.com)"
                       >
-                        <LetterAvatar
-                          displayName="Jane Doe"
-                          identifier="janedoe@example.com"
+                        <StyledBaseAvatar
+                          className="avatar"
+                          loaded={true}
                           round={true}
+                          style={
+                            Object {
+                              "cursor": "pointer",
+                            }
+                          }
                         >
-                          <Svg
-                            round={true}
-                            viewBox="0 0 120 120"
+                          <span
+                            className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
+                            style={
+                              Object {
+                                "cursor": "pointer",
+                              }
+                            }
                           >
-                            <svg
-                              className="css-1r4mnb9-Svg e1knxa8x0"
-                              viewBox="0 0 120 120"
+                            <LetterAvatar
+                              displayName="Jane Doe"
+                              identifier="janedoe@example.com"
+                              round={true}
                             >
-                              <rect
-                                fill="#f868bc"
-                                height="120"
-                                rx="15"
-                                ry="15"
-                                width="120"
-                                x="0"
-                                y="0"
-                              />
-                              <text
-                                fill="#FFFFFF"
-                                fontSize="65"
-                                style={
-                                  Object {
-                                    "dominantBaseline": "central",
-                                  }
-                                }
-                                textAnchor="middle"
-                                x="50%"
-                                y="50%"
+                              <Svg
+                                round={true}
+                                viewBox="0 0 120 120"
                               >
-                                JD
-                              </text>
-                            </svg>
-                          </Svg>
-                        </LetterAvatar>
-                      </span>
-                    </StyledBaseAvatar>
-                  </Tooltip>
-                </BaseAvatar>
-              </UserAvatar>
-            </Avatar>
-          </ActorAvatar>
-        </Tooltip>
-      </span>
+                                <svg
+                                  className="css-1r4mnb9-Svg e1knxa8x0"
+                                  viewBox="0 0 120 120"
+                                >
+                                  <rect
+                                    fill="#f868bc"
+                                    height="120"
+                                    rx="15"
+                                    ry="15"
+                                    width="120"
+                                    x="0"
+                                    y="0"
+                                  />
+                                  <text
+                                    fill="#FFFFFF"
+                                    fontSize="65"
+                                    style={
+                                      Object {
+                                        "dominantBaseline": "central",
+                                      }
+                                    }
+                                    textAnchor="middle"
+                                    x="50%"
+                                    y="50%"
+                                  >
+                                    JD
+                                  </text>
+                                </svg>
+                              </Svg>
+                            </LetterAvatar>
+                          </span>
+                        </StyledBaseAvatar>
+                      </Tooltip>
+                    </BaseAvatar>
+                  </UserAvatar>
+                </Avatar>
+              </ActorAvatar>
+            </span>
+          </Container>
+        </Hovercard>
+      </SuggestedOwnersHovercard>
     </div>
   </div>
-  <div
-    className="m-b-1"
+  <AccessContainer
+    access={
+      Array [
+        "project:write",
+      ]
+    }
   >
-    <h6>
-      <GuideAnchor
-        target="owners"
-        type="text"
+    <Access
+      access={
+        Array [
+          "project:write",
+        ]
+      }
+      configUser={
+        Object {
+          "email": "foo@example.com",
+          "flags": Object {
+            "newsletter_consent_prompt": false,
+          },
+          "hasPasswordAuth": true,
+          "id": "1",
+          "isAuthenticated": true,
+          "name": "Foo Bar",
+          "options": Object {
+            "timezone": "UTC",
+          },
+          "permissions": Set {},
+          "username": "foo@example.com",
+        }
+      }
+      organization={
+        Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "features": Array [],
+          "id": "3",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "scrapeJavaScript": true,
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
+          },
+          "teams": Array [],
+        }
+      }
+      renderNoAccessMessage={false}
+      requireAll={true}
+    >
+      <div
+        className="m-b-1"
       >
-        <GuideAnchorContainer
-          innerRef={[Function]}
-          type="text"
-        >
-          <div
-            className="css-9u5for-GuideAnchorContainer e130o4350"
+        <h6>
+          <GuideAnchor
+            target="owners"
             type="text"
           >
-            <StyledGuideAnchor
-              active={false}
-              className="guide-anchor-ping owners"
+            <GuideAnchorContainer
+              innerRef={[Function]}
+              type="text"
             >
               <div
-                className="guide-anchor-ping owners css-1yndvnf-StyledGuideAnchor e130o4351"
+                className="css-9u5for-GuideAnchorContainer e130o4350"
+                type="text"
               >
-                <StyledGuideAnchorRipples>
+                <StyledGuideAnchor
+                  active={false}
+                  className="guide-anchor-ping owners"
+                >
                   <div
-                    className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
-                  />
-                </StyledGuideAnchorRipples>
+                    className="guide-anchor-ping owners css-1yndvnf-StyledGuideAnchor e130o4351"
+                  >
+                    <StyledGuideAnchorRipples>
+                      <div
+                        className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
+                      />
+                    </StyledGuideAnchorRipples>
+                  </div>
+                </StyledGuideAnchor>
               </div>
-            </StyledGuideAnchor>
-          </div>
-        </GuideAnchorContainer>
-      </GuideAnchor>
-      <span>
-        Ownership Rules
-      </span>
-    </h6>
-    <a
-      className="btn btn-default btn-sm btn-create-ownership-rule"
-      onClick={[Function]}
-    >
-      Create Ownership Rule
-    </a>
-  </div>
+            </GuideAnchorContainer>
+          </GuideAnchor>
+          <span>
+            Ownership Rules
+          </span>
+        </h6>
+        <Button
+          className="btn btn-default btn-sm btn-create-ownership-rule"
+          disabled={false}
+          onClick={[Function]}
+          size="small"
+        >
+          <StyledButton
+            aria-label="Create Ownership Rule"
+            className="btn btn-default btn-sm btn-create-ownership-rule"
+            disabled={false}
+            onClick={[Function]}
+            role="button"
+            size="small"
+          >
+            <Component
+              aria-label="Create Ownership Rule"
+              className="btn btn-default btn-sm btn-create-ownership-rule css-dkprmi-StyledButton-getColors eqrebog0"
+              disabled={false}
+              onClick={[Function]}
+              role="button"
+              size="small"
+            >
+              <button
+                aria-label="Create Ownership Rule"
+                className="btn btn-default btn-sm btn-create-ownership-rule css-dkprmi-StyledButton-getColors eqrebog0"
+                disabled={false}
+                onClick={[Function]}
+                role="button"
+                size="small"
+              >
+                <ButtonLabel
+                  size="small"
+                >
+                  <Component
+                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                    size="small"
+                  >
+                    <span
+                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                    >
+                      Create Ownership Rule
+                    </span>
+                  </Component>
+                </ButtonLabel>
+              </button>
+            </Component>
+          </StyledButton>
+        </Button>
+      </div>
+    </Access>
+  </AccessContainer>
 </SuggestedOwners>
 `;
 
@@ -242,138 +448,390 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
     <div
       className="avatar-grid"
     >
-      <span
-        className="avatar-grid-item"
-        key="1:user"
-        onClick={[Function]}
-        style={
+      <SuggestedOwnersHovercard
+        actor={
           Object {
-            "cursor": "pointer",
+            "id": "1",
+            "name": "Jane Doe",
+            "type": "user",
           }
         }
+        key="1:undefined:Jane Doe:0"
+        rules={Array []}
       >
-        <Tooltip
-          title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
-          tooltipOptions={
-            Object {
-              "container": "body",
-              "html": true,
-              "template": "<div class=\\"tooltip\\" role=\\"tooltip\\"><div class=\\"tooltip-arrow\\"></div><div class=\\"tooltip-inner tooltip-owners\\"></div></div>",
-            }
+        <Hovercard
+          body={
+            <HovercardBody>
+              <React.Fragment>
+                <div
+                  className="divider"
+                >
+                  <h6>
+                    Ownership Rules
+                  </h6>
+                </div>
+                <SuggestionReason>
+                  Suggested based on Project Ownership settings
+                </SuggestionReason>
+                <ul />
+              </React.Fragment>
+            </HovercardBody>
           }
+          containerClassName="avatar-grid-item"
+          displayTimeout={100}
+          header={
+            <React.Fragment>
+              <HovercardHeader>
+                <HovercardActorAvatar
+                  actor={
+                    Object {
+                      "id": "1",
+                      "name": "Jane Doe",
+                      "type": "user",
+                    }
+                  }
+                />
+                Jane Doe
+              </HovercardHeader>
+            </React.Fragment>
+          }
+          key="user:undefined"
         >
-          <ActorAvatar
-            actor={
+          <Container
+            className="avatar-grid-item"
+            innerRef={
               Object {
-                "id": "1",
-                "name": "Jane Doe",
-                "type": "user",
+                "current": <span
+                  class="avatar-grid-item css-s35yzd-Container e38w1je1"
+                >
+                  <span
+                    class="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
+                    style="cursor: pointer;"
+                  >
+                    <svg
+                      class="css-1r4mnb9-Svg e1knxa8x0"
+                      viewBox="0 0 120 120"
+                    >
+                      <rect
+                        fill="#f868bc"
+                        height="120"
+                        rx="15"
+                        ry="15"
+                        width="120"
+                        x="0"
+                        y="0"
+                      />
+                      <text
+                        fill="#FFFFFF"
+                        font-size="65"
+                        style="dominant-baseline: central;"
+                        text-anchor="middle"
+                        x="50%"
+                        y="50%"
+                      >
+                        JD
+                      </text>
+                    </svg>
+                  </span>
+                </span>,
               }
             }
-            className="tip"
-            hasTooltip={false}
-            title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
+            onMouseEnter={[Function]}
+            onMouseLeave={[Function]}
           >
-            <Avatar
-              className="tip"
-              hasTooltip={false}
-              title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
-              user={
-                Object {
-                  "email": "janedoe@example.com",
-                  "id": "1",
-                  "name": "Jane Doe",
-                }
-              }
+            <span
+              className="avatar-grid-item css-s35yzd-Container e38w1je1"
+              onMouseEnter={[Function]}
+              onMouseLeave={[Function]}
             >
-              <UserAvatar
-                className="tip"
-                gravatar={false}
-                hasTooltip={false}
-                title="<div><div class=\\"tooltip-owners-name\\">Jane Doe</div><ul class=\\"tooltip-owners-commits\\">Assigned based on your Project&#x27;s Issue Ownership settings</ul><ul class=\\"tooltip-owners-commits\\">path matched: sentry/tagstore/*</ul></div>"
-                user={
+              <ActorAvatar
+                actor={
                   Object {
-                    "email": "janedoe@example.com",
                     "id": "1",
                     "name": "Jane Doe",
+                    "type": "user",
+                  }
+                }
+                hasTooltip={false}
+                onClick={[Function]}
+                style={
+                  Object {
+                    "cursor": "pointer",
                   }
                 }
               >
-                <BaseAvatar
-                  className="tip"
-                  gravatarId="janedoe@example.com"
+                <Avatar
                   hasTooltip={false}
-                  letterId="janedoe@example.com"
-                  round={true}
-                  style={Object {}}
-                  title="Jane Doe"
-                  tooltip="Jane Doe (janedoe@example.com)"
-                  type="letter_avatar"
-                  uploadPath="avatar"
+                  onClick={[Function]}
+                  style={
+                    Object {
+                      "cursor": "pointer",
+                    }
+                  }
+                  user={
+                    Object {
+                      "email": "janedoe@example.com",
+                      "id": "1",
+                      "name": "Jane Doe",
+                    }
+                  }
                 >
-                  <Tooltip
-                    disabled={true}
-                    title="Jane Doe (janedoe@example.com)"
+                  <UserAvatar
+                    gravatar={false}
+                    hasTooltip={false}
+                    onClick={[Function]}
+                    style={
+                      Object {
+                        "cursor": "pointer",
+                      }
+                    }
+                    user={
+                      Object {
+                        "email": "janedoe@example.com",
+                        "id": "1",
+                        "name": "Jane Doe",
+                      }
+                    }
                   >
-                    <StyledBaseAvatar
-                      className="avatar tip"
-                      loaded={true}
+                    <BaseAvatar
+                      gravatarId="janedoe@example.com"
+                      hasTooltip={false}
+                      letterId="janedoe@example.com"
+                      onClick={[Function]}
                       round={true}
-                      style={Object {}}
+                      style={
+                        Object {
+                          "cursor": "pointer",
+                        }
+                      }
+                      title="Jane Doe"
+                      tooltip="Jane Doe (janedoe@example.com)"
+                      type="letter_avatar"
+                      uploadPath="avatar"
                     >
-                      <span
-                        className="avatar tip css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
-                        style={Object {}}
+                      <Tooltip
+                        disabled={true}
+                        title="Jane Doe (janedoe@example.com)"
                       >
-                        <LetterAvatar
-                          displayName="Jane Doe"
-                          identifier="janedoe@example.com"
+                        <StyledBaseAvatar
+                          className="avatar"
+                          loaded={true}
                           round={true}
+                          style={
+                            Object {
+                              "cursor": "pointer",
+                            }
+                          }
                         >
-                          <Svg
-                            round={true}
-                            viewBox="0 0 120 120"
+                          <span
+                            className="avatar css-3f9bmx-StyledBaseAvatar e1z0ohzl0"
+                            style={
+                              Object {
+                                "cursor": "pointer",
+                              }
+                            }
                           >
-                            <svg
-                              className="css-1r4mnb9-Svg e1knxa8x0"
-                              viewBox="0 0 120 120"
+                            <LetterAvatar
+                              displayName="Jane Doe"
+                              identifier="janedoe@example.com"
+                              round={true}
                             >
-                              <rect
-                                fill="#f868bc"
-                                height="120"
-                                rx="15"
-                                ry="15"
-                                width="120"
-                                x="0"
-                                y="0"
-                              />
-                              <text
-                                fill="#FFFFFF"
-                                fontSize="65"
-                                style={
-                                  Object {
-                                    "dominantBaseline": "central",
-                                  }
-                                }
-                                textAnchor="middle"
-                                x="50%"
-                                y="50%"
+                              <Svg
+                                round={true}
+                                viewBox="0 0 120 120"
                               >
-                                JD
-                              </text>
-                            </svg>
-                          </Svg>
-                        </LetterAvatar>
-                      </span>
-                    </StyledBaseAvatar>
-                  </Tooltip>
-                </BaseAvatar>
-              </UserAvatar>
-            </Avatar>
-          </ActorAvatar>
-        </Tooltip>
-      </span>
+                                <svg
+                                  className="css-1r4mnb9-Svg e1knxa8x0"
+                                  viewBox="0 0 120 120"
+                                >
+                                  <rect
+                                    fill="#f868bc"
+                                    height="120"
+                                    rx="15"
+                                    ry="15"
+                                    width="120"
+                                    x="0"
+                                    y="0"
+                                  />
+                                  <text
+                                    fill="#FFFFFF"
+                                    fontSize="65"
+                                    style={
+                                      Object {
+                                        "dominantBaseline": "central",
+                                      }
+                                    }
+                                    textAnchor="middle"
+                                    x="50%"
+                                    y="50%"
+                                  >
+                                    JD
+                                  </text>
+                                </svg>
+                              </Svg>
+                            </LetterAvatar>
+                          </span>
+                        </StyledBaseAvatar>
+                      </Tooltip>
+                    </BaseAvatar>
+                  </UserAvatar>
+                </Avatar>
+              </ActorAvatar>
+            </span>
+          </Container>
+        </Hovercard>
+      </SuggestedOwnersHovercard>
     </div>
   </div>
+  <AccessContainer
+    access={
+      Array [
+        "project:write",
+      ]
+    }
+  >
+    <Access
+      access={
+        Array [
+          "project:write",
+        ]
+      }
+      configUser={
+        Object {
+          "email": "foo@example.com",
+          "flags": Object {
+            "newsletter_consent_prompt": false,
+          },
+          "hasPasswordAuth": true,
+          "id": "1",
+          "isAuthenticated": true,
+          "name": "Foo Bar",
+          "options": Object {
+            "timezone": "UTC",
+          },
+          "permissions": Set {},
+          "username": "foo@example.com",
+        }
+      }
+      organization={
+        Object {
+          "access": Array [
+            "org:read",
+            "org:write",
+            "org:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+          ],
+          "features": Array [
+            "code-owners",
+          ],
+          "id": "3",
+          "name": "Organization Name",
+          "onboardingTasks": Array [],
+          "projects": Array [],
+          "scrapeJavaScript": true,
+          "slug": "org-slug",
+          "status": Object {
+            "id": "active",
+            "name": "active",
+          },
+          "teams": Array [],
+        }
+      }
+      renderNoAccessMessage={false}
+      requireAll={true}
+    >
+      <div
+        className="m-b-1"
+      >
+        <h6>
+          <GuideAnchor
+            target="owners"
+            type="text"
+          >
+            <GuideAnchorContainer
+              innerRef={[Function]}
+              type="text"
+            >
+              <div
+                className="css-9u5for-GuideAnchorContainer e130o4350"
+                type="text"
+              >
+                <StyledGuideAnchor
+                  active={false}
+                  className="guide-anchor-ping owners"
+                >
+                  <div
+                    className="guide-anchor-ping owners css-1yndvnf-StyledGuideAnchor e130o4351"
+                  >
+                    <StyledGuideAnchorRipples>
+                      <div
+                        className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
+                      />
+                    </StyledGuideAnchorRipples>
+                  </div>
+                </StyledGuideAnchor>
+              </div>
+            </GuideAnchorContainer>
+          </GuideAnchor>
+          <span>
+            Ownership Rules
+          </span>
+        </h6>
+        <Button
+          className="btn btn-default btn-sm btn-create-ownership-rule"
+          disabled={false}
+          onClick={[Function]}
+          size="small"
+        >
+          <StyledButton
+            aria-label="Create Ownership Rule"
+            className="btn btn-default btn-sm btn-create-ownership-rule"
+            disabled={false}
+            onClick={[Function]}
+            role="button"
+            size="small"
+          >
+            <Component
+              aria-label="Create Ownership Rule"
+              className="btn btn-default btn-sm btn-create-ownership-rule css-dkprmi-StyledButton-getColors eqrebog0"
+              disabled={false}
+              onClick={[Function]}
+              role="button"
+              size="small"
+            >
+              <button
+                aria-label="Create Ownership Rule"
+                className="btn btn-default btn-sm btn-create-ownership-rule css-dkprmi-StyledButton-getColors eqrebog0"
+                disabled={false}
+                onClick={[Function]}
+                role="button"
+                size="small"
+              >
+                <ButtonLabel
+                  size="small"
+                >
+                  <Component
+                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                    size="small"
+                  >
+                    <span
+                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                    >
+                      Create Ownership Rule
+                    </span>
+                  </Component>
+                </ButtonLabel>
+              </button>
+            </Component>
+          </StyledButton>
+        </Button>
+      </div>
+    </Access>
+  </AccessContainer>
 </SuggestedOwners>
 `;

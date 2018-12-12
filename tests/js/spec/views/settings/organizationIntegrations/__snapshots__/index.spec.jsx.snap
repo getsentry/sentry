@@ -140,6 +140,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
       >
         <Alert
           icon="icon-warning-sm"
+          iconSize="24px"
           type="warning"
         >
           <AlertWrapper
@@ -160,18 +161,18 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                   src="icon-warning-sm"
                 >
                   <InlineSvg
-                    className="css-1gojvm3-StyledInlineSvg e1xb5l7j0"
+                    className="css-1r04e78-StyledInlineSvg e1xb5l7j0"
                     size="24px"
                     src="icon-warning-sm"
                   >
                     <StyledSvg
-                      className="css-1gojvm3-StyledInlineSvg e1xb5l7j0"
+                      className="css-1r04e78-StyledInlineSvg e1xb5l7j0"
                       height="24px"
                       viewBox={Object {}}
                       width="24px"
                     >
                       <svg
-                        className="e1xb5l7j0 css-1et2325-StyledSvg-StyledInlineSvg e2idor0"
+                        className="e1xb5l7j0 css-13aubof-StyledSvg-StyledInlineSvg e2idor0"
                         height="24px"
                         viewBox={Object {}}
                         width="24px"
@@ -1602,6 +1603,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                               <React.Fragment>
                                                 <Alert
                                                   icon="icon-circle-exclamation"
+                                                  iconSize="24px"
                                                   type="error"
                                                 >
                                                   Deleting this integration has consequences!
@@ -2994,6 +2996,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                               <React.Fragment>
                                                 <Alert
                                                   icon="icon-circle-exclamation"
+                                                  iconSize="24px"
                                                   type="error"
                                                 >
                                                   Deleting this integration has consequences!
@@ -3323,6 +3326,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
       >
         <Alert
           icon="icon-warning-sm"
+          iconSize="24px"
           type="warning"
         >
           <AlertWrapper
@@ -3343,18 +3347,18 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                   src="icon-warning-sm"
                 >
                   <InlineSvg
-                    className="css-1gojvm3-StyledInlineSvg e1xb5l7j0"
+                    className="css-1r04e78-StyledInlineSvg e1xb5l7j0"
                     size="24px"
                     src="icon-warning-sm"
                   >
                     <StyledSvg
-                      className="css-1gojvm3-StyledInlineSvg e1xb5l7j0"
+                      className="css-1r04e78-StyledInlineSvg e1xb5l7j0"
                       height="24px"
                       viewBox={Object {}}
                       width="24px"
                     >
                       <svg
-                        className="e1xb5l7j0 css-1et2325-StyledSvg-StyledInlineSvg e2idor0"
+                        className="e1xb5l7j0 css-13aubof-StyledSvg-StyledInlineSvg e2idor0"
                         height="24px"
                         viewBox={Object {}}
                         width="24px"

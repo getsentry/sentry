@@ -49,14 +49,15 @@ describe('SuggestedOwners', function() {
       let wrapper = mount(
         <SuggestedOwners event={event} />,
         TestStubs.routerContext([
-          {project: TestStubs.Project(), group: TestStubs.Group()},
-          {group: SentryTypes.Group, project: SentryTypes.Project},
+          {
+            project: TestStubs.Project(),
+            group: TestStubs.Group(),
+            organization: TestStubs.Organization({features: ['code-owners']}),
+          },
         ])
       );
 
-      wrapper.setContext({
-        organization: {id: '1', features: new Set(['code-owners'])},
-      });
+      wrapper.setContext({});
 
       expect(wrapper).toMatchSnapshot();
     });

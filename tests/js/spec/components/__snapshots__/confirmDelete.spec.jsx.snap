@@ -31,6 +31,7 @@ exports[`ConfirmDelete renders 1`] = `
           className="modal-body"
         >
           <Alert
+            iconSize="24px"
             type="error"
           >
             <AlertWrapper
