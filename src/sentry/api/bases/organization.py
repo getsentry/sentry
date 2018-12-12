@@ -10,10 +10,9 @@ from sentry.api.utils import (
     get_date_range_from_params,
     InvalidParams,
 )
-from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     ApiKey, Authenticator, Environment, Organization, OrganizationMember, OrganizationMemberTeam, Project,
-    ProjectStatus, ProjectTeam, ReleaseProject, Team
+    ProjectStatus, ReleaseProject,
 )
 from sentry.utils import auth
 from sentry.utils.sdk import configure_scope
@@ -268,7 +267,7 @@ class OrganizationEndpoint(Endpoint):
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission, )
 
-    def get_allowed_projects(self, request, organization):
+    def get_project_ids(self, request, organization):
         has_valid_api_key = False
         if isinstance(request.auth, ApiKey):
             if request.auth.organization_id != organization.id:
@@ -279,26 +278,15 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if not (has_valid_api_key or request.user.is_authenticated()):
             return []
 
-        if has_valid_api_key or is_active_superuser(request) or organization.flags.allow_joinleave:
-            allowed_teams = Team.objects.filter(organization=organization).values_list(
-                'id', flat=True
-            )
-        else:
-            allowed_teams = OrganizationMemberTeam.objects.filter(
-                organizationmember__user=request.user,
-                team__organization_id=organization.id,
-            ).values_list(
-                'team_id', flat=True
-            )
-
-        return Project.objects.filter(
-            id__in=ProjectTeam.objects.filter(
-                team_id__in=allowed_teams,
-            ).values_list('project_id', flat=True)
+        return super(OrganizationReleasesBaseEndpoint, self).get_project_ids(
+            request,
+            organization,
+            force_global_perms=has_valid_api_key,
+            include_allow_joinleave=True,
         )
 
     def has_release_permission(self, request, organization, release):
         return ReleaseProject.objects.filter(
             release=release,
-            project__in=self.get_allowed_projects(request, organization),
+            project_id__in=self.get_project_ids(request, organization),
         ).exists()
