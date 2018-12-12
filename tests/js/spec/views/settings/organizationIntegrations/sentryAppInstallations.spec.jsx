@@ -158,63 +158,65 @@ describe('Sentry App Installations', function() {
           `https://example.com/setup?code=${install.code}&hello=1&installationId=${install.uuid}`
         );
       });
+    });
 
-      describe('when installing fails', () => {
-        it('allows for installation retry', async () => {
-          Client.addMockResponse({
-            url: `/organizations/${org.slug}/sentry-app-installations/`,
-            method: 'POST',
-            statusCode: 500,
-          });
-
-          wrapper = mount(
-            <SentryAppInstallations
-              api={api}
-              orgId={org.slug}
-              applications={[sentryApp]}
-              installs={[]}
-            />,
-            routerContext
-          );
-          wrapper.instance().install(sentryApp);
-          await tick();
-          expect(wrapper.exists('[icon="icon-circle-add"]')).toBe(true);
-          expect(wrapper.state('installs')).toEqual([]);
+    describe('when installing fails', () => {
+      it('allows for installation retry', async () => {
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-app-installations/`,
+          method: 'POST',
+          body: [],
+          statusCode: 400,
         });
+
+        wrapper = mount(
+          <SentryAppInstallations
+            api={api}
+            orgId={org.slug}
+            applications={[sentryApp]}
+            installs={[]}
+          />,
+          routerContext
+        );
+        wrapper.instance().install(sentryApp);
+        await tick();
+        expect(wrapper.exists('[icon="icon-circle-add"]')).toBe(true);
+        expect(wrapper.state('installs')).toEqual([]);
       });
+    });
 
-      describe('when uninstalling', () => {
-        it('must confirm in order to uninstall', () => {
-          const response = Client.addMockResponse({
-            url: `/sentry-app-installations/${install.uuid}/`,
-            method: 'DELETE',
-            body: [],
-          });
-
-          wrapper = mount(
-            <SentryAppInstallations
-              api={api}
-              orgId={org.slug}
-              applications={[sentryApp]}
-              installs={[install]}
-            />,
-            routerContext
-          );
-
-          wrapper
-            .find('[data-test-id="sentry-app-uninstall"]')
-            .first()
-            .simulate('click');
-          wrapper
-            .find('[data-test-id="confirm-modal"]')
-            .first()
-            .simulate('click');
-          expect(response).toHaveBeenCalledWith(
-            `/sentry-app-installations/${install.uuid}/`,
-            expect.objectContaining({method: 'DELETE'})
-          );
-          expect(wrapper.state('installs')).toEqual([]);
+    describe('when uninstalling', () => {
+      it('must confirm in order to uninstall', async () => {
+        const response = Client.addMockResponse({
+          url: `/sentry-app-installations/${install.uuid}/`,
+          method: 'DELETE',
+          body: [],
         });
+
+        wrapper = mount(
+          <SentryAppInstallations
+            api={api}
+            orgId={org.slug}
+            applications={[sentryApp]}
+            installs={[install]}
+          />,
+          routerContext
+        );
+
+        wrapper
+          .find('[data-test-id="sentry-app-uninstall"]')
+          .first()
+          .simulate('click');
+        wrapper
+          .find('[data-test-id="confirm-modal"]')
+          .first()
+          .simulate('click');
+        expect(response).toHaveBeenCalledWith(
+          `/sentry-app-installations/${install.uuid}/`,
+          expect.objectContaining({method: 'DELETE'})
+        );
+        await tick();
+        expect(wrapper.state('installs')).toEqual([]);
       });
     });
   });

@@ -111,6 +111,13 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
   <div
     className="modal-footer"
   >
+    <RedirectionInfo>
+      <div
+        className="css-ysuc35-RedirectionInfo ey7jt0i2"
+      >
+        After installation you'll be redirected to the Sample App service to finish setup.
+      </div>
+    </RedirectionInfo>
     <StyledButton
       onClick={[Function]}
       priority="success"
@@ -324,6 +331,13 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
   <div
     className="modal-footer"
   >
+    <RedirectionInfo>
+      <div
+        className="css-ysuc35-RedirectionInfo ey7jt0i2"
+      >
+        After installation you'll be redirected to the Sample App service to finish setup.
+      </div>
+    </RedirectionInfo>
     <StyledButton
       onClick={[Function]}
       priority="success"

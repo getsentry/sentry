@@ -25,7 +25,7 @@ class SentryAppPermissionsModal extends React.Component {
     closeModal();
   }
 
-  getTopScopes() {
+  get topScopes() {
     // this finds the highest scope permission (read < write < admin)
     // for each resource (org, project, team, member, event) and returns
     // a map with the resource as the key and scope as the value.
@@ -59,9 +59,9 @@ class SentryAppPermissionsModal extends React.Component {
     return resources;
   }
 
-  getPermissions() {
+  get permissions() {
     let permissions = {};
-    const topScopes = this.getTopScopes();
+    const topScopes = this.topScopes;
     Object.entries(topScopes).forEach(([resource, scope]) => {
       // releases are a weird one off permission scope, either you
       // have project:releases or you don't so we'll add it to Admin
@@ -84,7 +84,7 @@ class SentryAppPermissionsModal extends React.Component {
   }
 
   renderPermissions() {
-    const permissions = this.getPermissions();
+    const permissions = this.permissions;
     return (
       <React.Fragment>
         {permissions.read && (
@@ -133,7 +133,7 @@ class SentryAppPermissionsModal extends React.Component {
           <Panel>{this.renderPermissions()}</Panel>
         </Body>
         <div className="modal-footer">
-          {!app.redirectUrl && (
+          {app.redirectUrl && (
             <RedirectionInfo>
               {t(
                 `After installation you'll be redirected to the ${app.name} service to finish setup.`

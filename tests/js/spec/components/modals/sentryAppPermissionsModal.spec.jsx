@@ -33,11 +33,19 @@ describe('SentryAppPermissionsModal', function() {
     expect(onClose).toHaveBeenCalled();
   });
 
-  describe('renders scopes correctly', function() {
-    it('matches resource with level', function() {
+  describe('displays resources that the Sentry App has access to', function() {
+    it('matches resource with highest level', function() {
       const onInstall = jest.fn();
       const onClose = jest.fn();
-      const sentryApp = TestStubs.SentryApp();
+      const scopes = [
+        'project:read',
+        'project:write',
+        'member:read',
+        'team:write',
+        'team:admin',
+        'org:admin',
+      ];
+      const sentryApp = TestStubs.SentryApp({scopes});
 
       const wrapper = mount(
         <SentryAppPermissionsModal
@@ -50,7 +58,24 @@ describe('SentryAppPermissionsModal', function() {
         />,
         routerContext
       );
-      expect(wrapper.find('PanelItem').text()).toEqual('Read access to Project');
+      expect(
+        wrapper
+          .find('PanelItem')
+          .first()
+          .text()
+      ).toEqual('Read access to Member');
+      expect(
+        wrapper
+          .find('PanelItem')
+          .at(1)
+          .text()
+      ).toEqual('Read and write access to Project');
+      expect(
+        wrapper
+          .find('PanelItem')
+          .at(2)
+          .text()
+      ).toEqual('Admin access to Team, Org');
     });
 
     it('matches releases with admin', function() {
