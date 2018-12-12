@@ -345,6 +345,8 @@ def test_reverse_bisect_left():
     assert reverse_bisect_left([2, 2, 1], 1) == 2
     assert reverse_bisect_left([2, 2, 1], 2) == 0
 
+    assert reverse_bisect_left([3, 2, 1], 2, hi=10) == 1
+
 
 class SequencePaginatorTestCase(SimpleTestCase):
     def test_empty_results(self):

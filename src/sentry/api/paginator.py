@@ -262,7 +262,7 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
     if lo < 0:
         raise ValueError('lo must be non-negative')
 
-    if hi is None:
+    if hi is None or hi > len(a):
         hi = len(a)
 
     while lo < hi:
