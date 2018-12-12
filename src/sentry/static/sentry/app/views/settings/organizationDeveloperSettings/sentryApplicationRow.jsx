@@ -90,12 +90,7 @@ export default class SentryApplicationRow extends React.PureComponent {
             </Box>
           ) : (
             <Box>
-              <Button
-                icon="icon-trash"
-                size="small"
-                onClick={() => {}}
-                className="btn btn-default"
-              />
+              <Button icon="icon-trash" size="small" onClick={() => {}} />
             </Box>
           )}
         </StyledFlex>
@@ -167,15 +162,13 @@ const Status = styled(
   margin-right: ${space(0.75)};
 `;
 
-const PublishStatus = styled(
-  withTheme(({published, ...props}) => {
-    return (
-      <Flex align="center">
-        <div {...props}>{published ? t('published') : t('unpublished')}</div>
-      </Flex>
-    );
-  })
-)`
+const PublishStatus = styled(({published, ...props}) => {
+  return (
+    <Flex align="center">
+      <div {...props}>{published ? t('published') : t('unpublished')}</div>
+    </Flex>
+  );
+})`
   color: ${props => (props.published ? props.theme.success : props.theme.gray2)};
   font-weight: light;
   margin-right: ${space(0.75)};
