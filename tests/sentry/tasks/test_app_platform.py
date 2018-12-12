@@ -19,7 +19,7 @@ class TestAppPlatformTasks(TestCase):
             scopes=(),
         )
 
-        self.install, _ = sentry_app_installations.Creator.run(
+        self.install = sentry_app_installations.Creator.run(
             slug='foo',
             organization=self.org,
             user=self.user,

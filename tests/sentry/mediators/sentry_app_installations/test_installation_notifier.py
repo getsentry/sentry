@@ -21,7 +21,7 @@ class TestInstallationNotifier(TestCase):
             scopes=(),
         )
 
-        self.install, _ = Creator.run(
+        self.install = Creator.run(
             slug='foo',
             organization=self.org,
             user=self.user,

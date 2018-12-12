@@ -18,7 +18,7 @@ class TestDestroyer(TestCase):
             scopes=('project:read',),
         )
 
-        self.install, self.grant = Creator.run(
+        self.install = Creator.run(
             organization=self.org,
             slug='nulldb',
             user=self.user,

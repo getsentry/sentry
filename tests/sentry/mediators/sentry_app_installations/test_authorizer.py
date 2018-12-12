@@ -17,7 +17,7 @@ class TestAuthorizer(TestCase):
             organization=self.org,
         )
 
-        self.install, self.grant = Creator.run(
+        self.install = Creator.run(
             organization=self.org,
             slug='nulldb',
             user=self.user,
@@ -26,7 +26,7 @@ class TestAuthorizer(TestCase):
         self.authorizer = Authorizer(
             install=self.install,
             grant_type='authorization_code',
-            code=self.grant.code,
+            code=self.install.api_grant.code,
             client_id=self.sentry_app.application.client_id,
             user=self.sentry_app.proxy_user,
         )

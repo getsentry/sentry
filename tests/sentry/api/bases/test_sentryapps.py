@@ -71,7 +71,7 @@ class SentryAppInstallationPermissionTest(TestCase):
             organization=self.org,
         )
 
-        self.installation, _ = SentryAppInstallationCreator.run(
+        self.installation = SentryAppInstallationCreator.run(
             slug=self.sentry_app.slug,
             organization=self.org,
             user=self.user,
@@ -120,7 +120,7 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
             organization=self.org,
         )
 
-        self.installation, _ = SentryAppInstallationCreator.run(
+        self.installation = SentryAppInstallationCreator.run(
             slug=self.sentry_app.slug,
             organization=self.org,
             user=self.user,
