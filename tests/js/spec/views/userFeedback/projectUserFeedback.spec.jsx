@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {shallow} from 'enzyme';
-import {ProjectUserFeedback} from 'app/views/userFeedback/project';
+import {ProjectUserFeedback} from 'app/views/userFeedback/projectUserFeedback';
 
 describe('projectUserFeedback', function() {
   beforeEach(function() {

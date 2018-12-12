@@ -876,7 +876,7 @@ function routes() {
           <Route
             path="user-feedback/"
             componentPromise={() =>
-              import(/*webpackChunkName: "ProjectUserFeedback"*/ './views/userFeedback/project')}
+              import(/*webpackChunkName: "ProjectUserFeedback"*/ './views/userFeedback/projectUserFeedback')}
             component={errorHandler(LazyLoad)}
           />
 
