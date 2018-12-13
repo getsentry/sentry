@@ -484,9 +484,9 @@ class TagStorage(TestCase):
 
         assert dict(
             self.ts.get_groups_user_counts(
-                self.proj1.id,
+                [self.proj1.id],
                 [self.proj1group1.id, self.proj1group2.id],
-                self.proj1env1.id).items()) == {self.proj1group1.id: 7, self.proj1group2.id: 11}
+                [self.proj1env1.id]).items()) == {self.proj1group1.id: 7, self.proj1group2.id: 11}
 
     def test_get_group_tag_value_count(self):
         v1, _ = self.ts.get_or_create_group_tag_value(
