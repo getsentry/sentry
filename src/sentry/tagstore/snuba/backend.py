@@ -256,15 +256,15 @@ class SnubaTagStorage(TagStorage):
                                                 limit=None, raise_on_empty=False)
         return set(key.top_values)
 
-    def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
+    def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
         start, end = self.get_time_range()
         tag = u'tags[{}]'.format(key)
         filters = {
-            'project_id': [project_id],
+            'project_id': project_ids,
             'issue': group_id_list,
         }
-        if environment_id:
-            filters['environment'] = [environment_id]
+        if environment_ids:
+            filters['environment'] = environment_ids
         conditions = [
             [tag, '=', value]
         ]
@@ -468,14 +468,14 @@ class SnubaTagStorage(TagStorage):
                 )
         return values
 
-    def get_groups_user_counts(self, project_id, group_ids, environment_id):
+    def get_groups_user_counts(self, project_ids, group_ids, environment_ids):
         start, end = self.get_time_range()
         filters = {
-            'project_id': [project_id],
+            'project_id': project_ids,
             'issue': group_ids,
         }
-        if environment_id:
-            filters['environment'] = [environment_id]
+        if environment_ids:
+            filters['environment'] = environment_ids
         aggregations = [['uniq', 'tags[sentry:user]', 'count']]
 
         result = snuba.query(start, end, ['issue'], None, filters, aggregations,
