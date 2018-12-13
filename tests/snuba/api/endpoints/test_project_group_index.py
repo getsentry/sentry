@@ -12,7 +12,7 @@ from mock import patch, Mock
 from sentry.models import (
     Activity, ApiToken, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupLink, GroupResolution, GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupTombstone, ExternalIssue, Integration, Release, OrganizationIntegration, UserOption
+    GroupTombstone, Release, OrganizationIntegration, UserOption
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -365,6 +365,41 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def test_lookup_by_linked_ticket_present(self):
+        self.login_as(self.user)
+        project = self.project
+        integration = self.create_integration(self.organization, self.user)
+        group = self.create_group(checksum='a' * 32, project=project)
+        group2 = self.create_group(checksum='b' * 32, project=project)
+
+        external_issue = self.create_external_issue(group, integration)
+        self.create_group_link(
+            group,
+            external_issue,
+            linked_type=GroupLink.LinkedType.issue,
+            relationship=GroupLink.Relationship.references)
+
+        url = '%s?query=%s' % (self.path, quote('linked_ticket:true'))
+        response = self.client.get(url, format='json')
+        issues = json.loads(response.content)
+        assert response.status_code == 200
+        assert len(issues) == 1
+        assert int(issues[0]['id']) == group.id
+
+        url = '%s?query=%s' % (self.path, quote('linked_ticket:false'))
+        response = self.client.get(url, format='json')
+        issues = json.loads(response.content)
+        assert response.status_code == 200
+        assert len(issues) == 1
+        assert int(issues[0]['id']) == group2.id
+
+    def test_lookup_by_linked_ticket_invalid(self):
+        self.login_as(self.user)
+
+        url = '%s?query=%s' % (self.path, quote('linked_ticket:poop'))
+        response = self.client.get(url, format='json')
+        assert response.status_code == 400
+
     def test_token_auth(self):
         token = ApiToken.objects.create(user=self.user, scopes=256)
         response = self.client.get(
@@ -494,12 +529,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         org = self.organization
-
-        integration = Integration.objects.create(
-            provider='example',
-            name='Example',
-        )
-        integration.add_organization(org, self.user)
+        integration = self.create_integration(org, self.user)
         group = self.create_group(status=GroupStatus.UNRESOLVED, organization=org)
 
         OrganizationIntegration.objects.filter(
@@ -514,19 +544,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 'sync_assignee_inbound': True,
             }
         )
-        external_issue = ExternalIssue.objects.get_or_create(
-            organization_id=org.id,
-            integration_id=integration.id,
-            key='APP-%s' % group.id,
-        )[0]
-
-        GroupLink.objects.get_or_create(
-            group_id=group.id,
-            project_id=group.project_id,
+        external_issue = self.create_external_issue(org, integration)
+        self.create_group_link(
+            group,
+            external_issue,
             linked_type=GroupLink.LinkedType.issue,
-            linked_id=external_issue.id,
-            relationship=GroupLink.Relationship.references,
-        )[0]
+            relationship=GroupLink.Relationship.references)
 
         response = self.client.get(
             u'{}?sort_by=date&query=is:unresolved'.format(self.path),
@@ -570,11 +593,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         release = self.create_release(project=self.project, version='abc')
         group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         org = self.organization
-        integration = Integration.objects.create(
-            provider='example',
-            name='Example',
-        )
-        integration.add_organization(org, self.user)
+        integration = self.create_integration(org, self.user)
+
         OrganizationIntegration.objects.filter(
             integration_id=integration.id,
             organization_id=group.organization.id,
@@ -591,19 +611,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group,
             release=release,
         )
-        external_issue = ExternalIssue.objects.get_or_create(
-            organization_id=org.id,
-            integration_id=integration.id,
-            key='APP-%s' % group.id,
-        )[0]
-
-        GroupLink.objects.get_or_create(
-            group_id=group.id,
-            project_id=group.project_id,
+        external_issue = self.create_external_issue(org, integration)
+        self.create_group_link(
+            group,
+            external_issue,
             linked_type=GroupLink.LinkedType.issue,
-            linked_id=external_issue.id,
-            relationship=GroupLink.Relationship.references,
-        )[0]
+            relationship=GroupLink.Relationship.references)
 
         self.login_as(user=self.user)
 

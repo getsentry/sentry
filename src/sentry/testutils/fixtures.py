@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
+from sentry.models import Activity, GroupLink, Integration, ExternalIssue, OrganizationMember, OrganizationMemberTeam
 from sentry.incidents.models import IncidentActivityType
 
 import pytest
@@ -242,3 +242,30 @@ class Fixtures(object):
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot
+
+    def create_integration(self, org, user, **kwargs):
+        kwargs.setdefault('provider', 'example')
+        kwargs.setdefault('name', 'Example')
+        if not user:
+            user = self.user
+        if not org:
+            org = self.organization
+        integration = Integration.objects.create(**kwargs)
+        integration.add_organization(org, user)
+        return integration
+
+    def create_external_issue(self, org, integration, **kwargs):
+        kwargs.setdefault('key', 'APP-123')
+        return ExternalIssue.objects.create(
+            organization_id=org.id,
+            integration_id=integration.id,
+            **kwargs
+        )
+
+    def create_group_link(self, group, external_issue, **kwargs):
+        return GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project.id,
+            linked_id=external_issue.id,
+            **kwargs
+        )

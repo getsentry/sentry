@@ -89,6 +89,12 @@ const TagStore = Reflux.createStore({
         values: [],
         predefined: true,
       },
+      linkedTicket: {
+        key: 'linkedTicket',
+        name: 'Linked Ticket',
+        values: ['true', 'false'],
+        predefined: true,
+      },
     };
 
     this.trigger(this.tags);

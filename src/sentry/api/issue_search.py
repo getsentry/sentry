@@ -32,6 +32,7 @@ class IssueSearchVisitor(SearchVisitor):
         # on date_from and date_to explicitly
         'date': ['event.timestamp'],
         'times_seen': ['timesSeen'],
+        'linked_ticket': ['linkedTicket'],
         'sentry:dist': ['dist'],
     }
     numeric_keys = SearchVisitor.numeric_keys.union(['times_seen'])
@@ -98,12 +99,25 @@ def convert_release_value(value, projects, user, environments):
     return parse_release(value, projects, environments)
 
 
+def convert_linked_ticket_value(value, *args):
+    if value in ('true', '1'):
+        return True
+    if value in ('false', '0'):
+        return False
+    raise InvalidSearchQuery(
+        u"Invalid value '{}' for linked_ticket filter. Use one of 'true', 'false'".format(
+            value
+        )
+    )
+
+
 value_converters = {
     'assigned_to': convert_actor_value,
     'bookmarked_by': convert_user_value,
     'subscribed_by': convert_user_value,
     'first_release': convert_release_value,
     'release': convert_release_value,
+    'linked_ticket': convert_linked_ticket_value
 }
 
 

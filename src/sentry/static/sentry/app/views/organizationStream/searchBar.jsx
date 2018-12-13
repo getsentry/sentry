@@ -40,6 +40,12 @@ const SEARCH_ITEMS = [
     value: 'bookmarks:',
     type: 'default',
   },
+  {
+    title: t('Has Linked Ticket'),
+    desc: 'linked_ticket:[true|false]',
+    value: 'linked_ticket:',
+    type: 'default',
+  },
 ];
 
 class SearchBar extends React.Component {

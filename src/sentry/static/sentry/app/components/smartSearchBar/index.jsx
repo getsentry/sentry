@@ -1126,6 +1126,8 @@ function getIconForTypeAndTag(type, tagName) {
     case 'lastSeen':
     case 'event.timestamp':
       return 'icon-av_timer';
+    case 'linked_ticket':
+      return 'icon-toggle';
     default:
       return 'icon-tag';
   }

@@ -19,7 +19,7 @@ from sentry.api.event_search import (
 )
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.models import Group, Release, GroupEnvironment
+from sentry.models import Group, GroupLink, Release, GroupEnvironment
 from sentry.search.base import SearchBackend
 from sentry.utils import snuba, metrics
 from sentry.utils.db import is_postgres
@@ -53,6 +53,7 @@ aggregation_defs = {
 issue_only_fields = set([
     'query', 'status', 'bookmarked_by', 'assigned_to', 'unassigned',
     'subscribed_by', 'active_at', 'first_release', 'first_seen',
+    'linked_ticket',
 ])
 
 
@@ -161,6 +162,17 @@ def unassigned_filter(unassigned, projects):
         ).values_list('group_id', flat=True),
     )
     if unassigned:
+        query = ~query
+    return query
+
+
+def linked_ticket_filter(value):
+    query = Q(
+        id__in=GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.issue
+        ).values_list('group_id')
+    )
+    if not value:
         query = ~query
     return query
 
@@ -344,6 +356,11 @@ class SnubaSearchBackend(SearchBackend):
                 ),
                 'first_seen': ScalarCondition('first_seen'),
             }).build(group_queryset, search_filters)
+
+        # Additional filtering conditions for data that doesn't exist in snuba.
+        group_queryset = QuerySetBuilder({
+            'linked_ticket': QCallbackCondition(linked_ticket_filter),
+        }).build(group_queryset, search_filters)
 
         now = timezone.now()
         end = None

@@ -16,7 +16,7 @@ from sentry.api.issue_search import (
 )
 from sentry.models import (
     Environment, Group, GroupAssignee, GroupBookmark, GroupEnvironment,
-    GroupStatus, GroupSubscription
+    GroupLink, GroupStatus, GroupSubscription
 )
 from sentry.search.snuba.backend import SnubaSearchBackend
 from sentry.testutils import (
@@ -1582,3 +1582,17 @@ class SnubaSearchTest(TestCase, SnubaTestCase):
                 test_query('!%s:%s' % (key, val))
 
             test_query('%s:%s' % (key, val))
+
+    def test_linked_ticket(self):
+        integration = self.create_integration(self.organization, self.user)
+        self.create_group_link(
+            self.group1,
+            self.create_external_issue(self.organization, integration),
+            linked_type=GroupLink.LinkedType.issue,
+            relationship=GroupLink.Relationship.references)
+
+        results = self.make_query(search_filter_query='linked_ticket:true')
+        assert set(results) == set([self.group1])
+
+        results = self.make_query(search_filter_query='linked_ticket:false')
+        assert set(results) == set([self.group2])

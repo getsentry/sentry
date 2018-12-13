@@ -495,6 +495,47 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 organization_id=self.organization.id,
             )
 
+    def test_lookup_by_linked_ticket_present(self):
+        self.login_as(self.user)
+        integration = self.create_integration(self.organization, self.user)
+        linked_event = self.store_event(
+            data={
+                'fingerprint': ['link-group'],
+                'timestamp': self.min_ago.isoformat()[:19],
+            },
+            project_id=self.project.id
+        )
+        unlinked_event = self.store_event(
+            data={
+                'fingerprint': ['unlink-group'],
+                'timestamp': self.min_ago.isoformat()[:19],
+            },
+            project_id=self.project.id
+        )
+
+        external_issue = self.create_external_issue(linked_event.group, integration)
+        self.create_group_link(
+            linked_event.group,
+            external_issue,
+            linked_type=GroupLink.LinkedType.issue,
+            relationship=GroupLink.Relationship.references)
+
+        response = self.get_valid_response(query='linkedTicket:true')
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert int(response.data[0]['id']) == linked_event.group_id
+
+        response = self.get_valid_response(query='linked_ticket:false')
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert int(response.data[0]['id']) == unlinked_event.group_id
+
+    def test_lookup_by_linked_ticket_invalid(self):
+        self.login_as(self.user)
+
+        response = self.get_response(query='linked_ticket:poop')
+        assert response.status_code == 400
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = 'sentry-api-0-organization-group-index'
