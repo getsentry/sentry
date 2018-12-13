@@ -684,6 +684,10 @@ LOGGING = {
             'handlers': ['internal'],
             'propagate': False,
         },
+        'sentry.interfaces': {
+            'handlers': ['internal'],
+            'propagate': False,
+        },
         # This only needs to go to Sentry for now.
         'sentry.similarity': {
             'handlers': ['internal'],
