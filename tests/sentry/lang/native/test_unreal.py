@@ -8,15 +8,18 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.testutils import TestCase
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
-from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type
+from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event
 from sentry.models import Event, EventAttachment
 
 
+def get_unreal_crash_file():
+    return os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash')
+
+
 def test_process_minidump():
-    minidump = os.path.join(os.path.dirname(__file__), 'fixtures', 'unreal_crash')
-    with open(minidump, 'rb') as f:
-        minidump = process_unreal_crash(f.read())
-        process_state = minidump.process_minidump()
+    with open(get_unreal_crash_file(), 'rb') as f:
+        unreal_crash = process_unreal_crash(f.read())
+        process_state = unreal_crash.process_minidump()
         assert 115 == process_state.module_count
         assert 54 == process_state.thread_count
 
@@ -37,6 +40,20 @@ class MockFile(TestCase):
 
 
 class UnrealIntegrationTest(TestCase):
+    def test_merge_unreal_context_event(self):
+        with open(get_unreal_crash_file(), 'rb') as f:
+            unreal_crash = process_unreal_crash(f.read())
+            event = {}
+            merge_unreal_context_event(unreal_crash.get_context(), event, self.project)
+            assert event['message'] == 'Access violation - code c0000005 (first/second chance not available)'
+            assert event['user']['username'] == 'bruno'
+            assert event['contexts']['device']['memory_size'] == 6896832512
+            assert event['contexts']['os']['name'] == 'Windows 10'
+            assert event['contexts']['gpu']['name'] == 'Parallels Display Adapter (WDDM)'
+            assert len(event['stacktrace']['frames']) == 20
+            assert 'ntdll' == event['stacktrace']['frames'][0]['package']
+            assert 'YetAnother' == event['stacktrace']['frames'][2]['package']
+            assert 'YetAnother' == event['stacktrace']['frames'][2]['package']
 
     def upload_symbols(self):
         url = reverse(
@@ -82,7 +99,7 @@ class UnrealIntegrationTest(TestCase):
         main = frames[-1]
         assert main.function == 'AActor::IsPendingKillPending()'
         assert main.errors is None
-        assert main.instruction_addr == '0x7ff754be3394'
+        assert main.instruction_addr == '0x54be3394'
 
         attachments = sorted(
             EventAttachment.objects.filter(
