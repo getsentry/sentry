@@ -20,8 +20,7 @@ class ProjectPluginsTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200, (response.status_code, response.content)
-        assert len(response.data) == 9
-        print response.data
+        assert len(response.data) >= 9
 
         auto_tag = response.data[0]
         assert auto_tag['name'] == 'Auto Tag: Browsers'
