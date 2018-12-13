@@ -11,6 +11,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import Link from 'app/components/link';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import theme from 'app/utils/theme';
 
 const SuggestedOwnerHovercard = ({actor, commits, rules, ...props}) => (
   <Hovercard
@@ -115,12 +116,12 @@ SuggestedOwnerHovercard.propTypes = {
 };
 
 const tagColors = {
-  url: 'greenLight',
-  path: 'blueLight',
+  url: theme.greenLight,
+  path: theme.blueLight,
 };
 
 const CommitIcon = styled(p => <InlineSvg src="icon-commit" size="16px" {...p} />)`
-  margin-right: 4px;
+  margin-right: ${space(0.5)};
   flex-shrink: 0;
 `;
 
@@ -132,13 +133,13 @@ const CommitMessage = styled(({message, date, ...props}) => (
 ))`
   color: ${p => p.theme.gray5};
   font-size: 11px;
-  margin-top: 2px;
+  margin-top: ${space(0.25)};
 `;
 
 const CommitDate = styled(({date, ...props}) => (
   <div {...props}>{moment(date).fromNow()}</div>
 ))`
-  margin-top: 4px;
+  margin-top: ${space(0.5)};
   color: ${p => p.theme.gray2};
 `;
 
@@ -158,11 +159,11 @@ const ReasonItem = styled('li')`
 `;
 
 const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</div>)`
-  background: ${p => p.theme[tagColors[p.tagType]]};
+  background: ${p => tagColors[p.tagType]};
   color: #fff;
   font-size: 11px;
-  padding: 2px 4px;
-  margin: 2px 4px 2px 0;
+  padding: ${space(0.25)} ${space(0.5)};
+  margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   border-radius: 2px;
   font-weight: bold;
   min-width: 34px;
@@ -179,7 +180,7 @@ const EmailAlert = styled(p => <Alert iconSize="16px" {...p} />)`
   border-radius: 0;
   border-color: #ece0b0;
   padding: 10px;
-  font-size: 12px;
+  font-size: ${p => p.theme.fontSizeSmall};
   font-weight: normal;
   box-shadow: none;
 `;
@@ -189,7 +190,9 @@ const HovercardHeader = styled('div')`
   align-items: center;
 `;
 
-const HovercardActorAvatar = styled(p => <ActorAvatar size={20} {...p} />)`
+const HovercardActorAvatar = styled(p => (
+  <ActorAvatar size={20} hasTooltip={false} {...p} />
+))`
   margin-right: ${space(1)};
 `;
 
