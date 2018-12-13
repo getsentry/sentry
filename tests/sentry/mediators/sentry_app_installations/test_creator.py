@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from mock import patch
 
 from sentry.mediators.sentry_app_installations import Creator
-from sentry.models import ApiAuthorization
+from sentry.models import ApiAuthorization, ApiGrant
 from sentry.testutils import TestCase
 
 
@@ -27,11 +27,11 @@ class TestCreator(TestCase):
     def test_creates_api_authorization(self):
         self.creator.call()
 
-        assert ApiAuthorization.objects.get(
+        assert ApiAuthorization.objects.filter(
             application=self.sentry_app.application,
             user=self.sentry_app.proxy_user,
             scopes=self.sentry_app.scopes,
-        )
+        ).exists()
 
     def test_creates_installation(self):
         install = self.creator.call()
@@ -39,7 +39,7 @@ class TestCreator(TestCase):
 
     def test_creates_api_grant(self):
         install = self.creator.call()
-        assert install.api_grant.pk
+        assert ApiGrant.objects.filter(id=install.api_grant_id).exists()
 
     @patch('sentry.tasks.app_platform.installation_webhook.delay')
     def test_notifies_service(self, installation_webhook):
