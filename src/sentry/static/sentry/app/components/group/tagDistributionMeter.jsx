@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
+import isPropValid from '@emotion/is-prop-valid';
 
 import {escape, percent} from 'app/utils';
 import {t} from 'app/locale';
@@ -186,7 +187,7 @@ const Tag = styled('div')`
   line-height: 1;
 `;
 
-const Description = styled('span')`
+const Description = styled('span', {shouldForwardProp: p => isPropValid(p)})`
   background-color: #fff;
   position: absolute;
   text-align: right;
@@ -234,7 +235,7 @@ const getColor = p => {
   ][p.index];
 }
 
-const Segment = styled(Link)`
+const Segment = styled(Link, {shouldForwardProp: p => isPropValid(p)})`
   height: 16px;
   display: inline-block;
   color: inherit;
@@ -243,11 +244,11 @@ const Segment = styled(Link)`
     background: ${p => p.theme.purple};
   }
 
-  border-top-left-radius: ${p => p.first && '3px'};
-  border-bottom-left-radius: ${p => p.first && '3px'};
+  border-top-left-radius: ${p => p.first && p.theme.borderRadius};
+  border-bottom-left-radius: ${p => p.first && p.theme.borderRadius};
 
-  border-top-right-radius: ${p => p.last && '3px'};
-  border-bottom-right-radius: ${p => p.last && '3px'};
+  border-top-right-radius: ${p => p.last && p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.last && p.theme.borderRadius};
 
   background-color: ${getColor};
 `;
