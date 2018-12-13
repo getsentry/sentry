@@ -196,7 +196,7 @@ const Description = styled('span', {shouldForwardProp: p => isPropValid(p)})`
   line-height: 1;
   z-index: 1;
   width: 100%;
-  display: ${p => p.first ? 'block' : 'none'};
+  display: ${p => (p.first ? 'block' : 'none')};
 
   &:hover {
     display: block;
@@ -222,18 +222,18 @@ const Label = styled('span')`
 
 const getColor = p => {
   return [
-    "#7c7484",
-    "#867f90",
-    "#918a9b",
-    "#9b96a7",
-    "#a6a1b3",
-    "#b0acbe",
-    "#bbb7ca",
-    "#c5c3d6",
-    "#d0cee1",
-    "#dad9ed"
+    '#7c7484',
+    '#867f90',
+    '#918a9b',
+    '#9b96a7',
+    '#a6a1b3',
+    '#b0acbe',
+    '#bbb7ca',
+    '#c5c3d6',
+    '#d0cee1',
+    'dad9ed',
   ][p.index];
-}
+};
 
 const Segment = styled(Link, {shouldForwardProp: p => isPropValid(p)})`
   height: 16px;
