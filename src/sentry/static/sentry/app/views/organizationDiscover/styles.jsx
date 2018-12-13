@@ -107,7 +107,10 @@ export const DocsSeparator = styled('div')`
 `;
 
 export const DocsLink = styled(ExternalLink)`
-  color: inherit;
+  color: ${p => p.theme.gray4};
+  &:hover {
+    color: ${p => p.theme.blue};
+  }
 `;
 
 export const StyledInlineSvg = styled(InlineSvg)`
@@ -130,7 +133,6 @@ export const DocsIcon = styled(InlineSvg)`
   width: 20px;
   height: 20px;
   margin-right: 8px;
-  color: ${p => p.theme.gray4};
 `;
 
 export const Body = styled(Flex)`
