@@ -212,7 +212,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     ]):
                 group_queryset = group_queryset.order_by('-last_seen')
                 paginator = DateTimePaginator(group_queryset, '-last_seen', **paginator_options)
-                return paginator.get_result(limit, cursor, count_hits=count_hits)
+                return paginator.get_result(limit, cursor, count_hits=False)
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
