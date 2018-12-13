@@ -536,9 +536,9 @@ class V2TagStorage(TagStorage):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
 
         value = self.get_group_list_tag_value(
-            project_id,
+            [project_id],
             [group_id],
-            environment_id,
+            [environment_id],
             key,
             value,
         ).get(group_id)
@@ -566,17 +566,21 @@ class V2TagStorage(TagStorage):
             )
         )
 
-    def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
+    def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
+        # only the snuba backend supports multi project/env
+        if len(project_ids) > 1 or environment_ids and len(environment_ids) > 1:
+            raise NotImplementedError
+
         qs = models.GroupTagValue.objects.select_related('_key', '_value').filter(
-            project_id=project_id,
+            project_id=project_ids[0],
             group_id__in=group_id_list,
-            _key__project_id=project_id,
+            _key__project_id=project_ids[0],
             _key__key=key,
-            _value__project_id=project_id,
+            _value__project_id=project_ids[0],
             _value__value=value,
         )
 
-        qs = self._add_environment_filter(qs, environment_id)
+        qs = self._add_environment_filter(qs, environment_ids[0])
         t = transformers[models.GroupTagValue]
         return {result.group_id: t(result) for result in qs}
 

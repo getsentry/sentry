@@ -167,9 +167,9 @@ class GroupSerializer(Serializer):
             times_seen = {}
             if environment is not None:
                 environment_tagvalues = tagstore.get_group_list_tag_value(
-                    project_id,
+                    [project_id],
                     item_ids,
-                    environment.id,
+                    [environment.id],
                     'environment',
                     environment.name,
                 )

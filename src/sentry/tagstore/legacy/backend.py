@@ -356,9 +356,9 @@ class LegacyTagStorage(TagStorage):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
 
         value = self.get_group_list_tag_value(
-            project_id,
+            [project_id],
             [group_id],
-            environment_id,
+            [environment_id] if environment_id is not None else environment_id,
             key,
             value,
         ).get(group_id)
@@ -376,7 +376,7 @@ class LegacyTagStorage(TagStorage):
 
         return set(map(transformers[models.GroupTagValue], qs))
 
-    def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
+    def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
         qs = models.GroupTagValue.objects.filter(
             group_id__in=group_id_list,
             key=key,
