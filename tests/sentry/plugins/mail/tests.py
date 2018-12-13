@@ -14,7 +14,8 @@ from exam import fixture
 from mock import Mock
 
 from sentry.api.serializers import (
-    serialize, ProjectUserReportSerializer
+    serialize,
+    UserReportWithGroupSerializer,
 )
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.interfaces.stacktrace import Stacktrace
@@ -436,7 +437,7 @@ class MailPluginSignalsTest(TestCase):
                 name='user-reports.created',
                 project=self.project,
                 payload={
-                    'report': serialize(report, AnonymousUser(), ProjectUserReportSerializer()),
+                    'report': serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
                 },
             )
 
