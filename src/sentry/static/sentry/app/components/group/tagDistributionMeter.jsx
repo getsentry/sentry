@@ -187,7 +187,7 @@ const Tag = styled('div')`
   line-height: 1;
 `;
 
-const Description = styled('span', {shouldForwardProp: p => isPropValid(p)})`
+const Description = styled('span', {shouldForwardProp: isPropValid})`
   background-color: #fff;
   position: absolute;
   text-align: right;
@@ -235,7 +235,7 @@ const getColor = p => {
   ][p.index];
 };
 
-const Segment = styled(Link, {shouldForwardProp: p => isPropValid(p)})`
+const Segment = styled(Link, {shouldForwardProp: isPropValid})`
   height: 16px;
   display: inline-block;
   color: inherit;
