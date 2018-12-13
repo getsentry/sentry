@@ -61,7 +61,6 @@
     "po-catalog-loader": "2.0.0",
     "prop-types": "^15.6.0",
     "query-string": "2.4.2",
-    "raven-js": "^3.26.3",
     "react": "16.5.1",
     "react-addons-css-transition-group": "15.6.2",
     "react-autosize-textarea": "^4.0.0",

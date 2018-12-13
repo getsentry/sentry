@@ -39,6 +39,8 @@
   </script>
 
   {% block scripts %}
+  {% include "sentry/includes/sdk.html" %}
+
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
   {% locale_js_include %}
   <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
@@ -57,8 +59,6 @@
     SentryApp.ConfigStore.loadInitialData({% get_react_config %}, {{ request.LANGUAGE_CODE|to_json|safe }});
   </script>
   <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
-
-  {% include "sentry/includes/ravenjs.html" %}
   {% endblock %}
 
   {% block meta %}
