@@ -99,7 +99,7 @@ class UnrealIntegrationTest(TestCase):
         main = frames[-1]
         assert main.function == 'AActor::IsPendingKillPending()'
         assert main.errors is None
-        assert main.instruction_addr == '0x7ff754be3394'
+        assert main.instruction_addr == '0x54be3394'
 
         attachments = sorted(
             EventAttachment.objects.filter(
