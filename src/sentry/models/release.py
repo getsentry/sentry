@@ -16,6 +16,7 @@ from django.db import models, IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 from jsonfield import JSONField
+from time import time
 
 from sentry.app import locks
 from sentry.db.models import (
@@ -348,6 +349,7 @@ class Release(Model):
         lock_key = type(self).get_lock_key(self.organization_id, self.id)
         lock = locks.get(lock_key, duration=10)
         with TimedRetryPolicy(10)(lock.acquire):
+            start = time()
             with transaction.atomic():
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
@@ -452,6 +454,7 @@ class Release(Model):
                     ],
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
+                metrics.timing('release.set_commits.duration', time() - start)
 
         # fill any missing ReleaseHeadCommit entries
         for repo_id, commit_id in six.iteritems(head_commit_by_repo):
