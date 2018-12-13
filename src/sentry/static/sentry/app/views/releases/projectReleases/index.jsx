@@ -2,7 +2,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
-import {Box} from 'grid-emotion';
 import {omit, isEqual} from 'lodash';
 import qs from 'query-string';
 
@@ -17,12 +16,13 @@ import Hook from 'app/components/hook';
 import HookOrDefault from 'app/components/hookOrDefault';
 import SearchBar from 'app/components/searchBar';
 import {t, tct} from 'app/locale';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import ReleaseEmptyState from 'app/views/projectReleases/releaseEmptyState';
-
-import ReleaseList from 'app/views/projectReleases/releaseList';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+
+import ReleaseEmptyState from './releaseEmptyState';
+import ReleaseList from '../shared/releaseList';
+import ReleaseListHeader from '../shared/releaseListHeader';
 
 const DEFAULT_QUERY = '';
 
@@ -231,16 +231,7 @@ const ProjectReleases = createReactClass({
           </div>
         </div>
         <Panel>
-          <PanelHeader>
-            <Box flex="1">{t('Version')}</Box>
-            <Box w={4 / 12} pl={2} className="hidden-xs" />
-            <Box w={2 / 12} pl={2}>
-              {t('New Issues')}
-            </Box>
-            <Box w={2 / 12} pl={2}>
-              {t('Last Event')}
-            </Box>
-          </PanelHeader>
+          <ReleaseListHeader />
           <PanelBody>{this.renderStreamBody()}</PanelBody>
         </Panel>
         <Pagination pageLinks={this.state.pageLinks} />

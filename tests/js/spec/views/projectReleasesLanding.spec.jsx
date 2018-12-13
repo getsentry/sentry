@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ReleaseLanding from 'app/views/projectReleases/releaseLanding';
+import ReleaseLanding from 'app/views/releases/projectReleases/releaseLanding';
 
 describe('ReleaseLanding', function() {
   describe('renders and progresses', function() {
