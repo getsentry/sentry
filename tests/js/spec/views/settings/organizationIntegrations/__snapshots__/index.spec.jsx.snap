@@ -605,7 +605,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     "backgroundActive": "#FFFFFF",
                                                     "border": "#e3e5e6",
                                                     "borderActive": "#e3e5e6",
-                                                    "color": "#ced3d6",
+                                                    "color": "#BDB4C7",
                                                   },
                                                   "link": Object {
                                                     "background": "transparent",
@@ -658,7 +658,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   "removed": "#f7ceca",
                                                   "removedRow": "#fcefee",
                                                 },
-                                                "disabled": "#ced3d6",
+                                                "disabled": "#BDB4C7",
                                                 "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                 "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
                                                 "error": "#e03e2f",
@@ -871,7 +871,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                             "backgroundActive": "#FFFFFF",
                                                             "border": "#e3e5e6",
                                                             "borderActive": "#e3e5e6",
-                                                            "color": "#ced3d6",
+                                                            "color": "#BDB4C7",
                                                           },
                                                           "link": Object {
                                                             "background": "transparent",
@@ -924,7 +924,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                           "removed": "#f7ceca",
                                                           "removedRow": "#fcefee",
                                                         },
-                                                        "disabled": "#ced3d6",
+                                                        "disabled": "#BDB4C7",
                                                         "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                         "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
                                                         "error": "#e03e2f",
@@ -1638,7 +1638,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   <Component
                                                     aria-label="Remove"
                                                     borderless={true}
-                                                    className="ejqw4f70 css-hsj0es-StyledButton-getColors-StyledButton eqrebog0"
+                                                    className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
                                                     disabled={true}
                                                     href={null}
                                                     onClick={[Function]}
@@ -1647,7 +1647,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   >
                                                     <button
                                                       aria-label="Remove"
-                                                      className="ejqw4f70 css-hsj0es-StyledButton-getColors-StyledButton eqrebog0"
+                                                      className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
                                                       disabled={true}
                                                       href={null}
                                                       onClick={[Function]}
@@ -2018,7 +2018,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                     "backgroundActive": "#FFFFFF",
                                                     "border": "#e3e5e6",
                                                     "borderActive": "#e3e5e6",
-                                                    "color": "#ced3d6",
+                                                    "color": "#BDB4C7",
                                                   },
                                                   "link": Object {
                                                     "background": "transparent",
@@ -2071,7 +2071,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   "removed": "#f7ceca",
                                                   "removedRow": "#fcefee",
                                                 },
-                                                "disabled": "#ced3d6",
+                                                "disabled": "#BDB4C7",
                                                 "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                 "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
                                                 "error": "#e03e2f",
@@ -2284,7 +2284,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                             "backgroundActive": "#FFFFFF",
                                                             "border": "#e3e5e6",
                                                             "borderActive": "#e3e5e6",
-                                                            "color": "#ced3d6",
+                                                            "color": "#BDB4C7",
                                                           },
                                                           "link": Object {
                                                             "background": "transparent",
@@ -2337,7 +2337,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                           "removed": "#f7ceca",
                                                           "removedRow": "#fcefee",
                                                         },
-                                                        "disabled": "#ced3d6",
+                                                        "disabled": "#BDB4C7",
                                                         "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                         "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
                                                         "error": "#e03e2f",
@@ -3030,7 +3030,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   <Component
                                                     aria-label="Remove"
                                                     borderless={true}
-                                                    className="ejqw4f70 css-hsj0es-StyledButton-getColors-StyledButton eqrebog0"
+                                                    className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
                                                     disabled={true}
                                                     href={null}
                                                     onClick={[Function]}
@@ -3039,7 +3039,7 @@ exports[`OrganizationIntegrations render() with installed integrations Displays 
                                                   >
                                                     <button
                                                       aria-label="Remove"
-                                                      className="ejqw4f70 css-hsj0es-StyledButton-getColors-StyledButton eqrebog0"
+                                                      className="ejqw4f70 css-h1aems-StyledButton-getColors-StyledButton eqrebog0"
                                                       disabled={true}
                                                       href={null}
                                                       onClick={[Function]}
@@ -3722,7 +3722,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                     "backgroundActive": "#FFFFFF",
                                                     "border": "#e3e5e6",
                                                     "borderActive": "#e3e5e6",
-                                                    "color": "#ced3d6",
+                                                    "color": "#BDB4C7",
                                                   },
                                                   "link": Object {
                                                     "background": "transparent",
@@ -3775,7 +3775,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                   "removed": "#f7ceca",
                                                   "removedRow": "#fcefee",
                                                 },
-                                                "disabled": "#ced3d6",
+                                                "disabled": "#BDB4C7",
                                                 "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                 "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
                                                 "error": "#e03e2f",
@@ -3988,7 +3988,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                             "backgroundActive": "#FFFFFF",
                                                             "border": "#e3e5e6",
                                                             "borderActive": "#e3e5e6",
-                                                            "color": "#ced3d6",
+                                                            "color": "#BDB4C7",
                                                           },
                                                           "link": Object {
                                                             "background": "transparent",
@@ -4041,7 +4041,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                           "removed": "#f7ceca",
                                                           "removedRow": "#fcefee",
                                                         },
-                                                        "disabled": "#ced3d6",
+                                                        "disabled": "#BDB4C7",
                                                         "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                         "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
                                                         "error": "#e03e2f",
@@ -4481,7 +4481,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                     "backgroundActive": "#FFFFFF",
                                                     "border": "#e3e5e6",
                                                     "borderActive": "#e3e5e6",
-                                                    "color": "#ced3d6",
+                                                    "color": "#BDB4C7",
                                                   },
                                                   "link": Object {
                                                     "background": "transparent",
@@ -4534,7 +4534,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                   "removed": "#f7ceca",
                                                   "removedRow": "#fcefee",
                                                 },
-                                                "disabled": "#ced3d6",
+                                                "disabled": "#BDB4C7",
                                                 "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                 "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
                                                 "error": "#e03e2f",
@@ -4747,7 +4747,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                             "backgroundActive": "#FFFFFF",
                                                             "border": "#e3e5e6",
                                                             "borderActive": "#e3e5e6",
-                                                            "color": "#ced3d6",
+                                                            "color": "#BDB4C7",
                                                           },
                                                           "link": Object {
                                                             "background": "transparent",
@@ -4800,7 +4800,7 @@ exports[`OrganizationIntegrations render() without integrations Displays integra
                                                           "removed": "#f7ceca",
                                                           "removedRow": "#fcefee",
                                                         },
-                                                        "disabled": "#ced3d6",
+                                                        "disabled": "#BDB4C7",
                                                         "dropShadowHeavy": "0 1px 4px 1px rgba(47,40,55,0.08), 0 4px 16px 0 rgba(47,40,55,0.12)",
                                                         "dropShadowLight": "0 2px 0 rgba(37, 11, 54, 0.04)",
                                                         "error": "#e03e2f",

@@ -43,7 +43,7 @@ const inputStyles = props => {
       cursor: not-allowed;
 
       &::placeholder {
-        color: ${props.theme.gray1};
+        color: ${props.theme.disabled};
       }
     }
   `;
