@@ -351,10 +351,6 @@ class SingleExceptionTest(TestCase):
             'type': self.interface.type,
             'value': self.interface.value,
             'module': self.interface.module,
-            'thread_id': None,
-            'mechanism': None,
-            'stacktrace': None,
-            'raw_stacktrace': None,
         }
 
     def test_get_hash(self):
@@ -423,12 +419,12 @@ class SingleExceptionTest(TestCase):
             'value': {'unauthorized': True},
         }).to_json()
 
-        assert result['type'] is None
+        assert 'type' not in result
         assert result['value'] == '{"unauthorized":true}'
 
         # Don't re-split a json-serialized value on the colon
         result = SingleException.to_python(result).to_json()
-        assert result['type'] is None
+        assert 'type' not in result
         assert result['value'] == '{"unauthorized":true}'
 
 
