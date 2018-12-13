@@ -166,6 +166,7 @@ class MockModel {
   }
   setValue() {}
   setFieldDescriptor() {}
+  removeField() {}
   handleBlurField() {}
   getValue() {
     return this.props.value;
@@ -242,6 +243,10 @@ class FormField extends React.Component {
   componentDidMount() {
     // Tell model about this field's props
     this.getModel().setFieldDescriptor(this.props.name, this.props);
+  }
+
+  componentWillUnmount() {
+    this.getModel().removeField(this.props.name);
   }
 
   getError(props, context) {

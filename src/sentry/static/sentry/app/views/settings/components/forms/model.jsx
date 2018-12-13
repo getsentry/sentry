@@ -148,6 +148,14 @@ class FormModel {
   }
 
   /**
+   * Remove a field from the descriptor map and errors.
+   */
+  removeField(id) {
+    this.fieldDescriptor.delete(id);
+    this.errors.delete(id);
+  }
+
+  /**
    * Creates a cloned Map of `this.fields` and returns a closure that when called
    * will save Map to `snapshots
    */
