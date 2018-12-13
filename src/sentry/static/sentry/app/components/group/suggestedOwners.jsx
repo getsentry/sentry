@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
@@ -11,7 +10,8 @@ import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
 import GroupState from 'app/mixins/groupState';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import SuggestedOwnersHovercard from 'app/components/group/suggestedOwnersHovercard';
+import SentryTypes from 'app/sentryTypes';
+import SuggestedOwnerHovercard from 'app/components/group/suggestedOwnerHovercard';
 
 /**
  * Given a list of rule objects returned from the API, locate the matching
@@ -34,7 +34,7 @@ const SuggestedOwners = createReactClass({
   displayName: 'SuggestedOwners',
 
   propTypes: {
-    event: PropTypes.object,
+    event: SentryTypes.Event,
   },
 
   mixins: [ApiMixin, GroupState],
@@ -42,7 +42,6 @@ const SuggestedOwners = createReactClass({
   getInitialState() {
     return {
       rules: null,
-      rule: null,
       owners: [],
       committers: [],
     };
@@ -88,7 +87,6 @@ const SuggestedOwners = createReactClass({
         this.setState({
           owners: data.owners,
           rules: data.rules,
-          rule: data.rule,
         });
       },
       error: error => {
@@ -150,10 +148,9 @@ const SuggestedOwners = createReactClass({
       const existingIdx = owners.findIndex(o => o.actor.email === owner.email);
       if (existingIdx > -1) {
         owners[existingIdx] = {...normalizedOwner, ...owners[existingIdx]};
-        return;
+      } else {
+        owners.push(normalizedOwner);
       }
-
-      owners.push(normalizedOwner);
     });
 
     return owners;
@@ -177,11 +174,12 @@ const SuggestedOwners = createReactClass({
 
             <div className="avatar-grid">
               {owners.map((owner, i) => (
-                <SuggestedOwnersHovercard
+                <SuggestedOwnerHovercard
                   key={`${owner.actor.id}:${owner.actor.email}:${owner.actor.name}:${i}`}
                   actor={owner.actor}
                   rules={owner.rules}
                   commits={owner.commits}
+                  containerClassName="avatar-grid-item"
                 >
                   <ActorAvatar
                     style={{cursor: 'pointer'}}
@@ -189,7 +187,7 @@ const SuggestedOwners = createReactClass({
                     actor={owner.actor}
                     onClick={() => this.assignToActor(owner)}
                   />
-                </SuggestedOwnersHovercard>
+                </SuggestedOwnerHovercard>
               ))}
             </div>
           </div>

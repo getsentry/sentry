@@ -8,7 +8,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 const StyledInlineSvg = styled(InlineSvg)`
-  margin-right: ${p => p.size / 2}px;
+  margin-right: calc(${p => p.size} / 2);
 `;
 
 const getAlertColorStyles = ({backgroundLight, border, iconColor}, textColor) => `

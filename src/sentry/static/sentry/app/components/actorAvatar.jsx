@@ -18,6 +18,7 @@ class ActorAvatar extends React.Component {
 
   render() {
     let {actor, ...props} = this.props;
+
     if (actor.type == 'user') {
       let user = actor.id ? MemberListStore.getById(actor.id) : actor;
       return <Avatar user={user} hasTooltip {...props} />;
