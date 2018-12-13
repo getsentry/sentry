@@ -149,6 +149,20 @@ class QueryIllegalTypeOfArgument(QueryExecutionError):
     """
 
 
+class QueryTooManySimultaneous(QueryExecutionError):
+    """
+    Exception raised when a query is rejected due to too many simultaneous
+    queries being performed on the database.
+    """
+
+
+clickhouse_error_codes_map = {
+    43: QueryIllegalTypeOfArgument,
+    241: QueryMemoryLimitExceeded,
+    202: QueryTooManySimultaneous,
+}
+
+
 class QueryOutsideRetentionError(Exception):
     pass
 
@@ -419,12 +433,10 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
             elif error['type'] == 'schema':
                 raise SchemaValidationError(error['message'])
             elif error['type'] == 'clickhouse':
-                if error['code'] == 43:
-                    raise QueryIllegalTypeOfArgument(error['message'])
-                elif error['code'] == 241:
-                    raise QueryMemoryLimitExceeded(error['message'])
-                else:
-                    raise QueryExecutionError(error['message'])
+                raise clickhouse_error_codes_map.get(
+                    error['code'],
+                    QueryExecutionError,
+                )(error['message'])
             else:
                 raise SnubaError(error['message'])
         else:
