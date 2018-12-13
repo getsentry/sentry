@@ -104,20 +104,6 @@ class InstallationForm(forms.Form):
         return self.cleaned_data['url'].rstrip('/')
 
 
-class InstallationGuideView(PipelineView):
-    """
-    Display a setup guide for creating an OAuth client in Jira
-    """
-
-    def dispatch(self, request, pipeline):
-        if 'completed_guide' in request.GET:
-            return pipeline.next_step()
-        return render_to_response(
-            template='sentry/integrations/jira-server-config.html',
-            request=request,
-        )
-
-
 class InstallationConfigView(PipelineView):
     """
     Collect the OAuth client credentials from the user.
@@ -254,7 +240,6 @@ class JiraServerIntegrationProvider(IntegrationProvider):
 
     def get_pipeline_views(self):
         return [
-            InstallationGuideView(),
             InstallationConfigView(),
             OAuthLoginView(),
             OAuthCallbackView(),
@@ -291,7 +276,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
             'user_identity': {
                 'type': 'jira_server',
                 'external_id': external_id,
-                'scopes': (),
+                'scopes': [],
                 'data': credentials
             }
         }
