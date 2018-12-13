@@ -152,3 +152,7 @@ register('kafka-publisher.max-event-size', default=100000)
 
 # Event Stream
 register('eventstream.kafka.send-post_process-task', type=Bool, default=True)
+
+# Ingest refactor
+register('store.process-in-kafka', type=Bool, default=False)
+register('store.kafka-sample-rate', default=0.0)
