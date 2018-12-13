@@ -774,7 +774,7 @@ class UnrealView(StoreView):
                 merge_unreal_context_event(unreal_context, data, project)
         except Unreal4Error as e:
             # we'll continue without the context data
-            logger.exception(e)
+            minidumps_logger.exception(e)
 
         for file in unreal.files():
             # Always store the minidump in attachments so we can access it during
