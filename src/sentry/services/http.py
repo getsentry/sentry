@@ -59,7 +59,6 @@ class SentryHTTPServer(Service):
         options.setdefault('workers', 3)
         options.setdefault('threads', 4)
         options.setdefault('http-timeout', 30)
-        options.setdefault('harakiri', 120)
         options.setdefault('vacuum', True)
         options.setdefault('thunder-lock', True)
         options.setdefault('log-x-forwarded-for', False)
