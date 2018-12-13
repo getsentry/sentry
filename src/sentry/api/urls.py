@@ -95,6 +95,7 @@ from .endpoints.organization_repository_details import OrganizationRepositoryDet
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
+from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
 from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
@@ -627,6 +628,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$',
         OrganizationReleaseCommitsEndpoint.as_view(),
         name='sentry-api-0-organization-release-commits'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/user-feedback/$',
+        OrganizationUserReportsEndpoint.as_view(),
+        name='sentry-api-0-organization-user-feedback'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-installations/$',
