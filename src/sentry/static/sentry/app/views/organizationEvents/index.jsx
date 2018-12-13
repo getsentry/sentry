@@ -19,7 +19,11 @@ import MultipleProjectSelector from 'app/components/organizations/multipleProjec
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import space from 'app/styles/space';
-import {updateProjects} from 'app/actionCreators/globalSelection';
+import {
+  updateProjects,
+  updateDateTime,
+  updateEnvironments,
+} from 'app/actionCreators/globalSelection';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -63,9 +67,11 @@ class OrganizationEventsContainer extends React.Component {
 
   static getStateFromRouter(props) {
     const {query} = props.router.location;
-    const hasAbsolute = !!query.start && !!query.end;
+    const hasAbsolute =
+      (!!query.start && !!query.end) ||
+      (!!props.selection.start && !!props.selection.end);
     let project = props.selection.projects;
-    let environment = query.environment || [];
+    let environment = query.environment || props.selection.environments;
 
     if (defined(query.project) && Array.isArray(query.project)) {
       project = query.project.map(p => parseInt(p, 10));
@@ -78,7 +84,8 @@ class OrganizationEventsContainer extends React.Component {
       environment = [query.environment];
     }
 
-    let {start, end} = query;
+    let start = query.start || props.selection.start;
+    let end = query.end || props.selection.end;
 
     if (hasAbsolute) {
       start = getLocalDateObject(start);
@@ -88,7 +95,10 @@ class OrganizationEventsContainer extends React.Component {
     return {
       project,
       environment,
-      period: query.statsPeriod || (hasAbsolute ? null : DEFAULT_STATS_PERIOD),
+      period:
+        query.statsPeriod ||
+        props.selection.datetime.range ||
+        (hasAbsolute ? null : DEFAULT_STATS_PERIOD),
       query: query.query || null,
       start: start || null,
       end: end || null,
@@ -124,6 +134,8 @@ class OrganizationEventsContainer extends React.Component {
 
   componentDidMount() {
     this.handleUpdateProjects();
+    this.handleUpdateEnvironmments();
+    this.handleUpdatePeriod();
   }
 
   updateParams = obj => {
@@ -168,10 +180,16 @@ class OrganizationEventsContainer extends React.Component {
     this.setState({
       environment: environments,
     });
+    updateEnvironments(environments);
   };
 
   handleChangeTime = ({start, end, relative, utc}) => {
     this.setState({start, end, period: relative, utc});
+    updateDateTime({
+      start,
+      end,
+      range: relative,
+    });
   };
 
   handleUpdatePeriod = () => {

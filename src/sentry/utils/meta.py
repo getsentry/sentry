@@ -29,6 +29,13 @@ class Meta(object):
         """
         return Meta(self._meta, path=self._path + map(six.text_type, path))
 
+    @property
+    def path(self):
+        """
+        Returns the full path of this meta instance, joined with dots (".").
+        """
+        return '.'.join(self._path)
+
     def raw(self):
         """
         Returns the raw meta tree at the current path, if it exists; otherwise
@@ -147,3 +154,11 @@ class Meta(object):
 
         if value is not None:
             meta['val'] = value
+
+    def __iter__(self):
+        """
+        Iterates all child meta entries that potentially have errors set.
+        """
+        for key in self.raw():
+            if key != '':
+                yield self.enter(key)

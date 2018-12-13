@@ -1,6 +1,20 @@
 from __future__ import absolute_import
 
-from sentry.api.bases.organization import OrganizationPermission
+from datetime import timedelta
+
+from django.test import RequestFactory
+from django.utils import timezone
+from exam import fixture
+from freezegun import freeze_time
+from rest_framework.exceptions import PermissionDenied
+
+from sentry.api.bases.organization import (
+    NoProjects,
+    OrganizationEndpoint,
+    OrganizationPermission,
+)
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.models import ApiKey
 from sentry.testutils import TestCase
 
@@ -72,3 +86,247 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             scope_list=['org:read'],
         )
         assert not self.has_object_perm('PUT', self.org, auth=key)
+
+
+class BaseOrganizationEndpointTest(TestCase):
+
+    @fixture
+    def endpoint(self):
+        return OrganizationEndpoint()
+
+    @fixture
+    def user(self):
+        return self.create_user('tester@test.com')
+
+    @fixture
+    def owner(self):
+        return self.create_user('owner@test.com')
+
+    @fixture
+    def super_user(self):
+        return self.create_user('super@user.com', is_superuser=True)
+
+    @fixture
+    def org(self):
+        org = self.create_organization('test', self.owner)
+        org.flags.allow_joinleave = False
+        org.save()
+        return org
+
+    def build_request(self, user=None, **params):
+        request = RequestFactory().get('/', params)
+        if user is None:
+            user = self.user
+        request.user = user
+        return request
+
+
+class GetProjectIdsTest(BaseOrganizationEndpointTest):
+
+    def setUp(self):
+        self.team_1 = self.create_team(organization=self.org)
+        self.team_2 = self.create_team(organization=self.org)
+        self.team_3 = self.create_team(organization=self.org)
+        self.project_1 = self.create_project(
+            organization=self.org,
+            teams=[self.team_1, self.team_3],
+        )
+        self.project_2 = self.create_project(
+            organization=self.org,
+            teams=[self.team_2, self.team_3],
+        )
+
+    def run_test(
+        self,
+        expected_projects,
+        user=None,
+        project_ids=None,
+        include_allow_joinleave=False,
+    ):
+        request_args = {}
+        if project_ids:
+            request_args['project'] = project_ids
+        result = self.endpoint.get_project_ids(
+            self.build_request(user=user, **request_args),
+            self.org,
+            include_allow_joinleave=include_allow_joinleave,
+        )
+        assert set([p.id for p in expected_projects]) == set(result)
+
+    def test_no_ids_no_teams(self):
+        # Should get nothing if not part of the org
+        self.run_test([])
+        # Should get everything if super user or owner
+        self.run_test([self.project_1, self.project_2], user=self.super_user)
+        self.run_test([self.project_1, self.project_2], user=self.owner)
+        # Should get everything if org is public
+        self.org.flags.allow_joinleave = True
+        self.org.save()
+        self.run_test([self.project_1, self.project_2], include_allow_joinleave=True)
+        self.run_test([], include_allow_joinleave=False)
+
+    def test_no_ids_teams(self):
+        membership = self.create_team_membership(user=self.user, team=self.team_1)
+        self.run_test([self.project_1])
+        membership.delete()
+        self.create_team_membership(user=self.user, team=self.team_3)
+        self.run_test([self.project_1, self.project_2])
+
+    def test_ids_no_teams(self):
+        with self.assertRaises(PermissionDenied):
+            self.run_test([], project_ids=[self.project_1.id])
+
+        self.run_test([self.project_1], user=self.super_user, project_ids=[self.project_1.id])
+        self.run_test([self.project_1], user=self.owner, project_ids=[self.project_1.id])
+        self.org.flags.allow_joinleave = True
+        self.org.save()
+        self.run_test(
+            [self.project_1],
+            project_ids=[self.project_1.id],
+            include_allow_joinleave=True,
+        )
+        with self.assertRaises(PermissionDenied):
+            self.run_test(
+                [self.project_1],
+                project_ids=[self.project_1.id],
+                include_allow_joinleave=False,
+            )
+
+    def test_ids_teams(self):
+        membership = self.create_team_membership(user=self.user, team=self.team_1)
+        self.run_test([self.project_1], project_ids=[self.project_1.id])
+        with self.assertRaises(PermissionDenied):
+            self.run_test([], project_ids=[self.project_2.id])
+        membership.delete()
+        self.create_team_membership(user=self.user, team=self.team_3)
+        self.run_test(
+            [self.project_1, self.project_2],
+            project_ids=[self.project_1.id, self.project_2.id],
+        )
+
+
+class GetEnvironmentsTest(BaseOrganizationEndpointTest):
+    def setUp(self):
+        self.project = self.create_project(organization=self.org)
+        self.env_1 = self.create_environment(project=self.project)
+        self.env_2 = self.create_environment(project=self.project)
+
+    def run_test(self, expected_envs, env_names=None):
+        request_args = {}
+        if env_names:
+            request_args['environment'] = env_names
+        result = self.endpoint.get_environments(
+            self.build_request(**request_args),
+            self.org,
+        )
+        assert set([e.name for e in expected_envs]) == set(result)
+
+    def test_no_params(self):
+        self.run_test([])
+
+    def test_valid_params(self):
+        self.run_test([self.env_1], [self.env_1.name])
+        self.run_test([self.env_1, self.env_2], [self.env_1.name, self.env_2.name])
+
+    def test_invalid_params(self):
+        with self.assertRaises(ResourceDoesNotExist):
+            self.run_test([], ['fake'])
+        with self.assertRaises(ResourceDoesNotExist):
+            self.run_test([self.env_1, self.env_2], ['fake', self.env_2.name])
+
+
+class GetFilterParamsTest(BaseOrganizationEndpointTest):
+    def setUp(self):
+        self.team_1 = self.create_team(organization=self.org)
+        self.project_1 = self.create_project(
+            organization=self.org,
+            teams=[self.team_1],
+        )
+        self.project_2 = self.create_project(
+            organization=self.org,
+            teams=[self.team_1],
+        )
+        self.env_1 = self.create_environment(project=self.project_1)
+        self.env_2 = self.create_environment(project=self.project_1)
+
+    def run_test(
+        self,
+        expected_projects,
+        expected_envs=None,
+        expected_start=None,
+        expected_end=None,
+        env_names=None,
+        user=None,
+        date_filter_optional=False,
+        project_ids=None,
+        start=None,
+        end=None,
+        stats_period=None,
+    ):
+        request_args = {}
+        if env_names:
+            request_args['environment'] = env_names
+        if project_ids:
+            request_args['project'] = project_ids
+        if start and end:
+            request_args['start'] = start
+            request_args['end'] = end
+        if stats_period:
+            request_args['statsPeriod'] = stats_period
+        result = self.endpoint.get_filter_params(
+            self.build_request(user=user, **request_args),
+            self.org,
+            date_filter_optional=date_filter_optional,
+        )
+
+        assert set([p.id for p in expected_projects]) == set(result['project_id'])
+        assert expected_start == result['start']
+        assert expected_end == result['end']
+        if expected_envs:
+            assert set([e.name for e in expected_envs]) == set(result['environment'])
+        else:
+            assert 'environment' not in result
+
+    @freeze_time('2018-12-11 03:21:34')
+    def test_no_params(self):
+        with self.assertRaises(NoProjects):
+            self.run_test([])
+        self.run_test(
+            [self.project_1, self.project_2],
+            expected_start=timezone.now() - MAX_STATS_PERIOD,
+            expected_end=timezone.now(),
+            user=self.super_user,
+        )
+        self.run_test(
+            [self.project_1, self.project_2],
+            expected_start=None,
+            expected_end=None,
+            user=self.super_user,
+            date_filter_optional=True
+        )
+
+    def test_params(self):
+        start = timezone.now() - timedelta(days=3)
+        end = timezone.now()
+        self.create_team_membership(user=self.user, team=self.team_1)
+        self.run_test(
+            expected_projects=[self.project_1, self.project_2],
+            project_ids=[self.project_1.id, self.project_2.id],
+            expected_envs=[self.env_1, self.env_2],
+            env_names=[self.env_1.name, self.env_2.name],
+            expected_start=start,
+            expected_end=end,
+            start=start.replace(tzinfo=None).isoformat(),
+            end=end.replace(tzinfo=None).isoformat(),
+        )
+
+        with freeze_time('2018-12-11 03:21:34'):
+            self.run_test(
+                expected_projects=[self.project_1, self.project_2],
+                project_ids=[self.project_1.id, self.project_2.id],
+                expected_envs=[self.env_1, self.env_2],
+                env_names=[self.env_1.name, self.env_2.name],
+                expected_start=timezone.now() - timedelta(days=2),
+                expected_end=timezone.now(),
+                stats_period='2d',
+            )

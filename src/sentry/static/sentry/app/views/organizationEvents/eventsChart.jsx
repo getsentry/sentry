@@ -70,6 +70,13 @@ class EventsChart extends React.Component {
       return true;
     }
 
+    if (
+      nextProps.zoom &&
+      this.useHourlyInterval(nextProps) !== this.useHourlyInterval(this.props)
+    ) {
+      return true;
+    }
+
     // do not update if we are zooming or if period via props does not change
     if (nextProps.zoom || isEqualWithDates(currentPeriod, nextPeriod)) {
       return false;
@@ -84,8 +91,8 @@ class EventsChart extends React.Component {
     this.saveCurrentPeriod(this.props);
   }
 
-  useHourlyInterval = () => {
-    const {period, start, end} = this.props;
+  useHourlyInterval = (props = this.props) => {
+    const {period, start, end} = props;
 
     if (typeof period === 'string') {
       return period.endsWith('h') || period === '1d';
@@ -193,14 +200,10 @@ class EventsChart extends React.Component {
 
       this.setPeriod(previousPeriod);
     } else {
-      // TODO: handle hourly intervals
       const start = moment.utc(firstSeries.data[axis.rangeStart][0]);
 
       // Add a day so we go until the end of the day (e.g. next day at midnight)
-      const end = moment
-        .utc(firstSeries.data[axis.rangeEnd][0])
-        .add(1, this.useHourlyInterval() ? 'hour' : 'day')
-        .subtract(1, 'second');
+      const end = moment.utc(firstSeries.data[axis.rangeEnd][0]);
 
       this.setPeriod({period: null, start, end}, true);
     }
@@ -223,13 +226,21 @@ class EventsChart extends React.Component {
   render() {
     const {period, utc, query} = this.props;
 
-    let interval = '1d';
-    let xAxisOptions = {};
+    const useHourly = this.useHourlyInterval();
+
+    let interval = '30m';
+    let xAxisOptions = {
+      axisLabel: {
+        formatter: (value, index, ...rest) => {
+          const firstItem = index === 0;
+          const format = useHourly && !firstItem ? 'LT' : 'lll';
+          return getFormattedDate(value, format, {local: !utc});
+        },
+      },
+    };
+
     if (this.useHourlyInterval()) {
-      interval = '1h';
-      xAxisOptions.axisLabel = {
-        formatter: value => getFormattedDate(value, 'LT', {local: !utc}),
-      };
+      interval = '5m';
     }
 
     // TODO(billy): For now only include previous period when we use relative time
@@ -253,15 +264,23 @@ class EventsChart extends React.Component {
                 interval={interval === '1h' ? 'hour' : 'day'}
                 series={timeseriesData}
                 seriesOptions={{
-                  showSymbol: true,
+                  showSymbol: false,
                 }}
                 previousPeriod={previousTimeseriesData}
                 grid={{
-                  left: '18px',
+                  left: '30px',
                   right: '18px',
                 }}
                 xAxis={xAxisOptions}
                 dataZoom={DataZoom()}
+                tooltip={{
+                  formatAxisLabel: (value, isTimestamp, isUtc) => {
+                    if (!isTimestamp) {
+                      return value;
+                    }
+                    return getFormattedDate(value, 'lll', {local: !isUtc});
+                  },
+                }}
                 toolBox={ToolBox(
                   {},
                   {
@@ -270,9 +289,11 @@ class EventsChart extends React.Component {
                         zoom: '',
                         back: '',
                       },
-                    },
-                    restore: {
-                      title: ' ',
+                      iconStyle: {
+                        borderWidth: 0,
+                        color: 'transparent',
+                        opacity: 0,
+                      },
                     },
                   }
                 )}

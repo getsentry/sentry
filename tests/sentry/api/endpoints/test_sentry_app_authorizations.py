@@ -32,7 +32,7 @@ class TestSentryAppAuthorizations(APITestCase):
             webhook_url='http://example.com',
         )
 
-        self.install, self.grant = SentryAppInstallationCreator.run(
+        self.install = SentryAppInstallationCreator.run(
             organization=self.org,
             slug='nulldb',
             user=self.user,
@@ -48,7 +48,7 @@ class TestSentryAppAuthorizations(APITestCase):
             'client_id': self.sentry_app.application.client_id,
             'client_secret': self.sentry_app.application.client_secret,
             'grant_type': 'authorization_code',
-            'code': self.grant.code,
+            'code': self.install.api_grant.code,
         }
         data.update(**kwargs)
         return self.client.post(self.url, data, headers={
@@ -84,7 +84,7 @@ class TestSentryAppAuthorizations(APITestCase):
         assert response.status_code == 403
 
     def test_invalid_installation(self):
-        self.install, _ = SentryAppInstallationCreator.run(
+        self.install = SentryAppInstallationCreator.run(
             organization=self.org,
             slug='slowdb',
             user=self.user,
@@ -114,7 +114,7 @@ class TestSentryAppAuthorizations(APITestCase):
         assert response.status_code == 403
 
     def test_expired_grant(self):
-        self.grant.update(expires_at=timezone.now() - timedelta(minutes=2))
+        self.install.api_grant.update(expires_at=timezone.now() - timedelta(minutes=2))
         response = self._run_request()
         assert response.status_code == 403
 

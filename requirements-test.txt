@@ -6,6 +6,7 @@ casscache
 cqlsh
 # /cassandra
 datadog
+freezegun==0.3.11
 msgpack-python<0.5.0
 pytest-cov>=2.5.1,<2.6.0
 pytest-timeout==1.2.1

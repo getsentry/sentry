@@ -5,7 +5,7 @@
  */
 export default function Grid(props = {}) {
   return {
-    top: 40,
+    top: 20,
     bottom: 20,
     // This should allow for sufficient space for Y-axis labels
     left: '0%',

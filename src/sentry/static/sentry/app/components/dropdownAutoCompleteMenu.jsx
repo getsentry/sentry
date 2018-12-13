@@ -35,6 +35,17 @@ class DropdownAutoCompleteMenu extends React.Component {
       ),
     ]),
 
+    /**
+     * If this is undefined, autocomplete filter will use this value instead of the
+     * current value in the filter input element.
+     *
+     * This is useful if you need to strip characters out of the search
+     */
+    filterValue: PropTypes.string,
+
+    /**
+     * Used to control dropdown state (optional)
+     */
     isOpen: PropTypes.bool,
 
     /**
@@ -48,6 +59,9 @@ class DropdownAutoCompleteMenu extends React.Component {
      */
     emptyHidesInput: PropTypes.bool,
 
+    /**
+     * When an item is selected (via clicking dropdown, or keyboard navigation)
+     */
     onSelect: PropTypes.func,
     /**
      * When AutoComplete input changes
@@ -87,6 +101,11 @@ class DropdownAutoCompleteMenu extends React.Component {
      * Should menu visually lock to a direction (so we don't display a rounded corner)
      */
     blendCorner: PropTypes.bool,
+
+    /**
+     * Hides the default filter input
+     */
+    hideInput: PropTypes.bool,
 
     /**
      * Max height of dropdown menu. Units are assumed as `px` if number, otherwise will assume string has units
@@ -280,6 +299,8 @@ class DropdownAutoCompleteMenu extends React.Component {
       searchPlaceholder,
       itemSize,
       busy,
+      hideInput,
+      filterValue,
       emptyHidesInput,
       ...props
     } = this.props;
@@ -306,23 +327,30 @@ class DropdownAutoCompleteMenu extends React.Component {
           isOpen,
           actions,
         }) => {
+          // This is the value to use to filter (default to value in filter input)
+          let filterValueOrInput =
+            typeof filterValue !== 'undefined' ? filterValue : inputValue;
           // Only filter results if menu is open and there are items
           let autoCompleteResults =
-            (isOpen && items && this.autoCompleteFilter(items, inputValue)) || [];
+            (isOpen &&
+              items &&
+              this.autoCompleteFilter(items, filterValueOrInput || '')) ||
+            [];
 
           // Can't search if there are no items
           let hasItems = items && !!items.length;
-
           // Items are loading if null
           let itemsLoading = items === null;
+          // Has filtered results
           let hasResults = !!autoCompleteResults.length;
-          let showNoItems = !busy && !inputValue && !hasItems;
-          // Results mean there was a search (i.e. inputValue)
-          let showNoResultsMessage = !busy && inputValue && !hasResults;
+          // No items to display
+          let showNoItems = !busy && !filterValueOrInput && !hasItems;
+          // Results mean there was an attempt to search
+          let showNoResultsMessage = !busy && filterValueOrInput && !hasResults;
 
           // Hide the input when we have no items to filter, only if
           // emptyHidesInput is set to true.
-          let showInput = hasItems || !emptyHidesInput;
+          let showInput = !hideInput && (hasItems || !emptyHidesInput);
 
           let renderedFooter =
             typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
@@ -330,6 +358,7 @@ class DropdownAutoCompleteMenu extends React.Component {
           return (
             <AutoCompleteRoot {...getRootProps()} className={rootClassName}>
               {children({
+                getInputProps,
                 getActorProps,
                 actions,
                 isOpen,
