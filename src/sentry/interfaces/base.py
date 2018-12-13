@@ -16,6 +16,7 @@ from sentry.utils.decorators import classproperty
 
 
 logger = logging.getLogger("sentry.events")
+interface_logger = logging.getLogger("sentry.interfaces")
 
 
 def get_interface(name):
@@ -174,7 +175,7 @@ class Interface(object):
             # phase while to_python is being used for normalization. All other
             # exceptions indicate a programming error and need to be reported.
             if not isinstance(e, InterfaceValidationError):
-                logger.error('Discarded invalid value for interface: %s (%r)',
+                interface_logger.error('Discarded invalid value for interface: %s (%r)',
                              cls.path, data, exc_info=True)
 
             meta.add_error(EventError.INVALID_DATA, data, {
