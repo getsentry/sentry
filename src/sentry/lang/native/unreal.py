@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from symbolic import Unreal4Crash
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import UserReport
+from sentry.utils.safe import set_path
 
 import re
 import uuid
@@ -38,27 +39,20 @@ def merge_unreal_context_event(unreal_context, event, project):
     username = runtime_prop.pop('username', None)
     user = None
     if username is not None:
-        user = event.setdefault('user', {})
-        user['username'] = username
+        set_path(event, 'user', 'username', value=username)
 
     memory_physical = runtime_prop.pop('memory_stats_total_physical', None)
     if memory_physical is not None:
-        contexts = event.setdefault('contexts', {})
-        device = contexts.setdefault('device', {})
-        device['memory_size'] = memory_physical
+        set_path(event, 'contexts', 'device', 'memory_size', value=memory_physical)
 
     # Likely overwritten by minidump processing
     os_major = runtime_prop.pop('misc_os_version_major', None)
-    if os_major is not None:
-        contexts = event.setdefault('contexts', {})
-        os = contexts.setdefault('os', {})
-        os['name'] = os_major  # i.e: Windows 10
+    if os_major is not None:  # i.e: Windows 10
+        set_path(event, 'contexts', 'os', 'name', value=os_major)
 
     gpu_brand = runtime_prop.pop('misc_primary_cpu_brand', None)
     if gpu_brand is not None:
-        contexts = event.setdefault('contexts', {})
-        os = contexts.setdefault('gpu', {})
-        os['name'] = gpu_brand
+        set_path(event, 'contexts', 'gpu', 'name', value=gpu_brand)
 
     user_desc = runtime_prop.pop('user_description', None)
     if user_desc is not None:
