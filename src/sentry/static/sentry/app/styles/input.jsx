@@ -38,6 +38,13 @@ const inputStyles = props => {
 
     &[disabled] {
       background: ${props.theme.whiteDark};
+      color: ${props.theme.gray2};
+      border: 1px solid ${props.theme.borderDark};
+      cursor: not-allowed;
+
+      &::placeholder {
+        color: ${props.theme.gray1};
+      }
     }
   `;
 };
