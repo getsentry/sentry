@@ -20,7 +20,7 @@ from sentry.utils import json
 from sentry.utils.strings import truncatechars
 
 
-RUST_ENABLE_TRIMMING = os.environ.get("SENTRY_RUST_ENABLE_TRIMMING", "true") == "false"
+RUST_ENABLE_TRIMMING = os.environ.get("SENTRY_RUST_ENABLE_TRIMMING", "true") == "true"
 
 
 def safe_execute(func, *args, **kwargs):
