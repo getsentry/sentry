@@ -410,6 +410,13 @@ def parse_query(project, query, user):
                 results.update(get_date_params(value, 'date_from', 'date_to'))
             elif key == 'timesSeen':
                 results.update(get_numeric_field_value('times_seen', value))
+            elif key == 'linked_ticket':
+                if value == 'true':
+                    results['linked_ticket'] = True
+                elif value == 'false':
+                    results['linked_ticket'] = False
+                else:
+                    raise InvalidQuery(u"'linked_ticket:' had unknown value '{}'.".format(value))
             else:
                 results['tags'][key] = value
 

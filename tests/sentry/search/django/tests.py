@@ -11,7 +11,8 @@ from django.conf import settings
 from sentry import tagstore
 from sentry.models import (
     Environment, Event, GroupAssignee, GroupBookmark, GroupEnvironment, GroupStatus,
-    GroupSubscription, Release, ReleaseEnvironment, ReleaseProjectEnvironment
+    GroupSubscription, Release, ReleaseEnvironment, ReleaseProjectEnvironment,
+    GroupLink
 )
 from sentry.search.base import ANY
 from sentry.search.django.backend import DjangoSearchBackend, get_latest_release
@@ -767,3 +768,21 @@ class DjangoSearchBackendTest(TestCase):
             environment = self.create_environment()
             result = get_latest_release([self.project], [environment])
             assert result == new.version
+
+    def test_linked_ticket(self):
+        integration = self.create_integration(self.organization, self.user)
+        self.create_group_link(
+            self.group1,
+            self.create_external_issue(self.organization, integration),
+            linked_type=GroupLink.LinkedType.issue,
+            relationship=GroupLink.Relationship.references)
+
+        results = self.backend.query(
+            [self.project],
+            linked_ticket=True)
+        assert set(results) == set([self.group1])
+
+        results = self.backend.query(
+            [self.project],
+            linked_ticket=False)
+        assert set(results) == set([self.group2])

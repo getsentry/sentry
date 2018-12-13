@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.models import (
-    Environment, GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription,
+    Environment, GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription, GroupLink,
     Release, ReleaseEnvironment, ReleaseProjectEnvironment
 )
 from sentry.search.base import ANY
@@ -998,3 +998,21 @@ class SnubaSearchTest(SnubaTestCase):
         )
 
         assert set(results) == set([])
+
+    def test_linked_ticket(self):
+        integration = self.create_integration(self.organization, self.user)
+        self.create_group_link(
+            self.group1,
+            self.create_external_issue(self.organization, integration),
+            linked_type=GroupLink.LinkedType.issue,
+            relationship=GroupLink.Relationship.references)
+
+        results = self.backend.query(
+            [self.project],
+            linked_ticket=True)
+        assert set(results) == set([self.group1])
+
+        results = self.backend.query(
+            [self.project],
+            linked_ticket=False)
+        assert set(results) == set([self.group2])

@@ -30,7 +30,8 @@ from sentry.mediators import sentry_apps, sentry_app_installations, service_hook
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, ProjectBookmark, Team, User, UserEmail, Release, Commit, ReleaseCommit,
-    CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment
+    CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment,
+    Integration, ExternalIssue, GroupLink
 )
 from sentry.utils.canonical import CanonicalKeyDict
 
@@ -765,3 +766,30 @@ class Fixtures(object):
         _kwargs.update(kwargs)
 
         return service_hooks.Creator.run(**_kwargs)
+
+    def create_integration(self, org, user, **kwargs):
+        kwargs.setdefault('provider', 'example')
+        kwargs.setdefault('name', 'Example')
+        if not user:
+            user = self.user
+        if not org:
+            org = self.organization
+        integration = Integration.objects.create(**kwargs)
+        integration.add_organization(org, user)
+        return integration
+
+    def create_external_issue(self, org, integration, **kwargs):
+        kwargs.setdefault('key', 'APP-123')
+        return ExternalIssue.objects.create(
+            organization_id=org.id,
+            integration_id=integration.id,
+            **kwargs
+        )
+
+    def create_group_link(self, group, external_issue, **kwargs):
+        return GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project.id,
+            linked_id=external_issue.id,
+            **kwargs
+        )

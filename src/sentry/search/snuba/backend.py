@@ -12,7 +12,7 @@ from django.utils import timezone
 from sentry import options
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
-from sentry.models import Release, Group, GroupEnvironment
+from sentry.models import Release, Group, GroupLink, GroupEnvironment
 from sentry.search.django import backend as ds
 from sentry.utils import snuba, metrics
 from sentry.utils.cache import cache
@@ -191,6 +191,16 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 group_queryset,
                 parameters,
             )
+
+        # Additional filtering conditions for data that doesn't exist in snuba.
+        group_queryset = ds.QuerySetBuilder({
+            'linked_ticket': ds.CallbackCondition(
+                lambda queryset, linked: (queryset.filter if linked else queryset.exclude)(
+                    id__in=GroupLink.objects.filter(
+                        linked_type=GroupLink.LinkedType.issue
+                    ).values_list('group_id')
+                ))
+        }).build(group_queryset, parameters)
 
         now = timezone.now()
         end = parameters.get('date_to')

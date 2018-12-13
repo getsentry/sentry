@@ -212,6 +212,7 @@ class DjangoSearchBackend(SearchBackend):
               cursor=None, count_hits=False, paginator_options=None, **parameters):
 
         from sentry.models import Group, GroupAssignee, GroupStatus, GroupSubscription, Release
+        from sentry.models import GroupLink
 
         # ensure projects are from same org
         if len({p.organization_id for p in projects}) != 1:
@@ -269,6 +270,12 @@ class DjangoSearchBackend(SearchBackend):
             ),
             'active_at_from': ScalarCondition('active_at', 'gt'),
             'active_at_to': ScalarCondition('active_at', 'lt'),
+            'linked_ticket': CallbackCondition(
+                lambda queryset, linked: (queryset.filter if linked else queryset.exclude)(
+                    id__in=GroupLink.objects.filter(
+                        linked_type=GroupLink.LinkedType.issue
+                    ).values_list('group_id')
+                ))
         }).build(
             Group.objects.filter(project__in=projects).exclude(status__in=[
                 GroupStatus.PENDING_DELETION,
