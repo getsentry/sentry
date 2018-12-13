@@ -103,6 +103,12 @@ class OrganizationDiscoverSavedQueryPermission(OrganizationPermission):
     }
 
 
+class OrganizationUserReportsPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:admin'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission, )
 

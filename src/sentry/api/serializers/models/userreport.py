@@ -56,7 +56,7 @@ class UserReportSerializer(Serializer):
         }
 
 
-class ProjectUserReportSerializer(UserReportSerializer):
+class UserReportWithGroupSerializer(UserReportSerializer):
     def __init__(self, environment_func=None):
         self.environment_func = environment_func
 
@@ -71,7 +71,7 @@ class ProjectUserReportSerializer(UserReportSerializer):
                 GroupSerializer(environment_func=self.environment_func))
         }
 
-        attrs = super(ProjectUserReportSerializer, self).get_attrs(item_list, user)
+        attrs = super(UserReportWithGroupSerializer, self).get_attrs(item_list, user)
         for item in item_list:
             attrs[item].update(
                 {
@@ -81,7 +81,7 @@ class ProjectUserReportSerializer(UserReportSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        context = super(ProjectUserReportSerializer, self).serialize(
+        context = super(UserReportWithGroupSerializer, self).serialize(
             obj,
             attrs,
             user,
