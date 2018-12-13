@@ -31,15 +31,15 @@ class Creator(Mediator):
 
     def _create_api_application(self):
         return ApiApplication.objects.create(
-            owner=self.proxy,
+            owner_id=self.proxy.id,
         )
 
     def _create_sentry_app(self):
         return SentryApp.objects.create(
             name=self.name,
-            application=self.api_app,
-            owner=self.organization,
-            proxy_user=self.proxy,
+            application_id=self.api_app.id,
+            owner_id=self.organization.id,
+            proxy_user_id=self.proxy.id,
             scope_list=self.scopes,
             webhook_url=self.webhook_url,
             redirect_url=self.redirect_url,
