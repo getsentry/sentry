@@ -85,9 +85,10 @@ export default withRouter(
 export {OrganizationEventsContainer};
 
 const Body = styled('div')`
-  display: flex;
+  background-color: ${p => p.theme.whiteDark};
   flex-direction: column;
   flex: 1;
+  overflow: hidden;
 `;
 
 const StyledSearchBar = styled(SearchBar)`
