@@ -179,6 +179,13 @@ class SnubaTSDBTest(TestCase):
             ],
         }
 
+        assert self.db.get_range(
+            TSDBModel.group,
+            [],
+            dts[0], dts[-1],
+            rollup=3600
+        ) == {}
+
     def test_range_releases(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
@@ -320,6 +327,13 @@ class SnubaTSDBTest(TestCase):
             ],
         }
 
+        assert self.db.get_distinct_counts_series(
+            TSDBModel.users_affected_by_group,
+            [],
+            dts[0], dts[-1],
+            rollup=3600,
+        ) == {}
+
     def get_distinct_counts_totals_users(self):
         assert self.db.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
@@ -351,6 +365,14 @@ class SnubaTSDBTest(TestCase):
             self.proj1.id: 2,
         }
 
+        assert self.db.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_group,
+            [],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600
+        ) == {}
+
     def test_most_frequent(self):
         assert self.db.get_most_frequent(
             TSDBModel.frequent_issues_by_project,
@@ -364,6 +386,14 @@ class SnubaTSDBTest(TestCase):
                 (self.proj1group2.id, 1.0),
             ],
         }
+
+        assert self.db.get_most_frequent(
+            TSDBModel.frequent_issues_by_project,
+            [],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600,
+        ) == {}
 
     def test_frequency_series(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
@@ -409,6 +439,13 @@ class SnubaTSDBTest(TestCase):
                 }),
             ],
         }
+
+        assert self.db.get_frequency_series(
+            TSDBModel.frequent_releases_by_group,
+            {},
+            dts[0], dts[-1],
+            rollup=3600,
+        ) == {}
 
     def test_result_shape(self):
         """

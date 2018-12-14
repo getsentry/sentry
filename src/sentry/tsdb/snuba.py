@@ -77,9 +77,12 @@ class SnubaTSDB(BaseTSDB):
         start = to_datetime(series[0])
         end = to_datetime(series[-1] + rollup)
 
-        result = snuba.query(start, end, groupby, None, keys_map,
-                             aggregations, rollup, referrer='tsdb',
-                             is_grouprelease=(model == TSDBModel.frequent_releases_by_group))
+        if keys:
+            result = snuba.query(start, end, groupby, None, keys_map,
+                                 aggregations, rollup, referrer='tsdb',
+                                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group))
+        else:
+            result = {}
 
         if group_on_time:
             keys_map['time'] = series
@@ -209,7 +212,8 @@ class SnubaTSDB(BaseTSDB):
         The output is a 2-tuple of ([level_1_keys], [all_level_2_keys])
         """
         if isinstance(items, collections.Mapping):
-            return (items.keys(), list(set.union(*(set(v) for v in items.values()))))
+            return (items.keys(), list(set.union(*(set(v)
+                                                   for v in items.values())) if items else []))
         elif isinstance(items, (collections.Sequence, collections.Set)):
             return (items, None)
         else:
