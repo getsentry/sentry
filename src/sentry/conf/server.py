@@ -454,6 +454,7 @@ CELERY_IMPORTS = (
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
     Queue('alerts', routing_key='alerts'),
+    Queue('app_platform', routing_key='app_platform'),
     Queue('auth', routing_key='auth'),
     Queue('assemble', routing_key='assemble'),
     Queue('buffers.process_pending', routing_key='buffers.process_pending'),

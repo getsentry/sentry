@@ -33,6 +33,7 @@ TYPES = {
 
 @instrumented_task(
     'sentry.tasks.process_resource_change',
+    queue='app_platform',
     default_retry_delay=60 * 5,
     max_retries=5,
 )

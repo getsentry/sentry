@@ -12,7 +12,7 @@ logger = logging.Logger('sentry.tasks.app_platform')
 
 @instrumented_task(
     name='sentry.tasks.app_platform.installation_webhook',
-    queue='integrations',  # Sharing this for now. Should it have its own?
+    queue='app_platform',
     default_retry_delay=(60 * 5),  # 5 minutes
     max_retries=3,
 )
