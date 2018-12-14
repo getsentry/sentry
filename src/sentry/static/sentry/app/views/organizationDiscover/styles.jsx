@@ -88,6 +88,7 @@ export const Sidebar = styled(props => (
   <Flex {...props} direction="column" w={[300, 300, 300, 360]} />
 ))`
   border-right: 1px solid ${p => p.theme.borderDark};
+  background: #fff;
   min-width: 320px;
   position: relative;
   padding-top: ${HEADER_HEIGHT}px;
