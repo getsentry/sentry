@@ -8,6 +8,7 @@ import * as EmotionTheming from 'emotion-theming';
 import * as GridEmotion from 'grid-emotion';
 import JsCookie from 'js-cookie';
 import PropTypes from 'prop-types';
+import * as Sentry from '@sentry/browser';
 import React from 'react';
 import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 import ReactDOM from 'react-dom';
@@ -24,6 +25,19 @@ import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import * as api from 'app/api';
 import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
+
+// window.__SENTRY__OPTIONS will be emmited by sdk-setup.html before loading this script
+Sentry.init(window.__SENTRY__OPTIONS);
+
+Sentry.configureScope((scope) => {
+  if (window.__SENTRY__USER) {
+    scope.setUser(window.__SENTRY__USER);
+  }
+  if (window.__SENTRY__VERSION) {
+    scope.setTag('sentry_version', window.__SENTRY__VERSION);
+  }
+});
+
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
@@ -58,6 +72,7 @@ if (module.hot) {
 export default {
   jQuery,
   moment,
+  Sentry,
   React,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,

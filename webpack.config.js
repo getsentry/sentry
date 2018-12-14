@@ -59,6 +59,7 @@ var appEntry = {
     'marked',
     'moment',
     'moment-timezone',
+    '@sentry/browser',
     'react',
     'react-dom',
     'react-dom/server',
