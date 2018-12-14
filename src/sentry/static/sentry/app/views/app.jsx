@@ -1,4 +1,4 @@
-/*global module __webpack_public_path__ */
+/*global __webpack_public_path__ */
 /*eslint no-native-reassign:0 */
 import $ from 'jquery';
 import {ThemeProvider} from 'emotion-theming';
