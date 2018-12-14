@@ -8,6 +8,7 @@ body {
   font-size: 16px;
   line-height: 24px;
   color: @gray-darker;
+  background: @white-dark;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   min-height: 100vh;
@@ -36,13 +37,6 @@ body {
 
     &.collapsed {
       padding-left: @sidebar-collapsed-width;
-    }
-
-    /* This is for organization level views e.g. "Assigned to me" */
-    .organization-home {
-      .container {
-        margin-top: 24px;
-      }
     }
   }
 
@@ -280,6 +274,7 @@ body.auth {
   position: relative;
   padding-left: 30px;
   padding-right: 30px;
+  padding-top: 20px;
   width: 100% !important;
   flex: 1;
 }
@@ -304,9 +299,10 @@ body.auth {
 
 .sub-header {
   color: @gray-dark;
+  background: #fff;
   border-bottom: 1px solid darken(@trim, 5);
   position: relative;
-  margin: 0 0 20px;
+  margin: 0;
   line-height: 1;
   font-size: 16px;
   min-height: 62px;
@@ -451,8 +447,8 @@ footer {
   text-align: center;
   color: @gray;
   border-top: 1px solid @trim;
-  margin-top: 20px;
   padding: 28px 0;
+  margin-top: 20px;
 
   .container {
     // Ensure dropdowns inside application views
@@ -592,7 +588,7 @@ footer {
   }
 
   .container {
-    padding: 0 14px;
+    padding: 20px 14px 0 14px;
   }
 
   .sub-header .align-right {
