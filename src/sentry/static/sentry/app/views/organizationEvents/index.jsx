@@ -9,6 +9,11 @@ import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryTypes from 'app/sentryTypes';
+<<<<<<< HEAD
+=======
+import PageHeader from 'app/components/pageHeader';
+import space from 'app/styles/space';
+>>>>>>> move Header component out of discover/styles.jsx for usage sitewide
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import {PageContent, PageHeader, HeaderTitle} from 'app/styles/organization';
@@ -89,6 +94,11 @@ const Body = styled('div')`
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+  padding: ${space(3)} ${space(4)};
+`;
+
+const HeaderTitle = styled(PageHeader)`
+  flex: 1;
 `;
 
 const StyledSearchBar = styled(SearchBar)`

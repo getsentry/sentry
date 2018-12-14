@@ -172,14 +172,6 @@ export const HeadingContainer = styled(Flex)`
   align-items: center;
 `;
 
-export const Heading = styled.h2`
-  font-size: ${p => p.theme.headerFontSize};
-  line-height: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
-`;
-
 export const Fieldset = styled.fieldset`
   margin: ${space(3)} ${space(3)} 0;
 `;
