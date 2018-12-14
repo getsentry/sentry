@@ -21,27 +21,27 @@ class Creator(Mediator):
         self._create_install()
         self._notify_service()
         self.install.is_new = True
-        return (self.install, self.api_grant)
+        return self.install
 
     def _create_authorization(self):
         self.authorization = ApiAuthorization.objects.create(
-            application=self.api_application,
-            user=self.sentry_app.proxy_user,
+            application_id=self.api_application.id,
+            user_id=self.sentry_app.proxy_user.id,
             scope_list=self.sentry_app.scope_list,
         )
 
     def _create_install(self):
         self.install = SentryAppInstallation.objects.create(
-            organization=self.organization,
-            sentry_app=self.sentry_app,
-            authorization=self.authorization,
-            api_grant=self.api_grant,
+            organization_id=self.organization.id,
+            sentry_app_id=self.sentry_app.id,
+            authorization_id=self.authorization.id,
+            api_grant_id=self.api_grant.id,
         )
 
     def _create_api_grant(self):
         self.api_grant = ApiGrant.objects.create(
-            user=self.sentry_app.proxy_user,
-            application=self.api_application,
+            user_id=self.sentry_app.proxy_user.id,
+            application_id=self.api_application.id,
         )
 
     def _notify_service(self):

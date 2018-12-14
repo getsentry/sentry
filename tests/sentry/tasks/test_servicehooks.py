@@ -31,7 +31,7 @@ class TestServiceHooks(TestCase):
     def setUp(self):
         self.project = self.create_project()
 
-        self.install, _ = self.create_sentry_app_installation(
+        self.install = self.create_sentry_app_installation(
             organization=self.project.organization
         )
 

@@ -359,11 +359,11 @@ class Organization(Model):
 
         INST_MODEL_LIST = (
             AuthProvider, ApiKey, AuditLogEntry, OrganizationAvatar,
-            OrganizationIntegration, ReleaseFile,
+            OrganizationIntegration, ReleaseEnvironment, ReleaseFile,
         )
 
         ATTR_MODEL_LIST = (
-            Commit, ReleaseCommit, ReleaseEnvironment, ReleaseHeadCommit, Repository, Environment,
+            Commit, ReleaseCommit, ReleaseHeadCommit, Repository, Environment,
         )
 
         for model in INST_MODEL_LIST:

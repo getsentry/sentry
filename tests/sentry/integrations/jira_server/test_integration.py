@@ -19,20 +19,13 @@ import responses
 class JiraServerIntegrationTest(IntegrationTestCase):
     provider = JiraServerIntegrationProvider
 
-    def test_setup_guide(self):
-        resp = self.client.get(self.init_path)
-        assert resp.status_code == 200
-        self.assertContains(resp, 'Step 1:')
-        self.assertContains(resp, 'Jira Server')
-        self.assertContains(resp, 'Next</a>')
-
     def test_config_view(self):
         resp = self.client.get(self.init_path)
         assert resp.status_code == 200
 
-        resp = self.client.get(self.setup_path + '?completed_guide')
+        resp = self.client.get(self.setup_path)
         assert resp.status_code == 200
-        self.assertContains(resp, 'Step 2:')
+        self.assertContains(resp, 'Connect Sentry')
         self.assertContains(resp, 'Submit</button>')
 
     @responses.activate
@@ -43,8 +36,7 @@ class JiraServerIntegrationTest(IntegrationTestCase):
             status=503)
 
         # Start pipeline and go to setup page.
-        self.client.get(self.init_path)
-        self.client.get(self.setup_path + '?completed_guide')
+        self.client.get(self.setup_path)
 
         # Submit credentials
         data = {
@@ -69,7 +61,6 @@ class JiraServerIntegrationTest(IntegrationTestCase):
 
         # Start pipeline
         self.client.get(self.init_path)
-        self.client.get(self.setup_path + '?completed_guide')
 
         # Submit credentials
         data = {
@@ -98,12 +89,8 @@ class JiraServerIntegrationTest(IntegrationTestCase):
             content_type='text/plain',
             body='<html>it broke</html>')
 
-        # Get guide page
-        resp = self.client.get(self.init_path)
-        assert resp.status_code == 200
-
         # Get config page
-        resp = self.client.get(self.setup_path + '?completed_guide')
+        resp = self.client.get(self.init_path)
         assert resp.status_code == 200
 
         # Submit credentials
@@ -123,12 +110,8 @@ class JiraServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, 'access token from Jira')
 
     def install_integration(self):
-        # Get guide page
-        resp = self.client.get(self.init_path)
-        assert resp.status_code == 200
-
         # Get config page
-        resp = self.client.get(self.setup_path + '?completed_guide')
+        resp = self.client.get(self.setup_path)
         assert resp.status_code == 200
 
         # Submit credentials
