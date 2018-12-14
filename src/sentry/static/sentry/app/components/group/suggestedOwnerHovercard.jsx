@@ -41,14 +41,14 @@ const SuggestedOwnerHovercard = ({actor, commits, rules, ...props}) => (
             <div className="divider">
               <h6>{t('Commits')}</h6>
             </div>
-            <ReasonGroup>
+            <div>
               {commits.slice(0, 6).map(({message, dateCreated}, i) => (
                 <ReasonItem key={i}>
                   <CommitIcon />
                   <CommitMessage message={message} date={dateCreated} />
                 </ReasonItem>
               ))}
-            </ReasonGroup>
+            </div>
           </React.Fragment>
         )}
         {rules !== undefined && (
@@ -56,14 +56,14 @@ const SuggestedOwnerHovercard = ({actor, commits, rules, ...props}) => (
             <div className="divider">
               <h6>{t('Ownership Rules')}</h6>
             </div>
-            <ReasonGroup>
+            <div>
               {rules.map(([type, matched], i) => (
                 <ReasonItem key={i}>
                   <OwnershipTag tagType={type} />
                   <OwnershipValue>{matched}</OwnershipValue>
                 </ReasonItem>
               ))}
-            </ReasonGroup>
+            </div>
           </React.Fragment>
         )}
       </HovercardBody>
@@ -143,13 +143,7 @@ const CommitDate = styled(({date, ...props}) => (
   color: ${p => p.theme.gray2};
 `;
 
-const ReasonGroup = styled('ul')`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-`;
-
-const ReasonItem = styled('li')`
+const ReasonItem = styled('div')`
   display: flex;
   align-items: flex-start;
 
