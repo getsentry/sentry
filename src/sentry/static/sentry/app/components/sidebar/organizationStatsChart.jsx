@@ -41,7 +41,7 @@ class OrganizationStatsChart extends AsyncComponent {
     return (
       <OrganizationStatsChartWrapper>
         {t('Last 24h')}
-        <BarChart series={series} height={60} />{' '}
+        <BarChart series={series} height={60} width={7} />{' '}
       </OrganizationStatsChartWrapper>
     );
   }
