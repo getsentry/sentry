@@ -204,6 +204,15 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             project_ids=[self.project_1.id, self.project_2.id],
         )
 
+    def test_none_user(self):
+        request = RequestFactory().get('/')
+        result = self.endpoint.get_project_ids(request, self.org)
+        assert [] == result
+
+        request.user = None
+        result = self.endpoint.get_project_ids(request, self.org)
+        assert [] == result
+
 
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):
     def setUp(self):
