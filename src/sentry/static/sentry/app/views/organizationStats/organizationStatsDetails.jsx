@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {intcomma} from 'app/utils';
@@ -10,6 +11,8 @@ import Pagination from 'app/components/pagination';
 import ProjectTable from 'app/views/organizationStats/projectTable';
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+import PageHeader from 'app/components/pageHeader';
+import space from 'app/styles/space';
 import {
   ProjectTableLayout,
   ProjectTableDataElement,
@@ -65,7 +68,7 @@ class OrganizationStats extends React.Component {
 
     return (
       <div>
-        <h4>{t('Organization Stats')}</h4>
+        <StyledPageHeader>{t('Organization Stats')}</StyledPageHeader>
         <div className="row">
           <div className="col-md-9">
             <TextBlock>
@@ -137,5 +140,10 @@ class OrganizationStats extends React.Component {
     );
   }
 }
+
+const StyledPageHeader = styled(PageHeader)`
+  margin-bottom: ${space(3)};
+  margin-top: ${space(0.5)};
+`;
 
 export default OrganizationStats;
