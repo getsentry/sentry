@@ -13,7 +13,6 @@ __all__ = ('Breadcrumbs', )
 import six
 
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
-from sentry.utils import json
 from sentry.utils.safe import get_path, trim
 from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
 
@@ -84,6 +83,9 @@ class Breadcrumbs(Interface):
     def normalize_crumb(cls, crumb):
         ty = crumb.get('type') or 'default'
         level = crumb.get('level') or 'info'
+        if level == 'log':
+            level = 'info'
+
         ts = parse_timestamp(crumb.get('timestamp'))
         if ts is None:
             raise InterfaceValidationError('Unable to determine timestamp for crumb')
@@ -100,22 +102,17 @@ class Breadcrumbs(Interface):
         event_id = crumb.get('event_id')
 
         data = crumb.get('data')
-        if data:
-            try:
-                for key, value in six.iteritems(data):
-                    if not isinstance(value, six.string_types):
-                        data[key] = json.dumps(value)
-            except AttributeError:
-                # TODO(dcramer): we dont want to discard the the rest of the
-                # crumb, but it'd be nice if we could record an error
-                # raise InterfaceValidationError(
-                #     'The ``data`` on breadcrumbs must be a mapping (received {})'.format(
-                #         type(crumb['data']),
-                #     )
-                # )
-                data = None
-            else:
-                data = trim(data, 4096)
+        if not isinstance(data, dict):
+            # TODO(dcramer): we dont want to discard the the rest of the
+            # crumb, but it'd be nice if we could record an error
+            # raise InterfaceValidationError(
+            #     'The ``data`` on breadcrumbs must be a mapping (received {})'.format(
+            #         type(crumb['data']),
+            #     )
+            # )
+            data = None
+        else:
+            data = trim(data, 4096)
 
         return {
             'type': ty,
