@@ -94,6 +94,7 @@ export {OrganizationEventsContainer};
 
 const OrganizationEventsContent = styled(Flex)`
   flex-direction: column;
+  background-color: ${p => p.theme.whiteDark};
   flex: 1;
   overflow: hidden;
   margin-bottom: -20px; /* <footer> has margin-top: 20px; */
