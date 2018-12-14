@@ -138,7 +138,8 @@ class OrganizationEndpoint(Endpoint):
         requested_projects = project_ids.copy()
 
         om_role = None
-        if request.user.is_authenticated():
+        user = getattr(request, 'user', None)
+        if user and user.is_authenticated():
             try:
                 om_role = OrganizationMember.objects.filter(
                     user=request.user,
@@ -148,7 +149,7 @@ class OrganizationEndpoint(Endpoint):
                 pass
 
         if (
-            request.user.is_superuser
+            user and user.is_superuser
             or (om_role and roles.get(om_role).is_global)
             or include_allow_joinleave and organization.flags.allow_joinleave
             or force_global_perms
@@ -161,7 +162,7 @@ class OrganizationEndpoint(Endpoint):
             qs = Project.objects.filter(
                 organization=organization,
                 teams__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=request.user,
+                    organizationmember__user=user,
                     organizationmember__organization=organization,
                 ).values_list('team'),
                 status=ProjectStatus.VISIBLE,
@@ -275,7 +276,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             has_valid_api_key = request.auth.has_scope('project:releases') or \
                 request.auth.has_scope('project:write')
 
-        if not (has_valid_api_key or request.user.is_authenticated()):
+        if not (
+            has_valid_api_key
+            or getattr(request, 'user', None) and request.user.is_authenticated()
+        ):
             return []
 
         return super(OrganizationReleasesBaseEndpoint, self).get_project_ids(
