@@ -286,6 +286,34 @@ class SnubaTagStorage(TagStorage):
             ) for issue, data in six.iteritems(result)
         }
 
+    def get_group_seen_values_for_environments(self, project_ids, group_id_list, environment_ids):
+        # Get the total times seen, first seen, and last seen across multiple environments
+
+        # TODO(jess): this is mostly copy paste from above
+        # also, this is temporary and will probably need to be updated to
+        # filter correctly based on date filters -- waiting on some product decisions
+        start, end = self.get_time_range()
+        filters = {
+            'project_id': project_ids,
+            'issue': group_id_list,
+        }
+        conditions = None
+        if environment_ids:
+            filters['environment'] = environment_ids
+
+        aggregations = [
+            ['count()', '', 'times_seen'],
+            ['min', SEEN_COLUMN, 'first_seen'],
+            ['max', SEEN_COLUMN, 'last_seen'],
+        ]
+
+        result = snuba.query(start, end, ['issue'], conditions, filters, aggregations,
+                             referrer='tagstore.get_group_seen_values_for_environments')
+
+        return {
+            issue: fix_tag_value_data(data) for issue, data in six.iteritems(result)
+        }
+
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         start, end = self.get_time_range()
         tag = u'tags[{}]'.format(key)
