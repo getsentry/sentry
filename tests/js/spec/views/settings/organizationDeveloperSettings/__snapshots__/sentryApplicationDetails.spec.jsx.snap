@@ -667,7 +667,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           value="Sample App"
                                                                                         >
                                                                                           <input
-                                                                                            className="css-ybupf9-Input-inputStyles e1xej46s0"
+                                                                                            className="css-pzg7em-Input-inputStyles e1xej46s0"
                                                                                             disabled={false}
                                                                                             id="name"
                                                                                             label="Name"
@@ -1331,7 +1331,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           value="https://example.com/webhook"
                                                                                         >
                                                                                           <input
-                                                                                            className="css-ybupf9-Input-inputStyles e1xej46s0"
+                                                                                            className="css-pzg7em-Input-inputStyles e1xej46s0"
                                                                                             disabled={false}
                                                                                             id="webhookUrl"
                                                                                             label="Webhook URL"
@@ -1985,7 +1985,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           value="https://example/com/setup"
                                                                                         >
                                                                                           <input
-                                                                                            className="css-ybupf9-Input-inputStyles e1xej46s0"
+                                                                                            className="css-pzg7em-Input-inputStyles e1xej46s0"
                                                                                             disabled={false}
                                                                                             id="redirectUrl"
                                                                                             label="Redirect URL"
@@ -3425,7 +3425,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                         >
                                                                                           <ForwardRef
                                                                                             autosize={true}
-                                                                                            className="css-1af45xq-TextArea-inputStyles e1oph3pe0"
+                                                                                            className="css-tlekg1-TextArea-inputStyles e1oph3pe0"
                                                                                             disabled={false}
                                                                                             id="overview"
                                                                                             label="Overview"
@@ -3437,7 +3437,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                           >
                                                                                             <TextareaAutosize
                                                                                               async={true}
-                                                                                              className="css-1af45xq-TextArea-inputStyles e1oph3pe0"
+                                                                                              className="css-tlekg1-TextArea-inputStyles e1oph3pe0"
                                                                                               disabled={false}
                                                                                               id="overview"
                                                                                               innerRef={[Function]}
@@ -3451,7 +3451,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                             >
                                                                                               <textarea
                                                                                                 async={true}
-                                                                                                className="css-1af45xq-TextArea-inputStyles e1oph3pe0"
+                                                                                                className="css-tlekg1-TextArea-inputStyles e1oph3pe0"
                                                                                                 disabled={false}
                                                                                                 id="overview"
                                                                                                 label="Overview"
@@ -5775,13 +5775,13 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                       value="client-id"
                                                                                     >
                                                                                       <Component
-                                                                                        className="css-1ckxebj-StyledInput-readOnlyStyle-inputStyles e1usehz70"
+                                                                                        className="css-11zlv92-StyledInput-readOnlyStyle-inputStyles e1usehz70"
                                                                                         onClick={[Function]}
                                                                                         readOnly={true}
                                                                                         value="client-id"
                                                                                       >
                                                                                         <input
-                                                                                          className="css-1ckxebj-StyledInput-readOnlyStyle-inputStyles e1usehz70"
+                                                                                          className="css-11zlv92-StyledInput-readOnlyStyle-inputStyles e1usehz70"
                                                                                           onClick={[Function]}
                                                                                           readOnly={true}
                                                                                           value="client-id"
@@ -6379,13 +6379,13 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                       value="client-secret"
                                                                                     >
                                                                                       <Component
-                                                                                        className="css-1ckxebj-StyledInput-readOnlyStyle-inputStyles e1usehz70"
+                                                                                        className="css-11zlv92-StyledInput-readOnlyStyle-inputStyles e1usehz70"
                                                                                         onClick={[Function]}
                                                                                         readOnly={true}
                                                                                         value="client-secret"
                                                                                       >
                                                                                         <input
-                                                                                          className="css-1ckxebj-StyledInput-readOnlyStyle-inputStyles e1usehz70"
+                                                                                          className="css-11zlv92-StyledInput-readOnlyStyle-inputStyles e1usehz70"
                                                                                           onClick={[Function]}
                                                                                           readOnly={true}
                                                                                           value="client-secret"
@@ -7317,7 +7317,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           value=""
                                                                                         >
                                                                                           <input
-                                                                                            className="css-ybupf9-Input-inputStyles e1xej46s0"
+                                                                                            className="css-pzg7em-Input-inputStyles e1xej46s0"
                                                                                             disabled={false}
                                                                                             id="name"
                                                                                             label="Name"
@@ -7872,7 +7872,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           value=""
                                                                                         >
                                                                                           <input
-                                                                                            className="css-ybupf9-Input-inputStyles e1xej46s0"
+                                                                                            className="css-pzg7em-Input-inputStyles e1xej46s0"
                                                                                             disabled={false}
                                                                                             id="webhookUrl"
                                                                                             label="Webhook URL"
@@ -8417,7 +8417,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           value=""
                                                                                         >
                                                                                           <input
-                                                                                            className="css-ybupf9-Input-inputStyles e1xej46s0"
+                                                                                            className="css-pzg7em-Input-inputStyles e1xej46s0"
                                                                                             disabled={false}
                                                                                             id="redirectUrl"
                                                                                             label="Redirect URL"
@@ -9639,7 +9639,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                         >
                                                                                           <ForwardRef
                                                                                             autosize={true}
-                                                                                            className="css-1af45xq-TextArea-inputStyles e1oph3pe0"
+                                                                                            className="css-tlekg1-TextArea-inputStyles e1oph3pe0"
                                                                                             disabled={false}
                                                                                             id="overview"
                                                                                             label="Overview"
@@ -9651,7 +9651,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                           >
                                                                                             <TextareaAutosize
                                                                                               async={true}
-                                                                                              className="css-1af45xq-TextArea-inputStyles e1oph3pe0"
+                                                                                              className="css-tlekg1-TextArea-inputStyles e1oph3pe0"
                                                                                               disabled={false}
                                                                                               id="overview"
                                                                                               innerRef={[Function]}
@@ -9665,7 +9665,7 @@ exports[`Sentry Application Details new sentry application renders() it shows em
                                                                                             >
                                                                                               <textarea
                                                                                                 async={true}
-                                                                                                className="css-1af45xq-TextArea-inputStyles e1oph3pe0"
+                                                                                                className="css-tlekg1-TextArea-inputStyles e1oph3pe0"
                                                                                                 disabled={false}
                                                                                                 id="overview"
                                                                                                 label="Overview"

@@ -16,6 +16,7 @@ import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup'
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
+import {Panel} from 'app/components/panels';
 import TextField from 'app/views/settings/components/forms/textField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import Switch from 'app/components/switch';
@@ -95,33 +96,54 @@ storiesOf('Forms|Fields', module)
       text: 'Simple text input',
       propTablesExclude: [Form],
     })(() => (
-      <Form initialData={{context: {location: 'cat'}}}>
-        <TextField
-          name="simpletextfield"
-          label="Simple Text Field"
-          placeholder="Simple Text Field"
-        />
-        <TextField
-          name="textfieldwithreturnsubmit"
-          label="Text Field With Return Submit"
-          placeholder="Type here to show the return button"
-          showReturnButton
-        />
-        <TextField
-          name="textfieldflexiblecontrol"
-          label="Text Field With Flexible Control State Size"
-          placeholder="Type text and then delete it"
-          required
-          flexibleControlStateSize
-        />
-        <TextField
-          name="textfielddisabled"
-          label="Text field with disabled reason"
-          placeholder="I am disabled"
-          disabled
-          disabledReason="This is the reason this field is disabled"
-        />
-      </Form>
+      <Panel>
+        <Form initialData={{context: {location: 'cat'}}}>
+          <TextField
+            name="simpletextfieldvalue"
+            label="Simple Text Field with Value"
+            placeholder="Simple Text Field"
+            defaultValue="With a value present"
+          />
+          <TextField
+            name="simpletextfieldplaceholder"
+            label="Simple Text Field with Placeholder"
+            placeholder="This is placeholder text"
+          />
+          <TextField
+            name="simpletextfieldvaluedisabled"
+            label="Disabled - Simple Text Field with Value"
+            placeholder="Simple Text Field"
+            defaultValue="With a value present"
+            disabled
+          />
+          <TextField
+            name="simpletextfieldplaceholderdisabled"
+            label="Disabled - Simple Text Field with Placeholder"
+            placeholder="This is placeholder text in a disabled field"
+            disabled
+          />
+          <TextField
+            name="textfieldwithreturnsubmit"
+            label="Text Field With Return Submit"
+            placeholder="Type here to show the return button"
+            showReturnButton
+          />
+          <TextField
+            name="textfieldflexiblecontrol"
+            label="Text Field With Flexible Control State Size"
+            placeholder="Type text and then delete it"
+            required
+            flexibleControlStateSize
+          />
+          <TextField
+            name="textfielddisabled"
+            label="Text field with disabled reason"
+            placeholder="I am disabled"
+            disabled
+            disabledReason="This is the reason this field is disabled"
+          />
+        </Form>
+      </Panel>
     ))
   )
   .add(

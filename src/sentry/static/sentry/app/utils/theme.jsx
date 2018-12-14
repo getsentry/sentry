@@ -159,7 +159,7 @@ const theme = {
 theme.textColor = theme.gray5;
 theme.success = theme.green;
 theme.error = theme.red;
-theme.disabled = '#ced3d6';
+theme.disabled = theme.gray1;
 
 theme.alert.info.iconColor = theme.blue;
 theme.alert.info.background = theme.blue;
