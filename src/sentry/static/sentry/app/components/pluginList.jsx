@@ -72,7 +72,7 @@ export default class PluginList extends React.Component {
         })}
 
         <InactivePlugins
-          plugins={pluginList.filter(p => !p.enabled)}
+          plugins={pluginList.filter(p => !p.enabled && !p.isHidden)}
           onEnablePlugin={this.handleEnablePlugin}
         />
       </div>

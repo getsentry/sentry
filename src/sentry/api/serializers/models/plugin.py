@@ -62,6 +62,8 @@ class PluginSerializer(Serializer):
                 'url': six.text_type(obj.author_url)
             }
 
+        d['isHidden'] = d.get('enabled', False) is False and obj.is_hidden()
+
         if obj.description:
             d['description'] = six.text_type(obj.description)
 

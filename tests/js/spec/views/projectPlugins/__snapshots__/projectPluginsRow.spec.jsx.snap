@@ -13,6 +13,7 @@ exports[`ProjectPluginRow renders 1`] = `
   enabled={false}
   hasConfiguration={true}
   id="amazon-sqs"
+  isHidden={false}
   name="Amazon SQS"
   orgId="org-slug"
   projectId="project-slug"

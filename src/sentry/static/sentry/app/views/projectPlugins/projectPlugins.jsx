@@ -64,7 +64,7 @@ class ProjectPlugins extends Component {
             </Access>
           </PanelAlert>
 
-          {plugins.map(plugin => (
+          {plugins.filter(p => !p.isHidden).map(plugin => (
             <PanelItem key={plugin.id}>
               <ProjectPluginRow
                 params={params}
