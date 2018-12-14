@@ -110,7 +110,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
 
         if 'environment' in filter_params:
             queryset = queryset.filter(
-                releaseenvironment__environment__name__in=filter_params['environment'],
+                releaseprojectenvironment__environment__name__in=filter_params['environment'],
+                releaseprojectenvironment__project_id__in=filter_params['project_id'],
             )
 
         if query:

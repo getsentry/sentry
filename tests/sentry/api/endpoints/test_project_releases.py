@@ -5,7 +5,16 @@ from django.utils import timezone
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import CommitAuthor, CommitFileChange, Environment, Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment, Repository
+from sentry.models import (
+    CommitAuthor,
+    CommitFileChange,
+    Environment,
+    Release,
+    ReleaseCommit,
+    ReleaseProject,
+    ReleaseProjectEnvironment,
+    Repository,
+)
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest
 
 
@@ -126,12 +135,6 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
             date_added=self.datetime,
         )
         release1.add_project(project1)
-        ReleaseEnvironment.objects.create(
-            organization_id=project1.organization_id,
-            project_id=project1.id,
-            release_id=release1.id,
-            environment_id=env1.id,
-        )
         ReleaseProjectEnvironment.objects.create(
             release_id=release1.id,
             project_id=project1.id,
@@ -146,12 +149,6 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
             date_added=self.datetime,
         )
         release2.add_project(project2)
-        ReleaseEnvironment.objects.create(
-            organization_id=project2.organization_id,
-            project_id=project2.id,
-            release_id=release2.id,
-            environment_id=env2.id,
-        )
         ReleaseProjectEnvironment.objects.create(
             release_id=release2.id,
             project_id=project2.id,
@@ -167,12 +164,6 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
             date_released=self.datetime,
         )
         release3.add_project(project1)
-        ReleaseEnvironment.objects.create(
-            organization_id=project1.organization_id,
-            project_id=project1.id,
-            release_id=release3.id,
-            environment_id=env3.id,
-        )
         ReleaseProjectEnvironment.objects.create(
             release_id=release3.id,
             project_id=project1.id,
@@ -287,12 +278,6 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
             first_seen=self.datetime + timedelta(seconds=120),
             last_seen=self.datetime + timedelta(seconds=700),
             new_issues_count=7,
-        )
-        ReleaseEnvironment.objects.create(
-            organization_id=self.project1.organization_id,
-            project_id=self.project1.id,
-            release_id=self.release1.id,
-            environment_id=self.env3.id,
         )
 
         # TODO(LB): This is testing all environmetns but it will not work
