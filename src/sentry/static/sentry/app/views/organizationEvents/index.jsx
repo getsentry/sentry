@@ -10,6 +10,7 @@ import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryTypes from 'app/sentryTypes';
+import PageHeader from 'app/components/pageHeader';
 import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -104,16 +105,11 @@ const Body = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: ${space(2)} ${space(4)} ${space(3)};
+  padding: ${space(3)} ${space(4)};
 `;
 
-const HeaderTitle = styled('h4')`
+const HeaderTitle = styled(PageHeader)`
   flex: 1;
-  font-size: ${p => p.theme.headerFontSize};
-  line-height: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
 `;
 
 const StyledSearchBar = styled(SearchBar)`
