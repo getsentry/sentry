@@ -1065,7 +1065,7 @@ exports[`ProjectTags renders 1`] = `
                                               to={null}
                                             >
                                               <Component
-                                                className="css-1rcxqx1-StyledButton-getColors eqrebog0"
+                                                className="css-1ujzp8g-StyledButton-getColors eqrebog0"
                                                 data-test-id="delete"
                                                 disabled={true}
                                                 href={null}
@@ -1075,7 +1075,7 @@ exports[`ProjectTags renders 1`] = `
                                                 to={null}
                                               >
                                                 <button
-                                                  className="css-1rcxqx1-StyledButton-getColors eqrebog0"
+                                                  className="css-1ujzp8g-StyledButton-getColors eqrebog0"
                                                   data-test-id="delete"
                                                   disabled={true}
                                                   href={null}
