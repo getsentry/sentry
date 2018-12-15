@@ -1,8 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import styled from 'react-emotion';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
+import PageHeader from 'app/components/pageHeader';
 
 import {Link} from 'react-router';
 
@@ -18,9 +21,9 @@ export default class UserFeedbackContainer extends React.Component {
 
     return (
       <div>
-        <div className="row release-list-header">
+        <div className="row">
           <div className="col-sm-9">
-            <h3>{t('User Feedback')}</h3>
+            <StyledPageHeader>{t('User Feedback')}</StyledPageHeader>
           </div>
           <div className="col-sm-3" style={{textAlign: 'right'}}>
             <div className="btn-group">
@@ -49,3 +52,8 @@ export default class UserFeedbackContainer extends React.Component {
     );
   }
 }
+
+const StyledPageHeader = styled(PageHeader)`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(3)};
+`;

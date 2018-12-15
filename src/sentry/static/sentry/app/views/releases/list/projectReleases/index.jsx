@@ -4,6 +4,7 @@ import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import {omit, isEqual} from 'lodash';
 import qs from 'query-string';
+import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
@@ -18,10 +19,11 @@ import SearchBar from 'app/components/searchBar';
 import {t, tct} from 'app/locale';
 import {Panel, PanelBody} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import ReleaseEmptyState from 'app/views/projectReleases/releaseEmptyState';
+import ReleaseList from 'app/views/projectReleases/releaseList';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
-
-import ReleaseEmptyState from './releaseEmptyState';
-import ReleaseList from '../shared/releaseList';
+import PageHeader from 'app/components/pageHeader';
+import space from 'app/styles/space';
 import ReleaseListHeader from '../shared/releaseListHeader';
 
 const DEFAULT_QUERY = '';
@@ -217,9 +219,9 @@ const ProjectReleases = createReactClass({
     return (
       <div className="ref-project-releases">
         <GuideAnchor target="releases" type="invisible" />
-        <div className="row release-list-header">
+        <div className="row">
           <div className="col-sm-7">
-            <h3>{t('Releases')}</h3>
+            <StyledPageHeader>{t('Releases')}</StyledPageHeader>
           </div>
           <div className="col-sm-5 release-search">
             <SearchBar
@@ -242,3 +244,8 @@ const ProjectReleases = createReactClass({
 
 export {ProjectReleases}; // For tests
 export default withEnvironmentInQueryString(ProjectReleases);
+
+const StyledPageHeader = styled(PageHeader)`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(3)};
+`;
