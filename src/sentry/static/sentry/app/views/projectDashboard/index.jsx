@@ -2,9 +2,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import ProjectState from 'app/mixins/projectState';
+import PageHeader from 'app/components/pageHeader';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
@@ -97,8 +100,11 @@ const ProjectDashboard = createReactClass({
 
     return (
       <div>
-        <div>
-          <div className="pull-right">
+        <div className="row">
+          <div className="col-sm-9">
+            <StyledPageHeader>{t('Overview')}</StyledPageHeader>
+          </div>
+          <div className="col-sm-3" style={{textAlign: 'right'}}>
             <div className="btn-group">
               <Link
                 to={{
@@ -137,7 +143,6 @@ const ProjectDashboard = createReactClass({
               </Link>
             </div>
           </div>
-          <h3>{t('Overview')}</h3>
         </div>
         <ProjectChart
           dateSince={dateSince}
@@ -166,5 +171,10 @@ const ProjectDashboard = createReactClass({
     );
   },
 });
+
+const StyledPageHeader = styled(PageHeader)`
+  margin-bottom: ${space(3)};
+  margin-top: ${space(1)};
+`;
 
 export default withEnvironmentInQueryString(ProjectDashboard);

@@ -5,6 +5,7 @@ import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import PageHeader from 'app/components/pageHeader';
 
 import TeamMembers from './teamMembers';
 import ProjectCard from './projectCard';
@@ -67,9 +68,8 @@ const TeamTitleBar = styled(Flex)`
   padding: ${space(3)} ${space(4)} 10px;
 `;
 
-const TeamName = styled.h4`
-  margin: 0;
-  font-size: 20px;
+const TeamName = styled(PageHeader)`
+  margin: 4px;
   line-height: 24px; /* We need this so that header doesn't flicker when lazy loading because avatarList height > this */
 `;
 

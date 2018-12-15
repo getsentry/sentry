@@ -3,9 +3,12 @@ import {Link} from 'react-router';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import {omit} from 'lodash';
+import styled from 'react-emotion';
+import space from 'app/styles/space';
 import {t} from 'app/locale';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
+import PageHeader from 'app/components/pageHeader';
 
 export default class UserFeedbackContainer extends React.Component {
   static propTypes = {
@@ -23,13 +26,17 @@ export default class UserFeedbackContainer extends React.Component {
 
     return (
       <div>
-        <div className="row release-list-header">
+        <div className="row">
           <div className="col-sm-9">
+<<<<<<< HEAD
             {params.projectId ? (
-              <h3>{t('User Feedback')}</h3>
+              <StyledPageHeader>{t('User Feedback')}</StyledPageHeader>
             ) : (
-              <Header>{t('User Feedback')}</Header>
+              <StyledPageHeader>{t('User Feedback')}</StyledPageHeader>
             )}
+=======
+
+>>>>>>> consistency between issue views
           </div>
           <div className="col-sm-3" style={{textAlign: 'right'}}>
             <div className="btn-group">
@@ -59,6 +66,7 @@ export default class UserFeedbackContainer extends React.Component {
   }
 }
 
-const Header = styled('h4')`
-  font-weight: normal;
+const StyledPageHeader = styled(PageHeader)`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(3)};
 `;
