@@ -8,7 +8,7 @@ import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 const StyledInlineSvg = styled(InlineSvg)`
-  margin-right: 12px;
+  margin-right: calc(${p => p.size} / 2);
 `;
 
 const getAlertColorStyles = ({backgroundLight, border, iconColor}, textColor) => `
@@ -69,7 +69,7 @@ const StyledTextBlock = styled(TextBlock)`
   align-self: center;
 `;
 
-const Alert = ({type, icon, children, className, ...props}) => {
+const Alert = ({type, icon, iconSize, children, className, ...props}) => {
   let refClass;
 
   if (type) {
@@ -78,7 +78,7 @@ const Alert = ({type, icon, children, className, ...props}) => {
 
   return (
     <AlertWrapper type={type} {...props} className={cx(refClass, className)}>
-      {icon && <StyledInlineSvg src={icon} size="24px" />}
+      {icon && <StyledInlineSvg src={icon} size={iconSize} />}
       <StyledTextBlock>{children}</StyledTextBlock>
     </AlertWrapper>
   );
@@ -87,6 +87,11 @@ const Alert = ({type, icon, children, className, ...props}) => {
 Alert.propTypes = {
   type: PropTypes.string,
   icon: PropTypes.string,
+  iconSize: PropTypes.string,
+};
+
+Alert.defaultProps = {
+  iconSize: '24px',
 };
 
 export default Alert;
