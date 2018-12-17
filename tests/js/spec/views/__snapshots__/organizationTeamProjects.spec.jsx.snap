@@ -97,10 +97,10 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           >
                             <AutoCompleteRoot>
                               <Component
-                                className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+                                className="css-6v04yn-AutoCompleteRoot ejumqxq2"
                               >
                                 <div
-                                  className="css-6v04yn-AutoCompleteRoot ejumqxq0"
+                                  className="css-6v04yn-AutoCompleteRoot ejumqxq2"
                                 >
                                   <Actor
                                     innerRef={[Function]}
