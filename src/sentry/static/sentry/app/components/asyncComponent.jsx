@@ -1,8 +1,8 @@
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import AsyncComponentSearchInput from 'app/components/asyncComponentSearchInput';
@@ -221,7 +221,7 @@ export default class AsyncComponent extends React.Component {
 
   handleError(error, [stateKey]) {
     if (error && error.responseText) {
-      sdk.captureBreadcrumb({
+      Sentry.addBreadcrumb({
         message: error.responseText,
         category: 'xhr',
         level: 'error',
