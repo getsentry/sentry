@@ -19,10 +19,10 @@ class Version extends React.Component {
   };
 
   render() {
-    let {orgId, projectId, showShortVersion, version} = this.props;
+    let {orgId, projectId, showShortVersion, version, anchor} = this.props;
     let versionTitle = showShortVersion ? getShortVersion(version) : version;
 
-    if (this.props.anchor) {
+    if (anchor && projectId) {
       return (
         // NOTE: version is encoded because it can contain slashes "/",
         //       which can interfere with URL construction

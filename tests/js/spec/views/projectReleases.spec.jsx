@@ -3,7 +3,7 @@ import {shallow} from 'enzyme';
 import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
-import {ProjectReleases} from 'app/views/projectReleases';
+import {ProjectReleases} from 'app/views/releases/projectReleases';
 import SearchBar from 'app/views/stream/searchBar';
 import Pagination from 'app/components/pagination';
 
