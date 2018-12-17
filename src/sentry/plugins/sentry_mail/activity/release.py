@@ -22,6 +22,8 @@ class ReleaseActivityEmail(ActivityEmail):
         super(ReleaseActivityEmail, self).__init__(activity)
         self.organization = self.project.organization
         self.user_id_team_lookup = None
+        self.email_list = {}
+        self.user_ids = {}
 
         try:
             self.deploy = Deploy.objects.get(id=activity.data['deploy_id'])
@@ -96,9 +98,6 @@ class ReleaseActivityEmail(ActivityEmail):
         return bool(self.release and self.deploy)
 
     def get_participants(self):
-        if not self.email_list:
-            return {}
-
         # collect all users with verified emails on a team in the related projects,
         users = list(
             User.objects.filter(
