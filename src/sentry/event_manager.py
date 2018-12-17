@@ -20,7 +20,8 @@ from django.utils.encoding import force_text
 from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
-    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH
+    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
+    CLIENT_IGNORED_ATTRS,
 )
 from sentry.coreapi import (
     APIError,
@@ -543,8 +544,8 @@ class EventManager(object):
 
             # Ignore all top-level None and empty values, regardless whether
             # they are interfaces or not. For all other unrecognized attributes,
-            # we emit an explicit error.
-            if not value:
+            # we emit an explicit error, unless they are explicitly ignored.
+            if not value or k in CLIENT_IGNORED_ATTRS:
                 continue
 
             try:

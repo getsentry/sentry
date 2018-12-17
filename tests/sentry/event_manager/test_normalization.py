@@ -4,6 +4,7 @@ import pytest
 import mock
 import logging
 
+from datetime import datetime
 from django.conf import settings
 
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
@@ -14,7 +15,7 @@ def make_event(**kwargs):
     result = {
         'event_id': 'a' * 32,
         'message': 'foo',
-        'timestamp': 1403007314.570599,
+        'timestamp': int(datetime.now().strftime("%s")),
         'level': logging.ERROR,
         'logger': 'default',
         'tags': [],
@@ -188,7 +189,7 @@ def test_logger():
     manager.normalize()
     data = manager.get_data()
     assert data['logger'] == DEFAULT_LOGGER_NAME
-    assert not any(e.get('name') == 'logger' for e in data['errors'])
+    assert not any(e.get('name') == 'logger' for e in data.get('errors', []))
 
 
 def test_moves_stacktrace_to_exception():
@@ -285,6 +286,19 @@ def test_removes_some_empty_interfaces(key, value):
     manager.normalize()
     data = manager.get_data()
     assert key not in data
+
+
+@pytest.mark.parametrize('key', ['applecrashreport', 'device', 'repos', 'query'])
+def test_deprecated_attrs(key):
+    event = make_event()
+    event[key] = "some value"
+
+    manager = EventManager(event)
+    manager.normalize()
+    data = manager.get_data()
+
+    assert key not in data
+    assert not data.get('errors')
 
 
 def test_returns_cannonical_dict():

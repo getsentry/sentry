@@ -167,7 +167,12 @@ CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
     'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
     'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id', '_meta',
-    'applecrashreport', 'device', 'query', 'type', 'hashes',
+    'type', 'hashes',
+)
+
+# Deprecated attributes sent by old SDKs that are now dropped silently
+CLIENT_IGNORED_ATTRS = (
+    'applecrashreport', 'device', 'repos', 'query',
 )
 
 # XXX: Must be all lowercase
