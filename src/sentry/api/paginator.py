@@ -210,7 +210,14 @@ class DateTimePaginator(BasePaginator):
 # TODO(dcramer): previous cursors are too complex at the moment for many things
 # and are only useful for polling situations. The OffsetPaginator ignores them
 # entirely and uses standard paging
-class OffsetPaginator(BasePaginator):
+class OffsetPaginator(object):
+    def __init__(self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None):
+        self.key = order_by if order_by is None or isinstance(
+            order_by, (list, tuple, set)) else (order_by, )
+        self.queryset = queryset
+        self.max_limit = max_limit
+        self.on_results = on_results
+
     def get_result(self, limit=100, cursor=None):
         # offset is page #
         # value is page limit
@@ -221,10 +228,7 @@ class OffsetPaginator(BasePaginator):
 
         queryset = self.queryset
         if self.key:
-            if self.desc:
-                queryset = queryset.order_by(u'-{}'.format(self.key))
-            else:
-                queryset = queryset.order_by(self.key)
+            queryset = queryset.order_by(*self.key)
 
         page = cursor.offset
         offset = cursor.offset * cursor.value
