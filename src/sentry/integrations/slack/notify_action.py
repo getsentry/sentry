@@ -191,13 +191,13 @@ class SlackNotifyServiceAction(EventAction):
                     'cursor': cursor
                 }))
             channels = channels.json()
-            if not resp.get('ok'):
-                self.logger.info('rule.slack.channel_list_failed', extra={'error': resp.get('error')})
+            if not channels.get('ok'):
+                self.logger.info('rule.slack.channel_list_failed', extra={'error': channels.get('error')})
                 return None
 
             cursor = channels.get('response_metadata', {}).get('next_cursor', None)
 
-            channel_id = {c['name']: c['id'] for c in resp['channels']}
+            channel_id = {c['name']: c['id'] for c in channels['channels']}
             if channel_id:
                 return (CHANNEL_PREFIX, channel_id)
 
