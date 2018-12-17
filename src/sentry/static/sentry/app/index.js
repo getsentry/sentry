@@ -26,7 +26,8 @@ import * as api from 'app/api';
 import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
 
-// window.__SENTRY__OPTIONS will be emmited by sdk-setup.html before loading this script
+// SDK INIT  --------------------------------------------------------
+// window.__SENTRY__OPTIONS will be emmited by sdk-config.html before loading this script
 Sentry.init(window.__SENTRY__OPTIONS);
 
 Sentry.configureScope((scope) => {
@@ -38,6 +39,21 @@ Sentry.configureScope((scope) => {
   }
 });
 
+function __raven_deprecated() {
+  const message = '[DEPRECATED]: Please no longer use Raven, use Sentry instead';
+  console.error(message);
+  Sentry.captureMessage(message);
+}
+window.Raven = {
+  captureMessage: () => __raven_deprecated(),
+  captureException: () => __raven_deprecated(),
+  captureBreadcrumb: () => __raven_deprecated(),
+  showReportDialog: () => __raven_deprecated(),
+  setTagsContext: () => __raven_deprecated(),
+  setExtraContext: () => __raven_deprecated(),
+  setUserContext: () => __raven_deprecated(),
+}
+// -----------------------------------------------------------------
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
@@ -74,6 +90,7 @@ export default {
   moment,
   Sentry,
   React,
+  Raven,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
     render: ReactDOM.render,
