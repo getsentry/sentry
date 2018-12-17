@@ -6,7 +6,8 @@ from sentry import features
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
-from sentry.mediators.sentry_apps import Updater
+from sentry.constants import SentryAppStatus
+from sentry.mediators.sentry_apps import Updater, Destroyer
 
 
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
@@ -45,3 +46,21 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             return Response(serialize(updated_app, request.user))
 
         return Response(serializer.errors, status=400)
+
+    def delete(self, request, sentry_app):
+        if not features.has('organizations:internal-catchall',
+                            sentry_app.owner,
+                            actor=request.user):
+            return Response(status=404)
+
+        if sentry_app.status == SentryAppStatus.UNPUBLISHED:
+
+            Destroyer.run(sentry_app=sentry_app)
+            return Response(status=204)
+
+        return Response(
+            {
+                detail: ['Published apps cannot be removed.']
+            },
+            status=403
+        )

@@ -3,9 +3,11 @@ import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import ConfirmDelete from 'app/components/confirmDelete';
 import SentryAppAvatar from 'app/components/avatar/sentryAppAvatar';
 import PropTypes from 'prop-types';
 import SentryTypes from 'app/sentryTypes';
+import Tooltip from 'app/components/tooltip';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import styled from 'react-emotion';
@@ -20,12 +22,32 @@ export default class SentryApplicationRow extends React.PureComponent {
     installs: PropTypes.array,
     onInstall: PropTypes.func,
     onUninstall: PropTypes.func,
+    onRemoveApp: PropTypes.func,
     showPublishStatus: PropTypes.bool,
   };
 
   static defaultProps = {
     showPublishStatus: false,
   };
+
+  renderRemoveApp(app) {
+    const message = t(
+      `Are you sure you want to remove the ${app.slug} application ? \
+       If your application has any installations, data from those \
+       installations will be removed along with the installation itself. \
+       This is a permanent action.`
+    );
+    return (
+      <ConfirmDelete
+        message={message}
+        confirmInput={app.slug}
+        priority="danger"
+        onConfirm={() => this.props.onRemoveApp(app)}
+      >
+        <Button size="small" icon="icon-trash" />
+      </ConfirmDelete>
+    );
+  }
 
   renderUninstall(install) {
     const message = t(
@@ -90,7 +112,15 @@ export default class SentryApplicationRow extends React.PureComponent {
             </Box>
           ) : (
             <Box>
-              <Button icon="icon-trash" size="small" onClick={() => {}} />
+              {app.status === 'unpublished' ? (
+                this.renderRemoveApp(app)
+              ) : (
+                <Tooltip title={t('Published apps cannot be removed.')}>
+                  <span>
+                    <Button disabled={true} size="small" icon="icon-trash" />
+                  </span>
+                </Tooltip>
+              )}
             </Box>
           )}
         </StyledFlex>
