@@ -193,8 +193,9 @@ export default {
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
-    ReleaseLanding: require('app/views/releases/projectReleases/releaseLanding').default,
-    ReleaseProgress: require('app/views/releases/projectReleases/releaseProgress')
+    ReleaseLanding: require('app/views/releases/list/projectReleases/releaseLanding')
+      .default,
+    ReleaseProgress: require('app/views/releases/list/projectReleases/releaseProgress')
       .default,
     CreateSampleEvent: require('app/components/createSampleEvent').default,
     InstallPromptBanner: require('app/components/installPromptBanner').default,
