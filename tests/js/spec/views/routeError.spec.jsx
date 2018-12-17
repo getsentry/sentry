@@ -1,5 +1,5 @@
 import React from 'react';
-import sdk from 'app/utils/sdk';
+import * as Sentry from '@sentry/browser';
 
 import {mount} from 'enzyme';
 import {RouteError} from 'app/views/routeError';
@@ -16,17 +16,12 @@ describe('RouteError', function() {
 
     await tick();
 
-    expect(sdk.captureException).toHaveBeenCalledWith(
+    expect(Sentry.captureException).toHaveBeenCalledWith(
       expect.objectContaining({
         message: 'Big Bad Error: /:orgId/organizations/:orgId/api-keys/',
-      }),
-      expect.objectContaining({
-        extra: expect.objectContaining({
-          route: '/:orgId/organizations/:orgId/api-keys/',
-        }),
       })
     );
 
-    expect(sdk.showReportDialog).toHaveBeenCalled();
+    expect(Sentry.showReportDialog).toHaveBeenCalled();
   });
 });

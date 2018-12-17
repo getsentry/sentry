@@ -1,7 +1,6 @@
 import Reflux from 'reflux';
 import _ from 'lodash';
-
-import sdk from 'app/utils/sdk';
+import * as Sentry from '@sentry/browser';
 
 const validHookNames = new Set([
   // Additional routes
@@ -72,8 +71,9 @@ const HookStore = Reflux.createStore({
     if (!validHookNames.has(hookName)) {
       // eslint-disable-next-line no-console
       console.error('Invalid hook name: ' + hookName);
-      sdk.captureException(new Error('Invalid hook name'), {
-        extra: {hookName},
+      Sentry.withScope(scope => {
+        scope.setExtra('hookName', hookName);
+        Sentry.captureException(new Error('Invalid hook name'));
       });
     }
     if (_.isUndefined(this.hooks[hookName])) {

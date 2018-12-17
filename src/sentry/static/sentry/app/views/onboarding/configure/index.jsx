@@ -1,8 +1,8 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import {analytics, amplitude} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import Hook from 'app/components/hook';
@@ -99,8 +99,9 @@ const Configure = createReactClass({
       },
 
       error: err => {
-        sdk.captureMessage('Polling for events in onboarding configure failed', {
-          extra: err,
+        Sentry.withScope(scope => {
+          scope.setExtra('err', err);
+          Sentry.captureMessage('Polling for events in onboarding configure failed');
         });
       },
     });

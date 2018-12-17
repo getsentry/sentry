@@ -1,4 +1,4 @@
-import sdk from 'app/utils/sdk';
+import * as Sentry from '@sentry/browser';
 
 export default function handleXhrErrorResponse(message) {
   return resp => {
@@ -9,9 +9,10 @@ export default function handleXhrErrorResponse(message) {
 
     // If this is a string then just capture it as error
     if (typeof responseJSON.detail === 'string') {
-      sdk.captureException(new Error(message), {
-        status: resp.status,
-        detail: responseJSON.detail,
+      Sentry.withScope(scope => {
+        scope.setExtra('status', resp.status);
+        scope.setExtra('detail', responseJSON.detail);
+        Sentry.captureException(new Error(message));
       });
       return;
     }
@@ -20,10 +21,11 @@ export default function handleXhrErrorResponse(message) {
     if (responseJSON.detail.code === 'sudo-required') return;
 
     if (typeof responseJSON.detail.message === 'string') {
-      sdk.captureException(new Error(message), {
-        status: resp.status,
-        detail: responseJSON.detail.message,
-        code: responseJSON.detail.code,
+      Sentry.withScope(scope => {
+        scope.setExtra('status', resp.status);
+        scope.setExtra('detail', responseJSON.detail);
+        scope.setExtra('code', responseJSON.detail.code);
+        Sentry.captureException(new Error(message));
       });
       return;
     }

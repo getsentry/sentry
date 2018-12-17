@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import classNames from 'classnames';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import {t} from 'app/locale';
 import InlineSvg from 'app/components/inlineSvg';
 import Button from 'app/components/button';
@@ -32,7 +32,7 @@ class DetailedError extends React.Component {
 
   openFeedback(e) {
     e.preventDefault();
-    sdk.lastEventId() && sdk.showReportDialog();
+    Sentry.showReportDialog();
   }
 
   render() {
@@ -63,7 +63,7 @@ class DetailedError extends React.Component {
 
               {!hideSupportLinks && (
                 <div className="detailed-error-support-links">
-                  {sdk.lastEventId() && (
+                  {Sentry.lastEventId() && (
                     <Button priority="link" onClick={this.openFeedback}>
                       {t('Fill out a report')}
                     </Button>

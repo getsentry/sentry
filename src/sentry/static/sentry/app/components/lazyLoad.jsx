@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import * as Sentry from '@sentry/browser';
 
 import {isWebpackChunkLoadingError} from 'app/utils';
 import {t} from 'app/locale';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import retryableImport from 'app/utils/retryableImport';
-import sdk from 'app/utils/sdk';
 
 class LazyLoad extends React.Component {
   static propTypes = {
@@ -61,18 +61,19 @@ class LazyLoad extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    sdk.captureException(error);
+    Sentry.captureException(error);
     this.handleError(error);
   }
 
   getComponentGetter = () => this.props.component || this.props.route.componentPromise;
 
   handleFetchError = error => {
-    let options = isWebpackChunkLoadingError(error)
-      ? {fingerprint: ['webpack', 'error loading chunk']}
-      : {};
-
-    sdk.captureException(error, options);
+    Sentry.withScope(scope => {
+      if (isWebpackChunkLoadingError(error)) {
+        scope.setFingerprint(['webpack', 'error loading chunk']);
+      }
+      Sentry.captureException(error);
+    });
     this.handleError(error);
   };
 

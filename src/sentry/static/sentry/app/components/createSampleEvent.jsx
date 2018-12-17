@@ -3,12 +3,12 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
+import * as Sentry from '@sentry/browser';
 
 import {analytics} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
 import IndicatorStore from 'app/stores/indicatorStore';
-import sdk from 'app/utils/sdk';
 import SentryTypes from 'app/sentryTypes';
 
 const CreateSampleEvent = createReactClass({
@@ -62,12 +62,12 @@ const CreateSampleEvent = createReactClass({
         browserHistory.push(`/${orgId}/${projectId}/issues/${data.groupID}/`);
       },
       error: err => {
-        sdk.captureException(
-          new Error('Create sample event in onboarding configure step failed'),
-          {
-            extra: err,
-          }
-        );
+        Sentry.withScope(scope => {
+          scope.setExtra('err', err);
+          Sentry.captureException(
+            new Error('Create sample event in onboarding configure step failed')
+          );
+        });
 
         IndicatorStore.addError('Unable to create a sample event');
       },

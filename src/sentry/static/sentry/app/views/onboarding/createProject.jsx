@@ -3,8 +3,8 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import {Panel} from 'app/components/panels';
 import {getPlatformName} from 'app/views/onboarding/utils';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
@@ -94,8 +94,10 @@ const CreateProject = createReactClass({
     this.setState({inFlight: true});
 
     if (!projectName) {
-      sdk.captureMessage('Onboarding no project name ', {
-        extra: {props: this.props, state: this.state},
+      Sentry.withScope(scope => {
+        scope.setExtra('props', this.props);
+        scope.setExtra('state', this.state);
+        Sentry.captureMessage('Onboarding no project name');
       });
     }
 
@@ -122,12 +124,11 @@ const CreateProject = createReactClass({
         // * The user not having access to create a project, or,
         // * A project with that slug already exists
         if (err.status !== 403 && err.status !== 409) {
-          sdk.captureMessage('Onboarding project creation failed', {
-            extra: {
-              err,
-              props: this.props,
-              state: this.state,
-            },
+          Sentry.withScope(scope => {
+            scope.setExtra('err', err);
+            scope.setExtra('props', this.props);
+            scope.setExtra('state', this.state);
+            Sentry.captureMessage('Onboarding project creation failed');
           });
         }
       },

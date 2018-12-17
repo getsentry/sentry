@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
+import * as Sentry from '@sentry/browser';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {getOrganizationState} from 'app/mixins/organizationState';
@@ -19,7 +20,6 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Link from 'app/components/link';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
-import sdk from 'app/utils/sdk';
 import space from 'app/styles/space';
 
 const TeamRow = createReactClass({
@@ -174,8 +174,9 @@ class ProjectTeams extends AsyncView {
 
     if (!this.state.allTeams) {
       teamsToAdd = [];
-      sdk.captureException(new Error('This.state.allTeams is null'), {
-        extra: {state: this.state},
+      Sentry.withScope(scope => {
+        scope.setExtra('state', this.state);
+        Sentry.captureException(new Error('This.state.allTeams is null'));
       });
     } else {
       teamsToAdd = this.state.allTeams
