@@ -1,19 +1,13 @@
+import * as Sentry from '@sentry/browser';
+
 let _addBreadcrumb = () => {};
 let _captureException = () => {};
 let _captureMessage = () => {};
 let _showReportDialog = () => {};
 let _lastEventId = () => {};
 
-document.addEventListener('ravenLoaded', function() {
-  _addBreadcrumb = window.Raven.captureBreadcrumb.bind(window.Raven);
-  _captureException = window.Raven.captureException.bind(window.Raven);
-  _captureMessage = window.Raven.captureMessage.bind(window.Raven);
-  _showReportDialog = window.Raven.showReportDialog.bind(window.Raven);
-  _lastEventId = window.Raven.lastEventId.bind(window.Raven);
-});
-
 function setContextInScope(context) {
-  window.Sentry.configureScope(scope => {
+  Sentry.configureScope(scope => {
     if (context.user) {
       scope.setUser(context.user);
     }
@@ -34,35 +28,33 @@ function setContextInScope(context) {
   });
 }
 
-document.addEventListener('sentryLoaded', function() {
-  _addBreadcrumb = window.Sentry.addBreadcrumb;
+Sentry.onLoad(function() {
+  _addBreadcrumb = Sentry.addBreadcrumb;
   _captureMessage = (...args) => {
-    window.Sentry.getDefaultHub().pushScope();
+    Sentry.getDefaultHub().pushScope();
     if (args[1]) {
       setContextInScope(args[1]);
     }
     if (args[0]) {
-      window.Sentry.captureMessage(args[0]);
+      Sentry.captureMessage(args[0]);
     }
-    window.Sentry.getDefaultHub().popScope();
+    Sentry.getDefaultHub().popScope();
   };
   _captureException = (...args) => {
-    window.Sentry.getDefaultHub().pushScope();
+    Sentry.getDefaultHub().pushScope();
     if (args[1]) {
       setContextInScope(args[1]);
     }
     if (args[0]) {
-      window.Sentry.captureException(args[0]);
+      Sentry.captureException(args[0]);
     }
-    window.Sentry.getDefaultHub().popScope();
+    Sentry.getDefaultHub().popScope();
   };
   _showReportDialog = () => {
-    // TODO: eventually implement this
-    window.Sentry.captureMessage('Would have shown report dialog');
+    Sentry.showReportDialog();
   };
   _lastEventId = () => {
-    // TODO: eventually implement this
-    window.Sentry.captureMessage('Would have called lastEventId()');
+    Sentry.lastEventId();
   };
 });
 

@@ -6,8 +6,12 @@ let transactionId = null;
 export function startTransaction() {
   spanId = uniqueId();
   transactionId = uniqueId();
-  window.Raven &&
-    window.Raven.setTagsContext({span_id: spanId, transaction_id: transactionId});
+  if (window.Sentry) {
+    window.Sentry.configureScope(function(scope) {
+      scope.setTag('span_id', spanId);
+      scope.setTag('transaction_id', transactionId);
+    });
+  }
   return {spanId, transactionId};
 }
 

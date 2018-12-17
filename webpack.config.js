@@ -59,7 +59,7 @@ var appEntry = {
     'marked',
     'moment',
     'moment-timezone',
-    'raven-js',
+    '@sentry/browser',
     'react',
     'react-dom',
     'react-dom/server',
