@@ -1,11 +1,11 @@
 import {logAjaxError} from 'app/utils/logging';
-import sdk from 'app/utils/sdk';
+import * as Sentry from '@sentry/browser';
 
 describe('logging', function() {
   describe('logAjaxError()', function() {
     beforeEach(function() {
       jest.spyOn(console, 'error').mockImplementation(() => {});
-      sdk.captureMessage.mockReset();
+      Sentry.captureMessage.mockReset();
     });
 
     afterEach(function() {
@@ -21,11 +21,10 @@ describe('logging', function() {
         {foo: 'bar'} /* context */
       );
 
-      expect(sdk.captureMessage).toHaveBeenCalled();
-      expect(sdk.captureMessage.mock.calls[0][0]).toEqual(
+      expect(Sentry.captureMessage).toHaveBeenCalled();
+      expect(Sentry.captureMessage.mock.calls[0][0]).toEqual(
         'HTTP 500: A bad thing happened'
       );
-      expect(sdk.captureMessage.mock.calls[0][1].extra).toEqual({foo: 'bar'});
     });
 
     it('should handle text/html responses', function() {
@@ -37,19 +36,19 @@ describe('logging', function() {
         {foo: 'bar'} /* context */
       );
 
-      expect(sdk.captureMessage).toHaveBeenCalled();
-      expect(sdk.captureMessage.mock.calls[0][0]).toEqual(
+      expect(Sentry.captureMessage).toHaveBeenCalled();
+      expect(Sentry.captureMessage.mock.calls[0][0]).toEqual(
         'HTTP 401: You are not authenticated'
       );
-      expect(sdk.captureMessage.mock.calls[0][1].extra).toEqual({foo: 'bar'});
     });
 
     it('should handle responseJSON/responseText undefined (bad content type?)', function() {
       logAjaxError({status: 404}, {foo: 'bar'} /* context */);
 
-      expect(sdk.captureMessage).toHaveBeenCalled();
-      expect(sdk.captureMessage.mock.calls[0][0]).toEqual('HTTP 404: <unknown response>');
-      expect(sdk.captureMessage.mock.calls[0][1].extra).toEqual({foo: 'bar'});
+      expect(Sentry.captureMessage).toHaveBeenCalled();
+      expect(Sentry.captureMessage.mock.calls[0][0]).toEqual(
+        'HTTP 404: <unknown response>'
+      );
     });
   });
 });

@@ -1,8 +1,8 @@
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
 
+import * as Sentry from '@sentry/browser';
 import {isInteger} from 'lodash';
 import GlobalSelectionActions from 'app/actions/globalSelectionActions';
-import sdk from 'app/utils/sdk';
 
 /**
  * Updates global project selection
@@ -11,8 +11,9 @@ import sdk from 'app/utils/sdk';
  */
 export function updateProjects(projects) {
   if (!isProjectsValid(projects)) {
-    sdk.captureException(new Error('Invalid projects selected'), {
-      extra: {projects},
+    Sentry.withScope(scope => {
+      scope.setExtra('projects', projects);
+      Sentry.captureException(new Error('Invalid projects selected'));
     });
     return;
   }
