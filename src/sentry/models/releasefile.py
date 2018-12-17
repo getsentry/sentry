@@ -37,6 +37,7 @@ class ReleaseFile(Model):
 
     class Meta:
         unique_together = (('release', 'ident'), )
+        index_together = (('release', 'name'), )
         app_label = 'sentry'
         db_table = 'sentry_releasefile'
 
