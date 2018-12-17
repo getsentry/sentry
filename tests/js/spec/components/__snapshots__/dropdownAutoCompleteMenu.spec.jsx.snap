@@ -39,6 +39,8 @@ exports[`DropdownAutoCompleteMenu renders with a group 1`] = `
     itemToString={[Function]}
     onSelect={[Function]}
     resetInputOnClose={true}
+    shouldSelectWithEnter={true}
+    shouldSelectWithTab={false}
   >
     <DropdownMenu
       closeOnEscape={true}
@@ -214,6 +216,8 @@ exports[`DropdownAutoCompleteMenu renders without a group 1`] = `
     itemToString={[Function]}
     onSelect={[Function]}
     resetInputOnClose={true}
+    shouldSelectWithEnter={true}
+    shouldSelectWithTab={false}
   >
     <DropdownMenu
       closeOnEscape={true}

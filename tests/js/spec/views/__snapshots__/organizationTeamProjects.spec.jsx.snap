@@ -89,6 +89,8 @@ exports[`OrganizationTeamProjects Should render 1`] = `
                           itemToString={[Function]}
                           onSelect={[Function]}
                           resetInputOnClose={true}
+                          shouldSelectWithEnter={true}
+                          shouldSelectWithTab={false}
                         >
                           <DropdownMenu
                             closeOnEscape={true}
