@@ -1,6 +1,20 @@
+import React from 'react';
+import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-const PageHeader = styled('h1')`
+class PageHeader extends React.Component {
+  static propTypes = {
+    children: PropTypes.node,
+    className: PropTypes.string,
+  };
+
+  render() {
+    const {children, className} = this.props;
+    return <Wrapper className={className}>{children}</Wrapper>;
+  }
+}
+
+const Wrapper = styled('h1')`
   font-size: ${p => p.theme.headerFontSize};
   line-height: ${p => p.theme.headerFontSize};
   font-weight: normal;
