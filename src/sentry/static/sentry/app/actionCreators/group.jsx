@@ -1,4 +1,5 @@
-import sdk from 'app/utils/sdk';
+import * as Sentry from '@sentry/browser';
+
 import {Client} from 'app/api';
 import GroupActions from 'app/actions/groupActions';
 import {buildUserId, buildTeamId} from 'app/utils';
@@ -83,8 +84,9 @@ export function assignToActor({id, actor}) {
       break;
 
     default:
-      sdk.captureException('Unknown assignee type', {
-        extra: {actor},
+      Sentry.withScope(scope => {
+        scope.setExtra('actor', actor);
+        Sentry.captureException('Unknown assignee type');
       });
   }
 

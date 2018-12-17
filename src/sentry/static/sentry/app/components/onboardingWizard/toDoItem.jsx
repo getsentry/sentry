@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import classNames from 'classnames';
+import * as Sentry from '@sentry/browser';
 
 import {t, tct} from 'app/locale';
-import sdk from 'app/utils/sdk';
 import {analytics} from 'app/utils/analytics';
 import OrganizationState from 'app/mixins/organizationState';
 import Confirmation from 'app/components/onboardingWizard/confirmation';
@@ -57,8 +57,10 @@ const TodoItem = createReactClass({
     } else if (task.featureLocation === 'absolute') {
       learnMoreUrl = task.location;
     } else {
-      sdk.captureMessage('No learnMoreUrl created for this featureLocation ', {
-        extra: {props: this.props, state: this.state},
+      Sentry.withScope(scope => {
+        scope.setExtra('props', this.props);
+        scope.setExtra('state', this.state);
+        Sentry.captureMessage('No learnMoreUrl created for this featureLocation');
       });
     }
     return learnMoreUrl;
