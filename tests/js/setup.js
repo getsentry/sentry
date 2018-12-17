@@ -103,6 +103,8 @@ jest.mock('echarts-for-react/lib/core', () => {
 jest.mock('@sentry/browser', () => {
   const SentryBrowser = require.requireActual('@sentry/browser');
   return {
+    init: jest.fn(),
+    configureScope: jest.fn(),
     captureBreadcrumb: jest.fn(),
     addBreadcrumb: jest.fn(),
     captureMessage: jest.fn(),
