@@ -1,8 +1,11 @@
 from __future__ import absolute_import, print_function
 
+
+from batching_kafka_consumer import AbstractBatchWorker
 from sentry.coreapi import Auth, ClientApiHelper
 from sentry.event_manager import EventManager
 from sentry.models import Project
+from sentry.utils import json
 from sentry.web.api import process_event
 
 
@@ -38,3 +41,17 @@ def process_event_from_kafka(message):
 
     return process_event(event_manager, project, key,
                          remote_addr, helper, attachments=None)
+
+
+class EventConsumerWorker(AbstractBatchWorker):
+    def process_message(self, message):
+        value = json.loads(message.value())
+        if value.get('should_process', False):
+            return value
+
+    def flush_batch(self, batch):
+        for event in batch:
+            process_event_from_kafka(event)
+
+    def shutdown(self):
+        pass

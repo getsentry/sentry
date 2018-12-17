@@ -1450,3 +1450,8 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r'\@qq\.com$', re.I)
 SENTRY_USER_PERMISSIONS = (
     'broadcasts.admin',
 )
+
+# Store Consumer configuration.
+CONSUMER_DEFAULT_BROKERS = ['localhost:9092']
+CONSUMER_DEFAULT_MAX_BATCH_SIZE = 1000
+CONSUMER_DEFAULT_MAX_BATCH_TIME_MS = 500
