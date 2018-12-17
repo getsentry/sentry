@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import {omit, isEqual} from 'lodash';
 import qs from 'query-string';
-import styled from 'react-emotion';
 
 import {analytics} from 'app/utils/analytics';
 import SentryTypes from 'app/sentryTypes';
@@ -19,11 +19,12 @@ import SearchBar from 'app/components/searchBar';
 import {t, tct} from 'app/locale';
 import {Panel, PanelBody} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import ReleaseEmptyState from 'app/views/projectReleases/releaseEmptyState';
-import ReleaseList from 'app/views/projectReleases/releaseList';
-import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 import PageHeader from 'app/components/pageHeader';
 import space from 'app/styles/space';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+
+import ReleaseEmptyState from './releaseEmptyState';
+import ReleaseList from '../shared/releaseList';
 import ReleaseListHeader from '../shared/releaseListHeader';
 
 const DEFAULT_QUERY = '';
