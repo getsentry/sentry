@@ -30,7 +30,7 @@ import plugins from 'app/plugins';
 // window.__SENTRY__OPTIONS will be emmited by sdk-config.html before loading this script
 Sentry.init(window.__SENTRY__OPTIONS);
 
-Sentry.configureScope((scope) => {
+Sentry.configureScope(scope => {
   if (window.__SENTRY__USER) {
     scope.setUser(window.__SENTRY__USER);
   }
@@ -44,7 +44,8 @@ function __raven_deprecated() {
   console.error(message);
   Sentry.captureMessage(message);
 }
-window.Raven = {
+
+const Raven = {
   captureMessage: () => __raven_deprecated(),
   captureException: () => __raven_deprecated(),
   captureBreadcrumb: () => __raven_deprecated(),
@@ -52,7 +53,8 @@ window.Raven = {
   setTagsContext: () => __raven_deprecated(),
   setExtraContext: () => __raven_deprecated(),
   setUserContext: () => __raven_deprecated(),
-}
+};
+window.Raven = Raven;
 // -----------------------------------------------------------------
 
 // Used for operational metrics to determine that the application js

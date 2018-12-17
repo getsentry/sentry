@@ -58,7 +58,6 @@ Sentry.onLoad(function() {
   };
 });
 
-
 export default {
   captureBreadcrumb: (...args) => {
     return _addBreadcrumb(...args);
