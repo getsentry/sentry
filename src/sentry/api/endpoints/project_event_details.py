@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import DetailedEventSerializer, serialize
 from sentry.models import Event
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.validators import is_event_id
@@ -90,7 +90,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         except IndexError:
             prev_event = None
 
-        data = serialize(event, request.user)
+        data = serialize(event, request.user, DetailedEventSerializer())
 
         if next_event:
             data['nextEventID'] = six.text_type(next_event.event_id)

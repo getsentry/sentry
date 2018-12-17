@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.api.bases.group import GroupPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.serializers import serialize
+from sentry.api.serializers import DetailedEventSerializer, serialize
 from sentry.constants import EVENT_ORDERING_KEY
 from sentry.models import Event
 
@@ -81,7 +81,7 @@ class EventDetailsEndpoint(Endpoint):
                 prev_event = e
                 break
 
-        data = serialize(event, request.user)
+        data = serialize(event, request.user, DetailedEventSerializer())
 
         if next_event:
             data['nextEventID'] = six.text_type(next_event.id)

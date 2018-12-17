@@ -235,11 +235,19 @@ class EventSerializer(Serializer):
                 'packages': packages_meta,
                 'tags': tags_meta,
             },
-            'release': self._get_release_info(user, obj),
-            'userReport': self._get_user_report(user, obj),
-
         }
         return d
+
+
+class DetailedEventSerializer(EventSerializer):
+    """
+    Adds release and user report info to the serialized event.
+    """
+    def serialize(self, obj, attrs, user):
+        result = super(DetailedEventSerializer, self).serialize(obj, attrs, user)
+        result['release'] = self._get_release_info(user, obj)
+        result['userReport'] = self._get_user_report(user, obj)
+        return result
 
 
 class SharedEventSerializer(EventSerializer):
