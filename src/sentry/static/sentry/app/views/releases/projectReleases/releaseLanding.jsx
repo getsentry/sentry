@@ -11,9 +11,10 @@ import {
 } from 'sentry-dreamy-components';
 
 import {analytics} from 'app/utils/analytics';
-import ReleaseLandingCard from 'app/views/projectReleases/releaseLandingCard';
 import SentryTypes from 'app/sentryTypes';
 import withApi from 'app/utils/withApi';
+
+import ReleaseLandingCard from './releaseLandingCard';
 
 const StyledSuggestedAssignees = styled(SuggestedAssignees)`
   width: 150px;

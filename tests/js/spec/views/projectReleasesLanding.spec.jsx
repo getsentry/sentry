@@ -1,14 +1,31 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ReleaseLanding from 'app/views/projectReleases/releaseLanding';
+import ReleaseLanding from 'app/views/releases/projectReleases/releaseLanding';
 
-describe('ReleaseLanding', function() {
+describe('ProjectReleasesLanding', function() {
   describe('renders and progresses', function() {
-    it('should show first card', function() {
-      let routerContext = TestStubs.routerContext();
-      let wrapper = mount(<ReleaseLanding />, routerContext);
+    let wrapper;
+    beforeEach(function() {
+      wrapper = mount(<ReleaseLanding />, TestStubs.routerContext());
+    });
 
+    it('renders first step', function() {
+      expect(wrapper.find('Contributors')).toHaveLength(1);
+    });
+
+    it('renders next steps', function() {
+      wrapper.find('Button').simulate('click');
+      expect(wrapper.find('SuggestedAssignees')).toHaveLength(1);
+      wrapper.find('Button').simulate('click');
+      expect(wrapper.find('Issues')).toHaveLength(1);
+      wrapper.find('Button').simulate('click');
+      expect(wrapper.find('BashCard')).toHaveLength(1);
+      wrapper.find('Button').simulate('click');
+      expect(wrapper.find('Emails')).toHaveLength(1);
+    });
+
+    it('should show first card', function() {
       expect(wrapper.find('ContributorsCard').exists()).toBe(true);
       wrapper
         .find('StyledButton')
