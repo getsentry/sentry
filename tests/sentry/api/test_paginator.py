@@ -115,6 +115,35 @@ class OffsetPaginatorTest(TestCase):
         assert not result5.next
         assert result5.prev
 
+    def test_order_by_multiple(self):
+        res1 = self.create_user('foo@example.com')
+        self.create_user('bar@example.com')
+        res3 = self.create_user('baz@example.com')
+
+        queryset = User.objects.all()
+
+        paginator = OffsetPaginator(queryset, 'id')
+        result = paginator.get_result(limit=1, cursor=None)
+        assert len(result) == 1, result
+        assert result[0] == res1
+        assert result.next
+        assert not result.prev
+
+        res3.update(is_active=False)
+
+        paginator = OffsetPaginator(queryset, ('is_active', 'id'))
+        result = paginator.get_result(limit=1, cursor=None)
+        assert len(result) == 1, result
+        assert result[0] == res3
+        assert result.next
+        assert not result.prev
+
+        result = paginator.get_result(limit=1, cursor=result.next)
+        assert len(result) == 1, (result, list(result))
+        assert result[0] == res1
+        assert result.next
+        assert result.prev
+
 
 class DateTimePaginatorTest(TestCase):
     def test_ascending(self):

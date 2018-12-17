@@ -29,7 +29,7 @@ from sentry.constants import SentryAppStatus
 from sentry.mediators import sentry_apps, sentry_app_installations, service_hooks
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
-    OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
+    OrganizationMemberTeam, Project, ProjectBookmark, Team, User, UserEmail, Release, Commit, ReleaseCommit,
     CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment
 )
 from sentry.utils.canonical import CanonicalKeyDict
@@ -324,6 +324,9 @@ class Fixtures(object):
         for team in teams:
             project.add_team(team)
         return project
+
+    def create_project_bookmark(self, project, user):
+        return ProjectBookmark.objects.create(project_id=project.id, user=user)
 
     def create_project_key(self, project):
         return project.key_set.get_or_create()[0]
