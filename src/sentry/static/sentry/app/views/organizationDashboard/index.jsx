@@ -1,10 +1,8 @@
-import {Link} from 'react-router';
 import LazyLoad from 'react-lazyload';
 import React from 'react';
 import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import {Flex} from 'grid-emotion';
-import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import IdBadge from 'app/components/idBadge';
@@ -45,8 +43,6 @@ class Dashboard extends React.Component {
     const access = new Set(organization.access);
     const teamsMap = new Map(teams.map(teamObj => [teamObj.slug, teamObj]));
 
-    const hasTeamAdminAccess = access.has('team:admin');
-
     if (projects.length === 1 && !projects[0].firstEvent) {
       return <Resources org={organization} project={projects[0]} />;
     }
@@ -74,15 +70,7 @@ class Dashboard extends React.Component {
                 orgId={params.orgId}
                 team={team}
                 showBorder={showBorder}
-                title={
-                  hasTeamAdminAccess ? (
-                    <TeamLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
-                      <IdBadge team={team} />
-                    </TeamLink>
-                  ) : (
-                    <IdBadge team={team} />
-                  )
-                }
+                title={<IdBadge team={team} />}
                 projects={projectsByTeam[slug]}
                 access={access}
               />
@@ -111,11 +99,6 @@ const OrganizationDashboard = createReactClass({
     );
   },
 });
-
-const TeamLink = styled(Link)`
-  display: flex;
-  align-items: center;
-`;
 
 export {Dashboard};
 export default withTeams(withProjects(OrganizationDashboard));
