@@ -657,7 +657,7 @@ def shrink_time_window(issues, start):
     stale groups.
     """
     if issues and len(issues) == 1:
-        group = Group.objects.get(pk=issues[0])
+        group = Group.objects.get(pk=list(issues)[0])
         start = max(start, naiveify_datetime(group.first_seen) - timedelta(minutes=5))
 
     return start
