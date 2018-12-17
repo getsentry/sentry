@@ -39,7 +39,6 @@ import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectGettingStarted from 'app/views/projectInstall/gettingStarted';
 import ProjectInstallOverview from 'app/views/projectInstall/overview';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
-import ProjectReleases from 'app/views/releases/projectReleases';
 import ProjectSavedSearches from 'app/views/projectSavedSearches';
 import ProjectSettings from 'app/views/projectSettings';
 import ProjectPlugins from 'app/views/projectPlugins';
@@ -874,7 +873,12 @@ function routes() {
 
           <Route path="searches/:searchId/" component={errorHandler(Stream)} />
           <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
-          <Route path="releases/" component={errorHandler(ProjectReleases)} />
+          <Route
+            path="releases/"
+            componentPromise={() =>
+              import(/*webpackChunkName:"ProjectReleases"*/ './views/releases/projectReleases')}
+            component={errorHandler(LazyLoad)}
+          />
           <Route
             name="releaseDetails"
             path="releases/:version/"
