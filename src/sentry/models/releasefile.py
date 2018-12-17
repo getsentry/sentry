@@ -42,7 +42,7 @@ class ReleaseFile(Model):
 
     def save(self, *args, **kwargs):
         if not self.ident and self.name:
-            dist = self.dist and self.dist.name or None
+            dist = self.dist_id and self.dist.name or None
             self.ident = type(self).get_ident(self.name, dist)
         return super(ReleaseFile, self).save(*args, **kwargs)
 

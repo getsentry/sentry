@@ -79,7 +79,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
 
         file_list = ReleaseFile.objects.filter(
             release=release,
-        ).select_related('file').order_by('name')
+        ).select_related('file', 'dist').order_by('name')
 
         return self.paginate(
             request=request,
