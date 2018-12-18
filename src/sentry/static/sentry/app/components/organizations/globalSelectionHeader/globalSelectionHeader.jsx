@@ -26,12 +26,10 @@ import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-// eslint-disable-next-line no-unused-vars
-const {onChange, onUpdate, ...TimeRangeSelectorPropTypes} = TimeRangeSelector.propTypes;
-
 class GlobalSelectionHeader extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
+    router: PropTypes.object,
 
     /**
      * List of projects to display in project selector
@@ -41,12 +39,7 @@ class GlobalSelectionHeader extends React.Component {
     /**
      * Currently selected values(s)
      */
-
-    // List of project ids
-    project: PropTypes.arrayOf(PropTypes.number),
-    // List of environment strings
-    environment: PropTypes.arrayOf(PropTypes.string),
-    ...TimeRangeSelectorPropTypes,
+    selection: SentryTypes.GlobalSelection,
 
     // Display Environment selector?
     showEnvironmentSelector: PropTypes.bool,
@@ -54,11 +47,17 @@ class GlobalSelectionHeader extends React.Component {
     // Disable automatic routing
     hasCustomRouting: PropTypes.bool,
 
-    // When this component is mounted, update current URL parameters
-    // with values from store
-    initializeWithUrlParams: PropTypes.bool,
+    // Props passed to child components //
+    /**
+     * Show absolute date selectors
+     */
+    showAbsolute: PropTypes.bool,
+    /**
+     * Show relative date selectors
+     */
+    showRelative: PropTypes.bool,
 
-    // Callbacks
+    // Callbacks //
     onChangeProjects: PropTypes.func,
     onUpdateProjects: PropTypes.func,
     onChangeEnvironments: PropTypes.func,
@@ -70,7 +69,6 @@ class GlobalSelectionHeader extends React.Component {
   static defaultProps = {
     hasCustomRouting: false,
     showEnvironmentSelector: true,
-    initializeWithUrlParams: false,
   };
 
   // Parses URL query parameters for values relevant to global selection header
@@ -133,7 +131,7 @@ class GlobalSelectionHeader extends React.Component {
       updateDateTime({start, end, period, utc});
       updateEnvironments(environment);
       updateProjects(project);
-    } else if (this.props.initializeWithUrlParams) {
+    } else {
       // Otherwise, we can update URL with values from store
       //
       // e.g. when switching to a new view that uses this component,
@@ -225,14 +223,14 @@ class GlobalSelectionHeader extends React.Component {
 
   handleChangeProjects = projects => {
     this.setState({
-      project: projects,
+      projects,
     });
     callIfFunction(this.props.onChangeProjects, projects);
   };
 
   handleChangeEnvironments = environments => {
     this.setState({
-      environment: environments,
+      environments,
     });
     callIfFunction(this.props.onChangeEnvironments, environments);
   };
@@ -252,17 +250,17 @@ class GlobalSelectionHeader extends React.Component {
   };
 
   handleUpdateEnvironmments = () => {
-    const {environment} = this.state;
-    updateEnvironments(environment, this.getRouter());
-    this.setState({environment: null});
-    callIfFunction(this.props.onUpdateEnvironments, environment);
+    const {environments} = this.state;
+    updateEnvironments(environments, this.getRouter());
+    this.setState({environments: null});
+    callIfFunction(this.props.onUpdateEnvironments, environments);
   };
 
   handleUpdateProjects = () => {
-    const {project} = this.state;
-    updateProjects(project, this.getRouter());
-    this.setState({project: null});
-    callIfFunction(this.props.onUpdateProjects, project);
+    const {projects} = this.state;
+    updateProjects(projects, this.getRouter());
+    this.setState({projects: null});
+    callIfFunction(this.props.onUpdateProjects, projects);
   };
 
   render() {
@@ -282,7 +280,7 @@ class GlobalSelectionHeader extends React.Component {
           <MultipleProjectSelector
             organization={organization}
             projects={projects}
-            value={this.state.project || this.props.selection.projects}
+            value={this.state.projects || this.props.selection.projects}
             onChange={this.handleChangeProjects}
             onUpdate={this.handleUpdateProjects}
           />
@@ -294,7 +292,7 @@ class GlobalSelectionHeader extends React.Component {
             <HeaderItemPosition>
               <MultipleEnvironmentSelector
                 organization={organization}
-                value={this.state.environment || this.props.selection.environments}
+                value={this.state.environments || this.props.selection.environments}
                 onChange={this.handleChangeEnvironments}
                 onUpdate={this.handleUpdateEnvironmments}
               />
