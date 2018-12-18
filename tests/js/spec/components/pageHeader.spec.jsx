@@ -1,10 +1,10 @@
 import React from 'react';
 import {shallow} from 'enzyme';
-import PageHeader from 'app/components/pageHeader';
+import PageHeading from 'app/components/pageHeading';
 
-describe('PageHeader', function() {
+describe('PageHeading', function() {
   it('renders', function() {
-    let wrapper = shallow(<PageHeader>New Header</PageHeader>);
+    let wrapper = shallow(<PageHeading>New Header</PageHeading>);
     expect(wrapper).toMatchSnapshot();
   });
 });

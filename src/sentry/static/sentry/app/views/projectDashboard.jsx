@@ -8,7 +8,7 @@ import SentryTypes from 'app/sentryTypes';
 import EventList from 'app/views/projectDashboard/eventList';
 import ProjectState from 'app/mixins/projectState';
 import ProjectChart from 'app/views/projectDashboard/chart';
-import PageHeader from 'app/components/pageHeader';
+import PageHeading from 'app/components/pageHeading';
 import space from 'app/styles/space';
 import {t} from 'app/locale';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
@@ -101,7 +101,7 @@ const ProjectDashboard = createReactClass({
       <div>
         <div className="row">
           <div className="col-sm-9">
-            <StyledPageHeader>{t('Overview')}</StyledPageHeader>
+            <StyledPageHeading>{t('Overview')}</StyledPageHeading>
           </div>
           <div className="col-sm-3" style={{textAlign: 'right'}}>
             <div className="btn-group">
@@ -171,7 +171,7 @@ const ProjectDashboard = createReactClass({
   },
 });
 
-const StyledPageHeader = styled(PageHeader)`
+const StyledPageHeading = styled(PageHeading)`
   margin-bottom: ${space(3)};
   margin-top: ${space(1)};
 `;

@@ -11,7 +11,7 @@ import Pagination from 'app/components/pagination';
 import ProjectTable from 'app/views/organizationStats/projectTable';
 import StackedBarChart from 'app/components/stackedBarChart';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import PageHeader from 'app/components/pageHeader';
+import PageHeading from 'app/components/pageHeading';
 import space from 'app/styles/space';
 import {
   ProjectTableLayout,
@@ -68,7 +68,7 @@ class OrganizationStats extends React.Component {
 
     return (
       <div>
-        <StyledPageHeader>{t('Organization Stats')}</StyledPageHeader>
+        <StyledPageHeading>{t('Organization Stats')}</StyledPageHeading>
         <div className="row">
           <div className="col-md-9">
             <TextBlock>
@@ -141,7 +141,7 @@ class OrganizationStats extends React.Component {
   }
 }
 
-const StyledPageHeader = styled(PageHeader)`
+const StyledPageHeading = styled(PageHeading)`
   margin-bottom: ${space(3)};
   margin-top: ${space(0.5)};
 `;

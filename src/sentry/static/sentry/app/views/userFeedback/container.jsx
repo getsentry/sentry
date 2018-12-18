@@ -5,7 +5,7 @@ import space from 'app/styles/space';
 import {t} from 'app/locale';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
-import PageHeader from 'app/components/pageHeader';
+import PageHeading from 'app/components/pageHeading';
 
 import {Link} from 'react-router';
 
@@ -23,7 +23,7 @@ export default class UserFeedbackContainer extends React.Component {
       <div>
         <div className="row">
           <div className="col-sm-9">
-            <StyledPageHeader>{t('User Feedback')}</StyledPageHeader>
+            <StyledPageHeading>{t('User Feedback')}</StyledPageHeading>
           </div>
           <div className="col-sm-3" style={{textAlign: 'right'}}>
             <div className="btn-group">
@@ -53,7 +53,7 @@ export default class UserFeedbackContainer extends React.Component {
   }
 }
 
-const StyledPageHeader = styled(PageHeader)`
+const StyledPageHeading = styled(PageHeading)`
   margin-top: ${space(1)};
   margin-bottom: ${space(3)};
 `;

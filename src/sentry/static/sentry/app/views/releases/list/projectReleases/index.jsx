@@ -19,7 +19,7 @@ import SearchBar from 'app/components/searchBar';
 import {t, tct} from 'app/locale';
 import {Panel, PanelBody} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import PageHeader from 'app/components/pageHeader';
+import PageHeading from 'app/components/pageHeading';
 import space from 'app/styles/space';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
@@ -222,7 +222,7 @@ const ProjectReleases = createReactClass({
         <GuideAnchor target="releases" type="invisible" />
         <div className="row">
           <div className="col-sm-7">
-            <StyledPageHeader>{t('Releases')}</StyledPageHeader>
+            <StyledPageHeading>{t('Releases')}</StyledPageHeading>
           </div>
           <div className="col-sm-5 release-search">
             <SearchBar
@@ -246,7 +246,7 @@ const ProjectReleases = createReactClass({
 export {ProjectReleases}; // For tests
 export default withEnvironmentInQueryString(ProjectReleases);
 
-const StyledPageHeader = styled(PageHeader)`
+const StyledPageHeading = styled(PageHeading)`
   margin-top: ${space(1)};
   margin-bottom: ${space(3)};
 `;

@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import InlineSvg from 'app/components/inlineSvg';
-import PageHeader from 'app/components/pageHeader';
+import PageHeading from 'app/components/pageHeading';
 
 import {QueryPanelContainer, QueryPanelTitle, QueryPanelCloseLink} from '../styles';
 
@@ -16,7 +16,7 @@ export default class QueryPanel extends React.Component {
     return (
       <QueryPanelContainer>
         <QueryPanelTitle>
-          <PageHeader>{title}</PageHeader>
+          <PageHeading>{title}</PageHeading>
 
           <QueryPanelCloseLink onClick={onClose}>
             <InlineSvg src="icon-close" height="38px" />
