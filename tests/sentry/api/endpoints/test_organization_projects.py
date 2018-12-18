@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
+from base64 import b64encode
+
 from exam import fixture
 
+from sentry.models import ApiKey
 from sentry.testutils import APITestCase
 
 
@@ -105,3 +108,17 @@ class OrganizationProjectsTest(APITestCase):
         self.create_project_bookmark(projects[1], user=other_user)
         response = self.client.get(self.path)
         self.check_valid_response(response, [project for project in projects])
+
+    def test_api_key(self):
+        key = ApiKey.objects.create(
+            organization=self.org,
+            scope_list=['org:read'],
+        )
+
+        project = self.create_project(teams=[self.team])
+
+        response = self.client.get(
+            self.path,
+            HTTP_AUTHORIZATION='Basic ' + b64encode(u'{}:'.format(key.key)),
+        )
+        self.check_valid_response(response, [project])
