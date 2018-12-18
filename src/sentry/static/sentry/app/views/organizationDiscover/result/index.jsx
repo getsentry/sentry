@@ -8,7 +8,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
 import InlineSvg from 'app/components/inlineSvg';
-import PageHeader from 'app/components/pageHeader';
+import PageHeading from 'app/components/pageHeading';
 
 import {getChartData, getChartDataByDay, getRowsPageRange, downloadAsCsv} from './utils';
 import Table from './table';
@@ -152,9 +152,9 @@ export default class Result extends React.Component {
   renderSavedQueryHeader() {
     return (
       <React.Fragment>
-        <PageHeader>
+        <PageHeading>
           {getDynamicText({value: this.props.savedQuery.name, fixed: 'saved query'})}
-        </PageHeader>
+        </PageHeading>
         <SavedQueryAction onClick={this.props.onToggleEdit}>
           <InlineSvg src="icon-edit" />
         </SavedQueryAction>
@@ -163,7 +163,7 @@ export default class Result extends React.Component {
   }
 
   renderQueryResultHeader() {
-    return <PageHeader>{t('Result')}</PageHeader>;
+    return <PageHeading>{t('Result')}</PageHeading>;
   }
 
   render() {

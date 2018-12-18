@@ -9,7 +9,7 @@ import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryTypes from 'app/sentryTypes';
-import PageHeader from 'app/components/pageHeader';
+import PageHeading from 'app/components/pageHeading';
 import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -94,7 +94,7 @@ const Body = styled('div')`
   padding: ${space(3)} ${space(4)};
 `;
 
-const HeaderTitle = styled(PageHeader)`
+const HeaderTitle = styled(PageHeading)`
   flex: 1;
 `;
 

@@ -5,7 +5,7 @@ import styled from 'react-emotion';
 
 import GroupStore from 'app/stores/groupStore';
 import IssueList from 'app/components/issueList';
-import PageHeader from 'app/components/pageHeader';
+import PageHeading from 'app/components/pageHeading';
 import space from 'app/styles/space';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
 import {t} from 'app/locale';
@@ -64,7 +64,7 @@ class OrganizationIssueList extends React.Component {
             </Link>
           </div>
         </div>
-        <StyledPageHeader withPadding>{this.props.title}</StyledPageHeader>
+        <StyledPageHeading withPadding>{this.props.title}</StyledPageHeading>
         <IssueList
           endpoint={this.props.endpoint}
           emptyText={this.props.emptyText}
@@ -81,7 +81,7 @@ class OrganizationIssueList extends React.Component {
   }
 }
 
-const StyledPageHeader = styled(PageHeader)`
+const StyledPageHeading = styled(PageHeading)`
   margin-bottom: ${space(3)};
   margin-top: ${space(0.5)};
 `;

@@ -9,7 +9,7 @@ import {t, tct} from 'app/locale';
 import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import BetaTag from 'app/components/betaTag';
 import SentryTypes from 'app/sentryTypes';
-import PageHeader from 'app/components/pageHeader';
+import PageHeading from 'app/components/pageHeading';
 
 import {
   DiscoverContainer,
@@ -418,9 +418,9 @@ export default class OrganizationDiscover extends React.Component {
               <React.Fragment>
                 <div>
                   <HeadingContainer>
-                    <PageHeader>
+                    <PageHeading>
                       {t('Discover')} <BetaTag />
-                    </PageHeader>
+                    </PageHeading>
                   </HeadingContainer>
                 </div>
                 <Intro updateQuery={this.updateAndRunQuery} />

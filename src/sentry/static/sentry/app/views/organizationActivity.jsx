@@ -4,7 +4,7 @@ import styled from 'react-emotion';
 import AsyncView from 'app/views/asyncView';
 import ActivityFeed from 'app/components/activity/feed';
 import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
-import PageHeader from 'app/components/pageHeader';
+import PageHeading from 'app/components/pageHeading';
 import space from 'app/styles/space';
 
 import {t} from 'app/locale';
@@ -21,7 +21,7 @@ export default class OrganizationActivity extends AsyncView {
   render() {
     return (
       <OrganizationHomeContainer>
-        <StyledPageHeader>{t('Activity')}</StyledPageHeader>
+        <StyledPageHeading>{t('Activity')}</StyledPageHeading>
         <ActivityFeed
           endpoint={this.getEndpoint()}
           query={{
@@ -35,7 +35,7 @@ export default class OrganizationActivity extends AsyncView {
   }
 }
 
-const StyledPageHeader = styled(PageHeader)`
+const StyledPageHeading = styled(PageHeading)`
   margin-bottom: ${space(3)};
   margin-top: ${space(0.5)};
 `;

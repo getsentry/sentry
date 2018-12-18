@@ -2,11 +2,11 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import PageHeader from 'app/components/pageHeader';
+import PageHeading from 'app/components/pageHeading';
 
-storiesOf('UI|PageHeader', module).add(
+storiesOf('UI|PageHeading', module).add(
   'default',
   withInfo(
     'Every page should have a header, and the header should be made with this.'
-  )(() => <PageHeader>Page Header</PageHeader>)
+  )(() => <PageHeading>Page Header</PageHeading>)
 );

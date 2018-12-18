@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-class PageHeader extends React.Component {
+class PageHeading extends React.Component {
   static propTypes = {
     children: PropTypes.node,
     className: PropTypes.string,
@@ -22,4 +22,4 @@ const Wrapper = styled('h1')`
   margin: 0;
 `;
 
-export default PageHeader;
+export default PageHeading;
