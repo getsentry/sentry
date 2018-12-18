@@ -430,8 +430,6 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # in its queries...
         paginator_results.max_hits = max_results.max_hits
 
-        # TODO: Inject result count from max_results, issues with cursors though.
-
         # HACK: We're using the SequencePaginator to mask the complexities of going
         # back and forth between two databases. This causes a problem with pagination
         # because we're 'lying' to the SequencePaginator (it thinks it has the entire
