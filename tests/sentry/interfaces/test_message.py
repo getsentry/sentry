@@ -37,6 +37,18 @@ class MessageTest(TestCase):
         ))
         assert interface.get_hash() == [interface.formatted]
 
+    def test_format_kwargs(self):
+        interface = Message.to_python(dict(
+            message='Hello there %(name)!',
+            params={'name': 'world'},
+            formatted='Hello there world!',
+        ))
+        assert interface.to_json() == {
+            'message': interface.message,
+            'params': interface.params,
+            'formatted': 'Hello there world!'
+        }
+
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())
         assert result.to_json() == self.interface.to_json()
