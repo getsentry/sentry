@@ -2,7 +2,7 @@ import {mount} from 'enzyme';
 import React from 'react';
 
 import {chart, doZoom, mockZoomRange} from 'app-test-helpers/charts';
-import {createStubs} from 'app-test-helpers/createStubs';
+import {initializeOrg} from 'app-test-helpers/initializeOrg';
 
 import {EventsChart} from 'app/views/organizationEvents/eventsChart';
 import {getLocalDateObject} from 'app/utils/dates';
@@ -15,7 +15,7 @@ jest.mock('app/actionCreators/globalSelection', () => ({
 }));
 
 describe('EventsChart', function() {
-  const {router, routerContext, org} = createStubs();
+  const {router, routerContext, org} = initializeOrg();
   let render = jest.spyOn(EventsChart.prototype, 'render');
   let wrapper;
 

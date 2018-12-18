@@ -5,7 +5,7 @@
  *   - router
  *   - context that contains org + projects + router
  */
-export function createStubs(
+export function initializeOrg(
   {
     organization: additionalOrg,
     project: additionalProject,

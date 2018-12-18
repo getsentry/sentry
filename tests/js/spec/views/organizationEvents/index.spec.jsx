@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {createStubs} from 'app-test-helpers/createStubs';
+import {initializeOrg} from 'app-test-helpers/initializeOrg';
 import {mockRouterPush} from 'app-test-helpers/mockRouterPush';
 import {mount} from 'enzyme';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
@@ -9,7 +9,7 @@ import OrganizationEventsContainer from 'app/views/organizationEvents';
 
 describe('OrganizationEvents', function() {
   let wrapper;
-  const {organization, router, routerContext} = createStubs({
+  const {organization, router, routerContext} = initializeOrg({
     projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
     organization: {
       features: ['global-views'],

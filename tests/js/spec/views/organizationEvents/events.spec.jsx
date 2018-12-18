@@ -4,7 +4,7 @@ import {EventsChart} from 'app/views/organizationEvents/eventsChart';
 import {EventsTable} from 'app/views/organizationEvents/eventsTable';
 import {OrganizationEvents, parseRowFromLinks} from 'app/views/organizationEvents/events';
 import {chart, doZoom} from 'app-test-helpers/charts';
-import {createStubs} from 'app-test-helpers/createStubs';
+import {initializeOrg} from 'app-test-helpers/initializeOrg';
 import {getLocalDateObject} from 'app/utils/dates';
 import {mockRouterPush} from 'app-test-helpers/mockRouterPush';
 import {mount} from 'enzyme';
@@ -21,7 +21,7 @@ const pageTwoLinks =
   '<https://sentry.io/api/0/organizations/sentry/events/?statsPeriod=14d&cursor=0:200:0>; rel="next"; results="false"; cursor="0:200:0"';
 
 describe('OrganizationEventsErrors', function() {
-  const {organization, router, routerContext} = createStubs({
+  const {organization, router, routerContext} = initializeOrg({
     projects: [{isMember: true}, {isMember: true, slug: 'new-project', id: 3}],
     organization: {
       features: ['global-views'],
