@@ -1,4 +1,5 @@
 /*global global*/
+import {observable} from 'mobx';
 import React from 'react';
 
 import {Client} from 'app/api';
@@ -16,16 +17,13 @@ describe('Sentry Application Details', function() {
     describe('renders()', () => {
       it('it shows empty scopes and no credentials', function() {
         expect(wrapper).toMatchSnapshot();
+
         // new app starts off with no scopes selected
         expect(wrapper.find('ApplicationScopes').prop('scopes')).toEqual([]);
+
         // 'API Scopes' should be last PanelHeader since 'Credentials'
         // shouldn't be rendered when creating a new application.
-        expect(
-          wrapper
-            .find('PanelHeader')
-            .last()
-            .text()
-        ).toBe('API Scopes');
+        expect(wrapper.find('PanelHeader[children="API Scopes"]')).toBeDefined();
       });
     });
 
@@ -36,6 +34,7 @@ describe('Sentry Application Details', function() {
         method: 'POST',
         body: [],
       });
+
       it('it changes the data', function() {
         wrapper
           .find('Input')
@@ -50,21 +49,29 @@ describe('Sentry Application Details', function() {
           .at(2)
           .simulate('change', {target: {value: 'https://webhook.com/setup'}});
         wrapper
+          .find('input[type="checkbox"]')
+          .last()
+          .simulate('change', {target: {checked: true}});
+        wrapper
           .find('[data-test-id="switch"]')
           .last()
           .simulate('click');
         wrapper.find('form').simulate('submit');
+
         let data = {
           name: 'Test App',
           organization: org.slug,
           redirectUrl: 'https://webhook.com/setup',
           webhookUrl: 'https://webhook.com',
           scopes: new Set(['member:admin']),
+          events: observable.array(['issue']),
+          isAlertable: false,
         };
-        expect(response).toHaveBeenCalledWith(
+
+        expect(response).toBeCalledWith(
           '/sentry-apps/',
           expect.objectContaining({
-            data: expect.objectContaining(data),
+            data,
             method: 'POST',
           })
         );
@@ -80,21 +87,26 @@ describe('Sentry Application Details', function() {
     describe('renders()', () => {
       it('it shows application data and credentials', function() {
         Client.clearMockResponses();
+
         Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           body: sentryApp,
         });
+
         const wrapper = mount(
           <SentryApplicationDetails
             params={{appSlug: sentryApp.slug, orgId: org.slug}}
           />,
           routerContext
         );
+
         expect(wrapper).toMatchSnapshot();
+
         // data should be filled out
         expect(wrapper.find('ApplicationScopes').prop('scopes')).toEqual([
           'project:read',
         ]);
+
         // 'Credentials' should be last PanelHeader when editing an application.
         expect(
           wrapper
@@ -108,30 +120,46 @@ describe('Sentry Application Details', function() {
     describe('saving edited app', () => {
       it('it updates app with correct data', function() {
         Client.clearMockResponses();
+
+        sentryApp.events = ['issue'];
+
         Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           body: sentryApp,
         });
+
         const wrapper = mount(
           <SentryApplicationDetails
             params={{appSlug: sentryApp.slug, orgId: org.slug}}
           />,
           routerContext
         );
+
         let response = Client.addMockResponse({
           url: `/sentry-apps/${sentryApp.slug}/`,
           method: 'PUT',
           body: [],
         });
+
         wrapper
           .find('Input')
           .last()
           .simulate('change', {target: {value: 'https://hello.com/'}});
+
+        wrapper
+          .find('input[type="checkbox"]')
+          .last()
+          .simulate('change', {target: {checked: false}});
+
         wrapper.find('form').simulate('submit');
+
         expect(response).toHaveBeenCalledWith(
           `/sentry-apps/${sentryApp.slug}/`,
           expect.objectContaining({
-            data: expect.objectContaining({redirectUrl: 'https://hello.com/'}),
+            data: expect.objectContaining({
+              redirectUrl: 'https://hello.com/',
+              events: observable.array([]),
+            }),
             method: 'PUT',
           })
         );

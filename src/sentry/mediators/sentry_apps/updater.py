@@ -14,6 +14,7 @@ class Updater(Mediator):
     sentry_app = Param('sentry.models.SentryApp')
     name = Param(six.string_types, required=False)
     scopes = Param(Iterable, required=False)
+    events = Param(Iterable, required=False)
     webhook_url = Param(six.string_types, required=False)
     redirect_url = Param(six.string_types, required=False)
     is_alertable = Param(bool, required=False)
@@ -22,6 +23,7 @@ class Updater(Mediator):
     def call(self):
         self._update_name()
         self._update_scopes()
+        self._update_events()
         self._update_webhook_url()
         self._update_redirect_url()
         self._update_is_alertable()
@@ -38,6 +40,11 @@ class Updater(Mediator):
         if self.sentry_app.status == SentryAppStatus.PUBLISHED:
             raise APIError('Cannot update scopes on published App.')
         self.sentry_app.scope_list = self.scopes
+
+    @if_param('events')
+    def _update_events(self):
+        from sentry.mediators.service_hooks.creator import expand_events
+        self.sentry_app.events = expand_events(self.events)
 
     @if_param('webhook_url')
     def _update_webhook_url(self):
