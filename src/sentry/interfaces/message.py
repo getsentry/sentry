@@ -38,7 +38,6 @@ class Message(Interface):
 
     @classmethod
     def to_python(cls, data):
-        # TODO(ja): Verify the following validation against incoming events
         formatted = data.get('formatted')
         if not isinstance(formatted, six.string_types):
             formatted = None
@@ -46,12 +45,6 @@ class Message(Interface):
         message = data.get('message')
         if not isinstance(message, six.string_types):
             message = None
-
-        # TODO(ja): Old coercion
-        # if formatted and not isinstance(formatted, six.string_types):
-        #     formatted = json.dumps(formatted)
-        # if message and not isinstance(message, six.string_types):
-        #     message = json.dumps(message)
 
         if not formatted and not message:
             raise InterfaceValidationError("No message present")
