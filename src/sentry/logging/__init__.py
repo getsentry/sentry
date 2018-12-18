@@ -21,3 +21,10 @@ def bind(name, **kwargs):
     logging.getLogger instead of structlog.get_logger.
     """
     return get_logger(name=name).bind(**kwargs)
+
+
+def unbind(name, *keys):
+    try:
+        get_logger(name=name).unbind(*keys)
+    except KeyError:
+        pass
