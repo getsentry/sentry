@@ -19,6 +19,12 @@ from sentry.models import ApiKey
 from sentry.testutils import TestCase
 
 
+class MockSuperUser(object):
+    @property
+    def is_active(self):
+        return True
+
+
 class OrganizationPermissionBase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
@@ -113,8 +119,11 @@ class BaseOrganizationEndpointTest(TestCase):
         org.save()
         return org
 
-    def build_request(self, user=None, **params):
+    def build_request(self, user=None, active_superuser=False, **params):
         request = RequestFactory().get('/', params)
+        request.session = {}
+        if active_superuser:
+            request.superuser = MockSuperUser()
         if user is None:
             user = self.user
         request.user = user
@@ -142,12 +151,13 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         user=None,
         project_ids=None,
         include_allow_joinleave=False,
+        active_superuser=False,
     ):
         request_args = {}
         if project_ids:
             request_args['project'] = project_ids
         result = self.endpoint.get_project_ids(
-            self.build_request(user=user, **request_args),
+            self.build_request(user=user, active_superuser=active_superuser, **request_args),
             self.org,
             include_allow_joinleave=include_allow_joinleave,
         )
@@ -156,9 +166,10 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
     def test_no_ids_no_teams(self):
         # Should get nothing if not part of the org
         self.run_test([])
-        # Should get everything if super user or owner
-        self.run_test([self.project_1, self.project_2], user=self.super_user)
-        self.run_test([self.project_1, self.project_2], user=self.owner)
+        # Should get everything if super user
+        self.run_test([self.project_1, self.project_2], user=self.super_user, active_superuser=True)
+        # owner only sees projects they have direct access to
+        self.run_test([], user=self.owner)
         # Should get everything if org is public
         self.org.flags.allow_joinleave = True
         self.org.save()
@@ -176,8 +187,12 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         with self.assertRaises(PermissionDenied):
             self.run_test([], project_ids=[self.project_1.id])
 
-        self.run_test([self.project_1], user=self.super_user, project_ids=[self.project_1.id])
-        self.run_test([self.project_1], user=self.owner, project_ids=[self.project_1.id])
+        self.run_test([self.project_1], user=self.super_user, project_ids=[
+                      self.project_1.id], active_superuser=True)
+        # owner only sees projects they have direct access to
+        with self.assertRaises(PermissionDenied):
+            self.run_test([self.project_1], user=self.owner, project_ids=[self.project_1.id])
+
         self.org.flags.allow_joinleave = True
         self.org.save()
         self.run_test(
@@ -206,6 +221,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
     def test_none_user(self):
         request = RequestFactory().get('/')
+        request.session = {}
         result = self.endpoint.get_project_ids(request, self.org)
         assert [] == result
 
@@ -271,6 +287,7 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
         start=None,
         end=None,
         stats_period=None,
+        active_superuser=False,
     ):
         request_args = {}
         if env_names:
@@ -283,7 +300,7 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
         if stats_period:
             request_args['statsPeriod'] = stats_period
         result = self.endpoint.get_filter_params(
-            self.build_request(user=user, **request_args),
+            self.build_request(user=user, active_superuser=active_superuser, **request_args),
             self.org,
             date_filter_optional=date_filter_optional,
         )
@@ -305,13 +322,15 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
             expected_start=timezone.now() - MAX_STATS_PERIOD,
             expected_end=timezone.now(),
             user=self.super_user,
+            active_superuser=True,
         )
         self.run_test(
             [self.project_1, self.project_2],
             expected_start=None,
             expected_end=None,
             user=self.super_user,
-            date_filter_optional=True
+            date_filter_optional=True,
+            active_superuser=True,
         )
 
     def test_params(self):
