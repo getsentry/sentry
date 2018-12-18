@@ -363,8 +363,7 @@ def test_fingerprints():
 def test_messages():
     # Just 'message': wrap it in interface
     data = validate_and_normalize({"message": "foo is bar"})
-    assert "message" not in data
-    assert data["logentry"] == {"message": "foo is bar"}
+    assert data["logentry"] == {"formatted": "foo is bar"}
 
     # both 'message' and interface with no 'formatted' value, put 'message'
     # into 'formatted'.
@@ -374,10 +373,8 @@ def test_messages():
             "logentry": {"message": "something else"},
         }
     )
-    assert "message" not in data
     assert data["logentry"] == {
-        "message": "something else",
-        "formatted": "foo is bar",
+        "formatted": "something else",
     }
 
     # both 'message' and complete interface, 'message' is discarded
@@ -390,7 +387,6 @@ def test_messages():
             },
         }
     )
-    assert "message" not in data
     assert "errors" not in data
     assert data["logentry"] == {
         "message": "something else",

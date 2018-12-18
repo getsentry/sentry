@@ -15,20 +15,15 @@ import six
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
-from sentry.utils import json
 from sentry.utils.safe import trim
 
 
 class Message(Interface):
     """
-    A standard message consisting of a ``message`` arg, an an optional
-    ``params`` arg for formatting, and an optional ``formatted`` message which
-    is the result of ``message`` combined with ``params``.
+    A message consisting of either a ``formatted`` arg, or an optional
+    ``message`` with a list of ``params``.
 
-    If your message cannot be parameterized, then the message interface
-    will serve no benefit.
-
-    - ``message`` must be no more than 1000 characters in length.
+    - ``message`` and ``formatted`` are limited to 1000 characters.
 
     >>> {
     >>>     "message": "My raw message with interpreted strings like %s",
@@ -43,54 +38,45 @@ class Message(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if not data.get('message'):
-            raise InterfaceValidationError("No 'message' present")
+        # TODO(ja): Verify the following validation against incoming events
+        formatted = data.get('formatted')
+        if not isinstance(formatted, six.string_types):
+            formatted = None
 
-        # TODO(dcramer): some day we should stop people from sending arbitrary
-        # crap to the server
-        if not isinstance(data['message'], six.string_types):
-            data['message'] = json.dumps(data['message'])
+        message = data.get('message')
+        if not isinstance(message, six.string_types):
+            message = None
 
-        kwargs = {
-            'message': trim(data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH),
-            'formatted': data.get('formatted'),
-        }
+        # TODO(ja): Old coercion
+        # if formatted and not isinstance(formatted, six.string_types):
+        #     formatted = json.dumps(formatted)
+        # if message and not isinstance(message, six.string_types):
+        #     message = json.dumps(message)
 
-        if data.get('params'):
-            kwargs['params'] = trim(data['params'], 1024)
-        else:
-            kwargs['params'] = ()
+        if not formatted and not message:
+            raise InterfaceValidationError("No message present")
 
-        if kwargs['formatted']:
-            if not isinstance(kwargs['formatted'], six.string_types):
-                kwargs['formatted'] = json.dumps(data['formatted'])
-        # support python-esque formatting (e.g. %s)
-        elif '%' in kwargs['message'] and kwargs['params']:
-            if isinstance(kwargs['params'], list):
-                kwargs['params'] = tuple(kwargs['params'])
+        params = data.get('params')
+        if isinstance(params, list):
+            params = tuple(params)
+        elif not isinstance(params, tuple):
+            params = ()
 
+        if not formatted and params and '%' in message:
             try:
-                kwargs['formatted'] = trim(
-                    kwargs['message'] % kwargs['params'],
-                    settings.SENTRY_MAX_MESSAGE_LENGTH,
-                )
-            except Exception:
-                pass
-        # support very basic placeholder formatters (non-typed)
-        elif '{}' in kwargs['message'] and kwargs['params']:
-            try:
-                kwargs['formatted'] = trim(
-                    kwargs['message'].format(kwargs['params']),
-                    settings.SENTRY_MAX_MESSAGE_LENGTH,
-                )
+                formatted = message % params
             except Exception:
                 pass
 
-        # don't wastefully store formatted message twice
-        if kwargs['formatted'] == kwargs['message']:
-            kwargs['formatted'] = None
+        if not formatted or message == formatted:
+            formatted = message
+            message = None
 
-        return cls(**kwargs)
+        return cls(
+            formatted=trim(formatted, settings.SENTRY_MAX_MESSAGE_LENGTH),
+            message=trim(message, settings.SENTRY_MAX_MESSAGE_LENGTH),
+            params=trim(params, 1024),
+        )
 
     def to_json(self):
         return prune_empty_keys({
@@ -100,7 +86,7 @@ class Message(Interface):
         })
 
     def get_hash(self):
-        return [self.message]
+        return [self.message or self.formatted]
 
     def to_string(self, event, is_public=False, **kwargs):
         return self.formatted or self.message

@@ -17,6 +17,7 @@ import six
 __all__ = ('CanonicalKeyDict', 'CanonicalKeyView', 'get_canonical_name')
 
 CANONICAL_KEY_MAPPING = {
+    'message': 'logentry',
     'sentry.interfaces.Exception': 'exception',
     'sentry.interfaces.Message': 'logentry',
     'sentry.interfaces.Stacktrace': 'stacktrace',
