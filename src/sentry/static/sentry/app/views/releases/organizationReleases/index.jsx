@@ -1,15 +1,17 @@
 import React from 'react';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
+import {browserHistory} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 
-// import SearchBar from 'app/components/searchBar';
+import SearchBar from 'app/components/searchBar';
 import {Panel, PanelBody} from 'app/components/panels';
 import Pagination from 'app/components/pagination';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Alert from 'app/components/alert';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -30,12 +32,22 @@ class OrganizationReleases extends React.Component {
     this.state = {releaseList: [], loading: true, error: null};
   }
 
-  componentWillMount() {
-    this.fetchData(this.props.organization, this.props.selection);
+  componentDidMount() {
+    this.fetchData({query: this.props.location.query.query, ...this.props.selection});
   }
 
-  fetchData(organization, query) {
-    fetchOrganizationReleases(organization, query)
+  componentDidUpdate(prevProps) {
+    const queryHasChanged =
+      prevProps.location.query.query !== this.props.location.query.query;
+
+    if (queryHasChanged) {
+      this.fetchData({query: this.props.location.query.query, ...this.props.selection});
+    }
+  }
+
+  fetchData(query) {
+    this.setState({loading: true});
+    fetchOrganizationReleases(this.props.organization, query)
       .then(releaseList => {
         this.setState({releaseList, loading: false, error: null});
       })
@@ -44,9 +56,24 @@ class OrganizationReleases extends React.Component {
       });
   }
 
+  onSearch = query => {
+    let targetQueryParams = {};
+    if (query !== '') targetQueryParams.query = query;
+
+    let {orgId} = this.props.params;
+    browserHistory.push({
+      pathname: `/organizations/${orgId}/releases/`,
+      query: targetQueryParams,
+    });
+  };
+
   renderStreamBody() {
     if (this.state.loading) {
       return <LoadingIndicator />;
+    }
+
+    if (this.state.releaseList.length === 0) {
+      return this.renderNoQueryResults();
     }
 
     return (
@@ -54,6 +81,14 @@ class OrganizationReleases extends React.Component {
         releaseList={this.state.releaseList}
         orgId={this.props.organization.slug}
       />
+    );
+  }
+
+  renderNoQueryResults() {
+    return (
+      <EmptyStateWarning>
+        <p>{t('Sorry, no releases match your filters.')}</p>
+      </EmptyStateWarning>
     );
   }
 
@@ -68,14 +103,14 @@ class OrganizationReleases extends React.Component {
           <div>
             <HeaderTitle>{t('Releases')}</HeaderTitle>
           </div>
-          {/*<div>
+          <div>
             <SearchBar
               defaultQuery=""
               placeholder={t('Search for a release')}
-              query={this.state.query}
+              query={this.props.location.query.query}
               onSearch={this.onSearch}
             />
-          </div>*/}
+          </div>
         </Header>
         <Body>
           <Panel>
