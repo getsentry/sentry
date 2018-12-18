@@ -14,9 +14,4 @@ export const DATE_TIME = {
   UTC: 'utc',
 };
 
-export const DATE_TIME_KEYS = [
-  DATE_TIME.START,
-  DATE_TIME.END,
-  DATE_TIME.PERIOD,
-  DATE_TIME.UTC,
-];
+export const DATE_TIME_KEYS = Object.values(DATE_TIME);
