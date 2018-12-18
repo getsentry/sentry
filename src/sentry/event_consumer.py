@@ -4,7 +4,6 @@ import logging
 
 from batching_kafka_consumer import AbstractBatchWorker
 
-from batching_kafka_consumer import AbstractBatchWorker
 from sentry.coreapi import Auth, ClientApiHelper
 from sentry.event_manager import EventManager
 from sentry.models import Project
