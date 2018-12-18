@@ -320,6 +320,12 @@ class BaseManager(Manager):
 class EventManager(BaseManager):
 
     def bind_nodes(self, object_list, *node_names):
+        """
+        For a list of Event objects, and a property name where we might find an
+        (unfetched) NodeData on those objects, fetch all the data blobs for
+        those NodeDatas with a single multi-get command to nodestore, and bind
+        the returned blobs to the NodeDatas
+        """
         object_node_list = []
         for name in node_names:
             object_node_list.extend(
