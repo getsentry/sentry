@@ -770,6 +770,13 @@ function routes() {
           />
 
           <Route
+            path="/organizations/:orgId/issues/"
+            componentPromise={() =>
+              import(/*webpackChunkName: "OrganizationIssueStream"*/ './views/stream/organizationIssueStream')}
+            component={errorHandler(LazyLoad)}
+          />
+
+          <Route
             path="/organizations/:orgId/events/"
             componentPromise={() =>
               import(/*webpackChunkName: "OrganizationEventsContainer"*/ './views/organizationEvents')}
