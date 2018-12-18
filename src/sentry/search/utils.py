@@ -410,6 +410,9 @@ def parse_query(project, query, user):
                 results.update(get_date_params(value, 'date_from', 'date_to'))
             elif key == 'timesSeen':
                 results.update(get_numeric_field_value('times_seen', value))
+            elif key == 'external_issue_id':
+                # TODO(lb): not sure I should be doing anything special here
+                results['external_issue_id'] = value
             else:
                 results['tags'][key] = value
 

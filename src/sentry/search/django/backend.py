@@ -211,7 +211,7 @@ class DjangoSearchBackend(SearchBackend):
     def query(self, projects, tags=None, environments=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
 
-        from sentry.models import Group, GroupAssignee, GroupStatus, GroupSubscription, Release
+        from sentry.models import ExternalIssue, Group, GroupAssignee, GroupLink, GroupStatus, GroupSubscription, Release
 
         # ensure projects are from same org
         if len({p.organization_id for p in projects}) != 1:
@@ -269,6 +269,19 @@ class DjangoSearchBackend(SearchBackend):
             ),
             'active_at_from': ScalarCondition('active_at', 'gt'),
             'active_at_to': ScalarCondition('active_at', 'lt'),
+            'external_issue_id': CallbackCondition(
+                lambda queryset, external_issue_id: (queryset.filter if external_issue_id else queryset.exclude)(
+                    id__in=GroupLink.objects.filter(
+                        linked_type=GroupLink.LinkedType.issue,
+                        linked_id=ExternalIssue.objects.filter(
+                            # as per the initial check there must be 1 organization_id and at least
+                            # 1 project
+                            organization_id__in=projects[0].organization_id,
+                            key=external_issue_id,
+                        ).values_list('id'),
+                    ).values_list('group_id'),
+                ),
+            ),
         }).build(
             Group.objects.filter(project__in=projects).exclude(status__in=[
                 GroupStatus.PENDING_DELETION,
