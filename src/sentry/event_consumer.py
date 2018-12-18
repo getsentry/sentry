@@ -1,5 +1,8 @@
 from __future__ import absolute_import, print_function
 
+import logging
+
+from batching_kafka_consumer import AbstractBatchWorker
 
 from batching_kafka_consumer import AbstractBatchWorker
 from sentry.coreapi import Auth, ClientApiHelper
@@ -7,6 +10,9 @@ from sentry.event_manager import EventManager
 from sentry.models import Project
 from sentry.utils import json
 from sentry.web.api import process_event
+
+
+logger = logging.getLogger('sentry.event_consumer')
 
 
 def process_event_from_kafka(message):
@@ -51,7 +57,10 @@ class EventConsumerWorker(AbstractBatchWorker):
 
     def flush_batch(self, batch):
         for event in batch:
-            process_event_from_kafka(event)
+            try:
+                process_event_from_kafka(event)
+            except Exception:
+                logger.exception('Error processing event.')
 
     def shutdown(self):
         pass
