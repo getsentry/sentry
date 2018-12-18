@@ -217,7 +217,15 @@ class Sidebar extends React.Component {
                   label={t('Projects')}
                   to={`/${organization.slug}/`}
                 />
-
+                <Feature features={['sentry10']}>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-releases" />}
+                    label={t('Releases')}
+                    to={`/organizations/${organization.slug}/releases/`}
+                  />
+                </Feature>
                 <Feature features={['global-views']}>
                   <SidebarItem
                     {...sidebarItemProps}
