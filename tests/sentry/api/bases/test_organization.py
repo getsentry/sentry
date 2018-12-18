@@ -109,10 +109,6 @@ class BaseOrganizationEndpointTest(TestCase):
         return self.create_user('owner@test.com')
 
     @fixture
-    def super_user(self):
-        return self.create_user('super@user.com', is_superuser=True)
-
-    @fixture
     def org(self):
         org = self.create_organization('test', self.owner)
         org.flags.allow_joinleave = False
@@ -167,7 +163,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         # Should get nothing if not part of the org
         self.run_test([])
         # Should get everything if super user
-        self.run_test([self.project_1, self.project_2], user=self.super_user, active_superuser=True)
+        self.run_test([self.project_1, self.project_2], user=self.user, active_superuser=True)
         # owner only sees projects they have direct access to
         self.run_test([], user=self.owner)
         # Should get everything if org is public
@@ -187,7 +183,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         with self.assertRaises(PermissionDenied):
             self.run_test([], project_ids=[self.project_1.id])
 
-        self.run_test([self.project_1], user=self.super_user, project_ids=[
+        self.run_test([self.project_1], user=self.user, project_ids=[
                       self.project_1.id], active_superuser=True)
         # owner only sees projects they have direct access to
         with self.assertRaises(PermissionDenied):
@@ -321,14 +317,14 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
             [self.project_1, self.project_2],
             expected_start=timezone.now() - MAX_STATS_PERIOD,
             expected_end=timezone.now(),
-            user=self.super_user,
+            user=self.user,
             active_superuser=True,
         )
         self.run_test(
             [self.project_1, self.project_2],
             expected_start=None,
             expected_end=None,
-            user=self.super_user,
+            user=self.user,
             date_filter_optional=True,
             active_superuser=True,
         )
