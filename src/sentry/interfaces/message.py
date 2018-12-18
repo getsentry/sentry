@@ -18,6 +18,14 @@ from sentry.interfaces.base import Interface, InterfaceValidationError, prune_em
 from sentry.utils.safe import trim
 
 
+def is_primitive(value):
+    return isinstance(value, bool) or \
+        isinstance(value, int) or \
+        isinstance(value, float) or \
+        isinstance(value, six.string_types) or \
+        value is None
+
+
 class Message(Interface):
     """
     A message consisting of either a ``formatted`` arg, or an optional
@@ -46,22 +54,24 @@ class Message(Interface):
         if not isinstance(message, six.string_types):
             message = None
 
-        if not formatted and not message:
+        if formatted is None and message is None:
             raise InterfaceValidationError("No message present")
 
         params = data.get('params')
-        if isinstance(params, list):
-            params = tuple(params)
-        elif not isinstance(params, tuple):
+        if isinstance(params, (list, tuple)):
+            params = tuple(p for p in params if is_primitive(p))
+        elif isinstance(params, dict):
+            params = {k: v for k, v in six.iteritems(params) if is_primitive(v)}
+        else:
             params = ()
 
-        if not formatted and params and '%' in message:
+        if formatted is None and params and '%' in message:
             try:
                 formatted = message % params
             except Exception:
                 pass
 
-        if not formatted or message == formatted:
+        if formatted is None or message == formatted:
             formatted = message
             message = None
 

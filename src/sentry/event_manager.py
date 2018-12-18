@@ -471,7 +471,7 @@ class EventManager(object):
             'time_spent': lambda v: int(v) if v is not None else v,
             'tags': lambda v: [(text(v_k).replace(' ', '-').strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
             'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
-            'logentry': lambda v: v if isinstance(v, dict) else {'message': v},
+            'logentry': lambda v: {'message': v} if (v and not isinstance(v, dict)) else (v or None),
 
             # These can be sent as lists and need to be converted to {'values': [...]}
             'exception': to_values,
