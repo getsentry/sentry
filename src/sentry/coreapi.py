@@ -10,6 +10,7 @@ sentry.coreapi
 #       metadata (rather than generic log messages which aren't useful).
 from __future__ import absolute_import, print_function
 
+import abc
 import base64
 import logging
 import re
@@ -116,39 +117,6 @@ class ClientApiHelper(object):
             ip_address=ip_address,
         )
 
-    def auth_from_request(self, request):
-        result = {k: request.GET[k] for k in six.iterkeys(
-            request.GET) if k[:7] == 'sentry_'}
-
-        if request.META.get('HTTP_X_SENTRY_AUTH', '')[:7].lower() == 'sentry ':
-            if result:
-                raise SuspiciousOperation(
-                    'Multiple authentication payloads were detected.')
-            result = parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
-        elif request.META.get('HTTP_AUTHORIZATION', '')[:7].lower() == 'sentry ':
-            if result:
-                raise SuspiciousOperation(
-                    'Multiple authentication payloads were detected.')
-            result = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
-
-        if not result:
-            raise APIUnauthorized('Unable to find authentication information')
-
-        origin = self.origin_from_request(request)
-        auth = Auth(result, is_public=bool(origin))
-        # default client to user agent
-        if not auth.client:
-            auth.client = request.META.get('HTTP_USER_AGENT')
-        return auth
-
-    def origin_from_request(self, request):
-        """
-        Returns either the Origin or Referer value from the request headers.
-        """
-        if request.META.get('HTTP_ORIGIN') == 'null':
-            return 'null'
-        return origin_from_request(request)
-
     def project_key_from_auth(self, auth):
         if not auth.public_key:
             raise APIUnauthorized('Invalid api key')
@@ -215,12 +183,62 @@ class ClientApiHelper(object):
                    event_id=data['event_id'])
 
 
-class MinidumpApiHelper(ClientApiHelper):
-    def origin_from_request(self, request):
+@six.add_metaclass(abc.ABCMeta)
+class AbstractAuthHelper(object):
+    @abc.abstractmethod
+    def auth_from_request(cls, request):
+        pass
+
+    @abc.abstractmethod
+    def origin_from_request(cls, request):
+        pass
+
+
+class ClientAuthHelper(AbstractAuthHelper):
+    @classmethod
+    def auth_from_request(cls, request):
+        result = {k: request.GET[k] for k in six.iterkeys(
+            request.GET) if k[:7] == 'sentry_'}
+
+        if request.META.get('HTTP_X_SENTRY_AUTH', '')[:7].lower() == 'sentry ':
+            if result:
+                raise SuspiciousOperation(
+                    'Multiple authentication payloads were detected.')
+            result = parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
+        elif request.META.get('HTTP_AUTHORIZATION', '')[:7].lower() == 'sentry ':
+            if result:
+                raise SuspiciousOperation(
+                    'Multiple authentication payloads were detected.')
+            result = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
+
+        if not result:
+            raise APIUnauthorized('Unable to find authentication information')
+
+        origin = cls.origin_from_request(request)
+        auth = Auth(result, is_public=bool(origin))
+        # default client to user agent
+        if not auth.client:
+            auth.client = request.META.get('HTTP_USER_AGENT')
+        return auth
+
+    @classmethod
+    def origin_from_request(cls, request):
+        """
+        Returns either the Origin or Referer value from the request headers.
+        """
+        if request.META.get('HTTP_ORIGIN') == 'null':
+            return 'null'
+        return origin_from_request(request)
+
+
+class MinidumpAuthHelper(AbstractAuthHelper):
+    @classmethod
+    def origin_from_request(cls, request):
         # We don't use an origin here
         return None
 
-    def auth_from_request(self, request):
+    @classmethod
+    def auth_from_request(cls, request):
         key = request.GET.get('sentry_key')
         if not key:
             raise APIUnauthorized('Unable to find authentication information')
@@ -233,17 +251,16 @@ class MinidumpApiHelper(ClientApiHelper):
         return auth
 
 
-class SecurityApiHelper(ClientApiHelper):
-
-    report_interfaces = ('csp', 'hpkp', 'expectct', 'expectstaple')
-
-    def origin_from_request(self, request):
+class SecurityAuthHelper(AbstractAuthHelper):
+    @classmethod
+    def origin_from_request(cls, request):
         # In the case of security reports, the origin is not available at the
         # dispatch() stage, as we need to parse it out of the request body, so
         # we do our own CORS check once we have parsed it.
         return None
 
-    def auth_from_request(self, request):
+    @classmethod
+    def auth_from_request(cls, request):
         key = request.GET.get('sentry_key')
         if not key:
             raise APIUnauthorized('Unable to find authentication information')
