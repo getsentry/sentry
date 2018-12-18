@@ -17,19 +17,6 @@ from sentry.utils.safe import get_path, trim
 from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
 
 
-def _get_implied_category(category, type):
-    if category is not None:
-        return category
-    if type in ('critical', 'error', 'warning', 'info', 'debug'):
-        return type
-    # Common aliases
-    if type == 'warn':
-        return 'warning'
-    elif type == 'fatal':
-        return 'critical'
-    return 'info'
-
-
 class Breadcrumbs(Interface):
     """
     This interface stores information that leads up to an error.
