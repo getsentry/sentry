@@ -2,10 +2,9 @@ from __future__ import absolute_import, print_function
 
 import mock
 
-from sentry.event_consumer import process_event_from_kafka
+from sentry.event_consumer import EventConsumerWorker
 from sentry.signals import event_accepted
 from sentry.testutils import (assert_mock_called_once_with_partial, TestCase)
-from sentry.utils import json
 
 
 class EventConsumerTest(TestCase):
@@ -24,7 +23,20 @@ class EventConsumerTest(TestCase):
 
             publish_args, publish_kwargs = list(mock_kafka_publisher.publish.call_args)
             kafka_message_value = publish_kwargs['value']
-            process_event_from_kafka(json.loads(kafka_message_value))
+
+            class Message(object):
+                def __init__(self, value):
+                    self._value = value
+
+                def value(self):
+                    return self._value
+
+            worker = EventConsumerWorker()
+            result = worker.process_message(Message(kafka_message_value))
+            assert result['should_process']
+            assert isinstance(result['data'], dict)
+
+            worker.flush_batch([result])
 
             assert_mock_called_once_with_partial(
                 mock_event_accepted,
