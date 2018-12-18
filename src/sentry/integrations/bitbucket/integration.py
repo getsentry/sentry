@@ -63,13 +63,9 @@ metadata = IntegrationMetadata(
 )
 # see https://developer.atlassian.com/bitbucket/api/2/reference/meta/authentication#scopes-bbc
 scopes = (
-    # 'account', #not sure this is necessary
-    # 'email',#we don't appear to be using it; included in account it looks like
-    'issue:write',  # necessary
+    'issue:write',
     'pullrequest',
-    # 'repository',  # pullrequest implies repository
-    'repository:admin',
-    # 'team',
+    # 'repository:admin',
     'webhook',
 )
 
