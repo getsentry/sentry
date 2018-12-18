@@ -35,12 +35,22 @@ from sentry.utils.retries import TimedRetryPolicy
 
 ONE_DAY = 60 * 60 * 24
 
-UPLOAD_RETRY_TIME = 60  # 1min
+UPLOAD_RETRY_TIME = getattr(settings, 'SENTRY_UPLOAD_RETRY_TIME', 60)  # 1min
 
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
 CHUNK_STATE_HEADER = '__state'
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 MAX_FILE_SIZE = 2 ** 31  # 2GB is the maximum offset supported by fileblob
+
+
+class nooplogger(object):
+    debug = staticmethod(lambda *a, **kw: None)
+    info = staticmethod(lambda *a, **kw: None)
+    warning = staticmethod(lambda *a, **kw: None)
+    error = staticmethod(lambda *a, **kw: None)
+    critical = staticmethod(lambda *a, **kw: None)
+    log = staticmethod(lambda *a, **kw: None)
+    exception = staticmethod(lambda *a, **kw: None)
 
 
 def enum(**named_values):
@@ -56,7 +66,8 @@ ChunkFileState = enum(
 )
 
 
-def _get_size_and_checksum(fileobj):
+def _get_size_and_checksum(fileobj, logger=nooplogger):
+    logger.info('_get_size_and_checksum.start')
     size = 0
     checksum = sha1()
     while True:
@@ -66,19 +77,23 @@ def _get_size_and_checksum(fileobj):
         size += len(chunk)
         checksum.update(chunk)
 
+    logger.info('_get_size_and_checksum.end')
     return size, checksum.hexdigest()
 
 
 @contextmanager
-def _locked_blob(checksum):
+def _locked_blob(checksum, logger=nooplogger):
+    logger.info('_locked_blob.start', extra={'checksum': checksum})
     lock = locks.get(u'fileblob:upload:{}'.format(checksum), duration=UPLOAD_RETRY_TIME)
-    with TimedRetryPolicy(UPLOAD_RETRY_TIME)(lock.acquire):
+    with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance='lock.fileblob.upload')(lock.acquire):
+        logger.info('_locked_blob.acquired', extra={'checksum': checksum})
         # test for presence
         try:
             existing = FileBlob.objects.get(checksum=checksum)
         except FileBlob.DoesNotExist:
             existing = None
         yield existing
+    logger.info('_locked_blob.end', extra={'checksum': checksum})
 
 
 class AssembleChecksumMismatch(Exception):
@@ -112,7 +127,7 @@ class FileBlob(Model):
         db_table = 'sentry_fileblob'
 
     @classmethod
-    def from_files(cls, files, organization=None):
+    def from_files(cls, files, organization=None, logger=nooplogger):
         """A faster version of `from_file` for multiple files at the time.
         If an organization is provided it will also create `FileBlobOwner`
         entries.  Files can be a list of files or tuples of file and checksum.
@@ -120,6 +135,8 @@ class FileBlob(Model):
 
         If the checksums mismatch an `IOError` is raised.
         """
+        logger.info('FileBlob.from_files.start')
+
         files_with_checksums = []
         for fileobj in files:
             if isinstance(fileobj, tuple):
@@ -134,12 +151,26 @@ class FileBlob(Model):
         semaphore = Semaphore(value=MULTI_BLOB_UPLOAD_CONCURRENCY)
 
         def _upload_and_pend_chunk(fileobj, size, checksum, lock):
+            logger.info(
+                'FileBlob.from_files._upload_and_pend_chunk.start',
+                extra={
+                    'checksum': checksum,
+                    'size': size,
+                }
+            )
             blob = cls(size=size, checksum=checksum)
             blob.path = cls.generate_unique_path()
             storage = get_storage()
             storage.save(blob.path, fileobj)
             blobs_to_save.append((blob, lock))
             metrics.timing('filestore.blob-size', size, tags={'function': 'from_files'})
+            logger.info(
+                'FileBlob.from_files._upload_and_pend_chunk.end',
+                extra={
+                    'checksum': checksum,
+                    'path': blob.path,
+                }
+            )
 
         def _ensure_blob_owned(blob):
             if organization is None:
@@ -154,8 +185,10 @@ class FileBlob(Model):
                 pass
 
         def _save_blob(blob):
+            logger.info('FileBlob.from_files._save_blob.start', extra={'path': blob.path})
             blob.save()
             _ensure_blob_owned(blob)
+            logger.info('FileBlob.from_files._save_blob.end', extra={'path': blob.path})
 
         def _flush_blobs():
             while True:
@@ -172,6 +205,9 @@ class FileBlob(Model):
         try:
             with ThreadPoolExecutor(max_workers=MULTI_BLOB_UPLOAD_CONCURRENCY) as exe:
                 for fileobj, reference_checksum in files_with_checksums:
+                    logger.info(
+                        'FileBlob.from_files.executor_start', extra={
+                            'checksum': reference_checksum})
                     _flush_blobs()
 
                     # Before we go and do something with the files we calculate
@@ -188,7 +224,7 @@ class FileBlob(Model):
 
                     # Check if we need to lock the blob.  If we get a result back
                     # here it means the blob already exists.
-                    lock = _locked_blob(checksum)
+                    lock = _locked_blob(checksum, logger=logger)
                     existing = lock.__enter__()
                     if existing is not None:
                         lock.__exit__(None, None, None)
@@ -208,6 +244,7 @@ class FileBlob(Model):
                     # blobs and associate them with the database.
                     semaphore.acquire()
                     exe.submit(_upload_and_pend_chunk(fileobj, size, checksum, lock))
+                    logger.info('FileBlob.from_files.end', extra={'checksum': reference_checksum})
 
             _flush_blobs()
         finally:
@@ -216,17 +253,20 @@ class FileBlob(Model):
                     lock.__exit__(None, None, None)
                 except Exception:
                     pass
+            logger.info('FileBlob.from_files.end')
 
     @classmethod
-    def from_file(cls, fileobj):
+    def from_file(cls, fileobj, logger=nooplogger):
         """
         Retrieve a single FileBlob instances for the given file.
         """
+        logger.info('FileBlob.from_file.start')
+
         size, checksum = _get_size_and_checksum(fileobj)
 
         # TODO(dcramer): the database here is safe, but if this lock expires
         # and duplicate files are uploaded then we need to prune one
-        with _locked_blob(checksum) as existing:
+        with _locked_blob(checksum, logger=logger) as existing:
             if existing is not None:
                 return existing
 
@@ -237,6 +277,7 @@ class FileBlob(Model):
             blob.save()
 
         metrics.timing('filestore.blob-size', size)
+        logger.info('FileBlob.from_file.end')
         return blob
 
     @classmethod
@@ -249,7 +290,7 @@ class FileBlob(Model):
 
     def delete(self, *args, **kwargs):
         lock = locks.get(u'fileblob:upload:{}'.format(self.checksum), duration=UPLOAD_RETRY_TIME)
-        with TimedRetryPolicy(UPLOAD_RETRY_TIME)(lock.acquire):
+        with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance='lock.fileblob.delete')(lock.acquire):
             super(FileBlob, self).delete(*args, **kwargs)
         if self.path:
             self.deletefile(commit=False)
@@ -366,7 +407,7 @@ class File(Model):
                 except Exception:
                     pass
 
-    def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True):
+    def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
         """
         Save a fileobj into a number of chunks.
 
@@ -385,7 +426,7 @@ class File(Model):
             checksum.update(contents)
 
             blob_fileobj = ContentFile(contents)
-            blob = FileBlob.from_file(blob_fileobj)
+            blob = FileBlob.from_file(blob_fileobj, logger=logger)
 
             results.append(FileBlobIndex.objects.create(
                 file=self,
