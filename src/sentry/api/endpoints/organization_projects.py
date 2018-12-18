@@ -82,6 +82,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 organization=organization,
             ).prefetch_related('teams')
 
+        order_by = ['slug']
+
         if request.user.is_authenticated():
             queryset = queryset.extra(
                 select={
@@ -93,6 +95,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 },
                 select_params=(request.user.id,),
             )
+            order_by.insert(0, '-is_bookmarked')
 
         query = request.GET.get('query')
         if query:
@@ -111,7 +114,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=('-is_bookmarked', 'slug'),
+            order_by=order_by,
             on_results=lambda x: serialize(x, request.user, ProjectSummarySerializer(
                 environment_id=self._get_environment_id_from_request(
                     request,
