@@ -425,6 +425,11 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             **paginator_options
         ).get_result(limit, cursor, count_hits=count_hits)
 
+        # HACK: This won't work for queries that have a cursor, because
+        # the `max_results` paginator will also do the score based offset
+        # in its queries...
+        paginator_results.max_hits = max_results.max_hits
+
         # TODO: Inject result count from max_results, issues with cursors though.
 
         # HACK: We're using the SequencePaginator to mask the complexities of going
