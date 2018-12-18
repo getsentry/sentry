@@ -61,14 +61,15 @@ metadata = IntegrationMetadata(
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/bitbucket',
     aspects={},
 )
+# see https://developer.atlassian.com/bitbucket/api/2/reference/meta/authentication
 scopes = (
-    'account',
-    'email',
-    'issue:write',
+    # 'account', #not sure this is necessary
+    # 'email',#we don't appear to be using it; included in account it looks like
+    'issue:write',  # looks like repo is enough
     'pullrequest',
-    'repository',
+    # 'repository',  # pullrequest implies repository
     'repository:admin',
-    'team',
+    # 'team',
     'webhook',
 )
 
