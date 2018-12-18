@@ -494,29 +494,6 @@ class EventManager(object):
         data['timestamp'] = process_timestamp(data.get('timestamp'),
                                               meta.enter('timestamp'))
 
-        # raw 'message' is coerced to the Message interface.  Longer term
-        # we want to treat 'message' as a pure alias for 'logentry' but
-        # for now that won't be the case.
-        #
-        # TODO(mitsuhiko): the logic we want to apply here long term is
-        # to
-        #
-        # 1. make logentry.message optional
-        # 2. make logentry.formatted the primary value
-        # 3. always treat a string as an alias for `logentry.formatted`
-        # 4. remove the custom coercion logic here
-        msg_str = data.pop('message', None)
-        if msg_str:
-            msg_if = data.get('logentry')
-
-            if not msg_if:
-                msg_if = data['logentry'] = {'message': msg_str}
-                meta.enter('logentry', 'message').merge(meta.enter('message'))
-
-            if msg_if.get('message') != msg_str and not msg_if.get('formatted'):
-                msg_if['formatted'] = msg_str
-                meta.enter('logentry', 'formatted').merge(meta.enter('message'))
-
         # Fill in ip addresses marked as {{auto}}
         if self._client_ip:
             if get_path(data, 'request', 'env', 'REMOTE_ADDR') == '{{auto}}':

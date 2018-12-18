@@ -60,14 +60,14 @@ class EventTest(TestCase):
         event = self.create_event(
             data={
                 'logentry': {
-                    'message': 'Hello World!',
+                    'formatted': 'Hello World!',
                 },
             }
         )
 
         d = event.as_dict()
         assert d['logentry'] == {
-            'message': 'Hello World!',
+            'formatted': 'Hello World!',
         }
 
     def test_email_subject(self):
