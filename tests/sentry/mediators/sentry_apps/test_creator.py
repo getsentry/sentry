@@ -43,3 +43,11 @@ class TestCreator(TestCase):
 
         assert sentry_app
         assert sentry_app.scope_list == ['project:read']
+
+    def test_expands_rolled_up_events(self):
+        self.creator.events = ['issue']
+        app = self.creator.call()
+
+        sentry_app = SentryApp.objects.get(id=app.id)
+
+        assert 'issue.created' in sentry_app.events
