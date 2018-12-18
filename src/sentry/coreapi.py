@@ -10,6 +10,7 @@ sentry.coreapi
 #       metadata (rather than generic log messages which aren't useful).
 from __future__ import absolute_import, print_function
 
+import abc
 import base64
 import logging
 import re
@@ -182,7 +183,18 @@ class ClientApiHelper(object):
                    event_id=data['event_id'])
 
 
-class ClientAuthHelper(object):
+@six.add_metaclass(abc.ABCMeta)
+class AbstractAuthHelper(object):
+    @abc.abstractmethod
+    def auth_from_request(cls, request):
+        pass
+
+    @abc.abstractmethod
+    def origin_from_request(cls, request):
+        pass
+
+
+class ClientAuthHelper(AbstractAuthHelper):
     @classmethod
     def auth_from_request(cls, request):
         result = {k: request.GET[k] for k in six.iterkeys(
@@ -219,7 +231,7 @@ class ClientAuthHelper(object):
         return origin_from_request(request)
 
 
-class MinidumpAuthHelper(ClientAuthHelper):
+class MinidumpAuthHelper(AbstractAuthHelper):
     @classmethod
     def origin_from_request(cls, request):
         # We don't use an origin here
@@ -239,7 +251,7 @@ class MinidumpAuthHelper(ClientAuthHelper):
         return auth
 
 
-class SecurityAuthHelper(ClientAuthHelper):
+class SecurityAuthHelper(AbstractAuthHelper):
     @classmethod
     def origin_from_request(cls, request):
         # In the case of security reports, the origin is not available at the
