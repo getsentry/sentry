@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import re
+import logging
 from django.db import IntegrityError, transaction
 from six import BytesIO
 from rest_framework.response import Response
@@ -128,6 +129,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
+        logger = logging.getLogger('sentry.files')
+        logger.info('projectreleasefile.start')
+
         if 'file' not in request.FILES:
             return Response({'detail': 'Missing uploaded file'}, status=400)
 
@@ -174,7 +178,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             type='release.file',
             headers=headers,
         )
-        file.putfile(fileobj)
+        file.putfile(fileobj, logger=logger)
 
         try:
             with transaction.atomic():

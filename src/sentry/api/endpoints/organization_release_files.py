@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import re
+import logging
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -91,6 +92,9 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
+        logger = logging.getLogger('sentry.files')
+        logger.info('organizationreleasefile.start')
+
         if not self.has_release_permission(request, organization, release):
             raise PermissionDenied
 
@@ -140,7 +144,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
             type='release.file',
             headers=headers,
         )
-        file.putfile(fileobj)
+        file.putfile(fileobj, logger=logger)
 
         try:
             with transaction.atomic():
