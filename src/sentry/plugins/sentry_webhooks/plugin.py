@@ -9,6 +9,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.exceptions import PluginError
+from sentry.models import Event
 from sentry.plugins.bases import notify
 from sentry.http import is_valid_url, safe_urlopen
 from sentry.utils.safe import safe_execute
@@ -90,7 +91,10 @@ class WebHooksPlugin(notify.NotificationPlugin):
         data['event'] = dict(event.data or {})
         data['event']['tags'] = event.get_tags()
         data['event']['event_id'] = event.event_id
-        data['event']['id'] = event.id
+        data['event']['id'] = Event.objects.filter(
+            project_id=event.project_id,
+            event_id=event.event_id,
+        ).values_list('id', flat=True).get()
         return data
 
     def get_webhook_urls(self, project):
