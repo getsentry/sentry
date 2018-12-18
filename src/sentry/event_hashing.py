@@ -31,8 +31,7 @@ def get_hashes_for_event(event):
 
 
 def get_hashes_for_event_with_reason(event):
-    interfaces = event.get_interfaces()
-    for interface in six.itervalues(interfaces):
+    for interface in six.itervalues(event.interfaces):
         result = interface.compute_hashes(event.platform)
         if not result:
             continue

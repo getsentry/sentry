@@ -7,7 +7,7 @@ from django.utils import timezone
 from semaphore import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Event, EventError, EventAttachment
+from sentry.models import Event, EventError, EventAttachment, SnubaEvent
 from sentry.utils.safe import get_path
 
 
@@ -231,31 +231,6 @@ class SharedEventSerializer(EventSerializer):
         result['entries'] = [e for e in result['entries']
                              if e['type'] != 'breadcrumbs']
         return result
-
-
-class SnubaEvent(object):
-    """
-        A simple wrapper class on a row (dict) returned from snuba representing
-        an event. Provides a class name to register a serializer against, and
-        Makes keys accessible as attributes.
-    """
-
-    # The list of columns that we should request from snuba to be able to fill
-    # out a proper event object.
-    selected_columns = [
-        'event_id',
-        'project_id',
-        'message',
-        'user_id',
-        'username',
-        'ip_address',
-        'email',
-        'timestamp',
-    ]
-
-    def __init__(self, kv):
-        assert set(kv.keys()) == set(self.selected_columns)
-        self.__dict__ = kv
 
 
 @register(SnubaEvent)
