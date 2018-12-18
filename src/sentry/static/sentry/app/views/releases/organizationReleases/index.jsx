@@ -32,16 +32,16 @@ class OrganizationReleases extends React.Component {
     this.state = {releaseList: [], loading: true, error: null};
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData({query: this.props.location.query.query, ...this.props.selection});
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentDidUpdate(prevProps) {
     const queryHasChanged =
-      nextProps.location.query.query !== this.props.location.query.query;
+      prevProps.location.query.query !== this.props.location.query.query;
 
     if (queryHasChanged) {
-      this.fetchData({query: nextProps.location.query.query, ...nextProps.selection});
+      this.fetchData({query: this.props.location.query.query, ...this.props.selection});
     }
   }
 
