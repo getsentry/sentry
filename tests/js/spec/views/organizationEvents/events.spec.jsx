@@ -163,10 +163,7 @@ describe('OrganizationEventsErrors', function() {
     beforeEach(function() {
       chartRender.mockClear();
       tableRender.mockClear();
-      router.location.query = {
-        ...router.location.query,
-        zoom: '1',
-      };
+      router.location.query.zoom = '1';
 
       wrapper = mount(
         <OrganizationEventsContainer

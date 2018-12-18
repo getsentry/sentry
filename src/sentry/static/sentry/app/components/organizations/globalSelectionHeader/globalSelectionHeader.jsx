@@ -238,29 +238,15 @@ class GlobalSelectionHeader extends React.Component {
   };
 
   handleChangeTime = ({start, end, relative, utc}) => {
-    this.setState({start, end, period: relative, utc});
     callIfFunction(this.props.onChangeTime, {start, end, relative, utc});
   };
 
-  handleUpdateTime = () => {
-    let stateObjects = pick(this.state, DATE_TIME_KEYS);
-    if (!Object.values(stateObjects).some(i => i)) {
-      stateObjects = this.props.selection.datetime;
-    }
-    const {period, start, end, utc} = stateObjects;
-
+  handleUpdateTime = ({relative: period, start, end, utc} = {}) => {
     const newValueObj = {
       ...(defined(period) ? {period} : {start, end}),
       utc,
-      zoom: null,
     };
 
-    this.setState({
-      start: null,
-      end: null,
-      period: null,
-      utc: null,
-    });
     updateDateTime(newValueObj, this.getRouter());
     callIfFunction(this.props.onUpdateTime, newValueObj);
   };
@@ -319,12 +305,13 @@ class GlobalSelectionHeader extends React.Component {
         <HeaderSeparator />
         <HeaderItemPosition>
           <TimeRangeSelector
+            key={`period:${period}-start:${start}-end:${end}-utc:${utc}`}
             showAbsolute={showAbsolute}
             showRelative={showRelative}
-            relative={this.state.period || period}
-            start={this.state.start || start}
-            end={this.state.end || end}
-            utc={this.state.utc || utc}
+            relative={period}
+            start={start}
+            end={end}
+            utc={utc}
             onChange={this.handleChangeTime}
             onUpdate={this.handleUpdateTime}
           />

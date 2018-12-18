@@ -317,5 +317,53 @@ describe('OrganizationEvents', function() {
         })
       );
     });
+
+    it('updates TimeRangeSelector when changing routes', async function() {
+      let newRouter = {
+        router: {
+          ...router,
+          location: {
+            pathname: '/organizations/org-slug/events2/',
+            query: {
+              end: '2017-10-17T02:41:20',
+              start: '2017-10-03T02:41:20',
+              utc: 'true',
+            },
+          },
+        },
+      };
+      wrapper.setProps(newRouter);
+      wrapper.setContext(newRouter);
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('TimeRangeSelector').text()).toEqual(
+        'Oct 3, 201702:41toOct 17, 201702:41'
+      );
+
+      newRouter = {
+        router: {
+          ...router,
+          location: {
+            pathname: '/organizations/org-slug/events/',
+            query: {
+              statsPeriod: '7d',
+              end: null,
+              start: null,
+              utc: 'true',
+            },
+          },
+        },
+      };
+
+      wrapper.setProps(newRouter);
+      wrapper.setContext(newRouter);
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('TimeRangeSelector').text()).toEqual('Last 7 days');
+    });
   });
 });
