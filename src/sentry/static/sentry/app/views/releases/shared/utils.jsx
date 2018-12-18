@@ -9,5 +9,8 @@ import {Client} from 'app/api';
  */
 export function fetchOrganizationReleases(organization, query) {
   const api = new Client();
-  return api.requestPromise(`/organizations/${organization.slug}/releases/`, {query: {}});
+
+  const options = {query: {query: query.query}};
+
+  return api.requestPromise(`/organizations/${organization.slug}/releases/`, options);
 }
