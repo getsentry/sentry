@@ -7,7 +7,14 @@ from django.utils import timezone
 from semaphore import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Event, EventError, EventAttachment, Release, UserReport
+from sentry.models import (
+    Event,
+    EventError,
+    EventAttachment,
+    Release,
+    UserReport,
+    SnubaEvent
+)
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.utils.safe import get_path
 
@@ -96,10 +103,17 @@ class EventSerializer(Serializer):
                     'value': kv[1],
                     '_meta': meta.get(kv[0]) or get_path(meta, six.text_type(i), '1') or None,
                 }
-                for i, kv in enumerate(event.data.get('tags') or ())
+                for i, kv in enumerate(event.data.get('tags') or ()) # TODO this should use event.tags() getter
                 if kv is not None and kv[0] is not None and kv[1] is not None],
             key=lambda x: x['key']
         )
+
+        # Add 'query' for each tag to tell the UI what to use as query
+        # params for this tag.
+        for tag in tags:
+            query = convert_user_tag_to_query(tag['key'], tag['value'])
+            if query:
+                tag['query'] = query
 
         tags_meta = {
             six.text_type(i): {'value': e.pop('_meta')}
@@ -284,81 +298,4 @@ class SharedEventSerializer(EventSerializer):
         del result['errors']
         result['entries'] = [e for e in result['entries']
                              if e['type'] != 'breadcrumbs']
-        return result
-
-
-class SnubaEvent(object):
-    """
-        A simple wrapper class on a row (dict) returned from snuba representing
-        an event. Provides a class name to register a serializer against, and
-        Makes keys accessible as attributes.
-    """
-
-    # The list of columns that we should request from snuba to be able to fill
-    # out a proper event object.
-    selected_columns = [
-        'event_id',
-        'project_id',
-        'message',
-        'title',
-        'location',
-        'culprit',
-        'user_id',
-        'username',
-        'ip_address',
-        'email',
-        'timestamp',
-    ]
-
-    def __init__(self, kv):
-        assert len(set(self.selected_columns) - set(kv.keys())
-                   ) == 0, "SnubaEvents need all of the selected_columns"
-        self.__dict__ = kv
-
-
-@register(SnubaEvent)
-class SnubaEventSerializer(Serializer):
-    """
-        A bare-bones version of EventSerializer which uses snuba event rows as
-        the source data but attempts to produce a compatible (subset) of the
-        serialization returned by EventSerializer.
-    """
-
-    def get_tags_dict(self, obj):
-        keys = getattr(obj, 'tags.key', None)
-        values = getattr(obj, 'tags.value', None)
-        if keys and values and len(keys) == len(values):
-            results = []
-            for key, value in zip(keys, values):
-                key = key.split('sentry:', 1)[-1]
-                result = {'key': key, 'value': value}
-                query = convert_user_tag_to_query(key, value)
-                if query:
-                    result['query'] = query
-                results.append(result)
-            results.sort(key=lambda x: x['key'])
-            return results
-        return []
-
-    def serialize(self, obj, attrs, user):
-        result = {
-            'eventID': six.text_type(obj.event_id),
-            'projectID': six.text_type(obj.project_id),
-            'message': obj.message,
-            'title': obj.title,
-            'location': obj.location,
-            'culprit': obj.culprit,
-            'dateCreated': obj.timestamp,
-            'user': {
-                'id': obj.user_id,
-                'email': obj.email,
-                'username': obj.username,
-                'ipAddress': obj.ip_address,
-            },
-        }
-
-        tags = self.get_tags_dict(obj)
-        if tags:
-            result['tags'] = tags
-
         return result
