@@ -37,7 +37,7 @@ from sentry.coreapi import (
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type
+from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event
 from sentry.lang.native.minidump import merge_process_state_event, process_minidump, MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
@@ -819,6 +819,14 @@ class UnrealView(StoreView):
             merge_process_state_event(data, process_state)
         else:
             raise APIError("missing minidump in unreal crash report")
+
+        try:
+            unreal_context = unreal.get_context()
+            if unreal_context is not None:
+                merge_unreal_context_event(unreal_context, data, project)
+        except Unreal4Error as e:
+            # we'll continue without the context data
+            minidumps_logger.exception(e)
 
         for file in unreal.files():
             # Always store the minidump in attachments so we can access it during

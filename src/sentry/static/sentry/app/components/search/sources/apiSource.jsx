@@ -2,8 +2,8 @@ import {flatten, debounce} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import {t} from 'app/locale';
 import {Client} from 'app/api';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
@@ -258,16 +258,17 @@ class ApiSource extends React.Component {
   }, 150);
 
   handleRequestError = (err, {url, orgId}) => {
-    sdk.captureException(
-      new Error(
-        `API Source Failed: ${err && err.responseJSON && err.responseJSON.detail}`
-      ),
-      {
-        extra: {
-          url: url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/'),
-        },
-      }
-    );
+    Sentry.withScope(scope => {
+      scope.setExtra(
+        'url',
+        url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/')
+      );
+      Sentry.captureException(
+        new Error(
+          `API Source Failed: ${err && err.responseJSON && err.responseJSON.detail}`
+        )
+      );
+    });
   };
 
   // Handles a list of search request promises, and then updates state with response objects

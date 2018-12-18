@@ -8,7 +8,7 @@ import * as EmotionTheming from 'emotion-theming';
 import * as GridEmotion from 'grid-emotion';
 import JsCookie from 'js-cookie';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
+import * as Sentry from '@sentry/browser';
 import React from 'react';
 import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 import ReactDOM from 'react-dom';
@@ -25,6 +25,37 @@ import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import * as api from 'app/api';
 import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
+
+// SDK INIT  --------------------------------------------------------
+// window.__SENTRY__OPTIONS will be emmited by sdk-config.html before loading this script
+Sentry.init(window.__SENTRY__OPTIONS);
+
+Sentry.configureScope(scope => {
+  if (window.__SENTRY__USER) {
+    scope.setUser(window.__SENTRY__USER);
+  }
+  if (window.__SENTRY__VERSION) {
+    scope.setTag('sentry_version', window.__SENTRY__VERSION);
+  }
+});
+
+function __raven_deprecated() {
+  const message = '[DEPRECATED]: Please no longer use Raven, use Sentry instead';
+  console.error(message);
+  Sentry.captureMessage(message);
+}
+
+const Raven = {
+  captureMessage: () => __raven_deprecated(),
+  captureException: () => __raven_deprecated(),
+  captureBreadcrumb: () => __raven_deprecated(),
+  showReportDialog: () => __raven_deprecated(),
+  setTagsContext: () => __raven_deprecated(),
+  setExtraContext: () => __raven_deprecated(),
+  setUserContext: () => __raven_deprecated(),
+};
+window.Raven = Raven;
+// -----------------------------------------------------------------
 
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
@@ -59,8 +90,9 @@ if (module.hot) {
 export default {
   jQuery,
   moment,
-  Raven,
+  Sentry,
   React,
+  Raven,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
     render: ReactDOM.render,
@@ -161,8 +193,9 @@ export default {
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
-    ReleaseLanding: require('app/views/projectReleases/releaseLanding').default,
-    ReleaseProgress: require('app/views/projectReleases/releaseProgress').default,
+    ReleaseLanding: require('app/views/releases/projectReleases/releaseLanding').default,
+    ReleaseProgress: require('app/views/releases/projectReleases/releaseProgress')
+      .default,
     CreateSampleEvent: require('app/components/createSampleEvent').default,
     InstallPromptBanner: require('app/components/installPromptBanner').default,
     SentryTypes: require('app/sentryTypes').default,

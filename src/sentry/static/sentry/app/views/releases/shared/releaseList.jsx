@@ -12,7 +12,7 @@ import LatestDeployOrReleaseTime from 'app/components/latestDeployOrReleaseTime'
 class ReleaseList extends React.Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    projectId: PropTypes.string,
     releaseList: PropTypes.array.isRequired,
   };
 

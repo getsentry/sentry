@@ -323,6 +323,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
     </Base>
   </Metadata>
   <Alert
+    iconSize="24px"
     key="0"
     type="warning"
   >
@@ -667,7 +668,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                           >
                             <Component
                               aria-label="Add Installation"
-                              className="css-1rcxqx1-StyledButton-getColors eqrebog0"
+                              className="css-1ujzp8g-StyledButton-getColors eqrebog0"
                               disabled={true}
                               href={null}
                               onClick={[Function]}
@@ -683,7 +684,7 @@ exports[`IntegrationDetailsModal renders simple integration 1`] = `
                             >
                               <button
                                 aria-label="Add Installation"
-                                className="css-1rcxqx1-StyledButton-getColors eqrebog0"
+                                className="css-1ujzp8g-StyledButton-getColors eqrebog0"
                                 disabled={true}
                                 href={null}
                                 onClick={[Function]}
