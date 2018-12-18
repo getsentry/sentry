@@ -28,7 +28,7 @@ const isEqualWithEmptyArrays = (newQuery, current) => {
  * OTHERWISE fire action to update projects
  *
  * @param {Number[]} projects List of project ids
- * @param {Object} router Router object
+ * @param {Object} [router] Router object
  */
 export function updateProjects(projects, router) {
   if (!isProjectsValid(projects)) {
@@ -54,7 +54,7 @@ function isProjectsValid(projects) {
  * OTHERWISE fire action to update projects
  *
  * @param {Object} datetime Object with start, end, range keys
- * @param {Object} router React router object
+ * @param {Object} [router] Router object
  */
 export function updateDateTime(datetime, router) {
   if (!router) {
@@ -68,7 +68,7 @@ export function updateDateTime(datetime, router) {
  * OTHERWISE fire action to update projects
  *
  * @param {String[]} environments List of environments
- * @param {Object} router React router object
+ * @param {Object} [router] Router object
  */
 export function updateEnvironments(environment, router) {
   if (!router) {
@@ -81,7 +81,7 @@ export function updateEnvironments(environment, router) {
  * Updates router/URL with new query params
  *
  * @param {Object} obj New query params
- * @param {Object} router React router object
+ * @param {Object} [router] React router object
  */
 export function updateParams(obj, router) {
   // Allow another component to handle routing
