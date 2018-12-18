@@ -1,23 +1,26 @@
 import Reflux from 'reflux';
 import _ from 'lodash';
-
-import sdk from 'app/utils/sdk';
+import * as Sentry from '@sentry/browser';
 
 const validHookNames = new Set([
   // Additional routes
   'routes',
   'routes:admin',
   'routes:organization',
+  'routes:onboarding-survey',
 
   // Analytics and tracking hooks
   'amplitude:event',
   'analytics:event',
   'analytics:log-experiment',
+  'analytics:onboarding-survey-log',
 
   // Operational metrics
   'metrics:event',
 
   // Specific component customizations
+  'sidebar:onboarding-assets',
+  'utils:onboarding-survey-url',
   'component:org-auth-view',
   'component:org-members-view',
   'component:releases-tab',
@@ -68,8 +71,9 @@ const HookStore = Reflux.createStore({
     if (!validHookNames.has(hookName)) {
       // eslint-disable-next-line no-console
       console.error('Invalid hook name: ' + hookName);
-      sdk.captureException(new Error('Invalid hook name'), {
-        extra: {hookName},
+      Sentry.withScope(scope => {
+        scope.setExtra('hookName', hookName);
+        Sentry.captureException(new Error('Invalid hook name'));
       });
     }
     if (_.isUndefined(this.hooks[hookName])) {

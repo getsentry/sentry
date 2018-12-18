@@ -39,7 +39,7 @@ export function getQueryStringFromQuery(query) {
   return `?${queryProperties.join('&')}`;
 }
 
-export function getOrderByOptions(queryBuilder) {
+export function getOrderbyFields(queryBuilder) {
   const columns = queryBuilder.getColumns();
   const query = queryBuilder.getInternal();
 
@@ -65,22 +65,14 @@ export function getOrderByOptions(queryBuilder) {
       return acc;
     }
 
-    return [
-      ...acc,
-      {value: name, label: `${name} asc`},
-      {value: `-${name}`, label: `${name} desc`},
-    ];
+    return [...acc, {value: name, label: name}];
   }, []);
 
   const aggregationOptions = [
     // Ensure aggregations are unique (since users might input duplicates)
     ...new Set(validAggregations.map(aggregation => aggregation[2])),
   ].reduce((acc, agg) => {
-    return [
-      ...acc,
-      {value: agg, label: `${agg} asc`},
-      {value: `-${agg}`, label: `${agg} desc`},
-    ];
+    return [...acc, {value: agg, label: agg}];
   }, []);
 
   return [...columnOptions, ...aggregationOptions];

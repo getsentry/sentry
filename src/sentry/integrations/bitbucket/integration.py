@@ -33,7 +33,7 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Resolve Sentry issues via Bitbucket commits and pull requests by
+        Resolve Sentry issues via Bitbucket commits by
         including `Fixes PROJ-ID` in the message
         """,
         IntegrationFeatures.COMMITS,

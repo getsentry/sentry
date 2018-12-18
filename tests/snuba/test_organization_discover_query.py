@@ -22,6 +22,8 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             organization=self.org,
         )
 
+        self.other_project = self.create_project(name='other')
+
         self.group = self.create_group(project=self.project, short_id=20)
 
         self.event = self.create_event(
@@ -244,3 +246,27 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             {'name': 'project.name', 'type': 'string'},
             {'name': 'count', 'type': 'integer'}
         ]
+
+    def test_no_feature_access(self):
+        url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+        response = self.client.post(url, {
+            'projects': [self.project.id],
+            'fields': ['message', 'platform'],
+            'range': '14d',
+            'orderby': '-timestamp',
+        })
+
+        assert response.status_code == 404, response.content
+
+    def test_invalid_project(self):
+        with self.feature('organizations:discover'):
+
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.other_project.id],
+                'fields': ['message', 'platform'],
+                'range': '14d',
+                'orderby': '-timestamp',
+            })
+
+        assert response.status_code == 403, response.content

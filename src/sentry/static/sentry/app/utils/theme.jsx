@@ -159,7 +159,7 @@ const theme = {
 theme.textColor = theme.gray5;
 theme.success = theme.green;
 theme.error = theme.red;
-theme.disabled = '#ced3d6';
+theme.disabled = theme.gray1;
 
 theme.alert.info.iconColor = theme.blue;
 theme.alert.info.background = theme.blue;
@@ -234,7 +234,7 @@ theme.charts = {
     CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
   previousPeriod: theme.gray1,
-  symbolSize: 10,
+  symbolSize: 6,
 };
 
 theme.diff = {

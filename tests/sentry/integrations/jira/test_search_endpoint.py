@@ -83,7 +83,7 @@ class JiraSearchEndpointTest(APITestCase):
     def test_issue_search_id(self):
         def responder(request):
             query = parse_qs(urlparse(request.url).query)
-            assert 'id="HSP-1"' == query['jql'][0]
+            assert 'id="hsp-1"' == query['jql'][0]
             return (200, {}, SAMPLE_SEARCH_RESPONSE)
 
         responses.add_callback(
@@ -97,7 +97,8 @@ class JiraSearchEndpointTest(APITestCase):
 
         path = reverse('sentry-extensions-jira-search', args=[org.slug, self.integration.id])
 
-        resp = self.client.get('%s?field=externalIssue&query=HSP-1' % (path,))
+        # queries come through from the front end lowercased, so HSP-1 -> hsp-1
+        resp = self.client.get('%s?field=externalIssue&query=hsp-1' % (path,))
         assert resp.status_code == 200
         assert resp.data == [
             {'label': '(HSP-1) this is a test issue summary', 'value': 'HSP-1'}

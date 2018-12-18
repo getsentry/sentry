@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import Avatar from 'app/components/avatar';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
@@ -18,18 +18,22 @@ class ActorAvatar extends React.Component {
 
   render() {
     let {actor, ...props} = this.props;
+
     if (actor.type == 'user') {
-      let user = MemberListStore.getById(actor.id);
+      let user = actor.id ? MemberListStore.getById(actor.id) : actor;
       return <Avatar user={user} hasTooltip {...props} />;
     }
+
     if (actor.type == 'team') {
       let team = TeamStore.getById(actor.id);
       return <Avatar team={team} hasTooltip {...props} />;
     }
 
-    sdk.captureException(new Error('Unknown avatar type'), {
-      extra: {actor},
+    Sentry.withScope(scope => {
+      scope.setExtra('actor', actor);
+      Sentry.captureException(new Error('Unknown avatar type'));
     });
+
     return null;
   }
 }

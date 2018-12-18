@@ -31,6 +31,7 @@ exports[`ConfirmDelete renders 1`] = `
           className="modal-body"
         >
           <Alert
+            iconSize="24px"
             type="error"
           >
             <AlertWrapper
@@ -186,7 +187,7 @@ exports[`ConfirmDelete renders 1`] = `
                                                         value=""
                                                       >
                                                         <input
-                                                          className="css-ybupf9-Input-inputStyles e1xej46s0"
+                                                          className="css-pzg7em-Input-inputStyles e1xej46s0"
                                                           onChange={[Function]}
                                                           placeholder="CoolOrg"
                                                           type="text"
@@ -320,7 +321,7 @@ exports[`ConfirmDelete renders 1`] = `
               <Component
                 aria-label="Confirm"
                 autoFocus={true}
-                className="css-fn4jle-StyledButton-getColors eqrebog0"
+                className="css-bo8dlg-StyledButton-getColors eqrebog0"
                 data-test-id="confirm-modal"
                 disabled={true}
                 href={null}
@@ -332,7 +333,7 @@ exports[`ConfirmDelete renders 1`] = `
                 <button
                   aria-label="Confirm"
                   autoFocus={true}
-                  className="css-fn4jle-StyledButton-getColors eqrebog0"
+                  className="css-bo8dlg-StyledButton-getColors eqrebog0"
                   data-test-id="confirm-modal"
                   disabled={true}
                   href={null}

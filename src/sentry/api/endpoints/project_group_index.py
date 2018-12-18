@@ -34,6 +34,7 @@ from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_rel
 from sentry.tasks.deletion import delete_groups
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
+from sentry.utils import metrics
 from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.functional import extract_lazy_object
@@ -277,7 +278,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             query_kwargs.update(extra_query_kwargs)
 
         try:
-            query_kwargs['environment'] = self._get_environment_from_request(
+            environment = self._get_environment_from_request(
                 request,
                 project.organization_id,
             )
@@ -286,6 +287,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             # from `sentry.api.paginator.BasePaginator.get_result`.
             result = CursorResult([], None, None, hits=0, max_hits=1000)
         else:
+            query_kwargs['environments'] = [environment] if environment is not None else environment
             result = search.query(**query_kwargs)
         return result, query_kwargs
 
@@ -621,6 +623,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 status_details = {}
 
             now = timezone.now()
+            metrics.incr('group.resolved', instance=res_type_str, skip_internal=True)
 
             # if we've specified a commit, let's see if its already been released
             # this will allow us to associate the resolution to a release as if we
@@ -740,6 +743,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 ).delete()
 
                 if new_status == GroupStatus.IGNORED:
+                    metrics.incr('group.ignored', skip_internal=True)
+
                     ignore_duration = (
                         statusDetails.pop('ignoreDuration', None) or
                         statusDetails.pop('snoozeDuration', None)

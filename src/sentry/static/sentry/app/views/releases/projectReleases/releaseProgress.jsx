@@ -8,7 +8,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {PanelItem} from 'app/components/panels';
 import {promptsUpdate} from 'app/actionCreators/prompts';
-import ProgressBar from 'app/views/projectReleases/progressBar';
+import ProgressBar from './progressBar';
 
 const STEPS = {
   tag: {

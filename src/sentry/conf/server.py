@@ -454,6 +454,7 @@ CELERY_IMPORTS = (
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
     Queue('alerts', routing_key='alerts'),
+    Queue('app_platform', routing_key='app_platform'),
     Queue('auth', routing_key='auth'),
     Queue('assemble', routing_key='assemble'),
     Queue('buffers.process_pending', routing_key='buffers.process_pending'),
@@ -684,6 +685,10 @@ LOGGING = {
             'handlers': ['internal'],
             'propagate': False,
         },
+        'sentry.interfaces': {
+            'handlers': ['internal'],
+            'propagate': False,
+        },
         # This only needs to go to Sentry for now.
         'sentry.similarity': {
             'handlers': ['internal'],
@@ -813,6 +818,8 @@ SENTRY_FEATURES = {
     'organizations:repos': True,
     # DEPCREATED: pending removal.
     'organizations:require-2fa': False,
+    # Sentry 10 - multi project interfaces.
+    'organizations:sentry10': False,
     # Enable basic SSO functionality, providing configurable single signon
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.

@@ -41,7 +41,11 @@ describe('OrganizationEvents', function() {
         <OrganizationEventsContainer
           router={router}
           organization={organization}
-          selection={{projects: []}}
+          selection={{
+            projects: [],
+            environments: [],
+            datetime: {start: null, end: null, range: '14d'},
+          }}
           location={router.location}
         >
           <div />
@@ -259,7 +263,7 @@ describe('OrganizationEvents', function() {
     });
 
     it('does not update router when toggling environment selector without changes', async function() {
-      expect(router.push).toHaveBeenCalledTimes(1);
+      const prevCallCount = router.push.mock.calls.length;
 
       wrapper.setProps({
         router: {
@@ -280,7 +284,7 @@ describe('OrganizationEvents', function() {
       wrapper
         .find('MultipleEnvironmentSelector StyledInput')
         .simulate('keyDown', {key: 'Escape'});
-      expect(router.push).toHaveBeenCalledTimes(1);
+      expect(router.push).toHaveBeenCalledTimes(prevCallCount);
     });
 
     it('updates router when changing periods', async function() {

@@ -5,7 +5,7 @@ import {browserHistory} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {getUtcDateString} from 'app/utils/dates';
-import {updateProjects} from 'app/actionCreators/globalSelection';
+import {updateProjects, updateDateTime} from 'app/actionCreators/globalSelection';
 import {t, tct} from 'app/locale';
 
 import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
@@ -119,6 +119,16 @@ export default class OrganizationDiscover extends React.Component {
     updateProjects(val);
   };
 
+  updateDateTime = ({relative, start, end}) => {
+    const datetimeFields = {
+      range: relative,
+      start: (start && getUtcDateString(start)) || start,
+      end: (end && getUtcDateString(end)) || end,
+    };
+    this.updateFields(datetimeFields);
+    updateDateTime(datetimeFields);
+  };
+
   updateField = (field, value) => {
     this.props.queryBuilder.updateField(field, value);
     this.forceUpdate();
@@ -133,14 +143,6 @@ export default class OrganizationDiscover extends React.Component {
   updateAndRunQuery = query => {
     this.updateFields(query);
     this.runQuery();
-  };
-
-  handleUpdateTime = ({relative, start, end}) => {
-    this.updateFields({
-      range: relative,
-      start: (start && getUtcDateString(start)) || start,
-      end: (end && getUtcDateString(end)) || end,
-    });
   };
 
   runQuery = () => {
@@ -375,7 +377,7 @@ export default class OrganizationDiscover extends React.Component {
               start={start}
               end={end}
               relative={currentQuery.range}
-              onChange={this.handleUpdateTime}
+              onChange={this.updateDateTime}
               onUpdate={this.runQuery}
             />
           </HeaderItemPosition>

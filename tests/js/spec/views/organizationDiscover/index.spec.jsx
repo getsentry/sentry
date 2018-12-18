@@ -1,10 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {mount} from 'enzyme';
+import {browserHistory} from 'react-router';
 
 import {OrganizationDiscoverContainer} from 'app/views/organizationDiscover';
 
 describe('OrganizationDiscoverContainer', function() {
+  beforeEach(function() {
+    browserHistory.push = jest.fn();
+  });
+
   afterEach(function() {
     MockApiClient.clearMockResponses();
   });
@@ -27,7 +32,7 @@ describe('OrganizationDiscoverContainer', function() {
         <OrganizationDiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
-          selection={{}}
+          selection={{datetime: {}}}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -46,7 +51,11 @@ describe('OrganizationDiscoverContainer', function() {
         <OrganizationDiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
-          selection={{projects: [1]}}
+          selection={{
+            projects: [1],
+            environments: [],
+            datetime: {start: null, end: null, range: '14d'},
+          }}
         />,
         TestStubs.routerContext([{organization}])
       );
@@ -80,7 +89,7 @@ describe('OrganizationDiscoverContainer', function() {
         <OrganizationDiscoverContainer
           location={{query: {}, search: ''}}
           params={{savedQueryId: 1}}
-          selection={{}}
+          selection={{datetime: {}}}
         />,
         {
           ...TestStubs.routerContext([{organization}, {organization: PropTypes.object}]),
@@ -110,6 +119,14 @@ describe('OrganizationDiscoverContainer', function() {
       expect(savedQueryMock).toHaveBeenCalledTimes(1);
       expect(nextQueryMock).toHaveBeenCalledTimes(1);
     });
+
+    it('toggles edit mode', function() {
+      wrapper.instance().toggleEditMode();
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/discover/saved/1/',
+        query: {editing: 'true'},
+      });
+    });
   });
 
   describe('no access', function() {
@@ -119,7 +136,7 @@ describe('OrganizationDiscoverContainer', function() {
         <OrganizationDiscoverContainer
           location={{query: {}, search: ''}}
           params={{}}
-          selection={{}}
+          selection={{datetime: {}}}
         />,
         TestStubs.routerContext([{organization}])
       );

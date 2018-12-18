@@ -186,7 +186,7 @@ def assigned_to_filter(queryset, actor, projects):
     )
 
 
-def get_latest_release(projects, environment):
+def get_latest_release(projects, environments):
     from sentry.models import Release
 
     release_qs = Release.objects.filter(
@@ -194,9 +194,10 @@ def get_latest_release(projects, environment):
         projects__in=projects,
     )
 
-    if environment is not None:
+    if environments is not None:
         release_qs = release_qs.filter(
-            releaseprojectenvironment__environment__id=environment.id
+            releaseprojectenvironment__environment__id__in=[
+                environment.id for environment in environments]
         )
 
     return release_qs.extra(select={
@@ -207,7 +208,7 @@ def get_latest_release(projects, environment):
 
 
 class DjangoSearchBackend(SearchBackend):
-    def query(self, projects, tags=None, environment=None, sort_by='date', limit=100,
+    def query(self, projects, tags=None, environments=None, sort_by='date', limit=100,
               cursor=None, count_hits=False, paginator_options=None, **parameters):
 
         from sentry.models import Group, GroupAssignee, GroupStatus, GroupSubscription, Release
@@ -224,10 +225,10 @@ class DjangoSearchBackend(SearchBackend):
 
         try:
             if tags.get('sentry:release') == 'latest':
-                tags['sentry:release'] = get_latest_release(projects, environment)
+                tags['sentry:release'] = get_latest_release(projects, environments)
 
             if parameters.get('first_release') == 'latest':
-                parameters['first_release'] = get_latest_release(projects, environment)
+                parameters['first_release'] = get_latest_release(projects, environments)
         except Release.DoesNotExist:
             # no matches could possibly be found from this point on
             return Paginator(Group.objects.none()).get_result()
@@ -294,19 +295,20 @@ class DjangoSearchBackend(SearchBackend):
         # seemed better to handle all the shared initialization and then handoff to the
         # actual backend.
         return self._query(projects, retention_window_start, group_queryset, tags,
-                           environment, sort_by, limit, cursor, count_hits,
+                           environments, sort_by, limit, cursor, count_hits,
                            paginator_options, **parameters)
 
-    def _query(self, projects, retention_window_start, group_queryset, tags, environment,
+    def _query(self, projects, retention_window_start, group_queryset, tags, environments,
                sort_by, limit, cursor, count_hits, paginator_options, **parameters):
 
         from sentry.models import (Group, Environment, Event, GroupEnvironment, Release)
 
-        # this backend only supports search within one project
-        if len(projects) != 1:
+        # this backend only supports search within one project/environment
+        if len(projects) != 1 or (environments is not None and len(environments) > 1):
             raise NotImplementedError
 
         project = projects[0]
+        environment = environments[0] if environments is not None else environments
 
         if environment is not None:
             if 'environment' in tags:

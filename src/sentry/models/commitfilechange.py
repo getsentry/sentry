@@ -4,6 +4,8 @@ from django.db import models
 
 from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr)
 
+COMMIT_FILE_CHANGE_TYPES = frozenset(('A', 'D', 'M'))
+
 
 class CommitFileChange(Model):
     __core__ = False
@@ -21,3 +23,7 @@ class CommitFileChange(Model):
         unique_together = (('commit', 'filename'), )
 
     __repr__ = sane_repr('commit_id', 'filename')
+
+    @staticmethod
+    def is_valid_type(value):
+        return value in COMMIT_FILE_CHANGE_TYPES

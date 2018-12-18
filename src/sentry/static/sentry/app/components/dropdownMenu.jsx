@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';
-import sdk from 'app/utils/sdk';
 
 class DropdownMenu extends React.Component {
   static propTypes = {
@@ -78,8 +78,9 @@ class DropdownMenu extends React.Component {
 
     if (!this.dropdownActor) {
       // Log an error, should be lower priority
-      sdk.captureException(new Error('DropdownMenu does not have "Actor" attached'), {
-        level: 'warning',
+      Sentry.withScope(scope => {
+        scope.setLevel('warning');
+        Sentry.captureException(new Error('DropdownMenu does not have "Actor" attached'));
       });
     }
 
@@ -147,10 +148,11 @@ class DropdownMenu extends React.Component {
         }, MENU_CLOSE_DELAY);
       }
     } catch (err) {
-      sdk.captureException(err, {
-        event: e,
-        toElement: e.toElement,
-        relatedTarget: e.relatedTarget,
+      Sentry.withScope(scope => {
+        scope.setExtra('event', e);
+        scope.setExtra('toElement', e.toElement);
+        scope.setExtra('relatedTarget', e.relatedTarget);
+        Sentry.captureException(err);
       });
     }
   };

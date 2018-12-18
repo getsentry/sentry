@@ -18,6 +18,7 @@ from sentry.models import (
     Environment, Group, GroupRelease,
     Organization, Project, Release, ReleaseProject
 )
+from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
 
@@ -148,6 +149,20 @@ class QueryIllegalTypeOfArgument(QueryExecutionError):
     """
 
 
+class QueryTooManySimultaneous(QueryExecutionError):
+    """
+    Exception raised when a query is rejected due to too many simultaneous
+    queries being performed on the database.
+    """
+
+
+clickhouse_error_codes_map = {
+    43: QueryIllegalTypeOfArgument,
+    241: QueryMemoryLimitExceeded,
+    202: QueryTooManySimultaneous,
+}
+
+
 class QueryOutsideRetentionError(Exception):
     pass
 
@@ -191,13 +206,6 @@ def options_override(overrides):
             OVERRIDE_OPTIONS[k] = v
         for k in delete:
             OVERRIDE_OPTIONS.pop(k)
-
-
-def connection_from_url(url, **kw):
-    if url[:1] == '/':
-        from sentry.net.http import UnixHTTPConnectionPool
-        return UnixHTTPConnectionPool(url, **kw)
-    return urllib3.connectionpool.connection_from_url(url, **kw)
 
 
 _snuba_pool = connection_from_url(
@@ -425,12 +433,10 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
             elif error['type'] == 'schema':
                 raise SchemaValidationError(error['message'])
             elif error['type'] == 'clickhouse':
-                if error['code'] == 43:
-                    raise QueryIllegalTypeOfArgument(error['message'])
-                elif error['code'] == 241:
-                    raise QueryMemoryLimitExceeded(error['message'])
-                else:
-                    raise QueryExecutionError(error['message'])
+                raise clickhouse_error_codes_map.get(
+                    error['code'],
+                    QueryExecutionError,
+                )(error['message'])
             else:
                 raise SnubaError(error['message'])
         else:
@@ -651,7 +657,7 @@ def shrink_time_window(issues, start):
     stale groups.
     """
     if issues and len(issues) == 1:
-        group = Group.objects.get(pk=issues[0])
+        group = Group.objects.get(pk=list(issues)[0])
         start = max(start, naiveify_datetime(group.first_seen) - timedelta(minutes=5))
 
     return start

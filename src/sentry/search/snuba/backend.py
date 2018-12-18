@@ -133,7 +133,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
     def _get_project_id_from_key(self, key):
         return int(key.split(':')[2])
 
-    def _query(self, projects, retention_window_start, group_queryset, tags, environment,
+    def _query(self, projects, retention_window_start, group_queryset, tags, environments,
                sort_by, limit, cursor, count_hits, paginator_options, **parameters):
 
         # TODO: Product decision: we currently search Group.message to handle
@@ -142,7 +142,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         # differ.
 
         # TODO: It's possible `first_release` could be handled by Snuba.
-        if environment is not None:
+        if environments is not None:
             group_queryset = ds.QuerySetBuilder({
                 'first_release': ds.CallbackCondition(
                     lambda queryset, version: queryset.extra(
@@ -169,11 +169,12 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                             ds.get_sql_column(Group, 'id'),
                             ds.get_sql_column(GroupEnvironment, 'group_id'),
                         ),
-                        u'{} = %s'.format(
+                        u'{} IN ({})'.format(
                             ds.get_sql_column(GroupEnvironment, 'environment_id'),
+                            ', '.join(['%s' for e in environments])
                         ),
                     ],
-                    params=[environment.id],
+                    params=[environment.id for environment in environments],
                     tables=[GroupEnvironment._meta.db_table],
                 ),
                 parameters,
@@ -203,7 +204,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
             if cursor is None \
                     and sort_by == 'date' \
                     and not tags \
-                    and not environment \
+                    and not environments \
                     and not any(param in parameters for param in [
                         'age_from', 'age_to', 'last_seen_from',
                         'last_seen_to', 'times_seen', 'times_seen_lower',
@@ -211,7 +212,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     ]):
                 group_queryset = group_queryset.order_by('-last_seen')
                 paginator = DateTimePaginator(group_queryset, '-last_seen', **paginator_options)
-                return paginator.get_result(limit, cursor, count_hits=count_hits)
+                return paginator.get_result(limit, cursor, count_hits=False)
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
@@ -360,7 +361,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
-                environment_id=environment and environment.id,
+                environment_ids=environments and [environment.id for environment in environments],
                 tags=tags,
                 sort_field=sort_field,
                 cursor=cursor,
@@ -441,7 +442,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         return paginator_results
 
 
-def snuba_search(start, end, project_ids, environment_id, tags,
+def snuba_search(start, end, project_ids, environment_ids, tags,
                  sort_field, cursor, candidate_ids, limit, offset, **parameters):
     """
     This function doesn't strictly benefit from or require being pulled out of the main
@@ -459,8 +460,8 @@ def snuba_search(start, end, project_ids, environment_id, tags,
         'project_id': project_ids,
     }
 
-    if environment_id is not None:
-        filters['environment'] = [environment_id]
+    if environment_ids is not None:
+        filters['environment'] = environment_ids
 
     if candidate_ids is not None:
         filters['issue'] = candidate_ids

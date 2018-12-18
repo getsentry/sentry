@@ -9,13 +9,13 @@ import ApiMixin from 'app/mixins/apiMixin';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import Pagination from 'app/components/pagination';
 import CompactIssue from 'app/components/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
-import {Panel, PanelBody} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t, tct} from 'app/locale';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+
+import UserFeedbackContainer from './container';
 
 const ProjectUserFeedback = createReactClass({
   displayName: 'ProjectUserFeedback',
@@ -214,38 +214,14 @@ const ProjectUserFeedback = createReactClass({
   },
 
   render() {
-    let path = this.props.location.pathname;
-    let status = this.state.status;
     return (
-      <div>
-        <div className="row release-list-header">
-          <div className="col-sm-9">
-            <h3>{t('User Feedback')}</h3>
-          </div>
-          <div className="col-sm-3" style={{textAlign: 'right'}}>
-            <div className="btn-group">
-              <Link
-                to={path}
-                className={
-                  'btn btn-sm btn-default' + (status === 'unresolved' ? ' active' : '')
-                }
-              >
-                {t('Unresolved')}
-              </Link>
-              <Link
-                to={{pathname: path, query: {status: ''}}}
-                className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}
-              >
-                {t('All Issues')}
-              </Link>
-            </div>
-          </div>
-        </div>
-        <Panel>
-          <PanelBody className="issue-list">{this.renderStreamBody()}</PanelBody>
-        </Panel>
-        <Pagination pageLinks={this.state.pageLinks} />
-      </div>
+      <UserFeedbackContainer
+        location={this.props.location}
+        pageLinks={this.state.pageLinks}
+        status={this.state.status}
+      >
+        {this.renderStreamBody()}
+      </UserFeedbackContainer>
     );
   },
 });

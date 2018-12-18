@@ -21,7 +21,7 @@ class Creator(Mediator):
 
     def _create_service_hook(self):
         return ServiceHook.objects.create(
-            application=self.application,
+            application_id=self.application.id,
             actor_id=self.actor.id,
             project_id=self.project.id,
             events=self.events,
