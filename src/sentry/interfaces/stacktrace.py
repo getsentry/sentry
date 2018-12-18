@@ -385,7 +385,10 @@ class Frame(Interface):
             kwargs['lineno'] = None
 
         if data.get('colno') is not None:
-            kwargs['colno'] = int(data['colno'])
+            colno = int(data['colno'])
+            if colno < 0:
+                colno = None
+            kwargs['colno'] = colno
         else:
             kwargs['colno'] = None
 
