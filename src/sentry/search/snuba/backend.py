@@ -10,7 +10,7 @@ from datetime import timedelta, datetime
 from django.utils import timezone
 
 from sentry import options
-from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
+from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator, MAX_HITS_LIMIT
 from sentry.event_manager import ALLOWED_FUTURE_DELTA
 from sentry.models import Release, Group, GroupEnvironment
 from sentry.search.django import backend as ds
@@ -212,7 +212,7 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     ]):
                 group_queryset = group_queryset.order_by('-last_seen')
                 paginator = DateTimePaginator(group_queryset, '-last_seen', **paginator_options)
-                return paginator.get_result(limit, cursor, count_hits=False)
+                return paginator.get_result(limit, cursor, count_hits=count_hits)
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
@@ -330,11 +330,11 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
         sort_field = sort_strategies[sort_by]
         chunk_growth = options.get('snuba.search.chunk-growth-rate')
         max_chunk_size = options.get('snuba.search.max-chunk-size')
-        chunk_limit = limit
+        max_hits_limit = max(limit, MAX_HITS_LIMIT)
+        chunk_limit = min(max_hits_limit, MAX_HITS_LIMIT)
         offset = 0
         num_chunks = 0
 
-        paginator_results = EMPTY_RESULT
         result_groups = []
         result_group_ids = set()
 
@@ -401,20 +401,29 @@ class SnubaSearchBackend(ds.DjangoSearchBackend):
                     result_group_ids.add(group_id)
                     result_groups.append((group_id, group_score))
 
-            paginator_results = SequencePaginator(
+            # This paginator is used to get the total hit count (up to `max_hits_limit`),
+            # and to decide whether the search is complete.
+            max_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups],
                 reverse=True,
                 **paginator_options
-            ).get_result(limit, cursor, count_hits=False)
+            ).get_result(max_hits_limit, cursor, count_hits=count_hits)
 
             # break the query loop for one of three reasons:
             # * we started with Postgres candidates and so only do one Snuba query max
             # * the paginator is returning enough results to satisfy the query (>= the limit)
             # * there are no more groups in Snuba to post-filter
             if candidate_ids \
-                    or len(paginator_results.results) >= limit \
+                    or len(max_results.results) >= max_hits_limit \
                     or not more_results:
                 break
+
+        # This paginator is used to return the actual requested `limit` results to the user.
+        paginator_results = SequencePaginator(
+            [(score, id) for (id, score) in result_groups],
+            reverse=True,
+            **paginator_options
+        ).get_result(limit, cursor, count_hits=count_hits)
 
         # HACK: We're using the SequencePaginator to mask the complexities of going
         # back and forth between two databases. This causes a problem with pagination
