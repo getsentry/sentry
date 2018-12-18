@@ -8,6 +8,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
       Object {
         "clientId": "client-id",
         "clientSecret": "client-secret",
+        "events": Array [],
         "isAlertable": false,
         "name": "Sample App",
         "overview": "This is an app.",
@@ -29,6 +30,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
       Object {
         "clientId": "client-id",
         "clientSecret": "client-secret",
+        "events": Array [],
         "isAlertable": false,
         "name": "Sample App",
         "overview": "This is an app.",
@@ -68,6 +70,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                     Object {
                       "clientId": "client-id",
                       "clientSecret": "client-secret",
+                      "events": Array [],
                       "isAlertable": false,
                       "name": "Sample App",
                       "overview": "This is an app.",

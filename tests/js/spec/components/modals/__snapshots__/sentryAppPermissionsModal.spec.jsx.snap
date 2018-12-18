@@ -8,6 +8,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
     Object {
       "clientId": "client-id",
       "clientSecret": "client-secret",
+      "events": Array [],
       "isAlertable": false,
       "name": "Sample App",
       "overview": "This is an app.",
@@ -228,6 +229,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
     Object {
       "clientId": "client-id",
       "clientSecret": "client-secret",
+      "events": Array [],
       "isAlertable": false,
       "name": "Sample App",
       "overview": "This is an app.",

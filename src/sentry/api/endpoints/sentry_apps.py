@@ -25,20 +25,24 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
     @requires_feature('organizations:internal-catchall', any_org=True)
     def post(self, request, organization):
         serializer = SentryAppSerializer(data=request.json_body)
-        if not serializer.is_valid():
-            return Response({'errors': serializer.errors}, status=422)
 
-        sentry_app = Creator.run(
-            name=request.json_body.get('name'),
-            organization=self._get_user_org(request),
-            scopes=request.json_body.get('scopes'),
-            webhook_url=request.json_body.get('webhookUrl'),
-            redirect_url=request.json_body.get('redirectUrl'),
-            is_alertable=request.json_body.get('isAlertable'),
-            overview=request.json_body.get('overview'),
-        )
+        if serializer.is_valid():
+            result = serializer.object
 
-        return Response(serialize(sentry_app), status=201)
+            sentry_app = Creator.run(
+                name=result.get('name'),
+                organization=self._get_user_org(request),
+                scopes=result.get('scopes'),
+                events=result.get('events'),
+                webhook_url=result.get('webhookUrl'),
+                redirect_url=result.get('redirectUrl'),
+                is_alertable=result.get('isAlertable'),
+                overview=result.get('overview'),
+            )
+
+            return Response(serialize(sentry_app), status=201)
+
+        return Response({'errors': serializer.errors}, status=422)
 
     def _get_user_org(self, request):
         return next(
