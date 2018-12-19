@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {browserHistory, Link} from 'react-router';
+import {Link} from 'react-router';
 import qs from 'query-string';
 import {omit, isEqual} from 'lodash';
 import SentryTypes from 'app/sentryTypes';
@@ -82,19 +82,6 @@ const ProjectUserFeedback = createReactClass({
       query,
       status,
     };
-  },
-
-  onSearch(query) {
-    let targetQueryParams = {};
-    if (query !== '') targetQueryParams.query = query;
-    if (this.state.status !== this.props.defaultStatus)
-      targetQueryParams.status = this.state.status;
-
-    let {orgId, projectId} = this.props.params;
-    browserHistory.push({
-      pathname: `/${orgId}/${projectId}/user-feedback/`,
-      query: targetQueryParams,
-    });
   },
 
   fetchData() {
