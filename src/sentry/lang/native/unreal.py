@@ -119,4 +119,8 @@ def merge_unreal_logs_event(unreal_logs, event):
     breadcrumbs = event['breadcrumbs']['values']
 
     for log in unreal_logs:
-        breadcrumbs.append(log)
+        breadcrumbs.append({
+            'timestamp': log.get('timestamp'),
+            'category': log.get('component'),
+            'message': log.get('message'),
+        })

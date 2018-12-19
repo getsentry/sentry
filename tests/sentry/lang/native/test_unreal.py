@@ -64,10 +64,10 @@ class UnrealIntegrationTest(TestCase):
             assert len(breadcrumbs) == 100
             assert breadcrumbs[0]['timestamp'] == '2018-11-20T11:47:14Z'
             assert breadcrumbs[0]['message'] == '   4. \'Parallels Display Adapter (WDDM)\' (P:0 D:0)'
-            assert breadcrumbs[0]['component'] == 'LogWindows'
+            assert breadcrumbs[0]['category'] == 'LogWindows'
             assert breadcrumbs[99]['timestamp'] == '2018-11-20T11:47:15Z'
             assert breadcrumbs[99]['message'] == 'Texture pool size now 1000 MB'
-            assert breadcrumbs[99]['component'] == 'LogContentStreaming'
+            assert breadcrumbs[99]['category'] == 'LogContentStreaming'
 
     def upload_symbols(self):
         url = reverse(
