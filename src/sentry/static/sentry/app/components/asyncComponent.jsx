@@ -200,7 +200,7 @@ export default class AsyncComponent extends React.Component {
     // Allow children to implement this
   }
 
-  onRequestError({stateKey, data, jqXHR}) {
+  onRequestError(resp, args) {
     // Allow children to implement this
   }
 
