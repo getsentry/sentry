@@ -124,7 +124,6 @@ export default class OrganizationDiscover extends React.Component {
         hasChange = true;
       }
 
-      // TODO: Run query here (breaks when trying to view saved queries)
       if (hasChange) {
         this.runQuery();
       }
