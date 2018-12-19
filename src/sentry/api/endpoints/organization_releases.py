@@ -166,6 +166,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                               ``id`` (the sha of the commit), and can optionally
                               include ``repository``, ``message``, ``patch_set``,
                               ``author_name``, ``author_email``, and ``timestamp``.
+                              See [release without integration example](/workflow/releases/).
         :param array refs: an optional way to indicate the start and end commits
                            for each repository included in a release. Head commits
                            must include parameters ``repository`` and ``commit``
