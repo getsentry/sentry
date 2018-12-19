@@ -1,7 +1,6 @@
 /* global module */
 import 'app/utils/emotion-setup';
 
-import {AppContainer} from 'react-hot-loader';
 import {renderToStaticMarkup} from 'react-dom/server';
 import * as Emotion from 'emotion';
 import * as EmotionTheming from 'emotion-theming';
@@ -72,20 +71,8 @@ jQuery.ajaxSetup({
 
 let render = Component => {
   let rootEl = document.getElementById('blk_router');
-  ReactDOM.render(
-    <AppContainer>
-      <Component />
-    </AppContainer>,
-    rootEl
-  );
+  ReactDOM.render(<Component />, rootEl);
 };
-
-if (module.hot) {
-  // webpack 2 has built in support for es2015 modules, so don't have to re-require
-  module.hot.accept('./main', () => {
-    render(Main);
-  });
-}
 
 export default {
   jQuery,
@@ -193,8 +180,9 @@ export default {
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
-    ReleaseLanding: require('app/views/releases/projectReleases/releaseLanding').default,
-    ReleaseProgress: require('app/views/releases/projectReleases/releaseProgress')
+    ReleaseLanding: require('app/views/releases/list/projectReleases/releaseLanding')
+      .default,
+    ReleaseProgress: require('app/views/releases/list/projectReleases/releaseProgress')
       .default,
     CreateSampleEvent: require('app/components/createSampleEvent').default,
     InstallPromptBanner: require('app/components/installPromptBanner').default,

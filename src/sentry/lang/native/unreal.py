@@ -107,6 +107,12 @@ def merge_unreal_context_event(unreal_context, event, project):
     extra = event.setdefault('extra', {})
     extra.update(**runtime_prop)
 
+    # add sdk info
+    event['sdk'] = {
+        'name': 'sentry.unreal.crashreporter',
+        'version': runtime_prop.pop('crash_reporter_client_version', '0.0.0')
+    }
+
 
 def merge_unreal_logs_event(unreal_logs, event):
     setdefault_path(event, 'breadcrumbs', 'values', value=[])

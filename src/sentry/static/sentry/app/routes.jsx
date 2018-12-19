@@ -43,12 +43,6 @@ import ProjectSavedSearches from 'app/views/projectSavedSearches';
 import ProjectSettings from 'app/views/projectSettings';
 import ProjectPlugins from 'app/views/projectPlugins';
 import ProjectPluginDetails from 'app/views/projectPluginDetails';
-import ReleaseAllEvents from 'app/views/releaseAllEvents';
-import ReleaseArtifacts from 'app/views/releaseArtifacts';
-import ReleaseCommits from 'app/views/releases/releaseCommits';
-import ReleaseDetails from 'app/views/releaseDetails';
-import ReleaseNewEvents from 'app/views/releaseNewEvents';
-import ReleaseOverview from 'app/views/releases/releaseOverview';
 import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
@@ -791,7 +785,7 @@ function routes() {
           <Route
             path="/organizations/:orgId/releases/"
             componentPromise={() =>
-              import(/*webpackChunkName: "OrganizationReleases"*/ './views/releases/organizationReleases')}
+              import(/*webpackChunkName: "OrganizationReleases"*/ './views/releases/list/organizationReleases')}
             component={errorHandler(LazyLoad)}
           />
 
@@ -876,19 +870,46 @@ function routes() {
           <Route
             path="releases/"
             componentPromise={() =>
-              import(/*webpackChunkName:"ProjectReleases"*/ './views/releases/projectReleases')}
+              import(/*webpackChunkName:"ProjectReleases"*/ './views/releases/list/projectReleases')}
             component={errorHandler(LazyLoad)}
           />
           <Route
-            name="releaseDetails"
             path="releases/:version/"
-            component={errorHandler(ReleaseDetails)}
+            componentPromise={() =>
+              import(/*webpackChunkName:"ReleaseDetails"*/ './views/releases/detail/releaseDetails')}
+            component={errorHandler(LazyLoad)}
           >
-            <IndexRoute component={errorHandler(ReleaseOverview)} />
-            <Route path="new-events/" component={errorHandler(ReleaseNewEvents)} />
-            <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
-            <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
-            <Route path="commits/" component={errorHandler(ReleaseCommits)} />
+            <IndexRoute
+              componentPromise={() =>
+                import(/*webpackChunkName:"ReleaseOverview"*/ './views/releases/detail/releaseOverview')}
+              component={errorHandler(LazyLoad)}
+            />
+
+            <Route
+              path="new-events/"
+              componentPromise={() =>
+                import(/*webpackChunkName:"ReleaseNewEvents"*/ './views/releases/detail/releaseNewEvents')}
+              component={errorHandler(LazyLoad)}
+            />
+
+            <Route
+              path="all-events/"
+              componentPromise={() =>
+                import(/*webpackChunkName:"ReleaseAllEvents"*/ './views/releases/detail/releaseAllEvents')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="artifacts/"
+              componentPromise={() =>
+                import(/*webpackChunkName:"ReleaseArtifacts"*/ './views/releases/detail/releaseArtifacts')}
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="commits/"
+              componentPromise={() =>
+                import(/*webpackChunkName:"ReleaseCommits"*/ './views/releases/detail/releaseCommits')}
+              component={errorHandler(LazyLoad)}
+            />
           </Route>
           <Route
             path="user-feedback/"

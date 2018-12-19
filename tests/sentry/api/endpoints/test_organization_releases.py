@@ -11,7 +11,17 @@ from django.core.urlresolvers import reverse
 from exam import fixture
 
 from sentry.models import (
-    Activity, ApiKey, ApiToken, CommitAuthor, CommitFileChange, Environment, Release, ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
+    Activity,
+    ApiKey,
+    ApiToken,
+    CommitAuthor,
+    CommitFileChange,
+    Environment,
+    Release,
+    ReleaseCommit,
+    ReleaseProjectEnvironment,
+    ReleaseProject,
+    Repository,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest
@@ -918,8 +928,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
         )
         release1.add_project(project1)
-        ReleaseEnvironment.objects.create(
-            organization_id=org.id,
+        ReleaseProjectEnvironment.objects.create(
             project_id=project1.id,
             release_id=release1.id,
             environment_id=env1.id,
@@ -931,8 +940,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
         )
         release2.add_project(project2)
-        ReleaseEnvironment.objects.create(
-            organization_id=org.id,
+        ReleaseProjectEnvironment.objects.create(
             project_id=project2.id,
             release_id=release2.id,
             environment_id=env2.id,
@@ -945,8 +953,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
         )
         release3.add_project(project1)
-        ReleaseEnvironment.objects.create(
-            organization_id=org.id,
+        ReleaseProjectEnvironment.objects.create(
             project_id=project1.id,
             release_id=release3.id,
             environment_id=env2.id,
@@ -964,13 +971,13 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         )
         release5.add_project(project1)
         release5.add_project(project2)
-        ReleaseEnvironment.objects.create(
-            organization_id=org.id,
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project1.id,
             release_id=release5.id,
             environment_id=env1.id,
         )
-        ReleaseEnvironment.objects.create(
-            organization_id=org.id,
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project2.id,
             release_id=release5.id,
             environment_id=env2.id,
         )
@@ -1026,8 +1033,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
             }
         )
         env = self.make_environment('', self.project2)
-        ReleaseEnvironment.objects.create(
-            organization_id=self.org.id,
+        ReleaseProjectEnvironment.objects.create(
             project_id=self.project2.id,
             release_id=self.release4.id,
             environment_id=env.id,
