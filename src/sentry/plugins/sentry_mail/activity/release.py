@@ -114,10 +114,9 @@ class ReleaseActivityEmail(ActivityEmail):
         # get all the involved users' settings for deploy-emails (user default
         # saved without org set)
         user_options = UserOption.objects.filter(
+            Q(organization=self.organization) | Q(organization=None),
             user__in=users,
             key='deploy-emails',
-        ).filter(
-            Q(organization=self.organization) | Q(organization=None),
         )
 
         options_by_user_id = defaultdict(dict)
@@ -127,14 +126,12 @@ class ReleaseActivityEmail(ActivityEmail):
 
         # and couple them with the the users' setting value for deploy-emails
         # prioritize user/org specific, then user default, then product default
-        users_with_options = [
-            (user, options_by_user_id.get(
-                user.id, {}
-            ).get('org', options_by_user_id.get(
-                user.id, {}
-            ).get('default', UserOptionValue.committed_deploys_only)))
-            for user in users
-        ]
+        users_with_options = []
+        for user in users:
+            options = options_by_user_id.get(user.id, {})
+            users_with_options.append(
+                (user, options.get('org', options.get('default', UserOptionValue.committed_deploys_only)))
+            )
 
         # filter down to members which have been seen in the commit log:
         participants_committed = {

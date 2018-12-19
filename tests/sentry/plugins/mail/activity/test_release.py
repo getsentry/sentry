@@ -187,6 +187,14 @@ class ReleaseTestCase(TestCase):
             value=UserOptionValue.no_deploys,
         )
 
+        # added to make sure org default above takes precedent
+        UserOption.objects.set_value(
+            user=self.user4,
+            organization=None,
+            key='deploy-emails',
+            value=UserOptionValue.all_deploys,
+        )
+
     def test_simple(self):
         email = ReleaseActivityEmail(
             Activity(
@@ -203,6 +211,7 @@ class ReleaseTestCase(TestCase):
         # user2 committed but isn't in a team associated with the project.
         # user3 is included because they oped into all deploy emails
         # user4 committed but isn't included because they opted out of all deploy emails
+        # for that org -- also tests to make sure org overrides default preference
         # user5 committed with another email address and is still included.
 
         assert len(email.get_participants()) == 3
@@ -303,7 +312,6 @@ class ReleaseTestCase(TestCase):
 
     def test_uses_default(self):
         user6 = self.create_user()
-        print user6.id
         self.create_member(user=user6, organization=self.org, teams=[self.team])
 
         UserOption.objects.set_value(
