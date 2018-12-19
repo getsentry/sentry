@@ -31,7 +31,7 @@ describe('Organization Developer Settings', function() {
     });
   });
 
-  describe('when Apps exist', () => {
+  describe('with unpublished apps', () => {
     Client.addMockResponse({
       url: `/organizations/${org.slug}/sentry-apps/`,
       body: [sentryApp],
@@ -46,6 +46,42 @@ describe('Organization Developer Settings', function() {
       expect(wrapper).toMatchSnapshot();
       expect(wrapper.find('SentryApplicationRow').prop('app').name).toBe('Sample App');
       // shows correct published status
+    });
+
+    it('allows for deletion', async () => {
+      Client.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        method: 'DELETE',
+        body: [],
+      });
+      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(false);
+      wrapper.find('[icon="icon-trash"]').simulate('click');
+      // confirm deletion by entering in app slug
+      wrapper.find('input').simulate('change', {target: {value: 'sample-app'}});
+      wrapper
+        .find('ConfirmDelete Button')
+        .last()
+        .simulate('click');
+      await tick();
+      wrapper.update();
+      expect(wrapper.state('applications')).toEqual([]);
+    });
+  });
+
+  describe('with published apps', () => {
+    const publishedSentryApp = TestStubs.SentryApp({status: 'published'});
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/sentry-apps/`,
+      body: [publishedSentryApp],
+    });
+    let wrapper = mount(
+      <OrganizationDeveloperSettings params={{orgId: org.slug}} />,
+      routerContext
+    );
+
+    it('trash button is disabled', () => {
+      expect(wrapper).toMatchSnapshot();
+      expect(wrapper.find('[icon="icon-trash"]').prop('disabled')).toEqual(true);
     });
   });
 });

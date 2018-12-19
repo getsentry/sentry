@@ -177,3 +177,28 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             format='json',
         )
         assert response.status_code == 404
+
+
+class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
+    @with_feature('organizations:internal-catchall')
+    def test_delete_unpublished_app(self):
+        self.login_as(user=self.superuser)
+        url = reverse(
+            'sentry-api-0-sentry-app-details',
+            args=[self.unpublished_app.slug],
+        )
+        response = self.client.delete(url)
+        assert response.status_code == 204
+
+    @with_feature('organizations:internal-catchall')
+    def test_cannot_delete_published_app(self):
+        self.login_as(user=self.superuser)
+        url = reverse(
+            'sentry-api-0-sentry-app-details',
+            args=[self.published_app.slug],
+        )
+        response = self.client.delete(url)
+        assert response.status_code == 403
+        assert response.data == {
+            'detail': ['Published apps cannot be removed.'],
+        }
