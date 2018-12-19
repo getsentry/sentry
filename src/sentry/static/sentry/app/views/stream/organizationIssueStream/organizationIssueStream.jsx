@@ -756,7 +756,9 @@ const Stream = createReactClass({
                 <StreamActions
                   orgId={orgId}
                   hasReleases={hasFeature}
-                  latestRelease={this.context.project.latestRelease}
+                  latestRelease={
+                    this.context.project && this.context.project.latestRelease
+                  }
                   environment={this.state.environment}
                   query={this.state.query}
                   queryCount={this.state.queryCount}
