@@ -1,16 +1,17 @@
+import {Link} from 'react-router';
+import Modal from 'react-bootstrap/lib/Modal';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import Modal from 'react-bootstrap/lib/Modal';
-import {Link} from 'react-router';
 
-import {t} from 'app/locale';
-import ApiMixin from 'app/mixins/apiMixin';
-import IndicatorStore from 'app/stores/indicatorStore';
-import DropdownLink from 'app/components/dropdownLink';
-import QueryCount from 'app/components/queryCount';
-import MenuItem from 'app/components/menuItem';
 import {BooleanField, FormState, TextField} from 'app/components/forms';
+import {t} from 'app/locale';
+import Access from 'app/components/acl/access';
+import ApiMixin from 'app/mixins/apiMixin';
+import DropdownLink from 'app/components/dropdownLink';
+import IndicatorStore from 'app/stores/indicatorStore';
+import MenuItem from 'app/components/menuItem';
+import QueryCount from 'app/components/queryCount';
 
 const SaveSearchButton = createReactClass({
   displayName: 'SaveSearchButton',
@@ -18,7 +19,6 @@ const SaveSearchButton = createReactClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    access: PropTypes.object.isRequired,
     query: PropTypes.string.isRequired,
     disabled: PropTypes.bool,
     style: PropTypes.object,
@@ -160,14 +160,14 @@ const SaveSearchButton = createReactClass({
                 label={t('Make this the default view for myself.')}
                 onChange={this.onFieldChange.bind(this, 'isUserDefault')}
               />
-              {this.props.access.has('project:write') && (
+              <Access access={['project:write']}>
                 <BooleanField
                   key="isDefault"
                   name="is-default"
                   label={t('Make this the default view for my team.')}
                   onChange={this.onFieldChange.bind(this, 'isDefault')}
                 />
-              )}
+              </Access>
             </div>
             <div className="modal-footer">
               <button
@@ -196,7 +196,6 @@ const SavedSearchSelector = createReactClass({
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     searchId: PropTypes.string,
-    access: PropTypes.object.isRequired,
     savedSearchList: PropTypes.array.isRequired,
     queryCount: PropTypes.number,
     queryMaxCount: PropTypes.number,
@@ -215,7 +214,7 @@ const SavedSearchSelector = createReactClass({
   },
 
   render() {
-    let {access, orgId, projectId, queryCount, queryMaxCount} = this.props;
+    let {orgId, projectId, queryCount, queryMaxCount} = this.props;
     let children = this.props.savedSearchList.map(search => {
       // TODO(dcramer): we want these to link directly to the saved
       // search ID, and pass that into the backend (probably)
@@ -243,7 +242,9 @@ const SavedSearchSelector = createReactClass({
               {t("There don't seem to be any saved searches yet.")}
             </li>
           )}
-          {access.has('project:write') && <MenuItem divider={true} />}
+          <Access access={['project:write']}>
+            <MenuItem divider={true} />
+          </Access>
           <li>
             <div className="row">
               <div className="col-md-7">

@@ -732,13 +732,11 @@ const Stream = createReactClass({
     if (this.state.isSidebarVisible) classes.push('show-sidebar');
     let {orgId} = this.props.params;
     let searchId = this.state.searchId;
-    let access = this.getAccess();
 
     return (
       <div className={classNames(classes)}>
         <div className="stream-content">
           <StreamFilters
-            access={access}
             orgId={orgId}
             query={this.state.query}
             sort={this.state.sort}

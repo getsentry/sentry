@@ -10,7 +10,6 @@ class StreamFilters extends React.Component {
   static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    access: PropTypes.object.isRequired,
 
     searchId: PropTypes.string,
     savedSearchList: PropTypes.array.isRequired,
@@ -41,7 +40,6 @@ class StreamFilters extends React.Component {
 
   render() {
     let {
-      access,
       orgId,
       projectId,
       searchId,
@@ -63,7 +61,6 @@ class StreamFilters extends React.Component {
         <div className="row">
           <div className="col-sm-5">
             <SavedSearchSelector
-              access={access}
               orgId={orgId}
               projectId={projectId}
               searchId={searchId}
