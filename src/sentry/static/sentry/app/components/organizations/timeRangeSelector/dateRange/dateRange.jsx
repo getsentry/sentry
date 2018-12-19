@@ -241,8 +241,7 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   .rdrDayStartOfMonth,
   .rdrDayStartOfWeek,
   .rdrDayStartOfWeek {
-    .rdrInRange,
-    .rdrEndEdge {
+    .rdrInRange {
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
     }
@@ -252,8 +251,7 @@ const StyledDateRangePicker = styled(DateRangePicker)`
   .rdrDayEndOfMonth,
   .rdrDayEndOfWeek,
   .rdrDayEndOfWeek {
-    .rdrInRange,
-    .rdrEndEdge {
+    .rdrInRange {
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
     }

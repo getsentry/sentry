@@ -1,16 +1,15 @@
-import React from 'react';
-import styled from 'react-emotion';
 import {Flex, Box} from 'grid-emotion';
 import {keyframes} from 'emotion';
-
-import space from 'app/styles/space';
-import {slideInLeft} from 'app/styles/animations';
+import React from 'react';
+import styled from 'react-emotion';
 
 import {Panel, PanelItem} from 'app/components/panels';
+import {slideInLeft} from 'app/styles/animations';
 import Button from 'app/components/button';
-import NavTabs from 'app/components/navTabs';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Link from 'app/components/link';
-import Header from 'app/components/organizations/header';
+import NavTabs from 'app/components/navTabs';
+import space from 'app/styles/space';
 import theme from 'app/utils/theme';
 import InlineSvg from 'app/components/inlineSvg';
 import ExternalLink from 'app/components/externalLink';
@@ -33,7 +32,7 @@ export const DiscoverContainer = styled(Flex)`
   }
 `;
 
-export const DiscoverHeader = styled(Header)`
+export const DiscoverGlobalSelectionHeader = styled(GlobalSelectionHeader)`
   position: absolute;
   top: 0;
   left: 0;

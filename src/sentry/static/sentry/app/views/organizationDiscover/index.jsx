@@ -56,13 +56,13 @@ class OrganizationDiscoverContainer extends React.Component {
       updateDateTime({
         start: query.start || null,
         end: query.end || null,
-        range: query.range || null,
+        period: query.range || null,
       });
     } else {
       // Update query with global projects
       query.start = props.selection.datetime.start;
       query.end = props.selection.datetime.end;
-      query.range = props.selection.datetime.range;
+      query.range = props.selection.datetime.period;
     }
 
     this.queryBuilder = createQueryBuilder(query, organization);

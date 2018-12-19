@@ -1,44 +1,37 @@
-import {pick, isDate, isEqual, isEqualWith} from 'lodash';
+import {pick, isEqual} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import moment from 'moment';
 
 import {getFormattedDate} from 'app/utils/dates';
+import {isEqualWithDates} from 'app/utils/isEqualWithDates';
 import {t} from 'app/locale';
+import {updateParams} from 'app/actionCreators/globalSelection';
 import DataZoom from 'app/components/charts/components/dataZoom';
 import LineChart from 'app/components/charts/lineChart';
 import SentryTypes from 'app/sentryTypes';
 import ToolBox from 'app/components/charts/components/toolBox';
 import withApi from 'app/utils/withApi';
 
-import EventsRequest from './utils/eventsRequest';
 import EventsContext from './utils/eventsContext';
+import EventsRequest from './utils/eventsRequest';
 
 const DEFAULT_GET_CATEGORY = () => t('Events');
 
-const dateComparator = (value, other) => {
-  if (isDate(value) && isDate(other)) {
-    return +value === +other;
-  }
-
-  // returning undefined will use default comparator
-  return undefined;
-};
-
-const isEqualWithDates = (a, b) => isEqualWith(a, b, dateComparator);
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
 class EventsChart extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
-    actions: PropTypes.object,
+    router: PropTypes.object,
     period: PropTypes.string,
     query: PropTypes.string,
     start: PropTypes.instanceOf(Date),
     end: PropTypes.instanceOf(Date),
     utc: PropTypes.bool,
+    zoom: PropTypes.bool,
 
     // Callback for when chart has been zoomed
     onZoom: PropTypes.func,
@@ -61,24 +54,22 @@ class EventsChart extends React.Component {
     const nextPeriod = pick(nextProps, periodKeys);
     const currentPeriod = pick(this.props, periodKeys);
     const otherKeys = ['query', 'project', 'environment'];
+    const zoom = nextProps.zoom;
 
     // Exception for these parameters -- needs to re-render chart
-    if (
-      !nextProps.zoom &&
-      !isEqual(pick(nextProps, otherKeys), pick(this.props, otherKeys))
-    ) {
+    if (!zoom && !isEqual(pick(nextProps, otherKeys), pick(this.props, otherKeys))) {
       return true;
     }
 
     if (
-      nextProps.zoom &&
+      zoom &&
       this.useHourlyInterval(nextProps) !== this.useHourlyInterval(this.props)
     ) {
       return true;
     }
 
     // do not update if we are zooming or if period via props does not change
-    if (nextProps.zoom || isEqualWithDates(currentPeriod, nextPeriod)) {
+    if (zoom || isEqualWithDates(currentPeriod, nextPeriod)) {
       return false;
     }
 
@@ -146,12 +137,15 @@ class EventsChart extends React.Component {
     }
 
     this.zooming = () => {
-      this.props.actions.updateParams({
-        statsPeriod: period,
-        start: startFormatted,
-        end: endFormatted,
-        zoom: '1',
-      });
+      updateParams(
+        {
+          period,
+          start: startFormatted,
+          end: endFormatted,
+          zoom: '1',
+        },
+        this.props.router
+      );
 
       this.saveCurrentPeriod({period, start, end});
     };

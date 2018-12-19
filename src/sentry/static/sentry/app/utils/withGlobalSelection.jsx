@@ -25,7 +25,7 @@ const withGlobalSelection = WrappedComponent =>
       });
     },
     render() {
-      return <WrappedComponent {...this.props} selection={this.state.selection} />;
+      return <WrappedComponent selection={this.state.selection} {...this.props} />;
     },
   });
 
