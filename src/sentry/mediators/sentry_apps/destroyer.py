@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.mediators import Mediator, Param
-from sentry.mediators.sentry_app_installations import Destroyer as InstallDestroyer
+from sentry.mediators import sentry_app_installations
 
 
 class Destroyer(Mediator):
@@ -16,7 +16,7 @@ class Destroyer(Mediator):
 
     def _destroy_sentry_app_installations(self):
         for install in self.sentry_app.installations.all():
-            InstallDestroyer.run(install=install)
+            sentry_app_installations.Destroyer.run(install=install)
 
     def _destroy_api_application(self):
         self.sentry_app.application.delete()
