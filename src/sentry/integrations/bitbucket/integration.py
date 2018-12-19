@@ -65,7 +65,6 @@ metadata = IntegrationMetadata(
 scopes = (
     'issue:write',
     'pullrequest',
-    # 'repository:admin',
     'webhook',
 )
 
