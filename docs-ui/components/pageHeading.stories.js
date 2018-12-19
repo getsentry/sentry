@@ -8,5 +8,5 @@ storiesOf('UI|PageHeading', module).add(
   'default',
   withInfo(
     'Every page should have a header, and the header should be made with this.'
-  )(() => <PageHeading>Page Header</PageHeading>)
+  )(() => <PageHeading withMargins>Page Header</PageHeading>)
 );

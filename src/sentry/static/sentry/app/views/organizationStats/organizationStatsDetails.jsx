@@ -68,7 +68,7 @@ class OrganizationStats extends React.Component {
 
     return (
       <div>
-        <StyledPageHeading>{t('Organization Stats')}</StyledPageHeading>
+        <StyledPageHeading withMargins>{t('Organization Stats')}</StyledPageHeading>
         <div className="row">
           <div className="col-md-9">
             <TextBlock>
@@ -142,7 +142,6 @@ class OrganizationStats extends React.Component {
 }
 
 const StyledPageHeading = styled(PageHeading)`
-  margin-bottom: ${space(3)};
   margin-top: ${space(0.5)};
 `;
 

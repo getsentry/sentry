@@ -3,8 +3,6 @@ import {Link} from 'react-router';
 import styled from 'react-emotion';
 import PropTypes from 'prop-types';
 import {omit} from 'lodash';
-import styled from 'react-emotion';
-import space from 'app/styles/space';
 import {t} from 'app/locale';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
@@ -29,9 +27,9 @@ export default class UserFeedbackContainer extends React.Component {
         <div className="row">
           <div className="col-sm-9">
             {params.projectId ? (
-              <StyledPageHeading>{t('User Feedback')}</StyledPageHeader>
+              <PageHeading withMargins>{t('User Feedback')}</PageHeading>
             ) : (
-              <StyledPageHeading>{t('User Feedback')}</StyledPageHeader>
+              <PageHeading withMargins>{t('User Feedback')}</PageHeading>
             )}
           </div>
           <div className="col-sm-3" style={{textAlign: 'right'}}>
@@ -61,8 +59,3 @@ export default class UserFeedbackContainer extends React.Component {
     );
   }
 }
-
-const StyledPageHeading = styled(PageHeading)`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(3)};
-`;
