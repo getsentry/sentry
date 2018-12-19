@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import os
 import zipfile
+import uuid
 
 from six import BytesIO
 from django.core.urlresolvers import reverse
@@ -9,7 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from sentry.testutils import TestCase
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
-from sentry.models import Event, EventAttachment
+from sentry.models import Event, EventAttachment, UserReport
 
 
 def get_unreal_crash_file():
@@ -54,6 +55,66 @@ class UnrealIntegrationTest(TestCase):
             assert 'ntdll' == event['stacktrace']['frames'][0]['package']
             assert 'YetAnother' == event['stacktrace']['frames'][2]['package']
             assert 'YetAnother' == event['stacktrace']['frames'][2]['package']
+
+    def test_merge_unreal_context_event_without_user(self):
+        expected_message = 'user comments'
+        context = {
+            'runtime_properties': {
+                'user_description': expected_message
+            }
+        }
+        event = {}
+        merge_unreal_context_event(context, event, self.project)
+
+        user_report = UserReport.objects.get(
+            event_id=event['event_id'],
+            project=self.project,
+        )
+        assert user_report.comments == expected_message
+        assert user_report.name == 'unknown'
+        assert event.get('user') is None
+
+    def test_merge_unreal_context_event_with_user(self):
+        expected_message = 'user comments'
+        expected_username = 'John Doe'
+        context = {
+            'runtime_properties': {
+                'username': expected_username,
+                'user_description': expected_message
+            }
+        }
+        event = {}
+        merge_unreal_context_event(context, event, self.project)
+
+        user_report = UserReport.objects.get(
+            event_id=event['event_id'],
+            project=self.project,
+        )
+        assert user_report.comments == expected_message
+        assert user_report.name == expected_username
+        assert event['user']['username'] == expected_username
+
+    def test_merge_unreal_context_event_without_user_description(self):
+        expected_username = 'Jane Doe'
+        context = {
+            'runtime_properties': {
+                'username': expected_username,
+            }
+        }
+        event = {
+            'event_id': uuid.uuid4().hex
+        }
+        merge_unreal_context_event(context, event, self.project)
+        try:
+            user_report = UserReport.objects.get(
+                event_id=event['event_id'],
+                project=self.project,
+            )
+        except UserReport.DoesNotExist:
+            user_report = None
+
+        assert user_report is None
+        assert event['user']['username'] == expected_username
 
     def test_merge_unreal_logs_event(self):
         with open(get_unreal_crash_file(), 'rb') as f:
