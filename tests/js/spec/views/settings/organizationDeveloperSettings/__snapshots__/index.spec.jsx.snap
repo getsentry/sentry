@@ -236,6 +236,7 @@ exports[`Organization Developer Settings when Apps exist displays all Apps owned
                       }
                     }
                     key="123456123456123456123456"
+                    onRemoveApp={[Function]}
                     orgId="org-slug"
                     showPublishStatus={true}
                   >
@@ -433,94 +434,108 @@ exports[`Organization Developer Settings when Apps exist displays all Apps owned
                                       className="css-roynbj"
                                       is={null}
                                     >
-                                      <Button
-                                        disabled={false}
-                                        icon="icon-trash"
-                                        onClick={[Function]}
-                                        size="small"
+                                      <Tooltip
+                                        title="Published apps cannot be removed."
                                       >
-                                        <StyledButton
-                                          disabled={false}
-                                          onClick={[Function]}
-                                          role="button"
-                                          size="small"
+                                        <span
+                                          className="tip"
+                                          title="Published apps cannot be removed."
                                         >
-                                          <Component
-                                            className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                            disabled={false}
-                                            onClick={[Function]}
-                                            role="button"
+                                          <Button
+                                            disabled={true}
+                                            icon="icon-trash"
                                             size="small"
                                           >
-                                            <button
-                                              className="css-dkprmi-StyledButton-getColors eqrebog0"
-                                              disabled={false}
+                                            <StyledButton
+                                              disabled={true}
+                                              href={null}
                                               onClick={[Function]}
                                               role="button"
                                               size="small"
+                                              to={null}
                                             >
-                                              <ButtonLabel
+                                              <Component
+                                                className="css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                disabled={true}
+                                                href={null}
+                                                onClick={[Function]}
+                                                role="button"
                                                 size="small"
+                                                to={null}
                                               >
-                                                <Component
-                                                  className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                <button
+                                                  className="css-1ujzp8g-StyledButton-getColors eqrebog0"
+                                                  disabled={true}
+                                                  href={null}
+                                                  onClick={[Function]}
+                                                  role="button"
                                                   size="small"
+                                                  to={null}
                                                 >
-                                                  <span
-                                                    className="css-7ui8bl-ButtonLabel eqrebog1"
+                                                  <ButtonLabel
+                                                    size="small"
                                                   >
-                                                    <Icon
-                                                      hasChildren={false}
+                                                    <Component
+                                                      className="css-7ui8bl-ButtonLabel eqrebog1"
                                                       size="small"
                                                     >
-                                                      <Component
-                                                        className="css-ljhpxy-Icon eqrebog2"
-                                                        hasChildren={false}
-                                                        size="small"
+                                                      <span
+                                                        className="css-7ui8bl-ButtonLabel eqrebog1"
                                                       >
-                                                        <span
-                                                          className="css-ljhpxy-Icon eqrebog2"
+                                                        <Icon
+                                                          hasChildren={false}
                                                           size="small"
                                                         >
-                                                          <StyledInlineSvg
-                                                            size="12px"
-                                                            src="icon-trash"
+                                                          <Component
+                                                            className="css-ljhpxy-Icon eqrebog2"
+                                                            hasChildren={false}
+                                                            size="small"
                                                           >
-                                                            <InlineSvg
-                                                              className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                              size="12px"
-                                                              src="icon-trash"
+                                                            <span
+                                                              className="css-ljhpxy-Icon eqrebog2"
+                                                              size="small"
                                                             >
-                                                              <StyledSvg
-                                                                className="css-1ov3rcq-StyledInlineSvg eqrebog3"
-                                                                height="12px"
-                                                                viewBox={Object {}}
-                                                                width="12px"
+                                                              <StyledInlineSvg
+                                                                size="12px"
+                                                                src="icon-trash"
                                                               >
-                                                                <svg
-                                                                  className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
-                                                                  height="12px"
-                                                                  viewBox={Object {}}
-                                                                  width="12px"
+                                                                <InlineSvg
+                                                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                  size="12px"
+                                                                  src="icon-trash"
                                                                 >
-                                                                  <use
-                                                                    href="#test"
-                                                                    xlinkHref="#test"
-                                                                  />
-                                                                </svg>
-                                                              </StyledSvg>
-                                                            </InlineSvg>
-                                                          </StyledInlineSvg>
-                                                        </span>
-                                                      </Component>
-                                                    </Icon>
-                                                  </span>
-                                                </Component>
-                                              </ButtonLabel>
-                                            </button>
-                                          </Component>
-                                        </StyledButton>
-                                      </Button>
+                                                                  <StyledSvg
+                                                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                                                    height="12px"
+                                                                    viewBox={Object {}}
+                                                                    width="12px"
+                                                                  >
+                                                                    <svg
+                                                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                                                      height="12px"
+                                                                      viewBox={Object {}}
+                                                                      width="12px"
+                                                                    >
+                                                                      <use
+                                                                        href="#test"
+                                                                        xlinkHref="#test"
+                                                                      />
+                                                                    </svg>
+                                                                  </StyledSvg>
+                                                                </InlineSvg>
+                                                              </StyledInlineSvg>
+                                                            </span>
+                                                          </Component>
+                                                        </Icon>
+                                                      </span>
+                                                    </Component>
+                                                  </ButtonLabel>
+                                                </button>
+                                              </Component>
+                                            </StyledButton>
+                                          </Button>
+                                        </span>
+                                      </Tooltip>
                                     </div>
                                   </Base>
                                 </Box>

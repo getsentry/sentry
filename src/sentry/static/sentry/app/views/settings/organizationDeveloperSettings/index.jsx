@@ -16,16 +16,12 @@ export default class OrganizationDeveloperSettings extends AsyncView {
   }
 
   removeApp = app => {
-    const api = this.api;
-    const origApps = this.state.applications;
     const apps = this.state.applications.filter(a => a.slug !== app.slug);
-    removeSentryApp(api, app).then(
+    removeSentryApp(this.api, app).then(
       () => {
         this.setState({applications: apps});
       },
-      () => {
-        this.setState({applications: origApps});
-      }
+      () => {}
     );
   };
 

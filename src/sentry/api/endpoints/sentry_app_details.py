@@ -54,13 +54,12 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             return Response(status=404)
 
         if sentry_app.status == SentryAppStatus.UNPUBLISHED:
-
             Destroyer.run(sentry_app=sentry_app)
             return Response(status=204)
 
         return Response(
             {
-                detail: ['Published apps cannot be removed.']
+                'detail': ['Published apps cannot be removed.']
             },
             status=403
         )

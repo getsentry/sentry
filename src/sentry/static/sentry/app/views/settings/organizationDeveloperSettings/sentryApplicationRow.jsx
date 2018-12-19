@@ -32,10 +32,8 @@ export default class SentryApplicationRow extends React.PureComponent {
 
   renderRemoveApp(app) {
     const message = t(
-      `Are you sure you want to remove the ${app.slug} application ? \
-       If your application has any installations, data from those \
-       installations will be removed along with the installation itself. \
-       This is a permanent action.`
+      `Deleting ${app.slug} will also delete any and all of its installations. \
+       This is a permanent action. Do you wish to continue?`
     );
     return (
       <ConfirmDelete
