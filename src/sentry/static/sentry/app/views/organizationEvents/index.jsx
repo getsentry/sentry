@@ -63,7 +63,7 @@ class OrganizationEventsContainer extends React.Component {
               projects={projects}
               showAbsolute={true}
               showRelative={true}
-              resetParams={['zoom', 'cursor']}
+              resetParamsOnChange={['zoom', 'cursor']}
             />
 
             <Body>

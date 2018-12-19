@@ -49,7 +49,7 @@ class GlobalSelectionHeader extends React.Component {
 
     // Reset these URL params when we fire actions
     // (custom routing only)
-    resetParams: PropTypes.arrayOf(PropTypes.string),
+    resetParamsOnChange: PropTypes.arrayOf(PropTypes.string),
 
     // Props passed to child components //
     /**
@@ -73,7 +73,7 @@ class GlobalSelectionHeader extends React.Component {
   static defaultProps = {
     hasCustomRouting: false,
     showEnvironmentSelector: true,
-    resetParams: [],
+    resetParamsOnChange: [],
   };
 
   // Parses URL query parameters for values relevant to global selection header
@@ -230,7 +230,7 @@ class GlobalSelectionHeader extends React.Component {
   getUpdateOptions = () =>
     !this.props.hasCustomRouting
       ? {
-          resetParams: this.props.resetParams,
+          resetParams: this.props.resetParamsOnChange,
         }
       : {};
 
