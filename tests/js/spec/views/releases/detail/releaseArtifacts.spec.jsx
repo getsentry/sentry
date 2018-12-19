@@ -2,7 +2,7 @@ import React from 'react';
 import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import ReleaseArtifacts from 'app/views/releaseArtifacts';
+import ReleaseArtifacts from 'app/views/releases/detail/releaseArtifacts';
 
 describe('ReleaseArtifacts', function() {
   let sandbox;

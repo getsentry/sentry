@@ -3,7 +3,7 @@ import React from 'react';
 import {Link} from 'react-router';
 import marked from 'marked';
 
-import PullRequestLink from 'app/views/releases/pullRequestLink';
+import PullRequestLink from 'app/components/pullRequestLink';
 
 import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';

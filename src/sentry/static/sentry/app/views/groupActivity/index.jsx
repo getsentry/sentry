@@ -19,7 +19,7 @@ import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import NoteContainer from 'app/components/activity/noteContainer';
 import NoteInput from 'app/components/activity/noteInput';
-import PullRequestLink from 'app/views/releases/pullRequestLink';
+import PullRequestLink from 'app/components/pullRequestLink';
 import TeamStore from 'app/stores/teamStore';
 import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';

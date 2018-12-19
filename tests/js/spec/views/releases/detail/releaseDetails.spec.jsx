@@ -1,7 +1,7 @@
 import React from 'react';
 import {mount} from 'enzyme';
 
-import ReleaseDetails from 'app/views/releaseDetails';
+import ReleaseDetails from 'app/views/releases/detail/releaseDetails';
 
 describe('ReleaseDetails', function() {
   let deleteMock;
