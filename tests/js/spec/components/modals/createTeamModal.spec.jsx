@@ -13,8 +13,12 @@ describe('CreateTeamModal', function() {
   let org = TestStubs.Organization();
   let closeModal = jest.fn();
   let onClose = jest.fn();
+  let onSuccess = jest.fn();
 
-  beforeEach(function() {});
+  beforeEach(function() {
+    onClose.mockReset();
+    onSuccess.mockReset();
+  });
 
   afterEach(function() {});
 
@@ -26,6 +30,7 @@ describe('CreateTeamModal', function() {
         organization={org}
         closeModal={closeModal}
         onClose={onClose}
+        onSuccess={onSuccess}
       />,
       TestStubs.routerContext()
     );
@@ -36,9 +41,10 @@ describe('CreateTeamModal', function() {
 
     wrapper.find('CreateTeamForm Form').simulate('submit');
 
-    expect(createTeam).toHaveBeenCalled();
+    expect(createTeam).toHaveBeenCalledTimes(1);
     await tick();
     expect(onClose).toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalledTimes(1);
   });
 });
