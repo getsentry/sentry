@@ -47,6 +47,10 @@ class GlobalSelectionHeader extends React.Component {
     // Disable automatic routing
     hasCustomRouting: PropTypes.bool,
 
+    // Reset these URL params when we fire actions
+    // (custom routing only)
+    resetParams: PropTypes.arrayOf(PropTypes.string),
+
     // Props passed to child components //
     /**
      * Show absolute date selectors
@@ -69,6 +73,7 @@ class GlobalSelectionHeader extends React.Component {
   static defaultProps = {
     hasCustomRouting: false,
     showEnvironmentSelector: true,
+    resetParams: [],
   };
 
   // Parses URL query parameters for values relevant to global selection header
@@ -221,6 +226,14 @@ class GlobalSelectionHeader extends React.Component {
   // Returns `router` from props if `hasCustomRouting` property is false
   getRouter = () => (!this.props.hasCustomRouting ? this.props.router : null);
 
+  // Returns an options object for `update*` actions
+  getUpdateOptions = () =>
+    !this.props.hasCustomRouting
+      ? {
+          resetParams: this.props.resetParams,
+        }
+      : {};
+
   handleChangeProjects = projects => {
     this.setState({
       projects,
@@ -245,20 +258,20 @@ class GlobalSelectionHeader extends React.Component {
       utc,
     };
 
-    updateDateTime(newValueObj, this.getRouter());
+    updateDateTime(newValueObj, this.getRouter(), this.getUpdateOptions());
     callIfFunction(this.props.onUpdateTime, newValueObj);
   };
 
   handleUpdateEnvironmments = () => {
     const {environments} = this.state;
-    updateEnvironments(environments, this.getRouter());
+    updateEnvironments(environments, this.getRouter(), this.getUpdateOptions());
     this.setState({environments: null});
     callIfFunction(this.props.onUpdateEnvironments, environments);
   };
 
   handleUpdateProjects = () => {
     const {projects} = this.state;
-    updateProjects(projects, this.getRouter());
+    updateProjects(projects, this.getRouter(), this.getUpdateOptions());
     this.setState({projects: null});
     callIfFunction(this.props.onUpdateProjects, projects);
   };
