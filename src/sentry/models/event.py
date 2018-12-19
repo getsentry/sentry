@@ -7,7 +7,6 @@ sentry.models.event
 """
 from __future__ import absolute_import
 
-from functools32 import lru_cache
 import six
 import string
 import warnings
@@ -37,6 +36,16 @@ from sentry.utils.strings import truncatechars
 
 
 class EventCommon(object):
+    @classmethod
+    def generate_node_id(cls, project_id, event_id):
+        """
+        Returns a deterministic node_id for this event based on the project_id
+        and event_id which together are globally unique. The event body should
+        be saved under this key in nodestore so it can be retrieved using the
+        same generated id when we only have project_id and event_id.
+        """
+        return md5('{}:{}'.format(project_id, event_id)).hexdigest()
+
     @property
     def group(self):
         from sentry.models import Group
@@ -56,15 +65,8 @@ class EventCommon(object):
         pass
 
     @property
-    @lru_cache(10)
     def interfaces(self):
         return CanonicalKeyView(get_interfaces(self.data))
-
-    @property
-    def default_node_id(self):
-        # TODO make it so that the django Event can use it instead of it being
-        # duplicated in EventManager
-        return '{}:{}'.format(self.project_id, self.event_id)[:40]
 
     def get_legacy_message(self):
         # TODO(mitsuhiko): remove this code once it's unused.  It's still
@@ -154,7 +156,6 @@ class EventCommon(object):
         return self.data.get('version', '5')
 
     @property
-    @lru_cache(10)
     def ip_address(self):
         ip_address = get_path(self.data, 'user', 'ip_address')
         if ip_address:
@@ -280,13 +281,16 @@ class EventCommon(object):
 
 class SnubaEvent(EventCommon):
     """
-        A simple wrapper class on a row (dict) returned from snuba representing
-        an event. Provides a class name to register a serializer against, and
-        Makes keys accessible as attributes.
+        Represents an event returned from snuba.
+
+        This is a readonly event and does not support event creation or save.
+        The basic event data is fetched from snuba, and the event body is
+        fetched from nodestore and bound to the data property in the same way
+        as a regular Event.
     """
 
     # The list of columns that we should request from snuba to be able to fill
-    # out a proper event object.
+    # out the object.
     selected_columns = [
         'event_id',
         'project_id',
@@ -318,11 +322,13 @@ class SnubaEvent(EventCommon):
     def __init__(self, kv):
         assert set(kv.keys()) == set(self.selected_columns)
         self.__dict__ = kv
-        self.data = NodeData(None, id=self.default_node_id, data=None)
+
+        # TODO how does this interact with bind_data
+        node_id = EventCommon.generate_node_id(self.project_id, self.event_id)
+        self.data = NodeData(None, node_id, data=None)
 
     def save(self):
-        if self.data:
-            self.data.save()
+        raise NotImplementedError
     # TODO unify with next_event/prev_event PR and create a snuba implementation
     # of those methods (can it be done without 2 extra queries?)
 
@@ -359,16 +365,6 @@ class Event(Model, EventCommon):
         index_together = (('group_id', 'datetime'), )
 
     __repr__ = sane_repr('project_id', 'group_id')
-
-    @classmethod
-    def generate_node_id(cls, project_id, event_id):
-        """
-        Returns a deterministic node_id for this event based on the project_id
-        and event_id which together are globally unique. The event body should
-        be saved under this key in nodestore so it can be retrieved using the
-        same generated id when we only have project_id and event_id.
-        """
-        return md5('{}:{}'.format(project_id, event_id)).hexdigest()
 
     def __getstate__(self):
         state = Model.__getstate__(self)
