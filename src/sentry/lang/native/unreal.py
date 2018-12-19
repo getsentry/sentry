@@ -37,7 +37,6 @@ def merge_unreal_context_event(unreal_context, event, project):
         event['message'] = message
 
     username = runtime_prop.pop('username', None)
-    user = None
     if username is not None:
         set_path(event, 'user', 'username', value=username)
 
@@ -58,8 +57,8 @@ def merge_unreal_context_event(unreal_context, event, project):
     if user_desc is not None:
         event_id = event.setdefault('event_id', uuid.uuid4().hex)
         feedback_user = 'unknown'
-        if user is not None:
-            feedback_user = user.get('username', feedback_user)
+        if username is not None:
+            feedback_user = username
 
         UserReport.objects.create(
             project=project,
