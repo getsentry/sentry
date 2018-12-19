@@ -94,7 +94,7 @@ const ProjectUserFeedback = createReactClass({
 
     let query = {
       ...this.props.location.query,
-      limit: 50,
+      per_page: 50,
       query: this.state.query,
       status: this.state.status,
     };
