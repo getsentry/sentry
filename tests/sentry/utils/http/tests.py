@@ -351,30 +351,24 @@ class HeuristicDecodeTestCase(TestCase):
     url_body = 'key=value&key2=value2'
 
     def test_json(self):
-        data, content_type = heuristic_decode(self.json_body, 'application/json')
-        assert data == {'key': 'value', 'key2': 'value2'}
+        content_type = heuristic_decode(self.json_body, 'application/json')
         assert content_type == 'application/json'
 
     def test_url_encoded(self):
-        data, content_type = heuristic_decode(self.url_body, 'application/x-www-form-urlencoded')
-        assert data == {'key': ['value'], 'key2': ['value2']}
+        content_type = heuristic_decode(self.url_body, 'application/x-www-form-urlencoded')
         assert content_type == 'application/x-www-form-urlencoded'
 
     def test_possible_type_mismatch(self):
-        data, content_type = heuristic_decode(self.json_body, 'application/x-www-form-urlencoded')
-        assert data == {'key': 'value', 'key2': 'value2'}
+        content_type = heuristic_decode(self.json_body, 'application/x-www-form-urlencoded')
         assert content_type == 'application/json'
 
-        data, content_type = heuristic_decode(self.url_body, 'application/json')
-        assert data == {'key': ['value'], 'key2': ['value2']}
+        content_type = heuristic_decode(self.url_body, 'application/json')
         assert content_type == 'application/x-www-form-urlencoded'
 
     def test_no_possible_type(self):
-        data, content_type = heuristic_decode(self.json_body)
-        assert data == {'key': 'value', 'key2': 'value2'}
+        content_type = heuristic_decode(self.json_body)
         assert content_type == 'application/json'
 
     def test_unable_to_decode(self):
-        data, content_type = heuristic_decode('string body', 'text/plain')
-        assert data == 'string body'
+        content_type = heuristic_decode('string body', 'text/plain')
         assert content_type == 'text/plain'
