@@ -93,10 +93,13 @@ class WebHooksPlugin(notify.NotificationPlugin):
         data['event']['tags'] = event.get_tags()
         data['event']['event_id'] = event.event_id
         if features.has('organizations:legacy-event-id', group.project.organization):
-            data['event']['id'] = Event.objects.filter(
-                project_id=event.project_id,
-                event_id=event.event_id,
-            ).values_list('id', flat=True).get()
+            try:
+                data['event']['id'] = Event.objects.filter(
+                    project_id=event.project_id,
+                    event_id=event.event_id,
+                ).values_list('id', flat=True).get()
+            except Event.DoesNotExist:
+                data['event']['id'] = None
         return data
 
     def get_webhook_urls(self, project):
