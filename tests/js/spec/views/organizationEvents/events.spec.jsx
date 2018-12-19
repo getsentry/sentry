@@ -98,9 +98,24 @@ describe('OrganizationEventsErrors', function() {
     await tick();
     wrapper.update();
     expect(eventsStatsMock).toHaveBeenCalled();
-    expect(eventsMetaMock).toHaveBeenCalled();
+    expect(eventsMetaMock).not.toHaveBeenCalled();
     expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
     expect(wrapper.find('IdBadge')).toHaveLength(2);
+  });
+
+  it('renders TotalEventCount with internal flag', async function() {
+    const newOrg = TestStubs.Organization({
+      ...org,
+      features: [...org.features, 'internal-catchall'],
+    });
+    const wrapper = mount(
+      <OrganizationEvents organization={newOrg} location={{query: {}}} />,
+      {...routerContext, context: {...routerContext.context, organization: newOrg}}
+    );
+    await tick();
+    wrapper.update();
+    expect(eventsMetaMock).toHaveBeenCalled();
+    expect(wrapper.find('Feature').text()).toEqual(' of 5 (estimated)');
   });
 
   // This tests the component's `shouldComponentUpdate`
