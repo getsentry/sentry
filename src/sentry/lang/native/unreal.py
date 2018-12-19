@@ -106,3 +106,9 @@ def merge_unreal_context_event(unreal_context, event, project):
     # add everything else as extra
     extra = event.setdefault('extra', {})
     extra.update(**runtime_prop)
+
+    # add sdk info
+    event['sdk'] = {
+        'name': 'sentry.unreal.crashreporter',
+        'version': runtime_prop.pop('crash_reporter_client_version', '0.0.0')
+    }
