@@ -7,6 +7,7 @@ sentry.models.event
 """
 from __future__ import absolute_import
 
+import re
 import six
 import string
 import warnings
@@ -327,6 +328,21 @@ class Event(Model):
 
 class EventSubjectTemplate(string.Template):
     idpattern = r'(tag:)?[_a-z][_a-z0-9]*'
+
+    def __init__(self, template):
+        super(EventSubjectTemplate, self).__init__(template)
+        self._space_tags()
+
+    def _space_tags(self):
+        """
+        Tags that are not followed by a space are not displayed correctly when shown as
+        the subject in the email. This adds an additional space between the tag and the
+        extra character that follows it.
+        """
+        self.template = re.sub(
+            r'(?P<tag>\$\{tag:[^}]+\})(?P<extra_char>\S)',
+            '\g<tag> \g<extra_char>',
+            self.template)
 
 
 class EventSubjectTemplateData(object):

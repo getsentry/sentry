@@ -85,7 +85,7 @@ class EventTest(TestCase):
     def test_email_subject_with_template(self):
         self.project.update_option(
             'mail:subject_template',
-            '$shortID - ${tag:environment}@${tag:release} $$ $title ${tag:invalid} $invalid'
+            '$shortID - ${tag:environment} @${tag:release} $$ $title ${tag:invalid} $invalid'
         )
 
         event1 = self.create_event(
@@ -97,7 +97,24 @@ class EventTest(TestCase):
             message='baz',
         )
 
-        assert event1.get_email_subject() == 'BAR-1 - production@0 $ baz ${tag:invalid} $invalid'
+        assert event1.get_email_subject() == 'BAR-1 - production @0 $ baz ${tag:invalid} $invalid'
+
+    def test_email_subject_with_template_space_needed(self):
+        self.project.update_option(
+            'mail:subject_template',
+            '${tag:environment}- $title ${tag:release}12345'
+        )
+
+        event1 = self.create_event(
+            event_id='a' * 32,
+            group=self.group,
+            tags={'level': 'info',
+                  'environment': 'production',
+                  'sentry:release': '0'},
+            message='baz',
+        )
+
+        assert event1.get_email_subject() == 'production - baz 0 12345'
 
     def test_as_dict_hides_client_ip(self):
         event = self.create_event(
