@@ -96,14 +96,25 @@ export default class OrganizationDiscover extends React.Component {
       return;
     }
 
+    const newQuery = getQueryFromQueryString(search);
     // Clear data only if location.search is empty (reset has been called)
     if (!search && !params.savedQueryId) {
-      const newQuery = getQueryFromQueryString(search);
       queryBuilder.reset(newQuery);
       resultManager.reset();
       this.setState({
         data: resultManager.getAll(),
       });
+    } else if (search) {
+      // This indicates navigation changes (e.g. back button on browser)
+      // We need to update our search store and probably runQuery
+      const {projects, range, start, end} = newQuery;
+      this.updateProjects(projects);
+      this.updateDateTime({
+        start: start || null,
+        end: end || null,
+        period: range || null,
+      });
+      this.runQuery();
     }
   }
 
@@ -112,18 +123,30 @@ export default class OrganizationDiscover extends React.Component {
     updateProjects(val);
   };
 
-  updateDateTime = ({relative, start, end}) => {
-    const datetimeFields = {
-      range: relative,
-      start: (start && getUtcDateString(start)) || start,
-      end: (end && getUtcDateString(end)) || end,
-    };
-    this.updateFields(datetimeFields);
+  getDateTimeFields = ({period, start, end}) => ({
+    range: period || null,
+    start: (start && getUtcDateString(start)) || null,
+    end: (end && getUtcDateString(end)) || null,
+  });
+
+  changeTime = datetime => {
+    this.updateFields(this.getDateTimeFields(datetime));
+  };
+
+  updateDateTime = datetime => {
+    const {start, end, range} = this.getDateTimeFields(datetime);
+
+    this.updateFields({start, end, range});
     updateDateTime({
-      start: datetimeFields.start,
-      end: datetimeFields.end,
-      period: datetimeFields.range,
+      start,
+      end,
+      period: range,
     });
+  };
+
+  updateDateTimeAndRun = datetime => {
+    this.updateDateTime(datetime);
+    this.runQuery();
   };
 
   updateField = (field, value) => {
@@ -370,8 +393,8 @@ export default class OrganizationDiscover extends React.Component {
           showEnvironmentSelector={false}
           onChangeProjects={this.updateProjects}
           onUpdateProjects={this.runQuery}
-          onChangeTime={this.updateDateTime}
-          onUpdateTime={this.runQuery}
+          onChangeTime={this.changeTime}
+          onUpdateTime={this.updateDateTimeAndRun}
         />
 
         <Body>

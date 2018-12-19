@@ -64,12 +64,6 @@ class OrganizationEventsContainer extends React.Component {
               initializeWithUrlParams={true}
               showAbsolute={true}
               showRelative={true}
-              onChangeProjects={this.handleChangeProjects}
-              onUpdateProjects={this.handleUpdateProjects}
-              onChangeEnvironments={this.handleChangeEnvironments}
-              onUpdateEnvironments={this.handleUpdateEnvironmments}
-              onChangeTime={this.handleChangeTime}
-              onUpdateTime={this.handleUpdatePeriod}
             />
 
             <Body>

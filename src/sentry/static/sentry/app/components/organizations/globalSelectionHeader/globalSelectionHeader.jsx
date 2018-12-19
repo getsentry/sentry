@@ -235,8 +235,8 @@ class GlobalSelectionHeader extends React.Component {
     callIfFunction(this.props.onChangeEnvironments, environments);
   };
 
-  handleChangeTime = ({start, end, relative, utc}) => {
-    callIfFunction(this.props.onChangeTime, {start, end, relative, utc});
+  handleChangeTime = ({start, end, relative: period, utc}) => {
+    callIfFunction(this.props.onChangeTime, {start, end, period, utc});
   };
 
   handleUpdateTime = ({relative: period, start, end, utc} = {}) => {
