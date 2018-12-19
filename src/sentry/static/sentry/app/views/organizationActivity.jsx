@@ -21,7 +21,7 @@ export default class OrganizationActivity extends AsyncView {
   render() {
     return (
       <OrganizationHomeContainer>
-        <StyledPageHeading>{t('Activity')}</StyledPageHeading>
+        <StyledPageHeading withMargins>{t('Activity')}</StyledPageHeading>
         <ActivityFeed
           endpoint={this.getEndpoint()}
           query={{
@@ -36,6 +36,5 @@ export default class OrganizationActivity extends AsyncView {
 }
 
 const StyledPageHeading = styled(PageHeading)`
-  margin-bottom: ${space(3)};
   margin-top: ${space(0.5)};
 `;

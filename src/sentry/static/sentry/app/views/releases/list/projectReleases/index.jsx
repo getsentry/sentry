@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import {omit, isEqual} from 'lodash';
@@ -20,7 +19,6 @@ import {t, tct} from 'app/locale';
 import {Panel, PanelBody} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import PageHeading from 'app/components/pageHeading';
-import space from 'app/styles/space';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
 import ReleaseEmptyState from './releaseEmptyState';
@@ -222,7 +220,7 @@ const ProjectReleases = createReactClass({
         <GuideAnchor target="releases" type="invisible" />
         <div className="row">
           <div className="col-sm-7">
-            <StyledPageHeading>{t('Releases')}</StyledPageHeading>
+            <PageHeading withMargins>{t('Releases')}</PageHeading>
           </div>
           <div className="col-sm-5 release-search">
             <SearchBar
@@ -245,8 +243,3 @@ const ProjectReleases = createReactClass({
 
 export {ProjectReleases}; // For tests
 export default withEnvironmentInQueryString(ProjectReleases);
-
-const StyledPageHeading = styled(PageHeading)`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(3)};
-`;

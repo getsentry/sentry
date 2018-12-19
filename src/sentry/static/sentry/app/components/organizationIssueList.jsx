@@ -64,7 +64,7 @@ class OrganizationIssueList extends React.Component {
             </Link>
           </div>
         </div>
-        <StyledPageHeading withPadding>{this.props.title}</StyledPageHeading>
+        <StyledPageHeading withMargins>{this.props.title}</StyledPageHeading>
         <IssueList
           endpoint={this.props.endpoint}
           emptyText={this.props.emptyText}
@@ -82,7 +82,6 @@ class OrganizationIssueList extends React.Component {
 }
 
 const StyledPageHeading = styled(PageHeading)`
-  margin-bottom: ${space(3)};
   margin-top: ${space(0.5)};
 `;
 
