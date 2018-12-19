@@ -225,7 +225,7 @@ class SnubaTSDBTest(TestCase):
             [self.proj1.id],
             dts[0], dts[-1],
             rollup=3600,
-            environment_id=self.proj1env1.id
+            environment_ids=[self.proj1env1.id]
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 6),
@@ -241,7 +241,7 @@ class SnubaTSDBTest(TestCase):
             [self.proj1.id],
             dts[0], dts[-1],
             rollup=3600,
-            environment_id=self.proj1env2.id
+            environment_ids=[self.proj1env2.id],
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 0),
@@ -257,7 +257,7 @@ class SnubaTSDBTest(TestCase):
             [self.proj1.id],
             dts[0], dts[-1],
             rollup=3600,
-            environment_id=self.proj1defaultenv.id
+            environment_ids=[self.proj1defaultenv.id],
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 0),

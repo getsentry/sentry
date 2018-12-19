@@ -73,7 +73,12 @@ class InMemoryTSDB(BaseTSDB):
                                 0,
                             )
 
-    def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
+    def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
+        # only snuba backend supports multiple envs
+        if environment_ids is not None and len(environment_ids) > 1:
+            raise NotImplementedError
+        environment_id = environment_ids[0] if environment_ids is not None else None
+
         self.validate_arguments([model], [environment_id])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)

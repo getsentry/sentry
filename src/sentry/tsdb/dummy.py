@@ -30,7 +30,12 @@ class DummyTSDB(BaseTSDB):
             [None])
         self.validate_arguments(models, environment_ids)
 
-    def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
+    def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
+        # only snuba backend supports multiple envs
+        if environment_ids is not None and len(environment_ids) > 1:
+            raise NotImplementedError
+        environment_id = environment_ids[0] if environment_ids is not None else None
+
         self.validate_arguments([model], [environment_id])
         _, series = self.get_optimal_rollup_series(start, end, rollup)
         return {k: [(ts, 0) for ts in series] for k in keys}
