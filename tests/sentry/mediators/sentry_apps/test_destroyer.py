@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.db import connection
 
 from sentry.mediators.sentry_apps import Destroyer
-from sentry.models import ApiApplication, User, SentryApp
+from sentry.models import ApiApplication, User, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 
 
@@ -19,6 +19,15 @@ class TestDestroyer(TestCase):
         )
 
         self.destroyer = Destroyer(sentry_app=self.sentry_app)
+
+    def test_deletes_app_installations(self):
+        install = self.create_sentry_app_installation(
+            organization=self.org,
+            slug=self.sentry_app.slug,
+            user=self.user,
+        )
+        self.destroyer.call()
+        assert not SentryAppInstallation.objects.filter(pk=install.id).exists()
 
     def test_deletes_api_application(self):
         application = self.sentry_app.application

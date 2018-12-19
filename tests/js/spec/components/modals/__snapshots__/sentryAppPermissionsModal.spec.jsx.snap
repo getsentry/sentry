@@ -17,6 +17,7 @@ exports[`SentryAppPermissionsModal installs the application 1`] = `
         "project:read",
       ],
       "slug": "sample-app",
+      "status": "unpublished",
       "uuid": "123456123456123456123456",
       "webhookUrl": "https://example.com/webhook",
     }
@@ -238,6 +239,7 @@ exports[`SentryAppPermissionsModal renders permissions modal 1`] = `
         "project:read",
       ],
       "slug": "sample-app",
+      "status": "unpublished",
       "uuid": "123456123456123456123456",
       "webhookUrl": "https://example.com/webhook",
     }

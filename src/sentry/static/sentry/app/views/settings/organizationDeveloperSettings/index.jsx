@@ -3,6 +3,7 @@ import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {removeSentryApp} from 'app/actionCreators/sentryApps';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'app/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import {t} from 'app/locale';
@@ -13,6 +14,16 @@ export default class OrganizationDeveloperSettings extends AsyncView {
 
     return [['applications', `/organizations/${orgId}/sentry-apps/`]];
   }
+
+  removeApp = app => {
+    const apps = this.state.applications.filter(a => a.slug !== app.slug);
+    removeSentryApp(this.api, app).then(
+      () => {
+        this.setState({applications: apps});
+      },
+      () => {}
+    );
+  };
 
   renderBody() {
     let {orgId} = this.props.params;
@@ -42,6 +53,7 @@ export default class OrganizationDeveloperSettings extends AsyncView {
                     key={app.uuid}
                     app={app}
                     orgId={orgId}
+                    onRemoveApp={this.removeApp}
                     showPublishStatus={true}
                   />
                 );
