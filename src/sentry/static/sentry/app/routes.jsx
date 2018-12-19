@@ -783,6 +783,13 @@ function routes() {
           </Route>
 
           <Route
+            path="/organizations/:orgId/user-feedback/"
+            componentPromise={() =>
+              import(/*webpackChunkName: "OrganizationUserFeedback"*/ './views/userFeedback/organizationUserFeedback')}
+            component={errorHandler(LazyLoad)}
+          />
+
+          <Route
             path="/organizations/:orgId/releases/"
             componentPromise={() =>
               import(/*webpackChunkName: "OrganizationReleases"*/ './views/releases/list/organizationReleases')}
