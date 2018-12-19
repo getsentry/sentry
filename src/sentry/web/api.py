@@ -37,7 +37,7 @@ from sentry.coreapi import (
 from sentry.event_manager import EventManager
 from sentry.interfaces import schemas
 from sentry.interfaces.base import get_interface
-from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event
+from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
 from sentry.lang.native.minidump import merge_process_state_event, process_minidump, MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
@@ -826,6 +826,14 @@ class UnrealView(StoreView):
                 merge_unreal_context_event(unreal_context, data, project)
         except Unreal4Error as e:
             # we'll continue without the context data
+            minidumps_logger.exception(e)
+
+        try:
+            unreal_logs = unreal.get_logs()
+            if unreal_logs is not None:
+                merge_unreal_logs_event(unreal_logs, data)
+        except Unreal4Error as e:
+            # we'll continue without the breadcrumbs
             minidumps_logger.exception(e)
 
         for file in unreal.files():
