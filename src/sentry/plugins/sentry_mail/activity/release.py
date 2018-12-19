@@ -5,7 +5,7 @@ from itertools import chain
 
 import six
 
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -111,19 +111,28 @@ class ReleaseActivityEmail(ActivityEmail):
             ).distinct()
         )
 
-        # get all the involved users' settings for deploy-emails
-        options_by_user_id = {
-            uoption.user_id: uoption.value
-            for uoption in UserOption.objects.filter(
-                user__in=users,
-                organization=self.organization,
-                key='deploy-emails',
-            )
-        }
+        # get all the involved users' settings for deploy-emails (user default
+        # saved without org set)
+        user_options = UserOption.objects.filter(
+            user__in=users,
+            key='deploy-emails',
+        ).filter(
+            Q(organization=self.organization) | Q(organization=None),
+        )
+
+        options_by_user_id = defaultdict(dict)
+        for uoption in user_options:
+            key = 'default' if uoption.organization is None else 'org'
+            options_by_user_id[uoption.user_id][key] = uoption.value
 
         # and couple them with the the users' setting value for deploy-emails
+        # prioritize user/org specific, then user default, then product default
         users_with_options = [
-            (user, options_by_user_id.get(user.id, UserOptionValue.committed_deploys_only))
+            (user, options_by_user_id.get(
+                user.id, {}
+            ).get('org', options_by_user_id.get(
+                user.id, {}
+            ).get('default', UserOptionValue.committed_deploys_only)))
             for user in users
         ]
 
