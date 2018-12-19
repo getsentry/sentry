@@ -97,7 +97,7 @@ class Client {
           responseText: JSON.stringify(body),
           responseJSON: body,
         };
-        this.handleError(
+        this.handleRequestError(
           {
             path: url,
             requestOptions: options,
@@ -122,7 +122,7 @@ class Client {
   }
 }
 
-Client.prototype.handleError = RealClient.Client.prototype.handleRequestError;
+Client.prototype.handleRequestError = RealClient.Client.prototype.handleRequestError;
 Client.prototype.uniqueId = RealClient.Client.prototype.uniqueId;
 Client.prototype.bulkUpdate = RealClient.Client.prototype.bulkUpdate;
 Client.prototype._chain = RealClient.Client.prototype._chain;
