@@ -374,16 +374,14 @@ describe('Discover', function() {
         expect(wrapper.find('NumberField[name="limit"]').prop('value')).toBe(1000);
       });
 
-      // TODO: Investigate this test (search isn't empty, and runQuery fails?)
-      // eslint-disable-next-line
-      it.skip('does not reset if location.search is empty', function() {
+      it('does not reset if location.search is empty', function() {
         const prevCallCount = queryBuilder.reset.mock.calls.length;
         wrapper.setProps({
           location: {
             search: '?fields=[]',
           },
         });
-        expect(queryBuilder.reset.mock.calls).toHaveLength(prevCallCount + 1);
+        expect(queryBuilder.reset.mock.calls).toHaveLength(prevCallCount);
       });
     });
   });
