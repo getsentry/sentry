@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from symbolic import Unreal4Crash
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import UserReport
-from sentry.utils.safe import set_path
+from sentry.utils.safe import set_path, setdefault_path
 
 import re
 import uuid
@@ -106,3 +106,11 @@ def merge_unreal_context_event(unreal_context, event, project):
     # add everything else as extra
     extra = event.setdefault('extra', {})
     extra.update(**runtime_prop)
+
+
+def merge_unreal_logs_event(unreal_logs, event):
+    setdefault_path(event, 'breadcrumbs', 'values', value=[])
+    breadcrumbs = event['breadcrumbs']['values']
+
+    for log in unreal_logs:
+        breadcrumbs.append(log)

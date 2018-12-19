@@ -8,7 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry.testutils import TestCase
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
-from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event
+from sentry.lang.native.unreal import process_unreal_crash, unreal_attachment_type, merge_unreal_context_event, merge_unreal_logs_event
 from sentry.models import Event, EventAttachment
 
 
@@ -54,6 +54,20 @@ class UnrealIntegrationTest(TestCase):
             assert 'ntdll' == event['stacktrace']['frames'][0]['package']
             assert 'YetAnother' == event['stacktrace']['frames'][2]['package']
             assert 'YetAnother' == event['stacktrace']['frames'][2]['package']
+
+    def test_merge_unreal_logs_event(self):
+        with open(get_unreal_crash_file(), 'rb') as f:
+            unreal_crash = process_unreal_crash(f.read())
+            event = {}
+            merge_unreal_logs_event(unreal_crash.get_logs(), event)
+            breadcrumbs = event['breadcrumbs']['values']
+            assert len(breadcrumbs) == 100
+            assert breadcrumbs[0]['timestamp'] == '2018-11-20T11:47:14Z'
+            assert breadcrumbs[0]['message'] == '   4. \'Parallels Display Adapter (WDDM)\' (P:0 D:0)'
+            assert breadcrumbs[0]['component'] == 'LogWindows'
+            assert breadcrumbs[99]['timestamp'] == '2018-11-20T11:47:15Z'
+            assert breadcrumbs[99]['message'] == 'Texture pool size now 1000 MB'
+            assert breadcrumbs[99]['component'] == 'LogContentStreaming'
 
     def upload_symbols(self):
         url = reverse(
