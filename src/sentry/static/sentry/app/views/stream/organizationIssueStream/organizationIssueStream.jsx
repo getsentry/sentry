@@ -370,6 +370,18 @@ const Stream = createReactClass({
 
     this._poller.disable();
 
+    this._streamManager.push([]);
+    this.setState({
+      error: false,
+      dataLoading: false,
+      query,
+      queryCount: 0,
+      queryMaxCount: 0,
+      pageLinks: [],
+    });
+
+    return;
+
     this.lastRequest = this.api.request(url, {
       method: 'GET',
       data: requestParams,
@@ -708,9 +720,10 @@ const Stream = createReactClass({
     // ConfigStore.set('sentFirstEvent', project.firstEvent);
     // }
 
-    if (this.state.dataLoading) {
-      body = this.renderLoading();
-    } else if (this.state.error) {
+    // if (this.state.dataLoading) {
+    // body = this.renderLoading();
+    // } else if (this.state.error) {
+    if (this.state.error) {
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
     } else if (this.state.groupIds.length > 0) {
       body = this.renderGroupNodes(this.state.groupIds, this.state.statsPeriod);
@@ -724,9 +737,9 @@ const Stream = createReactClass({
 
   render() {
     // global loading
-    if (this.state.loading) {
-      return this.renderLoading();
-    }
+    // if (this.state.loading) {
+    // return this.renderLoading();
+    // }
 
     let classes = ['stream-row'];
     if (this.state.isSidebarVisible) classes.push('show-sidebar');
