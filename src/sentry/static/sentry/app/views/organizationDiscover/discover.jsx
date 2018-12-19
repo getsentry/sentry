@@ -108,13 +108,26 @@ export default class OrganizationDiscover extends React.Component {
       // This indicates navigation changes (e.g. back button on browser)
       // We need to update our search store and probably runQuery
       const {projects, range, start, end} = newQuery;
-      this.updateProjects(projects);
-      this.updateDateTime({
-        start: start || null,
-        end: end || null,
-        period: range || null,
-      });
-      this.runQuery();
+      let hasChange = false;
+
+      if (projects) {
+        this.updateProjects(projects);
+        hasChange = true;
+      }
+
+      if (range || (end && start)) {
+        this.updateDateTime({
+          period: range || null,
+          start: start || null,
+          end: end || null,
+        });
+        hasChange = true;
+      }
+
+      // TODO: Run query here (breaks when trying to view saved queries)
+      if (hasChange) {
+        this.runQuery();
+      }
     }
   }
 
