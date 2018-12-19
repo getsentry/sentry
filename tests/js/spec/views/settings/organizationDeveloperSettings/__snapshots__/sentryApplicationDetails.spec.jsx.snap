@@ -580,11 +580,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "scopes" => Array [
                                                                       "project:read",
                                                                     ],
-<<<<<<< HEAD
                                                                     "events" => Array [],
-=======
                                                                     "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
@@ -928,11 +925,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "scopes" => Array [
                                                                                                   "project:read",
                                                                                                 ],
-<<<<<<< HEAD
                                                                                                 "events" => Array [],
-=======
                                                                                                 "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
@@ -1292,11 +1286,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "scopes" => Array [
                                                                       "project:read",
                                                                     ],
-<<<<<<< HEAD
                                                                     "events" => Array [],
-=======
                                                                     "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
@@ -1640,11 +1631,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "scopes" => Array [
                                                                                                   "project:read",
                                                                                                 ],
-<<<<<<< HEAD
                                                                                                 "events" => Array [],
-=======
                                                                                                 "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
@@ -1995,11 +1983,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "scopes" => Array [
                                                                       "project:read",
                                                                     ],
-<<<<<<< HEAD
                                                                     "events" => Array [],
-=======
                                                                     "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
@@ -2341,11 +2326,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "scopes" => Array [
                                                                                                   "project:read",
                                                                                                 ],
-<<<<<<< HEAD
                                                                                                 "events" => Array [],
-=======
                                                                                                 "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
@@ -2796,11 +2778,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "scopes" => Array [
                                                                       "project:read",
                                                                     ],
-<<<<<<< HEAD
                                                                     "events" => Array [],
-=======
                                                                     "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
@@ -3176,11 +3155,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "scopes" => Array [
                                                                                                   "project:read",
                                                                                                 ],
-<<<<<<< HEAD
                                                                                                 "events" => Array [],
-=======
                                                                                                 "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
@@ -3531,11 +3507,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                     "scopes" => Array [
                                                                       "project:read",
                                                                     ],
-<<<<<<< HEAD
                                                                     "events" => Array [],
-=======
                                                                     "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                     "uuid" => "123456123456123456123456",
                                                                     "webhookUrl" => "https://example.com/webhook",
                                                                     "redirectUrl" => "https://example/com/setup",
@@ -3904,11 +3877,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                                 "scopes" => Array [
                                                                                                   "project:read",
                                                                                                 ],
-<<<<<<< HEAD
                                                                                                 "events" => Array [],
-=======
                                                                                                 "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                                                 "uuid" => "123456123456123456123456",
                                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                                 "redirectUrl" => "https://example/com/setup",
@@ -4236,11 +4206,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "scopes" => Array [
                                                       "project:read",
                                                     ],
-<<<<<<< HEAD
                                                     "events" => Array [],
-=======
                                                     "status" => "unpublished",
->>>>>>> more snapshot updates
                                                     "uuid" => "123456123456123456123456",
                                                     "webhookUrl" => "https://example.com/webhook",
                                                     "redirectUrl" => "https://example/com/setup",
@@ -5639,11 +5606,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "scopes" => Array [
                                                                                   "project:read",
                                                                                 ],
-<<<<<<< HEAD
                                                                                 "events" => Array [],
-=======
                                                                                 "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                                 "uuid" => "123456123456123456123456",
                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                 "redirectUrl" => "https://example/com/setup",
@@ -5978,11 +5942,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "scopes" => Array [
                                                       "project:read",
                                                     ],
-<<<<<<< HEAD
                                                     "events" => Array [],
-=======
                                                     "status" => "unpublished",
->>>>>>> more snapshot updates
                                                     "uuid" => "123456123456123456123456",
                                                     "webhookUrl" => "https://example.com/webhook",
                                                     "redirectUrl" => "https://example/com/setup",
@@ -6341,11 +6302,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "scopes" => Array [
                                                                                   "project:read",
                                                                                 ],
-<<<<<<< HEAD
                                                                                 "events" => Array [],
-=======
                                                                                 "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                                 "uuid" => "123456123456123456123456",
                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                 "redirectUrl" => "https://example/com/setup",
@@ -6691,11 +6649,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "scopes" => Array [
                                                       "project:read",
                                                     ],
-<<<<<<< HEAD
                                                     "events" => Array [],
-=======
                                                     "status" => "unpublished",
->>>>>>> more snapshot updates
                                                     "uuid" => "123456123456123456123456",
                                                     "webhookUrl" => "https://example.com/webhook",
                                                     "redirectUrl" => "https://example/com/setup",
@@ -7035,11 +6990,8 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "scopes" => Array [
                                                                                   "project:read",
                                                                                 ],
-<<<<<<< HEAD
                                                                                 "events" => Array [],
-=======
                                                                                 "status" => "unpublished",
->>>>>>> more snapshot updates
                                                                                 "uuid" => "123456123456123456123456",
                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                 "redirectUrl" => "https://example/com/setup",
@@ -7300,6 +7252,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "project:read",
                                                   ],
                                                   "slug": "sample-app",
+                                                  "status": "unpublished",
                                                   "uuid": "123456123456123456123456",
                                                   "webhookUrl": "https://example.com/webhook",
                                                 },
@@ -7317,6 +7270,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                     "project:read",
                                                   ],
                                                   "slug": "sample-app",
+                                                  "status": "unpublished",
                                                   "uuid": "123456123456123456123456",
                                                   "webhookUrl": "https://example.com/webhook",
                                                 },
@@ -7340,6 +7294,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                       "project:read",
                                                     ],
                                                     "events" => Array [],
+                                                    "status" => "unpublished",
                                                     "uuid" => "123456123456123456123456",
                                                     "webhookUrl" => "https://example.com/webhook",
                                                     "redirectUrl" => "https://example/com/setup",
@@ -7638,6 +7593,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "project:read",
                                                                               ],
                                                                               "slug": "sample-app",
+                                                                              "status": "unpublished",
                                                                               "uuid": "123456123456123456123456",
                                                                               "webhookUrl": "https://example.com/webhook",
                                                                             },
@@ -7655,6 +7611,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                 "project:read",
                                                                               ],
                                                                               "slug": "sample-app",
+                                                                              "status": "unpublished",
                                                                               "uuid": "123456123456123456123456",
                                                                               "webhookUrl": "https://example.com/webhook",
                                                                             },
@@ -7678,6 +7635,7 @@ exports[`Sentry Application Details edit existing application renders() it shows
                                                                                   "project:read",
                                                                                 ],
                                                                                 "events" => Array [],
+                                                                                "status" => "unpublished",
                                                                                 "uuid" => "123456123456123456123456",
                                                                                 "webhookUrl" => "https://example.com/webhook",
                                                                                 "redirectUrl" => "https://example/com/setup",
