@@ -7285,11 +7285,6 @@ jsesc@~0.5.0:
   resolved "https://registry.yarnpkg.com/jsesc/-/jsesc-0.5.0.tgz#e7dee66e35d6fc16f710fe91d5cf69f70f08911d"
   integrity sha1-597mbjXW/Bb3EP6R1c9p9w8IkR0=
 
-json-loader@0.5.3:
-  version "0.5.3"
-  resolved "https://registry.yarnpkg.com/json-loader/-/json-loader-0.5.3.tgz#fde8311d5c3414f608260e3d93135050d17a5593"
-  integrity sha1-/egxHVw0FPYIJg49kxNQUNF6VZM=
-
 json-loader@^0.5.4, json-loader@^0.5.7:
   version "0.5.7"
   resolved "https://registry.yarnpkg.com/json-loader/-/json-loader-0.5.7.tgz#dca14a70235ff82f0ac9a3abeb60d337a365185d"
