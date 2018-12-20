@@ -4,9 +4,11 @@ exports[`Project render() should render NotFound if no matching organization 1`]
 <div
   className="onboarding-info"
 >
-  <h4>
+  <PageHeading
+    withMargins={true}
+  >
     Choose a language or framework:
-  </h4>
+  </PageHeading>
   <PlatformPicker
     location={
       Object {
@@ -34,9 +36,11 @@ exports[`Project render() should render NotFound if no matching organization 1`]
     <div
       className="new-project-name client-platform"
     >
-      <h4>
+      <PageHeading
+        withMargins={true}
+      >
         Give your project a name:
-      </h4>
+      </PageHeading>
       <div
         className="project-name-wrapper"
       >
@@ -57,9 +61,11 @@ exports[`Project render() should render NotFound if no matching organization 1`]
     <div
       className="new-project-team"
     >
-      <h4>
+      <PageHeading
+        withMargins={true}
+      >
         Team:
-      </h4>
+      </PageHeading>
       <div>
         <SelectField
           clearable={false}
@@ -132,9 +138,19 @@ exports[`Project render() should set required class on empty submit 1`] = `
   <div
     className="onboarding-info"
   >
-    <h4>
-      Choose a language or framework:
-    </h4>
+    <PageHeading
+      withMargins={true}
+    >
+      <Wrapper
+        withMargins={true}
+      >
+        <h1
+          className="css-wxef79-Wrapper e1f8hk460"
+        >
+          Choose a language or framework:
+        </h1>
+      </Wrapper>
+    </PageHeading>
     <PlatformPicker
       location={
         Object {
@@ -850,9 +866,19 @@ exports[`Project render() should set required class on empty submit 1`] = `
       <div
         className="new-project-name client-platform"
       >
-        <h4>
-          Give your project a name:
-        </h4>
+        <PageHeading
+          withMargins={true}
+        >
+          <Wrapper
+            withMargins={true}
+          >
+            <h1
+              className="css-wxef79-Wrapper e1f8hk460"
+            >
+              Give your project a name:
+            </h1>
+          </Wrapper>
+        </PageHeading>
         <div
           className="project-name-wrapper"
         >
@@ -881,9 +907,19 @@ exports[`Project render() should set required class on empty submit 1`] = `
       <div
         className="new-project-team"
       >
-        <h4>
-          Team:
-        </h4>
+        <PageHeading
+          withMargins={true}
+        >
+          <Wrapper
+            withMargins={true}
+          >
+            <h1
+              className="css-wxef79-Wrapper e1f8hk460"
+            >
+              Team:
+            </h1>
+          </Wrapper>
+        </PageHeading>
         <div>
           <SelectField
             clearable={false}
