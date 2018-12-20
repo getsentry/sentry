@@ -26,12 +26,14 @@ exports[`NewProjectPlatform render() should render 1`] = `
   <div
     className="container"
   >
-    <SideEffect(DocumentTitle)
-      title="Sentry"
-    />
-    <CreateProject
-      getDocsUrl={[Function]}
-    />
+    <Content>
+      <SideEffect(DocumentTitle)
+        title="Sentry"
+      />
+      <CreateProject
+        getDocsUrl={[Function]}
+      />
+    </Content>
   </div>
 </Container>
 `;
