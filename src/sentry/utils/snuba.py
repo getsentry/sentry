@@ -404,7 +404,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'limitby': limitby,
         'orderby': orderby,
         'selected_columns': selected_columns,
-        'turbo': turbo
+        'turbo': turbo,
     }) if v is not None}
 
     request.update(OVERRIDE_OPTIONS)

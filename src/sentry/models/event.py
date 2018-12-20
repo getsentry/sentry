@@ -137,8 +137,7 @@ class EventCommon(object):
 
         return None
 
-    @property
-    def tags(self):
+    def get_tags(self):
         try:
             return sorted((t, v) for t, v in self.data.get('tags') or ())
         except ValueError:
@@ -291,7 +290,7 @@ class SnubaEvent(EventCommon):
         self.__dict__ = kv
 
         # TODO how does this interact with bind_data
-        node_id = EventCommon.generate_node_id(self.project_id, self.event_id)
+        node_id = SnubaEvent.generate_node_id(self.project_id, self.event_id)
         self.data = NodeData(None, node_id, data=None)
 
     def save(self):
@@ -365,7 +364,7 @@ class Event(Model, EventCommon):
         data['message'] = self.real_message
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
-        data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.tags]
+        data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.get_tags()]
         for k, v in sorted(six.iteritems(self.data)):
             if k in data:
                 continue

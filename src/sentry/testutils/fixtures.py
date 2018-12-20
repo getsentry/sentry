@@ -506,6 +506,13 @@ class Fixtures(object):
         else:
             assert 'message' not in kwargs, 'do not pass message this way'
 
+        # This is needed so that create_event saves the event in nodestore
+        # under the correct key. This is usually dont in EventManager.save()
+        kwargs['data'].setdefault(
+            'node_id',
+            Event.generate_node_id(kwargs['project'].id, event_id)
+        )
+
         event = Event(event_id=event_id, **kwargs)
         EventMapping.objects.create(
             project_id=event.project.id,

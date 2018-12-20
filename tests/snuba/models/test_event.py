@@ -2,18 +2,16 @@ from __future__ import absolute_import
 
 import calendar
 from datetime import datetime, timedelta
-import json
-import pytz
 import requests
 
 from django.conf import settings
 
-from sentry.models.event import SnubaEvent, Event
-from sentry.testutils import TestCase
+from sentry.models.event import SnubaEvent
+from sentry.testutils import SnubaTestCase
 from sentry import nodestore
 
 
-class SnubaEventTest(TestCase):
+class SnubaEventTest(SnubaTestCase):
     def setUp(self):
         assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
 
@@ -46,7 +44,7 @@ class SnubaEventTest(TestCase):
             'user': {
                 'id': u'user1',
                 'email': u'user1@sentry.io',
-            }
+            },
         }
 
         # Create a regular django Event from the data, which will save the.
@@ -54,52 +52,17 @@ class SnubaEventTest(TestCase):
         # turn this off and just put the payload in nodestore.
         make_django_event = True
         if make_django_event:
-            event_id = data.get('event_id')
-            project_id = data.get('project_id')
-            platform = data.get('platform')
-
-            recorded_timestamp = data.get('timestamp')
-            date = datetime.fromtimestamp(recorded_timestamp)
-            date = date.replace(tzinfo=pytz.UTC)
-            time_spent = data.get('time_spent')
-
-            data['node_id'] = SnubaEvent.generate_node_id(project_id, event_id)
-
-            e = Event(
-                project_id=project_id or self._project.id,
-                event_id=event_id,
+            self.create_event(
+                event_id=data['event_id'],
+                datetime=self.now,
+                project=self.proj1,
+                group=self.proj1group1,
                 data=data,
-                time_spent=time_spent,
-                datetime=date,
-                platform=platform
             )
-            e.save()  # puts the payload in nodestore too
         else:
             node_id = SnubaEvent.generate_node_id(self.proj1.id, self.event_id)
             nodestore.set(node_id, data)
             assert nodestore.get(node_id) == data
-
-        # Send event to snuba using snuba kafka message layout
-        snuba_message = {
-            'group_id': self.proj1group1.id,
-            'data': data,
-
-            # TODO copying these properties to the top level is pretty ad-hoc
-            # but the snuba processor was written with this structure in mind
-            # as that's what was in Kafka. Now that platform/event_id/etc are
-            # kept in the event `data` payload, we can probably just start
-            # using them from there.
-            'datetime': datetime.fromtimestamp(data['timestamp']).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            'project_id': data['project_id'],
-            'event_id': data['event_id'],
-            'platform': data['platform'],
-            'message': data['message'],
-            'primary_hash': data['primary_hash'],
-        }
-        assert requests.post(
-            settings.SENTRY_SNUBA + '/tests/insert',
-            data=json.dumps([snuba_message])
-        ).status_code == 200
 
     def test_fetch(self):
         event = SnubaEvent.get_event(self.proj1.id, self.event_id)
@@ -108,6 +71,5 @@ class SnubaEventTest(TestCase):
         assert event.event_id == self.event_id
         assert event.group.id == self.proj1group1.id
         assert event.project.id == self.proj1.id
-
         # And the event data payload from nodestore
         assert event.data['user']['id'] == u'user1'
