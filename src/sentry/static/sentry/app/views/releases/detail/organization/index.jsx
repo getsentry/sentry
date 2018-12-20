@@ -4,6 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 
 import SentryTypes from 'app/sentryTypes';
+import Feature from 'app/components/acl/feature';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
@@ -76,19 +77,22 @@ class OrganizationReleaseDetails extends React.Component {
     const release = this.state.release;
     const {orgId, projectId} = this.props.params;
 
-    if (!new Set(this.props.organization.features).has('sentry10')) {
-      return this.renderNoAccess();
-    }
     if (this.state.loading) return <LoadingIndicator />;
     if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
       <Content>
-        <ReleaseHeader release={release} orgId={orgId} projectId={projectId} />
-        {/*React.cloneElement(this.props.children, {
+        <Feature
+          features={['organizations:sentry10']}
+          organization={this.props.organization}
+          renderDisabled={this.renderNoAccess}
+        >
+          <ReleaseHeader release={release} orgId={orgId} projectId={projectId} />
+          {/*React.cloneElement(this.props.children, {
           release,
           environment: this.props.environment,
         })*/}
+        </Feature>
       </Content>
     );
   }
@@ -100,6 +104,7 @@ class OrganizationReleaseDetails extends React.Component {
 
 export default withOrganization(OrganizationReleaseDetails);
 
+// TODO: refactor as this same component is used in events, release list and user feedback
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
