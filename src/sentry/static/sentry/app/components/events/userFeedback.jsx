@@ -5,6 +5,8 @@ import TimeSince from 'app/components/timeSince';
 import utils from 'app/utils';
 import Link from 'app/components/link';
 
+import {t} from 'app/locale';
+
 class EventUserFeedback extends React.Component {
   static propTypes = {
     report: PropTypes.object.isRequired,
@@ -35,7 +37,7 @@ class EventUserFeedback extends React.Component {
                           to={`/${orgId}/${projectId}/issues/${issueId}/events/${report
                             .event.id}`}
                         >
-                          View event
+                          {t('View event')}
                         </Link>
                       </small>
                     )}
