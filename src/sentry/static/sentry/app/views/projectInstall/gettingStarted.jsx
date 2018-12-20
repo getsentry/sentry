@@ -23,14 +23,12 @@ class GettingStartedBody extends React.Component {
           </div>
         </div>
         <div className="container">
-          <div className="content">
-            <ProjectDocsContext>
-              {React.cloneElement(this.props.children, {
-                linkPath: (orgId, projectId, platform) =>
-                  `/${orgId}/${projectId}/getting-started/${platform}/`,
-              })}
-            </ProjectDocsContext>
-          </div>
+          <ProjectDocsContext>
+            {React.cloneElement(this.props.children, {
+              linkPath: (orgId, projectId, platform) =>
+                `/${orgId}/${projectId}/getting-started/${platform}/`,
+            })}
+          </ProjectDocsContext>
         </div>
       </Container>
     );

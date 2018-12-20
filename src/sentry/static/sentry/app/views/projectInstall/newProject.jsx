@@ -22,15 +22,13 @@ const NewProject = createReactClass({
           </div>
         </div>
         <div className="container">
-          <div className="content">
-            <DocumentTitle title={'Sentry'} />
-            <CreateProject
-              getDocsUrl={({slug, projectSlug, platform}) => {
-                if (platform === 'other') platform = '';
-                return `/${slug}/${projectSlug}/getting-started/${platform}`;
-              }}
-            />
-          </div>
+          <DocumentTitle title={'Sentry'} />
+          <CreateProject
+            getDocsUrl={({slug, projectSlug, platform}) => {
+              if (platform === 'other') platform = '';
+              return `/${slug}/${projectSlug}/getting-started/${platform}`;
+            }}
+          />
         </div>
       </Container>
     );
