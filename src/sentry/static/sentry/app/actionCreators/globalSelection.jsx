@@ -1,5 +1,5 @@
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
-import {isEqual, isInteger} from 'lodash';
+import {isEqual, isInteger, omit} from 'lodash';
 import * as Sentry from '@sentry/browser';
 
 import {getParams} from 'app/views/organizationEvents/utils/getParams';
@@ -29,8 +29,10 @@ const isEqualWithEmptyArrays = (newQuery, current) => {
  *
  * @param {Number[]} projects List of project ids
  * @param {Object} [router] Router object
+ * @param {Object} [options] Options object
+ * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
  */
-export function updateProjects(projects, router) {
+export function updateProjects(projects, router, options) {
   if (!isProjectsValid(projects)) {
     Sentry.withScope(scope => {
       scope.setExtra('projects', projects);
@@ -42,7 +44,7 @@ export function updateProjects(projects, router) {
   if (!router) {
     GlobalSelectionActions.updateProjects(projects);
   }
-  updateParams({project: projects}, router);
+  updateParams({project: projects}, router, options);
 }
 
 function isProjectsValid(projects) {
@@ -55,12 +57,14 @@ function isProjectsValid(projects) {
  *
  * @param {Object} datetime Object with start, end, range keys
  * @param {Object} [router] Router object
+ * @param {Object} [options] Options object
+ * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
  */
-export function updateDateTime(datetime, router) {
+export function updateDateTime(datetime, router, options) {
   if (!router) {
     GlobalSelectionActions.updateDateTime(datetime);
   }
-  updateParams(datetime, router);
+  updateParams(datetime, router, options);
 }
 
 /**
@@ -69,12 +73,14 @@ export function updateDateTime(datetime, router) {
  *
  * @param {String[]} environments List of environments
  * @param {Object} [router] Router object
+ * @param {Object} [options] Options object
+ * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
  */
-export function updateEnvironments(environment, router) {
+export function updateEnvironments(environment, router, options) {
   if (!router) {
     GlobalSelectionActions.updateEnvironments(environment);
   }
-  updateParams({environment}, router);
+  updateParams({environment}, router, options);
 }
 
 /**
@@ -82,14 +88,16 @@ export function updateEnvironments(environment, router) {
  *
  * @param {Object} obj New query params
  * @param {Object} [router] React router object
+ * @param {Object} [options] Options object
+ * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
  */
-export function updateParams(obj, router) {
+export function updateParams(obj, router, options) {
   // Allow another component to handle routing
   if (!router) {
     return;
   }
 
-  const newQuery = getNewQueryParams(obj, router.location.query);
+  const newQuery = getNewQueryParams(obj, router.location.query, options);
 
   // Only push new location if query params has changed because this will cause a heavy re-render
   if (isEqualWithEmptyArrays(newQuery, router.location.query)) {
@@ -106,18 +114,20 @@ export function updateParams(obj, router) {
  * Creates a new query parameter object given new params and old params
  * Preserves the old query params, except for `cursor`
  *
- * TODO(billy): Add option for other keys to reset
- *
  * @param {Object} obj New query params
  * @param {Object} oldQueryParams Old query params
+ * @param {Object} [options] Options object
+ * @param {String[]} [options.resetParams] List of parameters to remove when changing URL params
  */
-function getNewQueryParams(obj, oldQueryParams) {
+function getNewQueryParams(obj, oldQueryParams, {resetParams} = {}) {
   // Reset cursor when changing parameters
   // eslint-disable-next-line no-unused-vars
   const {cursor, statsPeriod, ...oldQuery} = oldQueryParams;
+  const oldQueryWithoutResetParams =
+    (resetParams && !!resetParams.length && omit(oldQuery, resetParams)) || oldQuery;
 
   const newQuery = getParams({
-    ...oldQuery,
+    ...oldQueryWithoutResetParams,
     period: !obj.start && !obj.end ? obj.period || statsPeriod : null,
     ...obj,
   });

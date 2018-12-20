@@ -61,9 +61,9 @@ class OrganizationEventsContainer extends React.Component {
             <GlobalSelectionHeader
               organization={organization}
               projects={projects}
-              initializeWithUrlParams={true}
               showAbsolute={true}
               showRelative={true}
+              resetParamsOnChange={['zoom', 'cursor']}
             />
 
             <Body>
