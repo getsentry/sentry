@@ -251,7 +251,7 @@ class RedisTSDB(BaseTSDB):
         >>>          start=now - timedelta(days=1),
         >>>          end=now)
         """
-        # only snuba backend supports multiple envs
+        # redis backend doesn't support multiple envs
         if environment_ids is not None and len(environment_ids) > 1:
             raise NotImplementedError
         environment_id = environment_ids[0] if environment_ids is not None else None

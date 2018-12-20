@@ -74,12 +74,7 @@ class InMemoryTSDB(BaseTSDB):
                             )
 
     def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
-        # only snuba backend supports multiple envs
-        if environment_ids is not None and len(environment_ids) > 1:
-            raise NotImplementedError
-        environment_id = environment_ids[0] if environment_ids is not None else None
-
-        self.validate_arguments([model], [environment_id])
+        self.validate_arguments([model], environment_ids if environment_ids is not None else [None])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
@@ -88,7 +83,11 @@ class InMemoryTSDB(BaseTSDB):
             norm_epoch = self.normalize_to_rollup(timestamp, rollup)
 
             for key in keys:
-                value = self.data[model][(key, environment_id)][norm_epoch]
+                if environment_ids is None:
+                    value = self.data[model][(key, None)][norm_epoch]
+                else:
+                    value = sum(int(self.data[model][(key, environment_id)][norm_epoch])
+                                for environment_id in environment_ids)
                 results.append((to_timestamp(timestamp), key, value))
 
         results_by_key = defaultdict(dict)
