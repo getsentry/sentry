@@ -97,7 +97,7 @@ class GroupDetailsTest(APITestCase):
             assert response.status_code == 200
             assert get_range.call_count == 2
             for args, kwargs in get_range.call_args_list:
-                assert kwargs['environment_id'] == environment.id
+                assert kwargs['environment_ids'] == [environment.id]
 
         with mock.patch(
                 'sentry.api.endpoints.group_details.tsdb.make_series',

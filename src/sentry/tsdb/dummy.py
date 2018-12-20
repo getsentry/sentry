@@ -30,8 +30,8 @@ class DummyTSDB(BaseTSDB):
             [None])
         self.validate_arguments(models, environment_ids)
 
-    def get_range(self, model, keys, start, end, rollup=None, environment_id=None):
-        self.validate_arguments([model], [environment_id])
+    def get_range(self, model, keys, start, end, rollup=None, environment_ids=None):
+        self.validate_arguments([model], environment_ids if environment_ids is not None else [None])
         _, series = self.get_optimal_rollup_series(start, end, rollup)
         return {k: [(ts, 0) for ts in series] for k in keys}
 

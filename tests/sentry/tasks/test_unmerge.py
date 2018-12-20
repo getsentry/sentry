@@ -586,7 +586,7 @@ class UnmergeTestCase(TestCase):
             now - timedelta(seconds=rollup_duration),
             now + shift(15),
             rollup_duration,
-            environment_id=production_environment.id,
+            environment_ids=[production_environment.id],
         )
 
         def get_expected_series_values(rollup, events, function=None):

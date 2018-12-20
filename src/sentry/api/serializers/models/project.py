@@ -125,7 +125,7 @@ class ProjectSerializer(Serializer):
                 end=now,
                 start=now - ((segments - 1) * interval),
                 rollup=int(interval.total_seconds()),
-                environment_id=self.environment_id,
+                environment_ids=self.environment_id and [self.environment_id],
             )
         else:
             stats = None

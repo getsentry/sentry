@@ -480,7 +480,7 @@ class StreamGroupSerializer(GroupSerializer):
                 stats = tsdb.get_range(
                     model=tsdb.models.group,
                     keys=group_ids,
-                    environment_id=environment and environment.id,
+                    environment_ids=environment and [environment.id],
                     **query_params
                 )
 

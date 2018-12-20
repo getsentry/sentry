@@ -120,7 +120,7 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        results = self.db.get_range(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        results = self.db.get_range(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_ids=[1])
         assert results == {
             1: [
                 (timestamp(dts[0]), 0),
@@ -176,7 +176,7 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        results = self.db.get_range(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=1)
+        results = self.db.get_range(TSDBModel.project, [1, 2], dts[0], dts[-1], environment_ids=[1])
         assert results == {
             1: [
                 (timestamp(dts[0]), 0),

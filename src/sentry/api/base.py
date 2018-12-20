@@ -319,7 +319,7 @@ class StatsMixin(object):
             'start': start,
             'end': end,
             'rollup': resolution,
-            'environment_id': environment_id,
+            'environment_ids': environment_id and [environment_id],
         }
 
     def _parse_resolution(self, value):
