@@ -35,6 +35,10 @@ class OrganizationUserFeedback extends AsyncView {
     ];
   }
 
+  getTitle() {
+    return `${t('User Feedback')} - ${this.props.organization.slug}`;
+  }
+
   renderResults() {
     const {orgId} = this.props.params;
 

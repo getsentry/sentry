@@ -44,10 +44,10 @@ exports[`OrganizationUserFeedback renders 1`] = `
   }
 >
   <SideEffect(DocumentTitle)
-    title="Sentry"
+    title="User Feedback - org-slug - Sentry"
   >
     <DocumentTitle
-      title="Sentry"
+      title="User Feedback - org-slug - Sentry"
     >
       <FeatureContainer
         features={
