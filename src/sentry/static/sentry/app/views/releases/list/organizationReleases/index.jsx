@@ -93,10 +93,18 @@ class OrganizationReleases extends React.Component {
   }
 
   renderNoAccess() {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+    return (
+      <Content>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Content>
+    );
   }
 
   render() {
+    if (!new Set(this.props.organization.features).has('sentry10')) {
+      return this.renderNoAccess();
+    }
+
     return (
       <Content>
         <Header>
