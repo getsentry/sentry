@@ -543,3 +543,85 @@ class SetCommitsTestCase(TestCase):
         assert resolution.actor_id is None
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+
+
+class SetRefsTestCase(TestCase):
+    def setUp(self):
+        super(SetRefsTestCase, self).setUp()
+        self.org = self.create_organization()
+        self.project = self.create_project(organization=self.org, name='foo')
+        self.group = self.create_group(project=self.project)
+
+        self.repo = Repository.objects.create(
+            organization_id=self.org.id,
+            name='test/repo',
+        )
+        self.release = Release.objects.create(version='abcdabc', organization=self.org)
+        self.release.add_project(self.project)
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_simple(self):
+        refs = [
+            {
+                'repository': 'repository-name',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'repository-name',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            }
+        ]
+
+        self.release.set_refs(refs)
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_invalid_repos(self):
+        refs = [
+            {
+                'repository': 'repository-name',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'repository-name',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            }
+        ]
+
+        self.release.set_refs(refs)
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_handle_commit_ranges(self):
+        refs = [
+            {
+                'repository': 'repository-name',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'repository-name',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            }
+        ]
+
+        self.release.set_refs(refs)
+
+    def test_fetch_false(self):
+        refs = [
+            {
+                'repository': 'repository-name',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'repository-name',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            }
+        ]
+
+        self.release.set_refs(refs)
