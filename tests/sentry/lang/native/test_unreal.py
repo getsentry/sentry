@@ -172,9 +172,8 @@ class UnrealIntegrationTest(TestCase):
         bt = event.interfaces['exception'].values[0].stacktrace
         frames = bt.frames
         main = frames[-1]
-        assert main.function == 'AActor::IsPendingKillPending()'
         assert main.errors is None
-        assert main.instruction_addr == '0x54be3394'
+        assert main.instruction_addr == '0xfd53034'
 
         attachments = sorted(
             EventAttachment.objects.filter(
