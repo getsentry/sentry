@@ -8,6 +8,12 @@ exports[`projectUserFeedback renders 1`] = `
     }
   }
   pageLinks="<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel=\\"previous\\"; results=\\"false\\"; cursor=\\"0:0:1\\", <https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel=\\"next\\"; results=\\"true\\"; cursor=\\"0:100:0\\""
+  params={
+    Object {
+      "orgId": "org-slug",
+      "projectId": "project-slug",
+    }
+  }
   status="unresolved"
 >
   <CompactIssue
@@ -56,7 +62,14 @@ exports[`projectUserFeedback renders 1`] = `
       report={
         Object {
           "comments": "Something bad happened",
+          "dateCreated": "2018-12-20T00:00:00.000Z",
           "email": "lyn@sentry.io",
+          "event": Object {
+            "eventID": "12345678901234567890123456789012",
+            "groupID": "1",
+            "id": "1",
+            "message": "ApiException",
+          },
           "id": "123",
           "issue": Object {
             "assignedTo": null,
