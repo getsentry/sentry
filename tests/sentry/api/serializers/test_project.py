@@ -155,6 +155,8 @@ class ProjectSummarySerializerTest(TestCase):
         organization = self.create_organization(owner=user)
         team = self.create_team(organization=organization)
         project = self.create_project(teams=[team], organization=organization, name='foo')
+        project.flags.has_releases = True
+        project.save()
 
         release = Release.objects.create(
             organization_id=organization.id,
@@ -181,6 +183,13 @@ class ProjectSummarySerializerTest(TestCase):
         )
 
         result = serialize(project, user, ProjectSummarySerializer())
+
+        assert result['id'] == six.text_type(project.id)
+        assert result['name'] == project.name
+        assert result['slug'] == project.slug
+        assert result['firstEvent'] == project.first_event
+        assert 'releases' in result['features']
+        assert result['platform'] == project.platform
 
         assert result['latestDeploys'] == {
             'production': {'dateFinished': date, 'version': '1'}
