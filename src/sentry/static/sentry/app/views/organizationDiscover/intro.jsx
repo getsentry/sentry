@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {Box, Flex} from 'grid-emotion';
+import {Box} from 'grid-emotion';
 
 import {tct, t} from 'app/locale';
 
@@ -52,11 +52,7 @@ export default class Intro extends React.Component {
 
   render() {
     return (
-      <IntroContainer
-        style={{width: '100%', height: '100%'}}
-        align="center"
-        justify="center"
-      >
+      <IntroContainer>
         <Box w={560}>
           <Heading>{t('Discover lets you query raw event data in Sentry')}</Heading>
           <TextBlock>
@@ -89,9 +85,16 @@ export default class Intro extends React.Component {
   }
 }
 
-const IntroContainer = styled(Flex)`
+const IntroContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray5};
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  min-width: 500px;
 `;
 
 const Heading = styled('div')`
