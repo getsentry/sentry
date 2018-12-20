@@ -1,11 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
+import {Link} from 'react-router';
 
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import Button from 'app/components/button';
 import CheckboxFancy from 'app/components/checkboxFancy';
+import InlineSvg from 'app/components/inlineSvg';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import Highlight from 'app/components/highlight';
 import IdBadge from 'app/components/idBadge';
@@ -214,6 +216,7 @@ class ProjectSelector extends React.Component {
           label: ({inputValue}) => (
             <ProjectSelectorItem
               project={project}
+              organization={this.props.organization}
               multi={multi}
               inputValue={inputValue}
               isChecked={
@@ -242,6 +245,7 @@ class ProjectSelector extends React.Component {
 class ProjectSelectorItem extends React.PureComponent {
   static propTypes = {
     project: SentryTypes.Project,
+    organization: SentryTypes.organization,
     multi: PropTypes.bool,
     inputValue: PropTypes.string,
     isChecked: PropTypes.bool,
@@ -259,7 +263,8 @@ class ProjectSelectorItem extends React.PureComponent {
   };
 
   render() {
-    const {project, multi, inputValue, isChecked} = this.props;
+    const {project, multi, inputValue, isChecked, organization} = this.props;
+
     return (
       <ProjectRow>
         <BadgeAndBookmark>
@@ -272,6 +277,9 @@ class ProjectSelectorItem extends React.PureComponent {
             />
           </BadgeWrapper>
           {project.isBookmarked && <BookmarkIcon multi={multi} />}
+          <SettingsIconLink to={`/settings/${organization.slug}/${project.slug}/`}>
+            <InlineSvg src="icon-settings" />
+          </SettingsIconLink>
         </BadgeAndBookmark>
 
         {multi && (
@@ -284,22 +292,6 @@ class ProjectSelectorItem extends React.PureComponent {
   }
 }
 
-const FlexY = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const ProjectRow = styled(FlexY)`
-  font-size: 14px;
-  font-weight: 400;
-
-  /* thanks bootstrap? */
-  input[type='checkbox'] {
-    margin: 0;
-  }
-`;
-
 const BookmarkIcon = styled(({multi, ...props}) => (
   <div {...props}>
     <span className="icon-star-solid bookmark" />
@@ -308,6 +300,39 @@ const BookmarkIcon = styled(({multi, ...props}) => (
   display: flex;
   font-size: 12px;
   ${p => p.multi && `margin-left: ${space(0.5)}`};
+`;
+
+const SettingsIconLink = styled(Link)`
+  color: ${p => p.theme.gray2};
+  display: flex;
+  padding: ${space(0.5)};
+  margin: -${space(0.5)}; /* for a larger click target */
+  opacity: 0;
+  transform: translateX(-${space(0.5)});
+  transition: 0.2s all;
+
+  &:hover {
+    color: ${p => p.theme.gray4};
+  }
+`;
+
+const ProjectRow = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 400;
+  padding-left: ${space(1)};
+
+  /* thanks bootstrap? */
+  input[type='checkbox'] {
+    margin: 0;
+  }
+
+  &:hover ${SettingsIconLink} {
+    opacity: 1;
+    transform: translateX(0);
+  }
 `;
 
 const CreateProjectButton = styled(Button)`
@@ -322,6 +347,7 @@ const BadgeWrapper = styled('div')`
   white-space: nowrap;
   overflow: hidden;
 `;
+
 const BadgeAndBookmark = styled('div')`
   display: flex;
   flex: 1;
@@ -334,8 +360,8 @@ const IdBadgeMenuItem = styled(IdBadge)`
 `;
 
 const MultiSelectWrapper = styled('div')`
-  margin: -8px;
-  padding: 8px;
+  margin: -${space(1)};
+  padding: ${space(1)};
 `;
 
 const MultiSelect = styled(CheckboxFancy)`
