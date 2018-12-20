@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from 'react-emotion';
-import PropTypes from 'prop-types';
 import {browserHistory} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
@@ -14,18 +13,16 @@ import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 import withOrganization from 'app/utils/withOrganization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import space from 'app/styles/space';
 
 import ReleaseList from '../shared/releaseList';
 import ReleaseListHeader from '../shared/releaseListHeader';
-import {fetchOrganizationReleases} from '../shared/utils';
+import {fetchOrganizationReleases, getQuery} from '../shared/utils';
 
 class OrganizationReleases extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization,
-    selection: PropTypes.object,
   };
   constructor(props) {
     super(props);
@@ -33,23 +30,30 @@ class OrganizationReleases extends React.Component {
   }
 
   componentDidMount() {
-    this.fetchData({query: this.props.location.query.query, ...this.props.selection});
+    this.fetchData();
   }
 
   componentDidUpdate(prevProps) {
-    const queryHasChanged =
-      prevProps.location.query.query !== this.props.location.query.query;
+    const queryHasChanged = prevProps.location.search !== this.props.location.search;
 
     if (queryHasChanged) {
-      this.fetchData({query: this.props.location.query.query, ...this.props.selection});
+      this.fetchData();
     }
   }
 
-  fetchData(query) {
+  fetchData() {
+    const {organization, location} = this.props;
+    const query = getQuery(location.search);
+
     this.setState({loading: true});
-    fetchOrganizationReleases(this.props.organization, query)
-      .then(releaseList => {
-        this.setState({releaseList, loading: false, error: null});
+    fetchOrganizationReleases(organization.slug, query)
+      .then(([releaseList, _, jqXHR]) => {
+        this.setState({
+          releaseList,
+          loading: false,
+          error: null,
+          pageLinks: jqXHR.getResponseHeader('Link'),
+        });
       })
       .catch(error => {
         this.setState({error, loading: false});
@@ -159,4 +163,4 @@ const HeaderTitle = styled('h4')`
 
 const Body = styled('div')``;
 
-export default withOrganization(withGlobalSelection(OrganizationReleases));
+export default withOrganization(OrganizationReleases);
