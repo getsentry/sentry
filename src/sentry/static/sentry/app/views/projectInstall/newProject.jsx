@@ -22,13 +22,15 @@ const NewProject = createReactClass({
           </div>
         </div>
         <div className="container">
-          <DocumentTitle title={'Sentry'} />
-          <CreateProject
-            getDocsUrl={({slug, projectSlug, platform}) => {
-              if (platform === 'other') platform = '';
-              return `/${slug}/${projectSlug}/getting-started/${platform}`;
-            }}
-          />
+          <Content>
+            <DocumentTitle title={'Sentry'} />
+            <CreateProject
+              getDocsUrl={({slug, projectSlug, platform}) => {
+                if (platform === 'other') platform = '';
+                return `/${slug}/${projectSlug}/getting-started/${platform}`;
+              }}
+            />
+          </Content>
         </div>
       </Container>
     );
@@ -39,6 +41,10 @@ const Container = styled('div')`
   flex: 1;
   background: #fff;
   margin-bottom: -${space(3)}; /* cleans up a bg gap at bottom */
+`;
+
+const Content = styled('div')`
+  margin-top: ${space(3)};
 `;
 
 export default NewProject;

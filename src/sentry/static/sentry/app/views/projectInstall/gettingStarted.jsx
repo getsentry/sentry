@@ -23,12 +23,14 @@ class GettingStartedBody extends React.Component {
           </div>
         </div>
         <div className="container">
-          <ProjectDocsContext>
-            {React.cloneElement(this.props.children, {
-              linkPath: (orgId, projectId, platform) =>
-                `/${orgId}/${projectId}/getting-started/${platform}/`,
-            })}
-          </ProjectDocsContext>
+          <Content>
+            <ProjectDocsContext>
+              {React.cloneElement(this.props.children, {
+                linkPath: (orgId, projectId, platform) =>
+                  `/${orgId}/${projectId}/getting-started/${platform}/`,
+              })}
+            </ProjectDocsContext>
+          </Content>
         </div>
       </Container>
     );
@@ -49,7 +51,11 @@ class GettingStarted extends React.Component {
 const Container = styled('div')`
   flex: 1;
   background: #fff;
-  margin-bottom: -${space(3)};
+  margin-bottom: -${space(3)}; /* cleans up a bg gap at bottom */
+`;
+
+const Content = styled('div')`
+  margin-top: ${space(3)};
 `;
 
 export default GettingStarted;

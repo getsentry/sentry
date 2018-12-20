@@ -6,10 +6,7 @@ import {analytics} from 'app/utils/analytics';
 import PlatformPicker from 'app/views/onboarding/project/platformpicker';
 import PlatformiconTile from 'app/views/onboarding/project/platformiconTile';
 import SelectField from 'app/components/forms/selectField';
-import PageHeading from 'app/components/pageHeading';
 import {t} from 'app/locale';
-import styled from 'react-emotion';
-import space from 'app/styles/space';
 
 class OnboardingProject extends React.Component {
   static propTypes = {
@@ -54,7 +51,7 @@ class OnboardingProject extends React.Component {
     let {team, teams, setTeam} = this.props;
     return (
       <div className="new-project-team">
-        <PageHeading withMargins>{t('Team') + ':'}</PageHeading>
+        <h4>{t('Team') + ':'}</h4>
         <div>
           <SelectField
             name="select-team"
@@ -74,12 +71,12 @@ class OnboardingProject extends React.Component {
 
   render() {
     return (
-      <Wrapper>
-        <PageHeading withMargins>{t('Choose a language or framework') + ':'}</PageHeading>
+      <div className="onboarding-info">
+        <h4>{t('Choose a language or framework') + ':'}</h4>
         <PlatformPicker {...this.props} showOther={true} />
         <div className="create-project-form">
           <div className="new-project-name client-platform">
-            <PageHeading withMargins>{t('Give your project a name') + ':'}</PageHeading>
+            <h4>{t('Give your project a name') + ':'}</h4>
             <div
               className={classnames('project-name-wrapper', {
                 required: this.state.projectRequired,
@@ -109,13 +106,9 @@ class OnboardingProject extends React.Component {
             )}
           </p>
         </div>
-      </Wrapper>
+      </div>
     );
   }
 }
-
-const Wrapper = styled('div')`
-  margin-top: ${space(3)};
-`;
 
 export default OnboardingProject;
