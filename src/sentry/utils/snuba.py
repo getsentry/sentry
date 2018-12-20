@@ -210,7 +210,7 @@ def options_override(overrides):
 
 _snuba_pool = connection_from_url(
     settings.SENTRY_SNUBA,
-    retries=False,
+    retries=5,
     timeout=30,
     maxsize=10,
 )
