@@ -7,6 +7,7 @@ import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import SentryTypes from 'app/sentryTypes';
+import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -70,10 +71,6 @@ class OrganizationUserFeedback extends React.Component {
   }
 
   renderList() {
-    if (!new Set(this.props.organization.features).has('sentry10')) {
-      return this.renderNoAccess();
-    }
-
     if (this.state.loading) {
       return <LoadingIndicator />;
     }
@@ -120,13 +117,19 @@ class OrganizationUserFeedback extends React.Component {
     const {status} = getQuery(this.props.location.search);
     return (
       <Content>
-        <UserFeedbackContainer
-          location={this.props.location}
-          pageLinks={this.state.pageLinks}
-          status={status}
+        <Feature
+          features={['organizations:sentry10']}
+          organization={this.props.organization}
+          renderDisabled={this.renderNoAccess}
         >
-          {this.renderList()}
-        </UserFeedbackContainer>
+          <UserFeedbackContainer
+            location={this.props.location}
+            pageLinks={this.state.pageLinks}
+            status={status}
+          >
+            {this.renderList()}
+          </UserFeedbackContainer>
+        </Feature>
       </Content>
     );
   }
