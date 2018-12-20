@@ -155,7 +155,7 @@ class ProjectSerializer(Serializer):
                 result[item]['stats'] = stats[item.id]
         return result
 
-    def serialize(self, obj, attrs, user):
+    def get_feature_list(self, obj, user):
         from sentry import features
         from sentry.features.base import ProjectFeature
 
@@ -172,6 +172,10 @@ class ProjectSerializer(Serializer):
 
         if obj.flags.has_releases:
             feature_list.add('releases')
+        return feature_list
+
+    def serialize(self, obj, attrs, user):
+        feature_list = self.get_feature_list(obj, user)
 
         status_label = STATUS_LABELS.get(obj.status, 'unknown')
 
@@ -298,6 +302,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
+        feature_list = self.get_feature_list(obj, user)
         context = {
             'team': attrs['teams'][0] if attrs['teams'] else None,
             'teams': attrs['teams'],
@@ -308,6 +313,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             'isMember': attrs['is_member'],
             'hasAccess': attrs['has_access'],
             'dateCreated': obj.date_added,
+            'features': feature_list,
             'firstEvent': obj.first_event,
             'platform': obj.platform,
             'platforms': attrs['platforms'],
