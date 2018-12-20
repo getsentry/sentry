@@ -6,6 +6,7 @@ import {analytics} from 'app/utils/analytics';
 import PlatformPicker from 'app/views/onboarding/project/platformpicker';
 import PlatformiconTile from 'app/views/onboarding/project/platformiconTile';
 import SelectField from 'app/components/forms/selectField';
+import PageHeading from 'app/components/pageHeading';
 import {t} from 'app/locale';
 
 class OnboardingProject extends React.Component {
@@ -51,7 +52,7 @@ class OnboardingProject extends React.Component {
     let {team, teams, setTeam} = this.props;
     return (
       <div className="new-project-team">
-        <h4>{t('Team') + ':'}</h4>
+        <PageHeading withMargins>{t('Team') + ':'}</PageHeading>
         <div>
           <SelectField
             name="select-team"
@@ -72,11 +73,11 @@ class OnboardingProject extends React.Component {
   render() {
     return (
       <div className="onboarding-info">
-        <h4>{t('Choose a language or framework') + ':'}</h4>
+        <PageHeading withMargins>{t('Choose a language or framework') + ':'}</PageHeading>
         <PlatformPicker {...this.props} showOther={true} />
         <div className="create-project-form">
           <div className="new-project-name client-platform">
-            <h4>{t('Give your project a name') + ':'}</h4>
+            <PageHeading withMargins>{t('Give your project a name') + ':'}</PageHeading>
             <div
               className={classnames('project-name-wrapper', {
                 required: this.state.projectRequired,
