@@ -306,7 +306,7 @@ def alert(request):
             'event': event,
             'link': 'http://example.com/link',
             'interfaces': interface_list,
-            'tags': event.get_tags(),
+            'tags': event.tags,
             'project_label': project.slug,
             'commits': [{
                 # TODO(dcramer): change to use serializer

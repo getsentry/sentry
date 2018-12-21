@@ -263,7 +263,7 @@ class UnmergeTestCase(TestCase):
                         organization_id=project.organization_id,
                         name=environment
                     ),
-                    tags=event.get_tags(),
+                    tags=event.tags,
                 )
 
             EventMapping.objects.create(

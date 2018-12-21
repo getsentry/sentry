@@ -88,7 +88,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             'triggering_rules': triggering_rules,
         }
         data['event'] = dict(event.data or {})
-        data['event']['tags'] = event.get_tags()
+        data['event']['tags'] = event.tags
         data['event']['event_id'] = event.event_id
         data['event']['id'] = event.id
         return data

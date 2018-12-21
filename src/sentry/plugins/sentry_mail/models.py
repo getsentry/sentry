@@ -262,7 +262,7 @@ class MailPlugin(NotificationPlugin):
                 interface_list.append((interface.get_title(), mark_safe(body), text_body))
 
             context.update({
-                'tags': event.get_tags(),
+                'tags': event.tags,
                 'interfaces': interface_list,
             })
 

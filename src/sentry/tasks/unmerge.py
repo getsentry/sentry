@@ -319,7 +319,7 @@ def collect_tag_data(events):
         environment = get_environment_name(event)
         tags = results.setdefault((event.group_id, environment), {})
 
-        for key, value in event.get_tags():
+        for key, value in event.tags:
             values = tags.setdefault(key, {})
 
             if value in values:
