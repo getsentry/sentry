@@ -4,7 +4,7 @@ import logging
 
 from batching_kafka_consumer import AbstractBatchWorker
 
-from sentry.coreapi import Auth, ClientApiHelper
+from sentry.coreapi import APIForbidden, APIRateLimited, Auth, ClientApiHelper
 from sentry.event_manager import EventManager
 from sentry.models import Project
 from sentry.utils import json
@@ -54,6 +54,13 @@ class EventConsumerWorker(AbstractBatchWorker):
         if value.get('should_process', False):
             try:
                 process_event_from_kafka(value)
+            except APIForbidden:
+                # Filtered or duplicate.
+                pass
+            except APIRateLimited:
+                # TODO: Shared state so StoreView/Relay can return proper
+                # status code and Retry-After.
+                pass
             except Exception:
                 logger.exception('Error processing event.')
 
