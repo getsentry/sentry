@@ -67,7 +67,7 @@ class OrganizationAuthList extends React.Component {
 
             {warn2FADisable && (
               <PanelAlert m={0} mb={0} type="warning">
-                {t('Require 2FA will be disabled if you enable SSO')}
+                {t('Require 2FA will be disabled if you enable SSO.')}
               </PanelAlert>
             )}
 

@@ -1,9 +1,13 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from django.db import models
 from mock import patch
 
-from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
+from sentry.models import (
+    AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider,
+    Organization, OrganizationMember, TotpInterface
+)
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
 
 
@@ -64,6 +68,64 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
 
 
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
+    def enroll_user_and_require_2fa(self, user, organization):
+        TotpInterface().enroll(user)
+        organization.update(
+            flags=models.F('flags').bitor(Organization.flags.require_2fa)
+        )
+        assert organization.flags.require_2fa.is_set
+
+    def assert_require_2fa_disabled(self, user, organization, logger):
+        organization = Organization.objects.get(id=organization.id)
+        assert not organization.flags.require_2fa.is_set
+
+        event = AuditLogEntry.objects.get(
+            target_object=organization.id,
+            event=AuditLogEntryEvent.ORG_EDIT,
+            actor=user
+        )
+        assert 'require_2fa to False when enabling SSO' in event.get_note()
+        logger.info.assert_called_once_with(
+            'Require 2fa disabled during sso setup',
+            extra={
+                'organization_id': organization.id
+            }
+        )
+
+    def assert_basic_flow(self, user, organization):
+        configure_path = reverse(
+            'sentry-organization-auth-provider-settings',
+            args=[
+                organization.slug])
+
+        with self.feature('organizations:sso-basic'):
+            resp = self.client.post(configure_path, {'provider': 'dummy', 'init': True})
+            assert resp.status_code == 200
+            assert self.provider.TEMPLATE in resp.content.decode('utf-8')
+
+            path = reverse('sentry-auth-sso')
+            resp = self.client.post(path, {'email': user.email})
+
+        assert resp.status_code == 302
+        assert resp['Location'] == u'http://testserver{}'.format(configure_path)
+
+        auth_provider = AuthProvider.objects.get(
+            organization=organization,
+            provider='dummy',
+        )
+        auth_identity = AuthIdentity.objects.get(
+            auth_provider=auth_provider,
+        )
+        assert user == auth_identity.user
+
+        member = OrganizationMember.objects.get(
+            organization=organization,
+            user=user,
+        )
+
+        assert getattr(member.flags, 'sso:linked')
+        assert not getattr(member.flags, 'sso:invalid')
+
     def test_can_start_auth_flow(self):
         organization = self.create_organization(name='foo', owner=self.user)
 
@@ -81,44 +143,19 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         user = self.create_user('bar@example.com')
         organization = self.create_organization(name='foo', owner=user)
 
-        configure_path = reverse(
-            'sentry-organization-auth-provider-settings',
-            args=[
-                organization.slug])
+        self.login_as(user)
+        self.assert_basic_flow(user, organization)
+
+    @patch('sentry.auth.helper.logger')
+    def test_basic_flow__disable_require_2fa(self, logger):
+        user = self.create_user('bar@example.com')
+        organization = self.create_organization(name='foo', owner=user)
 
         self.login_as(user)
+        self.enroll_user_and_require_2fa(user, organization)
 
-        with self.feature('organizations:sso-basic'):
-            resp = self.client.post(configure_path, {'provider': 'dummy', 'init': True})
-
-            assert resp.status_code == 200
-            assert self.provider.TEMPLATE in resp.content.decode('utf-8')
-
-            path = reverse('sentry-auth-sso')
-
-            resp = self.client.post(path, {'email': user.email})
-
-        assert resp.status_code == 302
-        assert resp['Location'] == u'http://testserver{}'.format(configure_path)
-
-        auth_provider = AuthProvider.objects.get(
-            organization=organization,
-            provider='dummy',
-        )
-
-        auth_identity = AuthIdentity.objects.get(
-            auth_provider=auth_provider,
-        )
-
-        assert user == auth_identity.user
-
-        member = OrganizationMember.objects.get(
-            organization=organization,
-            user=user,
-        )
-
-        assert getattr(member.flags, 'sso:linked')
-        assert not getattr(member.flags, 'sso:invalid')
+        self.assert_basic_flow(user, organization)
+        self.assert_require_2fa_disabled(user, organization, logger)
 
     @patch('sentry.web.frontend.organization_auth_settings.email_unlink_notifications')
     def test_disable_provider(self, email_unlink_notifications):
