@@ -37,7 +37,7 @@ def get_event(stacktrace):
         'level': 'error',
         'platform': 'python',
         'logentry': {
-            'message': 'invalid debug identifier\n\n%s' % stacktrace,
+            'formatted': 'invalid debug identifier\n\n%s' % stacktrace,
         },
         'exception': {
             'values': [{
@@ -74,7 +74,7 @@ def test_merge_rust_info():
     merge_rust_info_frames(event, {'exc_info': exc_info})
 
     assert event['platform'] == 'native'
-    assert event['logentry']['message'] == 'invalid debug identifier'
+    assert event['logentry']['formatted'] == 'invalid debug identifier'
 
     exception = event['exception']['values'][0]
     assert exception['value'] == 'invalid debug identifier'
@@ -122,7 +122,7 @@ def test_without_stacktrace():
     merge_rust_info_frames(event, {'exc_info': exc_info})
 
     assert event['platform'] == 'native'
-    assert event['logentry']['message'] == 'invalid debug identifier'
+    assert event['logentry']['formatted'] == 'invalid debug identifier'
 
     exception = event['exception']['values'][0]
     assert exception['value'] == 'invalid debug identifier'

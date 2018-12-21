@@ -474,7 +474,7 @@ class EventManager(object):
             'time_spent': lambda v: int(v) if v is not None else v,
             'tags': lambda v: [(text(v_k).replace(' ', '-').strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
             'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
-            'logentry': lambda v: v if isinstance(v, dict) else {'message': v},
+            'logentry': lambda v: {'message': v} if (v and not isinstance(v, dict)) else (v or None),
 
             # These can be sent as lists and need to be converted to {'values': [...]}
             'exception': to_values,
@@ -496,29 +496,6 @@ class EventManager(object):
 
         data['timestamp'] = process_timestamp(data.get('timestamp'),
                                               meta.enter('timestamp'))
-
-        # raw 'message' is coerced to the Message interface.  Longer term
-        # we want to treat 'message' as a pure alias for 'logentry' but
-        # for now that won't be the case.
-        #
-        # TODO(mitsuhiko): the logic we want to apply here long term is
-        # to
-        #
-        # 1. make logentry.message optional
-        # 2. make logentry.formatted the primary value
-        # 3. always treat a string as an alias for `logentry.formatted`
-        # 4. remove the custom coercion logic here
-        msg_str = data.pop('message', None)
-        if msg_str:
-            msg_if = data.get('logentry')
-
-            if not msg_if:
-                msg_if = data['logentry'] = {'message': msg_str}
-                meta.enter('logentry', 'message').merge(meta.enter('message'))
-
-            if msg_if.get('message') != msg_str and not msg_if.get('formatted'):
-                msg_if['formatted'] = msg_str
-                meta.enter('logentry', 'formatted').merge(meta.enter('message'))
 
         # Fill in ip addresses marked as {{auto}}
         if self._client_ip:
