@@ -1,13 +1,13 @@
 export function AuthProviders(params = []) {
   return [
     {
-      key: 'github',
-      name: 'Github',
+      key: 'dummy',
+      name: 'Dummy',
       requiredFeature: 'organizations:sso-basic',
     },
     {
-      key: 'sam2',
-      name: 'SAML2',
+      key: 'dummy2',
+      name: 'Dummy SAML',
       requiredFeature: 'organizations:sso-saml2',
     },
     ...params,
