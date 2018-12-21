@@ -52,14 +52,25 @@ class EventConsumerWorker(AbstractBatchWorker):
     def process_message(self, message):
         value = json.loads(message.value())
         if value.get('should_process', False):
-            return value
-
-    def flush_batch(self, batch):
-        for event in batch:
             try:
-                process_event_from_kafka(event)
+                process_event_from_kafka(value)
             except Exception:
                 logger.exception('Error processing event.')
+
+        # TODO: The BatchingKafkaConsumer API only flushes batches (and Kafka offsets)
+        # if there are non-None values returned from `process_message` that should be
+        # flushed. However, our existing code doesn't operate on batches, so we eagerly
+        # process them as soon as they are received from Kafka, and return True so that
+        # there is something in the batch for the BatchingKafkaConsumer to flush (along
+        # with offsets). We should maybe improve the BatchingKafkaConsumer API to allow
+        # for flushing consumed offsets without having to "fake" a batch.
+        # Note that the BatchingKafkaConsumer is still useful to use because it allows
+        # full control over when and how often to commit offsets, in addition to retries
+        # of those commits and unified configuration of consumers.
+        return True
+
+    def flush_batch(self, batch):
+        pass
 
     def shutdown(self):
         pass
