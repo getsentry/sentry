@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, prune_empty_keys
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import trim
 
@@ -54,11 +54,11 @@ class Threads(Interface):
                 rv['stacktrace'] = data['stacktrace'].to_json()
             if data['raw_stacktrace']:
                 rv['raw_stacktrace'] = data['raw_stacktrace'].to_json()
-            return rv
+            return prune_empty_keys(rv)
 
-        return {
+        return prune_empty_keys({
             'values': [export_thread(x) for x in self.values],
-        }
+        })
 
     def get_api_context(self, is_public=False):
         def export_thread(data):

@@ -20,7 +20,8 @@ from django.utils.encoding import force_text
 from sentry import buffer, eventtypes, eventstream, features, tsdb, filters
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
-    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH
+    DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS, MAX_TAG_VALUE_LENGTH,
+    CLIENT_IGNORED_ATTRS,
 )
 from sentry.coreapi import (
     APIError,
@@ -56,7 +57,7 @@ from sentry.utils.data_filters import (
 from sentry.utils.dates import to_timestamp
 from sentry.utils.db import is_postgres, is_mysql
 from sentry.utils.meta import Meta
-from sentry.utils.safe import safe_execute, trim, trim_dict, get_path, set_path, setdefault_path
+from sentry.utils.safe import RUST_ENABLE_TRIMMING, safe_execute, trim, trim_dict, get_path, set_path, setdefault_path
 from sentry.utils.strings import truncatechars
 from sentry.utils.geo import rust_geoip
 from sentry.utils.validators import is_float
@@ -436,7 +437,8 @@ class EventManager(object):
                 stacktrace_frames_hard_limit=settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT,
                 valid_platforms=list(VALID_PLATFORMS),
                 max_secs_in_future=MAX_SECS_IN_FUTURE,
-                max_secs_in_past=MAX_SECS_IN_PAST
+                max_secs_in_past=MAX_SECS_IN_PAST,
+                enable_trimming=RUST_ENABLE_TRIMMING,
             )
 
             self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
@@ -522,8 +524,8 @@ class EventManager(object):
 
             # Ignore all top-level None and empty values, regardless whether
             # they are interfaces or not. For all other unrecognized attributes,
-            # we emit an explicit error.
-            if not value:
+            # we emit an explicit error, unless they are explicitly ignored.
+            if not value or k in CLIENT_IGNORED_ATTRS:
                 continue
 
             try:
@@ -667,7 +669,7 @@ class EventManager(object):
         elif '_meta' in data:
             del data['_meta']
 
-        self._data = prune_empty_keys(data)
+        self._data = CanonicalKeyDict(prune_empty_keys(data))
 
     def should_filter(self):
         '''

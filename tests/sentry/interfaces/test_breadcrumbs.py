@@ -61,7 +61,7 @@ class BreadcrumbsTest(TestCase):
             )
         )
         assert len(result.values) == 1
-        assert result.values[0]['data'] == {'extra': '{"foo":"bar"}'}
+        assert result.values[0]['data'] == {'extra': {"foo": "bar"}}
 
     def test_string_data(self):
         result = Breadcrumbs.to_python(
