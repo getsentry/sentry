@@ -167,7 +167,8 @@ class EventCommon(object):
 
         return None
 
-    def get_tags(self):
+    @property
+    def tags(self):
         try:
             rv = sorted([(t, v) for t, v in get_path(
                 self.data, 'tags', filter=True) or () if t is not None and v is not None])
@@ -400,7 +401,7 @@ class Event(Model, EventCommon):
         data['message'] = self.real_message
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
-        data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.get_tags()]
+        data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.tags]
         for k, v in sorted(six.iteritems(self.data)):
             if k in data:
                 continue
