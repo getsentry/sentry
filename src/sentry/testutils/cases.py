@@ -11,7 +11,8 @@ from __future__ import absolute_import
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase', 'IntegrationRepositoryTestCase', 'ReleaseCommitPatchTest'
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase', 'IntegrationRepositoryTestCase',
+    'ReleaseCommitPatchTest', 'SetRefsTestCase'
 )
 
 import base64
@@ -54,7 +55,7 @@ from sentry.auth.superuser import (
 )
 from sentry.constants import MODULE_ROOT
 from sentry.models import (
-    GroupEnvironment, GroupHash, GroupMeta, ProjectOption, DeletedOrganization,
+    GroupEnvironment, GroupHash, GroupMeta, ProjectOption, Repository, DeletedOrganization,
     Environment, GroupStatus, Organization, TotpInterface, UserReport,
 )
 from sentry.plugins import plugins
@@ -963,3 +964,45 @@ class ReleaseCommitPatchTest(APITestCase):
         assert file_change.type == type
         assert file_change.filename == filename
         assert file_change.commit_id == commit_id
+
+
+class SetRefsTestCase(APITestCase):
+    def setUp(self):
+        super(SetRefsTestCase, self).setUp()
+        self.user = self.create_user(is_staff=False, is_superuser=False)
+        self.org = self.create_organization()
+
+        self.team = self.create_team(organization=self.org)
+        self.project = self.create_project(name='foo', organization=self.org, teams=[self.team])
+        self.create_member(teams=[self.team], user=self.user, organization=self.org)
+        self.login_as(user=self.user)
+
+        self.group = self.create_group(project=self.project)
+        self.repo = Repository.objects.create(
+            organization_id=self.org.id,
+            name='test/repo',
+        )
+
+    def assert_fetch_commits(self, mock_fetch_commit, prev_release_id, release_id, refs):
+        assert len(mock_fetch_commit.method_calls) == 1
+        kwargs = mock_fetch_commit.method_calls[0][2]['kwargs']
+        assert kwargs == {
+            'prev_release_id': prev_release_id,
+            'refs': refs,
+            'release_id': release_id,
+            'user_id': self.user.id,
+        }
+
+    def assert_head_commit(self, head_commit, commit_key, release_id=None):
+        assert self.org.id == head_commit.organization_id
+        assert self.repo.id == head_commit.repository_id
+        if release_id:
+            assert release_id == head_commit.release_id
+        else:
+            assert self.release.id == head_commit.release_id
+        self.assert_commit(head_commit.commit, commit_key)
+
+    def assert_commit(self, commit, key):
+        assert self.org.id == commit.organization_id
+        assert self.repo.id == commit.repository_id
+        assert commit.key == key

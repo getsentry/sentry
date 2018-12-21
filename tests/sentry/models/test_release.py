@@ -12,7 +12,7 @@ from sentry.models import (
     ReleaseHeadCommit, ReleaseProject, ReleaseProjectEnvironment, Repository
 )
 
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, SetRefsTestCase
 
 
 class MergeReleasesTest(TestCase):
@@ -548,41 +548,12 @@ class SetCommitsTestCase(TestCase):
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
 
 
-class SetRefsTestCase(TestCase):
-    def setUp(self):
-        super(SetRefsTestCase, self).setUp()
-        self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.org, name='foo')
-        self.group = self.create_group(project=self.project)
+class SetRefsTest(SetRefsTestCase):
 
-        self.repo = Repository.objects.create(
-            organization_id=self.org.id,
-            name='test/repo',
-        )
+    def setUp(self):
+        super(SetRefsTest, self).setUp()
         self.release = Release.objects.create(version='abcdabc', organization=self.org)
         self.release.add_project(self.project)
-
-    def assert_fetch_commits(self, mock_fetch_commit, prev_release_id, release_id, refs):
-        assert len(mock_fetch_commit.method_calls) == 1
-        kwargs = mock_fetch_commit.method_calls[0][2]['kwargs']
-        assert kwargs == {
-            'prev_release_id': prev_release_id,
-            'refs': refs,
-            'release_id': release_id,
-            'user_id': self.user.id,
-        }
-
-    def assert_head_commit(self, head_commit, commit_key):
-        assert self.org.id == head_commit.organization_id
-        assert self.repo.id == head_commit.repository_id
-        assert self.release.id == head_commit.release_id
-        self.assert_commit(head_commit.commit, commit_key)
-
-    def assert_commit(self, commit, key):
-        assert self.org.id == commit.organization_id
-        assert self.repo.id == commit.repository_id
-        assert commit.key == key
 
     @patch('sentry.tasks.commits.fetch_commits')
     def test_simple(self, mock_fetch_commit):
