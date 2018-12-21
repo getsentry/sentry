@@ -914,7 +914,7 @@ function routes() {
             <Route
               path="artifacts/"
               componentPromise={() =>
-                import(/*webpackChunkName:"ReleaseArtifacts"*/ './views/releases/detail/project/releaseArtifacts')}
+                import(/*webpackChunkName:"ReleaseArtifacts"*/ './views/releases/detail/shared/releaseArtifacts')}
               component={errorHandler(LazyLoad)}
             />
             <Route
