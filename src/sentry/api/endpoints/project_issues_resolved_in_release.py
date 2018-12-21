@@ -4,19 +4,17 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.bases.release import IssuesResolvedInReleaseMixin
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.models import (
-    Group,
-    GroupLink,
-    GroupResolution,
-    Release,
-    ReleaseCommit,
-)
+from sentry.models import Group
 
 
-class IssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
+class ProjectIssuesResolvedInReleaseEndpoint(
+    ProjectEndpoint,
+    EnvironmentMixin,
+    IssuesResolvedInReleaseMixin,
+):
     doc_section = DocSection.RELEASES
     permission_classes = (ProjectPermission, )
 
@@ -33,32 +31,7 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
         :pparam string version: the version identifier of the release.
         :auth: required
         """
-        try:
-            release = Release.objects.get(version=version, organization=project.organization)
-        except Release.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        group_ids = set()
-        group_ids |= set(
-            GroupResolution.objects.filter(
-                release=release,
-            ).values_list('group_id', flat=True)
-        )
-        group_ids |= set(
-            GroupLink.objects.filter(
-                linked_type=GroupLink.LinkedType.commit,
-                linked_id__in=ReleaseCommit.objects.filter(
-                    release=release,
-                ).values_list(
-                    'commit_id',
-                    flat=True,
-                )
-            ).values_list(
-                'group_id',
-                flat=True,
-            )
-        )
-
+        group_ids = self._get_group_ids_resolved_in_release(project.organization, version)
         groups = Group.objects.filter(project=project, id__in=group_ids)
 
         context = serialize(

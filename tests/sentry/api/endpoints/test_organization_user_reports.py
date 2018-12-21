@@ -15,7 +15,7 @@ from sentry.testutils import APITestCase
 
 
 class OrganizationUserReportListTest(APITestCase):
-    endpoint = u'/api/0/organizations/{}/user-feedback/'
+    endpoint = 'sentry-api-0-organization-user-feedback'
     method = 'get'
 
     def setUp(self):
