@@ -26,12 +26,7 @@ const ReleaseCommits = createReactClass({
   },
 
   componentDidMount() {
-    let {orgId, projectId, version} = this.props.params;
-
-    let path = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
-      version
-    )}/commits/`;
-    this.api.request(path, {
+    this.api.request(this.getPath(), {
       method: 'GET',
       data: this.props.location.query,
       success: (data, _, jqXHR) => {
@@ -49,6 +44,16 @@ const ReleaseCommits = createReactClass({
         });
       },
     });
+  },
+
+  getPath() {
+    let {orgId, projectId, version} = this.props.params;
+
+    let encodedVersion = encodeURIComponent(version);
+
+    return projectId
+      ? `/projects/${orgId}/${projectId}/releases/${encodedVersion}/commits/`
+      : `/organizations/${orgId}/releases/${encodedVersion}/commits/`;
   },
 
   emptyState() {
