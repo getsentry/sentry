@@ -436,12 +436,17 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     def get_response(self, *args, **params):
         if self.endpoint is None:
             raise Exception('Implement self.endpoint to use this method.')
-        url = self.endpoint.format(*args)
+        url = reverse(self.endpoint, args=args)
         return getattr(self.client, self.method)(
             url,
             format='json',
             data=params,
         )
+
+    def get_valid_response(self, *args, **params):
+        resp = self.get_response(*args, **params)
+        assert resp.status_code == 200, resp.content
+        return resp
 
 
 class TwoFactorAPITestCase(APITestCase):
