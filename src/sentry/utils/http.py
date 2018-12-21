@@ -256,12 +256,13 @@ def heuristic_decode(data, possible_content_type=None):
 
     for decoding_type, decoder in decoders:
         try:
-            return (decoder(data), decoding_type)
+            decoder(data)
         except Exception:
             # Try another decoder
             continue
+        return decoding_type
 
-    return (data, inferred_content_type)
+    return inferred_content_type
 
 
 def percent_encode(val):

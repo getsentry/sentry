@@ -28,7 +28,7 @@ class HttpTest(TestCase):
         assert result.url == 'http://example.com'
         assert result.method is None
         assert result.fragment == ''
-        assert result.query_string == ''
+        assert result.query_string == []
         assert result.data is None
         assert result.cookies == []
         assert result.headers == []
@@ -49,7 +49,7 @@ class HttpTest(TestCase):
             )
         )
         assert result.method == 'GET'
-        assert result.query_string == 'foo=bar'
+        assert result.query_string == [('foo', 'bar')]
         assert result.fragment == 'foobar'
         assert result.cookies == [('foo', 'bar')]
         assert result.headers == [('X-Foo-Bar', 'baz')]
@@ -61,7 +61,14 @@ class HttpTest(TestCase):
             url='http://example.com',
             query_string={'foo': 'bar'},
         ))
-        assert result.query_string == 'foo=bar'
+        assert result.query_string == [('foo', 'bar')]
+
+    def test_query_string_as_pairlist(self):
+        result = Http.to_python(dict(
+            url='http://example.com',
+            query_string=[['foo', 'bar']],
+        ))
+        assert result.query_string == [('foo', 'bar')]
 
     def test_query_string_as_dict_unicode(self):
         result = Http.to_python(
@@ -70,7 +77,7 @@ class HttpTest(TestCase):
                 query_string={'foo': u'\N{SNOWMAN}'},
             )
         )
-        assert result.query_string == 'foo=%E2%98%83'
+        assert result.query_string == [('foo', '\xe2\x98\x83')]
 
     def test_data_as_dict(self):
         result = Http.to_python(dict(
@@ -79,7 +86,7 @@ class HttpTest(TestCase):
         ))
         assert result.data == {'foo': 'bar'}
 
-    def test_form_encoded_data(self):
+    def test_urlencoded_data(self):
         result = Http.to_python(
             dict(
                 url='http://example.com',
@@ -87,7 +94,43 @@ class HttpTest(TestCase):
                 data='foo=bar',
             )
         )
-        assert result.data == {'foo': ['bar']}
+
+        assert result.data == 'foo=bar'
+        assert result.inferred_content_type == 'application/x-www-form-urlencoded'
+
+    def test_infer_urlencoded_content_type(self):
+        result = Http.to_python(
+            dict(
+                url='http://example.com',
+                data='foo=bar',
+            )
+        )
+
+        assert result.data == 'foo=bar'
+        assert result.inferred_content_type == 'application/x-www-form-urlencoded'
+
+    def test_json_data(self):
+        result = Http.to_python(
+            dict(
+                url='http://example.com',
+                headers={'Content-Type': 'application/json'},
+                data='{"foo":"bar"}',
+            )
+        )
+
+        assert result.data == '{"foo":"bar"}'
+        assert result.inferred_content_type == 'application/json'
+
+    def test_infer_json_content_type(self):
+        result = Http.to_python(
+            dict(
+                url='http://example.com',
+                data='{"foo":"bar"}',
+            )
+        )
+
+        assert result.data == '{"foo":"bar"}'
+        assert result.inferred_content_type == 'application/json'
 
     def test_cookies_as_string(self):
         result = Http.to_python(dict(

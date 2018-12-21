@@ -147,18 +147,22 @@ class Http(Interface):
 
         query_string = data.get('query_string') or query_bit
         if query_string:
-            # if querystring was a dict, convert it to a string
-            if isinstance(query_string, dict):
-                query_string = urlencode(
-                    [(to_bytes(k), to_bytes(v)) for k, v in query_string.items()]
-                )
-            else:
+            if isinstance(query_string, six.string_types):
                 if query_string[0] == '?':
-                    # remove '?' prefix
                     query_string = query_string[1:]
+                query_string = parse_qsl(query_string, keep_blank_values=True)
+            elif isinstance(query_string, dict):
+                query_string = [(to_bytes(k), to_bytes(v)) for k, v in six.iteritems(query_string)]
+            elif isinstance(query_string, list):
+                query_string = [
+                    tuple(tup) for tup in query_string
+                    if isinstance(tup, (tuple, list)) and len(tup) == 2
+                ]
+            else:
+                query_string = []
             kwargs['query_string'] = trim(query_string, 4096)
         else:
-            kwargs['query_string'] = ''
+            kwargs['query_string'] = []
 
         fragment = data.get('fragment') or fragment_bit
 
@@ -190,7 +194,7 @@ class Http(Interface):
         inferred_content_type = data.get('inferred_content_type', content_type)
 
         if 'inferred_content_type' not in data and not isinstance(body, dict):
-            body, inferred_content_type = heuristic_decode(body, content_type)
+            inferred_content_type = heuristic_decode(body, content_type)
 
         if body:
             body = trim(body, settings.SENTRY_MAX_HTTP_BODY_SIZE)
@@ -230,7 +234,7 @@ class Http(Interface):
     def full_url(self):
         url = self.url
         if self.query_string:
-            url = url + '?' + self.query_string
+            url = url + '?' + urlencode(self.query_string)
         if self.fragment:
             url = url + '#' + self.fragment
         return url
@@ -242,7 +246,7 @@ class Http(Interface):
                 'url': self.full_url,
                 'short_url': self.url,
                 'method': self.method,
-                'query_string': self.query_string,
+                'query_string': urlencode(self.query_string),
                 'fragment': self.fragment,
             }
         )
