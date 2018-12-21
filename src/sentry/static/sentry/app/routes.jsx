@@ -920,7 +920,7 @@ function routes() {
             <Route
               path="commits/"
               componentPromise={() =>
-                import(/*webpackChunkName:"ReleaseCommits"*/ './views/releases/detail/project/releaseCommits')}
+                import(/*webpackChunkName:"ReleaseCommits"*/ './views/releases/detail/shared/releaseCommits')}
               component={errorHandler(LazyLoad)}
             />
           </Route>
