@@ -262,7 +262,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         query = request.GET.get('query', 'is:unresolved').strip()
         if query:
             try:
-                query_kwargs.update(parse_query(project, query, request.user))
+                query_kwargs.update(parse_query([project], query, request.user))
             except InvalidQuery as e:
                 raise ValidationError(
                     u'Your search query could not be parsed: {}'.format(
