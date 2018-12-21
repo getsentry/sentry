@@ -14,7 +14,6 @@ from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.rest_framework import ListField
-from sentry.auth.providers.saml2 import SAML2Provider
 from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntryEvent, Authenticator, AuthProvider, Organization, OrganizationAvatar,
@@ -25,8 +24,9 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
-
 ERR_NO_USER = 'This request requires an authenticated user.'
+ERR_NO_2FA = 'Cannot require two-factor authentication without personal two-factor enabled.'
+ERR_SSO_ENABLED = 'Cannot require two-factor authentication with SAML SSO enabled'
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
@@ -103,13 +103,9 @@ class OrganizationSerializer(serializers.Serializer):
             key__in=LEGACY_RATE_LIMIT_OPTIONS,
         ).exists()
 
-    def _has_saml_enabled(self):
+    def _has_sso_enabled(self):
         org = self.context['organization']
-        try:
-            provider = AuthProvider.objects.get(organization=org).get_provider()
-        except AuthProvider.DoesNotExist:
-            return False
-        return isinstance(provider, SAML2Provider)
+        return AuthProvider.objects.filter(organization=org).exists()
 
     def validate_slug(self, attrs, source):
         value = attrs[source]
@@ -149,11 +145,10 @@ class OrganizationSerializer(serializers.Serializer):
         user = self.context['user']
         has_2fa = Authenticator.objects.user_has_2fa(user)
         if value and not has_2fa:
-            raise serializers.ValidationError(
-                'Cannot require two-factor authentication without personal two-factor enabled.')
-        if value and self._has_saml_enabled():
-            raise serializers.ValidationError(
-                'Cannot require two-factor authentication with SAML SSO enabled')
+            raise serializers.ValidationError(ERR_NO_2FA)
+
+        if value and self._has_sso_enabled():
+            raise serializers.ValidationError(ERR_SSO_ENABLED)
         return attrs
 
     def validate_trustedRelays(self, attrs, source):

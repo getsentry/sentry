@@ -68,25 +68,23 @@ exports[`OrganizationAuthList renders 1`] = `
           value="1"
         />
         <ProviderItem
-          key="dummy"
+          key="github"
           onConfigure={[Function]}
           provider={
             Object {
-              "disables2FA": false,
-              "key": "dummy",
-              "name": "Dummy",
+              "key": "github",
+              "name": "Github",
               "requiredFeature": "organizations:sso-basic",
             }
           }
         />
         <ProviderItem
-          key="dummy2"
+          key="sam2"
           onConfigure={[Function]}
           provider={
             Object {
-              "disables2FA": true,
-              "key": "dummy2",
-              "name": "Dummy SAML",
+              "key": "sam2",
+              "name": "SAML2",
               "requiredFeature": "organizations:sso-saml2",
             }
           }

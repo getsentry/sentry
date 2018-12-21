@@ -43,9 +43,8 @@ class OrganizationAuthList extends React.Component {
 
     const warn2FADisable =
       organization.require2FA &&
-      providerList.some(
-        ({requiredFeature, disables2FA}) =>
-          disables2FA && features.includes(descopeFeatureName(requiredFeature))
+      providerList.some(({requiredFeature}) =>
+        features.includes(descopeFeatureName(requiredFeature))
       );
 
     return (
@@ -68,9 +67,7 @@ class OrganizationAuthList extends React.Component {
 
             {warn2FADisable && (
               <PanelAlert m={0} mb={0} type="warning">
-                {t(
-                  'Require 2FA will be disabled if you enable SAML-based SSO (Okta, OneLogin, Auth0, etc.)'
-                )}
+                {t('Require 2FA will be disabled if you enable SSO')}
               </PanelAlert>
             )}
 

@@ -1,15 +1,13 @@
 export function AuthProviders(params = []) {
   return [
     {
-      disables2FA: false,
-      key: 'dummy',
-      name: 'Dummy',
+      key: 'github',
+      name: 'Github',
       requiredFeature: 'organizations:sso-basic',
     },
     {
-      disables2FA: true,
-      key: 'dummy2',
-      name: 'Dummy SAML',
+      key: 'sam2',
+      name: 'SAML2',
       requiredFeature: 'organizations:sso-saml2',
     },
     ...params,
