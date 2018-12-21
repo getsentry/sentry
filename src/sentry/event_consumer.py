@@ -1,8 +1,10 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import time
 
 from batching_kafka_consumer import AbstractBatchWorker
+from confluent_kafka import TIMESTAMP_NOT_AVAILABLE
 
 from sentry.coreapi import APIForbidden, APIRateLimited, Auth, ClientApiHelper
 from sentry.event_manager import EventManager
@@ -14,7 +16,7 @@ from sentry.web.api import process_event
 logger = logging.getLogger('sentry.event_consumer')
 
 
-def process_event_from_kafka(message):
+def process_event_from_kafka(message, timestamp):
     project = Project.objects.get_from_cache(pk=message['project_id'])
 
     remote_addr = message['remote_addr']
@@ -44,16 +46,21 @@ def process_event_from_kafka(message):
     event_manager._normalized = True
     del data
 
-    return process_event(event_manager, project, key,
-                         remote_addr, helper, attachments=None)
+    return process_event(event_manager, project, key, remote_addr, helper,
+                         attachments=None, process_time=timestamp)
 
 
 class EventConsumerWorker(AbstractBatchWorker):
     def process_message(self, message):
         value = json.loads(message.value())
+
+        timestamp_type, timestamp = message.timestamp()
+        if timestamp_type == TIMESTAMP_NOT_AVAILABLE:
+            timestamp = time.time()
+
         if value.get('should_process', False):
             try:
-                process_event_from_kafka(value)
+                process_event_from_kafka(value, timestamp)
             except APIForbidden:
                 # Filtered or duplicate.
                 pass

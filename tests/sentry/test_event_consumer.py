@@ -1,10 +1,14 @@
 from __future__ import absolute_import, print_function
 
 import mock
+import time
+
+from confluent_kafka import TIMESTAMP_LOG_APPEND_TIME
 
 from sentry.event_consumer import EventConsumerWorker
 from sentry.signals import event_accepted
 from sentry.testutils import (assert_mock_called_once_with_partial, TestCase)
+from sentry.utils import json
 
 
 class EventConsumerTest(TestCase):
@@ -31,11 +35,15 @@ class EventConsumerTest(TestCase):
                 def value(self):
                     return self._value
 
-            worker = EventConsumerWorker()
-            result = worker.process_message(Message(kafka_message_value))
-            assert result['should_process']
-            assert isinstance(result['data'], dict)
+                def timestamp(self):
+                    return (TIMESTAMP_LOG_APPEND_TIME, time.time())
 
+            worker = EventConsumerWorker()
+            decoded = json.loads(kafka_message_value)
+            assert decoded['should_process']
+            assert isinstance(decoded['data'], dict)
+
+            result = worker.process_message(Message(kafka_message_value))
             worker.flush_batch([result])
 
             assert_mock_called_once_with_partial(

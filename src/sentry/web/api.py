@@ -92,11 +92,13 @@ def api(func):
     return wrapped
 
 
-def process_event(event_manager, project, key, remote_addr, helper, attachments):
+def process_event(event_manager, project, key, remote_addr, helper, attachments, process_time=None):
     event_received.send_robust(ip=remote_addr, project=project, sender=process_event)
 
-    start_time = time()
-    tsdb_start_time = to_datetime(start_time)
+    if process_time is None:
+        process_time = time()
+    process_datetime = to_datetime(process_time)
+
     should_filter, filter_reason = event_manager.should_filter()
     if should_filter:
         increment_list = [
@@ -118,7 +120,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 
         tsdb.incr_multi(
             increment_list,
-            timestamp=tsdb_start_time,
+            timestamp=process_datetime,
         )
 
         metrics.incr(
@@ -133,7 +135,8 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
 
     # TODO: improve this API (e.g. make RateLimit act on __ne__)
     rate_limit = safe_execute(
-        quotas.is_rate_limited, project=project, key=key, _with_transaction=False
+        quotas.is_rate_limited, project=project, key=key, timestamp=process_datetime,
+        _with_transaction=False
     )
     if isinstance(rate_limit, bool):
         rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
@@ -154,7 +157,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
                 (tsdb.models.key_total_received, key.id),
                 (tsdb.models.key_total_rejected, key.id),
             ],
-            timestamp=tsdb_start_time,
+            timestamp=process_datetime,
         )
         metrics.incr(
             'events.dropped',
@@ -178,7 +181,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
                     project.organization_id),
                 (tsdb.models.key_total_received, key.id),
             ],
-            timestamp=tsdb_start_time,
+            timestamp=process_datetime,
         )
 
     org_options = OrganizationOption.objects.get_all_values(
@@ -230,7 +233,7 @@ def process_event(event_manager, project, key, remote_addr, helper, attachments)
         helper.ensure_does_not_have_ip(data)
 
     # mutates data (strips a lot of context if not queued)
-    helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
+    helper.insert_data_to_database(data, start_time=process_time, attachments=attachments)
 
     cache.set(cache_key, '', 60 * 5)
 

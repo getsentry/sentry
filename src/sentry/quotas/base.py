@@ -52,7 +52,7 @@ class Quota(Service):
     def __init__(self, **options):
         pass
 
-    def is_rate_limited(self, project, key=None):
+    def is_rate_limited(self, project, key=None, timestamp=None):
         return NotRateLimited()
 
     def refund(self, project, key=None, timestamp=None):
