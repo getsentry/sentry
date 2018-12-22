@@ -1,12 +1,12 @@
-import {isEqual} from 'lodash';
+import {isEqual, pick} from 'lodash';
 import {withRouter} from 'react-router';
 import {ThemeProvider} from 'emotion-theming';
-import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled, {css, cx} from 'react-emotion';
+import qs from 'query-string';
 
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import {load as loadIncidents} from 'app/actionCreators/incidents';
@@ -29,7 +29,6 @@ import OnboardingStatus from './onboardingStatus';
 
 class Sidebar extends React.Component {
   static propTypes = {
-    router: PropTypes.object,
     organization: SentryTypes.Organization,
     collapsed: PropTypes.bool,
     location: PropTypes.object,
@@ -51,22 +50,15 @@ class Sidebar extends React.Component {
   }
 
   componentDidMount() {
-    let {router} = this.props;
+    let {organization} = this.props;
     jQuery(document.body).addClass('body-sidebar');
     jQuery(document).on('click', this.documentClickHandler);
 
     loadIncidents();
 
-    // router can potentially not exist in server side (django) views
-    // Otherwise when we change routes using collapsed sidebar, the tooltips will remain after
-    // route changes.
-    this.routerListener =
-      router &&
-      router.listen(() => {
-        $('.tooltip').tooltip('hide');
-      });
-
-    this.doCollapse(this.props.collapsed);
+    // If there is no organization (i.e. no org in context, or error loading org)
+    // then sidebar should default to collapsed state
+    this.doCollapse(!!organization ? this.props.collapsed : true);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -84,11 +76,9 @@ class Sidebar extends React.Component {
   }
 
   // Sidebar doesn't use children, so don't use it to compare
-  // Also ignore location, will re-render when routes change (instead of query params)
-  shouldComponentUpdate({children, location, ...nextPropsToCompare}, nextState) {
+  shouldComponentUpdate({children, ...nextPropsToCompare}, nextState) {
     const {
       children: _children, // eslint-disable-line no-unused-vars
-      location: _location, // eslint-disable-line no-unused-vars
       ...currentPropsToCompare
     } = this.props;
 
@@ -105,11 +95,6 @@ class Sidebar extends React.Component {
     if (this.mq) {
       this.mq.removeListener(this.handleMediaQueryChange);
       this.mq = null;
-    }
-
-    // Unlisten to router changes
-    if (this.routerListener) {
-      this.routerListener();
     }
   }
 
@@ -173,6 +158,19 @@ class Sidebar extends React.Component {
     }
   };
 
+  // Get link that preserves global selection values in path
+  withGlobalSelectionInPath = path => {
+    const query = pick(qs.parse(this.props.location.search), [
+      'project',
+      'environment',
+      'statsPeriod',
+      'start',
+      'end',
+      'utc',
+    ]);
+    return `${path}?${qs.stringify(query)}`;
+  };
+
   render() {
     let {organization, collapsed} = this.props;
     let {currentPanel, showPanel, horizontal} = this.state;
@@ -218,14 +216,18 @@ class Sidebar extends React.Component {
                     onClick={this.hidePanel}
                     icon={<InlineSvg src="icon-releases" />}
                     label={t('Releases')}
-                    to={`/organizations/${organization.slug}/releases/`}
+                    to={this.withGlobalSelectionInPath(
+                      `/organizations/${organization.slug}/releases/`
+                    )}
                   />
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
                     icon={<InlineSvg src="icon-support" />}
                     label={t('User Feedback')}
-                    to={`/organizations/${organization.slug}/user-feedback/`}
+                    to={this.withGlobalSelectionInPath(
+                      `/organizations/${organization.slug}/user-feedback/`
+                    )}
                   />
                 </Feature>
                 <Feature features={['global-views']}>
@@ -234,7 +236,9 @@ class Sidebar extends React.Component {
                     onClick={this.hidePanel}
                     icon={<InlineSvg src="icon-stack" />}
                     label={t('Events')}
-                    to={`/organizations/${organization.slug}/events/`}
+                    to={this.withGlobalSelectionInPath(
+                      `/organizations/${organization.slug}/events/`
+                    )}
                   />
                 </Feature>
 
