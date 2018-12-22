@@ -60,6 +60,7 @@ SENTRY_OPTIONS.update({
     'mail.username': '',
     'mail.port': 25,
     'mail.use-tls': False,
+    'mail.use-ssl': False,
     'mail.from': 'sentry@sentry.io',
     'filestore.backend': 'filesystem',
     'filestore.options': {'location': '/tmp/sentry-files'},

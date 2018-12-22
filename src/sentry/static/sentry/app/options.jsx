@@ -157,6 +157,12 @@ const definitions = [
     component: BooleanField,
     defaultValue: () => false,
   },
+  {
+    key: 'mail.use-ssl',
+    label: t('Use SSL?'),
+    component: BooleanField,
+    defaultValue: () => false,
+  },
 ];
 
 const definitionsMap = _.keyBy(definitions, def => def.key);

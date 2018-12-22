@@ -125,6 +125,7 @@ options_mapper = {
     'mail.username': 'EMAIL_HOST_USER',
     'mail.password': 'EMAIL_HOST_PASSWORD',
     'mail.use-tls': 'EMAIL_USE_TLS',
+    'mail.use-ssl': 'EMAIL_USE_SSL',
     'mail.from': 'SERVER_EMAIL',
     'mail.subject-prefix': 'EMAIL_SUBJECT_PREFIX',
 }

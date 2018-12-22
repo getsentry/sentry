@@ -263,6 +263,7 @@ def status_mail(request):
             'mail_username': options.get('mail.username'),
             'mail_port': options.get('mail.port'),
             'mail_use_tls': options.get('mail.use-tls'),
+            'mail_use_ssl': options.get('mail.use-ssl'),
             'mail_from': options.get('mail.from'),
             'mail_list_namespace': options.get('mail.list-namespace'),
         }, request
