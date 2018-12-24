@@ -86,14 +86,19 @@ class ReleaseProgress extends AsyncComponent {
     let remainingSteps;
     if (setupStatus) {
       remainingSteps = setupStatus.filter(step => step.complete === false);
+
+      let nextStep = remainingSteps[0] && STEPS[remainingSteps[0].step];
+
       this.buildMessage(remainingSteps);
+
       this.setState({
         remainingSteps: Object.keys(remainingSteps).length,
-        nextStep: remainingSteps[0] && STEPS[remainingSteps[0].step],
+        nextStep,
       });
 
       this.recordAnalytics('viewed', {
         steps: setupStatus,
+        ...(nextStep && {cta: nextStep.desc}),
       });
     }
   }
