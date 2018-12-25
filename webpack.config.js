@@ -47,8 +47,6 @@ var appEntry = {
   app: ['app'],
   vendor: [
     'babel-polyfill',
-    // Yes this is included in prod builds, but has no effect on render and build size in prod
-    'react-hot-loader/patch',
     'bootstrap/js/dropdown',
     'bootstrap/js/tab',
     'bootstrap/js/tooltip',
@@ -213,6 +211,8 @@ var appConfig = {
   resolve: {
     alias: {
       app: path.join(__dirname, 'src', 'sentry', 'static', 'sentry', 'app'),
+      'app-test': path.join(__dirname, 'tests', 'js'),
+      'app-test-helpers': path.join(__dirname, 'tests', 'js', 'helpers'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
       'integration-docs-platforms': IS_TEST
         ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')

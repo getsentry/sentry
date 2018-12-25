@@ -12,14 +12,14 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Hook from 'app/components/hook';
-import HookOrDefault from 'app/components/hookOrDefault';
 import SearchBar from 'app/components/searchBar';
 import {t, tct} from 'app/locale';
 import {Panel, PanelBody} from 'app/components/panels';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
+import ReleaseLanding from 'app/views/releases/list/projectReleases/releaseLanding';
+import ReleaseProgress from 'app/views/releases/list/projectReleases/releaseProgress';
 import ReleaseEmptyState from './releaseEmptyState';
 import ReleaseList from '../shared/releaseList';
 import ReleaseListHeader from '../shared/releaseListHeader';
@@ -150,10 +150,7 @@ const ProjectReleases = createReactClass({
     else if (this.state.releaseList.length > 0)
       body = (
         <div>
-          <Hook
-            name="component:releases-tab"
-            params={{organization: this.context.organization, source: 'progress'}}
-          />
+          <ReleaseProgress />
           <ReleaseList
             orgId={params.orgId}
             projectId={params.projectId}
@@ -182,7 +179,7 @@ const ProjectReleases = createReactClass({
 
   renderEmpty() {
     const {environment} = this.state;
-    const {organization, project} = this.context;
+    const {project} = this.context;
     let anyProjectReleases = project.latestRelease;
 
     const message = environment
@@ -191,23 +188,11 @@ const ProjectReleases = createReactClass({
         })
       : t("There don't seem to be any releases yet.");
 
-    let EmptyStateComponent = HookOrDefault({
-      hookName: 'component:releases-tab',
-      defaultComponent: ReleaseEmptyState,
-      params: {source: 'empty', organization},
-    });
-
     return anyProjectReleases === null ? (
-      <EmptyStateComponent
-        message={message}
-        params={{organization: this.context.organization, source: 'progress'}}
-      />
+      <ReleaseLanding />
     ) : (
       <div>
-        <Hook
-          name="component:releases-tab"
-          params={{organization: this.context.organization, source: 'progress'}}
-        />
+        <ReleaseProgress />
         <ReleaseEmptyState message={message} />
       </div>
     );

@@ -429,7 +429,18 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
-    pass
+    endpoint = None
+    method = 'get'
+
+    def get_response(self, *args, **params):
+        if self.endpoint is None:
+            raise Exception('Implement self.endpoint to use this method.')
+        url = self.endpoint.format(*args)
+        return getattr(self.client, self.method)(
+            url,
+            format='json',
+            data=params,
+        )
 
 
 class TwoFactorAPITestCase(APITestCase):

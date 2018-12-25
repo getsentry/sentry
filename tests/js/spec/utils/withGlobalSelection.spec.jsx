@@ -17,6 +17,7 @@ describe('withGlobalSelection HoC', function() {
     expect(wrapper.find('MyComponent').prop('selection').projects).toEqual([]);
 
     GlobalSelectionStore.updateProjects([1]);
+    wrapper.update();
 
     expect(wrapper.find('MyComponent').prop('selection').projects).toEqual([1]);
   });
@@ -26,18 +27,19 @@ describe('withGlobalSelection HoC', function() {
     let Container = withGlobalSelection(MyComponent);
     let wrapper = mount(<Container />);
 
-    expect(wrapper.find('MyComponent').prop('selection').datetime.range).toEqual('14d');
+    expect(wrapper.find('MyComponent').prop('selection').datetime.period).toEqual('14d');
 
     GlobalSelectionStore.updateDateTime({
-      range: '7d',
+      period: '7d',
       start: null,
       end: null,
     });
+    wrapper.update();
 
-    expect(wrapper.find('MyComponent').prop('selection').datetime.range).toEqual('7d');
+    expect(wrapper.find('MyComponent').prop('selection').datetime.period).toEqual('7d');
 
     GlobalSelectionStore.updateDateTime({
-      range: null,
+      period: null,
       start: '2018-08-08T00:00:00',
       end: '2018-08-08T00:00:00',
     });
@@ -51,6 +53,7 @@ describe('withGlobalSelection HoC', function() {
     expect(wrapper.find('MyComponent').prop('selection').environments).toEqual([]);
 
     GlobalSelectionStore.updateEnvironments(['beta', 'alpha']);
+    wrapper.update();
 
     expect(wrapper.find('MyComponent').prop('selection').environments).toEqual([
       'beta',

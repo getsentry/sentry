@@ -8,6 +8,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
       Object {
         "clientId": "client-id",
         "clientSecret": "client-secret",
+        "events": Array [],
         "isAlertable": false,
         "name": "Sample App",
         "overview": "This is an app.",
@@ -16,6 +17,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
           "project:read",
         ],
         "slug": "sample-app",
+        "status": "unpublished",
         "uuid": "123456123456123456123456",
         "webhookUrl": "https://example.com/webhook",
       },
@@ -29,6 +31,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
       Object {
         "clientId": "client-id",
         "clientSecret": "client-secret",
+        "events": Array [],
         "isAlertable": false,
         "name": "Sample App",
         "overview": "This is an app.",
@@ -37,6 +40,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
           "project:read",
         ],
         "slug": "sample-app",
+        "status": "unpublished",
         "uuid": "123456123456123456123456",
         "webhookUrl": "https://example.com/webhook",
       }
@@ -68,6 +72,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                     Object {
                       "clientId": "client-id",
                       "clientSecret": "client-secret",
+                      "events": Array [],
                       "isAlertable": false,
                       "name": "Sample App",
                       "overview": "This is an app.",
@@ -76,6 +81,7 @@ exports[`Sentry App Installations when Apps exist displays all Apps owned by the
                         "project:read",
                       ],
                       "slug": "sample-app",
+                      "status": "unpublished",
                       "uuid": "123456123456123456123456",
                       "webhookUrl": "https://example.com/webhook",
                     }

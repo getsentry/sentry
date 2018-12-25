@@ -3,7 +3,10 @@ import PropTypes from 'prop-types';
 import {mount} from 'enzyme';
 import {browserHistory} from 'react-router';
 
-import {OrganizationDiscoverContainer} from 'app/views/organizationDiscover';
+import GlobalSelectionStore from 'app/stores/globalSelectionStore';
+import OrganizationDiscoverContainerWithStore, {
+  OrganizationDiscoverContainer,
+} from 'app/views/organizationDiscover';
 
 describe('OrganizationDiscoverContainer', function() {
   beforeEach(function() {
@@ -46,16 +49,17 @@ describe('OrganizationDiscoverContainer', function() {
       expect(queryBuilder.getColumns().some(column => column.name === 'tag2')).toBe(true);
     });
 
-    it('sets active projects from global selection', function() {
+    it('sets active projects from global selection', async function() {
+      GlobalSelectionStore.reset({
+        projects: [1],
+        environments: [],
+        datetime: {start: null, end: null, period: '14d'},
+      });
+
       wrapper = mount(
-        <OrganizationDiscoverContainer
+        <OrganizationDiscoverContainerWithStore
           location={{query: {}, search: ''}}
           params={{}}
-          selection={{
-            projects: [1],
-            environments: [],
-            datetime: {start: null, end: null, range: '14d'},
-          }}
         />,
         TestStubs.routerContext([{organization}])
       );

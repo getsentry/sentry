@@ -166,8 +166,9 @@ class Event(Model):
         # XXX(mitsuhiko): this is a transitional attribute that should be
         # removed.  `message` will be renamed to `search_message` and this
         # will become `message`.
-        msg_interface = self.data.get('logentry')
-        return msg_interface and (msg_interface.get('formatted') or msg_interface['message']) or ''
+        return get_path(self.data, 'logentry', 'formatted') \
+            or get_path(self.data, 'logentry', 'message') \
+            or ''
 
     @property
     def message_short(self):

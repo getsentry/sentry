@@ -187,6 +187,14 @@ class ReleaseTestCase(TestCase):
             value=UserOptionValue.no_deploys,
         )
 
+        # added to make sure org default above takes precedent
+        UserOption.objects.set_value(
+            user=self.user4,
+            organization=None,
+            key='deploy-emails',
+            value=UserOptionValue.all_deploys,
+        )
+
     def test_simple(self):
         email = ReleaseActivityEmail(
             Activity(
@@ -203,6 +211,7 @@ class ReleaseTestCase(TestCase):
         # user2 committed but isn't in a team associated with the project.
         # user3 is included because they oped into all deploy emails
         # user4 committed but isn't included because they opted out of all deploy emails
+        # for that org -- also tests to make sure org overrides default preference
         # user5 committed with another email address and is still included.
 
         assert len(email.get_participants()) == 3
@@ -300,3 +309,66 @@ class ReleaseTestCase(TestCase):
         sent_email_addresses = {msg.to[0] for msg in mail.outbox}
 
         assert sent_email_addresses == {self.user3.email}
+
+    def test_uses_default(self):
+        user6 = self.create_user()
+        self.create_member(user=user6, organization=self.org, teams=[self.team])
+
+        UserOption.objects.set_value(
+            user=user6,
+            organization=None,
+            key='deploy-emails',
+            value=UserOptionValue.all_deploys,
+        )
+
+        release = Release.objects.create(
+            version='b' * 40,
+            organization_id=self.project.organization_id,
+            date_released=timezone.now(),
+        )
+        release.add_project(self.project)
+        release.add_project(self.project2)
+        deploy = Deploy.objects.create(
+            release=release,
+            organization_id=self.org.id,
+            environment_id=self.environment.id,
+        )
+
+        email = ReleaseActivityEmail(
+            Activity(
+                project=self.project,
+                user=self.user,
+                type=Activity.RELEASE,
+                data={
+                    'version': release.version,
+                    'deploy_id': deploy.id,
+                },
+            )
+        )
+
+        # user3 and user 6 are included because they oped into all deploy emails
+        # (one on an org level, one as their default)
+        assert len(email.get_participants()) == 2
+
+        assert email.get_participants() == {
+            user6: GroupSubscriptionReason.deploy_setting,
+            self.user3: GroupSubscriptionReason.deploy_setting,
+        }
+
+        context = email.get_context()
+        assert context['environment'] == 'production'
+        assert context['repos'] == []
+
+        user_context = email.get_user_context(user6)
+        # make sure this only includes projects user has access to
+        assert len(user_context['projects']) == 1
+        assert user_context['projects'][0][0] == self.project
+
+        with self.tasks():
+            email.send()
+
+        assert len(mail.outbox) == 2
+
+        sent_email_addresses = {msg.to[0] for msg in mail.outbox}
+
+        assert sent_email_addresses == {self.user3.email, user6.email}

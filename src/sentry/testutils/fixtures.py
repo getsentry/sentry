@@ -714,19 +714,24 @@ class Fixtures(object):
     def create_sentry_app(self, name=None, organization=None, published=False, scopes=(),
                           webhook_url=None, **kwargs):
         if not name:
-            name = 'Test App'
+            name = petname.Generate(2, ' ', letters=10).title()
         if not organization:
             organization = self.create_organization()
         if not webhook_url:
             webhook_url = 'https://example.com/webhook'
 
-        app = sentry_apps.Creator.run(
-            name=name,
-            organization=organization,
-            scopes=scopes,
-            webhook_url=webhook_url,
-            **kwargs
-        )
+        _kwargs = {
+            'name': name,
+            'organization': organization,
+            'scopes': scopes,
+            'webhook_url': webhook_url,
+            'events': [],
+        }
+
+        _kwargs.update(kwargs)
+
+        app = sentry_apps.Creator.run(**_kwargs)
+
         if published:
             app.update(status=SentryAppStatus.PUBLISHED)
 
@@ -750,10 +755,13 @@ class Fixtures(object):
         if not url:
             url = 'https://example/sentry/webhook'
 
-        return service_hooks.Creator.run(
-            actor=actor,
-            project=project,
-            events=events,
-            url=url,
-            **kwargs
-        )
+        _kwargs = {
+            'actor': actor,
+            'project': project,
+            'events': events,
+            'url': url,
+        }
+
+        _kwargs.update(kwargs)
+
+        return service_hooks.Creator.run(**_kwargs)

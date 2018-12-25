@@ -70,7 +70,7 @@
     "react-document-title": "2.0.3",
     "react-dom": "16.5.1",
     "react-emotion": "9.1.2",
-    "react-hot-loader": "^3.1.3",
+    "react-hot-loader": "4.5.3",
     "react-icon-base": "^2.0.4",
     "react-keydown": "^1.9.7",
     "react-lazyload": "^2.3.0",
@@ -126,6 +126,8 @@
       "enzyme-to-json/serializer"
     ],
     "moduleNameMapper": {
+      "^app-test/(.*)": "<rootDir>/tests/js/$1",
+      "^app-test-helpers(.*)": "<rootDir>/tests/js/helpers$1",
       "\\.(css|less|png)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
       "\\.(svg)$": "<rootDir>/tests/js/helpers/svgMock.js",
       "jquery": "<rootDir>/src/sentry/static/sentry/__mocks__/jquery.jsx",

@@ -2,15 +2,13 @@ from __future__ import absolute_import
 from symbolic import Unreal4Crash
 from sentry.lang.native.minidump import MINIDUMP_ATTACHMENT_TYPE
 from sentry.models import UserReport
-from sentry.utils.safe import set_path
+from sentry.utils.safe import set_path, setdefault_path
 
 import re
 import uuid
 
-_frame_regexp = re.compile(
-    r'^(?P<package>[\w]+)(!(?P<function>[^\[\n]+)?(\[(?P<filename>.*):(?P<lineno>\d+)\])?)?$')
 _portable_callstack_regexp = re.compile(
-    r'(?P<module>[\w]+) (?P<baseaddr>0x[\da-fA-F]+) \+ (?P<offset>[\da-fA-F]+)')
+    r'((?P<package>[\w]+) )?(?P<baseaddr>0x[\da-fA-F]+) \+ (?P<offset>[\da-fA-F]+)')
 
 
 def process_unreal_crash(data):
@@ -37,7 +35,6 @@ def merge_unreal_context_event(unreal_context, event, project):
         event['message'] = message
 
     username = runtime_prop.pop('username', None)
-    user = None
     if username is not None:
         set_path(event, 'user', 'username', value=username)
 
@@ -58,8 +55,8 @@ def merge_unreal_context_event(unreal_context, event, project):
     if user_desc is not None:
         event_id = event.setdefault('event_id', uuid.uuid4().hex)
         feedback_user = 'unknown'
-        if user is not None:
-            feedback_user = user.get('username', feedback_user)
+        if username is not None:
+            feedback_user = username
 
         UserReport.objects.create(
             project=project,
@@ -69,36 +66,28 @@ def merge_unreal_context_event(unreal_context, event, project):
             comments=user_desc,
         )
 
-    portable_callstack_list = []
     portable_callstack = runtime_prop.pop('portable_call_stack', None)
     if portable_callstack is not None:
-        for match in _portable_callstack_regexp.finditer(portable_callstack):
-            addr = hex(int(match.group('baseaddr'), 16) + int(match.group('offset'), 16))
-            portable_callstack_list.append(addr)
-
-    legacy_callstack = runtime_prop.pop('legacy_call_stack', None)
-    if legacy_callstack is not None:
-        traces = legacy_callstack.split('\n')
-
         frames = []
-        for i, trace in enumerate(traces):
-            match = _frame_regexp.match(trace)
-            if not match:
+
+        for match in _portable_callstack_regexp.finditer(portable_callstack):
+            baseaddr = int(match.group('baseaddr'), 16)
+            offset = int(match.group('offset'), 16)
+            # Crashes without PDB in the client report: 0x00000000ffffffff + ffffffff
+            if baseaddr == 0xffffffff and offset == 0xffffffff:
                 continue
 
             frames.append({
                 'package': match.group('package'),
-                'lineno': match.group('lineno'),
-                'filename': match.group('filename'),
-                'function': match.group('function'),
-                'in_app': match.group('function') is not None,
-                'instruction_addr': portable_callstack_list[i],
+                'instruction_addr': hex(baseaddr + offset),
             })
 
-        frames.reverse()
-        event['stacktrace'] = {
-            'frames': frames
-        }
+            frames.reverse()
+
+        if len(frames) > 0:
+            event['stacktrace'] = {
+                'frames': frames
+            }
 
     # drop modules. minidump processing adds 'images loaded'
     runtime_prop.pop('modules', None)
@@ -106,3 +95,21 @@ def merge_unreal_context_event(unreal_context, event, project):
     # add everything else as extra
     extra = event.setdefault('extra', {})
     extra.update(**runtime_prop)
+
+    # add sdk info
+    event['sdk'] = {
+        'name': 'sentry.unreal.crashreporter',
+        'version': runtime_prop.pop('crash_reporter_client_version', '0.0.0')
+    }
+
+
+def merge_unreal_logs_event(unreal_logs, event):
+    setdefault_path(event, 'breadcrumbs', 'values', value=[])
+    breadcrumbs = event['breadcrumbs']['values']
+
+    for log in unreal_logs:
+        breadcrumbs.append({
+            'timestamp': log.get('timestamp'),
+            'category': log.get('component'),
+            'message': log.get('message'),
+        })
