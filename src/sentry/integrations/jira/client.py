@@ -67,7 +67,8 @@ class JiraCloud(object):
 
 
 class JiraApiClient(ApiClient):
-    COMMENT_URL = '/rest/api/2/issue/%s/comment'
+    COMMENTS_URL = '/rest/api/2/issue/%s/comment'
+    COMMENT_URL = '/rest/api/2/issue/%s/comment/%s'
     STATUS_URL = '/rest/api/2/status'
     CREATE_URL = '/rest/api/2/issue'
     ISSUE_URL = '/rest/api/2/issue/%s'
@@ -126,7 +127,13 @@ class JiraApiClient(ApiClient):
         return self.get(self.SEARCH_URL, params={'jql': jql})
 
     def create_comment(self, issue_key, comment):
-        return self.post(self.COMMENT_URL % issue_key, data={'body': comment})
+        return self.post(self.COMMENTS_URL % issue_key, data={'body': comment})
+
+    def update_comment(self, issue_key, comment_id, comment):
+        return self.put(self.COMMENT_URL % (issue_key, comment_id), data={'body': comment})
+
+    def delete_comment(self, issue_key, comment_id):
+        return self.delete(self.COMMENT_URL % (issue_key, comment_id))
 
     def get_projects_list(self):
         return self.get_cached(self.PROJECT_URL)

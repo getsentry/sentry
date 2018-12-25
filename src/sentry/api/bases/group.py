@@ -6,7 +6,8 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.utils.sdk import configure_scope
-from sentry.models import Group, GroupStatus, get_group_with_redirect
+from sentry.models import Group, GroupLink, GroupStatus, get_group_with_redirect
+from sentry.tasks.integrations import delete_comment, post_comment, update_comment
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,11 @@ class GroupPermission(ProjectPermission):
 
 class GroupEndpoint(Endpoint):
     permission_classes = (GroupPermission, )
+    comment_sync_actions = {
+        'create': post_comment,
+        'update': update_comment,
+        'delete': delete_comment,
+    }
 
     def convert_args(self, request, issue_id, *args, **kwargs):
         # TODO(tkaemming): Ideally, this would return a 302 response, rather
@@ -63,3 +69,24 @@ class GroupEndpoint(Endpoint):
         kwargs['group'] = group
 
         return (args, kwargs)
+
+    def sync_comment(self, request, group, group_note, action):
+        """
+        sync Sentry comments to external issues
+        """
+        external_issue_ids = GroupLink.objects.filter(
+            project_id=group.project_id,
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.issue,
+        ).values_list('linked_id', flat=True)
+
+        comment_action = self.comment_sync_actions[action]
+
+        for external_issue_id in external_issue_ids:
+            comment_action.apply_async(
+                kwargs={
+                    'external_issue_id': external_issue_id,
+                    'group_note_id': group_note.id,
+                    'user_id': request.user.id,
+                }
+            )
