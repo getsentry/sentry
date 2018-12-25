@@ -32,6 +32,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         note.delete()
 
+        self.sync_comment(request, group, note, 'delete')
         return Response(status=204)
 
     def put(self, request, group, note_id):
@@ -55,6 +56,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             note.data = dict(serializer.object)
             note.save()
 
+            self.sync_comment(request, group, note, 'update')
             return Response(serialize(note, request.user), status=200)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

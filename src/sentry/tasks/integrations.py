@@ -8,7 +8,7 @@ import six
 
 from sentry import analytics, features
 from sentry.models import (
-    ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization,
+    Activity, ExternalIssue, Group, GroupLink, GroupStatus, Integration, Organization,
     ObjectStatus, OrganizationIntegration, Repository, User
 )
 
@@ -19,15 +19,7 @@ from sentry.tasks.base import instrumented_task, retry
 logger = logging.getLogger('sentry.tasks.integrations')
 
 
-@instrumented_task(
-    name='sentry.tasks.integrations.post_comment',
-    queue='integrations',
-    default_retry_delay=60 * 5,
-    max_retries=5
-)
-# TODO(jess): Add more retry exclusions once ApiClients have better error handling
-@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
-def post_comment(external_issue_id, data, user_id, **kwargs):
+def change_comment(external_issue_id, user_id, group_note_id, action):
     # sync Sentry comments to an external issue
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
 
@@ -41,15 +33,71 @@ def post_comment(external_issue_id, data, user_id, **kwargs):
     installation = integration.get_installation(
         organization_id=external_issue.organization_id,
     )
+
+    if action != 'delete':
+        try:
+            note = Activity.objects.get(
+                type=Activity.NOTE,
+                id=group_note_id,
+            )
+        except Activity.DoesNotExist:
+            return  # TODO(lb)..... hmmm
+
     if installation.should_sync('comment'):
-        installation.create_comment(external_issue.key, user_id, data['text'])
+
+        if action == 'create':
+            comment = installation.create_comment(external_issue.key, user_id, note.data['text'])
+            note.data['external_id'] = installation.get_comment_id(comment)
+            note.save()
+        elif action == 'delete':
+            installation.delete_comment(external_issue.key, user_id, note.id)
+        elif action == 'update':
+            installation.update_comment(external_issue.key, user_id, note.id, note.data['text'])
+
         analytics.record(
+            # TODO(lb): this should be changed and/or specified?
             'integration.issue.comments.synced',
             provider=integration.provider,
             id=integration.id,
             organization_id=external_issue.organization_id,
             user_id=user_id,
         )
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.post_comment',
+    queue='integrations',
+    default_retry_delay=60 * 5,
+    max_retries=5
+)
+# TODO(jess): Add more retry exclusions once ApiClients have better error handling
+@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
+def create_comment(external_issue_id, user_id, group_note_id, **kwargs):
+    change_comment(external_issue_id, user_id, group_note_id, 'create')
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.post_comment',
+    queue='integrations',
+    default_retry_delay=60 * 5,
+    max_retries=5
+)
+# TODO(jess): Add more retry exclusions once ApiClients have better error handling
+@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
+def update_comment(external_issue_id, data, user_id, external_comment_id, **kwargs):
+    change_comment(external_issue_id, data, user_id, external_comment_id, 'update')
+
+
+@instrumented_task(
+    name='sentry.tasks.integrations.post_comment',
+    queue='integrations',
+    default_retry_delay=60 * 5,
+    max_retries=5
+)
+# TODO(jess): Add more retry exclusions once ApiClients have better error handling
+@retry(exclude=(ExternalIssue.DoesNotExist, Integration.DoesNotExist))
+def delete_comment(external_issue_id, user_id, external_comment_id, **kwargs):
+    change_comment(external_issue_id, user_id, external_comment_id, 'delete')
 
 
 @instrumented_task(
