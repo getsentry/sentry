@@ -9,7 +9,8 @@ from sentry import roles
 from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationPermission)
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.serializers import serialize, RoleSerializer, OrganizationMemberWithTeamsSerializer
+from sentry.api.serializers import (
+    DetailedUserSerializer, serialize, RoleSerializer, OrganizationMemberWithTeamsSerializer)
 from sentry.api.serializers.rest_framework import ListField
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -105,6 +106,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
 
         if request.access.has_scope('member:admin'):
             context['invite_link'] = member.get_invite_link()
+            context['user'] = serialize(member.user, request.user, DetailedUserSerializer())
 
         context['isOnlyOwner'] = self._is_only_owner(member)
         context['roles'] = serialize(
