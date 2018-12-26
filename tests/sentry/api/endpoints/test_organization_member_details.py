@@ -470,7 +470,6 @@ class UpdateOrganizationMemberTest(APITestCase):
 
 
 class ResetOrganizationMember2faTest(APITestCase):
-
     def setUp(self):
         self.owner = self.create_user()
         self.org = self.create_organization(owner=self.owner)
@@ -488,7 +487,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         self.interface_id = totp.authenticator.id
         assert Authenticator.objects.filter(user=self.member).exists()
 
-    def assert_can_get_user_authenticators(self):
+    def assert_can_get_authenticators(self):
         path = reverse(
             'sentry-api-0-organization-member-details', args=[self.org.slug, self.member_om.id]
         )
@@ -530,7 +529,7 @@ class ResetOrganizationMember2faTest(APITestCase):
     def test_org_owner_can_reset_member_2fa(self):
         self.login_as(self.owner)
 
-        self.assert_can_get_user_authenticators()
+        self.assert_can_get_authenticators()
         self.assert_can_remove_authenticators()
 
     def test_owner_must_have_org_membership(self):
@@ -556,7 +555,7 @@ class ResetOrganizationMember2faTest(APITestCase):
         )
         self.login_as(manager)
 
-        self.assert_can_get_user_authenticators()
+        self.assert_can_get_authenticators()
         self.assert_can_remove_authenticators()
 
     def test_org_admin_cannot_reset_member_2fa(self):

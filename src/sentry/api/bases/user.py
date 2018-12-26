@@ -21,7 +21,6 @@ class UserPermission(SentryPermission):
 
 
 class RelaxedUserPermission(UserPermission):
-
     scope_map = {
         'DELETE': ['member:admin'],
     }
