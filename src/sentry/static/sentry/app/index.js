@@ -40,6 +40,7 @@ Sentry.configureScope(scope => {
 
 function __raven_deprecated() {
   const message = '[DEPRECATED]: Please no longer use Raven, use Sentry instead';
+  // eslint-disable-next-line no-console
   console.error(message);
   Sentry.captureMessage(message);
 }
