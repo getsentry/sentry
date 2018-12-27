@@ -1,40 +1,59 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import moment from 'moment';
 import {browserHistory} from 'react-router';
 
-import {addErrorMessage, clearIndicators} from 'app/actionCreators/indicator';
-import {t} from 'app/locale';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {getUtcDateString} from 'app/utils/dates';
+import {t, tct} from 'app/locale';
+import Header from 'app/components/organizations/header';
+import HeaderItemPosition from 'app/components/organizations/headerItemPosition';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
 import SentryTypes from 'app/sentryTypes';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
 import Result from './result';
+import ResultLoading from './result/loading';
 import Intro from './intro';
 import EarlyAdopterMessage from './earlyAdopterMessage';
-import QueryEdit from './sidebar/queryEdit';
+import NewQuery from './sidebar/newQuery';
+import EditSavedQuery from './sidebar/editSavedQuery';
 import SavedQueryList from './sidebar/savedQueryList';
+import QueryPanel from './sidebar/queryPanel';
 
 import createResultManager from './resultManager';
-import {getQueryStringFromQuery, getQueryFromQueryString} from './utils';
+import {
+  getQueryStringFromQuery,
+  getQueryFromQueryString,
+  deleteSavedQuery,
+  updateSavedQuery,
+} from './utils';
 import {isValidCondition} from './conditions/utils';
 import {isValidAggregation} from './aggregations/utils';
 import {
-  Discover,
+  DiscoverContainer,
   Body,
   BodyContent,
-  TopBar,
   Sidebar,
   SidebarTabs,
   PageTitle,
+  SavedQueryWrapper,
 } from './styles';
 
 import {trackQuery} from './analytics';
 
 export default class OrganizationDiscover extends React.Component {
   static propTypes = {
-    organization: SentryTypes.Organization,
-    queryBuilder: PropTypes.object,
+    organization: SentryTypes.Organization.isRequired,
+    queryBuilder: PropTypes.object.isRequired,
+    // savedQuery and isEditingSavedQuery are provided if it's a saved query
+    savedQuery: SentryTypes.DiscoverSavedQuery,
+    isEditingSavedQuery: PropTypes.bool,
+    updateSavedQueryData: PropTypes.func.isRequired,
+    view: PropTypes.oneOf(['query', 'saved']),
+    toggleEditMode: PropTypes.func.isRequired,
+    isLoading: PropTypes.bool.isRequired,
   };
 
   constructor(props) {
@@ -44,14 +63,32 @@ export default class OrganizationDiscover extends React.Component {
       resultManager,
       data: resultManager.getAll(),
       isFetchingQuery: false,
-      view: 'query',
+      isEditingSavedQuery: props.isEditingSavedQuery,
+      savedQueryName: null,
+      view: props.view || 'query',
     };
   }
 
+  componentDidMount() {
+    if (this.props.savedQuery) {
+      this.runQuery();
+    }
+  }
+
   componentWillReceiveProps(nextProps) {
-    const {queryBuilder, location: {search}} = nextProps;
+    const {queryBuilder, location: {search}, savedQuery, isEditingSavedQuery} = nextProps;
     const currentSearch = this.props.location.search;
     const {resultManager} = this.state;
+
+    if (savedQuery && savedQuery !== this.props.savedQuery) {
+      this.setState({view: 'saved'});
+      this.runQuery();
+    }
+
+    if (isEditingSavedQuery !== this.props.isEditingSavedQuery) {
+      this.setState({isEditingSavedQuery});
+      return;
+    }
 
     if (currentSearch === search) {
       return;
@@ -82,8 +119,8 @@ export default class OrganizationDiscover extends React.Component {
   handleUpdateTime = ({relative, start, end}) => {
     this.updateFields({
       range: relative,
-      start,
-      end,
+      start: (start && getUtcDateString(start)) || start,
+      end: (end && getUtcDateString(end)) || end,
     });
   };
 
@@ -114,21 +151,109 @@ export default class OrganizationDiscover extends React.Component {
 
     this.setState({isFetchingQuery: true});
 
-    clearIndicators();
-
     resultManager
       .fetchAll()
       .then(data => {
-        this.setState({data, isFetchingQuery: false});
+        const shouldRedirect = !this.props.params.savedQueryId;
 
-        browserHistory.push({
-          pathname: `/organizations/${organization.slug}/discover/`,
-          search: getQueryStringFromQuery(queryBuilder.getInternal()),
+        if (shouldRedirect) {
+          browserHistory.push({
+            pathname: `/organizations/${organization.slug}/discover/`,
+            search: getQueryStringFromQuery(queryBuilder.getInternal()),
+          });
+        }
+
+        this.setState({
+          data,
+          isFetchingQuery: false,
         });
       })
       .catch(err => {
-        addErrorMessage(err.message);
-        this.setState({data: null, isFetchingQuery: false});
+        const message = (err && err.message) || t('An error occurred');
+        addErrorMessage(message);
+        this.setState({isFetchingQuery: false});
+      });
+  };
+
+  onFetchPage = nextOrPrev => {
+    this.setState({isFetchingQuery: true});
+    return this.state.resultManager
+      .fetchPage(nextOrPrev)
+      .then(data => {
+        this.setState({data, isFetchingQuery: false});
+      })
+      .catch(err => {
+        const message = (err && err.message) || t('An error occurred');
+        addErrorMessage(message);
+        this.setState({isFetchingQuery: false});
+      });
+  };
+
+  toggleSidebar = view => {
+    if (view !== this.state.view) {
+      this.setState({view});
+      browserHistory.replace({
+        pathname: `/organizations/${this.props.organization.slug}/discover/`,
+        query: {...this.props.location.query, view},
+      });
+    }
+  };
+
+  loadSavedQueries = () => {
+    browserHistory.push({
+      pathname: `/organizations/${this.props.organization.slug}/discover/`,
+      query: {view: 'saved'},
+    });
+  };
+
+  reset = () => {
+    const {savedQuery, queryBuilder, organization} = this.props;
+    if (savedQuery) {
+      queryBuilder.reset(savedQuery);
+      this.setState({
+        isEditingSavedQuery: false,
+      });
+    } else {
+      browserHistory.push({
+        pathname: `/organizations/${organization.slug}/discover/`,
+      });
+    }
+  };
+
+  deleteSavedQuery = () => {
+    const {organization, savedQuery} = this.props;
+    const {resultManager} = this.state;
+
+    deleteSavedQuery(organization, savedQuery.id)
+      .then(() => {
+        addSuccessMessage(
+          tct('Successfully deleted query [name]', {
+            name: savedQuery.name,
+          })
+        );
+        resultManager.reset();
+        this.loadSavedQueries();
+      })
+      .catch(() => {
+        addErrorMessage(t('Could not delete query'));
+        this.setState({isFetchingQuery: false});
+      });
+  };
+
+  updateSavedQuery = name => {
+    const {queryBuilder, savedQuery, organization, toggleEditMode} = this.props;
+    const query = queryBuilder.getInternal();
+
+    const data = {...query, name};
+
+    updateSavedQuery(organization, savedQuery.id, data)
+      .then(resp => {
+        addSuccessMessage(t('Updated query'));
+        toggleEditMode(); // Return to read-only mode
+        this.props.updateSavedQueryData(resp);
+      })
+      .catch(() => {
+        addErrorMessage(t('Could not update query'));
       });
   };
 
@@ -136,29 +261,32 @@ export default class OrganizationDiscover extends React.Component {
     const {view} = this.state;
     const views = [
       {id: 'query', title: t('Query')},
-      // {id: 'saved', title: t('Saved queries')},
+      {id: 'saved', title: t('Saved queries')},
     ];
 
     return (
-      <SidebarTabs underlined={true}>
-        {views.map(({id, title}) => (
-          <li key={id} className={view === id ? 'active' : ''}>
-            <a onClick={() => this.setState({view: id})}>{title}</a>
-          </li>
-        ))}
-      </SidebarTabs>
+      <React.Fragment>
+        <SidebarTabs underlined={true}>
+          {views.map(({id, title}) => (
+            <li key={id} className={view === id ? 'active' : ''}>
+              <a onClick={() => this.toggleSidebar(id)}>{title}</a>
+            </li>
+          ))}
+        </SidebarTabs>
+      </React.Fragment>
     );
   }
 
-  reset = () => {
-    browserHistory.push({
-      pathname: `/organizations/${this.props.organization.slug}/discover/`,
-    });
-  };
-
   render() {
-    const {data, isFetchingQuery, view, resultManager} = this.state;
-    const {queryBuilder, organization} = this.props;
+    const {data, isFetchingQuery, view, resultManager, isEditingSavedQuery} = this.state;
+
+    const {
+      queryBuilder,
+      organization,
+      savedQuery,
+      toggleEditMode,
+      isLoading,
+    } = this.props;
 
     const currentQuery = queryBuilder.getInternal();
 
@@ -166,48 +294,91 @@ export default class OrganizationDiscover extends React.Component {
 
     const projects = organization.projects.filter(project => project.isMember);
 
+    const start =
+      (currentQuery.start && moment.utc(currentQuery.start).toDate()) ||
+      currentQuery.start;
+    const end =
+      (currentQuery.end && moment.utc(currentQuery.end).toDate()) || currentQuery.end;
+
     return (
-      <Discover>
+      <DiscoverContainer>
         <Sidebar>
-          <PageTitle>{t('Discover')}</PageTitle>
+          <Header>
+            <PageTitle>{t('Discover')}</PageTitle>
+          </Header>
           {this.renderSidebarNav()}
+          {view === 'saved' && (
+            <SavedQueryWrapper>
+              <SavedQueryList organization={organization} savedQuery={savedQuery} />
+            </SavedQueryWrapper>
+          )}
           {view === 'query' && (
-            <QueryEdit
+            <NewQuery
+              organization={organization}
               queryBuilder={queryBuilder}
-              isFetchingQuery={isFetchingQuery}
+              isFetchingQuery={isFetchingQuery || isLoading}
               onUpdateField={this.updateField}
               onRunQuery={this.runQuery}
-              reset={this.reset}
+              onReset={this.reset}
+              isLoading={isLoading}
             />
           )}
-          {view === 'saved' && <SavedQueryList organization={organization} />}
+          {isEditingSavedQuery &&
+            savedQuery && (
+              <QueryPanel title={t('Edit Query')} onClose={toggleEditMode}>
+                <EditSavedQuery
+                  savedQuery={savedQuery}
+                  queryBuilder={queryBuilder}
+                  isFetchingQuery={isFetchingQuery}
+                  onUpdateField={this.updateField}
+                  onRunQuery={this.runQuery}
+                  onReset={this.reset}
+                  onDeleteQuery={this.deleteSavedQuery}
+                  onSaveQuery={this.updateSavedQuery}
+                  isLoading={isLoading}
+                />
+              </QueryPanel>
+            )}
         </Sidebar>
-        <Body direction="column" flex="1">
-          <TopBar>
-            <MultipleProjectSelector
-              value={currentQuery.projects}
-              projects={projects}
-              onChange={val => this.updateField('projects', val)}
-              onUpdate={this.runQuery}
-            />
+        <Body>
+          <Header>
+            <HeaderItemPosition>
+              <MultipleProjectSelector
+                value={currentQuery.projects}
+                organization={organization}
+                projects={projects}
+                onChange={val => this.updateField('projects', val)}
+                onUpdate={this.runQuery}
+              />
+            </HeaderItemPosition>
             <HeaderSeparator />
-            <TimeRangeSelector
-              showAbsolute={true}
-              showRelative={true}
-              start={currentQuery.start}
-              end={currentQuery.end}
-              relative={currentQuery.range}
-              onChange={this.handleUpdateTime}
-              onUpdate={this.runQuery}
-            />
-          </TopBar>
+            <HeaderItemPosition>
+              <TimeRangeSelector
+                showAbsolute={true}
+                showRelative={true}
+                start={start}
+                end={end}
+                relative={currentQuery.range}
+                onChange={this.handleUpdateTime}
+                onUpdate={this.runQuery}
+              />
+            </HeaderItemPosition>
+          </Header>
           <BodyContent>
-            {shouldDisplayResult && <Result flex="1" data={data} />}
+            {shouldDisplayResult && (
+              <Result
+                data={data}
+                savedQuery={savedQuery}
+                onToggleEdit={toggleEditMode}
+                onFetchPage={this.onFetchPage}
+              />
+            )}
             {!shouldDisplayResult && <Intro updateQuery={this.updateFields} />}
+            {isFetchingQuery && <ResultLoading />}
             <EarlyAdopterMessage />
           </BodyContent>
         </Body>
-      </Discover>
+      </DiscoverContainer>
     );
   }
 }

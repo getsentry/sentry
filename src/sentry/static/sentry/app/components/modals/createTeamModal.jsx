@@ -17,10 +17,15 @@ class CreateTeamModal extends React.Component {
     project: SentryTypes.Project,
   };
 
-  handleSubmit = data => {
-    createTeam(new Client(), data, {orgId: this.props.organization.slug}).then(
-      this.handleSuccess
-    );
+  handleSubmit = (data, onSuccess, onError) => {
+    createTeam(new Client(), data, {orgId: this.props.organization.slug})
+      .then(resp => {
+        this.handleSuccess(resp);
+        onSuccess(resp);
+      })
+      .catch(err => {
+        onError(err);
+      });
   };
 
   handleSuccess = data => {

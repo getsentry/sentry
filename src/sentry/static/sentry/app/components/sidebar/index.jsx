@@ -12,7 +12,7 @@ import {load as loadIncidents} from 'app/actionCreators/incidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
-import Feature from 'app/components/feature';
+import Feature from 'app/components/acl/feature';
 import SentryTypes from 'app/sentryTypes';
 import PreferencesStore from 'app/stores/preferencesStore';
 import theme from 'app/utils/theme';
@@ -48,7 +48,7 @@ class Sidebar extends React.Component {
   }
 
   componentDidMount() {
-    let {router} = this.props;
+    let {organization, router} = this.props;
     jQuery(document.body).addClass('body-sidebar');
     jQuery(document).on('click', this.documentClickHandler);
 
@@ -62,7 +62,10 @@ class Sidebar extends React.Component {
       router.listen(() => {
         $('.tooltip').tooltip('hide');
       });
-    this.doCollapse(this.props.collapsed);
+
+    // If there is no organization (i.e. no org in context, or error loading org)
+    // then sidebar should default to collapsed state
+    this.doCollapse(!!organization ? this.props.collapsed : true);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -196,7 +199,18 @@ class Sidebar extends React.Component {
                   label={t('Projects')}
                   to={`/${organization.slug}/`}
                 />
-                <Feature feature={['discover']}>
+
+                <Feature features={['global-views']}>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-stack" />}
+                    label={t('Events')}
+                    to={`/organizations/${organization.slug}/events/`}
+                  />
+                </Feature>
+
+                <Feature features={['discover']}>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}

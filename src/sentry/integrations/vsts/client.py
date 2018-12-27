@@ -20,6 +20,7 @@ class VstsApiPath(object):
     commits = u'{instance}_apis/git/repositories/{repo_id}/commits'
     commits_batch = u'{instance}_apis/git/repositories/{repo_id}/commitsBatch'
     commits_changes = u'{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
+    project = u'{instance}_apis/projects/{project_id}'
     projects = u'{instance}_apis/projects'
     repository = u'{instance}{project}_apis/git/repositories/{repo_id}'
     repositories = u'{instance}{project}_apis/git/repositories'
@@ -226,6 +227,15 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             }
         )
 
+    def get_project(self, instance, project_id):
+        return self.get(
+            VstsApiPath.project.format(
+                instance=instance,
+                project_id=project_id,
+            ),
+            params={'stateFilter': 'WellFormed'}
+        )
+
     def get_projects(self, instance):
         # TODO(dcramer): VSTS doesn't provide a way to search, so we're
         # making the assumption that a user has 100 or less projects today.
@@ -244,7 +254,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             api_preview=True,
         )
 
-    def create_subscription(self, instance, external_id, shared_secret):
+    def create_subscription(self, instance, shared_secret):
         return self.post(
             VstsApiPath.subscriptions.format(
                 instance=instance
@@ -263,8 +273,24 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             },
         )
 
+    def get_subscription(self, instance, subscription_id):
+        return self.get(
+            VstsApiPath.subscription.format(
+                instance=instance,
+                subscription_id=subscription_id,
+            )
+        )
+
     def delete_subscription(self, instance, subscription_id):
-        self.delete(
+        return self.delete(
+            VstsApiPath.subscription.format(
+                instance=instance,
+                subscription_id=subscription_id,
+            )
+        )
+
+    def update_subscription(self, instance, subscription_id):
+        return self.put(
             VstsApiPath.subscription.format(
                 instance=instance,
                 subscription_id=subscription_id,

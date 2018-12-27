@@ -108,6 +108,11 @@ urlpatterns += patterns(
         name='sentry-api-minidump'
     ),
     url(
+        r'^api/(?P<project_id>[\w_-]+)/unreal/(?P<sentry_key>\w+)/$',
+        api.UnrealView.as_view(),
+        name='sentry-api-unreal'
+    ),
+    url(
         r'^api/(?P<project_id>\d+)/security/$',
         api.SecurityReportView.as_view(),
         name='sentry-api-security-report'
@@ -387,7 +392,7 @@ urlpatterns += patterns(
         react_page_view,
         name='sentry-organization-member-settings'
     ),
-    url(r'^extensions/external-install/(?P<installation_id>\w+)/$',
+    url(r'^extensions/external-install/(?P<provider_id>\w+)/(?P<installation_id>\w+)/$',
         react_page_view, name='integration-installation'),
 
     # Organizations
@@ -503,8 +508,7 @@ urlpatterns += patterns(
     url(r'favicon\.ico$', lambda r: HttpResponse(status=404)),
 
     # crossdomain.xml
-    url(r'^crossdomain\.xml$', api.crossdomain_xml_index,
-        name='sentry-api-crossdomain-xml-index'),
+    url(r'^crossdomain\.xml$', lambda r: HttpResponse(status=404)),
 
     # plugins
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
@@ -517,9 +521,11 @@ urlpatterns += patterns(
     ),
     url(r'^extensions/cloudflare/', include('sentry.integrations.cloudflare.urls')),
     url(r'^extensions/jira/', include('sentry.integrations.jira.urls')),
+    url(r'^extensions/jira-server/', include('sentry.integrations.jira_server.urls')),
     url(r'^extensions/slack/', include('sentry.integrations.slack.urls')),
     url(r'^extensions/github/', include('sentry.integrations.github.urls')),
     url(r'^extensions/github-enterprise/', include('sentry.integrations.github_enterprise.urls')),
+    url(r'^extensions/gitlab/', include('sentry.integrations.gitlab.urls')),
     url(r'^extensions/vsts/', include('sentry.integrations.vsts.urls')),
     url(r'^extensions/bitbucket/', include('sentry.integrations.bitbucket.urls')),
 

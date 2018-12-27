@@ -39,11 +39,7 @@ const organizationNavigation = [
       {
         path: `${pathPrefix}/auth/`,
         title: t('Auth'),
-        show: ({organization, access, features}) =>
-          (features.has('sso') ||
-            (organization.experiments &&
-              organization.experiments.SSOPaywallExperiment === 1)) &&
-          access.has('org:admin'),
+        show: ({access}) => access.has('org:admin'),
         description: t('Configure single sign-on'),
       },
       {
@@ -75,6 +71,12 @@ const organizationNavigation = [
         title: t('Integrations'),
         show: ({access}) => access.has('org:integrations'),
         description: t('Manage integrations for an organization'),
+      },
+      {
+        path: `${pathPrefix}/developer-settings/`,
+        title: t('Developer Settings'),
+        show: ({access, features}) => features.has('internal-catchall'),
+        description: t('Manage developer applications'),
       },
     ],
   },

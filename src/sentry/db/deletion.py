@@ -121,7 +121,7 @@ class BulkDeleteQuery(object):
         for chunk in g:
             yield chunk
 
-    def iterator_postgres(self, chunk_size, batch_size=1000000):
+    def iterator_postgres(self, chunk_size, batch_size=100000):
         assert self.days is not None
         assert self.dtfield is not None and self.dtfield == self.order_by
 
@@ -132,6 +132,8 @@ class BulkDeleteQuery(object):
         cutoff = timezone.now() - timedelta(days=self.days)
 
         with dbc.get_new_connection(dbc.get_connection_params()) as conn:
+            conn.autocommit = False
+
             chunk = []
 
             completed = False
@@ -200,6 +202,8 @@ class BulkDeleteQuery(object):
                     # loop.
                     if i < batch_size:
                         completed = True
+
+                conn.commit()
 
             if chunk:
                 yield tuple(chunk)

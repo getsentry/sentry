@@ -8,6 +8,7 @@ export function Member(params = {}) {
     role: 'member',
     roleName: 'Member',
     pending: false,
+    expired: false,
     flags: {
       'sso:linked': false,
     },

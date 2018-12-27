@@ -104,9 +104,11 @@ const BroadcastModal = createReactClass({
   },
 
   handleClick(evt) {
-    if ([].indexOf.call(evt.target.classList, 'modal') !== -1) {
-      this.close();
+    if (!evt.target.classList.contains('modal')) {
+      return;
     }
+
+    this.close();
   },
 
   renderOneModal(message, i, a) {

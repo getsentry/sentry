@@ -17,6 +17,9 @@ def get_with_prefix(d, k, default=None, delimiter=":"):
     {"raven-java": "7.0.0"}.
     """
 
+    if k is None:
+        return default
+
     prefix = k.split(delimiter, 1)[0]
     for key in [k, prefix]:
         if key in d:
@@ -49,12 +52,7 @@ class Sdk(Interface):
     @classmethod
     def to_python(cls, data):
         name = data.get('name')
-        if not name:
-            raise InterfaceValidationError("No 'name' value")
-
         version = data.get('version')
-        if not version:
-            raise InterfaceValidationError("No 'version' value")
 
         integrations = data.get('integrations')
         if integrations and not isinstance(integrations, list):
@@ -73,12 +71,10 @@ class Sdk(Interface):
 
         return cls(**kwargs)
 
-    def get_path(self):
-        return 'sdk'
-
     def get_api_context(self, is_public=False):
         newest_version = get_with_prefix(settings.SDK_VERSIONS, self.name)
         newest_name = get_with_prefix(settings.DEPRECATED_SDKS, self.name, self.name)
+
         if newest_version is not None:
             try:
                 is_newer = (

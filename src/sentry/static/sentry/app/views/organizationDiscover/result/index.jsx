@@ -1,22 +1,39 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import classNames from 'classnames';
 import {Box, Flex} from 'grid-emotion';
 
+import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
+import getDynamicText from 'app/utils/getDynamicText';
 import Link from 'app/components/link';
 import BarChart from 'app/components/charts/barChart';
 import LineChart from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
+import InlineSvg from 'app/components/inlineSvg';
 
-import {getChartData, getChartDataByDay, downloadAsCsv} from './utils';
+import {getChartData, getChartDataByDay, downloadAsCsv, getRowsPageRange} from './utils';
 import Table from './table';
-import {Heading, ResultSummary, ChartWrapper, ChartNote} from '../styles';
+import Pagination from './pagination';
+import VisualizationsToggle from './visualizationsToggle';
+import {
+  ResultTitle,
+  Heading,
+  ResultSummary,
+  ResultContainer,
+  ResultInnerContainer,
+  ChartWrapper,
+  ChartNote,
+  SavedQueryAction,
+  ResultSummaryAndButtons,
+} from '../styles';
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
 export default class Result extends React.Component {
   static propTypes = {
-    data: PropTypes.object,
+    data: PropTypes.object.isRequired,
+    savedQuery: SentryTypes.DiscoverSavedQuery, // Provided if it's a saved search
+    onFetchPage: PropTypes.func.isRequired,
+    onToggleEdit: PropTypes.func,
   };
 
   constructor() {
@@ -43,7 +60,17 @@ export default class Result extends React.Component {
         view: 'table',
       });
     }
+
+    this.setState({
+      savedQueryName: null,
+    });
   }
+
+  handleToggleVisualizations = opt => {
+    this.setState({
+      view: opt,
+    });
+  };
 
   renderToggle() {
     const {baseQuery, byDayQuery} = this.props.data;
@@ -65,22 +92,11 @@ export default class Result extends React.Component {
 
     return (
       <Flex justify="flex-end">
-        <div className="btn-group">
-          {options.map(opt => {
-            const active = opt.id === this.state.view;
-            return (
-              <a
-                key={opt.id}
-                className={classNames('btn btn-default btn-sm', {active})}
-                onClick={() => {
-                  this.setState({view: opt.id});
-                }}
-              >
-                {opt.name}
-              </a>
-            );
-          })}
-        </div>
+        <VisualizationsToggle
+          options={options}
+          handleChange={this.handleToggleVisualizations}
+          visualization={this.state.view}
+        />
         <Box ml={1}>
           <Link className={linkClasses} onClick={() => downloadAsCsv(baseQuery.data)}>
             {t('Export CSV')}
@@ -97,11 +113,16 @@ export default class Result extends React.Component {
       ? baseQuery.data
       : byDayQuery.data;
 
-    return (
-      <ResultSummary>
-        query time: {summaryData.timing.duration_ms} ms, {summaryData.data.length} rows
-      </ResultSummary>
-    );
+    const summary = [
+      `query time: ${getDynamicText({
+        value: summaryData.timing.duration_ms,
+        fixed: '10',
+      })} ms`,
+    ];
+    if (this.state.view === 'table') {
+      summary.push(getRowsPageRange(baseQuery));
+    }
+    return <ResultSummary>{summary.join(', ')}</ResultSummary>;
   }
 
   renderNote() {
@@ -110,8 +131,30 @@ export default class Result extends React.Component {
     );
   }
 
+  renderSavedQueryHeader() {
+    return (
+      <Flex align="center">
+        <Heading>
+          {getDynamicText({value: this.props.savedQuery.name, fixed: 'saved query'})}
+        </Heading>
+        <SavedQueryAction onClick={this.props.onToggleEdit}>
+          <InlineSvg src="icon-edit" />
+        </SavedQueryAction>
+      </Flex>
+    );
+  }
+
+  renderQueryResultHeader() {
+    return (
+      <Flex>
+        <Heading>{t('Result')}</Heading>
+      </Flex>
+    );
+  }
+
   render() {
-    const {baseQuery, byDayQuery} = this.props.data;
+    const {data: {baseQuery, byDayQuery}, savedQuery, onFetchPage} = this.props;
+
     const {view} = this.state;
 
     const basicChartData = getChartData(baseQuery.data.data, baseQuery.query);
@@ -120,7 +163,7 @@ export default class Result extends React.Component {
       byDayQuery.data && getChartDataByDay(byDayQuery.data.data, byDayQuery.query);
 
     const legendData = byDayChartData
-      ? {data: byDayChartData.map(entry => entry.seriesName)}
+      ? {data: byDayChartData.map(entry => entry.seriesName), truncate: 80}
       : null;
 
     const tooltipOptions = {
@@ -129,64 +172,83 @@ export default class Result extends React.Component {
     };
 
     return (
-      <Box flex="1">
+      <ResultContainer>
         <Flex align="center" mb={space(2)}>
-          <Box flex="1">
-            <Heading>{t('Result')}</Heading>
-          </Box>
+          <ResultTitle>
+            {savedQuery ? this.renderSavedQueryHeader() : this.renderQueryResultHeader()}
+          </ResultTitle>
           {this.renderToggle()}
         </Flex>
-
-        {view === 'table' && <Table data={baseQuery.data} query={baseQuery.query} />}
-        {view === 'line' && (
-          <ChartWrapper>
-            <LineChart
-              series={basicChartData}
-              height={300}
-              tooltip={tooltipOptions}
-              legend={{data: [baseQuery.query.aggregations[0][2]]}}
-              renderer="canvas"
+        <ResultInnerContainer innerRef={ref => (this.container = ref)}>
+          {view === 'table' && (
+            <Table
+              data={baseQuery.data}
+              query={baseQuery.query}
+              height={this.container && this.container.clientHeight}
             />
-          </ChartWrapper>
-        )}
-        {view === 'bar' && (
-          <ChartWrapper>
-            <BarChart
-              series={basicChartData}
-              height={300}
-              tooltip={tooltipOptions}
-              legend={{data: [baseQuery.query.aggregations[0][2]]}}
-              renderer="canvas"
-            />
-          </ChartWrapper>
-        )}
-        {view === 'line-by-day' && (
-          <ChartWrapper>
-            <LineChart
-              series={byDayChartData}
-              height={300}
-              tooltip={tooltipOptions}
-              legend={legendData}
-              renderer="canvas"
-            />
-            {this.renderNote()}
-          </ChartWrapper>
-        )}
-        {view === 'bar-by-day' && (
-          <ChartWrapper>
-            <BarChart
-              series={byDayChartData}
-              stacked={true}
-              height={300}
-              tooltip={tooltipOptions}
-              legend={legendData}
-              renderer="canvas"
-            />
-            {this.renderNote()}
-          </ChartWrapper>
-        )}
-        {this.renderSummary()}
-      </Box>
+          )}
+          {view === 'line' && (
+            <ChartWrapper>
+              <LineChart
+                series={basicChartData}
+                height={300}
+                tooltip={tooltipOptions}
+                legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
+                xAxis={{truncate: 80}}
+                renderer="canvas"
+              />
+            </ChartWrapper>
+          )}
+          {view === 'bar' && (
+            <ChartWrapper>
+              <BarChart
+                series={basicChartData}
+                height={300}
+                tooltip={tooltipOptions}
+                legend={{data: [baseQuery.query.aggregations[0][2]], truncate: 80}}
+                xAxis={{truncate: 80}}
+                renderer="canvas"
+              />
+            </ChartWrapper>
+          )}
+          {view === 'line-by-day' && (
+            <ChartWrapper>
+              <LineChart
+                series={byDayChartData}
+                height={300}
+                tooltip={tooltipOptions}
+                legend={legendData}
+                renderer="canvas"
+              />
+              {this.renderNote()}
+            </ChartWrapper>
+          )}
+          {view === 'bar-by-day' && (
+            <ChartWrapper>
+              <BarChart
+                series={byDayChartData}
+                stacked={true}
+                height={300}
+                tooltip={tooltipOptions}
+                legend={legendData}
+                renderer="canvas"
+              />
+              {this.renderNote()}
+            </ChartWrapper>
+          )}
+          <ResultSummaryAndButtons>
+            {this.renderSummary()}
+            {!baseQuery.query.aggregations.length && (
+              <Pagination
+                previous={baseQuery.previous}
+                next={baseQuery.next}
+                getNextPage={() => onFetchPage('next')}
+                getPreviousPage={() => onFetchPage('previous')}
+              />
+            )}
+          </ResultSummaryAndButtons>
+        </ResultInnerContainer>
+      </ResultContainer>
     );
   }
 }

@@ -14,12 +14,12 @@ describe('Aggregation', function() {
           expectedTextValue: 'uniq(environment)',
         },
         {
-          value: ['avg', 'device_battery_level', 'avg_device_battery_level'],
-          expectedTextValue: 'avg(device_battery_level)',
+          value: ['avg', 'device.battery_level', 'avg_device_battery_level'],
+          expectedTextValue: 'avg(device.battery_level)',
         },
         {
-          value: ['uniq', 'tags[message]', 'uniq_tags_message'],
-          expectedTextValue: 'uniq(tags[message])',
+          value: ['uniq', 'message', 'uniq_message'],
+          expectedTextValue: 'uniq(message)',
         },
       ];
 
@@ -35,7 +35,11 @@ describe('Aggregation', function() {
   describe('filterOptions()', function() {
     let wrapper;
     beforeEach(function() {
-      const cols = [{name: 'col1', type: 'string'}, {name: 'col2', type: 'number'}];
+      const cols = [
+        {name: 'col1', type: 'string'},
+        {name: 'col2', type: 'number'},
+        {name: 'error.type', type: 'string'},
+      ];
       wrapper = mount(
         <Aggregation value={[null, null, null]} onChange={jest.fn()} columns={cols} />
       );
@@ -49,7 +53,7 @@ describe('Aggregation', function() {
       expect(options.map(({value}) => value)).toEqual(['count', 'uniq', 'avg']);
     });
 
-    it('displays uniq options on input `uniq`', function() {
+    it('displays uniq options for non-array fields only', function() {
       wrapper.setState({inputValue: 'uniq'});
       const options = wrapper.instance().filterOptions();
       expect(options).toHaveLength(2);

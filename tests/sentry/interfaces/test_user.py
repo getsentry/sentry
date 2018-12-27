@@ -23,8 +23,13 @@ class UserTest(TestCase):
             favorite_color='brown',
         ))
 
+    def test_null_values(self):
+        sink = {}
+
+        assert User.to_python({}).to_json() == sink
+
     def test_path(self):
-        assert self.interface.get_path() == 'sentry.interfaces.User'
+        assert self.interface.get_path() == 'user'
 
     def test_serialize_behavior(self):
         assert self.interface.to_json() == {

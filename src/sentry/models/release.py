@@ -74,7 +74,7 @@ class Release(Model):
     data = JSONField(default={})
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
-    owner = FlexibleForeignKey('sentry.User', null=True, blank=True)
+    owner = FlexibleForeignKey('sentry.User', null=True, blank=True, on_delete=models.SET_NULL)
 
     # materialized stats
     commit_count = BoundedPositiveIntegerField(null=True, default=0)

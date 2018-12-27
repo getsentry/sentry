@@ -19,6 +19,12 @@ logger = getLogger('sentry.integrations')
 
 
 class RepositoryProvider(ProviderMixin):
+    """
+    Plugin Repository Provider
+    Includes all plugins such as those in sentry-plugins repo
+    as well as any outside plugin respoitories (i.e. Trello, Youtrack).
+    Does not include the integrations in the sentry repository.
+    """
     name = None
 
     def __init__(self, id):
@@ -120,6 +126,20 @@ class RepositoryProvider(ProviderMixin):
 
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
         raise NotImplementedError
+
+    def pull_request_url(self, repo, pull_request):
+        """
+        Generate a URL to a pull request on the repository provider.
+        """
+        return None
+
+    def repository_external_slug(self, repo):
+        """
+        Generate the public facing 'external_slug' for a repository
+        The shape of this id must match the `identifier` returned by
+        the Plugin's get repositories method
+        """
+        return None
 
     @staticmethod
     def should_ignore_commit(message):

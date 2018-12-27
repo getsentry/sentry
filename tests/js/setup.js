@@ -53,6 +53,7 @@ jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
 jest.mock('app/translations');
 jest.mock('app/api');
+jest.mock('app/utils/withOrganization');
 jest.mock('scroll-to-element', () => {});
 jest.mock('react-router', () => {
   const ReactRouter = require.requireActual('react-router');
@@ -100,6 +101,8 @@ jest.mock('echarts-for-react/lib/core', () => {
 });
 
 jest.mock('app/utils/sdk', () => ({
+  captureBreadcrumb: jest.fn(),
+  addBreadcrumb: jest.fn(),
   captureMessage: jest.fn(),
   captureException: jest.fn(),
   showReportDialog: jest.fn(),
@@ -186,6 +189,5 @@ window.TestStubs = {
   AllAuthenticators: () => {
     return Object.values(fixtures.Authenticators()).map(x => x());
   },
-
   ...fixtures,
 };

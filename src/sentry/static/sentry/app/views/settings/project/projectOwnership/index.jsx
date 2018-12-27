@@ -29,10 +29,7 @@ class ProjectOwnership extends AsyncView {
 
   getEndpoints() {
     let {organization, project} = this.props;
-    return [
-      ['project', `/projects/${organization.slug}/${project.slug}/`],
-      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
-    ];
+    return [['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`]];
   }
 
   renderBody() {
@@ -99,9 +96,9 @@ class ProjectOwnership extends AsyncView {
                   {
                     name: 'fallthrough',
                     type: 'boolean',
-                    label: t('All users with access to this project are owners'),
+                    label: t('All users with access to this project are issue owners'),
                     help: t(
-                      'Owners will receive notifications for issues they are responsible for.'
+                      'Issue owners will receive notifications for issues they are responsible for.'
                     ),
                   },
                 ],

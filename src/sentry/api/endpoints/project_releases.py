@@ -16,8 +16,6 @@ from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.constants import VERSION_LENGTH
 from sentry.signals import release_created
 
-BAD_RELEASE_CHARS = '\n\f\t/'
-
 
 class ReleaseSerializer(serializers.Serializer):
     version = serializers.CharField(max_length=VERSION_LENGTH, required=True)
@@ -74,7 +72,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         if query:
             queryset = queryset.filter(
-                version__istartswith=query,
+                version__icontains=query,
             )
 
         queryset = queryset.extra(select={

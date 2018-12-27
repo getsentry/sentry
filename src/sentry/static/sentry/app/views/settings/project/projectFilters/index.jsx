@@ -13,12 +13,11 @@ import recreateRoute from 'app/utils/recreateRoute';
 
 class ProjectFilters extends React.Component {
   static contextTypes = {
-    organization: SentryTypes.Organization,
     project: SentryTypes.Project,
   };
 
   render() {
-    let {organization, project} = this.context;
+    let {project} = this.context;
     let {orgId, projectId, filterType} = this.props.params;
     if (!project) return null;
 
@@ -37,7 +36,7 @@ class ProjectFilters extends React.Component {
           <ProjectFiltersChart params={this.props.params} />
 
           {features.has('discard-groups') && (
-            <NavTabs style={{paddingTop: '30px'}}>
+            <NavTabs underlined style={{paddingTop: '30px'}}>
               <li className={filterType === 'data-filters' ? 'active' : ''}>
                 <Link to={recreateRoute('data-filters/', {...this.props, stepBack: -1})}>
                   {t('Data Filters')}
@@ -58,7 +57,6 @@ class ProjectFilters extends React.Component {
           ) : (
             <ProjectFiltersSettings
               project={project}
-              organization={organization}
               params={this.props.params}
               features={features}
             />

@@ -24,8 +24,9 @@ import six
 import types
 import logging
 
+from sentry_sdk import Hub
+
 from click.testing import CliRunner
-from contextlib import contextmanager
 from datetime import datetime
 from django.conf import settings
 from django.contrib.auth import login
@@ -39,7 +40,7 @@ from django.test import TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from django.utils.importlib import import_module
-from exam import before, fixture, Exam
+from exam import before, after, fixture, Exam
 from mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -76,6 +77,10 @@ class BaseTestCase(Fixtures, Exam):
         resp = getattr(self.client, method.lower())(path)
         assert resp.status_code == 302
         assert resp['Location'].startswith('http://testserver' + reverse('sentry-login'))
+
+    @after
+    def teardown_internal_sdk(self):
+        Hub.main.bind_client(None)
 
     @before
     def setup_dummy_auth_provider(self):
@@ -134,12 +139,15 @@ class BaseTestCase(Fixtures, Exam):
         request.META['REMOTE_ADDR'] = '127.0.0.1'
         request.META['SERVER_NAME'] = 'testserver'
         request.META['SERVER_PORT'] = 80
+        request.REQUEST = {}
+
         # order matters here, session -> user -> other things
         request.session = self.session
         request.auth = auth
         request.user = user or AnonymousUser()
         request.superuser = Superuser(request)
         request.is_superuser = lambda: request.superuser.is_active
+        request.successful_authenticator = None
         return request
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
@@ -319,19 +327,6 @@ class BaseTestCase(Fixtures, Exam):
         back to the original value when exiting the context.
         """
         return override_options(options)
-
-    @contextmanager
-    def dsn(self, dsn):
-        """
-        A context manager that temporarily sets the internal client's DSN
-        """
-        from raven.contrib.django.models import client
-
-        try:
-            client.set_dsn(dsn)
-            yield
-        finally:
-            client.set_dsn(None)
 
     _postWithSignature = _postWithHeader
     _postWithNewSignature = _postWithHeader
@@ -563,6 +558,7 @@ class RuleTestCase(TestCase):
         kwargs.setdefault('is_new', True)
         kwargs.setdefault('is_regression', True)
         kwargs.setdefault('is_new_group_environment', True)
+        kwargs.setdefault('has_reappeared', True)
         return EventState(**kwargs)
 
     def assertPasses(self, rule, event=None, **kwargs):
@@ -843,15 +839,16 @@ class SnubaTestCase(TestCase):
         if not data.get('received'):
             data['received'] = calendar.timegm(event.datetime.timetuple())
 
-        environment = Environment.get_or_create(
-            event.project,
-            tags['environment'],
-        )
+        if 'environment' in tags:
+            environment = Environment.get_or_create(
+                event.project,
+                tags['environment'],
+            )
 
-        GroupEnvironment.objects.get_or_create(
-            environment_id=environment.id,
-            group_id=event.group_id,
-        )
+            GroupEnvironment.objects.get_or_create(
+                environment_id=environment.id,
+                group_id=event.group_id,
+            )
 
         hashes = get_hashes_from_fingerprint(
             event,

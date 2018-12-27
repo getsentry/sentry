@@ -222,7 +222,7 @@ def record_release_received(project, group, event, **kwargs):
 
 @event_processed.connect(weak=False)
 def record_user_context_received(project, group, event, **kwargs):
-    user_context = event.data.get('sentry.interfaces.User')
+    user_context = event.data.get('user')
     if not user_context:
         return
     # checking to see if only ip address is being sent (our js library does this automatically)

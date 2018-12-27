@@ -5,15 +5,16 @@ import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import echarts from 'echarts/lib/echarts';
 
+import {DEFAULT_USE_UTC} from 'app/constants';
 import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 
 import Grid from './components/grid';
+import Legend from './components/legend';
 import LineSeries from './series/lineSeries';
 import Tooltip from './components/tooltip';
-import YAxis from './components/yAxis';
 import XAxis from './components/xAxis';
-import Legend from './components/legend';
+import YAxis from './components/yAxis';
 
 // If dimension is a number conver it to pixels, otherwise use dimension without transform
 const getDimensionValue = dimension => {
@@ -48,14 +49,16 @@ class BaseChart extends React.Component {
     // Tooltip options
     tooltip: SentryTypes.EChartsTooltip,
 
+    // DataZoom (allows for zooming of chart)
+    dataZoom: SentryTypes.EChartsDataZoom,
+
+    toolBox: SentryTypes.EChartsToolBox,
+
     // ECharts Grid options
     grid: SentryTypes.EChartsGrid,
 
     // Chart legend
     legend: SentryTypes.EChartsLegend,
-
-    // Chart legend truncate labels
-    truncateLegend: PropTypes.bool,
 
     // Chart height
     height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -103,6 +106,12 @@ class BaseChart extends React.Component {
     // If data is grouped by date, then apply default date formatting to
     // x-axis and tooltips.
     isGroupedByDate: PropTypes.bool,
+
+    // How is data grouped (affects formatting of axis labels and tooltips)
+    interval: PropTypes.oneOf(['hour', 'day']),
+
+    // Formats dates as UTC?
+    utc: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -111,7 +120,6 @@ class BaseChart extends React.Component {
     renderer: 'svg',
     notMerge: true,
     lazyUpdate: false,
-    truncateLegend: true,
     onChartReady: () => {},
     options: {},
 
@@ -119,6 +127,8 @@ class BaseChart extends React.Component {
     xAxis: {},
     yAxis: {},
     isGroupedByDate: false,
+    interval: 'day',
+    utc: DEFAULT_USE_UTC,
   };
 
   handleChartReady = (...args) => {
@@ -141,13 +151,16 @@ class BaseChart extends React.Component {
       grid,
       tooltip,
       legend,
-      truncateLegend,
       series,
       yAxis,
       xAxis,
+      dataZoom,
+      toolBox,
 
       isGroupedByDate,
+      interval,
       previousPeriod,
+      utc,
 
       devicePixelRatio,
       height,
@@ -186,14 +199,19 @@ class BaseChart extends React.Component {
           ...options,
           color: colors || this.getColorPalette(),
           grid: Grid(grid),
-          tooltip: tooltip !== null ? Tooltip({isGroupedByDate, ...tooltip}) : null,
-          legend: legend ? Legend({...legend, truncateLegend}) : null,
+          tooltip:
+            tooltip !== null
+              ? Tooltip({interval, isGroupedByDate, utc, ...tooltip})
+              : null,
+          legend: legend ? Legend({...legend}) : null,
           yAxis: yAxis !== null ? YAxis(yAxis) : null,
           xAxis:
             xAxis !== null
               ? XAxis({
                   ...xAxis,
+                  interval,
                   isGroupedByDate,
+                  utc,
                 })
               : null,
           series: !previousPeriod
@@ -209,6 +227,8 @@ class BaseChart extends React.Component {
                   },
                 }),
               ],
+          dataZoom,
+          toolbox: toolBox,
         }}
       />
     );

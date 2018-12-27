@@ -39,8 +39,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
 
         metadata = integration.metadata
         assert metadata['scopes'] == list(VSTSIdentityProvider.oauth_scopes)
-        assert metadata['subscription']['id'] == \
-            CREATE_SUBSCRIPTION['publisherInputs']['tfsSubscriptionId']
+        assert metadata['subscription']['id'] == CREATE_SUBSCRIPTION['id']
         assert metadata['domain_name'] == self.vsts_base_url
 
     def test_migrate_repositories(self):
@@ -188,7 +187,9 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         # The above already created the Webhook, so subsequent calls to
         # ``build_integration`` should omit that data.
         data = VstsIntegrationProvider().build_integration(state)
-        assert 'subscription' not in data['metadata']
+        assert 'subscription' in data['metadata']
+        assert Integration.objects.get(
+            provider='vsts').metadata['subscription'] == data['metadata']['subscription']
 
     def test_fix_subscription(self):
         external_id = '1234567890'

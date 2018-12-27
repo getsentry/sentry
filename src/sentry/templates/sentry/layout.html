@@ -107,66 +107,6 @@
     {% endblock %}
 
     {% block header %}
-    {% comment %}
-    <header>
-      <div class="container">
-        {% if request.user.is_authenticated %}
-        {% block account_nav %}
-        <div class="pull-right">
-          <div class="dropdown">
-            <a class="dropdown-toggle" data-toggle="dropdown">
-              <span class="avatar">
-                {% avatar request.user %}
-              </span>
-              <i class="icon-arrow-down"></i>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-right">
-              <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
-              <li><a href="{% url 'sentry-api' %}">{% trans "API" %}</a></li>
-              {% if request.is_superuser %}
-                <li><a href="{% url 'sentry-admin-overview' %}">{% trans "Admin" %}</a></li>
-              {% endif %}
-              <li><a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a></li>
-            </ul>
-          </div>
-        </div>
-        {% endblock %}
-        {% endif %}
-
-        {% block logo %}
-        <a href="/" class="logo"><span class="icon-sentry-logo"></span></a>
-        {% endblock %}
-
-        <ul class="global-nav pull-right">
-          {% block global_nav %}
-          <li><a href="https://docs.sentry.io">{% trans "Docs" %}</a></li>
-          {% endblock %}
-        </ul>
-
-        {% if not SINGLE_ORGANIZATION and request.user.is_authenticated and organization %}
-        {% block org_selector %}
-        <div class="org-selector pull-right">
-          <div class="dropdown">
-            <a class="dropdown-toggle" data-toggle="dropdown">
-              {{ organization.name }}
-              <i class="icon-arrow-down"></i>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-right">
-              {% for org in request.user|list_organizations %}
-                <li><a href="{% url 'sentry-organization-home' org.slug %}">{{ org.name }}</a></li>
-              {% endfor %}
-              {% feature organizations:create %}
-                <li class="divider"></li>
-                <li><a href="{% absolute_uri '/organizations/new/' %}">New Organization</a></li>
-              {% endfeature %}
-            </ul>
-          </div>
-        </div>
-        {% endblock %}
-        {% endif %}
-      </div>
-    </header>
-    {% endcomment %}
     {% endblock %}
 
     {% if organization and ACCESS.org_read %}

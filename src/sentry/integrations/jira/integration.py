@@ -253,11 +253,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_url(self, key, **kwargs):
         return '%s/browse/%s' % (self.model.metadata['base_url'], key)
 
+    def get_persisted_default_config_fields(self):
+        return ['project', 'issuetype', 'priority']
+
     def get_group_description(self, group, event, **kwargs):
         output = [
             u'Sentry Issue: [{}|{}]'.format(
                 group.qualified_short_id,
-                absolute_uri(group.get_absolute_url()),
+                absolute_uri(group.get_absolute_url(params={'referrer': 'jira_integration'})),
             )
         ]
         body = self.get_group_body(group, event)
@@ -293,7 +296,10 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return self.get_client().create_comment(issue_id, quoted_comment)
 
     def search_issues(self, query):
-        return self.get_client().search_issues(query)
+        try:
+            return self.get_client().search_issues(query)
+        except ApiError as e:
+            self.raise_error(e)
 
     def make_choices(self, x):
         return [(y['id'], y['name'] if 'name' in y else y['value']) for y in x] if x else []
@@ -380,18 +386,33 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return issue_type_meta
 
     def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'jira_integration'
         fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
         params = kwargs.get('params', {})
+        defaults = self.get_project_defaults(group.project_id)
 
-        # TODO(jess): update if we allow saving a default project key
-
+        default_project = params.get('project', defaults.get('project'))
         client = self.get_client()
+
         try:
-            resp = client.get_create_meta(params.get('project'))
+            resp = client.get_create_meta(default_project)
         except ApiUnauthorized:
             raise IntegrationError(
                 'Jira returned: Unauthorized. '
                 'Please check your configuration settings.'
+            )
+        except ApiError as exc:
+            logger.info(
+                'error-fetching-issue-config',
+                extra={
+                    'integration_id': self.model.id,
+                    'organization': group.organization.id,
+                    'error': exc.message,
+                }
+            )
+            raise IntegrationError(
+                'There was an error communicating with the Jira API. '
+                'Please try again or contact support.'
             )
 
         try:
@@ -402,9 +423,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
 
         # check if the issuetype was passed as a parameter
-        issue_type = params.get('issuetype')
-
-        # TODO(jess): update if we allow specifying a default issuetype
+        issue_type = params.get('issuetype', defaults.get('issuetype'))
 
         issue_type_meta = self.get_issue_type_meta(issue_type, meta)
 
@@ -467,9 +486,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 # whenever priorities are available, put the available ones in the list.
                 # allowedValues for some reason doesn't pass enough info.
                 field['choices'] = self.make_choices(client.get_priorities())
-                # TODO(jess): fix if we are going to allow default priority
-                # field['default'] = self.get_option('default_priority', group.project) or ''
-                field['default'] = ''
+                field['default'] = defaults.get('priority', '')
             elif field['name'] == 'fixVersions':
                 field['choices'] = self.make_choices(client.get_versions(meta['key']))
 

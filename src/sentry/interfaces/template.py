@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 __all__ = ('Template', )
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import get_context
 from sentry.utils.safe import trim
 
@@ -42,29 +42,16 @@ class Template(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if not data.get('filename'):
-            raise InterfaceValidationError("Missing 'filename'")
-        if not data.get('context_line'):
-            raise InterfaceValidationError("Missing 'context_line'")
-        if not data.get('lineno'):
-            raise InterfaceValidationError("Missing 'lineno'")
-
         kwargs = {
             'abs_path': trim(data.get('abs_path', None), 256),
-            'filename': trim(data['filename'], 256),
+            'filename': trim(data.get('filename', None), 256),
             'context_line': trim(data.get('context_line', None), 256),
-            'lineno': int(data['lineno']),
+            'lineno': int(data['lineno']) if data.get('lineno', None) is not None else None,
             # TODO(dcramer): trim pre/post_context
             'pre_context': data.get('pre_context'),
             'post_context': data.get('post_context'),
         }
         return cls(**kwargs)
-
-    def get_alias(self):
-        return 'template'
-
-    def get_path(self):
-        return 'sentry.interfaces.Template'
 
     def get_hash(self):
         return [self.filename, self.context_line]
@@ -89,7 +76,7 @@ class Template(Interface):
             'File "%s", line %s' % (self.filename, self.lineno),
             '',
         ]
-        result.extend([n[1].strip('\n') for n in context])
+        result.extend([n[1].strip('\n') if n[1] else '' for n in context])
 
         return '\n'.join(result)
 

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from uuid import uuid4
 import six
 from sentry.app import locks
 from sentry.models import OrganizationOption
@@ -9,16 +8,17 @@ from sentry.models import Integration
 from sentry.utils.http import absolute_uri
 
 from sentry.integrations.exceptions import ApiError
+from sentry.models.apitoken import generate_token
 
 from .webhook import parse_raw_user_email, parse_raw_user_name
 
 
 class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
-    name = 'Bitbucket v2'
+    name = 'Bitbucket'
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:
-            raise ValueError('Bitbucket version 2 requires an integration id.')
+            raise ValueError('Bitbucket requires an integration id.')
 
         try:
             integration_model = Integration.objects.get(id=integration_id)
@@ -27,7 +27,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         return integration_model.get_installation(organization_id)
 
-    def validate_config(self, organization, config):
+    def get_repository_data(self, organization, config):
         installation = self.get_installation(config['installation'], organization.id)
         client = installation.get_client()
         try:
@@ -48,7 +48,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 key='bitbucket:webhook_secret',
             )
             if secret is None:
-                secret = uuid4().hex + uuid4().hex
+                secret = generate_token()
                 OrganizationOption.objects.set_value(
                     organization=organization,
                     key='bitbucket:webhook_secret',
@@ -56,7 +56,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 )
         return secret
 
-    def create_repository(self, organization, data):
+    def build_repository_config(self, organization, data):
         installation = self.get_installation(data['installation'], organization.id)
         client = installation.get_client()
         try:
@@ -84,7 +84,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'integration_id': data['installation'],
             }
 
-    def delete_repository(self, repo):
+    def on_delete_repository(self, repo):
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
 
@@ -126,3 +126,6 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 installation.raise_error(e)
             else:
                 return self._format_commits(repo, res)
+
+    def repository_external_slug(self, repo):
+        return repo.name

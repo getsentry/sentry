@@ -4,7 +4,7 @@ import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
-import {getInternal, getExternal, isValidCondition} from './utils';
+import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
 import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
 import {PlaceholderText} from '../styles';
 
@@ -15,6 +15,7 @@ export default class Condition extends React.Component {
     columns: PropTypes.arrayOf(
       PropTypes.shape({name: PropTypes.string, type: PropTypes.string})
     ).isRequired,
+    disabled: PropTypes.bool,
   };
 
   constructor(props) {
@@ -71,7 +72,7 @@ export default class Condition extends React.Component {
     const stringOnlyOperators = new Set(['LIKE', 'NOT LIKE']);
 
     return CONDITION_OPERATORS.filter(operator => {
-      if (colType === 'number') {
+      if (colType === 'number' || colType === 'datetime') {
         return !stringOnlyOperators.has(operator);
       }
 
@@ -85,8 +86,8 @@ export default class Condition extends React.Component {
     });
   }
 
-  filterOptions = (options, input) => {
-    input = input || this.state.inputValue;
+  filterOptions = options => {
+    const input = this.state.inputValue;
 
     let optionList = options;
     const external = getExternal(input, this.props.columns);
@@ -121,6 +122,7 @@ export default class Condition extends React.Component {
   };
 
   isValidNewOption = ({label}) => {
+    label = ignoreCase(label);
     return isValidCondition(getExternal(label, this.props.columns), this.props.columns);
   };
 
@@ -130,7 +132,7 @@ export default class Condition extends React.Component {
         type="text"
         {...props}
         value={this.state.inputValue}
-        style={{width: '100%', border: 0, zIndex: 1000}}
+        style={{width: '100%', border: 0, zIndex: 1000, backgroundColor: 'transparent'}}
       />
     );
   };
@@ -147,17 +149,25 @@ export default class Condition extends React.Component {
 
   handleInputChange = value => {
     this.setState({
-      inputValue: value,
+      inputValue: ignoreCase(value),
     });
 
     return value;
+  };
+
+  newOptionCreator = ({label, labelKey, valueKey}) => {
+    label = ignoreCase(label);
+    return {
+      [valueKey]: label,
+      [labelKey]: label,
+    };
   };
 
   render() {
     return (
       <Box w={1}>
         <SelectControl
-          forwardedRef={ref => (this.select = ref)}
+          innerRef={ref => (this.select = ref)}
           value={getInternal(this.props.value)}
           placeholder={<PlaceholderText>{t('Add condition...')}</PlaceholderText>}
           options={this.getOptions()}
@@ -177,6 +187,8 @@ export default class Condition extends React.Component {
           creatable={true}
           promptTextCreator={text => text}
           shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
+          disabled={this.props.disabled}
+          newOptionCreator={this.newOptionCreator}
         />
       </Box>
     );

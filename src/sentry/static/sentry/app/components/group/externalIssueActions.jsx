@@ -16,6 +16,7 @@ import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {debounce} from 'lodash';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
@@ -34,6 +35,8 @@ class ExternalIssueForm extends AsyncComponent {
     action: PropTypes.oneOf(['link', 'create']),
     onSubmitSuccess: PropTypes.func.isRequired,
   };
+
+  shouldRenderBadRequests = true;
 
   getEndpoints() {
     let {action, group, integration} = this.props;
@@ -109,25 +112,34 @@ class ExternalIssueForm extends AsyncComponent {
       const options = (field.choices || []).map(([value, label]) => ({value, label}));
       return Promise.resolve({options});
     }
-
-    let query = queryString.stringify({
-      ...this.state.dynamicFieldValues,
-      field: field.name,
-      query: input,
+    return new Promise(resolve => {
+      this.debouncedOptionLoad(field, input, resolve);
     });
-
-    let url = field.url;
-    let separator = url.includes('?') ? '&' : '?';
-
-    let request = {
-      url: [url, separator, query].join(''),
-      method: 'GET',
-    };
-
-    // We can't use the API client here since the URL is not scapped under the
-    // API endpoints (which the client prefixes)
-    return $.ajax(request).then(data => ({options: data}));
   };
+
+  debouncedOptionLoad = debounce(
+    (field, input, resolve) => {
+      let query = queryString.stringify({
+        ...this.state.dynamicFieldValues,
+        field: field.name,
+        query: input,
+      });
+
+      let url = field.url;
+      let separator = url.includes('?') ? '&' : '?';
+
+      let request = {
+        url: [url, separator, query].join(''),
+        method: 'GET',
+      };
+
+      // We can't use the API client here since the URL is not scoped under the
+      // API endpoints (which the client prefixes)
+      $.ajax(request).then(data => resolve({options: data}));
+    },
+    200,
+    {trailing: true}
+  );
 
   getFieldProps = field =>
     field.url
@@ -167,7 +179,7 @@ class ExternalIssueForm extends AsyncComponent {
       >
         {config.map(field => (
           <FieldFromConfig
-            key={field.default || field.name}
+            key={`${field.name}-${field.default}`}
             field={field}
             inline={false}
             stacked
@@ -280,6 +292,7 @@ class ExternalIssueActions extends AsyncComponent {
             onHide={this.closeModal}
             animation={false}
             enforceFocus={false}
+            backdrop="static"
           >
             <Modal.Header closeButton>
               <Modal.Title>{`${selectedIntegration.provider.name} Issue`}</Modal.Title>

@@ -60,6 +60,11 @@ class DropdownAutoCompleteMenu extends React.Component {
     onOpen: PropTypes.func,
 
     /**
+     * Callback for when dropdown menu closes
+     */
+    onClose: PropTypes.func,
+
+    /**
      * Message to display when there are no items initially
      */
     emptyMessage: PropTypes.node,
@@ -111,13 +116,18 @@ class DropdownAutoCompleteMenu extends React.Component {
      */
     menuWithArrow: PropTypes.bool,
 
-    menuFooter: PropTypes.node,
+    menuFooter: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
     menuHeader: PropTypes.node,
 
     /**
      * Props to pass to menu component
      */
     menuProps: PropTypes.object,
+
+    /**
+     * for passing simple styles to the root container
+     */
+    rootClassName: PropTypes.string,
 
     /**
      * Props to pass to input/filter component
@@ -163,10 +173,19 @@ class DropdownAutoCompleteMenu extends React.Component {
     if (items[0] && items[0].items) {
       //if the first item has children, we assume it is a group
       return _.flatMap(this.filterGroupedItems(items, inputValue), item => {
-        return [
-          {...item, groupLabel: true},
-          ...item.items.map(groupedItem => ({...groupedItem, index: itemCount++})),
-        ];
+        const groupItems = item.items.map(groupedItem => ({
+          ...groupedItem,
+          index: itemCount++,
+        }));
+
+        // Make sure we don't add the group label to list of items
+        // if we try to hide it, otherwise it will render if the list
+        // is using virtualized rows (because of fixed row heights)
+        if (item.hideGroupLabel) {
+          return groupItems;
+        }
+
+        return [{...item, groupLabel: true}, ...groupItems];
       });
     }
 
@@ -221,11 +240,9 @@ class DropdownAutoCompleteMenu extends React.Component {
     const {index} = item;
 
     return item.groupLabel ? (
-      !item.hideGroupLabel && (
-        <LabelWithBorder style={style} key={item.label || item.id}>
-          {item.label && <GroupLabel>{item.label}</GroupLabel>}
-        </LabelWithBorder>
-      )
+      <LabelWithBorder style={style} key={item.label || item.id}>
+        {item.label && <GroupLabel>{item.label}</GroupLabel>}
+      </LabelWithBorder>
     ) : (
       <AutoCompleteItem
         size={itemSize}
@@ -244,6 +261,7 @@ class DropdownAutoCompleteMenu extends React.Component {
       onSelect,
       onChange,
       onOpen,
+      onClose,
       children,
       items,
       menuProps,
@@ -254,6 +272,8 @@ class DropdownAutoCompleteMenu extends React.Component {
       emptyMessage,
       noResultsMessage,
       style,
+      rootClassName,
+      className,
       menuHeader,
       menuFooter,
       menuWithArrow,
@@ -271,6 +291,7 @@ class DropdownAutoCompleteMenu extends React.Component {
         onSelect={onSelect}
         inputIsActor={false}
         onOpen={onOpen}
+        onClose={onClose}
         {...props}
       >
         {({
@@ -303,8 +324,11 @@ class DropdownAutoCompleteMenu extends React.Component {
           // emptyHidesInput is set to true.
           let showInput = hasItems || !emptyHidesInput;
 
+          let renderedFooter =
+            typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
+
           return (
-            <AutoCompleteRoot {...getRootProps()}>
+            <AutoCompleteRoot {...getRootProps()} className={rootClassName}>
               {children({
                 getActorProps,
                 actions,
@@ -314,6 +338,7 @@ class DropdownAutoCompleteMenu extends React.Component {
 
               {isOpen && (
                 <StyledMenu
+                  className={className}
                   {...getMenuProps({
                     ...menuProps,
                     style,
@@ -362,7 +387,9 @@ class DropdownAutoCompleteMenu extends React.Component {
                         })}
                     </StyledItemList>
 
-                    {menuFooter && <LabelWithPadding>{menuFooter}</LabelWithPadding>}
+                    {renderedFooter && (
+                      <LabelWithPadding>{renderedFooter}</LabelWithPadding>
+                    )}
                   </div>
                 </StyledMenu>
               )}
@@ -486,7 +513,7 @@ const AutoCompleteItem = styled('div')`
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
   padding: ${p => getItemPaddingForSize(p.size)};
   cursor: pointer;
-  border-bottom: 1px solid ${p => p.theme.borderLighter};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
 
   &:last-child {
     border-bottom: none;
@@ -520,7 +547,7 @@ const GroupLabel = styled('div')`
 
 const StyledMenu = styled('div')`
   background: #fff;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: calc(100% - 1px);
   min-width: 250px;
@@ -551,4 +578,4 @@ const EmptyMessage = styled('div')`
 
 export default DropdownAutoCompleteMenu;
 
-export {StyledMenu};
+export {StyledMenu, AutoCompleteRoot};

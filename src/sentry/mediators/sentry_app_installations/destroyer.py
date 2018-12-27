@@ -4,9 +4,7 @@ from sentry.mediators import Mediator, Param
 
 
 class Destroyer(Mediator):
-    install = Param(
-        'sentry.models.sentryappinstallation.SentryAppInstallation'
-    )
+    install = Param('sentry.models.SentryAppInstallation')
 
     def call(self):
         self._destroy_authorization()

@@ -118,7 +118,7 @@ class Http(Interface):
     """
     display_score = 1000
     score = 800
-    path = 'sentry.interfaces.Http'
+    path = 'request'
 
     FORM_TYPE = 'application/x-www-form-urlencoded'
 
@@ -140,7 +140,10 @@ class Http(Interface):
         else:
             kwargs['method'] = None
 
-        scheme, netloc, path, query_bit, fragment_bit = urlsplit(data['url'])
+        if data.get('url', None):
+            scheme, netloc, path, query_bit, fragment_bit = urlsplit(data['url'])
+        else:
+            scheme = netloc = path = query_bit = fragment_bit = None
 
         query_string = data.get('query_string') or query_bit
         if query_string:
@@ -210,9 +213,6 @@ class Http(Interface):
 
         return cls(**kwargs)
 
-    def get_path(self):
-        return self.path
-
     @property
     def full_url(self):
         url = self.url
@@ -233,9 +233,6 @@ class Http(Interface):
                 'fragment': self.fragment,
             }
         )
-
-    def get_alias(self):
-        return 'request'
 
     def get_title(self):
         return _('Request')

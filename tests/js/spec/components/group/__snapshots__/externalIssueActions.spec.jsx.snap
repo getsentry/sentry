@@ -73,53 +73,84 @@ exports[`ExternalIssueActions with an external issue linked renders 1`] = `
           />
         }
         className="css-17m6soy-hoverCardStyles"
-        containerClassName="css-1s8b4pt-hoverCardContainer"
+        containerClassName="css-1kx7hlk-hoverCardContainer"
         displayTimeout={100}
         header="Linked GitHub Integration"
       >
-        <span
-          className="hovercard-container css-1s8b4pt-hoverCardContainer"
-          onMouseEnter={[Function]}
-          onMouseLeave={[Function]}
-        >
-          <IntegrationIcon
-            src="icon-github"
-          >
-            <InlineSvg
-              className="css-qf3g6n-IntegrationIcon e1vaar1z1"
-              src="icon-github"
-            >
-              <StyledSvg
-                className="css-qf3g6n-IntegrationIcon e1vaar1z1"
-                height="1em"
-                viewBox={Object {}}
-                width="1em"
+        <Container
+          className="css-1kx7hlk-hoverCardContainer"
+          innerRef={
+            Object {
+              "current": <span
+                class="css-86d5c-Container-hoverCardContainer e38w1je1"
               >
                 <svg
-                  className="e1vaar1z1 css-18jkql6-StyledSvg-IntegrationIcon e2idor0"
+                  class="e1vaar1z1 css-ihls3x-StyledSvg-IntegrationIcon e2idor0"
                   height="1em"
-                  viewBox={Object {}}
+                  viewBox="[object Object]"
                   width="1em"
                 >
                   <use
                     href="#test"
-                    xlinkHref="#test"
+                    xlink:href="#test"
                   />
                 </svg>
-              </StyledSvg>
-            </InlineSvg>
-          </IntegrationIcon>
-          <IntegrationLink
-            href="https://github.com/MeredithAnya/testing/issues/2"
+                <a
+                  class="css-1g8yzea-IntegrationLink e1vaar1z2"
+                  href="https://github.com/MeredithAnya/testing/issues/2"
+                >
+                  getsentry/sentry#2
+                </a>
+              </span>,
+            }
+          }
+          onMouseEnter={[Function]}
+          onMouseLeave={[Function]}
+        >
+          <span
+            className="css-86d5c-Container-hoverCardContainer e38w1je1"
+            onMouseEnter={[Function]}
+            onMouseLeave={[Function]}
           >
-            <a
-              className="css-oytllg-IntegrationLink e1vaar1z2"
+            <IntegrationIcon
+              src="icon-github"
+            >
+              <InlineSvg
+                className="css-jn9d7y-IntegrationIcon e1vaar1z1"
+                src="icon-github"
+              >
+                <StyledSvg
+                  className="css-jn9d7y-IntegrationIcon e1vaar1z1"
+                  height="1em"
+                  viewBox={Object {}}
+                  width="1em"
+                >
+                  <svg
+                    className="e1vaar1z1 css-ihls3x-StyledSvg-IntegrationIcon e2idor0"
+                    height="1em"
+                    viewBox={Object {}}
+                    width="1em"
+                  >
+                    <use
+                      href="#test"
+                      xlinkHref="#test"
+                    />
+                  </svg>
+                </StyledSvg>
+              </InlineSvg>
+            </IntegrationIcon>
+            <IntegrationLink
               href="https://github.com/MeredithAnya/testing/issues/2"
             >
-              getsentry/sentry#2
-            </a>
-          </IntegrationLink>
-        </span>
+              <a
+                className="css-1g8yzea-IntegrationLink e1vaar1z2"
+                href="https://github.com/MeredithAnya/testing/issues/2"
+              >
+                getsentry/sentry#2
+              </a>
+            </IntegrationLink>
+          </span>
+        </Container>
       </Hovercard>
       <OpenCloseIcon
         isLinked={100}
@@ -275,55 +306,85 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
             />
           }
           className="css-17m6soy-hoverCardStyles"
-          containerClassName="css-1s8b4pt-hoverCardContainer"
+          containerClassName="css-1kx7hlk-hoverCardContainer"
           displayTimeout={100}
           header="Linked GitHub Integration"
         >
-          <span
-            className="hovercard-container css-1s8b4pt-hoverCardContainer"
-            onMouseEnter={[Function]}
-            onMouseLeave={[Function]}
-          >
-            <IntegrationIcon
-              src="icon-github"
-            >
-              <InlineSvg
-                className="css-qf3g6n-IntegrationIcon e1vaar1z1"
-                src="icon-github"
-              >
-                <StyledSvg
-                  className="css-qf3g6n-IntegrationIcon e1vaar1z1"
-                  height="1em"
-                  viewBox={Object {}}
-                  width="1em"
+          <Container
+            className="css-1kx7hlk-hoverCardContainer"
+            innerRef={
+              Object {
+                "current": <span
+                  class="css-86d5c-Container-hoverCardContainer e38w1je1"
                 >
                   <svg
-                    className="e1vaar1z1 css-18jkql6-StyledSvg-IntegrationIcon e2idor0"
+                    class="e1vaar1z1 css-ihls3x-StyledSvg-IntegrationIcon e2idor0"
                     height="1em"
-                    viewBox={Object {}}
+                    viewBox="[object Object]"
                     width="1em"
                   >
                     <use
                       href="#test"
-                      xlinkHref="#test"
+                      xlink:href="#test"
                     />
                   </svg>
-                </StyledSvg>
-              </InlineSvg>
-            </IntegrationIcon>
-            <IntegrationLink
-              href={null}
-              onClick={[Function]}
+                  <a
+                    class="css-1g8yzea-IntegrationLink e1vaar1z2"
+                  >
+                    Link GitHub Issue
+                  </a>
+                </span>,
+              }
+            }
+            onMouseEnter={[Function]}
+            onMouseLeave={[Function]}
+          >
+            <span
+              className="css-86d5c-Container-hoverCardContainer e38w1je1"
+              onMouseEnter={[Function]}
+              onMouseLeave={[Function]}
             >
-              <a
-                className="css-oytllg-IntegrationLink e1vaar1z2"
+              <IntegrationIcon
+                src="icon-github"
+              >
+                <InlineSvg
+                  className="css-jn9d7y-IntegrationIcon e1vaar1z1"
+                  src="icon-github"
+                >
+                  <StyledSvg
+                    className="css-jn9d7y-IntegrationIcon e1vaar1z1"
+                    height="1em"
+                    viewBox={Object {}}
+                    width="1em"
+                  >
+                    <svg
+                      className="e1vaar1z1 css-ihls3x-StyledSvg-IntegrationIcon e2idor0"
+                      height="1em"
+                      viewBox={Object {}}
+                      width="1em"
+                    >
+                      <use
+                        href="#test"
+                        xlinkHref="#test"
+                      />
+                    </svg>
+                  </StyledSvg>
+                </InlineSvg>
+              </IntegrationIcon>
+              <IntegrationLink
                 href={null}
                 onClick={[Function]}
               >
-                Link GitHub Issue
-              </a>
-            </IntegrationLink>
-          </span>
+                <a
+                  className="css-1g8yzea-IntegrationLink e1vaar1z2"
+                  href={null}
+                  onClick={[Function]}
+                >
+                  Link GitHub Issue
+                </a>
+              </IntegrationLink>
+            </span>
+          </Container>
         </Hovercard>
         <OpenCloseIcon
           isLinked={null}
@@ -365,7 +426,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
   <Modal
     animation={false}
     autoFocus={true}
-    backdrop={true}
+    backdrop="static"
     bsClass="modal"
     dialogComponentClass={[Function]}
     enforceFocus={false}
@@ -389,7 +450,7 @@ exports[`ExternalIssueActions with no external issues linked renders 1`] = `
   >
     <Modal
       autoFocus={true}
-      backdrop={true}
+      backdrop="static"
       backdropClassName="modal-backdrop"
       containerClassName="modal-open"
       enforceFocus={false}

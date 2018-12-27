@@ -234,7 +234,6 @@ class FormModel {
   doApiRequest({apiEndpoint, apiMethod, data}) {
     let endpoint = apiEndpoint || this.options.apiEndpoint;
     let method = apiMethod || this.options.apiMethod;
-
     return new Promise((resolve, reject) => {
       this.api.request(endpoint, {
         method,
@@ -331,9 +330,7 @@ class FormModel {
   @action
   saveForm() {
     this.validateForm();
-
     if (this.isError) return null;
-
     let saveSnapshot = this.createSnapshot();
 
     let request = this.doApiRequest({
@@ -341,7 +338,6 @@ class FormModel {
     });
 
     this.formState = FormState.SAVING;
-
     request
       .then(resp => {
         // save snapshot

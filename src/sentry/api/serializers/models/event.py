@@ -4,10 +4,26 @@ import six
 
 from datetime import datetime
 from django.utils import timezone
-
 from semaphore import meta_with_chunks
-from sentry.api.serializers import Serializer, register
-from sentry.models import Event, EventError
+
+from sentry.api.serializers import Serializer, register, serialize
+from sentry.models import Event, EventError, EventAttachment
+
+
+CRASH_FILE_TYPES = set(['event.minidump'])
+
+
+def get_crash_files(events):
+    event_ids = [x.event_id for x in events if x.platform == 'native']
+    rv = {}
+    if event_ids:
+        attachments = EventAttachment.objects.filter(
+            event_id__in=event_ids,
+        ).select_related('file')
+        for attachment in attachments:
+            if attachment.file.type in CRASH_FILE_TYPES:
+                rv[attachment.event_id] = attachment
+    return rv
 
 
 @register(Event)
@@ -33,7 +49,7 @@ class EventSerializer(Serializer):
 
             entry = {
                 'data': data,
-                'type': interface.get_alias(),
+                'type': interface.external_type,
             }
 
             api_meta = None
@@ -110,6 +126,7 @@ class EventSerializer(Serializer):
     def get_attrs(self, item_list, user, is_public=False):
         Event.objects.bind_nodes(item_list, 'data')
 
+        crash_files = get_crash_files(item_list)
         results = {}
         for item in item_list:
             # TODO(dcramer): convert to get_api_context
@@ -119,11 +136,14 @@ class EventSerializer(Serializer):
 
             (entries, entries_meta) = self._get_entries(item, user, is_public=is_public)
 
+            crash_file = crash_files.get(item.event_id)
+
             results[item] = {
                 'entries': entries,
                 'user': user_data,
                 'contexts': contexts_data or {},
                 'sdk': sdk_data,
+                'crash_file': serialize(crash_file, user=user),
                 '_meta': {
                     'entries': entries_meta,
                     'user': user_meta,
@@ -177,6 +197,7 @@ class EventSerializer(Serializer):
             'message': message,
             'user': attrs['user'],
             'contexts': attrs['contexts'],
+            'crashFile': attrs['crash_file'],
             'sdk': attrs['sdk'],
             # TODO(dcramer): move into contexts['extra']
             'context': context,
@@ -221,3 +242,51 @@ class SharedEventSerializer(EventSerializer):
         result['entries'] = [e for e in result['entries']
                              if e['type'] != 'breadcrumbs']
         return result
+
+
+class SnubaEvent(object):
+    """
+        A simple wrapper class on a row (dict) returned from snuba representing
+        an event. Provides a class name to register a serializer against, and
+        Makes keys accessible as attributes.
+    """
+
+    # The list of columns that we should request from snuba to be able to fill
+    # out a proper event object.
+    selected_columns = [
+        'event_id',
+        'project_id',
+        'message',
+        'user_id',
+        'username',
+        'ip_address',
+        'email',
+        'timestamp',
+    ]
+
+    def __init__(self, kv):
+        assert set(kv.keys()) == set(self.selected_columns)
+        self.__dict__ = kv
+
+
+@register(SnubaEvent)
+class SnubaEventSerializer(Serializer):
+    """
+        A bare-bones version of EventSerializer which uses snuba event rows as
+        the source data but attempts to produce a compatible (subset) of the
+        serialization returned by EventSerializer.
+    """
+
+    def serialize(self, obj, attrs, user):
+        return {
+            'eventID': six.text_type(obj.event_id),
+            'projectID': six.text_type(obj.project_id),
+            'message': obj.message,
+            'dateCreated': obj.timestamp,
+            'user': {
+                'id': obj.user_id,
+                'email': obj.email,
+                'username': obj.username,
+                'ipAddress': obj.ip_address,
+            }
+        }

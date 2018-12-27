@@ -84,7 +84,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
         }]
 
     @responses.activate
-    def test_create_repository(self):
+    def test_build_repository_config(self):
         organization = self.create_organization()
         integration = Integration.objects.create(
             provider='vsts',
@@ -102,7 +102,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
             'project': 'MyFirstProject',
             'installation': integration.id,
         }
-        data = self.provider.create_repository(organization, data)
+        data = self.provider.build_repository_config(organization, data)
 
         assert data == {
             'name': 'MyFirstProject',
@@ -117,3 +117,11 @@ class VisualStudioRepositoryProviderTest(TestCase):
             },
             'integration_id': integration.id,
         }
+
+    def test_repository_external_slug(self):
+        repo = Repository(
+            name='MyFirstProject',
+            url='https://mbittker.visualstudio.com/_git/MyFirstProject/',
+            external_id=self.vsts_external_id)
+        result = self.provider.repository_external_slug(repo)
+        assert result == repo.external_id

@@ -97,7 +97,7 @@ class Event(Model):
     project = property(_get_project, _set_project)
 
     def get_legacy_message(self):
-        msg_interface = self.data.get('sentry.interfaces.Message', {
+        msg_interface = self.data.get('logentry', {
             'message': self.message,
         })
         return msg_interface.get('formatted', msg_interface['message'])
@@ -116,14 +116,8 @@ class Event(Model):
 
         See ``sentry.eventtypes``.
         """
-        etype = self.data.get('type', 'default')
-        if 'metadata' not in self.data:
-            # TODO(dcramer): remove after Dec 1 2016
-            data = dict(self.data or {})
-            data['message'] = self.message
-            data = CanonicalKeyView(data)
-            return eventtypes.get(etype)(data).get_metadata()
-        return self.data['metadata']
+        from sentry.event_manager import get_event_metadata_compat
+        return get_event_metadata_compat(self.data, self.message)
 
     @property
     def title(self):
@@ -151,13 +145,13 @@ class Event(Model):
 
     @memoize
     def ip_address(self):
-        user_data = self.data.get('sentry.interfaces.User', self.data.get('user'))
+        user_data = self.data.get('user', self.data.get('user'))
         if user_data:
             value = user_data.get('ip_address')
             if value:
                 return value
 
-        http_data = self.data.get('sentry.interfaces.Http', self.data.get('http'))
+        http_data = self.data.get('request', self.data.get('http'))
         if http_data and 'env' in http_data:
             value = http_data['env'].get('REMOTE_ADDR')
             if value:

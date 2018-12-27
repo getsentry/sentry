@@ -30,7 +30,7 @@ import StreamFilters from 'app/views/stream/filters';
 import StreamGroup from 'app/components/stream/group';
 import StreamSidebar from 'app/views/stream/sidebar';
 import TimeSince from 'app/components/timeSince';
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import parseApiError from 'app/utils/parseApiError';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import queryString from 'app/utils/queryString';
@@ -389,7 +389,7 @@ const Stream = createReactClass({
                 environment: matchingEventEnvironment,
               })}`;
             }
-            return void browserHistory.push(redirect);
+            return void browserHistory.replace(redirect);
           }
         }
 
@@ -589,8 +589,8 @@ const Stream = createReactClass({
     if (pi.numIssues > 0) {
       icon = <span className="icon icon-alert" />;
       issues = tn(
-        'There is %d issue blocking event processing',
-        'There are %d issues blocking event processing',
+        'There is %s issue blocking event processing',
+        'There are %s issues blocking event processing',
         pi.numIssues
       );
       lastEvent = (
@@ -606,16 +606,16 @@ const Stream = createReactClass({
       icon = <span className="icon icon-processing play" />;
       className['alert-info'] = true;
       issues = tn(
-        'Reprocessing %d event …',
-        'Reprocessing %d events …',
+        'Reprocessing %s event …',
+        'Reprocessing %s events …',
         pi.issuesProcessing
       );
     } else if (pi.resolveableIssues > 0) {
       icon = <span className="icon icon-processing" />;
       className['alert-warning'] = true;
       issues = tn(
-        'There is %d event pending reprocessing.',
-        'There are %d events pending reprocessing.',
+        'There is %s event pending reprocessing.',
+        'There are %s events pending reprocessing.',
         pi.resolveableIssues
       );
       showButton = true;
@@ -701,6 +701,11 @@ const Stream = createReactClass({
   renderStreamBody() {
     let body;
     let project = this.getProject();
+
+    if (project.firstEvent) {
+      ConfigStore.set('sentFirstEvent', project.firstEvent);
+    }
+
     if (this.state.dataLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {

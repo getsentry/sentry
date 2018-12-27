@@ -138,7 +138,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         data = {'init': True, 'provider': self.provider_name}
 
-        with Feature(['organizations:sso', 'organizations:sso-saml2']):
+        with Feature(['organizations:sso-basic', 'organizations:sso-saml2']):
             setup = self.client.post(self.setup_path, data)
 
         assert setup.status_code == 302

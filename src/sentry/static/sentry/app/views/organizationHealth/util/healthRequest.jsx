@@ -27,7 +27,7 @@ class HealthRequestWithParams extends React.Component {
     /**
      * List of project ids to query
      */
-    projects: PropTypes.arrayOf(PropTypes.string),
+    projects: PropTypes.arrayOf(PropTypes.number),
 
     /**
      * List of environments to query
@@ -35,11 +35,22 @@ class HealthRequestWithParams extends React.Component {
     environments: PropTypes.arrayOf(PropTypes.string),
 
     /**
-     * Time period in query. Currently only supports relative dates
+     * Relative time period for query.
+     *
+     * Use `start` and `end` for absolute dates.
      *
      * e.g. 24h, 7d, 30d
      */
     period: PropTypes.string,
+
+    /**
+     * Absolute start date for query
+     */
+    start: PropTypes.instanceOf(Date),
+    /**
+     * Absolute end date for query
+     */
+    end: PropTypes.instanceOf(Date),
 
     /**
      * Interval to group results in
@@ -99,7 +110,9 @@ class HealthRequestWithParams extends React.Component {
   };
 
   static defaultProps = {
-    period: '7d',
+    period: null,
+    start: null,
+    end: null,
     interval: '1d',
     limit: 15,
     getCategory: i => i,
@@ -145,6 +158,10 @@ class HealthRequestWithParams extends React.Component {
     this.fetchData();
   }
 
+  componentWillUnmount() {
+    this.unmounting = true;
+  }
+
   fetchData = async () => {
     const {tag} = this.props;
 
@@ -171,6 +188,8 @@ class HealthRequestWithParams extends React.Component {
           }
         : {}),
     });
+
+    if (this.unmounting) return;
 
     this.setState({
       reloading: false,
@@ -281,8 +300,17 @@ class HealthRequestWithParams extends React.Component {
       resultsForTimestamp &&
         !!resultsForTimestamp.length &&
         resultsForTimestamp.forEach(({count, [tag]: tagObject}) => {
-          categorySet.add(this.getCategory(tagObject));
-          timestampMap.set(`${timestamp}-${this.getCategory(tagObject)}`, count);
+          const category = this.getCategory(tagObject);
+          const timestampKey = `${timestamp}-${this.getCategory(tagObject)}`;
+          categorySet.add(category);
+
+          // aggregate if exists
+          timestampMap.set(
+            timestampKey,
+            timestampMap.has(timestampKey)
+              ? timestampMap.get(timestampKey) + count
+              : count
+          );
         });
     });
 

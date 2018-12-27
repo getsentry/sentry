@@ -25,6 +25,14 @@ import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
 
+// Used for operational metrics to determine that the application js
+// bundle was loaded by browser.
+//
+// JSDOM implements window.performance but not window.performance.mark
+if (window.performance && typeof window.performance.mark === 'function') {
+  window.performance.mark('sentry-app-init');
+}
+
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
   //jQuery won't allow using the ajaxCsrfSetup function directly
@@ -140,6 +148,7 @@ export default {
     ListLink: require('app/components/listLink').default,
     MenuItem: require('app/components/menuItem').default,
     NarrowLayout: require('app/components/narrowLayout').default,
+    NavTabs: require('app/components/navTabs').default,
     OrganizationAuth: require('app/views/settings/organizationAuth').default,
     OrganizationHomeContainer: require('app/components/organizations/homeContainer')
       .default,
@@ -150,9 +159,15 @@ export default {
     PanelHeader: require('app/components/panels/panelHeader').default,
     PanelBody: require('app/components/panels/panelBody').default,
     PanelItem: require('app/components/panels/panelItem').default,
+    PanelAlert: require('app/components/panels/panelAlert').default,
+    EmptyMessage: require('app/views/settings/components/emptyMessage').default,
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
+    ReleaseLanding: require('app/views/projectReleases/releaseLanding').default,
+    ReleaseProgress: require('app/views/projectReleases/releaseProgress').default,
+    CreateSampleEvent: require('app/components/createSampleEvent').default,
+    InstallPromptBanner: require('app/components/installPromptBanner').default,
     SentryTypes: require('app/sentryTypes').default,
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
@@ -168,6 +183,7 @@ export default {
     U2fSign: require('app/components/u2fsign').default,
     Waiting: require('app/views/onboarding/configure/waiting').default,
     Badge: require('app/components/badge').default,
+    Tag: require('app/views/settings/components/tag').default,
     Switch: require('app/components/switch').default,
     GlobalModal: require('app/components/globalModal').default,
     SetupWizard: require('app/components/setupWizard').default,
@@ -177,6 +193,7 @@ export default {
       errorHandler: require('app/utils/errorHandler').default,
       ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
       logging: require('app/utils/logging'),
+      descopeFeatureName: require('app/utils').descopeFeatureName,
     },
   },
 };

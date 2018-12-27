@@ -39,25 +39,16 @@ class GitHubIssueBasic(IssueBasicMixin):
             except ApiError as e:
                 raise IntegrationError(self.message_from_error(e))
 
+    def get_persisted_default_config_fields(self):
+        return ['repo']
+
+    def create_default_repo_choice(self, default_repo):
+        return (default_repo, default_repo.split('/')[1])
+
     def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'github_integration'
         fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
-        try:
-            repos = self.get_repositories()
-        except ApiError:
-            repo_choices = [(' ', ' ')]
-        else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
-
-        params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
-
-        # If a repo has been selected outside of the default 100-limit list of
-        # repos, stick it onto the front of the list so that it can be
-        # selected.
-        try:
-            next(True for r in repo_choices if r[0] == default_repo)
-        except StopIteration:
-            repo_choices.insert(0, (default_repo, default_repo.split('/')[1]))
+        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo)
 
@@ -116,23 +107,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         }
 
     def get_link_issue_config(self, group, **kwargs):
-        try:
-            repos = self.get_repositories()
-        except ApiError:
-            repo_choices = [(' ', ' ')]
-        else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
-
-        params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
-
-        # If a repo has been selected outside of the default 100-limit list of
-        # repos, stick it onto the front of the list so that it can be
-        # selected.
-        try:
-            next(True for r in repo_choices if r[0] == default_repo)
-        except StopIteration:
-            repo_choices.insert(0, (default_repo, default_repo.split('/')[1]))
+        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -154,6 +129,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'name': 'externalIssue',
                 'label': 'Issue',
                 'default': '',
+                'choices': [],
                 'type': 'select',
                 'url': autocomplete_url,
                 'required': True,
@@ -162,7 +138,10 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'name': 'comment',
                 'label': 'Comment',
                 'default': u'Sentry issue: [{issue_id}]({url})'.format(
-                    url=absolute_uri(group.get_absolute_url()),
+                    url=absolute_uri(
+                        group.get_absolute_url(
+                            params={
+                                'referrer': 'github_integration'})),
                     issue_id=group.qualified_short_id,
                 ),
                 'type': 'textarea',

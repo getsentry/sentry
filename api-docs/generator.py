@@ -151,11 +151,13 @@ def cli(output_path, output_format):
         user = utils.create_user('john@interstellar.invalid')
         org = utils.create_org('The Interstellar Jurisdiction',
                                owner=user)
-        api_key = utils.create_api_key(org)
+        report('auth', 'Creating api token')
+        api_token = utils.create_api_token(user)
 
         report('org', 'Creating team')
         team = utils.create_team('Powerful Abolitionist',
                                  org=org)
+        utils.join_team(team, user)
 
         projects = []
         for project_name in 'Pump Station', 'Prime Mover':
@@ -177,7 +179,7 @@ def cli(output_path, output_format):
         vars = {
             'org': org,
             'me': user,
-            'api_key': api_key,
+            'api_token': api_token,
             'teams': [{
                 'team': team,
                 'projects': projects,
@@ -319,7 +321,7 @@ def format_request(endpoint, scenario_map):
     lines = [
         u"{} {} HTTP/1.1".format(request['method'], request['path']),
         'Host: sentry.io',
-        'Authorization: Bearer {base64-encoded-key-here}',
+        'Authorization: Bearer <token>',
     ]
     lines.extend(format_headers(request['headers']))
     if request['data']:

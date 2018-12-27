@@ -1,11 +1,11 @@
-import {debounce} from 'lodash';
+import {chunk, debounce} from 'lodash';
 
 import {
   addLoadingMessage,
   addErrorMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
-import {tct} from 'app/locale';
+import {t, tct} from 'app/locale';
 import ProjectActions from 'app/actions/projectActions';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 
@@ -49,7 +49,23 @@ export function loadStats(api, params) {
 // Will be cleared when debounced function fires
 let _projectStatsToFetch = new Set();
 
-const _debouncedLoadStats = debounce((api, projectSet, params) => {
+// Max projects to query at a time, otherwise if we fetch too many in the same request
+// it can timeout
+const MAX_PROJECTS_TO_FETCH = 10;
+
+const _queryForStats = (api, projects, orgId) => {
+  let idQueryParams = projects.map(project => `id:${project}`).join(' ');
+  let endpoint = `/organizations/${orgId}/projects/`;
+
+  return api.requestPromise(endpoint, {
+    query: {
+      statsPeriod: '24h',
+      query: idQueryParams,
+    },
+  });
+};
+
+export const _debouncedLoadStats = debounce((api, projectSet, params) => {
   let existingProjectStats = Object.values(ProjectsStatsStore.getAll()).map(({id}) => id);
   let projects = Array.from(projectSet).filter(
     project => !existingProjectStats.includes(project)
@@ -60,19 +76,21 @@ const _debouncedLoadStats = debounce((api, projectSet, params) => {
     return;
   }
 
-  let idQueryParams = projects.map(project => `id:${project}`).join(' ');
-  let endpoint = `/organizations/${params.orgId}/projects/`;
+  // Split projects into more manageable chunks to query, otherwise we can
+  // potentially face server timeouts
+  const queries = chunk(projects, MAX_PROJECTS_TO_FETCH).map(chunkedProjects =>
+    _queryForStats(api, chunkedProjects, params.orgId)
+  );
 
-  api.request(endpoint, {
-    query: {
-      statsPeriod: '24h',
-      query: idQueryParams,
-    },
-    success: data => {
-      ProjectActions.loadStatsForProjectSuccess(data);
-    },
-    error: data => {},
-  });
+  Promise.all(queries)
+    .then(results => {
+      ProjectActions.loadStatsForProjectSuccess(
+        results.reduce((acc, result) => acc.concat(result), [])
+      );
+    })
+    .catch(err => {
+      addErrorMessage(t('Unable to fetch all project stats'));
+    });
 
   // Reset projects list
   _projectStatsToFetch.clear();
@@ -232,4 +250,19 @@ export function removeTeamFromProject(api, orgSlug, projectSlug, teamSlug) {
  */
 export function changeProjectSlug(prev, next) {
   ProjectActions.changeSlug(prev, next);
+}
+
+/**
+ * Send a sample event
+ *
+ * @param {Client} api API Client
+ * @param {String} orgSlug Organization Slug
+ * @param {String} projectSlug Project Slug
+ */
+export function sendSampleEvent(api, orgSlug, projectSlug) {
+  let endpoint = `/projects/${orgSlug}/${projectSlug}/create-sample/`;
+
+  return api.requestPromise(endpoint, {
+    method: 'POST',
+  });
 }

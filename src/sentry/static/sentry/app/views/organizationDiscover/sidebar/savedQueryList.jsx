@@ -1,7 +1,9 @@
 import React from 'react';
 import moment from 'moment';
+import {Flex} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
+import getDynamicText from 'app/utils/getDynamicText';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
@@ -9,7 +11,6 @@ import {t, tct} from 'app/locale';
 import {fetchSavedQueries} from '../utils';
 import {
   Fieldset,
-  SavedQuery,
   SavedQueryList,
   SavedQueryListItem,
   SavedQueryLink,
@@ -19,19 +20,42 @@ import {
 export default class SavedQueries extends React.Component {
   static propTypes = {
     organization: SentryTypes.Organization.isRequired,
+    // provided if it's a saved query
+    savedQuery: SentryTypes.DiscoverSavedQuery,
   };
 
-  constructor() {
-    super();
-    this.state = {isLoading: true};
+  constructor(props) {
+    super(props);
+    this.state = {isLoading: true, data: [], topSavedQuery: props.savedQuery};
   }
 
   componentDidMount() {
+    this.fetchAll();
+  }
+
+  componentWillReceiveProps(nextProps) {
+    // Refetch on deletion
+    if (!nextProps.savedQuery && this.props.savedQuery !== nextProps.savedQuery) {
+      this.fetchAll();
+    }
+    // Update saved query if any name / details have been updated
+    if (
+      nextProps.savedQuery &&
+      this.state.topSavedQuery &&
+      nextProps.savedQuery.id === this.state.topSavedQuery.id
+    ) {
+      this.setState({
+        topSavedQuery: nextProps.savedQuery,
+      });
+    }
+  }
+
+  fetchAll() {
     fetchSavedQueries(this.props.organization)
       .then(data => {
         this.setState({isLoading: false, data});
       })
-      .catch(err => {
+      .catch(() => {
         this.setState({isLoading: false});
       });
   }
@@ -39,7 +63,9 @@ export default class SavedQueries extends React.Component {
   renderLoading() {
     return (
       <Fieldset>
-        <LoadingIndicator mini />
+        <Flex justify="center">
+          <LoadingIndicator mini />
+        </Flex>
       </Fieldset>
     );
   }
@@ -48,38 +74,50 @@ export default class SavedQueries extends React.Component {
     return <Fieldset>{t('No saved queries')}</Fieldset>;
   }
 
-  renderList() {
+  renderListItem(query) {
+    const {savedQuery} = this.props;
+
+    const {id, name, dateUpdated} = query;
     const {organization} = this.props;
-    const {data} = this.state;
+    return (
+      <SavedQueryListItem key={id} isActive={savedQuery && savedQuery.id === id}>
+        <SavedQueryLink to={`/organizations/${organization.slug}/discover/saved/${id}/`}>
+          {getDynamicText({value: name, fixed: 'saved query'})}
+          <SavedQueryUpdated>
+            {tct('Updated [date] (UTC)', {
+              date: getDynamicText({
+                value: moment.utc(dateUpdated).format('MMM DD HH:mm:ss'),
+                fixed: 'update-date',
+              }),
+            })}
+          </SavedQueryUpdated>
+        </SavedQueryLink>
+      </SavedQueryListItem>
+    );
+  }
+
+  renderList() {
+    const {data, topSavedQuery} = this.state;
+
+    const savedQueryId = topSavedQuery ? topSavedQuery.id : null;
 
     if (!data.length) {
       return this.renderEmpty();
     }
 
-    return (
-      <SavedQueryList>
-        {data.map(({id, name, dateUpdated}) => (
-          <SavedQueryListItem key={id}>
-            <SavedQueryLink
-              to={`/organizations/${organization.slug}/discover/saved/${id}/`}
-            >
-              {name}
-            </SavedQueryLink>
-            <SavedQueryUpdated>
-              {tct('Updated [date] (UTC)', {
-                date: moment.utc(dateUpdated).format('MMM DD HH:mm:ss'),
-              })}
-            </SavedQueryUpdated>
-          </SavedQueryListItem>
-        ))}
-      </SavedQueryList>
-    );
+    return data.map(query => {
+      return query.id !== savedQueryId ? this.renderListItem(query) : null;
+    });
   }
 
   render() {
-    const {isLoading} = this.state;
+    const {topSavedQuery, isLoading} = this.state;
+
     return (
-      <SavedQuery>{isLoading ? this.renderLoading() : this.renderList()}</SavedQuery>
+      <SavedQueryList>
+        {topSavedQuery && this.renderListItem(topSavedQuery)}
+        {isLoading ? this.renderLoading() : this.renderList()}
+      </SavedQueryList>
     );
   }
 }

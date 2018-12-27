@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import Feature from 'app/components/feature';
+import Feature from 'app/components/acl/feature';
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
@@ -85,14 +85,14 @@ class OrganizationHealth extends React.Component {
       organization.projects && organization.projects.filter(({isMember}) => isMember);
 
     return (
-      <Feature feature={['health']} renderNoFeatureMessage>
+      <Feature features={['health']} renderDisabled>
         <HealthContext.Provider value={{actions: this.actions, ...this.state}}>
           <HealthWrapper>
             <HealthNavigationMenu />
             <Content>
               <Header>
                 <MultipleProjectSelector
-                  anchorRight
+                  organization={organization}
                   projects={projects}
                   value={this.state.projects}
                   onChange={this.handleChangeProjects}

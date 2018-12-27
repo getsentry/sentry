@@ -1,18 +1,18 @@
 from __future__ import absolute_import
 
-from sentry.api.base import Endpoint, logger
-from sentry.api.exceptions import ResourceDoesNotExist, SsoRequired, TwoFactorRequired
-from sentry.api.permissions import ScopedPermission
-from sentry.app import raven
-from sentry.auth import access
+from sentry.utils.sdk import configure_scope
+from sentry.api.base import Endpoint
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Authenticator, Organization, OrganizationMemberTeam, Project, ProjectTeam, ReleaseProject, Team
+    ApiKey, Authenticator, Organization, OrganizationMemberTeam, Project,
+    ProjectTeam, ReleaseProject, Team
 )
 from sentry.utils import auth
 
 
-class OrganizationPermission(ScopedPermission):
+class OrganizationPermission(SentryPermission):
     scope_map = {
         'GET': ['org:read', 'org:write', 'org:admin'],
         'POST': ['org:write', 'org:admin'],
@@ -35,57 +35,7 @@ class OrganizationPermission(ScopedPermission):
         return False
 
     def has_object_permission(self, request, view, organization):
-        if request.user and request.user.is_authenticated() and request.auth:
-            request.access = access.from_request(
-                request,
-                organization,
-                scopes=request.auth.get_scopes(),
-            )
-
-        elif request.auth:
-            if request.auth.organization_id == organization.id:
-                request.access = access.from_auth(request.auth)
-            else:
-                request.access = access.DEFAULT
-
-        else:
-            request.access = access.from_request(request, organization)
-
-            if auth.is_user_signed_request(request):
-                # if the user comes from a signed request
-                # we let them pass if sso is enabled
-                logger.info(
-                    'access.signed-sso-passthrough',
-                    extra={
-                        'organization_id': organization.id,
-                        'user_id': request.user.id,
-                    }
-                )
-            elif request.user.is_authenticated():
-                # session auth needs to confirm various permissions
-                if self.needs_sso(request, organization):
-
-                    logger.info(
-                        'access.must-sso',
-                        extra={
-                            'organization_id': organization.id,
-                            'user_id': request.user.id,
-                        }
-                    )
-
-                    raise SsoRequired(organization)
-
-                if self.is_not_2fa_compliant(
-                        request.user, organization):
-                    logger.info(
-                        'access.not-2fa-compliant',
-                        extra={
-                            'organization_id': organization.id,
-                            'user_id': request.user.id,
-                        }
-                    )
-                    raise TwoFactorRequired()
-
+        self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
@@ -129,6 +79,16 @@ class OrganizationAuthProviderPermission(OrganizationPermission):
     }
 
 
+class OrganizationDiscoverSavedQueryPermission(OrganizationPermission):
+    # Relaxed permissions for saved queries in Discover
+    scope_map = {
+        'GET': ['org:read', 'org:write', 'org:admin'],
+        'POST': ['org:read', 'org:write', 'org:admin'],
+        'PUT': ['org:read', 'org:write', 'org:admin'],
+        'DELETE': ['org:read', 'org:write', 'org:admin'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission, )
 
@@ -142,9 +102,9 @@ class OrganizationEndpoint(Endpoint):
 
         self.check_object_permissions(request, organization)
 
-        raven.tags_context({
-            'organization': organization.id,
-        })
+        with configure_scope() as scope:
+            scope.set_tag("organization", organization.id)
+
         request._request.organization = organization
 
         # Track the 'active' organization when the request came from

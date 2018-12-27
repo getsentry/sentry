@@ -44,12 +44,22 @@ IntegrationMetadata = namedtuple('IntegrationMetadata', [
 
 
 class IntegrationMetadata(IntegrationMetadata):
+    @staticmethod
+    def feature_flag_name(f):
+        """
+        FeatureDescriptions are set using the IntegrationFeatures constants,
+        however we expose them here as mappings to organization feature flags, thus
+        we prefix them with `integration`.
+        """
+        if f is not None:
+            return u'integrations-{}'.format(f)
+
     def _asdict(self):
         metadata = super(IntegrationMetadata, self)._asdict()
         metadata['features'] = [
             {
                 'description': f.description.strip(),
-                'featureGate': None if f.featureGate is None else f.featureGate.value,
+                'featureGate': self.feature_flag_name(f.featureGate.value)
             }
             for f in metadata['features']
         ]
@@ -236,9 +246,6 @@ class IntegrationInstallation(object):
         """
         return []
 
-    def get_config_data(self):
-        return self.org_integration.config
-
     def update_organization_config(self, data):
         """
         Update the configuration field for an organization integration.
@@ -247,12 +254,8 @@ class IntegrationInstallation(object):
         config.update(data)
         self.org_integration.update(config=config)
 
-    def get_project_config(self):
-        """
-        Provides configuration for the integration on a per-project
-        level. See ``get_config_organization``.
-        """
-        return []
+    def get_config_data(self):
+        return self.org_integration.config
 
     def get_client(self):
         # Return the api client for a given provider

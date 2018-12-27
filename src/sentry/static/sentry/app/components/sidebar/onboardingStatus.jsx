@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import {t} from '../../locale';
 import SidebarPanel from './sidebarPanel';
 import TodoList from '../onboardingWizard/todos';

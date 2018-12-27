@@ -6,7 +6,7 @@ import classNames from 'classnames';
 
 import {t, tct} from 'app/locale';
 import sdk from 'app/utils/sdk';
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import OrganizationState from 'app/mixins/organizationState';
 import Confirmation from 'app/components/onboardingWizard/confirmation';
 

@@ -34,6 +34,7 @@ describe('OrganizationRepositories', function() {
     });
     let wrapper = shallow(
       <OrganizationRepositories
+        api={new Client()}
         params={{orgId: 'org-slug'}}
         repoConfig={{providers: [TestStubs.GitHubRepositoryProvider({id: 'github'})]}}
         itemList={[TestStubs.Repository()]}

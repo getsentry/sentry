@@ -23,6 +23,12 @@ class DeploySerializer(serializers.Serializer):
     dateStarted = serializers.DateTimeField(required=False)
     dateFinished = serializers.DateTimeField(required=False)
 
+    def validate_environment(self, attrs, source):
+        value = attrs[source]
+        if not Environment.is_valid_name(value):
+            raise serializers.ValidationError('Invalid value for environment')
+        return attrs
+
 
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
     doc_section = DocSection.RELEASES

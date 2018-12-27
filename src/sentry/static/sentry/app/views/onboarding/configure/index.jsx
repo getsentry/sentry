@@ -3,9 +3,9 @@ import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 
 import sdk from 'app/utils/sdk';
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
-import HookStore from 'app/stores/hookStore';
+import Hook from 'app/components/hook';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
@@ -89,7 +89,6 @@ const Configure = createReactClass({
   },
 
   submit() {
-    HookStore.get('analytics:onboarding-complete').forEach(cb => cb());
     analytics('onboarding.complete', {project: this.props.params.projectId});
     this.redirectUrl();
   },
@@ -103,11 +102,23 @@ const Configure = createReactClass({
 
   render() {
     let {orgId, projectId} = this.props.params;
+    let {hasSentRealEvent} = this.state;
+
+    let data = {
+      params: this.props.params,
+      organization: this.context.organization,
+      source: 'header',
+    };
 
     return (
       <div>
         <div className="onboarding-Configure">
-          <h2 style={{marginBottom: 30}}>Configure your application</h2>
+          <h2 style={{marginBottom: 30}}>
+            Configure your application
+            {!hasSentRealEvent && (
+              <Hook name="component:create-sample-event" params={data} key="header" />
+            )}
+          </h2>
           <ProjectContext projectId={projectId} orgId={orgId} style={{marginBottom: 30}}>
             <ProjectDocsContext>
               <ProjectInstallPlatform

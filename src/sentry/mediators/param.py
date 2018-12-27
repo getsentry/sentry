@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import six
+import sys
 import types
 
 from sentry.utils.cache import memoize
@@ -76,7 +77,7 @@ class Param(object):
     """
 
     def __init__(self, type, **kwargs):
-        self.type = type
+        self._type = type
         self.kwargs = kwargs
 
     def setup(self, target, name):
@@ -94,9 +95,10 @@ class Param(object):
         if self._missing_value(value):
             raise AttributeError(u'Missing required param: `{}`'.format(name))
 
-        if self.is_required and not self._type_match(value):
+        if self.is_required and not isinstance(value, self.type):
             raise TypeError(u'`{}` must be a {}, received {}'.format(
-                name, self.type, self._value_type(value)))
+                name, self.type, type(value)
+            ))
 
         return True
 
@@ -112,6 +114,12 @@ class Param(object):
         return value
 
     @memoize
+    def type(self):
+        if isinstance(self._type, six.string_types):
+            return self._eval_string_type()
+        return self._type
+
+    @memoize
     def has_default(self):
         return 'default' in self.kwargs
 
@@ -125,20 +133,17 @@ class Param(object):
             return False
         return True
 
-    def _type_match(self, value):
-        if isinstance(self.type, six.string_types):
-            return self._value_type(value) == self.type
+    def _eval_string_type(self):
+        """
+        Converts a class path in string form to the actual class object.
 
-        return isinstance(value, self.type)
-
-    def _value_type(self, value):
-        module = type(value).__module__
-        klass = type(value).__name__
-
-        if module == '__builtin__':
-            return klass
-
-        return '.'.join([module, klass])
+        Example:
+            >>> self._type = 'sentry.models.Project'
+            >>> self._eval_string_type()
+            sentry.models.project.Project
+        """
+        mod, klass = self._type.rsplit('.', 1)
+        return getattr(sys.modules[mod], klass)
 
     def _missing_value(self, value):
         return self.is_required and value is None and not self.has_default

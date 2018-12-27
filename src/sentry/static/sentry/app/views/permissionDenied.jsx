@@ -26,7 +26,7 @@ class PermissionDenied extends React.Component {
     let {organization, project} = this.context;
 
     let route = getRouteStringFromRoutes(routes);
-    sdk.captureException(new Error(ERROR_NAME), {
+    sdk.captureException(new Error(`${ERROR_NAME}${route ? ` : ${route}` : ''}`), {
       fingerprint: [ERROR_NAME, route],
       extra: {
         route,

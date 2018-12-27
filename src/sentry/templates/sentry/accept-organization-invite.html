@@ -23,7 +23,11 @@
           <div class="alert alert-block">
             <p>Your account (<strong>{{ request.user.username }}</strong>) is already a member of this organization.</p>
 
-            <p>Did you want to <a href="{{ logout_url }}">switch accounts</a>?</p>
+            <p>Did you want to <a href="#" onclick="document.logoutForm.submit()">switch accounts</a>?</p>
+
+            <form action="{{ logout_url }}" method="POST" name="logoutForm" style="display:none;">
+              {% csrf_token %}
+            </form>
           </div>
         {% endif %}
 

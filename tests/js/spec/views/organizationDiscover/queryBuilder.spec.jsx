@@ -11,7 +11,7 @@ describe('Query Builder', function() {
 
       expect(external.projects).toEqual([2]);
       expect(external.fields).toEqual(expect.arrayContaining([expect.any(String)]));
-      expect(external.fields).toHaveLength(45);
+      expect(external.fields).toHaveLength(5);
       expect(external.conditions).toHaveLength(0);
       expect(external.aggregations).toHaveLength(0);
       expect(external.orderby).toBe('-timestamp');
@@ -26,7 +26,7 @@ describe('Query Builder', function() {
 
     it('loads tags', async function() {
       const discoverMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/query/',
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
         body: {
           data: [{tags_key: 'tag1', count: 5}, {tags_key: 'tag2', count: 1}],
@@ -39,7 +39,7 @@ describe('Query Builder', function() {
       await queryBuilder.load();
 
       expect(discoverMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/discover/query/',
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         expect.objectContaining({
           data: expect.objectContaining({
             fields: ['tags_key'],
@@ -52,22 +52,22 @@ describe('Query Builder', function() {
       );
 
       expect(queryBuilder.getColumns()).toContainEqual({
-        name: 'tags[tag1]',
+        name: 'tag1',
         type: 'string',
       });
       expect(queryBuilder.getColumns()).toContainEqual({
-        name: 'tags[tag2]',
+        name: 'tag2',
         type: 'string',
       });
       expect(queryBuilder.getColumns()).not.toContainEqual({
-        name: 'tags[environment]',
+        name: 'environment',
         type: 'string',
       });
     });
 
     it('loads hardcoded tags when API request fails', async function() {
       const discoverMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/query/',
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
       });
       const queryBuilder = createQueryBuilder(
@@ -79,11 +79,11 @@ describe('Query Builder', function() {
       expect(discoverMock).toHaveBeenCalled();
 
       expect(queryBuilder.getColumns()).toContainEqual({
-        name: 'tags[environment]',
+        name: 'environment',
         type: 'string',
       });
       expect(queryBuilder.getColumns()).not.toContainEqual({
-        name: 'tags[tag1]',
+        name: 'tag1',
         type: 'string',
       });
     });
@@ -98,8 +98,13 @@ describe('Query Builder', function() {
         TestStubs.Organization({projects: [TestStubs.Project()]})
       );
       discoverMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/query/',
+        url: '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         method: 'POST',
+        body: {
+          data: [],
+          timing: {},
+          meta: [],
+        },
       });
     });
 
@@ -108,10 +113,10 @@ describe('Query Builder', function() {
     });
 
     it('makes request', async function() {
-      const data = {projects: [1], fields: ['event_id']};
+      const data = {projects: [1], fields: ['id']};
       await queryBuilder.fetch(data);
       expect(discoverMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/discover/query/',
+        '/organizations/org-slug/discover/query/?per_page=1000&cursor=0:0:1',
         expect.objectContaining({
           data,
         })
@@ -138,13 +143,14 @@ describe('Query Builder', function() {
 
     it('updates field', function() {
       queryBuilder.updateField('projects', [5]);
-      queryBuilder.updateField('conditions', [['event_id', '=', 'event1']]);
+      queryBuilder.updateField('conditions', [['id', '=', 'event1']]);
 
       const query = queryBuilder.getInternal();
-      expect(query.conditions).toEqual([['event_id', '=', 'event1']]);
+      expect(query.conditions).toEqual([['id', '=', 'event1']]);
     });
 
     it('updates orderby if there is an aggregation and value is not a valid field', function() {
+      queryBuilder.updateField('fields', ['id']);
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
       const query = queryBuilder.getInternal();
@@ -152,6 +158,7 @@ describe('Query Builder', function() {
     });
 
     it('updates orderby if there is no aggregation and value is not a valid field', function() {
+      queryBuilder.updateField('fields', ['id']);
       queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
       expect(queryBuilder.getInternal().orderby).toBe('-count');
       queryBuilder.updateField('aggregations', []);

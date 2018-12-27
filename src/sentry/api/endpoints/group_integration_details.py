@@ -54,15 +54,17 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response(
                 {'detail': 'This feature is not supported for this integration.'}, status=400)
 
-        # TODO(jess): add create issue config to serializer
-        return Response(
-            serialize(
-                integration,
-                request.user,
-                IntegrationIssueConfigSerializer(group, action, params=request.GET),
-                organization_id=organization_id
+        try:
+            return Response(
+                serialize(
+                    integration,
+                    request.user,
+                    IntegrationIssueConfigSerializer(group, action, params=request.GET),
+                    organization_id=organization_id
+                )
             )
-        )
+        except IntegrationError as exc:
+            return Response({'detail': exc.message}, status=400)
 
     # was thinking put for link an existing issue, post for create new issue?
     def put(self, request, group, integration_id):
@@ -120,6 +122,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         else:
             external_issue.update(**defaults)
 
+        installation.store_issue_last_defaults(group.project_id, request.DATA)
         try:
             installation.after_link_issue(external_issue, data=request.DATA)
         except IntegrationFormError as exc:
@@ -209,6 +212,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 user=request.user,
                 sender=self.__class__,
             )
+        installation.store_issue_last_defaults(group.project_id, request.DATA)
 
         # TODO(jess): return serialized issue
         url = data.get('url') or installation.get_issue_url(external_issue.key)

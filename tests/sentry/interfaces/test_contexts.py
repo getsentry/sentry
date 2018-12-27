@@ -29,6 +29,11 @@ class ContextsTest(TestCase):
             }
         }
 
+    def test_null_values(self):
+        assert Contexts.to_python({'os': None}).to_json() == {}
+        assert Contexts.to_python({'os': {}}).to_json() == {'os': {'type': 'os'}}
+        assert Contexts.to_python({'os': {'name': None}}).to_json() == {'os': {'type': 'os'}}
+
     def test_os_normalization(self):
         ctx = Contexts.to_python({
             'os': {
@@ -189,5 +194,26 @@ class ContextsTest(TestCase):
                 'type': 'app',
                 'app_id': '1234',
                 'device_app_hash': '5678',
+            }
+        }
+
+    def test_gpu(self):
+        ctx = Contexts.to_python({
+            'gpu': {
+                'name': 'AMD Radeon Pro 560',
+                'vendor_name': 'Apple',
+                'version': 'Metal'
+            },
+        })
+        assert sorted(ctx.iter_tags()) == [
+            ('gpu.name', 'AMD Radeon Pro 560'),
+            ('gpu.vendor', 'Apple'),
+        ]
+        assert ctx.to_json() == {
+            'gpu': {
+                'type': 'gpu',
+                'name': 'AMD Radeon Pro 560',
+                'vendor_name': 'Apple',
+                'version': 'Metal'
             }
         }

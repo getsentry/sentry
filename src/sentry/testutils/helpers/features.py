@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-__all__ = ['Feature']
+__all__ = ['Feature', 'with_feature']
 
 import six
 import collections
@@ -39,3 +39,12 @@ def Feature(names):
     with patch('sentry.features.has') as features_has:
         features_has.side_effect = lambda x, *a, **k: names.get(x, False)
         yield
+
+
+def with_feature(feature):
+    def decorator(func):
+        def wrapped(self, *args, **kwargs):
+            with Feature(feature):
+                return func(self, *args, **kwargs)
+        return wrapped
+    return decorator

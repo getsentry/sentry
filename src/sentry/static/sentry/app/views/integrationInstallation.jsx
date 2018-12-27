@@ -1,112 +1,169 @@
 import React from 'react';
+import styled from 'react-emotion';
 
+import {singleLineRenderer} from 'app/utils/marked';
+import {t, tct} from 'app/locale';
+import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
+import Alert from 'app/components/alert';
 import AsyncView from 'app/views/asyncView';
-import Form from 'app/views/settings/components/forms/form';
+import Button from 'app/components/button';
+import Field from 'app/views/settings/components/forms/field';
+import HookStore from 'app/stores/hookStore';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NarrowLayout from 'app/components/narrowLayout';
-import SelectField from 'app/views/settings/components/forms/selectField';
-import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import {t, tct} from 'app/locale';
+import SelectControl from 'app/components/forms/selectControl';
 
-class IntegrationInstallation extends AsyncView {
-  componentDidMount() {
-    this.dialog = null;
-    window.addEventListener('message', this.receiveMessage, false);
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('message', this.receiveMessage);
-
-    if (this.dialog !== null) {
-      this.dialog.close();
-    }
-  }
+export default class IntegrationInstallation extends AsyncView {
+  state = {
+    selectedOrg: null,
+    organization: null,
+    providers: [],
+    reloading: false,
+  };
 
   getEndpoints() {
-    return [['organizations', '/organizations/?owner=1']];
+    return [['organizations', '/organizations/']];
   }
 
   getTitle() {
     return t('Choose Installation Organization');
   }
 
-  handleSubmit = formData => {
-    const name = 'sentryAddIntegration';
-    const installationId = this.props.params.installationId;
-    const orgSlug = formData.organization;
-    this.dialog = window.open(
-      `/organizations/${orgSlug}/integrations/github/setup/?installation_id=${installationId}`,
-      name,
-      `scrollbars=yes,width=${1000},height=${1000},top=${100},left=${100}`
-    );
+  get provider() {
+    return this.state.providers.find(p => p.key === this.props.params.providerId);
+  }
 
-    this.dialog.focus();
-  };
-
-  receiveMessage = message => {
-    if (message.origin !== document.origin) {
-      return;
-    }
-
-    if (message.source !== this.dialog) {
-      return;
-    }
-
-    this.dialog = null;
-
-    const {success, data} = message.data;
-
-    if (!success) {
-      IndicatorStore.addError(data.error);
-      return;
-    }
+  onInstall = data => {
+    const orgId = this.state.organization.slug;
     this.props.router.push(
-      `/settings/sentry/integrations/${data.provider.key}/${data.id}`
+      `/settings/${orgId}/integrations/${data.provider.key}/${data.id}`
     );
-    IndicatorStore.addSuccess(t('Integration Added'));
   };
+
+  onSelectOrg = ({value: orgId}) => {
+    this.setState({selectedOrg: orgId, reloading: true});
+    const reloading = false;
+
+    this.api.request(`/organizations/${orgId}/`, {
+      success: organization => this.setState({organization, reloading}),
+      error: () => {
+        this.setState({reloading});
+        IndicatorStore.addError(t('Failed to retrieve organization details'));
+      },
+    });
+
+    this.api.request(`/organizations/${orgId}/config/integrations/`, {
+      success: providers => this.setState({providers: providers.providers, reloading}),
+      error: () => {
+        this.setState({reloading});
+        IndicatorStore.addError(t('Failed to retrieve integration provider details'));
+      },
+    });
+  };
+
+  hasAccess = org => org.access.includes('org:integrations');
+
+  renderAddButton() {
+    const {organization, reloading} = this.state;
+    const {installationId} = this.props.params;
+
+    const AddButton = p => (
+      <Button priority="primary" busy={reloading} {...p}>
+        Install Integration
+      </Button>
+    );
+
+    if (!this.provider) {
+      return <AddButton disabled />;
+    }
+
+    return (
+      <AddIntegration provider={this.provider} onInstall={this.onInstall}>
+        {addIntegration => (
+          <AddButton
+            disabled={organization && !this.hasAccess(organization)}
+            onClick={() => addIntegration({installation_id: installationId})}
+          />
+        )}
+      </AddIntegration>
+    );
+  }
 
   renderBody() {
-    let {organizations} = this.state;
-    let choices = [];
-    if (organizations) {
-      organizations.forEach(org => {
-        choices.push([org.organization.slug, org.organization.slug]);
-      });
-    }
+    const {organization, selectedOrg} = this.state;
+    const choices = this.state.organizations.map(org => [org.slug, org.slug]);
+
+    const featureListHooks = HookStore.get('integrations:feature-gates');
+    featureListHooks.push(() => ({FeatureList: null}));
+
+    const {FeatureList} = featureListHooks[0]();
+
     return (
       <NarrowLayout>
-        <SettingsPageHeader title={t('Choose Organization for your Integration')} />
+        <h3>{t('Finish integration installation')}</h3>
         <p>
           {tct(
-            'Please pick a specific [organization] to link with your installation ' +
-              'You can setup further configuration in your [organizationSettings].',
+            `Please pick a specific [organization:organization] to link with
+            your integration installation.`,
             {
-              organization: <strong>{t('Organization')}</strong>,
-              organizationSettings: <strong>{t('Organization Settings')}</strong>,
+              organization: <strong />,
             }
           )}
         </p>
-        <p>
-          {tct('Please select which [organization] you want for the installation.', {
-            organization: <strong>{t('Organization')}</strong>,
-          })}
-        </p>
-        <Form
-          onSubmit={this.handleSubmit}
-          submitLabel={t('Submit')}
-          submitPriority="primary"
-          initialData={{organization: choices[0] && choices[0][0]}}
-        >
-          <SelectField
-            choices={choices}
-            label={t('Organization')}
-            name={'organization'}
-          />
-        </Form>
+
+        {selectedOrg &&
+          organization &&
+          !this.hasAccess(organization) && (
+            <Alert type="error" icon="icon-circle-exclamation">
+              <p>
+                {tct(
+                  `You do not have permission to install integrations in
+                  [organization]. Ask your organization owner or manager to
+                  visit this page to finish installing this integration.`,
+                  {organization: <strong>{organization.slug}</strong>}
+                )}
+              </p>
+              <InstallLink>{window.location.href}</InstallLink>
+            </Alert>
+          )}
+
+        {this.provider &&
+          organization &&
+          this.hasAccess(organization) &&
+          FeatureList && (
+            <React.Fragment>
+              <p>
+                {tct(
+                  'The following features will be availble for [organization] when installed.',
+                  {organization: <strong>{organization.slug}</strong>}
+                )}
+              </p>
+              <FeatureList
+                organization={organization}
+                features={this.provider.metadata.features}
+                formatter={singleLineRenderer}
+              />
+            </React.Fragment>
+          )}
+
+        <Field label={t('Organization')} inline={false} stacked required>
+          {() => (
+            <SelectControl
+              onChange={this.onSelectOrg}
+              value={selectedOrg}
+              placeholder={t('Select an organization')}
+              options={choices.map(([value, label]) => ({value, label}))}
+            />
+          )}
+        </Field>
+
+        <div className="form-actions">{this.renderAddButton()}</div>
       </NarrowLayout>
     );
   }
 }
 
-export default IntegrationInstallation;
+const InstallLink = styled('pre')`
+  margin-bottom: 0;
+  background: #fbe3e1;
+`;

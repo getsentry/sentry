@@ -32,7 +32,7 @@ export const User = PropTypes.shape({
   ),
   has2fa: PropTypes.bool,
   hasPasswordAuth: PropTypes.bool,
-  id: PropTypes.string.isRequired,
+  id: PropTypes.string,
   identities: PropTypes.array,
   isActive: PropTypes.bool,
   isManaged: PropTypes.bool,
@@ -69,6 +69,22 @@ export const Deploy = PropTypes.shape({
   environment: PropTypes.string,
   dateFinished: PropTypes.string,
   version: PropTypes.string,
+});
+
+export const DiscoverSavedQuery = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  dateCreated: PropTypes.string.isRequired,
+  dateUpdated: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  createdBy: PropTypes.string,
+  projects: PropTypes.arrayOf(PropTypes.number),
+  fields: PropTypes.arrayOf(PropTypes.string),
+  aggregations: PropTypes.arrayOf(PropTypes.array),
+  conditions: PropTypes.arrayOf(PropTypes.array),
+  limit: PropTypes.number,
+  range: PropTypes.string,
+  start: PropTypes.string,
+  end: PropTypes.string,
 });
 
 /**
@@ -214,6 +230,13 @@ export const Release = PropTypes.shape({
   owner: User,
 });
 
+export const Repository = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  name: PropTypes.string,
+  url: PropTypes.string,
+  status: PropTypes.string,
+});
+
 export const NavigationObject = PropTypes.shape({
   name: PropTypes.string,
   items: PropTypes.arrayOf(
@@ -277,6 +300,13 @@ export const PluginsStore = PropTypes.shape({
   pageLinks: PropTypes.any,
 });
 
+export const AuthProvider = PropTypes.shape({
+  key: PropTypes.string,
+  name: PropTypes.string,
+  requiredFeature: PropTypes.string,
+  disables2FA: PropTypes.bool,
+});
+
 export const ProjectDsn = {
   secret: PropTypes.string,
   minidump: PropTypes.string,
@@ -304,6 +334,14 @@ export const ProjectKey = PropTypes.shape({
     url: PropTypes.string,
   }),
   cdnSdkUrl: PropTypes.string,
+});
+
+export const SentryApplication = PropTypes.shape({
+  name: PropTypes.string,
+  slug: PropTypes.string,
+  uuid: PropTypes.string,
+  scopes: PropTypes.arrayOf(PropTypes.string),
+  status: PropTypes.string,
 });
 
 export const EChartsData = PropTypes.arrayOf(
@@ -685,6 +723,105 @@ export const EChartsGrid = PropTypes.shape({
 export const EChartsLegend = PropTypes.shape({
   // Show legend on chart
   show: PropTypes.bool,
+  truncate: PropTypes.oneOfType([PropTypes.bool, PropTypes.number]),
+});
+
+// See https://ecomfe.github.io/echarts-doc/public/en/option.html#dataZoom
+export const EChartsDataZoom = PropTypes.arrayOf(
+  PropTypes.oneOfType([
+    PropTypes.shape({
+      type: PropTypes.oneOf(['inside']),
+    }),
+    PropTypes.shape({
+      type: PropTypes.oneOf(['slider']),
+    }),
+  ])
+);
+
+// See https://ecomfe.github.io/echarts-doc/public/en/option.html#toolbox
+export const EChartsToolBox = PropTypes.shape({
+  // Component ID, not specified by default. If specified, it can be used to refer the component in option or API.
+  id: PropTypes.string,
+
+  // Whether to show toolbox component.
+  show: PropTypes.bool,
+
+  // The layout orientation of toolbox's icon.
+  orient: PropTypes.oneOf(['horizontal', 'vertical']),
+
+  // The size of toolbox's icon.
+  itemSize: PropTypes.number,
+
+  // The gap between each icon of toolbox. It is horizontal gap in horizontal layout, while vertical gap in vertical layout.
+  itemGap: PropTypes.number,
+
+  // Whether to show the title of each tool icon when mouse hovers.
+  showTitle: PropTypes.bool,
+
+  // The configuration item for each tool.
+  // Besides the tools we provide, user-defined toolbox is also supported.
+  // Notes: User-defined tool name could only start with my, like myTool1 and myTool2 in the below example:
+
+  // {
+  // toolbox: {
+  // feature: {
+  // myTool1: {
+  // show: true,
+  // title: 'custom extension method 1',
+  // icon: 'path://M432.45,595.444c0,2.177-4.661,6.82-11.305,6.82c-6.475,0-11.306-4.567-11.306-6.82s4.852-6.812,11.306-6.812C427.841,588.632,432.452,593.191,432.45,595.444L432.45,595.444z M421.155,589.876c-3.009,0-5.448,2.495-5.448,5.572s2.439,5.572,5.448,5.572c3.01,0,5.449-2.495,5.449-5.572C426.604,592.371,424.165,589.876,421.155,589.876L421.155,589.876z M421.146,591.891c-1.916,0-3.47,1.589-3.47,3.549c0,1.959,1.554,3.548,3.47,3.548s3.469-1.589,3.469-3.548C424.614,593.479,423.062,591.891,421.146,591.891L421.146,591.891zM421.146,591.891',
+  // onclick: function (){
+  // alert('myToolHandler1')
+  // }
+  // },
+  // myTool2: {
+  // show: true,
+  // title: 'custom extension method',
+  // icon: 'image://http://echarts.baidu.com/images/favicon.png',
+  // onclick: function (){
+  // alert('myToolHandler2')
+  // }
+  // }
+  // }
+  // }
+  // }
+  feature: PropTypes.object,
+
+  // The style setting of Shared icon.
+  iconStyle: PropTypes.object,
+
+  // zlevel value of all graghical elements in .
+  // zlevel is used to make layers with Canvas. Graphical elements with different zlevel values will be placed in different Canvases, which is a common optimization technique. We can put those frequently changed elements (like those with animations) to a seperate zlevel. Notice that too many Canvases will increase memory cost, and should be used carefully on mobile phones to avoid crash.
+  // Canvases with bigger zlevel will be placed on Canvases with smaller zlevel.
+  zlevel: PropTypes.number,
+
+  // z value of all graghical elements in , which controls order of drawing graphical components. Components with smaller z values may be overwritten by those with larger z values.
+  // z has a lower priority to zlevel, and will not create new Canvas.
+  z: PropTypes.number,
+
+  // Distance between toolbox component and the left side of the container.
+  // left value can be instant pixel value like 20; it can also be percentage value relative to container width like '20%'; and it can also be 'left', 'center', or 'right'.
+  // If the left value is set to be 'left', 'center', or 'right', then the component will be aligned automatically based on position.
+  left: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+
+  // Distance between toolbox component and the top side of the container.
+  // top value can be instant pixel value like 20; it can also be percentage value relative to container width like '20%'; and it can also be 'top', 'middle', or 'bottom'.
+  // If the left value is set to be 'top', 'middle', or 'bottom', then the component will be aligned automatically based on position.
+  top: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+
+  // Distance between toolbox component and the right side of the container.
+  // right value can be instant pixel value like 20; it can also be percentage value relative to container width like '20%'.
+  // Adaptive by default.
+  right: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+
+  // Distance between toolbox component and the bottom side of the container.
+  // bottom value can be instant pixel value like 20; it can also be percentage value relative to container width like '20%'.
+  // Adaptive by default.
+  bottom: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+
+  // Width of toolbox component. Adaptive by default.
+  width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  // Height of toolbox component. Adaptive by default.
+  height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 });
 
 export const SeriesUnit = PropTypes.shape({
@@ -705,8 +842,10 @@ let SentryTypes = {
     id: PropTypes.string.isRequired,
   }),
   Actor,
+  AuthProvider,
   Config,
   Deploy,
+  DiscoverSavedQuery,
   Environment,
   Event,
   Organization: PropTypes.shape({
@@ -729,7 +868,9 @@ let SentryTypes = {
   PluginsStore,
   ProjectKey,
   Release,
+  Repository,
   User,
+  SentryApplication,
 
   // echarts prop types
   EChartsSeries,
@@ -739,6 +880,8 @@ let SentryTypes = {
   EChartsTooltip,
   EChartsGrid,
   EChartsLegend,
+  EChartsDataZoom,
+  EChartsToolBox,
 };
 
 export default SentryTypes;

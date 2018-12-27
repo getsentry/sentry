@@ -565,6 +565,8 @@ class SnubaSearchTest(SnubaTestCase):
             }
         )
 
+        self.group1.update(last_seen=self.group1.last_seen + timedelta(days=1))
+
         results = self.backend.query(
             self.project,
             environment=self.environments['production'],
@@ -575,9 +577,19 @@ class SnubaSearchTest(SnubaTestCase):
 
         results = self.backend.query(
             self.project,
+            date_to=self.group1.last_seen + timedelta(days=1),
             environment=self.environments['development'],
             last_seen_from=self.group1.last_seen,
             last_seen_from_inclusive=False,
+        )
+        assert set(results) == set()
+
+        results = self.backend.query(
+            self.project,
+            date_to=self.group1.last_seen + timedelta(days=1),
+            environment=self.environments['development'],
+            last_seen_from=self.group1.last_seen,
+            last_seen_from_inclusive=True,
         )
         assert set(results) == set([self.group1])
 
@@ -778,6 +790,16 @@ class SnubaSearchTest(SnubaTestCase):
             assert result == new.version
 
     @mock.patch('sentry.utils.snuba.query')
+    def test_snuba_not_called_optimization(self, query_mock):
+        assert self.backend.query(self.project, query='foo').results == [self.group1]
+        assert not query_mock.called
+
+        assert self.backend.query(
+            self.project, query='foo', sort_by='date', last_seen_from=timezone.now()
+        ).results == []
+        assert query_mock.called
+
+    @mock.patch('sentry.utils.snuba.query')
     def test_optimized_aggregates(self, query_mock):
         query_mock.return_value = {}
 
@@ -796,22 +818,17 @@ class SnubaSearchTest(SnubaTestCase):
             'end': Any(datetime),
             'filter_keys': {
                 'project_id': [self.project.id],
-                'primary_hash': [u'513772ee53011ad9f4dc374b2d34d0e9']
+                'issue': [self.group1.id]
             },
             'referrer': 'search',
-            'groupby': ['primary_hash'],
+            'groupby': ['issue'],
             'conditions': [],
             'limit': limit,
             'offset': 0,
         }
 
         self.backend.query(self.project, query='foo')
-        assert query_mock.call_args == mock.call(
-            orderby='-last_seen',
-            aggregations=[['max', 'timestamp', 'last_seen']],
-            having=[],
-            **common_args
-        )
+        assert not query_mock.called
 
         self.backend.query(self.project, query='foo', sort_by='date', last_seen_from=timezone.now())
         assert query_mock.call_args == mock.call(

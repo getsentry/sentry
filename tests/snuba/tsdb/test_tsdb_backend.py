@@ -109,6 +109,7 @@ class SnubaTSDBTest(TestCase):
         data = json.dumps([{
             'event_id': (six.text_type(r) * 32)[:32],
             'primary_hash': [hash1, hash2][(r // 600) % 2],  # Switch every 10 mins
+            'group_id': [self.proj1group1.id, self.proj1group2.id][(r // 600) % 2],
             'project_id': self.proj1.id,
             'message': 'message 1',
             'platform': 'python',
@@ -123,7 +124,7 @@ class SnubaTSDBTest(TestCase):
                     'sentry:user': u'id:user{}'.format(r // 3300),
                     'sentry:release': six.text_type(r // 3600) * 10,  # 1 per hour
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     # change every 55 min so some hours have 1 user, some have 2
                     'id': u"user{}".format(r // 3300),
                     'email': u"user{}@sentry.io".format(r)

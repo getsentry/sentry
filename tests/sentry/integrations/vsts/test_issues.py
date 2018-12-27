@@ -1,12 +1,16 @@
 from __future__ import absolute_import
 
 import responses
+import pytest
+import six
 
 from exam import fixture
 from django.test import RequestFactory
 from time import time
 
+from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.vsts.integration import VstsIntegration
+
 from sentry.models import (
     ExternalIssue, Identity, IdentityProvider, Integration,
     IntegrationExternalProject
@@ -14,10 +18,10 @@ from sentry.models import (
 from sentry.testutils import TestCase
 from sentry.utils import json
 
-from .testutils import WORK_ITEM_RESPONSE, GET_PROJECTS_RESPONSE, GET_USERS_RESPONSE
+from .testutils import WORK_ITEM_RESPONSE, WORK_ITEM_STATES, GET_PROJECTS_RESPONSE, GET_USERS_RESPONSE
 
 
-class VstsIssueSycnTest(TestCase):
+class VstsIssueBase(TestCase):
     @fixture
     def request(self):
         return RequestFactory()
@@ -55,6 +59,15 @@ class VstsIssueSycnTest(TestCase):
         }
         self.integration = VstsIntegration(model, self.organization.id)
         self.issue_id = '309'
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states',
+            json=WORK_ITEM_STATES,
+        )
+        self.project_id_with_states = 'c0bf429a-c03c-4a99-9336-d45be74db5a6'
+
+
+class VstsIssueSyncTest(VstsIssueBase):
 
     @responses.activate
     def test_create_issue(self):
@@ -65,12 +78,10 @@ class VstsIssueSycnTest(TestCase):
             content_type='application/json',
         )
 
-        # group = self.create_group(message='Hello world', culprit='foo.bar')
-
         form_data = {
             'title': 'Hello',
             'description': 'Fix this.',
-            'project': '0987654321#Fabrikam-Fiber-Git',
+            'project': '0987654321',
         }
         assert self.integration.create_issue(form_data) == {
             'key': self.issue_id,
@@ -101,14 +112,6 @@ class VstsIssueSycnTest(TestCase):
                 'path': '/fields/System.History',
                 'value': '<p>Fix this.</p>\n',
             },
-            # {
-            #     "op": "add",
-            #     "path": "/relations/-",
-            #     "value": {
-            #         "rel": "Hyperlink",
-            #         "url": 'http://testserver/baz/bar/issues/1/',
-            #     }
-            # }
         ]
 
     @responses.activate
@@ -214,3 +217,150 @@ class VstsIssueSycnTest(TestCase):
         work_id = 345
         url = self.integration.get_issue_url(work_id)
         assert url == 'https://fabrikam-fiber-inc.visualstudio.com/_workitems/edit/345'
+
+    @responses.activate
+    def test_should_resolve_active_to_resolved(self):
+        should_resolve = self.integration.should_resolve({
+            'project': self.project_id_with_states,
+            'old_state': 'Active',
+            'new_state': 'Resolved',
+        })
+        assert should_resolve is True
+
+    @responses.activate
+    def test_should_resolve_resolved_to_active(self):
+        should_resolve = self.integration.should_resolve({
+            'project': self.project_id_with_states,
+            'old_state': 'Resolved',
+            'new_state': 'Active',
+        })
+        assert should_resolve is False
+
+    @responses.activate
+    def test_should_resolve_new(self):
+        should_resolve = self.integration.should_resolve({
+            'project': self.project_id_with_states,
+            'old_state': None,
+            'new_state': 'New',
+        })
+        assert should_resolve is False
+
+    @responses.activate
+    def test_should_unresolve_active_to_resolved(self):
+        should_unresolve = self.integration.should_unresolve({
+            'project': self.project_id_with_states,
+            'old_state': 'Active',
+            'new_state': 'Resolved',
+        })
+        assert should_unresolve is False
+
+    @responses.activate
+    def test_should_unresolve_resolved_to_active(self):
+        should_unresolve = self.integration.should_unresolve({
+            'project': self.project_id_with_states,
+            'old_state': 'Resolved',
+            'new_state': 'Active',
+        })
+        assert should_unresolve is True
+
+    @responses.activate
+    def test_should_unresolve_new(self):
+        should_unresolve = self.integration.should_unresolve({
+            'project': self.project_id_with_states,
+            'old_state': None,
+            'new_state': 'New',
+        })
+        assert should_unresolve is True
+
+
+class VstsIssueFormTest(VstsIssueBase):
+    def setUp(self):
+        super(VstsIssueFormTest, self).setUp()
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/projects',
+            json={
+                'value': [
+                    {'id': 'project-1-id', 'name': 'project_1'},
+                    {'id': 'project-2-id', 'name': 'project_2'}
+                ]
+            },
+        )
+        self.group = self.create_group()
+        self.create_event(group=self.group)
+
+    def tearDown(self):
+        responses.reset()
+
+    def update_issue_defaults(self, defaults):
+        self.integration.org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(self.group.project_id): defaults
+            }
+        }
+        self.integration.org_integration.save()
+
+    def assert_project_field(self, fields, default_value, choices):
+        project_field = [field for field in fields if field['name'] == 'project'][0]
+        assert project_field['defaultValue'] == default_value
+        assert project_field['choices'] == choices
+
+    @responses.activate
+    def test_default_project(self):
+        self.update_issue_defaults({'project': 'project-2-id'})
+        fields = self.integration.get_create_issue_config(self.group)
+
+        self.assert_project_field(fields, 'project-2-id',
+                                  [('project-1-id', 'project_1'), ('project-2-id', 'project_2')])
+
+    @responses.activate
+    def test_default_project_default_missing_in_choices(self):
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/projects/project-3-id',
+            json={'id': 'project-3-id', 'name': 'project_3'},
+        )
+        self.update_issue_defaults({'project': 'project-3-id'})
+        fields = self.integration.get_create_issue_config(self.group)
+
+        self.assert_project_field(
+            fields, 'project-3-id', [
+                ('project-3-id', 'project_3'), ('project-1-id', 'project_1'), ('project-2-id', 'project_2')])
+
+    @responses.activate
+    def test_default_project_error_on_default_project(self):
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/projects/project-3-id',
+            status=404
+        )
+        self.update_issue_defaults({'project': 'project-3-id'})
+        fields = self.integration.get_create_issue_config(self.group)
+
+        self.assert_project_field(
+            fields, None, [
+                ('project-1-id', 'project_1'), ('project-2-id', 'project_2')])
+
+    @responses.activate
+    def test_get_create_issue_config_error_on_get_projects(self):
+        responses.reset()
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/projects',
+            status=503
+        )
+
+        with pytest.raises(IntegrationError):
+            self.integration.get_create_issue_config(self.group)
+
+    @responses.activate
+    def test_default_project_no_projects(self):
+        responses.reset()
+        responses.add(
+            responses.GET,
+            'https://fabrikam-fiber-inc.visualstudio.com/_apis/projects',
+            json={'value': []},
+        )
+        fields = self.integration.get_create_issue_config(self.group)
+
+        self.assert_project_field(fields, None, [])

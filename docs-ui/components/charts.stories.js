@@ -1,7 +1,7 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
-import {number, boolean, text, array} from '@storybook/addon-knobs';
+import {number, boolean, text} from '@storybook/addon-knobs';
 
 import LineChart from 'app/components/charts/lineChart';
 import BarChart from 'app/components/charts/barChart';
@@ -39,7 +39,7 @@ storiesOf('Charts|Playground')
                 {value: 108, name: 'Aug 15th'},
                 {value: 1, name: 'Aug 16th'},
                 {value: 36, name: 'Aug 22nd'},
-                {value: null, name: 'Se p 5th'},
+                {value: null, name: 'Sep 5th'},
                 {value: 1, name: 'Sep 6th'},
               ],
             },
@@ -102,7 +102,7 @@ storiesOf('Charts|Playground')
                 {value: 108, name: 'Aug 15th'},
                 {value: 1, name: 'Aug 16th'},
                 {value: 36, name: 'Aug 22nd'},
-                {value: null, name: 'Se p 5th'},
+                {value: null, name: 'Sep 5th'},
                 {value: 1, name: 'Sep 6th'},
               ],
             },
@@ -128,7 +128,6 @@ storiesOf('Charts|Playground')
             bottom: text('legend: bottom (20 or 20%)', 'auto'),
             width: text('legend: width (string or number)', 'auto'),
             height: text('legend: height', 'auto'),
-
           }}
           height={number('height', 300)}
           grid={{

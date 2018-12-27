@@ -6,12 +6,14 @@ import {t} from 'app/locale';
 
 import {getInternal, getExternal} from './utils';
 import {PlaceholderText} from '../styles';
+import {ARRAY_FIELD_PREFIXES} from '../data';
 
 export default class Aggregation extends React.Component {
   static propTypes = {
     value: PropTypes.array.isRequired,
     onChange: PropTypes.func.isRequired,
     columns: PropTypes.array.isRequired,
+    disabled: PropTypes.bool,
   };
 
   constructor(props) {
@@ -37,10 +39,12 @@ export default class Aggregation extends React.Component {
     ];
 
     if (input.startsWith('uniq')) {
-      optionList = this.props.columns.map(({name}) => ({
-        value: `uniq(${name})`,
-        label: `uniq(${name})`,
-      }));
+      optionList = this.props.columns
+        .filter(({name}) => !ARRAY_FIELD_PREFIXES.some(prefix => name.startsWith(prefix)))
+        .map(({name}) => ({
+          value: `uniq(${name})`,
+          label: `uniq(${name})`,
+        }));
     }
 
     if (input.startsWith('avg')) {
@@ -82,7 +86,7 @@ export default class Aggregation extends React.Component {
         type="text"
         {...props}
         value={props.value || this.state.inputValue}
-        style={{width: '100%', border: 0}}
+        style={{width: '100%', border: 0, backgroundColor: 'transparent'}}
       />
     );
   };
@@ -102,7 +106,7 @@ export default class Aggregation extends React.Component {
     return (
       <Box w={1}>
         <SelectControl
-          forwardedRef={ref => (this.select = ref)}
+          innerRef={ref => (this.select = ref)}
           value={getInternal(this.props.value)}
           placeholder={
             <PlaceholderText>{t('Add aggregation function...')}</PlaceholderText>
@@ -120,6 +124,7 @@ export default class Aggregation extends React.Component {
           inputRenderer={this.inputRenderer}
           valueRenderer={this.valueRenderer}
           onInputChange={this.handleInputChange}
+          disabled={this.props.disabled}
         />
       </Box>
     );

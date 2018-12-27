@@ -29,7 +29,7 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
 
         return repo_data
 
-    def create_repository(self, organization, data):
+    def build_repository_config(self, organization, data):
         integration = Integration.objects.get(
             id=data['integration_id'], provider=self.repo_provider)
 

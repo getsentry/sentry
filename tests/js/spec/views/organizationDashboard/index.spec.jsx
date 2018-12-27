@@ -95,10 +95,12 @@ describe('OrganizationDashboard', function() {
     beforeEach(function() {});
 
     it('renders TeamSection', function() {
-      const projects = [TestStubs.Project({
-        teams,
-        firstEvent: true,
-      })];
+      const projects = [
+        TestStubs.Project({
+          teams,
+          firstEvent: true,
+        }),
+      ];
 
       const wrapper = shallow(
         <Dashboard
@@ -118,11 +120,13 @@ describe('OrganizationDashboard', function() {
     });
 
     it('renders favorited project in favorites section ', function() {
-      const projects = [TestStubs.Project({
-        teams,
-        isBookmarked: true,
-        firstEvent: true,
-      })];
+      const projects = [
+        TestStubs.Project({
+          teams,
+          isBookmarked: true,
+          firstEvent: true,
+        }),
+      ];
 
       const wrapper = shallow(
         <Dashboard
@@ -204,6 +208,7 @@ describe('OrganizationDashboard', function() {
       );
 
       jest.runAllTimers();
+      jest.useRealTimers();
 
       const projectCards = wrapper.find('LazyLoadMock ProjectCard');
       expect(projectCards.at(0).prop('data-test-id')).toBe('a-fave');
@@ -288,7 +293,7 @@ describe('OrganizationDashboard', function() {
       }),
     ];
 
-    it('uses ProjectsStatsStore to load stats', function() {
+    it('uses ProjectsStatsStore to load stats', async function() {
       jest.useFakeTimers();
       ProjectsStatsStore.onStatsLoadSuccess([{...projects[0], stats: [[1517281200, 2]]}]);
       const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
@@ -319,7 +324,6 @@ describe('OrganizationDashboard', function() {
 
       // Advance timers so that batched request fires
       jest.advanceTimersByTime(51);
-
       expect(mock).toHaveBeenCalledTimes(1);
       // query ids = 3, 2, 4 = bookmarked
       // 1 - already loaded in store so shouldn't be in query
@@ -331,10 +335,12 @@ describe('OrganizationDashboard', function() {
           }),
         })
       );
+      jest.useRealTimers();
+      await tick();
+      await tick();
       wrapper.update();
       expect(wrapper.find('LoadingCard')).toHaveLength(0);
       expect(wrapper.find('Chart')).toHaveLength(9);
-      jest.useRealTimers();
 
       // Resets store when it unmounts
       wrapper.unmount();

@@ -64,6 +64,21 @@ class GroupTagsTest(APITestCase):
         assert data[2]['key'] == 'release'  # Formatted from sentry:release
         assert len(data[2]['topValues']) == 1
 
+        # Use the key= queryparam to grab results for specific tags
+        url = u'/api/0/issues/{}/tags/?key=foo&key=sentry:release'.format(this_group.id)
+        response = self.client.get(url, format='json')
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
+        data = sorted(response.data, key=lambda r: r['key'])
+
+        assert data[0]['key'] == 'foo'
+        assert len(data[0]['topValues']) == 2
+        assert set(v['value'] for v in data[0]['topValues']) == set(['bar', 'quux'])
+
+        assert data[1]['key'] == 'release'
+        assert len(data[1]['topValues']) == 1
+
     def test_invalid_env(self):
         this_group = self.create_group()
         self.login_as(user=self.user)

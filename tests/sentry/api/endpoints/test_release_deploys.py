@@ -111,3 +111,32 @@ class ReleaseDeploysCreateTest(APITestCase):
             project=project, release=release, environment=environment
         )
         assert rpe.last_deploy_id == deploy.id
+
+    def test_environment_validation_failure(self):
+        project = self.create_project(name='example')
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='123',
+            total_deploys=0,
+        )
+        release.add_project(project)
+
+        url = reverse(
+            'sentry-api-0-organization-release-deploys',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'version': release.version,
+            }
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            url,
+            data={
+                'name': 'foo',
+                'environment': 'bad/name',
+                'url': 'https://www.example.com',
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert 0 == Deploy.objects.count()

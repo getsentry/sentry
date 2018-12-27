@@ -26,7 +26,7 @@ SDK_INFO = {"sdk_name": "iOS", "version_major": 9,
             "version_minor": 3, "version_patchlevel": 0}
 
 
-def patched_symbolize_app_frame(self, instruction_addr, img, sdk_info=None):
+def patched_symbolize_app_frame(self, instruction_addr, img, sdk_info=None, trust=None):
     if instruction_addr != 4295123756:
         return []
     return [
@@ -65,7 +65,7 @@ class BasicResolvingFileTest(TestCase):
     )
     def test_frame_resolution(self):
         event_data = {
-            "sentry.interfaces.User": {
+            "user": {
                 "ip_address": "31.172.207.97"
             },
             "extra": {},
@@ -97,7 +97,7 @@ class BasicResolvingFileTest(TestCase):
                 "sdk_info":
                 SDK_INFO,
             },
-            "sentry.interfaces.Exception": {
+            "exception": {
                 "values": [
                     {
                         "stacktrace": {
@@ -178,7 +178,7 @@ class BasicResolvingFileTest(TestCase):
         event_data = process_stacktraces(
             event_data, make_processors=make_processors)
 
-        bt = event_data['sentry.interfaces.Exception']['values'][0]['stacktrace']
+        bt = event_data['exception']['values'][0]['stacktrace']
         frames = bt['frames']
 
         assert frames[0]['function'] == '<redacted>'

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from mock import patch
 from exam import fixture
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -55,7 +56,11 @@ class JavaScriptSdkLoaderTest(TestCase):
         self.assertIn('bundle.min.js', min_resp.content)
         assert len(resp.content) > len(min_resp.content)
 
-    def test_headers(self):
+    @patch('sentry.loader.browsersdkversion.load_version_from_file')
+    def test_headers(self, mock_load_version_from_file):
+        mocked_version = '9.9.9'
+        mock_load_version_from_file.return_value = mocked_version
+
         resp = self.client.get(self.path)
         assert resp.status_code == 200, resp
         self.assertIn('*', resp['Access-Control-Allow-Origin'])
@@ -64,7 +69,7 @@ class JavaScriptSdkLoaderTest(TestCase):
         self.assertIn('s-maxage', resp['Cache-Control'])
         self.assertIn('max-age', resp['Cache-Control'])
         self.assertIn('project/%s' % self.projectkey.project_id, resp['Surrogate-Key'])
-        self.assertIn('sdk/%s' % settings.JS_SDK_LOADER_SDK_VERSION, resp['Surrogate-Key'])
+        self.assertIn('sdk/%s' % mocked_version, resp['Surrogate-Key'])
         self.assertIn('sdk-loader', resp['Surrogate-Key'])
         assert 'Content-Encoding' not in resp
         assert 'Set-Cookie' not in resp

@@ -13,7 +13,8 @@ export default class Conditions extends React.Component {
   static propTypes = {
     value: PropTypes.arrayOf(PropTypes.array).isRequired,
     onChange: PropTypes.func.isRequired,
-    columns: PropTypes.array,
+    columns: PropTypes.array.isRequired,
+    disabled: PropTypes.bool,
   };
 
   addRow() {
@@ -35,15 +36,17 @@ export default class Conditions extends React.Component {
   }
 
   render() {
-    const {value, columns} = this.props;
+    const {value, columns, disabled} = this.props;
 
     return (
       <div>
         <div>
           <SidebarLabel>{t('Conditions')}</SidebarLabel>
-          <AddText>
-            (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
-          </AddText>
+          {!disabled && (
+            <AddText>
+              (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
+            </AddText>
+          )}
         </div>
         {!value.length && (
           <PlaceholderText>{t('None, showing all events')}</PlaceholderText>
@@ -54,6 +57,7 @@ export default class Conditions extends React.Component {
               value={condition}
               onChange={val => this.handleChange(val, idx)}
               columns={columns}
+              disabled={disabled}
             />
             <Box ml={1}>
               <a onClick={() => this.removeRow(idx)}>

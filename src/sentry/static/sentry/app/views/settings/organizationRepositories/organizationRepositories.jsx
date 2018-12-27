@@ -1,120 +1,36 @@
 import {Box, Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
 
 import {t, tct} from 'app/locale';
 import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
-import DropdownLink from 'app/components/dropdownLink';
-import Feature from 'app/components/feature';
 import HeroIcon from 'app/components/heroIcon';
-import MenuItem from 'app/components/menuItem';
-import SpreadLayout from 'app/components/spreadLayout';
+import RepositoryRow from 'app/components/repositoryRow';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
-import AddRepositoryLink from './addRepositoryLink';
-
-const RepoRow = styled(SpreadLayout)`
-  border-bottom: 1px solid ${p => p.theme.borderLight};
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
 export default class OrganizationRepositories extends React.Component {
   static propTypes = {
     itemList: PropTypes.array,
-    repoConfig: PropTypes.object,
-    onAddRepo: PropTypes.func,
-    onCancelDelete: PropTypes.func,
-    onDeleteRepo: PropTypes.func,
+    api: PropTypes.object,
+    onRepositoryChange: PropTypes.func,
   };
 
-  getStatusLabel(repo) {
-    switch (repo.status) {
-      case 'pending_deletion':
-        return 'Deletion Queued';
-      case 'deletion_in_progress':
-        return 'Deletion in Progress';
-      case 'disabled':
-        return 'Disabled';
-      case 'hidden':
-        return 'Disabled';
-      default:
-        return null;
-    }
-  }
-
   render() {
-    let {
-      params,
-      itemList,
-      repoConfig,
-      onAddRepo,
-      onCancelDelete,
-      onDeleteRepo,
-    } = this.props;
+    let {params, itemList, api, onRepositoryChange} = this.props;
     let {orgId} = params;
     let hasItemList = itemList && itemList.length > 0;
 
     return (
       <div>
-        <SettingsPageHeader
-          title={t('Repositories')}
-          action={
-            <Feature
-              feature={['bitbucket-integration', 'github-enterprise']}
-              requireAll={false}
-            >
-              {({hasFeature}) => {
-                return (
-                  !hasFeature && (
-                    <DropdownLink
-                      anchorRight
-                      className="btn btn-primary btn-sm"
-                      title={t('Add Repository')}
-                    >
-                      {repoConfig &&
-                        repoConfig.providers &&
-                        repoConfig.providers.map(provider => {
-                          return (
-                            <MenuItem noAnchor={true} key={provider.id}>
-                              <AddRepositoryLink
-                                provider={provider}
-                                orgId={orgId}
-                                onSuccess={onAddRepo}
-                              />
-                            </MenuItem>
-                          );
-                        })}
-                    </DropdownLink>
-                  )
-                );
-              }}
-            </Feature>
-          }
-        />
-        <Feature
-          feature={['bitbucket-integration', 'github-enterprise']}
-          requireAll={false}
-        >
-          {({hasFeature}) => {
-            return (
-              hasFeature && (
-                <AlertLink to={`/settings/${orgId}/integrations/`}>
-                  {t(
-                    'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
-                  )}
-                </AlertLink>
-              )
-            );
-          }}
-        </Feature>
+        <SettingsPageHeader title={t('Repositories')} />
+        <AlertLink to={`/settings/${orgId}/integrations/`}>
+          {t(
+            'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
+          )}
+        </AlertLink>
         {!hasItemList && (
           <div className="m-b-2">
             <TextBlock>
@@ -141,51 +57,15 @@ export default class OrganizationRepositories extends React.Component {
             <PanelBody>
               <Box>
                 {itemList.map(repo => {
-                  let repoIsVisible = repo.status === 'active';
-                  let style =
-                    repo.status === 'disabled'
-                      ? {filter: 'grayscale(1)', opacity: '0.4'}
-                      : {};
                   return (
-                    <RepoRow key={repo.id}>
-                      <Box p={2} style={style} flex="1">
-                        <Flex direction="column">
-                          <Box pb={1}>
-                            <strong>{repo.name}</strong>
-                            {!repoIsVisible && (
-                              <small> — {this.getStatusLabel(repo)}</small>
-                            )}
-                            {repo.status === 'pending_deletion' && (
-                              <small>
-                                {' '}
-                                (
-                                <a onClick={() => onCancelDelete(repo)}>{t('Cancel')}</a>
-                                )
-                              </small>
-                            )}
-                          </Box>
-                          <Box style={style}>
-                            <small>{repo.provider.name}</small>
-                            {repo.url && (
-                              <small>
-                                {' '}
-                                — <a href={repo.url}>{repo.url}</a>
-                              </small>
-                            )}
-                          </Box>
-                        </Flex>
-                      </Box>
-
-                      <Box p={2}>
-                        <Confirm
-                          disabled={!repoIsVisible && repo.status !== 'disabled'}
-                          onConfirm={() => onDeleteRepo(repo)}
-                          message={t('Are you sure you want to remove this repository?')}
-                        >
-                          <Button size="xsmall" icon="icon-trash" />
-                        </Confirm>
-                      </Box>
-                    </RepoRow>
+                    <RepositoryRow
+                      key={repo.id}
+                      repository={repo}
+                      api={api}
+                      showProvider={true}
+                      orgId={orgId}
+                      onRepositoryChange={onRepositoryChange}
+                    />
                   );
                 })}
               </Box>

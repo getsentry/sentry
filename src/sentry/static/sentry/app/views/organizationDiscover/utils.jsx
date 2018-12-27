@@ -1,6 +1,7 @@
+import moment from 'moment';
 import {Client} from 'app/api';
-
 import {isValidAggregation} from './aggregations/utils';
+import {NON_SNUBA_FIELDS} from './data';
 
 export function getQueryFromQueryString(queryString) {
   const validQueryKeys = new Set([
@@ -59,6 +60,11 @@ export function getOrderByOptions(queryBuilder) {
       }
     }
 
+    // Never allow ordering by project.name or issue.id since this can't be done in Snuba
+    if (NON_SNUBA_FIELDS.includes(name)) {
+      return acc;
+    }
+
     return [
       ...acc,
       {value: name, label: `${name} asc`},
@@ -78,6 +84,27 @@ export function getOrderByOptions(queryBuilder) {
   }, []);
 
   return [...columnOptions, ...aggregationOptions];
+}
+
+/**
+ * Takes the params object and the requested view querystring and returns the
+ * correct view to be displayed
+ *
+ * @param {Object} params
+ * @param {String} reqeustedView
+ * @returns {String} View
+ */
+export function getView(params, requestedView) {
+  if (typeof params.savedQueryId !== 'undefined') {
+    requestedView = 'saved';
+  }
+
+  switch (requestedView) {
+    case 'saved':
+      return 'saved';
+    default:
+      return 'query';
+  }
 }
 
 /**
@@ -113,8 +140,8 @@ export function fetchSavedQueries(organization) {
 
 export function createSavedQuery(organization, data) {
   const api = new Client();
-  const endpoint = `/organizations/${organization.slug}/discover/saved/`;
 
+  const endpoint = `/organizations/${organization.slug}/discover/saved/`;
   return api.requestPromise(endpoint, {
     method: 'POST',
     data,
@@ -138,4 +165,13 @@ export function deleteSavedQuery(organization, id) {
   return api.requestPromise(endpoint, {
     method: 'DELETE',
   });
+}
+
+/**
+ * Generate a saved query name based on the current timestamp
+ *
+ * @returns {String}
+ */
+export function generateQueryName() {
+  return `Result - ${moment.utc().format('MMM DD HH:mm:ss')}`;
 }

@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 import six
+import mock
 
+from sentry.integrations.example.integration import ExampleIntegration
+from sentry.integrations.exceptions import IntegrationError
 from sentry.models import ExternalIssue, GroupLink, Integration
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
@@ -39,12 +42,20 @@ class GroupIntegrationDetailsTest(APITestCase):
                     'features': [f.value for f in provider.features],
                     'aspects': provider.metadata.aspects,
                 },
-                'linkIssueConfig': [{
-                    'default': '',
-                    'type': 'string',
-                    'name': 'externalIssue',
-                    'label': 'Issue',
-                }]
+                'linkIssueConfig': [
+                    {
+                        'default': '',
+                        'type': 'string',
+                        'name': 'externalIssue',
+                        'label': 'Issue',
+                    },
+                    {
+                        'choices': [('1', 'Project 1'), ('2', 'Project 2')],
+                        'label': 'Project',
+                        'name': 'project',
+                        'type': 'select'
+                    }
+                ]
             }
 
     def test_simple_get_create(self):
@@ -91,15 +102,41 @@ class GroupIntegrationDetailsTest(APITestCase):
                                     'Stacktrace (most recent call last):\n\n  '
                                     'File "sentry/models/foo.py", line 29, in build_msg\n    '
                                     'string_max_length=self.string_max_length)\n\nmessage\n```'
-                                    ) % (group.qualified_short_id, absolute_uri(group.get_absolute_url())),
+                                    ) % (group.qualified_short_id, absolute_uri(group.get_absolute_url(params={'referrer': 'example_integration'}))),
                         'type': 'textarea',
                         'name': 'description',
                         'label': 'Description',
                         'autosize': True,
                         'maxRows': 10,
+                    },
+                    {
+                        'choices': [('1', 'Project 1'), ('2', 'Project 2')],
+                        'type': 'select',
+                        'name': 'project',
+                        'label': 'Project',
                     }
                 ]
             }
+
+    def test_get_create_with_error(self):
+        self.login_as(user=self.user)
+        org = self.organization
+        group = self.create_group()
+        self.create_event(group=group)
+        integration = Integration.objects.create(
+            provider='example',
+            name='Example',
+        )
+        integration.add_organization(org, self.user)
+
+        path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(group.id, integration.id)
+
+        with self.feature('organizations:integrations-issue-basic'):
+            with mock.patch.object(ExampleIntegration, 'get_create_issue_config', side_effect=IntegrationError('oops')):
+                response = self.client.get(path)
+
+                assert response.status_code == 400
+                assert response.data == {'detail': 'oops'}
 
     def test_get_feature_disabled(self):
         self.login_as(user=self.user)
@@ -283,3 +320,49 @@ class GroupIntegrationDetailsTest(APITestCase):
         response = self.client.delete(path)
         assert response.status_code == 400
         assert response.data['detail'] == 'Your organization does not have access to this feature.'
+
+    def test_default_project(self):
+        def assert_default_project(path, action, expected_project_field):
+            response = self.client.get(path)
+            assert response.status_code == 200
+            if action == 'create':
+                fields = response.data['createIssueConfig']
+            else:
+                fields = response.data['linkIssueConfig']
+            assert response.data['id'] == six.text_type(integration.id)
+            for field in fields:
+                if field['name'] == 'project':
+                    project_field = field
+                    break
+
+            assert project_field == expected_project_field
+
+        self.login_as(user=self.user)
+        org = self.organization
+        group = self.create_group()
+        self.create_event(group=group)
+        integration = Integration.objects.create(
+            provider='example',
+            name='Example',
+        )
+        org_integration = integration.add_organization(org, self.user)
+        org_integration.config = {
+            'project_issue_defaults': {
+                group.project_id: {'project': '2'}
+            }
+        }
+        org_integration.save()
+        create_path = u'/api/0/issues/{}/integrations/{}/?action=create'.format(
+            group.id, integration.id)
+        link_path = u'/api/0/issues/{}/integrations/{}/?action=link'.format(
+            group.id, integration.id)
+        project_field = {
+            'name': 'project',
+            'label': 'Project',
+            'choices': [('1', 'Project 1'), ('2', 'Project 2')],
+            'type': 'select',
+            'default': '2',
+        }
+        with self.feature('organizations:integrations-issue-basic'):
+            assert_default_project(create_path, 'create', project_field)
+            assert_default_project(link_path, 'link', project_field)

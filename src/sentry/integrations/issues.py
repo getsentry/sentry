@@ -4,6 +4,7 @@ import logging
 import six
 
 from sentry import features
+from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Activity, Event, Group, GroupStatus, Organization
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -34,10 +35,13 @@ class IssueBasicMixin(object):
         return '\n\n'.join(result)
 
     def get_group_description(self, group, event, **kwargs):
+        params = {}
+        if kwargs.get('link_referrer'):
+            params['referrer'] = kwargs.get('link_referrer')
         output = [
             u'Sentry Issue: [{}]({})'.format(
                 group.qualified_short_id,
-                absolute_uri(group.get_absolute_url()),
+                absolute_uri(group.get_absolute_url(params=params)),
             )
         ]
         body = self.get_group_body(group, event)
@@ -95,6 +99,44 @@ class IssueBasicMixin(object):
                 'type': 'string',
             }
         ]
+
+    def get_persisted_default_config_fields(self):
+        """
+        Returns a list of field names that should have their last used values
+        persisted on a per-project basis.
+        """
+        return []
+
+    def store_issue_last_defaults(self, project_id, data):
+        """
+        Stores the last used field defaults on a per-project basis. This
+        accepts a dict of values that will be filtered to keys returned by
+        ``get_persisted_default_config_fields`` which will automatically be
+        merged into the associated field config object as the default.
+
+        >>> integ.store_issue_last_defaults(1, {'externalProject': 2})
+
+        When the integration is serialized these values will automatically be
+        merged into the field configuration objects.
+
+        NOTE: These are currently stored for both link and create issue, no
+              differentiation is made between the two field configs.
+        """
+        persisted_fields = self.get_persisted_default_config_fields()
+        if not persisted_fields:
+            return
+
+        defaults = {k: v for k, v in six.iteritems(data) if k in persisted_fields}
+
+        self.org_integration.config.update({
+            'project_issue_defaults': {project_id: defaults},
+        })
+        self.org_integration.save()
+
+    def get_project_defaults(self, project_id):
+        return self.org_integration.config \
+            .get('project_issue_defaults', {}) \
+            .get(six.text_type(project_id), {})
 
     def create_issue(self, data, **kwargs):
         """
@@ -155,6 +197,43 @@ class IssueBasicMixin(object):
         does not match the disired display name.
         """
         return ''
+
+    def get_repository_choices(self, group, **kwargs):
+        """
+        Returns the default repository and a set/subset of repositories of asscoaited with the installation
+        """
+        try:
+            repos = self.get_repositories()
+        except ApiError:
+            raise IntegrationError(
+                'Unable to retrive repositories. Please try again later.'
+            )
+        else:
+            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
+
+        repo = kwargs.get('repo')
+        if not repo:
+            params = kwargs.get('params', {})
+            defaults = self.get_project_defaults(group.project_id)
+            repo = params.get('repo', defaults.get('repo'))
+
+        default_repo = repo or repo_choices[0][0]
+        # If a repo has been selected outside of the default list of
+        # repos, stick it onto the front of the list so that it can be
+        # selected.
+        try:
+            next(True for r in repo_choices if r[0] == default_repo)
+        except StopIteration:
+            repo_choices.insert(0, self.create_default_repo_choice(default_repo))
+
+        return default_repo, repo_choices
+
+    def create_default_repo_choice(self, default_repo):
+        """
+        Helper method for get_repository_choices
+        Returns the choice for the default repo in a tuple to be added to the list of repository choices
+        """
+        return (default_repo, default_repo)
 
 
 class IssueSyncMixin(IssueBasicMixin):
