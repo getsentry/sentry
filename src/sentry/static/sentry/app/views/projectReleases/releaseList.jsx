@@ -1,55 +1,60 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReleaseStats from '../../components/releaseStats';
-import Count from '../../components/count';
-import TimeSince from '../../components/timeSince';
-import Version from '../../components/version';
-import LatestDeployOrReleaseTime from '../../components/latestDeployOrReleaseTime';
+import {Box} from 'grid-emotion';
 
-const ReleaseList = React.createClass({
-  propTypes: {
+import {PanelItem} from 'app/components/panels';
+import ReleaseStats from 'app/components/releaseStats';
+import Count from 'app/components/count';
+import TimeSince from 'app/components/timeSince';
+import Version from 'app/components/version';
+import LatestDeployOrReleaseTime from 'app/components/latestDeployOrReleaseTime';
+
+class ReleaseList extends React.Component {
+  static propTypes = {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    releaseList: PropTypes.array.isRequired
-  },
+    releaseList: PropTypes.array.isRequired,
+  };
 
   render() {
-    let {orgId, projectId} = this.props;
+    const {orgId, projectId} = this.props;
 
     return (
-      <ul className="list-group list-group-lg">
+      <div>
         {this.props.releaseList.map(release => {
           return (
-            <li className="list-group-item" key={release.version}>
-              <div className="row row-center-vertically">
-                <div className="col-sm-4 col-xs-6">
-                  <h2>
+            <PanelItem key={release.version} align="center" px={2} py={1}>
+              <Box flex="1">
+                <div>
+                  <div style={{fontWeight: 'bold', marginBottom: 2}}>
                     <Version
                       orgId={orgId}
                       projectId={projectId}
                       version={release.version}
                     />
-                  </h2>
+                  </div>
                   <LatestDeployOrReleaseTime orgId={orgId} release={release} />
                 </div>
-                <div className="col-sm-4 hidden-xs">
-                  <ReleaseStats release={release} />
-                </div>
-                <div className="col-sm-2 col-xs-3 text-big text-light">
-                  <Count className="release-count" value={release.newGroups} />
-                </div>
-                <div className="col-sm-2 col-xs-3 text-light">
-                  {release.lastEvent
-                    ? <TimeSince date={release.lastEvent} />
-                    : <span>—</span>}
-                </div>
-              </div>
-            </li>
+              </Box>
+              <Box w={4 / 12} pl={2} className="hidden-xs">
+                <ReleaseStats release={release} />
+              </Box>
+              <Box w={2 / 12} pl={2}>
+                <Count className="release-count" value={release.newGroups} />
+              </Box>
+              <Box w={2 / 12} pl={2}>
+                {release.lastEvent ? (
+                  <TimeSince date={release.lastEvent} style={{fontSize: 13}} />
+                ) : (
+                  <span>—</span>
+                )}
+              </Box>
+            </PanelItem>
           );
         })}
-      </ul>
+      </div>
     );
   }
-});
+}
 
 export default ReleaseList;

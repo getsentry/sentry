@@ -7,6 +7,7 @@ sentry.tsdb.base
 """
 from __future__ import absolute_import
 
+import collections
 import six
 
 from collections import OrderedDict
@@ -28,21 +29,13 @@ class TSDBModel(Enum):
 
     # number of events seen specific to grouping
     project = 1
-    project_tag_key = 2
-    project_tag_value = 3
     group = 4
-    group_tag_key = 5
-    group_tag_value = 6
     release = 7
 
     # the number of events sent to the server
     project_total_received = 100
     # the number of events rejected due to rate limiting
     project_total_rejected = 101
-    # the number of operations
-    project_operations = 102
-    # the number of operations with an error state
-    project_operation_errors = 103
     # the number of events blocked due to being blacklisted
     project_total_blacklisted = 104
     # the number of events forwarded to third party processors (data forwarding)
@@ -101,15 +94,59 @@ class TSDBModel(Enum):
     project_total_received_invalid_csp = 608
     # the number of events filtered by invalid origin
     project_total_received_cors = 609
+    # the number of events filtered because their group was discarded
+    project_total_received_discarded = 610
+
+    servicehook_fired = 700
 
 
 class BaseTSDB(Service):
-    __all__ = (
-        'models', 'incr', 'incr_multi', 'get_range', 'get_rollups', 'get_sums', 'rollup',
-        'validate',
-    )
+    __read_methods__ = frozenset([
+        'get_range',
+        'get_sums',
+        'get_distinct_counts_series',
+        'get_distinct_counts_totals',
+        'get_distinct_counts_union',
+        'get_most_frequent',
+        'get_most_frequent_series',
+        'get_frequency_series',
+        'get_frequency_totals',
+    ])
+
+    __write_methods__ = frozenset([
+        'incr',
+        'incr_multi',
+        'merge',
+        'delete',
+        'record',
+        'record_multi',
+        'merge_distinct_counts',
+        'delete_distinct_counts',
+        'record_frequency_multi',
+        'merge_frequencies',
+        'delete_frequencies',
+        'flush',
+    ])
+
+    __all__ = frozenset([
+        'get_earliest_timestamp',
+        'get_optimal_rollup_series',
+        'get_rollups',
+        'make_series',
+        'models',
+        'models_with_environment_support',
+        'rollup',
+    ]) | __write_methods__ | __read_methods__
 
     models = TSDBModel
+
+    models_with_environment_support = frozenset([
+        models.project,
+        models.group,
+        models.release,
+        models.users_affected_by_group,
+        models.users_affected_by_project,
+    ])
 
     def __init__(self, rollups=None, legacy_rollups=None):
         if rollups is None:
@@ -125,6 +162,12 @@ class BaseTSDB(Service):
             legacy_rollups = getattr(settings, 'SENTRY_TSDB_LEGACY_ROLLUPS', {})
 
         self.__legacy_rollups = legacy_rollups
+
+    def validate_arguments(self, models, environment_ids):
+        if any(e is not None for e in environment_ids):
+            unsupported_models = set(models) - self.models_with_environment_support
+            if unsupported_models:
+                raise ValueError('not all models support environment parameters')
 
     def get_rollups(self):
         return self.rollups
@@ -217,6 +260,11 @@ class BaseTSDB(Service):
             )
             rollups[rollup] = map(to_datetime, series)
         return rollups
+
+    def make_series(self, default, start, end=None, rollup=None):
+        f = default if isinstance(default, collections.Callable) else lambda timestamp: default
+        return [(timestamp, f(timestamp))
+                for timestamp in self.get_optimal_rollup_series(start, end, rollup)[1]]
 
     def calculate_expiry(self, rollup, samples, timestamp):
         """
@@ -440,5 +488,11 @@ class BaseTSDB(Service):
                            timestamp=None, environment_ids=None):
         """
         Delete all frequency tables.
+        """
+        raise NotImplementedError
+
+    def flush(self):
+        """
+        Delete all data.
         """
         raise NotImplementedError

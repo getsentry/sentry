@@ -1,142 +1,146 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
-import {Client} from 'app/api';
 import CreateProject from 'app/views/onboarding/createProject';
+import {openCreateTeamModal} from 'app/actionCreators/modal';
+
+jest.mock('app/actionCreators/modal');
 
 describe('CreateProject', function() {
-  beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
-    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
-  });
+  const baseProps = {
+    location: {query: {}},
+    params: {
+      projectId: '',
+      orgId: 'testOrg',
+    },
+  };
 
-  afterEach(function() {
-    this.sandbox.restore();
-  });
-
-  describe('render()', function() {
-    const baseProps = {
-      location: {query: {}},
-      params: {
-        projectId: '',
-        orgId: 'testOrg'
-      }
+  it('should block if you have access to no teams', function() {
+    let props = {
+      ...baseProps,
     };
 
-    it('should block if you have access to no teams', function() {
-      let props = {
-        ...baseProps
-      };
-
-      let wrapper = shallow(<CreateProject {...props} />, {
-        context: {
+    let wrapper = shallow(
+      <CreateProject {...props} />,
+      TestStubs.routerContext([
+        {
           organization: {
             id: '1',
             slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}]
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}],
           },
-          location: {query: {}}
+          location: {query: {}},
         },
-        childContextTypes: {
-          organization: React.PropTypes.object,
-          location: React.PropTypes.object
-        }
-      });
-      expect(wrapper).toMatchSnapshot();
-    });
+      ])
+    );
 
-    it('should fill in project name if its empty when platform is chosen', function() {
-      let props = {
-        ...baseProps
-      };
+    expect(wrapper).toMatchSnapshot();
+  });
 
-      let wrapper = mount(<CreateProject {...props} />, {
-        context: {
+  it('can create a new team if no access to teams', function() {
+    let props = {
+      ...baseProps,
+    };
+
+    let wrapper = mount(
+      <CreateProject {...props} />,
+      TestStubs.routerContext([
+        {
           organization: {
             id: '1',
             slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}]
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: false}],
           },
-          router: TestStubs.router(),
-          location: {query: {}}
         },
-        childContextTypes: {
-          router: React.PropTypes.object,
-          organization: React.PropTypes.object,
-          location: React.PropTypes.object
-        }
-      });
+      ])
+    );
 
-      let node = wrapper.find('PlatformCard').first();
-      node.props().onClick();
-      expect(wrapper.state().projectName).toBe('C#');
+    wrapper.find('CreateTeamBody Button').simulate('click');
+    expect(openCreateTeamModal).toHaveBeenCalled();
+  });
 
-      node = wrapper.find('PlatformCard').last();
-      node.props().onClick();
-      expect(wrapper.state().projectName).toBe('Ruby');
+  it('should fill in project name if its empty when platform is chosen', function() {
+    let props = {
+      ...baseProps,
+    };
 
-      //but not replace it when project name is something else:
-      wrapper.setState({projectName: 'another'});
-
-      node = wrapper.find('PlatformCard').first();
-      node.props().onClick();
-      expect(wrapper.state().projectName).toBe('another');
-
-      expect(wrapper).toMatchSnapshot();
-    });
-
-    it('should fill in platform name if its provided by url', function() {
-      let props = {
-        ...baseProps
-      };
-
-      let wrapper = mount(<CreateProject {...props} />, {
-        context: {
+    let wrapper = mount(
+      <CreateProject {...props} />,
+      TestStubs.routerContext([
+        {
           organization: {
             id: '1',
             slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}]
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
           },
-          router: TestStubs.router(),
-          location: {query: {platform: 'ruby'}}
+          location: {query: {}},
         },
-        childContextTypes: {
-          router: React.PropTypes.object,
-          organization: React.PropTypes.object,
-          location: React.PropTypes.object
-        }
-      });
+      ])
+    );
 
-      expect(wrapper.state().projectName).toBe('Ruby');
+    let node = wrapper.find('PlatformCard').first();
+    node.simulate('click');
+    expect(wrapper.state().projectName).toBe('C#');
 
-      expect(wrapper).toMatchSnapshot();
-    });
+    node = wrapper.find('PlatformCard').last();
+    node.simulate('click');
+    expect(wrapper.state().projectName).toBe('Ruby');
 
-    it('should deal with incorrect platform name if its provided by url', function() {
-      let props = {
-        ...baseProps
-      };
+    //but not replace it when project name is something else:
+    wrapper.setState({projectName: 'another'});
 
-      let wrapper = mount(<CreateProject {...props} />, {
-        context: {
+    node = wrapper.find('PlatformCard').first();
+    node.simulate('click');
+    expect(wrapper.state().projectName).toBe('another');
+
+    expect(wrapper).toMatchSnapshot();
+  });
+
+  it('should fill in platform name if its provided by url', function() {
+    let props = {
+      ...baseProps,
+    };
+
+    let wrapper = mount(
+      <CreateProject {...props} />,
+      TestStubs.routerContext([
+        {
           organization: {
             id: '1',
             slug: 'testOrg',
-            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}]
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
           },
-          router: TestStubs.router(),
-          location: {query: {platform: 'XrubyROOLs'}}
+          location: {query: {platform: 'ruby'}},
         },
-        childContextTypes: {
-          router: React.PropTypes.object,
-          organization: React.PropTypes.object,
-          location: React.PropTypes.object
-        }
-      });
+      ])
+    );
 
-      expect(wrapper.state().projectName).toBe('');
+    expect(wrapper.state().projectName).toBe('Ruby');
 
-      expect(wrapper).toMatchSnapshot();
-    });
+    expect(wrapper).toMatchSnapshot();
+  });
+
+  it('should deal with incorrect platform name if its provided by url', function() {
+    let props = {
+      ...baseProps,
+    };
+
+    let wrapper = mount(
+      <CreateProject {...props} />,
+      TestStubs.routerContext([
+        {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
+          },
+          location: {query: {platform: 'XrubyROOLs'}},
+        },
+      ])
+    );
+
+    expect(wrapper.state().projectName).toBe('');
+
+    expect(wrapper).toMatchSnapshot();
   });
 });

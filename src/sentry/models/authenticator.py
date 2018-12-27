@@ -57,7 +57,7 @@ class ActivationChallengeResult(ActivationResult):
 
 
 class AuthenticatorManager(BaseManager):
-    def all_interfaces_for_user(self, user, return_missing=False):
+    def all_interfaces_for_user(self, user, return_missing=False, ignore_backup=False):
         """Returns a correctly sorted list of all interfaces the user
         has enabled.  If `return_missing` is set to `True` then all
         interfaces are returned even if not enabled.
@@ -71,7 +71,7 @@ class AuthenticatorManager(BaseManager):
             x.interface
             for x in Authenticator.objects.filter(
                 user=user,
-                type__in=[a.type for a in available_authenticators()],
+                type__in=[a.type for a in available_authenticators(ignore_backup=ignore_backup)],
             )
         ]
 
@@ -277,9 +277,9 @@ class RecoveryCodeInterface(AuthenticatorInterface):
     interface_id = 'recovery'
     name = _('Recovery Codes')
     description = _(
-        'Recovery codes can be used to access your account in the '
-        'event you lose access to your device and cannot '
-        'receive two-factor authentication codes.'
+        'Recovery codes are the only way to access your account '
+        'if you lose your device and cannot receive two factor '
+        'authentication codes.'
     )
     enroll_button = _('Activate')
     configure_button = _('View Codes')
@@ -317,6 +317,7 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         if not self.is_enrolled:
             raise RuntimeError('Interface is not enrolled')
         self.config.update(self.generate_new_config())
+        self.authenticator.reset_fields(save=False)
         if save:
             self.authenticator.save()
 
@@ -441,10 +442,19 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
     del _get_phone_number, _set_phone_number
 
     def activate(self, request):
+        phone_number = self.config['phone_number']
+        if len(phone_number) == 10:
+            mask = '(***) ***-**%s' % (phone_number[-2:])
+        else:
+            mask = '%s%s' % ((len(phone_number) - 2) * '*', phone_number[-2:])
+
         if self.send_text(request=request):
             return ActivationMessageResult(
-                _('A confirmation code was sent to your phone. '
-                  'It is valid for %d seconds.') % self.code_ttl
+                _('A confirmation code was sent to %(phone_mask)s. '
+                  'It is valid for %(ttl)d seconds.') % {
+                    'phone_mask': '<strong>%s</strong>' % mask,
+                    'ttl': self.code_ttl,
+                }
             )
         return ActivationMessageResult(
             _(
@@ -527,6 +537,11 @@ class U2fInterface(AuthenticatorInterface):
             return True
         return False
 
+    def get_device_name(self, key):
+        for device in self.config.get('devices') or ():
+            if device['binding']['keyHandle'] == key:
+                return device['name']
+
     def get_registered_devices(self):
         rv = []
         for device in self.config.get('devices') or ():
@@ -595,6 +610,12 @@ class Authenticator(BaseModel):
 
     def mark_used(self, save=True):
         self.last_used_at = timezone.now()
+        if save:
+            self.save()
+
+    def reset_fields(self, save=True):
+        self.created_at = timezone.now()
+        self.last_used_at = None
         if save:
             self.save()
 

@@ -4,12 +4,14 @@ import EventsTableRow from 'app/components/eventsTable/eventsTableRow';
 import events from '../../../mocks/events';
 
 describe('EventsTableRow', function() {
+  let sandbox;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   it('renders', function() {

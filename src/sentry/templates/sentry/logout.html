@@ -1,0 +1,17 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Sign out" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+<h3>{% trans "Sign out" %}</h3>
+<form class="form-stacked" method="post">
+    {% csrf_token %}
+    <p>We&rsquo;re gonna need you to try that again.</p>
+    <div class="m-t-1">
+        <button class="btn btn-primary">{% trans "Sign out" %}</button>
+    </div>
+</form>
+{% endblock %}

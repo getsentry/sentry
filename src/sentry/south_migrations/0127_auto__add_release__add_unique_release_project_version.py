@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
                     self.gf('sentry.db.models.fields.FlexibleForeignKey')(to=orm['sentry.Project'])
                 ), ('version', self.gf('django.db.models.fields.CharField')(max_length=64)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

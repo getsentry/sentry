@@ -6,24 +6,15 @@ from collections import OrderedDict
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
+from sentry.utils.canonical import get_canonical_name
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
 
 
-def iter_interfaces():
-    rv = {}
-
-    for name, import_path in six.iteritems(settings.SENTRY_INTERFACES):
-        rv.setdefault(import_path, []).append(name)
-
-    for import_path, keys in six.iteritems(rv):
-        iface = import_string(import_path)
-        yield iface, keys
-
-
 def get_interface(name):
     try:
+        name = get_canonical_name(name)
         import_path = settings.SENTRY_INTERFACES[name]
     except KeyError:
         raise ValueError('Invalid interface name: %s' % (name, ))
@@ -76,7 +67,7 @@ class Interface(object):
         self._data = data or {}
 
     def __eq__(self, other):
-        if type(self) != type(other):
+        if not isinstance(self, type(other)):
             return False
         return self._data == other._data
 
@@ -99,10 +90,13 @@ class Interface(object):
 
     @classmethod
     def to_python(cls, data):
-        return cls(data)
+        return cls(**data)
 
     def get_api_context(self, is_public=False):
         return self.to_json()
+
+    def get_api_meta(self, meta, is_public=False):
+        return meta
 
     def to_json(self):
         # eliminate empty values for serialization to compress the keyspace
@@ -118,10 +112,7 @@ class Interface(object):
     def get_alias(self):
         return self.get_slug()
 
-    def get_hash(self, is_processed_data=True):
-        # is_processed_data will be false when used for
-        # hashing to check whether an event should be
-        # discarded or not
+    def get_hash(self):
         return []
 
     def compute_hashes(self, platform):

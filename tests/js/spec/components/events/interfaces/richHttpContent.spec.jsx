@@ -4,76 +4,80 @@ import {mount, shallow} from 'enzyme';
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
 
 describe('RichHttpContent', function() {
+  let sandbox;
+  let data;
+  let elem;
+
   beforeEach(function() {
-    this.data = {
+    data = {
       query: '',
       data: '',
       headers: [],
       cookies: [],
-      env: {}
+      env: {},
     };
-    this.elem = shallow(<RichHttpContent data={this.data} />).instance();
-    this.sandbox = sinon.sandbox.create();
+    elem = shallow(<RichHttpContent data={data} />).instance();
+    sandbox = sinon.sandbox.create();
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('getBodySection', function() {
     it('should return plain-text when given unrecognized inferred Content-Type', function() {
-      let out = this.elem.getBodySection({
+      let out = elem.getBodySection({
         inferredContentType: null, // no inferred content type
-        data: 'helloworld'
+        data: 'helloworld',
       });
 
       expect(out.type).toEqual('pre');
     });
 
     it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', function() {
-      let out = this.elem.getBodySection({
+      let out = elem.getBodySection({
         inferredContentType: 'application/x-www-form-urlencoded',
-        data: {foo: ['bar'], bar: ['baz']}
+        data: {foo: ['bar'], bar: ['baz']},
       });
 
-      // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
+      // NOTE: displayName is set manually in this class
       expect(out.type.displayName).toEqual('KeyValueList');
       expect(out.props.data).toEqual([['bar', 'baz'], ['foo', 'bar']]);
     });
 
     it('should return a ContextData element when inferred Content-Type is application/json', function() {
-      let out = this.elem.getBodySection({
+      let out = elem.getBodySection({
         inferredContentType: 'application/json',
-        data: {foo: 'bar'}
+        data: {foo: 'bar'},
       });
 
-      // NOTE: ContextData is stubbed in tests; instead returns <div className="ContextData"/>
+      // NOTE: displayName is set manually in this class
       expect(out.type.displayName).toEqual('ContextData');
       expect(out.props.data).toEqual({
-        foo: 'bar'
+        foo: 'bar',
       });
     });
 
     it('should not blow up in a malformed uri', function() {
       // > decodeURIComponent('a%AFc')
       // URIError: URI malformed
-      let data = {
+      data = {
         query: 'a%AFc',
         data: '',
         headers: [],
         cookies: [],
-        env: {}
+        env: {},
       };
       expect(() => shallow(<RichHttpContent data={data} />)).not.toThrow(URIError);
     });
 
     it("should not cause an invariant violation if data.data isn't a string", function() {
-      let data = {
+      data = {
         query: '',
         data: [{foo: 'bar', baz: 1}],
         headers: [],
         cookies: [],
-        env: {}
+        env: {},
       };
 
       expect(() => mount(<RichHttpContent data={data} />)).not.toThrow();

@@ -12,12 +12,13 @@ class GroupDeletionTask(ModelDeletionTask):
         model_list = (
             # prioritize GroupHash
             models.GroupHash,
-            models.EventTag,
             models.EventMapping,
             models.GroupAssignee,
             models.GroupCommitResolution,
+            models.GroupLink,
             models.GroupBookmark,
             models.GroupMeta,
+            models.GroupEnvironment,
             models.GroupRelease,
             models.GroupRedirect,
             models.GroupResolution,
@@ -25,14 +26,14 @@ class GroupDeletionTask(ModelDeletionTask):
             models.GroupSeen,
             models.GroupShare,
             models.GroupSnooze,
-            models.GroupTagValue,
-            models.GroupTagKey,
             models.GroupEmailThread,
             models.GroupSubscription,
             models.UserReport,
+            models.EventAttachment,
             # Event is last as its the most time consuming
             models.Event,
         )
+
         relations.extend([ModelRelation(m, {'group_id': instance.id}) for m in model_list])
 
         return relations
@@ -46,8 +47,12 @@ class GroupDeletionTask(ModelDeletionTask):
         return super(GroupDeletionTask, self).delete_instance(instance)
 
     def mark_deletion_in_progress(self, instance_list):
-        from sentry.models import GroupStatus
+        from sentry.models import Group, GroupStatus
 
-        for instance in instance_list:
-            if instance.status != GroupStatus.DELETION_IN_PROGRESS:
-                instance.update(status=GroupStatus.DELETION_IN_PROGRESS)
+        Group.objects.filter(
+            id__in=[i.id for i in instance_list],
+        ).exclude(
+            status=GroupStatus.DELETION_IN_PROGRESS,
+        ).update(
+            status=GroupStatus.DELETION_IN_PROGRESS,
+        )

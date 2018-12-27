@@ -2,27 +2,30 @@
 import PropTypes from 'prop-types';
 
 import React from 'react';
+import createReactClass from 'create-react-class';
 import _ from 'lodash';
 
-import ApiMixin from '../mixins/apiMixin';
-import BarChart from '../components/barChart';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
+import ApiMixin from 'app/mixins/apiMixin';
+import BarChart from 'app/components/barChart';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
 
-export default React.createClass({
+export default createReactClass({
+  displayName: 'internalStatChart',
+
   propTypes: {
     since: PropTypes.number.isRequired,
     resolution: PropTypes.string.isRequired,
     stat: PropTypes.string.isRequired,
     label: PropTypes.string,
-    height: PropTypes.number
+    height: PropTypes.number,
   },
 
   mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
-      height: 150
+      height: 150,
     };
   },
 
@@ -30,7 +33,7 @@ export default React.createClass({
     return {
       error: false,
       loading: true,
-      data: null
+      data: null,
     };
   },
 
@@ -42,7 +45,7 @@ export default React.createClass({
     if (!_.isEqual(nextProps, this.props)) {
       this.setState(
         {
-          loading: true
+          loading: true,
         },
         this.fetchData
       );
@@ -59,20 +62,20 @@ export default React.createClass({
       data: {
         since: this.props.since,
         resolution: this.props.resolution,
-        key: this.props.stat
+        key: this.props.stat,
       },
       success: data => {
         this.setState({
           data,
           loading: false,
-          error: false
+          error: false,
         });
       },
       error: data => {
         this.setState({
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -94,5 +97,5 @@ export default React.createClass({
         height={this.props.height}
       />
     );
-  }
+  },
 });

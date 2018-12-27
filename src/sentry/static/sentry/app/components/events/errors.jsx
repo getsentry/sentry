@@ -1,40 +1,46 @@
 import React from 'react';
 import _ from 'lodash';
 
-import EventDataSection from './eventDataSection';
-import EventErrorItem from './errorItem';
-import SentryTypes from '../../proptypes';
-import {t, tn} from '../../locale';
+import EventDataSection from 'app/components/events/eventDataSection';
+import EventErrorItem from 'app/components/events/errorItem';
+import SentryTypes from 'app/sentryTypes';
+import {t, tn} from 'app/locale';
 
-const EventErrors = React.createClass({
-  propTypes: {
+const MAX_ERRORS = 100;
+
+class EventErrors extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired
-  },
+    event: SentryTypes.Event.isRequired,
+  };
 
-  getInitialState() {
-    return {
-      isOpen: false
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      isOpen: false,
     };
-  },
+  }
 
   shouldComponentUpdate(nextProps, nextState) {
     if (this.state.isOpen != nextState.isOpen) {
       return true;
     }
     return this.props.event.id !== nextProps.event.id;
-  },
+  }
 
-  toggle() {
+  toggle = () => {
     this.setState({isOpen: !this.state.isOpen});
-  },
+  };
 
-  uniqueErrors(errors) {
-    return _.uniqBy(errors, _.isEqual);
-  },
+  uniqueErrors = errors => {
+    return _.uniqWith(errors, _.isEqual);
+  };
 
   render() {
-    let errors = this.uniqueErrors(this.props.event.errors);
+    let eventErrors = this.props.event.errors;
+    // XXX: uniqueErrors is not performant with large datasets
+    let errors =
+      eventErrors.length > MAX_ERRORS ? eventErrors : this.uniqueErrors(eventErrors);
     let numErrors = errors.length;
     let isOpen = this.state.isOpen;
     return (
@@ -42,15 +48,16 @@ const EventErrors = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type="errors"
-        className="errors">
+        className="errors"
+      >
         <span className="icon icon-alert" />
         <p>
           <a className="pull-right" onClick={this.toggle}>
             {isOpen ? t('Hide') : t('Show')}
           </a>
           {tn(
-            'There was %d error encountered while processing this event',
-            'There were %d errors encountered while processing this event',
+            'There was %s error encountered while processing this event',
+            'There were %s errors encountered while processing this event',
             numErrors
           )}
         </p>
@@ -62,6 +69,6 @@ const EventErrors = React.createClass({
       </EventDataSection>
     );
   }
-});
+}
 
 export default EventErrors;

@@ -1,0 +1,17 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_assets %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Sentry - Setup Wizard" %}{% endblock %}
+
+{% block auth_main %}
+  <div id="setup-wizard-container"></div>
+  <script>
+    ReactDOM.render(React.createElement(SentryApp.SetupWizard, {
+      hash: {{ hash|to_json|safe }}
+    }), document.getElementById('setup-wizard-container'));
+  </script>
+{% endblock %}

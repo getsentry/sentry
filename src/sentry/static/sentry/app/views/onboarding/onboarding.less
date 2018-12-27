@@ -1,9 +1,10 @@
 @onboarding-sidebar-width: 300px;
 
 .onboarding-container {
-  margin-left: @onboarding-sidebar-width - @sidebar-width;
+  margin-left: @onboarding-sidebar-width;
 
   max-width: 800px + @onboarding-sidebar-width;
+  margin-top: 30px;
 
   @media (max-width: @screen-sm-max) {
     margin-left: 0;
@@ -16,8 +17,8 @@
   // Awaiting event
 
   .awaiting-event {
-    background: rgba(255, 255, 255, .90);
-    box-shadow: 0 -1px 0 rgba(0, 0, 0, .1);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
     padding: 20px 0;
     position: sticky;
     bottom: 0;
@@ -57,10 +58,10 @@
       top: 21px;
       left: 26px;
 
-      -webkit-animation: blink-eye .6s infinite;
-      -moz-animation: blink-eye .6s infinite;
-      -o-animation: blink-eye .6s infinite;
-      animation: blink-eye .6s infinite;
+      -webkit-animation: blink-eye 0.6s infinite;
+      -moz-animation: blink-eye 0.6s infinite;
+      -o-animation: blink-eye 0.6s infinite;
+      animation: blink-eye 0.6s infinite;
     }
   }
 
@@ -100,7 +101,7 @@
         padding-left: 26px;
         border-color: @50;
         line-height: 1.2;
-        text-shadow: 0 2px 5px rgba(0, 0, 0, .2);
+        text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 
         &.active {
           color: white;
@@ -153,31 +154,27 @@
       }
     }
   }
-
-  .install .install-content {
-    padding-left: 15px; // Fix .row negative margin
-  }
 }
 
-.create-project-form{
+.create-project-form {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  flex-wrap:wrap;
+  flex-wrap: wrap;
   padding: 20px 0;
-  box-shadow: 0 -1px 0 rgba(0, 0, 0, .1);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1);
 
   position: sticky;
   bottom: 0;
   background: white;
 
-  p{
+  p {
     margin-top: 20px;
     color: @50;
   }
 }
 
-.new-project-name{
+.new-project-name {
   display: flex;
   flex-direction: column;
   background: #fff;
@@ -189,7 +186,7 @@
   }
 
   h4 {
-     display: inline-block;
+    display: inline-block;
   }
 
   .project-name-wrapper {
@@ -227,15 +224,7 @@
       }
     }
   }
-
 }
-.new-project-team{
-  .project-team-wrapper {
-    position: relative;
-    font-weight: 600;
-  }
-}
-
 .platformicon-stack {
   background-color: white;
   position: absolute;

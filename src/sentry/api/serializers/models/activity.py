@@ -4,12 +4,15 @@ import functools
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Activity, Commit, Group
+from sentry.models import Activity, Commit, Group, PullRequest
 from sentry.utils.functional import apply_values
 
 
 @register(Activity)
 class ActivitySerializer(Serializer):
+    def __init__(self, environment_func=None):
+        self.environment_func = environment_func
+
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations
         users = {d['id']: d for d in serialize(set(i.user for i in item_list if i.user_id), user)}
@@ -26,6 +29,22 @@ class ActivitySerializer(Serializer):
             }
         else:
             commits = {}
+
+        pull_request_ids = {
+            i.data['pull_request'] for i in item_list if i.type == Activity.SET_RESOLVED_IN_PULL_REQUEST
+        }
+        if pull_request_ids:
+            pull_request_list = list(PullRequest.objects.filter(id__in=pull_request_ids))
+            pull_requests_by_id = {
+                c.id: d for c, d in zip(
+                    pull_request_list, serialize(
+                        pull_request_list, user))}
+            pull_requests = {
+                i: pull_requests_by_id.get(i.data['pull_request']) for i in item_list
+                if i.type == Activity.SET_RESOLVED_IN_PULL_REQUEST
+            }
+        else:
+            pull_requests = {}
 
         groups = apply_values(
             functools.partial(serialize, user=user),
@@ -48,8 +67,8 @@ class ActivitySerializer(Serializer):
                 'destination':
                 groups.get(item.data['destination_id'])
                 if item.type == Activity.UNMERGE_SOURCE else None,
-                'commit':
-                commits.get(item),
+                'commit': commits.get(item),
+                'pull_request': pull_requests.get(item),
             } for item in item_list
         }
 
@@ -57,6 +76,10 @@ class ActivitySerializer(Serializer):
         if obj.type == Activity.SET_RESOLVED_IN_COMMIT:
             data = {
                 'commit': attrs['commit'],
+            }
+        elif obj.type == Activity.SET_RESOLVED_IN_PULL_REQUEST:
+            data = {
+                'pullRequest': attrs['pull_request'],
             }
         elif obj.type == Activity.UNMERGE_DESTINATION:
             data = {
@@ -82,6 +105,8 @@ class ActivitySerializer(Serializer):
 
 class OrganizationActivitySerializer(ActivitySerializer):
     def get_attrs(self, item_list, user):
+        from sentry.api.serializers import GroupSerializer
+
         # TODO(dcramer); assert on relations
         attrs = super(OrganizationActivitySerializer, self).get_attrs(
             item_list,
@@ -89,7 +114,11 @@ class OrganizationActivitySerializer(ActivitySerializer):
         )
 
         groups = {
-            d['id']: d for d in serialize(set(i.group for i in item_list if i.group_id), user)
+            d['id']: d for d in serialize(
+                set([i.group for i in item_list if i.group_id]),
+                user,
+                GroupSerializer(environment_func=self.environment_func)
+            )
         }
 
         projects = {d['id']: d for d in serialize(set(i.project for i in item_list), user)}

@@ -2,7 +2,7 @@ import ReactDOM from 'react-dom';
 import $ from 'jquery';
 import 'bootstrap/js/tooltip';
 
-export default function(options) {
+export default function tooltipMixin(options) {
   options = options || {};
   return {
     componentDidMount() {
@@ -27,6 +27,6 @@ export default function(options) {
         .tooltip('destroy') // destroy tooltips on parent ...
         .find(options.selector)
         .tooltip('destroy'); // ... and descendents
-    }
+    },
   };
 }

@@ -3,14 +3,13 @@
 exports[`NoteInput renders 1`] = `
 <form
   className="activity-field"
+  noValidate={true}
   onSubmit={[Function]}
 >
   <div
     className="activity-notes"
   >
-    <ul
-      className="nav nav-tabs"
-    >
+    <NavTabs>
       <li
         className="active"
       >
@@ -41,20 +40,21 @@ exports[`NoteInput renders 1`] = `
           Markdown supported
         </span>
       </li>
-    </ul>
+    </NavTabs>
     <withDefaultStyle(MentionsInput)
       autoFocus={true}
       displayTransform={[Function]}
-      markup="**__display__**"
+      markup="**[sentry.strip:__type__]__display__**"
       onChange={[Function]}
       onKeyDown={[Function]}
-      placeholder="Add details or updates to this event"
+      placeholder="Add details or updates to this event. 
+Tag users with @, or teams with #"
       required={true}
       style={
         Object {
           "&multiLine": Object {
             "control": Object {
-              "fontFamily": "Lato, Avenir Next, Helvetica Neue, sans-serif",
+              "fontFamily": "Rubik, Avenir Next, Helvetica Neue, sans-serif",
             },
             "highlighter": Object {
               "padding": 20,
@@ -117,6 +117,17 @@ exports[`NoteInput renders 1`] = `
         onRemove={[Function]}
         renderSuggestion={null}
         trigger="@"
+        type="member"
+      />
+      <withDefaultStyle()
+        appendSpaceOnAdd={true}
+        data={Array []}
+        isLoading={false}
+        onAdd={[Function]}
+        onRemove={[Function]}
+        renderSuggestion={null}
+        trigger="#"
+        type="team"
       />
     </withDefaultStyle(MentionsInput)>
     <div

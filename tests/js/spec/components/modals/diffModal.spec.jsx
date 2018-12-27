@@ -3,16 +3,18 @@ import {shallow} from 'enzyme';
 import DiffModal from 'app/components/modals/diffModal';
 
 describe('DiffModal', function() {
+  let sandbox;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   it('renders', function() {
-    let wrapper = shallow(<DiffModal />);
+    let wrapper = shallow(<DiffModal Body={({children}) => <div>{children}</div>} />);
     expect(wrapper).toMatchSnapshot();
   });
 });

@@ -17,7 +17,7 @@ from django.test.utils import override_settings
 from django.utils import timezone
 from exam import fixture
 from gzip import GzipFile
-from raven import Client
+from sentry_sdk import Hub, Client
 from six import StringIO
 
 from sentry.models import (Group, Event)
@@ -93,11 +93,6 @@ def load_fixture(name):
         return fp.read()
 
 
-class AssertHandler(logging.Handler):
-    def emit(self, entry):
-        raise AssertionError(entry.message)
-
-
 class RavenIntegrationTest(TransactionTestCase):
     """
     This mocks the test server and specifically tests behavior that would
@@ -112,43 +107,71 @@ class RavenIntegrationTest(TransactionTestCase):
         self.configure_sentry_errors()
 
     def configure_sentry_errors(self):
+        # delay raising of assertion errors to make sure they do not get
+        # swallowed again
+        failures = []
+
+        class AssertHandler(logging.Handler):
+            def emit(self, entry):
+                failures.append(entry)
+
         assert_handler = AssertHandler()
-        sentry_errors = logging.getLogger('sentry.errors')
-        sentry_errors.addHandler(assert_handler)
-        sentry_errors.setLevel(logging.DEBUG)
 
-        def remove_handler():
-            sentry_errors.handlers.pop(sentry_errors.handlers.index(assert_handler))
+        for name in 'sentry.errors', 'sentry_sdk.errors':
+            sentry_errors = logging.getLogger(name)
+            sentry_errors.addHandler(assert_handler)
+            sentry_errors.setLevel(logging.DEBUG)
 
-        self.addCleanup(remove_handler)
+            @self.addCleanup
+            def remove_handler(sentry_errors=sentry_errors):
+                sentry_errors.handlers.pop(sentry_errors.handlers.index(assert_handler))
 
-    def sendRemote(self, url, data, headers={}):
-        content_type = headers.pop('Content-Type', None)
-        headers = dict(
-            ('HTTP_' + k.replace('-', '_').upper(), v) for k, v in six.iteritems(headers)
-        )
-        if isinstance(data, six.text_type):
-            data = data.encode('utf-8')
-        resp = self.client.post(
-            reverse('sentry-api-store', args=[self.pk.project_id]),
-            data=data,
-            content_type=content_type,
-            **headers
-        )
-        assert resp.status_code == 200, resp.content
+        @self.addCleanup
+        def reraise_failures():
+            for entry in failures:
+                raise AssertionError(entry.message)
 
-    @mock.patch('raven.base.Client.send_remote')
-    def test_basic(self, send_remote):
-        send_remote.side_effect = self.sendRemote
-        client = Client(
-            dsn='http://%s:%s@localhost:8000/%s' %
-            (self.pk.public_key, self.pk.secret_key, self.pk.project_id)
-        )
+    def send_event(self, method, url, body, headers):
+        from sentry.app import buffer
 
         with self.tasks():
-            client.captureMessage(message='foo')
+            content_type = headers.pop('Content-Type', None)
+            headers = {'HTTP_' + k.replace('-', '_').upper(): v for k, v in six.iteritems(headers)}
+            resp = self.client.post(
+                reverse(
+                    'sentry-api-store',
+                    args=[self.pk.project_id],
+                ),
+                data=body,
+                content_type=content_type,
+                **headers
+            )
+            assert resp.status_code == 200
 
-        assert send_remote.call_count is 1
+            buffer.process_pending()
+
+    @mock.patch('urllib3.PoolManager.request')
+    def test_basic(self, request):
+        requests = []
+
+        def queue_event(method, url, body, headers):
+            requests.append((method, url, body, headers))
+
+        request.side_effect = queue_event
+
+        hub = Hub(Client(
+            'http://%s:%s@localhost:8000/%s' %
+            (self.pk.public_key, self.pk.secret_key, self.pk.project_id),
+            default_integrations=False
+        ))
+
+        hub.capture_message('foo')
+        hub.client.close()
+
+        for _request in requests:
+            self.send_event(*_request)
+
+        assert request.call_count is 1
         assert Group.objects.count() == 1
         group = Group.objects.get()
         assert group.event_set.count() == 1
@@ -173,10 +196,16 @@ class SentryRemoteTest(TestCase):
 
         assert instance.message == 'hello'
 
-        assert tagstore.get_tag_key(self.project.id, 'foo') is not None
-        assert tagstore.get_tag_value(self.project.id, 'foo', 'bar') is not None
-        assert tagstore.get_group_tag_key(instance.group_id, 'foo') is not None
-        assert tagstore.get_group_tag_value(instance.group_id, 'foo', 'bar') is not None
+        assert tagstore.get_tag_key(self.project.id, None, 'foo') is not None
+        assert tagstore.get_tag_value(self.project.id, None, 'foo', 'bar') is not None
+        assert tagstore.get_group_tag_key(
+            self.project.id, instance.group_id, None, 'foo') is not None
+        assert tagstore.get_group_tag_value(
+            instance.project_id,
+            instance.group_id,
+            None,
+            'foo',
+            'bar') is not None
 
     def test_timestamp(self):
         timestamp = timezone.now().replace(
@@ -221,19 +250,12 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get()
         assert instance.message == 'hello'
 
-    @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
-    def test_get_without_referer(self):
-        self.project.update_option('sentry:origins', '')
-        kwargs = {'message': 'hello'}
-        resp = self._getWithReferer(kwargs, referer=None, protocol='4')
-        assert resp.status_code == 403, (resp.status_code, resp.get('X-Sentry-Error'))
-
     @override_settings(SENTRY_ALLOW_ORIGIN='*')
     def test_get_without_referer_allowed(self):
         self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs, referer=None, protocol='4')
-        assert resp.status_code == 200, (resp.status_code, resp.get('X-Sentry-Error'))
+        assert resp.status_code == 200, resp.content
 
     @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
     def test_correct_data_with_post_referer(self):
@@ -248,14 +270,25 @@ class SentryRemoteTest(TestCase):
         self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}
         resp = self._postWithReferer(kwargs, referer=None, protocol='4')
-        assert resp.status_code == 403, (resp.status_code, resp.get('X-Sentry-Error'))
+        assert resp.status_code == 200, resp.content
 
     @override_settings(SENTRY_ALLOW_ORIGIN='*')
     def test_post_without_referer_allowed(self):
         self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}
         resp = self._postWithReferer(kwargs, referer=None, protocol='4')
-        assert resp.status_code == 403, (resp.status_code, resp.get('X-Sentry-Error'))
+        assert resp.status_code == 200, resp.content
+
+    @override_settings(SENTRY_ALLOW_ORIGIN='google.com')
+    def test_post_with_invalid_origin(self):
+        self.project.update_option('sentry:origins', 'sentry.io')
+        kwargs = {'message': 'hello'}
+        resp = self._postWithReferer(
+            kwargs,
+            referer='https://getsentry.net',
+            protocol='4'
+        )
+        assert resp.status_code == 403, resp.content
 
     def test_signature(self):
         kwargs = {'message': 'hello'}
@@ -473,11 +506,11 @@ class CspReportTest(TestCase):
         assert output['message'] == e.data['sentry.interfaces.Message']['message']
         for key, value in six.iteritems(output['tags']):
             assert e.get_tag(key) == value
-        self.assertDictContainsSubset(output['data'], e.data.data, e.data.data)
+        self.assertDictContainsSubset(output['data'], e.data, e.data)
 
     def assertReportRejected(self, input):
         resp = self._postCspWithHeader(input)
-        assert resp.status_code == 403, resp.content
+        assert resp.status_code in (400, 403), resp.content
 
     def test_chrome_blocked_asset(self):
         self.assertReportCreated(*get_fixtures('chrome_blocked_asset'))

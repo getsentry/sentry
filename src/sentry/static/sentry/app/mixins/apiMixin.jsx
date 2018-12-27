@@ -1,4 +1,4 @@
-import {Client} from '../api';
+import {Client} from 'app/api';
 
 let ApiMixin = {
   componentWillMount() {
@@ -7,7 +7,7 @@ let ApiMixin = {
 
   componentWillUnmount() {
     this.api.clear();
-  }
+  },
 };
 
 export default ApiMixin;

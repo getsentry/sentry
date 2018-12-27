@@ -1,4 +1,3 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 
 function isOverflowing(el) {
@@ -6,50 +5,44 @@ function isOverflowing(el) {
   return el.offsetHeight < el.scrollHeight - 1;
 }
 
-const SummaryLine = React.createClass({
-  propTypes: {
-    crumb: PropTypes.object.isRequired
-  },
-
-  getInitialState() {
-    return {
-      expanded: false,
-      hasOverflow: false
-    };
-  },
+class SummaryLine extends React.Component {
+  state = {
+    expanded: false,
+    hasOverflow: false,
+  };
 
   componentDidMount() {
     this.domElement = null;
     window.addEventListener('resize', this.respondToLayoutChanges);
-  },
+  }
 
   componentWillUnmount() {
     this.domElement = null;
     window.addEventListener('resize', this.respondToLayoutChanges);
-  },
+  }
 
-  makeSummariesGreatAgain(ref) {
+  makeSummariesGreatAgain = ref => {
     this.domElement = ref;
     this.respondToLayoutChanges();
-  },
+  };
 
-  respondToLayoutChanges() {
+  respondToLayoutChanges = () => {
     if (!this.domElement) {
       return;
     }
     let hasOverflow = isOverflowing(this.domElement);
     if (hasOverflow !== this.state.hasOverflow) {
       this.setState({
-        hasOverflow
+        hasOverflow,
       });
     }
-  },
+  };
 
-  onToggle() {
+  onToggle = () => {
     this.setState({
-      expanded: !this.state.expanded
+      expanded: !this.state.expanded,
     });
-  },
+  };
 
   render() {
     let className = 'summary';
@@ -63,11 +56,12 @@ const SummaryLine = React.createClass({
       <div
         className={className}
         onClick={this.onToggle}
-        ref={this.makeSummariesGreatAgain}>
+        ref={this.makeSummariesGreatAgain}
+      >
         {this.props.children}
       </div>
     );
   }
-});
+}
 
 export default SummaryLine;

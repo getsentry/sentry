@@ -1,16 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from '../eventDataSection';
-import SentryTypes from '../../../proptypes';
-import {isStacktraceNewestFirst} from './stacktrace';
-import {defined} from '../../../utils';
-import DropdownLink from '../../dropdownLink';
-import MenuItem from '../../menuItem';
-import {trimPackage} from './frame';
-import CrashHeader from './crashHeader';
-import CrashContent from './crashContent';
-import Pills from '../../pills';
-import Pill from '../../pill';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import SentryTypes from 'app/sentryTypes';
+import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
+import {defined} from 'app/utils';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
+import {trimPackage} from 'app/components/events/interfaces/frame';
+import CrashHeader from 'app/components/events/interfaces/crashHeader';
+import CrashContent from 'app/components/events/interfaces/crashContent';
+import Pills from 'app/components/pills';
+import Pill from 'app/components/pill';
 
 function trimFilename(fn) {
   let pieces = fn.split(/\//g);
@@ -83,8 +83,8 @@ function getThreadTitle(thread, event, simplified) {
           {frame.filename
             ? trimFilename(frame.filename)
             : frame.package
-                ? trimPackage(frame.package)
-                : frame.module ? frame.module : '<unknown>'}
+              ? trimPackage(frame.package)
+              : frame.module ? frame.module : '<unknown>'}
         </em>
       );
     }
@@ -122,8 +122,8 @@ function findBestThread(threads) {
   return threads[0];
 }
 
-const Thread = React.createClass({
-  propTypes: {
+class Thread extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     data: PropTypes.object.isRequired,
@@ -131,10 +131,10 @@ const Thread = React.createClass({
     stackType: PropTypes.string,
     newestFirst: PropTypes.bool,
     exception: PropTypes.object,
-    stacktrace: PropTypes.object
-  },
+    stacktrace: PropTypes.object,
+  };
 
-  renderMissingStacktrace() {
+  renderMissingStacktrace = () => {
     return (
       <div className="traceback missing-traceback">
         <ul>
@@ -148,12 +148,12 @@ const Thread = React.createClass({
         </ul>
       </div>
     );
-  },
+  };
 
-  hasMissingStacktrace() {
+  hasMissingStacktrace = () => {
     const {exception, stacktrace} = this.props;
     return !(exception || stacktrace);
-  },
+  };
 
   render() {
     const {
@@ -164,7 +164,7 @@ const Thread = React.createClass({
       stackType,
       newestFirst,
       exception,
-      stacktrace
+      stacktrace,
     } = this.props;
     return (
       <div className="thread">
@@ -176,60 +176,63 @@ const Thread = React.createClass({
             {data.crashed ? 'yes' : 'no'}
           </Pill>
         </Pills>
-        {this.hasMissingStacktrace()
-          ? this.renderMissingStacktrace()
-          : <CrashContent
-              group={group}
-              event={event}
-              stackType={stackType}
-              stackView={stackView}
-              newestFirst={newestFirst}
-              exception={exception}
-              stacktrace={stacktrace}
-            />}
+        {this.hasMissingStacktrace() ? (
+          this.renderMissingStacktrace()
+        ) : (
+          <CrashContent
+            group={group}
+            event={event}
+            stackType={stackType}
+            stackView={stackView}
+            newestFirst={newestFirst}
+            exception={exception}
+            stacktrace={stacktrace}
+          />
+        )}
       </div>
     );
   }
-});
+}
 
-const ThreadsInterface = React.createClass({
-  propTypes: {
+class ThreadsInterface extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    platform: PropTypes.string
-  },
+  };
 
-  getInitialState() {
-    let thread = findBestThread(this.props.data.values);
-    return {
+  constructor(props) {
+    super(props);
+    let thread = findBestThread(props.data.values);
+
+    this.state = {
       activeThread: thread,
-      stackView: getIntendedStackView(thread, this.props.event),
+      stackView: getIntendedStackView(thread, props.event),
       stackType: 'original',
-      newestFirst: isStacktraceNewestFirst()
+      newestFirst: isStacktraceNewestFirst(),
     };
-  },
+  }
 
-  toggleStack(value) {
+  toggleStack = value => {
     this.setState({
-      stackView: value
+      stackView: value,
     });
-  },
+  };
 
-  getStacktrace() {
+  getStacktrace = () => {
     return findThreadStacktrace(
       this.state.activeThread,
       this.props.event,
       this.state.stackType !== 'original'
     );
-  },
+  };
 
-  getException() {
+  getException = () => {
     return findThreadException(this.state.activeThread, this.props.event);
-  },
+  };
 
-  onSelectNewThread(thread) {
+  onSelectNewThread = thread => {
     let newStackView = this.state.stackView;
     if (this.state.stackView !== 'raw') {
       newStackView = getIntendedStackView(thread, this.props.event);
@@ -237,9 +240,9 @@ const ThreadsInterface = React.createClass({
     this.setState({
       activeThread: thread,
       stackView: newStackView,
-      stackType: 'original'
+      stackType: 'original',
     });
-  },
+  };
 
   render() {
     let group = this.props.group;
@@ -254,7 +257,8 @@ const ThreadsInterface = React.createClass({
           btnGroup={true}
           caret={true}
           className="btn btn-default btn-sm"
-          title={getThreadTitle(activeThread, this.props.event, true)}>
+          title={getThreadTitle(activeThread, this.props.event, true)}
+        >
           {this.props.data.values.map((thread, idx) => {
             return (
               <MenuItem key={idx} noAnchor={true}>
@@ -292,7 +296,8 @@ const ThreadsInterface = React.createClass({
         event={evt}
         type={this.props.type}
         title={title}
-        wrapTitle={false}>
+        wrapTitle={false}
+      >
         <Thread
           group={group}
           data={activeThread}
@@ -306,6 +311,6 @@ const ThreadsInterface = React.createClass({
       </GroupEventDataSection>
     );
   }
-});
+}
 
 export default ThreadsInterface;

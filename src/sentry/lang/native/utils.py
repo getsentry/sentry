@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import re
 import six
 import logging
 
@@ -10,14 +11,18 @@ from sentry.interfaces.contexts import DeviceContextType
 
 logger = logging.getLogger(__name__)
 
-KNOWN_DSYM_TYPES = {
-    'iOS': 'macho',
-    'tvOS': 'macho',
-    'macOS': 'macho',
-    'watchOS': 'macho',
-}
+# Regular expression to parse OS versions from a minidump OS string
+VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)\s+(.*)')
+
+# Regular expression to guess whether we're dealing with Windows or Unix paths
+WINDOWS_PATH_RE = re.compile(r'^[a-z]:\\', re.IGNORECASE)
 
 AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
+
+
+def image_name(pkg):
+    split = '\\' if WINDOWS_PATH_RE.match(pkg) else '/'
+    return pkg.rsplit(split, 1)[-1]
 
 
 def find_all_stacktraces(data):
@@ -67,7 +72,8 @@ def get_sdk_from_os(data):
     if 'name' not in data or 'version' not in data:
         return
     try:
-        system_version = tuple(int(x) for x in (data['version'] + '.0' * 3).split('.')[:3])
+        version = six.text_type(data['version']).split('-', 1)[0] + '.0' * 3
+        system_version = tuple(int(x) for x in version.split('.')[:3])
     except ValueError:
         return
 
@@ -106,23 +112,6 @@ def cpu_name_from_data(data):
             break
 
     return unique_cpu_name
-
-
-def version_build_from_data(data):
-    """Returns release and build string from the given data if it exists."""
-    app_context = data.get('contexts', {}).get('app', {})
-    if app_context is not None:
-        if (app_context.get('app_identifier', None) and
-                app_context.get('app_version', None) and
-                app_context.get('app_build', None) and
-                app_context.get('app_name', None)):
-            return AppInfo(
-                app_context.get('app_identifier', None),
-                app_context.get('app_version', None),
-                app_context.get('app_build', None),
-                app_context.get('app_name', None),
-            )
-    return None
 
 
 def rebase_addr(instr_addr, obj):

@@ -1,0 +1,289 @@
+5,Ugyldig prosedyrekall eller argument
+6,Overflyt
+7,Ikke nok minne
+9,Indeks utenfor gyldig område
+10,Denne matrisen er fast eller midlertidig låst
+11,Divisjon med null
+13,Ikke samsvar mellom typer
+14,Ikke nok minne for strenger
+17,Kan ikke utføre den forespurte operasjonen
+28,Ikke nok stakkplass
+35,Sub eller Function er ikke definert
+48,Feil ved lasting av DLL
+51,Intern feil
+52,Ugyldig filnavn eller filnummer
+53,Finner ikke filen
+54,Ugyldig filmodus
+55,Filen er allerede åpen
+57,I/U-feil på enhet
+58,Filen finnes allerede
+61,Disken er full
+62,Inndata etter slutten på filen
+67,For mange filer
+68,Enheten er utilgjengelig
+70,Ingen tilgang
+71,Disken er ikke klar
+74,Kan ikke gi nytt navn på tvers av stasjoner
+75,Feil ved tilgang til bane/fil
+76,Finner ikke banen
+91,Objektvariabel eller With-blokkvariabel er ikke angitt
+92,For-løkken er ikke initialisert
+94,Ugyldig bruk av Null
+322,Kan ikke opprette nødvendig midlertidig fil
+424,Krever objekt
+429,Automatiseringsserveren kan ikke opprette objektet
+430,Klassen støtter ikke automatisering
+432,Fant ikke filnavn eller klassenavn under automatiseringsoperasjonen
+438,Objektet støtter ikke angitt egenskap eller metode
+440,Automatiseringsfeil
+445,Objektet støtter ikke denne handlingen
+446,Objektet støtter ikke navngitte argumenter
+447,Objektet støtter ikke gjeldende nasjonale innstilling
+448,Finner ikke navngitt argument
+449,Argumentet er ikke valgfritt
+450,Feil antall argumenter eller ugyldig tilordning av egenskap
+451,Objektet er ikke en samling
+453,Funksjonen er ikke definert i angitt DLL
+458,Variabelen bruker en type automatisering som ikke støttes i JavaScript
+462,Den eksterne serveren finnes ikke eller er ikke tilgjengelig
+501,Kan ikke tilordne til variabel
+502,Objektet kan ikke skriptes
+503,Objektet kan ikke initialiseres
+504,Objektet kan ikke opprettes
+507,Det oppstod et unntak
+1001,Ikke nok minne
+1002,Syntaksfeil
+1003,Forventet ':'
+1004,Forventet ';'
+1005,Forventet '('
+1006,Forventet ')'
+1007,Forventet ']'
+1008,Forventet '{'
+1009,Forventet '}'
+1010,Forventet identifikator
+1011,Forventet '='
+1012,Forventet '/'
+1013,Ugyldig tall
+1014,Ugyldig tegn
+1015,Uavsluttet strengkonstant
+1016,Uavsluttet kommentar
+1018,'return'-setning utenfor funksjon
+1019,Kan ikke ha 'break' utenfor løkke
+1020,Kan ikke ha 'continue' utenfor løkke
+1023,Forventet heksadesimalt siffer
+1024,Forventet 'while'
+1025,Etiketten er definert på nytt
+1026,Finner ikke etiketten
+1027,'default' kan bare brukes én gang i en 'switch'-setning
+1028,Forventet identifikator, streng eller tall
+1029,Forventet '@end'
+1030,Betinget kompilering er deaktivert
+1031,Forventet konstant
+1032,Forventet '@'
+1033,Forventet 'catch'
+1034,Forventet 'var'
+1035,throw må etterfølges av et uttrykk på samme kildelinje
+1037,with-setninger er ikke tillatt i streng modus
+1038,Dupliserte navn på formelle parametere er ikke tillatt i streng modus
+1039,Oktale numeriske litteraler og Escape-tegn er ikke tillatt i streng modus
+1041,Ugyldig bruk av eval i streng modus
+1042,Ugyldig bruk av arguments i streng modus
+1045,Kall av sletting i uttrykk er ikke tillatt i streng modus
+1046,Flere definisjoner av en egenskap er ikke tillatt i streng modus
+1047,I streng modus kan ikke funksjonsdeklarasjoner være nestet inni en setning eller blokk. De kan bare forekomme på øverste nivå eller direkte inni en funksjonstekst.
+1048,Bruken av et nøkkelord for en identifikator er ugyldig
+1049,Bruken av et fremtidig reservert ord for en identifikator er ugyldig
+1050,Bruken av et fremtidig reservert ord for en identifikator er ugyldig. Identifikatornavnet er reservert i streng modus.
+1051,Setter-funksjoner må ha ett argument
+4096,JavaScript-kompileringsfeil
+4097,JavaScript-kjøretidsfeil
+4098,Ukjent kjøretidsfeil
+5000,Kan ikke tilordne til 'this'
+5001,Forventet et tall
+5002,Forventet en funksjon
+5003,Kan ikke tilordne til et funksjonsresultat
+5004,Kan ikke indeksere objektet
+5005,Forventet en streng
+5006,Forventet et datoobjekt
+5007,Forventet et objekt
+5008,Ugyldig venstre side i tilordning
+5009,Udefinert identifikator
+5010,Forventet en boolsk verdi
+5011,Kan ikke utføre kode fra et frigitt skript
+5012,Forventet medlem i et objekt
+5013,Forventet VBArray
+5014,Forventet JavaScript-objekt
+5015,Forventet oppregningsobjekt
+5016,Forventet et vanlig uttrykk
+5017,Syntaksfeil i vanlig uttrykk
+5018,Uventet mengdeoperator
+5019,Forventet ']' i vanlig uttrykk
+5020,Forventet ')' i vanlig uttrykk
+5021,Ugyldig område i tegnsett
+5022,Unntak forkastet og ikke behandlet
+5023,Funksjonen mangler gyldig prototypeobjekt
+5024,URIen som skal krypteres, inneholder et ugyldig tegn
+5025,URIen som skal dekodes, har ikke gyldig kryptering
+5026,Antall desimaler er utenfor tillatt område
+5027,Presisjonen er utenfor tillatt område
+5028,Forventet objekt av typen "Array" eller "arguments"
+5029,Matriselengden skal være en endelig, positiv størrelse
+5030,Matriselengden må ha en tilordnet endelig, positiv størrelse
+5031,Forventet et matriseobjekt
+5034,Sirkelreferanse i verdiargument støttes ikke
+5035,Ugyldig erstatterargument
+5038,Argumentlisten er for stor til å brukes
+5039,Ny deklarering av konstant egenskap
+5041,Objektmedlem kan ikke konfigureres
+5042,Variabel ikke definert i streng modus
+5043,Tilgang til egenskapen caller for en funksjon eller et argumentobjekt er ikke tillatt i streng modus
+5044,Tilgang til egenskapen callee for et argumentobjekt er ikke tillatt i streng modus
+5045,Tilordning til skrivebeskyttede egenskaper er ikke tillatt i streng modus
+5046,Kan ikke opprette egenskap for et ikke-utvidbart objekt
+5047,Forventet et objekt
+5048,Forventet et objekt
+5049,Forventet et objekt
+5050,Forventet et objekt
+5051,Forventet en funksjon
+5052,Forventet en funksjon
+5053,Egenskapen kan ikke ha både aksessorer og en verdi
+5054,"this" er null eller udefinert
+5055,Forventet et objekt
+5056,Forventet en funksjon
+5057,Forventet en streng
+5058,Forventet en boolsk verdi
+5059,Forventet dato
+5060,Forventet et tall
+5061,Forventet VBArray
+5062,Forventet JavaScript-objekt
+5063,Forventet et oppregningsobjekt
+5064,Forventet RegExp-objekt
+5065,Ugyldig funksjonsargument
+5066,Forventet et objekt
+5067,Forventet JavaScript-objekt
+5068,Forventet en funksjon
+5069,Forventet VBArray
+5070,Forventet et objekt
+5071,Forventet et objekt
+5072,Ugyldig length-egenskap
+5073,Forventet et matrise- eller argumentobjekt
+5074,Ugyldig operand
+5075,Ugyldig operand
+5076,Ugyldig egenskapsbeskrivelse
+5077,Kan ikke definere egenskapen fordi objektet ikke kan utvides
+5078,Kan ikke omdefinere egenskapen som ikke kan konfigureres
+5079,Kan ikke endre egenskapen som ikke kan skrives
+5080,Kan ikke endre egenskapen fordi lengden ikke kan skrives
+5081,Kan ikke definere egenskapen
+5082,Ugyldig konstruktørargument for typet matrise
+5083,this er ikke et objekt for typet matrise
+5084,Ugyldig forskyvning/lengde ved oppretting av typet matrise
+5085,Ugyldig start-/sluttverdi i undermatrisemetode for typet matrise
+5086,Ugyldig kilde i typet matrisesett
+5087,this er ikke et DataView-objekt
+5088,Ugyldige argumenter i DataView
+5089,Tilgang til DataView-operasjon utenfor angitt bufferlengde
+5090,Ugyldige argumenter i DataView
+5091,ugyldig funksjonssignatur
+5092,ugyldig egenskapssignatur
+5093,ugyldig inndataparametertype
+5094,ugyldig utdataparameter
+5095,Tilgang til egenskapen arguments for en funksjon er ikke tillatt i streng modus
+5096,Forventet inspiserbart objekt
+5097,Kan ikke konvertere argumentet til typen char
+5098,Kan ikke konvertere argumentet til typen GUID
+5099,Forventet IInspectable
+5100,Kan ikke konvertere objektet til struktur: Objekt mangler forventet egenskap
+5101,Ukjent type
+5102,Funksjonen ble kalt med for få argumenter
+5103,Typen er ikke konstruerbar
+5104,Kan ikke konvertere verdien til PropertyValue: Typen støttes ikke av PropertyValue
+5105,Kan ikke konvertere verdien til IInspectable: Typen støttes ikke av IInspectable
+5106,Kan ikke konvertere dato til Windows.Foundation.DateTime: Verdien er utenfor gyldig område
+5107,Kan ikke konvertere verdi til Windows.Foundation.TimeSpan: Verdien er utenfor gyldig område
+5108,Ugyldig tilgang til et allerede frigitt inspiserbart objekt
+5109,Kan ikke frigi et allerede frigitt inspiserbart objekt
+5110,this er ikke av den forventede typen
+5111,Ugyldig lengde og størrelse angitt for matrisen
+5112,Det oppstod en utventet feil under forsøk på å hente metadatainformasjon
+5200,Statusen er "feil", men getResults returnerte ingen feil
+5201,Manglende eller ugyldig statusparameter sendt til fullført behandlingsprogram
+5202,Manglende eller ugyldig avsenderparameter sendt til fullført behandlingsprogram
+6000,Uendelighet
+6001,-Uendelighet
+10438,Objektet støtter ikke egenskapen eller metoden %s
+10449,Argument for funksjonen %s er ikke valgfritt
+15001,%s er ikke et tall
+15002,%s er ikke en funksjon
+15004,%s er ikke et indekserbart objekt
+15005,%s er ikke en streng
+15006,%s er ikke et datoobjekt
+15007,%s er null eller ikke et objekt
+15008,Kan ikke tilordne til %s
+15009,%s er udefinert
+15010,%s er ikke en boolsk verdi
+15012,Kan ikke slette %s
+15013,%s er ikke VBArray
+15014,%s er ikke et JavaScript-objekt
+15015,%s er ikke et oppregningsobjekt
+15016,%s er ikke et vanlig uttrykk
+15028,%s er ikke et objekt av typen Array eller arguments
+15031,%s er ikke et Array-objekt
+15036,%s-attributtet i egenskapsbeskrivelsen kan ikke settes til true for dette objektet
+15037,%s-attributtet i egenskapsbeskrivelsen kan ikke settes til false for dette objektet
+15039,Ny deklarering av konstanten %s
+15041,Kall av sletting i %s er ikke tillatt i streng modus
+15047,Kan ikke angi egenskapen %s når den er udefinert eller har nullreferanse
+15048,Kan ikke hente egenskapen %s når den er udefinert eller har nullreferanse
+15049,Kan ikke slette egenskapen %s når den er udefinert eller har nullreferanse
+15050,Ingen tilgang til egenskapen %s: VarDate-typen støtter ikke brukerdefinerte egenskaper
+15051,Verdien for egenskapen %s er ikke et funksjonsobjekt
+15052,Verdien for egenskapen %s er null eller udefinert, ikke et funksjonsobjekt
+15054,%s: "this" er null eller udefinert
+15055,%s: "this" er ikke et objekt
+15056,%s: "this" er ikke et funksjonsobjekt
+15057,%s: "this" er ikke et strengeobjekt
+15058,%s: "this" er ikke et boolsk objekt
+15059,%s: "this" er ikke et datoobjekt
+15060,%s: "this" er ikke et nummerobjekt
+15061,%s: "this" er ikke et VBArray-objekt
+15062,%s: "this" er ikke et JavaScript-objekt
+15063,%s: "this" er ikke et oppregningsobjekt
+15064,%s: "this" er ikke et RegExp-objekt
+15065,%s: ugyldig argument
+15066,%s: argumentet er ikke et objekt
+15067,%s: argumentet er ikke et JavaScript-objekt
+15068,%s: argumentet er ikke et funksjonsobjekt
+15069,%s: argumentet er ikke et VBArray-objekt
+15070,%s: argumentet er null eller udefinert
+15071,%s: argumentet er ikke et objekt og er ikke null
+15072,%s: argumentet har ingen gyldig length-egenskap
+15073,%s: Forventet et matrise- eller argumentobjekt
+15074,Ugyldig operand for %s: forventet objekt
+15075,Ugyldig operand for %s: forventet funksjon
+15076,Ugyldig beskrivelse for egenskapen %s
+15077,Kan ikke definere egenskapen %s fordi objektet ikke kan utvides
+15078,Kan ikke omdefinere egenskapen %s som ikke kan konfigureres
+15079,Kan ikke endre egenskapen %s som ikke kan skrives
+15080,Kan ikke endre egenskapen %s fordi lengden ikke kan skrives
+15081,Kan ikke definere egenskapen %s
+15088,Nødvendig argument %s i DataView-metode er ikke angitt
+15090,DataView-konstruktørargumentet %s er ugyldig
+15091,Funksjonen %s har en ugyldig signatur, og kan ikke kalles
+15092,Egenskapen %s har en ugyldig signatur, og er ikke tilgjengelig
+15093,Kjøretidsklassen %s, som har Windows.Foundation.IPropertyValue som standardgrensesnitt, støttes ikke som inndataparametertype
+15094,Objektet med grensesnittet Windows.Foundation.IPropertyValue som har kjøretidsklassenavnet %s, støttes ikke som utdataparameter
+15096,%s: "this" er ikke et inspiserbart objekt
+15097,%s: Kan ikke konvertere argumentet til typen char
+15098,%s: Kan ikke konvertere argumentet til typen GUID
+15099,%s: Kan ikke konvertere returverdi til IInspectable
+15100,Kan ikke konvertere objekt til struktur: Objektet mangler den forventede egenskapen %s
+15101,Finner ikke typen %s
+15102,%s: Funksjonen ble kalt med for få argumenter
+15103,%s: Typen er ikke konstruerbar
+15104,Kan ikke konvertere verdien til PropertyValue: %s støttes ikke av PropertyValue
+15105,Kan ikke konvertere verdien til IInspectable: %s støttes ikke av IInspectable
+15108,%s: Det inspiserbare objektet "this" er frigitt og kan ikke brukes
+15110,this er ikke av den forventede typen: %s
+15112,%s: det oppstod en uventet feil under forsøk på å hente metadatainformasjon
+32812,Den angitte datoen er ikke tilgjengelig i kalenderen under de gjeldende nasjonale innstillingene

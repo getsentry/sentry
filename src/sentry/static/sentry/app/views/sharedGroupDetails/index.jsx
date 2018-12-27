@@ -1,20 +1,23 @@
 import DocumentTitle from 'react-document-title';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import EventEntries from '../../components/events/eventEntries';
-import Footer from '../../components/footer';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import NotFound from '../../components/errors/notFound';
-import SentryTypes from '../../proptypes';
-import SharedGroupHeader from './sharedGroupHeader';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import EventEntries from 'app/components/events/eventEntries';
+import Footer from 'app/components/footer';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import NotFound from 'app/components/errors/notFound';
+import SentryTypes from 'app/sentryTypes';
+import SharedGroupHeader from 'app/views/sharedGroupDetails/sharedGroupHeader';
 
-const SharedGroupDetails = React.createClass({
+const SharedGroupDetails = createReactClass({
+  displayName: 'SharedGroupDetails',
+
   childContextTypes: {
-    group: SentryTypes.Group
+    group: SentryTypes.Group,
   },
 
   mixins: [ApiMixin],
@@ -23,13 +26,13 @@ const SharedGroupDetails = React.createClass({
     return {
       group: null,
       loading: true,
-      error: false
+      error: false,
     };
   },
 
   getChildContext() {
     return {
-      group: this.state.group
+      group: this.state.group,
     };
   },
 
@@ -50,22 +53,22 @@ const SharedGroupDetails = React.createClass({
   fetchData() {
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(this.getGroupDetailsEndpoint(), {
       success: data => {
         this.setState({
           loading: false,
-          group: data
+          group: data,
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
@@ -95,13 +98,14 @@ const SharedGroupDetails = React.createClass({
           <div className="container">
             <div className="box box-modal">
               <div className="box-header">
-                <a href="/">
+                <a className="logo" href="/">
                   <span className="icon-sentry-logo-full" />
                 </a>
-                {this.state.group.permalink &&
-                  <a className="pull-right" href={this.state.group.permalink}>
+                {this.state.group.permalink && (
+                  <a className="details" href={this.state.group.permalink}>
                     {t('Details')}
-                  </a>}
+                  </a>
+                )}
               </div>
               <div className="box-content">
                 <div className="content">
@@ -125,7 +129,7 @@ const SharedGroupDetails = React.createClass({
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default SharedGroupDetails;

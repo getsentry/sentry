@@ -1,44 +1,38 @@
 from __future__ import absolute_import
 
-import six
-
-from collections import defaultdict
 from rest_framework.response import Response
 
 from sentry import tagstore
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
+from sentry.models import Environment
 
 
-class GroupTagsEndpoint(GroupEndpoint):
+class GroupTagsEndpoint(GroupEndpoint, EnvironmentMixin):
     def get(self, request, group):
-        group_tag_keys = tagstore.get_group_tag_keys(group.id)
 
-        # O(N) db access
-        data = []
-        all_top_values = []
-        for group_tag_key in group_tag_keys:
-            total_values = tagstore.get_group_tag_value_count(group.id, group_tag_key.key)
-            top_values = tagstore.get_top_group_tag_values(group.id, group_tag_key.key, limit=10)
+        # optional queryparam `key` can be used to get results
+        # only for specific keys.
+        keys = [tagstore.prefix_reserved_key(k)
+                for k in request.GET.getlist('key') if k] or None
 
-            all_top_values.extend(top_values)
+        # There are 2 use-cases for this method. For the 'Tags' tab we
+        # get the top 10 values, for the tag distribution bars we get 9
+        # This should ideally just be specified by the client
+        if keys:
+            value_limit = 9
+        else:
+            value_limit = 10
 
-            data.append(
-                {
-                    'id': six.text_type(group_tag_key.id),
-                    'key': tagstore.get_standardized_key(group_tag_key.key),
-                    'name': tagstore.get_tag_key_label(group_tag_key.key),
-                    'uniqueValues': group_tag_key.values_seen,
-                    'totalValues': total_values,
-                }
-            )
+        try:
+            environment_id = self._get_environment_id_from_request(
+                request, group.project.organization_id)
+        except Environment.DoesNotExist:
+            tag_keys = []
+        else:
+            tag_keys = tagstore.get_group_tag_keys_and_top_values(
+                group.project_id, group.id, environment_id, keys=keys,
+                value_limit=value_limit)
 
-        # Serialize all of the values at once to avoid O(n) serialize/db queries
-        top_values_by_key = defaultdict(list)
-        for value in serialize(all_top_values, request.user):
-            top_values_by_key[value['key']].append(value)
-
-        for d in data:
-            d['topValues'] = top_values_by_key[d['key']]
-
-        return Response(data)
+        return Response(serialize(tag_keys, request.user))

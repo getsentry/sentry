@@ -1,15 +1,22 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
+
+import {imageStyle} from 'app/components/avatar/styles';
 
 /**
  * Also see avatar.py. Anything changed in this file (how colors
  * are selected, the svg, etc) will also need to be changed there.
  */
 
-const LetterAvatar = React.createClass({
+const LetterAvatar = createReactClass({
+  displayName: 'LetterAvatar',
+
   propTypes: {
-    identifier: PropTypes.string.isRequired,
-    displayName: PropTypes.string.isRequired
+    identifier: PropTypes.string,
+    displayName: PropTypes.string,
+    round: PropTypes.bool,
   },
 
   COLORS: [
@@ -24,7 +31,7 @@ const LetterAvatar = React.createClass({
     '#6c5fc7', // purple
     '#4e3fb4', // purple_dark
     '#57b1be', // teal
-    '#847a8c' // gray
+    '#847a8c', // gray
   ],
 
   getColor() {
@@ -43,13 +50,22 @@ const LetterAvatar = React.createClass({
 
   getInitials() {
     let names = (this.props.displayName.trim() || '?').split(' ');
-    let initials = names[0][0] + (names.length > 1 ? names[names.length - 1][0] : '');
+    // Use Array.from as slicing and substring() work on ucs2 segments which
+    // results in only getting half of any 4+ byte character.
+    let initials = Array.from(names[0])[0];
+    if (names.length > 1) {
+      initials += Array.from(names[names.length - 1])[0];
+    }
     return initials.toUpperCase();
   },
 
   render() {
     return (
-      <svg viewBox="0 0 120 120" className={this.props.className}>
+      <Svg
+        viewBox="0 0 120 120"
+        round={this.props.round}
+        className={this.props.className}
+      >
         <rect
           x="0"
           y="0"
@@ -65,12 +81,17 @@ const LetterAvatar = React.createClass({
           fontSize="65"
           style={{dominantBaseline: 'central'}}
           textAnchor="middle"
-          fill="#FFFFFF">
+          fill="#FFFFFF"
+        >
           {this.getInitials()}
         </text>
-      </svg>
+      </Svg>
     );
-  }
+  },
 });
 
 export default LetterAvatar;
+
+const Svg = styled('svg')`
+  ${imageStyle};
+`;

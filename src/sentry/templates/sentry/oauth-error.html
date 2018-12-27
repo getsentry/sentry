@@ -2,19 +2,18 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
-{% load sentry_auth %}
 
 {% block title %}{% trans "Authorization Error" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
-    <div style="font-size:24px;margin-bottom:10px">
-      <span class="icon-exclamation" style="font-size:20px;margin-right:10px;"></span>
-      <span>Authorization Error</span>
-    </div>
+  <div style="font-size:24px;margin-bottom:10px">
+    <span class="icon-exclamation" style="font-size:20px;margin-right:10px;"></span>
+    <span>Authorization Error</span>
+  </div>
 
-    <p>We encountered the following error while trying to process your authorization:</p>
+  <p>We encountered the following error while trying to process your authorization:</p>
 
-    <ul>
-      <li>{{ error }}</li>
-    </ul>
+  <ul>
+    <li>{{ error }}</li>
+  </ul>
 {% endblock %}

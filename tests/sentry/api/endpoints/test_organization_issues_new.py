@@ -26,12 +26,12 @@ class OrganizationIssuesNewTest(APITestCase):
         )
         OrganizationMemberTeam.objects.create(
             organizationmember=member,
-            team=project1.team,
+            team=project1.teams.first(),
         )
 
         self.login_as(user=user)
 
-        url = '/api/0/organizations/{}/issues/new/'.format(
+        url = u'/api/0/organizations/{}/issues/new/'.format(
             org.slug,
         )
         response = self.client.get(url, format='json')

@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
+from .analytics import *  # NOQA
 from .base import *  # NOQA
 from .manager import IntegrationManager  # NOQA
-from .oauth import *  # NOQA
-from .view import *  # NOQA
 
 
 default_manager = IntegrationManager()

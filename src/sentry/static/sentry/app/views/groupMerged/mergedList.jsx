@@ -1,29 +1,31 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import styled from 'react-emotion';
 
-import {Event} from '../../proptypes';
-import {t} from '../../locale';
-import MergedItem from './mergedItem';
-import MergedToolbar from './mergedToolbar';
-import Pagination from '../../components/pagination';
-import QueryCount from '../../components/queryCount';
+import {Panel} from 'app/components/panels';
+import {t} from 'app/locale';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import MergedItem from 'app/views/groupMerged/mergedItem';
+import MergedToolbar from 'app/views/groupMerged/mergedToolbar';
+import Pagination from 'app/components/pagination';
+import QueryCount from 'app/components/queryCount';
+import SentryTypes from 'app/sentryTypes';
 
-const MergedList = React.createClass({
-  propTypes: {
+class MergedList extends React.Component {
+  static propTypes = {
     onUnmerge: PropTypes.func.isRequired,
     onToggleCollapse: PropTypes.func.isRequired,
-    items: PropTypes.arrayOf(Event),
-    pageLinks: PropTypes.string
-  },
+    items: PropTypes.arrayOf(SentryTypes.Event),
+    pageLinks: PropTypes.string,
+  };
 
-  renderEmpty() {
+  renderEmpty = () => {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t("There don't seem to be any hashes for this issue.")}</p>
-      </div>
+      </EmptyStateWarning>
     );
-  },
+  };
 
   render() {
     let {items, pageLinks, onToggleCollapse, onUnmerge, ...otherProps} = this.props;
@@ -31,15 +33,11 @@ const MergedList = React.createClass({
     let hasResults = itemsWithLatestEvent.length > 0;
 
     if (!hasResults) {
-      return (
-        <div className="merged-list-container">
-          {this.renderEmpty()}
-        </div>
-      );
+      return <Panel>{this.renderEmpty()}</Panel>;
     }
 
     return (
-      <div className="merged-list-container">
+      <div>
         <h2>
           <span>{t('Merged fingerprints with latest event')}</span>
           <QueryCount count={itemsWithLatestEvent.length} />
@@ -51,7 +49,7 @@ const MergedList = React.createClass({
           onUnmerge={onUnmerge}
         />
 
-        <div className="merged-list">
+        <MergedItems>
           {itemsWithLatestEvent.map(({id, latestEvent}) => (
             <MergedItem
               key={id}
@@ -62,11 +60,17 @@ const MergedList = React.createClass({
               itemCount={items.length}
             />
           ))}
-        </div>
+        </MergedItems>
+
         <Pagination pageLinks={pageLinks} />
       </div>
     );
   }
-});
+}
 
 export default MergedList;
+
+const MergedItems = styled('div')`
+  border: 1px solid ${p => p.theme.borderLight};
+  border-top: none;
+`;

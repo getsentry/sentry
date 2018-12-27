@@ -14,7 +14,7 @@ class ProjectDataForwardingSettingsTest(AcceptanceTestCase):
         self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
-            team=self.team,
+            teams=[self.team],
             name='Bengal',
         )
         self.create_member(
@@ -25,10 +25,10 @@ class ProjectDataForwardingSettingsTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.path = '/{}/{}/settings/data-forwarding/'.format(self.org.slug, self.project.slug)
+        self.path = u'/{}/{}/settings/data-forwarding/'.format(self.org.slug, self.project.slug)
 
     def test_simple(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('project data forwarding settings')
-        self.browser.wait_until('.ref-data-forwarding-settings')
+        self.browser.wait_until('[data-test-id="data-forwarding-settings"]')

@@ -1,19 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Avatar from './avatar';
-import TooltipMixin from '../mixins/tooltip';
-import {t} from '../locale';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-const ReleaseStats = React.createClass({
+import AvatarList from 'app/components/avatar/avatarList';
+import {t} from 'app/locale';
+
+const ReleaseStats = createReactClass({
+  displayName: 'ReleaseStats',
+
   propTypes: {
-    release: PropTypes.object
+    release: PropTypes.object,
   },
-
-  mixins: [
-    TooltipMixin({
-      selector: '.tip'
-    })
-  ],
 
   render() {
     let release = this.props.release;
@@ -32,22 +30,22 @@ const ReleaseStats = React.createClass({
 
     return (
       <div className="release-stats">
-        <h6>{releaseSummary}</h6>
-        <div className="avatar-grid">
-          {release.authors.map((author, i) => {
-            return (
-              <span
-                key={i}
-                className="avatar-grid-item tip"
-                title={author.name + ' ' + author.email}>
-                <Avatar user={author} />
-              </span>
-            );
-          })}
-        </div>
+        <ReleaseSummaryHeading>{releaseSummary}</ReleaseSummaryHeading>
+        <span style={{display: 'inline-block'}}>
+          <AvatarList users={release.authors} avatarSize={25} typeMembers={'authors'} />
+        </span>
       </div>
     );
-  }
+  },
 });
+
+const ReleaseSummaryHeading = styled.div`
+  color: ${p => p.theme.gray2};
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+`;
 
 export default ReleaseStats;

@@ -1,25 +1,27 @@
 from __future__ import absolute_import
 
-from rest_framework.exceptions import NotAuthenticated
-
-from sentry.api.base import Endpoint, logger
+from sentry.utils.sdk import configure_scope
+from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import ScopedPermission
-from sentry.app import raven
-from sentry.auth import access
+from sentry.api.permissions import SentryPermission
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Organization, OrganizationMemberTeam, OrganizationStatus, Project, ReleaseProject, Team
+    ApiKey, Authenticator, Organization, OrganizationMemberTeam, Project,
+    ProjectTeam, ReleaseProject, Team
 )
 from sentry.utils import auth
 
 
-class OrganizationPermission(ScopedPermission):
+class OrganizationPermission(SentryPermission):
     scope_map = {
         'GET': ['org:read', 'org:write', 'org:admin'],
         'POST': ['org:write', 'org:admin'],
         'PUT': ['org:write', 'org:admin'],
         'DELETE': ['org:admin'],
     }
+
+    def is_not_2fa_compliant(self, user, organization):
+        return organization.flags.require_2fa and not Authenticator.objects.user_has_2fa(user)
 
     def needs_sso(self, request, organization):
         # XXX(dcramer): this is very similar to the server-rendered views
@@ -33,40 +35,7 @@ class OrganizationPermission(ScopedPermission):
         return False
 
     def has_object_permission(self, request, view, organization):
-        if request.user and request.user.is_authenticated() and request.auth:
-            request.access = access.from_request(
-                request,
-                organization,
-                scopes=request.auth.get_scopes(),
-            )
-
-        elif request.auth:
-            return request.auth.organization_id == organization.id
-
-        else:
-            request.access = access.from_request(request, organization)
-
-            if auth.is_user_signed_request(request):
-                # if the user comes from a signed request
-                # we let them pass if sso is enabled
-                logger.info(
-                    'access.signed-sso-passthrough',
-                    extra={
-                        'organization_id': organization.id,
-                        'user_id': request.user.id,
-                    }
-                )
-            elif request.user.is_authenticated() and self.needs_sso(request, organization):
-                # session auth needs to confirm various permissions
-                logger.info(
-                    'access.must-sso',
-                    extra={
-                        'organization_id': organization.id,
-                        'user_id': request.user.id,
-                    }
-                )
-                raise NotAuthenticated(detail='Must login via SSO')
-
+        self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
@@ -92,12 +61,31 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
     }
 
 
-class OrganizationApiKeysPermission(OrganizationPermission):
+class OrganizationAdminPermission(OrganizationPermission):
     scope_map = {
         'GET': ['org:admin'],
         'POST': ['org:admin'],
         'PUT': ['org:admin'],
         'DELETE': ['org:admin'],
+    }
+
+
+class OrganizationAuthProviderPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read'],
+        'POST': ['org:admin'],
+        'PUT': ['org:admin'],
+        'DELETE': ['org:admin'],
+    }
+
+
+class OrganizationDiscoverSavedQueryPermission(OrganizationPermission):
+    # Relaxed permissions for saved queries in Discover
+    scope_map = {
+        'GET': ['org:read', 'org:write', 'org:admin'],
+        'POST': ['org:read', 'org:write', 'org:admin'],
+        'PUT': ['org:read', 'org:write', 'org:admin'],
+        'DELETE': ['org:read', 'org:write', 'org:admin'],
     }
 
 
@@ -112,14 +100,17 @@ class OrganizationEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if organization.status != OrganizationStatus.VISIBLE:
-            raise ResourceDoesNotExist
-
         self.check_object_permissions(request, organization)
 
-        raven.tags_context({
-            'organization': organization.id,
-        })
+        with configure_scope() as scope:
+            scope.set_tag("organization", organization.id)
+
+        request._request.organization = organization
+
+        # Track the 'active' organization when the request came from
+        # a cookie based agent (react app)
+        if request.auth is None and request.user:
+            request.session['activeorg'] = organization.slug
 
         kwargs['organization'] = organization
         return (args, kwargs)
@@ -139,7 +130,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if not (has_valid_api_key or request.user.is_authenticated()):
             return []
 
-        if has_valid_api_key or request.is_superuser() or organization.flags.allow_joinleave:
+        if has_valid_api_key or is_active_superuser(request) or organization.flags.allow_joinleave:
             allowed_teams = Team.objects.filter(organization=organization).values_list(
                 'id', flat=True
             )
@@ -150,7 +141,12 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             ).values_list(
                 'team_id', flat=True
             )
-        return Project.objects.filter(team_id__in=allowed_teams)
+
+        return Project.objects.filter(
+            id__in=ProjectTeam.objects.filter(
+                team_id__in=allowed_teams,
+            ).values_list('project_id', flat=True)
+        )
 
     def has_release_permission(self, request, organization, release):
         return ReleaseProject.objects.filter(

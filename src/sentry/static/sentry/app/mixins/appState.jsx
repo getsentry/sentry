@@ -1,9 +1,9 @@
-import OrganizationStore from '../stores/organizationStore';
+import OrganizationsStore from 'app/stores/organizationsStore';
 
 let AppState = {
   getOrganizationList() {
-    return OrganizationStore.getAll();
-  }
+    return OrganizationsStore.getAll();
+  },
 };
 
 export default AppState;

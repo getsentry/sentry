@@ -96,11 +96,11 @@ class RedisBackend(Backend):
 
     def _get_connection(self, key):
         return self.cluster.get_local_client_for_key(
-            '{}:t:{}'.format(self.namespace, key),
+            u'{}:t:{}'.format(self.namespace, key),
         )
 
     def _get_timeline_lock(self, key, duration):
-        lock_key = '{}:t:{}'.format(self.namespace, key)
+        lock_key = u'{}:t:{}'.format(self.namespace, key)
         return self.locks.get(
             lock_key,
             duration=duration,
@@ -228,10 +228,11 @@ class RedisBackend(Backend):
                     raise
 
             records = map(
-                lambda (key, value, timestamp): Record(
-                    key,
-                    self.codec.decode(value) if value is not None else None,
-                    float(timestamp),
+                lambda key__value__timestamp: Record(
+                    key__value__timestamp[0],
+                    self.codec.decode(
+                        key__value__timestamp[1]) if key__value__timestamp[1] is not None else None,
+                    float(key__value__timestamp[2]),
                 ),
                 response,
             )

@@ -79,7 +79,7 @@ class CloudflareWebhookEndpoint(Endpoint):
 
         projects = Project.objects.filter(
             organization=org,
-            team__in=Team.objects.get_for_user(org, request.user, scope='project:write'),
+            teams__in=Team.objects.get_for_user(org, request.user, scope='project:write'),
         )
         for project in projects:
             if six.text_type(project.id) == project_id:
@@ -144,7 +144,7 @@ class CloudflareWebhookEndpoint(Endpoint):
 
         projects = sorted(Project.objects.filter(
             organization=org,
-            team__in=Team.objects.get_for_user(org, request.user, scope='project:write'),
+            teams__in=Team.objects.get_for_user(org, request.user, scope='project:write'),
         ), key=lambda x: x.slug)
 
         enum_choices = [six.text_type(o.id) for o in projects]
@@ -235,7 +235,7 @@ class CloudflareWebhookEndpoint(Endpoint):
             return Response(status=400)
 
         event = data.get('event')
-        logger.info('cloudflare.webhook.{}'.format(event), extra=logging_data)
+        logger.info(u'cloudflare.webhook.{}'.format(event), extra=logging_data)
         if not signature:
             logger.error('cloudflare.webhook.invalid-signature', extra=logging_data)
             return Response(status=400)
@@ -257,7 +257,7 @@ class CloudflareWebhookEndpoint(Endpoint):
             return Response(status=400)
 
         if not self.verify(payload, key, signature):
-            logger.error('cloudflare.webhook.invalid-signature'.format(event), extra=logging_data)
+            logger.error(u'cloudflare.webhook.invalid-signature'.format(event), extra=logging_data)
             return Response(status=400)
 
         if event == 'option-change:account':

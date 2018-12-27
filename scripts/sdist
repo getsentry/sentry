@@ -1,9 +1,0 @@
-#!/bin/bash
-set -ex
-
-ARTIFACTS_PATH=${ARTIFACTS_PATH:-dist}
-CLONE_PATH=${CLONE_PATH:-${PWD}}
-COMMIT=${COMMIT:-UNKNOWN}
-
-docker build --rm -t sentry-release -f scripts/Dockerfile .
-docker run --rm -v ${ARTIFACTS_PATH}:/dist -v ${CLONE_PATH}:/usr/src/sentry -e SENTRY_BUILD=${COMMIT} sentry-release

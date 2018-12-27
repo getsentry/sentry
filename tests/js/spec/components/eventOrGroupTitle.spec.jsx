@@ -9,9 +9,9 @@ describe('EventOrGroupTitle', function() {
       title: 'metadata title',
       type: 'metadata type',
       directive: 'metadata directive',
-      uri: 'metadata uri'
+      uri: 'metadata uri',
     },
-    culprit: 'culprit'
+    culprit: 'culprit',
   };
 
   it('renders with subtitle when `type = error`', function() {
@@ -20,8 +20,8 @@ describe('EventOrGroupTitle', function() {
         data={{
           ...data,
           ...{
-            type: 'error'
-          }
+            type: 'error',
+          },
         }}
       />
     );
@@ -35,8 +35,8 @@ describe('EventOrGroupTitle', function() {
         data={{
           ...data,
           ...{
-            type: 'csp'
-          }
+            type: 'csp',
+          },
         }}
       />
     );
@@ -50,8 +50,8 @@ describe('EventOrGroupTitle', function() {
         data={{
           ...data,
           ...{
-            type: 'default'
-          }
+            type: 'default',
+          },
         }}
       />
     );

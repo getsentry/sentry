@@ -61,7 +61,7 @@ class Message(Interface):
 
         if kwargs['formatted']:
             if not isinstance(kwargs['formatted'], six.string_types):
-                data['formatted'] = json.dumps(data['formatted'])
+                kwargs['formatted'] = json.dumps(data['formatted'])
         # support python-esque formatting (e.g. %s)
         elif '%' in kwargs['message'] and kwargs['params']:
             if isinstance(kwargs['params'], list):
@@ -93,7 +93,7 @@ class Message(Interface):
     def get_path(self):
         return 'sentry.interfaces.Message'
 
-    def get_hash(self, is_processed_data=True):
+    def get_hash(self):
         return [self.message]
 
     def to_string(self, event, is_public=False, **kwargs):

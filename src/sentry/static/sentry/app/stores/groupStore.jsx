@@ -1,14 +1,14 @@
 import _ from 'lodash';
 import Reflux from 'reflux';
 
-import GroupActions from '../actions/groupActions';
-import IndicatorStore from './indicatorStore';
-import PendingChangeQueue from '../utils/pendingChangeQueue';
-import {t} from '../locale';
+import GroupActions from 'app/actions/groupActions';
+import IndicatorStore from 'app/stores/indicatorStore';
+import PendingChangeQueue from 'app/utils/pendingChangeQueue';
+import {t} from 'app/locale';
 
 function showAlert(msg, type) {
   IndicatorStore.add(msg, type, {
-    duration: 4000
+    duration: 4000,
   });
 }
 
@@ -55,7 +55,7 @@ const GroupStore = Reflux.createStore({
       if (itemsById[item.id]) {
         this.items[idx] = {
           ...item,
-          ...itemsById[item.id]
+          ...itemsById[item.id],
         };
         delete itemsById[item.id];
       }
@@ -174,7 +174,7 @@ const GroupStore = Reflux.createStore({
           for (let c = 0; c < pendingForId.length; c++) {
             rItem = {
               ...rItem,
-              ...pendingForId[c].params
+              ...pendingForId[c].params,
             };
           }
         }
@@ -206,7 +206,7 @@ const GroupStore = Reflux.createStore({
         pendingById[item.id].forEach(change => {
           rItem = {
             ...rItem,
-            ...change.params
+            ...change.params,
           };
         });
       }
@@ -236,6 +236,7 @@ const GroupStore = Reflux.createStore({
   },
 
   onDelete(changeId, itemIds) {
+    itemIds = this._itemIdsOrAll(itemIds);
     itemIds.forEach(itemId => {
       this.addStatus(itemId, 'delete');
     });
@@ -243,14 +244,18 @@ const GroupStore = Reflux.createStore({
   },
 
   onDeleteError(changeId, itemIds, response) {
+    showAlert(t('Unable to delete events. Please try again.'), 'error');
+
+    if (!itemIds) return;
+
     itemIds.forEach(itemId => {
       this.clearStatus(itemId, 'delete');
     });
-    showAlert(t('Unable to delete events. Please try again.'), 'error');
     this.trigger(new Set(itemIds));
   },
 
   onDeleteSuccess(changeId, itemIds, response) {
+    itemIds = this._itemIdsOrAll(itemIds);
     let itemIdSet = new Set(itemIds);
     itemIds.forEach(itemId => {
       delete this.statuses[itemId];
@@ -310,8 +315,13 @@ const GroupStore = Reflux.createStore({
 
     // Remove all but parent id (items were merged into this one)
     let mergedIdSet = new Set(mergedIds);
+
+    // Looks like the `PUT /api/0/projects/:orgId/:projectId/issues/` endpoint
+    // actually returns a 204, so there is no `response` body
     this.items = this.items.filter(
-      item => !mergedIdSet.has(item.id) || item.id === response.merge.parent
+      item =>
+        !mergedIdSet.has(item.id) ||
+        (response && response.merge && item.id === response.merge.parent)
     );
 
     showAlert(t('The selected events have been scheduled for merge.'), 'success');
@@ -358,14 +368,14 @@ const GroupStore = Reflux.createStore({
       if (itemIds.indexOf(item.id) !== -1) {
         this.items[idx] = {
           ...item,
-          ...response
+          ...response,
         };
         this.clearStatus(item.id, 'update');
       }
     });
     this.pendingChanges.remove(changeId);
     this.trigger(new Set(itemIds));
-  }
+  },
 });
 
 export default GroupStore;

@@ -115,10 +115,10 @@ exports[`EventsTable renders 1`] = `
       }
       groupId="groupId"
       hasUser={true}
+      key="904"
       orgId="orgId"
       projectId="projectId"
       tagList={Array []}
-      truncate={false}
     />
     <EventsTableRow
       event={
@@ -220,10 +220,10 @@ exports[`EventsTable renders 1`] = `
       }
       groupId="groupId"
       hasUser={true}
+      key="904"
       orgId="orgId"
       projectId="projectId"
       tagList={Array []}
-      truncate={false}
     />
   </tbody>
 </table>

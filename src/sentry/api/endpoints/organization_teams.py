@@ -1,17 +1,26 @@
 from __future__ import absolute_import
 
+import six
+
 from django.db import IntegrityError, transaction
+from django.db.models import Q
+from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.models import (
     AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 )
+from sentry.search.utils import tokenize_query
+from sentry.signals import team_created
 from sentry.utils.apidocs import scenario, attach_scenarios
+
+CONFLICTING_SLUG_ERROR = 'A team with this slug already exists.'
 
 
 @scenario('CreateNewTeam')
@@ -38,8 +47,21 @@ class OrganizationTeamsPermission(OrganizationPermission):
 
 
 class TeamSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=200, required=True)
-    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50, required=False)
+    name = serializers.CharField(max_length=64, required=False)
+    slug = serializers.RegexField(
+        r'^[a-z0-9_\-]+$',
+        max_length=50,
+        required=False,
+        error_messages={
+            'invalid': _('Enter a valid slug consisting of lowercase letters, '
+                         'numbers, underscores or hyphens.'),
+        },
+    )
+
+    def validate(self, attrs):
+        if not (attrs.get('name') or attrs.get('slug')):
+            raise serializers.ValidationError('Name or slug is required')
+        return attrs
 
 
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
@@ -63,14 +85,28 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         if request.auth and hasattr(request.auth, 'project'):
             return Response(status=403)
 
-        team_list = list(
-            Team.objects.filter(
-                organization=organization,
-                status=TeamStatus.VISIBLE,
-            ).order_by('name', 'slug')
-        )
+        queryset = Team.objects.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE,
+        ).order_by('slug')
 
-        return Response(serialize(team_list, request.user, TeamWithProjectsSerializer()))
+        query = request.GET.get('query')
+        if query:
+            tokens = tokenize_query(query)
+            for key, value in six.iteritems(tokens):
+                if key == 'query':
+                    value = ' '.join(value)
+                    queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
+                else:
+                    queryset = queryset.none()
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by='slug',
+            on_results=lambda x: serialize(x, request.user, TeamWithProjectsSerializer()),
+            paginator_cls=OffsetPaginator,
+        )
 
     @attach_scenarios([create_new_team_scenario])
     def post(self, request, organization):
@@ -83,8 +119,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
-        :param string name: the name of the organization.
-        :param string slug: the optional slug for this organization.  If
+        :param string name: the optional name of the team.
+        :param string slug: the optional slug for this team.  If
                             not provided it will be auto generated from the
                             name.
         :auth: required
@@ -97,16 +133,24 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             try:
                 with transaction.atomic():
                     team = Team.objects.create(
-                        name=result['name'],
+                        name=result.get('name') or result['slug'],
                         slug=result.get('slug'),
                         organization=organization,
                     )
             except IntegrityError:
                 return Response(
                     {
-                        'detail': 'A team with this slug already exists.'
+                        'non_field_errors': [CONFLICTING_SLUG_ERROR],
+                        'detail': CONFLICTING_SLUG_ERROR,
                     },
                     status=409,
+                )
+            else:
+                team_created.send_robust(
+                    organization=organization,
+                    user=request.user,
+                    team=team,
+                    sender=self.__class__,
                 )
 
             if request.user.is_authenticated():

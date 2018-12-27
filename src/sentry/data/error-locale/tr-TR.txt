@@ -1,0 +1,289 @@
+5,Geçersiz yordam çağrısı veya değişken
+6,Taşma
+7,Yetersiz bellek
+9,Altsimge aralık dışı
+10,Bu dizi sabitlendi veya geçici olarak kilitlendi
+11,Sıfıra bölme
+13,Tür uyumsuz
+14,Karakter dizi alanı doldu
+17,İstenilen işlem yürütülemiyor
+28,Yığma alanı doldu
+35,Tanımsız Sub veya Function
+48,DLL yükleme hatası
+51,İç hata
+52,Yanlış dosya adı veya numarası
+53,Dosya bulunamadı
+54,Yanlış dosya modu
+55,Dosya zaten açık
+57,Aygıt G/Ç hatası
+58,Dosya  var
+61,Disk dolu
+62,Giriş dosya sonunu geçti
+67,Çok fazla dosya
+68,Aygıt yok
+70,İzin verilmedi
+71,Disk hazır değil
+74,Farklı bir sürücü adına değiştirilemez
+75,Yol/Dosya erişim hatası
+76,Yol bulunamadı
+91,Object değişkeni veya With blok değişkeni ayarlanmamış
+92,For döngüsü başlatılmamış
+94,Geçersiz Null kullanımı
+322,Gerekli geçici dosya oluşturulamıyor
+424,Nesne gerekli
+429,Otomasyon sunucusu, nesne oluşturamıyor
+430,Sınıf, Otomasyon'u desteklemiyor
+432,Otomasyon işlemi boyunca dosya adı veya sınıf adı bulunamadı
+438,Nesne bu özellik veya yöntemi desteklemiyor
+440,Otomasyon hatası
+445,Nesne bu eylemi desteklemiyor
+446,Nesne adlandırılmış bağımsız değişkeni desteklemiyor
+447,Nesne geçerli yerel ayarları desteklemiyor
+448,Adlandırılmış bağımsız değişken bulunamadı
+449,Bağımsız değişken isteğe bağlı değil
+450,Hatalı bağımsız değişken numarası veya geçersiz özellik ataması
+451,Nesne koleksiyon değil
+453,Belirtilen DLL işlevi bulunamadı
+458,Değişken, JavaScript'te desteklenmeyen bir Otomasyon türü kullanıyor
+462,Uzak sunucu makinesi yok veya kullanılabilir değil
+501,Değişkene atanamıyor
+502,Nesne, yazım için güvenli değil
+503,Nesne, başlatma için güvenli değil
+504,Nesne yaratmak için güvenli değil
+507,Özel bir durum oluştu
+1001,Yetersiz bellek
+1002,Sözdizimi hatası
+1003,':' gerekli
+1004,';'  gerekli
+1005,'(' gerekli
+1006,')'  gerekli
+1007,']'  gerekli
+1008,'{'  gerekli
+1009,'}'  gerekli
+1010,Belirleyici gerekli
+1011,'=' bekleniyor
+1012,'/' bekleniyor
+1013,Geçersiz sayı
+1014,Geçersiz karakter
+1015,Sonlandırılmamış dize sabiti
+1016,Sonlandırılmamış açıklama
+1018,işlevin dışında 'return' deyimi
+1019,Döngünün dışında 'break' olamaz
+1020,Döngünün dışında 'continue' olamaz
+1023,Onaltılık hane bekleniyor
+1024,'while' bekleniyor
+1025,Etiket yeniden tanımlandı
+1026,Etiket bulunamadı
+1027,'default', 'switch' bildirisinde yalnız bir kere görünebilir
+1028,Tanımlayıcı, dize veya sayı bekleniyor
+1029,'@end' bekleniyor
+1030,Koşullu derleme kapalı
+1031,Sabit bekleniyor
+1032,'@' bekleniyor
+1033,'catch' bekleniyor
+1034,'var' bekleniyor
+1035,'throw' yönergesinden sonra aynı kaynak satırında bir ifade gelmeli
+1037,'with' deyimlerinin katı modda kullanılmasına izin verilmez
+1038,Yinelenen biçimsel parametre adlarına katı modda izin verilmez
+1039,Sekizli sayısal değişmez değerlere ve kaçış karakterlerine katı modda izin verilmez
+1041,Katı modda 'eval' öğesinin geçersiz kullanımı
+1042,Katı modda 'arguments' öğesinin geçersiz kullanımı
+1045,İfadede silme işlevini çağırmaya katı modda izin verilmez
+1046,Bir özelliğin birden fazla tanımına katı modda izin verilmez
+1047,Katı modda, işlev bildirimleri bir deyim veya blok içinde iç içe olamaz. Yalnızca en üst düzeyde veya doğrudan işlev gövdesinin içinde görünebilirler.
+1048,Bir tanımlayıcının anahtar sözcük kullanımı geçersiz
+1049,Bir tanımlayıcının ileride kullanılmak üzere ayrılmış sözcük kullanımı geçersiz
+1050,Bir tanımlayıcının ileride kullanılmak üzere ayrılmış sözcük kullanımı geçersiz. Tanımlayıcı adı katı modda ayrılmış.
+1051,Ayarlayıcı işlevleri bir bağımsız değişken içermelidir
+4096,JavaScript derleme hatası
+4097,JavaScript çalışma zamanı hatası
+4098,Bilinmeyen çalışma hatası
+5000,'this' için atama yapılamıyor
+5001,Sayı bekleniyor
+5002,İşlev bekleniyor
+5003,İşlev sonucuna atanamaz
+5004,Nesne dizilemiyor
+5005,Dize bekleniyor
+5006,Tarih nesnesi bekleniyor
+5007,Nesne bekleniyor
+5008,Atama içinde sol taraf geçersiz
+5009,Tanımsız belirleyici
+5010,Boolean bekleniyor
+5011,Boşaltılmış komut dosyasından kod çalıştırılamıyor
+5012,Nesne üyesi bekleniyor
+5013,VBArray bekleniyor
+5014,JavaScript nesnesi bekleniyor
+5015,Numaralandırıcı nesne bekleniyor
+5016,Normal Deyim nesnesi bekleniyor
+5017,Normal deyimde yazım hatası
+5018,Beklenmeyen miktar
+5019,Normal deyimde ']' bekleniyor
+5020,Normal deyimde ')' bekleniyor
+5021,Geçersiz karakter kümesi aralığı
+5022,Olağan dışı durum oluşturuldu (throw ile) ve yakalanmadı (catch ile)
+5023,İşlevin geçerli bir prototip nesnesi yok
+5024,Kodlanacak URI geçersiz bir karakter içeriyor
+5025,Kodu çözülecek URI geçerli bir kodlama değil
+5026,Kesir basamak sayısı aralık dışında
+5027,Duyarlılık aralık dışında
+5028,Array veya arguments nesnesi bekleniyor
+5029,Dizi uzunluğu sonlu pozitif bir tamsayı olmalıdır
+5030,Dizi uzunluğu sonlu pozitif bir tamsayıya atanmalıdır
+5031,Dizi nesnesi bekleniyor
+5034,Değer değişkenindeki döngüsel başvuru desteklenmiyor
+5035,Geçersiz değiştirici bağımsız değişkeni
+5038,Bağımsız değişken listesi uygulamak için çok büyük
+5039,Sabit özelliğinin yeniden bildirimi
+5041,Nesne üyesi yapılandırılabilir değil
+5042,Katı modda değişken tanımsız
+5043,İşlevin veya bağımsız değişkenlerinin 'caller' özelliğine erişimine katı modda izin verilmez
+5044,İşlevin veya bağımsız değişkenlerinin 'callee' özelliğine erişimine katı modda izin verilmez
+5045,Salt okunur özelliklerin atanmasına katı modda izin verilmez
+5046,Genişletilebilir olmayan bir nesne için özellik oluşturulamıyor
+5047,Nesne bekleniyor
+5048,Nesne bekleniyor
+5049,Nesne bekleniyor
+5050,Nesne bekleniyor
+5051,İşlev bekleniyor
+5052,İşlev bekleniyor
+5053,Özelliğin hem erişimcisi hem de değeri olamaz
+5054,'this' boş veya tanımsız
+5055,Nesne bekleniyor
+5056,İşlev bekleniyor
+5057,Dize bekleniyor
+5058,Boole bekleniyor
+5059,Tarih bekleniyor
+5060,Sayı bekleniyor
+5061,VBArray bekleniyor
+5062,JavaScript nesnesi bekleniyor
+5063,Numaralandırıcı nesne bekleniyor
+5064,RegExp nesnesi bekleniyor
+5065,Geçersiz işlev bağımsız değişkeni
+5066,Nesne bekleniyor
+5067,JavaScript nesnesi bekleniyor
+5068,İşlev bekleniyor
+5069,VBArray bekleniyor
+5070,Nesne bekleniyor
+5071,Nesne bekleniyor
+5072,Geçersiz 'length' özelliği
+5073,Array veya arguments nesnesi bekleniyor
+5074,Geçersiz İşlenen
+5075,Geçersiz İşlenen
+5076,Geçersiz özellik tanımlayıcısı
+5077,Özellik tanımlanamıyor: nesne genişletilebilir değil
+5078,Yapılandırılabilir olmayan özellik yeniden tanımlanamıyor
+5079,Yazılabilir olmayan özellik değiştirilemiyor
+5080,Özellik değiştirilemiyor: 'length' yazılabilir değil
+5081,Özellik tanımlanamıyor
+5082,Türü örtük olarak belirlenmiş dizinin kurucu bağımsız değişkeni geçersiz
+5083,'this' türü örtük olarak belirlenmiş dizi nesnesi değil
+5084,Türü örtük olarak belirlenmiş dizi oluşturulurken geçersiz uzaklık/uzunluk
+5085,Türü örtük olarak belirlenmiş dizi alt dizi yönteminde geçersiz başlangıç/bitiş değeri
+5086,Türü örtük olarak belirlenmiş dizi kümesinde geçersiz kaynak
+5087,'this' bir DataView nesnesi değil
+5088,DataView içinde geçersiz bağımsız değişkenler
+5089,DataView işlemi belirtilen arabellek uzunluğunun dışına erişiyor
+5090,DataView içinde geçersiz bağımsız değişkenler
+5091,geçersiz işlev imzası
+5092,geçersiz özellik imzası
+5093,geçersiz giriş parametresi türü
+5094,geçersiz çıkış parametresi
+5095,İşlevin 'arguments' özelliğine erişmeye katı modda izin verilmez
+5096,İncelenebilir Nesne bekleniyordu
+5097,Bağımsız değişken 'char' türüne dönüştürülemedi
+5098,Bağımsız değişken 'GUID' türüne dönüştürülemedi
+5099,IInspectable olması bekleniyordu
+5100,Nesne yapı birimine dönüştürülemedi: nesnede beklenen özellik yok
+5101,Bilinmeyen tür
+5102,İşlev çok az bağımsız değişkenle çağrıldı
+5103,Tür, oluşturulabilir bir tür değil
+5104,Değer PropertyValue değerine dönüştürülemedi: Tür PropertyValue tarafından desteklenmiyor
+5105,Değer IInspectable değerine dönüştürülemedi: Tür IInspectable tarafından desteklenmiyor
+5106,Tarih Windows.Foundation.DateTime biçimine dönüştürülemedi: değer geçerli aralığın dışında
+5107,Değer Windows.Foundation.TimeSpan biçimine dönüştürülemedi: değer geçerli aralığın dışında
+5108,Serbest bırakılan Inspectable Nesnesi erişimi geçersiz
+5109,Serbest bırakılmış olan Inspectable Nesnesi serbest bırakılamıyor
+5110,'bu' beklenen tür değil
+5111,Dize için belirtilen geçersiz uzunluk ve boyut
+5112,Meta veri bilgilerini almaya çalışırken beklenmeyen bir hata oluştu
+5200,Durum: 'hata'  ancak getResults hata döndürmedi
+5201,Eksik veya geçersiz durum parametresi tamamlanan işleyiciye geçirildi
+5202,Eksik veya geçersiz gönderen parametresi tamamlanan işleyiciye geçirildi
+6000,Sonsuz
+6001,-Sonsuz
+10438,Nesne, '%s' özelliğini veya yöntemini desteklemez
+10449,'%s' işlevinin bağımsız değişkeni isteğe bağlı değil
+15001,'%s', bir sayı değil
+15002,'%s', bir işlev değil
+15004,'%s', dizilebilir bir nesne değil
+15005,'%s', bir dize değil
+15006,'%s', bir tarih nesnesi değil
+15007,'%s', boş veya bir nesne değil
+15008,'%s' üzerine atama yapılamıyor
+15009,'%s' tanımsız
+15010,'%s', boolean değil
+15012,'%s' silinemiyor
+15013,'%s', VBArray değil
+15014,'%s' JavaScript nesnesi değil
+15015,'%s' numaralandırıcı nesne değil
+15016,'%s' normal bir ifade nesnesi değil
+15028,%s, Array veya arguments nesnesi değil
+15031,%s, Array nesnesi değil
+15036,Özellik tanımlayıcısındaki '%s' özniteliği, bu nesnede 'true' olarak ayarlanamaz
+15037,Özellik tanımlayıcısındaki '%s' özniteliği, bu nesnede 'false' olarak ayarlanamaz
+15039,'%s' sabitinin yeniden bildirimi
+15041,'%s' üzerinde silme işlevini çağırmaya katı modda izin verilmez
+15047,Tanımsız veya boş referansın '%s' özelliği ayarlanamıyor
+15048,Tanımsız veya boş referansın '%s' özelliği alınamıyor
+15049,Tanımsız veya boş referansın '%s' özelliği silinemiyor
+15050,'%s' özelliğine erişilemiyor: 'VarDate' türü kullanıcı tanımlı özellikleri desteklemiyor
+15051,'%s' özelliğinin değeri İşlev nesnesi değil
+15052,'%s' özelliğinin değeri boş veya tanımsız, İşlev nesnesi değil
+15054,%s: 'this' boş veya tanımsız
+15055,%s: 'this' bir Nesne değil
+15056,%s: 'this' bir İşlev nesnesi değil
+15057,%s: 'this' bir Dize nesnesi değil
+15058,%s: 'this' bir Boole nesnesi değil
+15059,%s: 'this' bir Tarih nesnesi değil
+15060,%s: 'this' bir Sayı nesnesi değil
+15061,%s: 'this' bir VBArray nesnesi değil
+15062,%s: 'this' bir JavaScript nesnesi değil
+15063,%s: 'this' bir Numaralandırıcı nesne değil
+15064,%s: 'this' bir RegExp nesnesi değil
+15065,%s: geçersiz bağımsız değişken
+15066,%s: bağımsız değişken bir Nesne değil
+15067,%s: bağımsız değişken bir JavaScript nesnesi değil
+15068,%s: bağımsız değişken bir İşlev nesnesi değil
+15069,%s: bağımsız değişken bir VBArray nesnesi değil
+15070,%s: bağımsız değişken boş veya tanımsız
+15071,%s: bağımsız değişken bir Nesne değil ve boş değil
+15072,%s: bağımsız değişkenin geçerli bir 'length' özelliği yok
+15073,%s: Array veya arguments nesnesi bekleniyor
+15074,'%s' için geçersiz işlenen: Nesne bekleniyor
+15075,'%s' için geçersiz işlenen: İşlev bekleniyor
+15076,'%s' özelliği için geçersiz tanımlayıcı
+15077,'%s' özelliği tanımlanamıyor: nesne genişletilebilir değil
+15078,Yapılandırılabilir olmayan '%s' özelliği yeniden tanımlanamıyor
+15079,Yazılabilir olmayan '%s' özelliği değiştirilemiyor
+15080,'%s' özelliği değiştirilemiyor: 'length' yazılabilir değil
+15081,'%s' özelliği tanımlanamıyor
+15088,DataView yönteminde gereken %s bağımsız değişkeni belirtilmedi
+15090,%s DataView kurucu bağımsız değişkeni geçersiz
+15091,'%s' işlevinde geçersiz bir imza var ve çağrılamıyor
+15092,'%s' özelliğinde geçersiz bir imza var ve erişilemiyor
+15093,Varsayılan arabirimi Windows.Foundation.IPropertyValue olan %s çalışma zamanı sınıfı, giriş parametresi türü olarak desteklenmiyor
+15094,Çalışma zamanı sınıfı adı %s olan Windows.Foundation.IPropertyValue arabirimine sahip nesne, çıkış parametresi olarak desteklenmiyor
+15096,%s: 'this' bir Inspectable Nesnesi değil
+15097,%s: bağımsız değişken 'char' türüne dönüştürülemedi
+15098,%s: bağımsız değişken 'GUID' türüne dönüştürülemedi
+15099,%s: dönen değer IInspectable değerine dönüştürülemedi
+15100,Nesne yapı birimine dönüştürülemedi: nesnede beklenen '%s' özelliği yok
+15101,'%s' türü bulunamadı
+15102,%s: işlev çok az bağımsız değişkenle çağrıldı
+15103,%s: tür, oluşturulabilir bir tür değil
+15104,Değer PropertyValue değerine dönüştürülemedi: %s PropertyValue tarafından desteklenmiyor
+15105,Değer IInspectable değerine dönüştürülemedi: %s IInspectable tarafından desteklenmiyor
+15108,%s: 'this' Inspectable nesnesi serbest bırakıldı ve erişilemiyor
+15110,'bu' beklenen tür değil: %s
+15112,%s: meta veri bilgilerini almaya çalışırken beklenmeyen bir hata oluştu
+32812,Belirtilen tarih şu anki yerin takviminde kullanılamaz

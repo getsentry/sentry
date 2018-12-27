@@ -1,16 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ContextBlock from './contextBlock';
-import {defined, formatBytes} from '../../../utils';
+import ContextBlock from 'app/components/events/contexts/contextBlock';
+import {defined, formatBytes} from 'app/utils';
 
-const DeviceContextType = React.createClass({
-  propTypes: {
+class DeviceContextType extends React.Component {
+  static propTypes = {
     alias: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired
-  },
+    data: PropTypes.object.isRequired,
+  };
 
-  formatMemory(memory_size, free_memory, usable_memory) {
+  formatMemory = (memory_size, free_memory, usable_memory) => {
     if (
       !Number.isInteger(memory_size) ||
       memory_size <= 0 ||
@@ -25,14 +25,14 @@ const DeviceContextType = React.createClass({
       memory += ` / Usable: ${formatBytes(usable_memory)}`;
 
     return memory;
-  },
+  };
 
-  formatStorage(
+  formatStorage = (
     storage_size,
     free_storage,
     external_storage_size,
     external_free_storage
-  ) {
+  ) => {
     if (!Number.isInteger(storage_size) || storage_size <= 0) return null;
 
     let storage = `Total: ${formatBytes(storage_size)}`;
@@ -45,10 +45,12 @@ const DeviceContextType = React.createClass({
       Number.isInteger(external_free_storage) &&
       external_free_storage > 0
     )
-      storage += ` (External Total: ${formatBytes(external_storage_size)} / Free: ${formatBytes(external_free_storage)})`;
+      storage += ` (External Total: ${formatBytes(
+        external_storage_size
+      )} / Free: ${formatBytes(external_free_storage)})`;
 
     return storage;
-  },
+  };
 
   render() {
     let {
@@ -56,8 +58,10 @@ const DeviceContextType = React.createClass({
       family,
       model,
       model_id,
+      cpu_description,
       arch,
       battery_level,
+      battery_status,
       orientation,
       simulator,
       memory_size,
@@ -69,6 +73,7 @@ const DeviceContextType = React.createClass({
       external_free_storage,
       boot_time,
       timezone,
+      device_type,
       ...data
     } = this.props.data;
     let memory = this.formatMemory(memory_size, free_memory, usable_memory);
@@ -83,22 +88,25 @@ const DeviceContextType = React.createClass({
         data={data}
         knownData={[
           ['?Name', name],
-          ['Family', family],
-          ['Model', model + (model_id ? ` (${model_id})` : '')],
-          ['Architecture', arch],
+          ['?Family', family],
+          ['?Model', model + (model_id ? ` (${model_id})` : '')],
+          ['?CPU Description', cpu_description],
+          ['?Architecture', arch],
           ['?Battery Level', defined(battery_level) ? `${battery_level}%` : null],
+          ['?Battery Status', battery_status],
           ['?Orientation', orientation],
           ['?Memory', memory],
           ['?Capacity', storage],
           ['?Simulator', simulator],
           ['?Boot Time', boot_time],
-          ['?Timezone', timezone]
+          ['?Timezone', timezone],
+          ['?Device Type', device_type],
         ]}
         alias={this.props.alias}
       />
     );
   }
-});
+}
 
 DeviceContextType.getTitle = function(value) {
   return 'Device';

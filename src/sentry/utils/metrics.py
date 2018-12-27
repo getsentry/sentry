@@ -26,7 +26,7 @@ backend = get_default_backend()
 def _get_key(key):
     prefix = settings.SENTRY_METRICS_PREFIX
     if prefix:
-        return '{}{}'.format(prefix, key)
+        return u'{}{}'.format(prefix, key)
     return key
 
 
@@ -57,7 +57,7 @@ class InternalMetrics(object):
                 key, instance, tags, amount = q.get()
                 amount = _sampled_value(amount)
                 if instance:
-                    full_key = '{}.{}'.format(key, instance)
+                    full_key = u'{}.{}'.format(key, instance)
                 else:
                     full_key = key
                 try:
@@ -83,9 +83,9 @@ class InternalMetrics(object):
 internal = InternalMetrics()
 
 
-def incr(key, amount=1, instance=None, tags=None):
+def incr(key, amount=1, instance=None, tags=None, skip_internal=False):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
-    if _should_sample():
+    if not skip_internal and _should_sample():
         internal.incr(key, instance, tags, amount)
     try:
         backend.incr(key, instance, tags, amount, sample_rate)

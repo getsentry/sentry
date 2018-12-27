@@ -20,10 +20,11 @@ class UserReport(Model):
     group = FlexibleForeignKey('sentry.Group', null=True)
     event_user_id = BoundedBigIntegerField(null=True)
     event_id = models.CharField(max_length=32)
+    environment = FlexibleForeignKey('sentry.Environment', null=True)
     name = models.CharField(max_length=128)
     email = models.EmailField(max_length=75)
     comments = models.TextField()
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = 'sentry'
@@ -32,3 +33,18 @@ class UserReport(Model):
         unique_together = (('project', 'event_id'), )
 
     __repr__ = sane_repr('event_id', 'name', 'email')
+
+    def notify(self):
+        from django.contrib.auth.models import AnonymousUser
+        from sentry.api.serializers import (
+            serialize, ProjectUserReportSerializer
+        )
+        from sentry.tasks.signals import signal
+
+        signal.delay(
+            name='user-reports.created',
+            project_id=self.project_id,
+            payload={
+                'report': serialize(self, AnonymousUser(), ProjectUserReportSerializer()),
+            },
+        )

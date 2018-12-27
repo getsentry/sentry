@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 class GroupNotesDetailsTest(APITestCase):
     @fixture
     def url(self):
-        return '/api/0/issues/{}/comments/{}/'.format(
+        return u'/api/0/issues/{}/comments/{}/'.format(
             self.group.id,
             self.activity.id,
         )

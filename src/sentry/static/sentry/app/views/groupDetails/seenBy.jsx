@@ -1,22 +1,20 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import moment from 'moment';
 import _ from 'lodash';
+import styled from 'react-emotion';
 
-import ConfigStore from '../../stores/configStore';
-import Avatar from '../../components/avatar';
-import GroupState from '../../mixins/groupState';
-import {userDisplayName} from '../../utils/formatters';
-import TooltipMixin from '../../mixins/tooltip';
-import {t} from '../../locale';
+import ConfigStore from 'app/stores/configStore';
+import AvatarList from 'app/components/avatar/avatarList';
+import GroupState from 'app/mixins/groupState';
+import {userDisplayName} from 'app/utils/formatters';
+import Tooltip from 'app/components/tooltip';
+import {t} from 'app/locale';
 
-const GroupSeenBy = React.createClass({
-  mixins: [
-    GroupState,
-    TooltipMixin({
-      html: true,
-      selector: '.tip'
-    })
-  ],
+const GroupSeenBy = createReactClass({
+  displayName: 'GroupSeenBy',
+
+  mixins: [GroupState],
 
   render() {
     let activeUser = ConfigStore.get('user');
@@ -34,33 +32,48 @@ const GroupSeenBy = React.createClass({
       return null;
     }
 
-    let seenByNodes = seenBy
-      .filter((user, userIdx) => {
-        return activeUser.id !== user.id;
-      })
-      .map((user, userIdx) => {
-        let title =
-          _.escape(userDisplayName(user)) +
-          '<br/>' +
-          _.escape(moment(user.lastSeen).format('LL'));
-        return (
-          <li key={userIdx} className="tip" data-title={title}>
-            <Avatar size={52} user={user} />
-          </li>
-        );
-      });
-
+    // Note className="seen-by" is required for responsive design
     return (
-      <div className="seen-by">
-        <ul>
-          <li>
-            <span className="icon-eye tip" title={t("People who've viewed this issue")} />
-          </li>
-          {seenByNodes}
-        </ul>
-      </div>
+      <SeenByWrapper className="seen-by">
+        <AvatarList
+          users={seenBy.filter(user => activeUser.id !== user.id)}
+          avatarSize={28}
+          maxVisibleAvatars={10}
+          tooltipOptions={{html: true}}
+          renderTooltip={user => `${_.escape(userDisplayName(user))} <br/>
+            ${moment(user.lastSeen).format('LL')}`}
+        />
+        <IconWrapper>
+          <Tooltip title={t("People who've viewed this issue")}>
+            <EyeIcon className="icon-eye" />
+          </Tooltip>
+        </IconWrapper>
+      </SeenByWrapper>
     );
-  }
+  },
 });
 
 export default GroupSeenBy;
+
+const SeenByWrapper = styled('div')`
+  display: flex;
+  flex-direction: row-reverse;
+  margin-top: 15px;
+  float: right;
+`;
+
+const IconWrapper = styled('div')`
+  background-color: transparent;
+  color: #493e54;
+  height: 28px;
+  width: 28px;
+  line-height: 26px;
+  text-align: center;
+  margin-right: 10px;
+`;
+
+const EyeIcon = styled('span')`
+  opacity: 0.4;
+  position: relative;
+  top: 2px;
+`;

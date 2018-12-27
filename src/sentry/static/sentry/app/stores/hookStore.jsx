@@ -1,20 +1,55 @@
 import Reflux from 'reflux';
 import _ from 'lodash';
 
-let validHookNames = new Set([
-  'footer',
-  'organization:header',
-  'organization:sidebar',
-  'organization:dashboard:secondary-column',
+const validHookNames = new Set([
+  // Additional routes
   'routes',
   'routes:admin',
   'routes:organization',
-  'project:data-forwarding:disabled',
-  'project:rate-limits:disabled',
-  'project:custom-inbound-filters:disabled',
-  'issue:secondary-column'
+
+  // Analytics and tracking hooks
+  'amplitude:event',
+  'analytics:event',
+  'analytics:log-experiment',
+
+  // Specific component customizations
+  'component:org-auth-view',
+  'component:org-members-view',
+  'component:releases-tab',
+  'component:sample-event',
+
+  // Additional settings
+  'settings:organization-navigation',
+  'settings:organization-navigation-config',
+
+  // Additional interface chrome
+  'footer',
+  'organization:header',
+  'sidebar:help-menu',
+  'sidebar:organization-dropdown-menu',
+
+  // Used to provide a component for integration features.
+  'integrations:feature-gates',
+
+  // feature-disabled:<feature-flag> hooks should return components that will
+  // be rendered in place for Feature components when the feature is not
+  // enabled.
+  'feature-disabled:discard-groups',
+  'feature-disabled:data-forwarding',
+  'feature-disabled:custom-inbound-filters',
+  'feature-disabled:rate-limits',
+
+  // TODO(epurkhiser): These are not used anymore and should be removed
+  'issue:secondary-column',
+  'organization:sidebar',
 ]);
 
+/**
+ * HookStore is used to allow extensibility into Sentry's frontend via
+ * registration of 'hook functions'.
+ *
+ * This functionality is primarily used by the SASS sentry.io product.
+ */
 const HookStore = Reflux.createStore({
   init() {
     this.hooks = {};
@@ -23,13 +58,14 @@ const HookStore = Reflux.createStore({
   add(hookName, callback) {
     // Gracefully error on invalid hooks, but maintain registration
     if (!validHookNames.has(hookName)) {
+      // eslint-disable-next-line no-console
       console.error('Invalid hook name: ' + hookName);
     }
     if (_.isUndefined(this.hooks[hookName])) {
       this.hooks[hookName] = [];
     }
     this.hooks[hookName].push(callback);
-    this.trigger(hookName, [callback]);
+    this.trigger(hookName, this.hooks[hookName]);
   },
 
   remove(hookName, callback) {
@@ -44,7 +80,7 @@ const HookStore = Reflux.createStore({
 
   get(hookName) {
     return this.hooks[hookName] || [];
-  }
+  },
 });
 
 export default HookStore;

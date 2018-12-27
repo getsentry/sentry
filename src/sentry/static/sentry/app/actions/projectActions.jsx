@@ -8,6 +8,16 @@ export default Reflux.createActions([
   'loadStats',
   'loadStatsError',
   'loadStatsSuccess',
-  'openDiffModal',
-  'closeDiffModal'
+  'loadStatsForProjectSuccess',
+  'removeProject',
+  'removeProjectError',
+  'removeProjectSuccess',
+  'setActive',
+  'changeSlug',
+  'addTeam',
+  'addTeamSuccess',
+  'addTeamError',
+  'removeTeam',
+  'removeTeamSuccess',
+  'removeTeamError',
 ]);

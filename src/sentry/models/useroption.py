@@ -8,8 +8,8 @@ sentry.models.useroption
 from __future__ import absolute_import, print_function
 
 from celery.signals import task_postrun
-from django.core.signals import request_finished
 from django.conf import settings
+from django.core.signals import request_finished
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
@@ -21,6 +21,7 @@ class UserOptionValue(object):
     # 'workflow:notifications'
     all_conversations = '0'
     participating_only = '1'
+    no_conversations = '2'
     # 'deploy-emails
     all_deploys = '2'
     committed_deploys_only = '3'
@@ -134,13 +135,13 @@ class UserOptionManager(BaseManager):
             self.__metadata[metakey] = result
         return self.__metadata.get(metakey, {})
 
-    def clear_cache(self, **kwargs):
+    def clear_local_cache(self, **kwargs):
         self.__metadata = {}
 
     def contribute_to_class(self, model, name):
         super(UserOptionManager, self).contribute_to_class(model, name)
-        task_postrun.connect(self.clear_cache)
-        request_finished.connect(self.clear_cache)
+        task_postrun.connect(self.clear_local_cache)
+        request_finished.connect(self.clear_local_cache)
 
 
 # TODO(dcramer): the NULL UNIQUE constraint here isnt valid, and instead has to

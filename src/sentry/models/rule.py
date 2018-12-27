@@ -32,6 +32,7 @@ class Rule(Model):
     DEFAULT_FREQUENCY = 30  # minutes
 
     project = FlexibleForeignKey('sentry.Project')
+    environment_id = BoundedPositiveIntegerField(null=True)
     label = models.CharField(max_length=64)
     data = GzippedDictField()
     status = BoundedPositiveIntegerField(
@@ -52,7 +53,7 @@ class Rule(Model):
 
     @classmethod
     def get_for_project(cls, project_id):
-        cache_key = 'project:{}:rules'.format(project_id)
+        cache_key = u'project:{}:rules'.format(project_id)
         rules_list = cache.get(cache_key)
         if rules_list is None:
             rules_list = list(cls.objects.filter(
@@ -64,13 +65,13 @@ class Rule(Model):
 
     def delete(self, *args, **kwargs):
         rv = super(Rule, self).delete(*args, **kwargs)
-        cache_key = 'project:{}:rules'.format(self.project_id)
+        cache_key = u'project:{}:rules'.format(self.project_id)
         cache.delete(cache_key)
         return rv
 
     def save(self, *args, **kwargs):
         rv = super(Rule, self).save(*args, **kwargs)
-        cache_key = 'project:{}:rules'.format(self.project_id)
+        cache_key = u'project:{}:rules'.format(self.project_id)
         cache.delete(cache_key)
         return rv
 

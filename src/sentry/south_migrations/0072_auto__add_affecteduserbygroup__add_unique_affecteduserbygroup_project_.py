@@ -24,13 +24,13 @@ class Migration(SchemaMigration):
                 ('times_seen',
                  self.gf('django.db.models.fields.PositiveIntegerField')(default=0)), (
                      'last_seen', self.gf('django.db.models.fields.DateTimeField')(
-                         default=datetime.datetime.now, db_index=True
+                         db_index=True
                      )
-                 ), (
+                ), (
                      'first_seen', self.gf('django.db.models.fields.DateTimeField')(
-                         default=datetime.datetime.now, db_index=True
+                         db_index=True
                      )
-                 ),
+                ),
             )
         )
         db.send_create_signal('sentry', ['AffectedUserByGroup'])

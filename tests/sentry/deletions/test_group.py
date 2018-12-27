@@ -3,9 +3,10 @@ from __future__ import absolute_import
 from uuid import uuid4
 
 from sentry import tagstore
+from sentry.tagstore.models import EventTag
 from sentry.models import (
-    Event, EventMapping, Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect,
-    ScheduledDeletion
+    Event, EventAttachment, EventMapping, File, Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect,
+    ScheduledDeletion, UserReport
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
@@ -23,12 +24,42 @@ class DeleteGroupTest(TestCase):
             event_id='a' * 32,
             group_id=group.id,
         )
-        tagstore.create_event_tag(
+        EventAttachment.objects.create(
+            event_id=event.event_id,
+            group_id=event.group_id,
+            project_id=event.project_id,
+            file=File.objects.create(
+                name='hello.png',
+                type='image/png',
+            ),
+            name='hello.png',
+        )
+        UserReport.objects.create(
+            group_id=group.id,
+            project_id=event.project_id,
+            name='Jane Doe',
+        )
+        key = 'key'
+        value = 'value'
+        tk = tagstore.create_tag_key(
+            project_id=project.id,
+            environment_id=self.environment.id,
+            key=key
+        )
+        tv = tagstore.create_tag_value(
+            project_id=project.id,
+            environment_id=self.environment.id,
+            key=key,
+            value=value
+        )
+        tagstore.create_event_tags(
             event_id=event.id,
             group_id=group.id,
             project_id=project.id,
-            key_id=1,
-            value_id=1,
+            environment_id=self.environment.id,
+            tags=[
+                (tk.key, tv.value),
+            ],
         )
         GroupAssignee.objects.create(
             group=group,
@@ -57,11 +88,15 @@ class DeleteGroupTest(TestCase):
             run_deletion(deletion.id)
 
         assert not Event.objects.filter(id=event.id).exists()
-        assert not EventMapping.objects.filter(
-            event_id='a' * 32,
+        assert not EventAttachment.objects.filter(
+            event_id=event.event_id,
             group_id=group.id,
         ).exists()
-        assert not tagstore.get_event_tag_qs(event_id=event.id).exists()
+        assert not EventMapping.objects.filter(
+            group_id=group.id,
+        ).exists()
+        assert not EventTag.objects.filter(event_id=event.id).exists()
+        assert not UserReport.objects.filter(group_id=group.id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()

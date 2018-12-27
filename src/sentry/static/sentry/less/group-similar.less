@@ -1,8 +1,6 @@
 // For interface for merging/unmerging events/issues
 // Shares CSS with "stream.less" so some defs are in there
-@import './similar-scores.less';
-
-.similar-list-container, .merged-list-container {
+.similar-list-container {
   h2 {
     font-size: 18px;
     text-transform: uppercase;
@@ -35,6 +33,7 @@
 }
 
 .similar-list {
+  line-height: 16px;
   .group {
     padding-right: 0;
   }
@@ -62,7 +61,6 @@
   }
 }
 .similar-toolbar-actions {
-  /* margin-left: 54px; */
   margin-left: 20px;
   padding: 5px 0;
 }
@@ -83,8 +81,9 @@
   padding: 5px 0;
 
   .hovercard {
-    width: 264px;
-
+    &.hovercard-right:before {
+      right: 13px;
+    }
     &:after {
       right: 13px;
     }
@@ -92,13 +91,6 @@
       min-height: auto;
     }
   }
-}
-
-.similar-score-quantity {
-  height: 16px;
-  width: 48px;
-  border-radius: 2px;
-  .similar-scores;
 }
 
 .similar-items-footer {
@@ -111,7 +103,7 @@
   opacity: 0.3;
 }
 
-@media(max-width: 629px) {
+@media (max-width: 629px) {
   .similar-list-container {
     .event-count-header {
       padding-right: 12px;

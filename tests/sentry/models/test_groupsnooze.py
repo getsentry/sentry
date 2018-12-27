@@ -6,10 +6,10 @@ import pytest
 
 from datetime import datetime, timedelta
 from django.utils import timezone
-from sentry import tagstore
+from sentry import tagstore, tsdb
 from sentry.testutils import TestCase
 from sentry.models import GroupSnooze
-from sentry.tsdb import backend as tsdb
+from six.moves import xrange
 
 
 class GroupSnoozeTest(TestCase):
@@ -70,6 +70,7 @@ class GroupSnoozeTest(TestCase):
         tagstore.create_group_tag_key(
             project_id=self.group.project_id,
             group_id=self.group.id,
+            environment_id=None,
             key='sentry:user',
             values_seen=100,
         )

@@ -3,19 +3,18 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import classNames from 'classnames';
 
-import {selectText} from '../utils/selectText';
-import {t} from '../locale';
-import AutoSelectText from './autoSelectText';
-import Button from './buttons/button';
-import Clipboard from './clipboard';
-import Confirm from './confirm';
-import DropdownReact from './dropdownReact';
-import FlowLayout from './flowLayout';
-import IconCopy from '../icons/icon-copy';
-import IconRefresh from '../icons/icon-refresh';
-import LoadingIndicator from './loadingIndicator';
-import SpreadLayout from './spreadLayout';
-import Switch from './switch';
+import {selectText} from 'app/utils/selectText';
+import {t} from 'app/locale';
+import AutoSelectText from 'app/components/autoSelectText';
+import Button from 'app/components/button';
+import Clipboard from 'app/components/clipboard';
+import Confirm from 'app/components/confirm';
+import DropdownLink from 'app/components/dropdownLink';
+import FlowLayout from 'app/components/flowLayout';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SpreadLayout from 'app/components/spreadLayout';
+import Switch from 'app/components/switch';
+import InlineSvg from 'app/components/inlineSvg';
 
 const BORDER_COLOR = '#dad5df';
 
@@ -26,12 +25,22 @@ class ShareUrlContainer extends React.Component {
     onShare: PropTypes.func,
     onConfirming: PropTypes.func,
     onCancel: PropTypes.func,
-    busy: PropTypes.bool
+    busy: PropTypes.bool,
   };
 
+  // Select URL when its container is clicked
   handleCopyClick = () => {
     if (!this.urlRef) return;
     selectText(ReactDOM.findDOMNode(this.urlRef));
+  };
+
+  handleUrlMount = ref => {
+    this.urlRef = ref;
+
+    if (this.urlRef) {
+      // Always select url if it's available
+      selectText(ReactDOM.findDOMNode(this.urlRef));
+    }
   };
 
   render() {
@@ -44,9 +53,9 @@ class ShareUrlContainer extends React.Component {
           flex: 'none',
           alignItems: 'stretch',
           border: `1px solid ${BORDER_COLOR}`,
-          borderRadius: 4
-        }}>
-
+          borderRadius: 4,
+        }}
+      >
         <div
           style={{
             position: 'relative',
@@ -54,18 +63,20 @@ class ShareUrlContainer extends React.Component {
             flex: 1,
             backgroundColor: !isSharing ? '#f9f7f9' : 'transparent',
             borderRight: `1px solid ${BORDER_COLOR}`,
-            maxWidth: 288
-          }}>
+            maxWidth: 288,
+          }}
+        >
           <AutoSelectText
-            ref={ref => (this.urlRef = ref)}
+            ref={this.handleUrlMount}
             style={{
               flex: 1,
               border: 'none',
-              padding: 4,
+              padding: '4px 6px 4px 10px',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              overflow: 'hidden'
-            }}>
+              overflow: 'hidden',
+            }}
+          >
             {url}
           </AutoSelectText>
         </div>
@@ -76,8 +87,9 @@ class ShareUrlContainer extends React.Component {
               borderless
               size="xsmall"
               onClick={this.handleCopyClick}
-              style={{borderRadius: 0, borderRight: `1px solid ${BORDER_COLOR}`}}>
-              <IconCopy />
+              style={{borderRadius: 0, borderRight: `1px solid ${BORDER_COLOR}`}}
+            >
+              <InlineSvg src="icon-copy" />
             </Button>
           </Clipboard>
 
@@ -87,13 +99,13 @@ class ShareUrlContainer extends React.Component {
             )}
             onCancel={onCancel}
             onConfirming={onConfirming}
-            onConfirm={onShare}>
+            onConfirm={onShare}
+          >
             <Button borderless size="xsmall">
-              <IconRefresh />
+              <InlineSvg src="icon-refresh" />
             </Button>
           </Confirm>
         </FlowLayout>
-
       </FlowLayout>
     );
   }
@@ -105,8 +117,9 @@ const SmallHeading = ({children, ...props}) => (
     style={{
       margin: 0,
       paddingRight: 30,
-      whiteSpace: 'nowrap'
-    }}>
+      whiteSpace: 'nowrap',
+    }}
+  >
     {children}
   </h6>
 );
@@ -119,12 +132,12 @@ const IndicatorDot = ({active}) => (
       borderRadius: '50%',
       width: 10,
       height: 10,
-      background: active ? '#57be8c' : '#dfdbe4'
+      background: active ? '#57be8c' : '#dfdbe4',
     }}
   />
 );
 IndicatorDot.propTypes = {
-  active: PropTypes.bool
+  active: PropTypes.bool,
 };
 
 class ShareIssue extends React.Component {
@@ -133,7 +146,7 @@ class ShareIssue extends React.Component {
     shareUrl: PropTypes.string,
     busy: PropTypes.bool,
     onToggle: PropTypes.func.isRequired,
-    onShare: PropTypes.func.isRequired
+    onShare: PropTypes.func.isRequired,
   };
 
   constructor(props) {
@@ -163,6 +176,13 @@ class ShareIssue extends React.Component {
     this.hasConfirmModal = false;
   };
 
+  // Should share URL if
+  handleOpen = () => {
+    if (!this.props.isSharing) {
+      this.handleShare();
+    }
+  };
+
   // State of confirm modal so we can keep dropdown menu opn
   handleConfirmCancel = e => (this.hasConfirmModal = false);
   handleConfirmReshare = () => (this.hasConfirmModal = true);
@@ -174,7 +194,7 @@ class ShareIssue extends React.Component {
 
     let shareTitle = 'Share';
 
-    // Needs to wrap in an inline block for DropdownReact,
+    // Needs to wrap in an inline block for DropdownLink,
     // or else dropdown icon gets wrapped?
     const title = (
       <div style={{marginRight: 4}}>
@@ -186,38 +206,41 @@ class ShareIssue extends React.Component {
     );
 
     return (
-      <DropdownReact
+      <DropdownLink
         className={cx}
         shouldIgnoreClickOutside={() => this.hasConfirmModal}
         title={title}
-        keepMenuOpen>
+        onOpen={this.handleOpen}
+        keepMenuOpen
+      >
         <li
           style={{
-            padding: '12px 18px'
+            padding: '12px 18px',
           }}
-          ref={ref => (this.container = ref)}>
+          ref={ref => (this.container = ref)}
+        >
           <SpreadLayout style={{marginBottom: busy || isSharing ? 12 : undefined}}>
-            <SmallHeading>
-              {t('Enable public share link')}
-            </SmallHeading>
+            <SmallHeading>{t('Enable public share link')}</SmallHeading>
             <Switch isActive={isSharing} size="sm" toggle={this.handleToggleShare} />
           </SpreadLayout>
 
-          {busy &&
+          {busy && (
             <FlowLayout center>
               <LoadingIndicator mini />
-            </FlowLayout>}
+            </FlowLayout>
+          )}
 
           {!busy &&
-            isSharing &&
-            <ShareUrlContainer
-              {...this.props}
-              onCancel={this.handleConfirmCancel}
-              onConfirming={this.handleConfirmReshare}
-              onShare={this.handleShare}
-            />}
+            isSharing && (
+              <ShareUrlContainer
+                {...this.props}
+                onCancel={this.handleConfirmCancel}
+                onConfirming={this.handleConfirmReshare}
+                onShare={this.handleShare}
+              />
+            )}
         </li>
-      </DropdownReact>
+      </DropdownLink>
     );
   }
 }

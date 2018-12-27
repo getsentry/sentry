@@ -51,7 +51,14 @@ Renderer.prototype.image = function(href, title, text) {
 marked.setOptions({
   renderer: new Renderer(),
   // Disable all HTML input and only accept Markdown
-  sanitize: true
+  sanitize: true,
 });
 
+const noParagraphRenderer = new Renderer();
+noParagraphRenderer.paragraph = s => s;
+
+const singleLineRenderer = (text, options) =>
+  marked(text, {...options, renderer: noParagraphRenderer});
+
 export default marked;
+export {singleLineRenderer};

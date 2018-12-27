@@ -15,23 +15,13 @@ from django.template.response import TemplateResponse
 from django.utils.translation import ugettext, ugettext_lazy as _
 from pprint import saferepr
 from sentry.models import (
-    ApiKey, AuthIdentity, AuthProvider, AuditLogEntry, Broadcast, Option, Organization,
+    ApiKey, AuthIdentity, AuthProvider, AuditLogEntry, Option, Organization,
     OrganizationMember, Project, Team, User
 )
 from sentry.utils.html import escape
 
 csrf_protect_m = method_decorator(csrf_protect)
 sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
-
-
-class BroadcastAdmin(admin.ModelAdmin):
-    list_display = ('title', 'message', 'is_active', 'date_added')
-    list_filter = ('is_active', )
-    search_fields = ('title', 'message', 'link')
-    readonly_fields = ('upstream_id', 'date_added')
-
-
-admin.site.register(Broadcast, BroadcastAdmin)
 
 
 class OptionAdmin(admin.ModelAdmin):
@@ -41,7 +31,7 @@ class OptionAdmin(admin.ModelAdmin):
     search_fields = ('key', )
 
     def value_repr(self, instance):
-        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
+        return u'<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
             escape(saferepr(instance.value))
         )
 
@@ -56,9 +46,9 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'organization', 'status', 'date_added')
     list_filter = ('status', 'public')
     search_fields = (
-        'name', 'organization__slug', 'organization__name', 'team__slug', 'team__name', 'slug'
+        'name', 'organization__slug', 'organization__name', 'slug'
     )
-    raw_id_fields = ('team', 'organization')
+    raw_id_fields = ('organization',)
     readonly_fields = ('first_event', 'date_added')
 
 
@@ -76,7 +66,7 @@ class OrganizationProjectInline(admin.TabularInline):
     model = Project
     extra = 1
     fields = ('name', 'slug', 'status', 'date_added')
-    raw_id_fields = ('organization', 'team')
+    raw_id_fields = ('organization',)
 
 
 class OrganizationTeamInline(admin.TabularInline):
@@ -134,19 +124,11 @@ class AuthIdentityAdmin(admin.ModelAdmin):
 admin.site.register(AuthIdentity, AuthIdentityAdmin)
 
 
-class TeamProjectInline(admin.TabularInline):
-    model = Project
-    extra = 1
-    fields = ('name', 'slug')
-    raw_id_fields = ('organization', 'team')
-
-
 class TeamAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'organization', 'status', 'date_added')
     list_filter = ('status', )
     search_fields = ('name', 'organization__name', 'slug')
     raw_id_fields = ('organization', )
-    inlines = (TeamProjectInline, )
 
     def save_model(self, request, obj, form, change):
         prev_org = obj.organization_id

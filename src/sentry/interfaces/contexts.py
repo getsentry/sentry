@@ -15,6 +15,7 @@ from django.utils.encoding import force_text
 
 from sentry.utils.safe import trim
 from sentry.interfaces.base import Interface
+from sentry.utils.contexts_normalization import normalize_os, normalize_runtime
 
 __all__ = ('Contexts', )
 
@@ -121,6 +122,10 @@ class RuntimeContextType(ContextType):
         'name': u'{name}',
     }
 
+    def __init__(self, alias, data):
+        normalize_runtime(data)
+        super(RuntimeContextType, self).__init__(alias, data)
+
 
 @contexttype
 class BrowserContextType(ContextType):
@@ -142,6 +147,19 @@ class OsContextType(ContextType):
     }
     # build, rooted
 
+    def __init__(self, alias, data):
+        normalize_os(data)
+        super(OsContextType, self).__init__(alias, data)
+
+
+@contexttype
+class GpuContextType(ContextType):
+    type = 'gpu'
+    indexed_fields = {
+        'name': u'{name}',
+        'vendor': u'{vendor_name}',
+    }
+
 
 class Contexts(Interface):
     """
@@ -154,7 +172,8 @@ class Contexts(Interface):
     def to_python(cls, data):
         rv = {}
         for alias, value in six.iteritems(data):
-            rv[alias] = cls.normalize_context(alias, value)
+            if value is not None:
+                rv[alias] = cls.normalize_context(alias, value)
         return cls(**rv)
 
     @classmethod

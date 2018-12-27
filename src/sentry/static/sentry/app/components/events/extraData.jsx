@@ -1,32 +1,34 @@
 import React from 'react';
 
-import SentryTypes from '../../proptypes';
-import {objectToArray} from '../../utils';
-import EventDataSection from './eventDataSection';
-import KeyValueList from './interfaces/keyValueList';
-import {t} from '../../locale';
+import {objectToArray} from 'app/utils';
+import {t} from 'app/locale';
+import ErrorBoundary from 'app/components/errorBoundary';
+import EventDataSection from 'app/components/events/eventDataSection';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import SentryTypes from 'app/sentryTypes';
 
-const EventExtraData = React.createClass({
-  propTypes: {
+class EventExtraData extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired
-  },
+    event: SentryTypes.Event.isRequired,
+  };
 
-  getInitialState() {
-    return {
-      raw: false
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      raw: false,
     };
-  },
+  }
 
   shouldComponentUpdate(nextProps, nextState) {
     return this.props.event.id !== nextProps.event.id || this.state.raw !== nextState.raw;
-  },
+  }
 
-  toggleRaw(shouldBeRaw) {
+  toggleRaw = shouldBeRaw => {
     this.setState({
-      raw: shouldBeRaw
+      raw: shouldBeRaw,
     });
-  },
+  };
 
   render() {
     let extraDataArray = objectToArray(this.props.event.context);
@@ -38,12 +40,19 @@ const EventExtraData = React.createClass({
           type="extra"
           title={t('Additional Data')}
           toggleRaw={this.toggleRaw}
-          raw={this.state.raw}>
-          <KeyValueList data={extraDataArray} isContextData={true} raw={this.state.raw} />
+          raw={this.state.raw}
+        >
+          <ErrorBoundary mini>
+            <KeyValueList
+              data={extraDataArray}
+              isContextData={true}
+              raw={this.state.raw}
+            />
+          </ErrorBoundary>
         </EventDataSection>
       </div>
     );
   }
-});
+}
 
 export default EventExtraData;

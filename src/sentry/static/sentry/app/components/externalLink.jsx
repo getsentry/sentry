@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import '../../less/components/externalLink.less';
 
 /**
  * Use this component when creating external links.
@@ -15,11 +14,11 @@ export default function ExternalLink({href, ...otherProps}) {
 ExternalLink.propTypes = {
   href: PropTypes.string.isRequired,
   target: PropTypes.string,
-  rel: PropTypes.string
+  rel: PropTypes.string,
 };
 
 // Should we allow these to be overridden?
 ExternalLink.defaultProps = {
   target: '_blank',
-  rel: 'noreferrer noopener'
+  rel: 'noreferrer noopener',
 };

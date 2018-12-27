@@ -1,39 +1,49 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
-<div
-  className="event-extra"
+<GroupExtra
+  align="center"
 >
-  <ul>
-    <li>
-      <ShortId
-        shortId="shortId"
-      />
-    </li>
-    <li>
-      <span
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-      <span>
-         — 
-      </span>
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </li>
-    <li>
+  <Box
+    mr={2}
+  >
+    <GroupShortId
+      shortId="shortId"
+    />
+  </Box>
+  <Flex
+    align="center"
+    mr={2}
+  >
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
+    <span
+      className="hidden-xs hidden-sm"
+    >
+       — 
+    </span>
+    <TimeSince
+      className="hidden-xs hidden-sm"
+      date="2017-07-01T02:06:02Z"
+      suffix="old"
+    />
+  </Flex>
+  <GroupExtraCommentsAndLogger>
+    <Box
+      mr={2}
+    >
       <Link
         className="comments"
         onlyActiveOnIndex={false}
         style={Object {}}
         to="/orgId/projectId/issues/groupId/activity/"
       >
-        <span
+        <GroupExtraIcon
           className="icon icon-comments"
           style={
             Object {
@@ -41,15 +51,16 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
             }
           }
         />
-        <span
+        <GroupExtraIcon
           className="tag-count"
         >
           14
-        </span>
+        </GroupExtraIcon>
       </Link>
-    </li>
-    <li
+    </Box>
+    <Box
       className="event-annotation"
+      mr={2}
     >
       <Link
         onlyActiveOnIndex={false}
@@ -65,73 +76,86 @@ exports[`EventOrGroupExtraDetails details when mentioned 1`] = `
       >
         javascript logger
       </Link>
-    </li>
-    <li
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation1",
-        }
+    </Box>
+  </GroupExtraCommentsAndLogger>
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation1",
       }
-    />
-    <li
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation2",
-        }
+    }
+    key="0"
+  />
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation2",
       }
-    />
-  </ul>
-</div>
+    }
+    key="1"
+  />
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders all details 1`] = `
-<div
-  className="event-extra"
+<GroupExtra
+  align="center"
 >
-  <ul>
-    <li>
-      <ShortId
-        shortId="shortId"
-      />
-    </li>
-    <li>
-      <span
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-      <span>
-         — 
-      </span>
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </li>
-    <li>
+  <Box
+    mr={2}
+  >
+    <GroupShortId
+      shortId="shortId"
+    />
+  </Box>
+  <Flex
+    align="center"
+    mr={2}
+  >
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
+    <span
+      className="hidden-xs hidden-sm"
+    >
+       — 
+    </span>
+    <TimeSince
+      className="hidden-xs hidden-sm"
+      date="2017-07-01T02:06:02Z"
+      suffix="old"
+    />
+  </Flex>
+  <GroupExtraCommentsAndLogger>
+    <Box
+      mr={2}
+    >
       <Link
         className="comments"
         onlyActiveOnIndex={false}
         style={Object {}}
         to="/orgId/projectId/issues/groupId/activity/"
       >
-        <span
+        <GroupExtraIcon
           className="icon icon-comments"
           style={Object {}}
         />
-        <span
+        <GroupExtraIcon
           className="tag-count"
         >
           14
-        </span>
+        </GroupExtraIcon>
       </Link>
-    </li>
-    <li
+    </Box>
+    <Box
       className="event-annotation"
+      mr={2}
     >
       <Link
         onlyActiveOnIndex={false}
@@ -147,73 +171,86 @@ exports[`EventOrGroupExtraDetails renders all details 1`] = `
       >
         javascript logger
       </Link>
-    </li>
-    <li
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation1",
-        }
+    </Box>
+  </GroupExtraCommentsAndLogger>
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation1",
       }
-    />
-    <li
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation2",
-        }
+    }
+    key="0"
+  />
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation2",
       }
-    />
-  </ul>
-</div>
+    }
+    key="1"
+  />
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
-<div
-  className="event-extra"
+<GroupExtra
+  align="center"
 >
-  <ul>
-    <li>
-      <ShortId
-        shortId="shortId"
-      />
-    </li>
-    <li>
-      <span
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-      <span>
-         — 
-      </span>
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </li>
-    <li>
+  <Box
+    mr={2}
+  >
+    <GroupShortId
+      shortId="shortId"
+    />
+  </Box>
+  <Flex
+    align="center"
+    mr={2}
+  >
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
+    <span
+      className="hidden-xs hidden-sm"
+    >
+       — 
+    </span>
+    <TimeSince
+      className="hidden-xs hidden-sm"
+      date="2017-07-01T02:06:02Z"
+      suffix="old"
+    />
+  </Flex>
+  <GroupExtraCommentsAndLogger>
+    <Box
+      mr={2}
+    >
       <Link
         className="comments"
         onlyActiveOnIndex={false}
         style={Object {}}
         to="/orgId/projectId/issues/groupId/activity/"
       >
-        <span
+        <GroupExtraIcon
           className="icon icon-comments"
           style={Object {}}
         />
-        <span
+        <GroupExtraIcon
           className="tag-count"
         >
           14
-        </span>
+        </GroupExtraIcon>
       </Link>
-    </li>
-    <li
+    </Box>
+    <Box
       className="event-annotation"
+      mr={2}
     >
       <Link
         onlyActiveOnIndex={false}
@@ -229,88 +266,109 @@ exports[`EventOrGroupExtraDetails renders assignee and status 1`] = `
       >
         javascript logger
       </Link>
-    </li>
-    <li
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation1",
-        }
+    </Box>
+  </GroupExtraCommentsAndLogger>
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation1",
       }
-    />
-    <li
-      className="event-annotation"
-      dangerouslySetInnerHTML={
-        Object {
-          "__html": "annotation2",
-        }
+    }
+    key="0"
+  />
+  <Box
+    className="event-annotation"
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "annotation2",
       }
-    />
-    <li>
-      Assigned to 
-      Assignee Name
-    </li>
-  </ul>
-</div>
+    }
+    key="1"
+  />
+  <Box>
+    <span
+      key="4"
+    >
+      <span
+        key="0"
+      >
+        Assigned to 
+      </span>
+      <span
+        key="2"
+      >
+        Assignee Name
+      </span>
+    </span>
+  </Box>
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders last and first seen 1`] = `
-<div
-  className="event-extra"
+<GroupExtra
+  align="center"
 >
-  <ul>
-    <li>
-      <span
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-      <span>
-         — 
-      </span>
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </li>
-  </ul>
-</div>
+  <Flex
+    align="center"
+    mr={2}
+  >
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
+    <span
+      className="hidden-xs hidden-sm"
+    >
+       — 
+    </span>
+    <TimeSince
+      className="hidden-xs hidden-sm"
+      date="2017-07-01T02:06:02Z"
+      suffix="old"
+    />
+  </Flex>
+  <GroupExtraCommentsAndLogger />
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders only first seen 1`] = `
-<div
-  className="event-extra"
+<GroupExtra
+  align="center"
 >
-  <ul>
-    <li>
-      <span
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-01T02:06:02Z"
-        suffix="old"
-      />
-    </li>
-  </ul>
-</div>
+  <Flex
+    align="center"
+    mr={2}
+  >
+    <TimeSince
+      className="hidden-xs hidden-sm"
+      date="2017-07-01T02:06:02Z"
+      suffix="old"
+    />
+  </Flex>
+  <GroupExtraCommentsAndLogger />
+</GroupExtra>
 `;
 
 exports[`EventOrGroupExtraDetails renders only last seen 1`] = `
-<div
-  className="event-extra"
+<GroupExtra
+  align="center"
 >
-  <ul>
-    <li>
-      <span
-        className="icon icon-clock"
-      />
-      <TimeSince
-        date="2017-07-25T22:56:12Z"
-        suffix="ago"
-      />
-    </li>
-  </ul>
-</div>
+  <Flex
+    align="center"
+    mr={2}
+  >
+    <GroupExtraIcon
+      className="icon icon-clock"
+    />
+    <TimeSince
+      date="2017-07-25T22:56:12Z"
+      suffix="ago"
+    />
+  </Flex>
+  <GroupExtraCommentsAndLogger />
+</GroupExtra>
 `;

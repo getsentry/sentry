@@ -1,8 +1,8 @@
 import React from 'react';
 
-import {t} from '../../locale';
+import {t} from 'app/locale';
 
-const TeamStatsBar = React.createClass({
+class TeamStatsBar extends React.Component {
   render() {
     return (
       <div className="row team-stats">
@@ -25,6 +25,6 @@ const TeamStatsBar = React.createClass({
       </div>
     );
   }
-});
+}
 
 export default TeamStatsBar;

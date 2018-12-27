@@ -6,6 +6,7 @@ sentry.models.auditlogentry
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import, print_function
+import six
 
 from django.db import models
 from django.utils import timezone
@@ -13,6 +14,7 @@ from django.utils import timezone
 from sentry.db.models import (
     Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, sane_repr
 )
+from sentry.utils.strings import truncatechars
 
 
 class AuditLogEntryEvent(object):
@@ -23,6 +25,7 @@ class AuditLogEntryEvent(object):
     MEMBER_REMOVE = 5
     MEMBER_JOIN_TEAM = 6
     MEMBER_LEAVE_TEAM = 7
+    MEMBER_PENDING = 8
 
     ORG_ADD = 10
     ORG_EDIT = 11
@@ -62,6 +65,20 @@ class AuditLogEntryEvent(object):
     RULE_EDIT = 81
     RULE_REMOVE = 82
 
+    SET_ONDEMAND = 90
+    TRIAL_STARTED = 91
+    PLAN_CHANGED = 92
+
+    SERVICEHOOK_ADD = 100
+    SERVICEHOOK_EDIT = 101
+    SERVICEHOOK_REMOVE = 102
+    SERVICEHOOK_ENABLE = 103
+    SERVICEHOOK_DISABLE = 104
+
+    INTEGRATION_ADD = 110
+    INTEGRATION_EDIT = 111
+    INTEGRATION_REMOVE = 112
+
 
 class AuditLogEntry(Model):
     __core__ = False
@@ -87,6 +104,7 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.MEMBER_EDIT, 'member.edit'),
             (AuditLogEntryEvent.MEMBER_JOIN_TEAM, 'member.join-team'),
             (AuditLogEntryEvent.MEMBER_LEAVE_TEAM, 'member.leave-team'),
+            (AuditLogEntryEvent.MEMBER_PENDING, 'member.pending'),
             (AuditLogEntryEvent.TEAM_ADD, 'team.create'),
             (AuditLogEntryEvent.TEAM_EDIT, 'team.edit'),
             (AuditLogEntryEvent.TEAM_REMOVE, 'team.remove'),
@@ -117,6 +135,19 @@ class AuditLogEntry(Model):
             (AuditLogEntryEvent.RULE_ADD, 'rule.create'),
             (AuditLogEntryEvent.RULE_EDIT, 'rule.edit'),
             (AuditLogEntryEvent.RULE_REMOVE, 'rule.remove'),
+
+            (AuditLogEntryEvent.SERVICEHOOK_ADD, 'serivcehook.create'),
+            (AuditLogEntryEvent.SERVICEHOOK_EDIT, 'serivcehook.edit'),
+            (AuditLogEntryEvent.SERVICEHOOK_REMOVE, 'serivcehook.remove'),
+            (AuditLogEntryEvent.SERVICEHOOK_ENABLE, 'serivcehook.enable'),
+            (AuditLogEntryEvent.SERVICEHOOK_DISABLE, 'serivcehook.disable'),
+            (AuditLogEntryEvent.INTEGRATION_ADD, 'integration.add'),
+            (AuditLogEntryEvent.INTEGRATION_EDIT, 'integration.edit'),
+            (AuditLogEntryEvent.INTEGRATION_REMOVE, 'integration.remove'),
+
+            (AuditLogEntryEvent.SET_ONDEMAND, 'ondemand.edit'),
+            (AuditLogEntryEvent.TRIAL_STARTED, 'trial.started'),
+            (AuditLogEntryEvent.PLAN_CHANGED, 'plan.changed'),
         )
     )
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
@@ -161,8 +192,10 @@ class AuditLogEntry(Model):
                 self.data.get('email') or self.target_user.get_display_name(),
             )
         elif self.event == AuditLogEntryEvent.MEMBER_EDIT:
-            return 'edited member %s' % (
+            return 'edited member %s (role: %s, teams: %s)' % (
                 self.data.get('email') or self.target_user.get_display_name(),
+                self.data.get('role') or 'N/A',
+                ', '.join(six.text_type(x) for x in self.data.get('team_slugs', [])) or 'N/A',
             )
         elif self.event == AuditLogEntryEvent.MEMBER_JOIN_TEAM:
             if self.target_user == self.actor:
@@ -178,11 +211,16 @@ class AuditLogEntry(Model):
                 self.data.get('email') or self.target_user.get_display_name(),
                 self.data['team_slug'],
             )
+        elif self.event == AuditLogEntryEvent.MEMBER_PENDING:
+            return 'required member %s to setup 2FA' % (
+                self.data.get('email') or self.target_user.get_display_name(),
+            )
 
         elif self.event == AuditLogEntryEvent.ORG_ADD:
             return 'created the organization'
         elif self.event == AuditLogEntryEvent.ORG_EDIT:
-            return 'edited the organization'
+            return 'edited the organization setting: ' + (', '.join(u'{} {}'.format(k, v)
+                                                                    for k, v in self.data.items()))
         elif self.event == AuditLogEntryEvent.ORG_REMOVE:
             return 'removed the organization'
         elif self.event == AuditLogEntryEvent.ORG_RESTORE:
@@ -198,7 +236,8 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.PROJECT_ADD:
             return 'created project %s' % (self.data['slug'], )
         elif self.event == AuditLogEntryEvent.PROJECT_EDIT:
-            return 'edited project %s' % (self.data['slug'], )
+            return 'edited project settings ' + (' '.join([' in %s to %s' % (key, value)
+                                                           for (key, value) in six.iteritems(self.data)]))
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return 'removed project %s' % (self.data['slug'], )
         elif self.event == AuditLogEntryEvent.PROJECT_REQUEST_TRANSFER:
@@ -242,5 +281,35 @@ class AuditLogEntry(Model):
             return 'edited rule "%s"' % (self.data['label'], )
         elif self.event == AuditLogEntryEvent.RULE_REMOVE:
             return 'removed rule "%s"' % (self.data['label'], )
+
+        elif self.event == AuditLogEntryEvent.SET_ONDEMAND:
+            if self.data['ondemand'] == -1:
+                return 'changed on-demand spend to unlimited'
+            return 'changed on-demand max spend to $%d' % (self.data['ondemand'] / 100, )
+        elif self.event == AuditLogEntryEvent.TRIAL_STARTED:
+            return 'started trial'
+        elif self.event == AuditLogEntryEvent.PLAN_CHANGED:
+            return 'changed plan to %s' % (self.data['plan_name'], )
+
+        elif self.event == AuditLogEntryEvent.SERVICEHOOK_ADD:
+            return 'added a service hook for "%s"' % (truncatechars(self.data['url'], 64), )
+        elif self.event == AuditLogEntryEvent.SERVICEHOOK_EDIT:
+            return 'edited the service hook for "%s"' % (truncatechars(self.data['url'], 64), )
+        elif self.event == AuditLogEntryEvent.SERVICEHOOK_REMOVE:
+            return 'removed the service hook for "%s"' % (truncatechars(self.data['url'], 64), )
+        elif self.event == AuditLogEntryEvent.SERVICEHOOK_ENABLE:
+            return 'enabled theservice hook for "%s"' % (truncatechars(self.data['url'], 64), )
+        elif self.event == AuditLogEntryEvent.SERVICEHOOK_DISABLE:
+            return 'disabled the service hook for "%s"' % (truncatechars(self.data['url'], 64), )
+
+        elif self.event == AuditLogEntryEvent.INTEGRATION_ADD:
+            return 'enabled integration %s for project %s' % (
+                self.data['integration'], self.data['project'])
+        elif self.event == AuditLogEntryEvent.INTEGRATION_EDIT:
+            return 'edited integration %s for project %s' % (
+                self.data['integration'], self.data['project'])
+        elif self.event == AuditLogEntryEvent.INTEGRATION_REMOVE:
+            return 'disabled integration %s from project %s' % (
+                self.data['integration'], self.data['project'])
 
         return ''

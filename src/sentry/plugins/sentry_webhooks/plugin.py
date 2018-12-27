@@ -79,6 +79,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             'id': six.text_type(group.id),
             'project': group.project.slug,
             'project_name': group.project.name,
+            'project_slug': group.project.slug,
             'logger': event.get_tag('logger'),
             'level': event.get_tag('level'),
             'culprit': group.culprit,

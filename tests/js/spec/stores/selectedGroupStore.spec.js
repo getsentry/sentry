@@ -2,27 +2,30 @@ import GroupStore from 'app/stores/groupStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 
 describe('SelectedGroupStore', function() {
+  let sandbox;
+  let trigger;
+
   beforeEach(function() {
     SelectedGroupStore.records = {};
 
-    this.sandbox = sinon.sandbox.create();
-    this.trigger = this.sandbox.spy(SelectedGroupStore, 'trigger');
+    sandbox = sinon.sandbox.create();
+    trigger = sandbox.spy(SelectedGroupStore, 'trigger');
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('prune()', function() {
     it('removes records no longer in the GroupStore', function() {
-      this.sandbox.stub(GroupStore, 'getAllItemIds', () => ['3']);
+      sandbox.stub(GroupStore, 'getAllItemIds', () => ['3']);
       SelectedGroupStore.records = {1: true, 2: true, 3: true};
       SelectedGroupStore.prune();
       expect(SelectedGroupStore.records).toEqual({3: true});
     });
 
-    it('doesn\'t have any effect when already in sync', function() {
-      this.sandbox.stub(GroupStore, 'getAllItemIds', () => ['1', '2', '3']);
+    it("doesn't have any effect when already in sync", function() {
+      sandbox.stub(GroupStore, 'getAllItemIds', () => ['1', '2', '3']);
       SelectedGroupStore.records = {1: true, 2: true, 3: true};
       SelectedGroupStore.prune();
       expect(SelectedGroupStore.records).toEqual({1: true, 2: true, 3: true});
@@ -30,7 +33,7 @@ describe('SelectedGroupStore', function() {
   });
 
   describe('add()', function() {
-    it('defaults value of new ids to \'allSelected()\'', function() {
+    it("defaults value of new ids to 'allSelected()'", function() {
       SelectedGroupStore.records = {1: true};
       SelectedGroupStore.add([2]);
       expect(SelectedGroupStore.records).toEqual({1: true, 2: true});
@@ -44,24 +47,27 @@ describe('SelectedGroupStore', function() {
   });
 
   describe('onGroupChange()', function() {
+    let prune;
+    let add;
+
     beforeEach(function() {
-      this.prune = this.sandbox.stub(SelectedGroupStore, 'prune');
-      this.add = this.sandbox.stub(SelectedGroupStore, 'add');
+      prune = sandbox.stub(SelectedGroupStore, 'prune');
+      add = sandbox.stub(SelectedGroupStore, 'add');
     });
 
     it('adds new ids', function() {
       SelectedGroupStore.onGroupChange([]);
-      expect(this.add.called).toBe(true);
+      expect(add.called).toBe(true);
     });
 
     it('prunes stale records', function() {
       SelectedGroupStore.onGroupChange([]);
-      expect(this.prune.called).toBe(true);
+      expect(prune.called).toBe(true);
     });
 
     it('triggers an update', function() {
       SelectedGroupStore.onGroupChange([]);
-      expect(this.trigger.called).toBe(true);
+      expect(trigger.called).toBe(true);
     });
   });
 
@@ -157,7 +163,7 @@ describe('SelectedGroupStore', function() {
 
     it('triggers an update', function() {
       SelectedGroupStore.deselectAll();
-      expect(this.trigger.called).toBe(true);
+      expect(trigger.called).toBe(true);
     });
   });
 
@@ -178,12 +184,12 @@ describe('SelectedGroupStore', function() {
     it('triggers an update given pre-existing id', function() {
       SelectedGroupStore.records = {1: true};
       SelectedGroupStore.toggleSelect(1);
-      expect(this.trigger.called).toBe(true);
+      expect(trigger.called).toBe(true);
     });
 
     it('does not trigger an update given unknown id', function() {
       SelectedGroupStore.toggleSelect();
-      expect(this.trigger.called).toBe(false);
+      expect(trigger.called).toBe(false);
     });
   });
 
@@ -202,7 +208,7 @@ describe('SelectedGroupStore', function() {
 
     it('triggers an update', function() {
       SelectedGroupStore.toggleSelectAll();
-      expect(this.trigger.called).toBe(true);
+      expect(trigger.called).toBe(true);
     });
   });
 });

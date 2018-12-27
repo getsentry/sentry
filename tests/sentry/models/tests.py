@@ -48,7 +48,7 @@ class ProjectKeyTest(TestCase):
     def test_key_is_created_for_project(self):
         self.create_user('admin@example.com')
         team = self.create_team(name='Test')
-        project = self.create_project(name='Test', team=team)
+        project = self.create_project(name='Test', teams=[team])
         assert project.key_set.exists() is True
 
 
@@ -65,7 +65,7 @@ class LostPasswordTest(TestCase):
         request.META['REMOTE_ADDR'] = '1.1.1.1'
 
         with self.options({'system.url-prefix': 'http://testserver'}), self.tasks():
-            self.password_hash.send_recover_mail(request)
+            self.password_hash.send_email(request)
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]

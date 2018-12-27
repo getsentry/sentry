@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
 import six
-import uuid
 
 from symbolic import ProguardMappingView
 from sentry.plugins import Plugin2
 from sentry.stacktraces import StacktraceProcessor
-from sentry.models import ProjectDSymFile, EventError
+from sentry.models import ProjectDebugFile, EventError
 from sentry.reprocessing import report_processing_issue
 
 FRAME_CACHE_VERSION = 2
@@ -22,7 +21,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             self.debug_meta = debug_meta
             for img in debug_meta['images']:
                 if img['type'] == 'proguard':
-                    self.images.add(uuid.UUID(img['uuid']))
+                    self.images.add(six.text_type(img['uuid']).lower())
         else:
             self.available = False
 
@@ -42,17 +41,18 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         if not self.available:
             return False
 
-        dsym_paths = ProjectDSymFile.dsymcache.fetch_dsyms(self.project, self.images)
+        dif_paths = ProjectDebugFile.difcache.fetch_difs(
+            self.project, self.images, features=['mapping'])
         self.mapping_views = []
 
-        for image_uuid in self.images:
+        for debug_id in self.images:
             error_type = None
 
-            dsym_path = dsym_paths.get(image_uuid)
-            if dsym_path is None:
+            dif_path = dif_paths.get(debug_id)
+            if dif_path is None:
                 error_type = EventError.PROGUARD_MISSING_MAPPING
             else:
-                view = ProguardMappingView.from_path(dsym_path)
+                view = ProguardMappingView.from_path(dif_path)
                 if not view.has_line_info:
                     error_type = EventError.PROGUARD_MISSING_LINENO
                 else:
@@ -64,17 +64,19 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             self.data.setdefault('errors',
                                  []).append({
                                      'type': error_type,
-                                     'mapping_uuid': image_uuid,
+                                     'mapping_uuid': debug_id,
                                  })
             report_processing_issue(
                 self.data,
                 scope='proguard',
-                object='mapping:%s' % image_uuid,
+                object='mapping:%s' % debug_id,
                 type=error_type,
                 data={
-                    'mapping_uuid': image_uuid,
+                    'mapping_uuid': debug_id,
                 }
             )
+
+        return True
 
     def process_frame(self, processable_frame, processing_task):
         new_module = None

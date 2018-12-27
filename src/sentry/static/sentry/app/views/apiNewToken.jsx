@@ -1,26 +1,30 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 
-import AsyncView from './asyncView';
-import {API_SCOPES, DEFAULT_API_SCOPES} from '../constants';
-import NarrowLayout from '../components/narrowLayout';
-import {ApiForm, MultipleCheckboxField} from '../components/forms';
-import {t, tct} from '../locale';
+import AsyncView from 'app/views/asyncView';
+import {API_SCOPES, DEFAULT_API_SCOPES} from 'app/constants';
+import NarrowLayout from 'app/components/narrowLayout';
+import {ApiForm, MultipleCheckboxField} from 'app/components/forms';
+import {t, tct} from 'app/locale';
 
 const SORTED_DEFAULT_API_SCOPES = DEFAULT_API_SCOPES.sort();
 const API_CHOICES = API_SCOPES.map(s => [s, s]);
 
 export default class ApiNewToken extends AsyncView {
+  getEndpoints() {
+    return [];
+  }
+
   getTitle() {
     return 'Create API Token';
   }
 
   onCancel() {
-    browserHistory.pushState(null, '/api/');
+    browserHistory.push('/api/');
   }
 
   onSubmitSuccess() {
-    browserHistory.pushState(null, '/api/');
+    browserHistory.push('/api/');
   }
 
   renderBody() {
@@ -37,7 +41,7 @@ export default class ApiNewToken extends AsyncView {
           {tct(
             'For more information on how to use the web API, see our [link:documentation].',
             {
-              link: <a href="https://docs.sentry.io/hosted/api/" />
+              link: <a href="https://docs.sentry.io/hosted/api/" />,
             }
           )}
         </p>
@@ -47,7 +51,8 @@ export default class ApiNewToken extends AsyncView {
           className="form-stacked api-new-token"
           initialData={{scopes: SORTED_DEFAULT_API_SCOPES}}
           onSubmitSuccess={this.onSubmitSuccess}
-          onCancel={this.onCancel}>
+          onCancel={this.onCancel}
+        >
           <MultipleCheckboxField
             name="scopes"
             choices={API_CHOICES}

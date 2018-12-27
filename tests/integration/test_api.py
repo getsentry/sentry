@@ -16,7 +16,7 @@ class AuthenticationTest(AuthProviderTestCase):
         organization = self.create_organization(name='foo')
         team = self.create_team(name='bar', organization=organization)
         project = self.create_project(
-            name='baz', organization=organization, team=team)
+            name='baz', organization=organization, teams=[team])
         member = self.create_member(
             user=user, organization=organization, teams=[team])
         setattr(member.flags, 'sso:linked', True)
@@ -38,12 +38,12 @@ class AuthenticationTest(AuthProviderTestCase):
         self.login_as(user)
 
         paths = (
-            '/api/0/organizations/{}/'.format(organization.slug),
-            '/api/0/projects/{}/{}/'.format(organization.slug, project.slug),
-            '/api/0/teams/{}/{}/'.format(organization.slug, team.slug),
-            '/api/0/issues/{}/'.format(group.id),
+            u'/api/0/organizations/{}/'.format(organization.slug),
+            u'/api/0/projects/{}/{}/'.format(organization.slug, project.slug),
+            u'/api/0/teams/{}/{}/'.format(organization.slug, team.slug),
+            u'/api/0/issues/{}/'.format(group.id),
             # this uses the internal API, which once upon a time was broken
-            '/api/0/issues/{}/events/latest/'.format(group.id),
+            u'/api/0/issues/{}/events/latest/'.format(group.id),
         )
 
         for path in paths:
@@ -73,7 +73,7 @@ class AuthenticationTest(AuthProviderTestCase):
         organization = self.create_organization(name='foo')
         team = self.create_team(name='bar', organization=organization)
         project = self.create_project(
-            name='baz', organization=organization, team=team)
+            name='baz', organization=organization, teams=[team])
         member = self.create_member(
             user=user, organization=organization, teams=[team])
         setattr(member.flags, 'sso:linked', True)

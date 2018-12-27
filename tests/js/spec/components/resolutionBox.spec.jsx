@@ -19,7 +19,7 @@ describe('ResolutionBox', function() {
         <ResolutionBox
           statusDetails={{
             inNextRelease: true,
-            actor: {name: 'David Cramer', email: 'david@sentry.io'}
+            actor: {id: '111', name: 'David Cramer', email: 'david@sentry.io'},
           }}
           params={{orgId: 'org', projectId: 'project'}}
         />
@@ -30,7 +30,7 @@ describe('ResolutionBox', function() {
       let wrapper = shallow(
         <ResolutionBox
           statusDetails={{
-            inRelease: '1.0'
+            inRelease: '1.0',
           }}
           params={{orgId: 'org', projectId: 'project'}}
         />
@@ -42,7 +42,7 @@ describe('ResolutionBox', function() {
         <ResolutionBox
           statusDetails={{
             inRelease: '1.0',
-            actor: {name: 'David Cramer', email: 'david@sentry.io'}
+            actor: {id: '111', name: 'David Cramer', email: 'david@sentry.io'},
           }}
           params={{orgId: 'org', projectId: 'project'}}
         />

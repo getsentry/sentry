@@ -38,7 +38,7 @@ class EventAppleCrashReportEndpoint(Endpoint):
 
         Event.objects.bind_nodes([event], 'data')
 
-        if event.platform != 'cocoa':
+        if event.platform not in ('cocoa', 'native'):
             return HttpResponse(
                 {
                     'message': 'Only cocoa events can return an apple crash report',
@@ -68,7 +68,7 @@ class EventAppleCrashReportEndpoint(Endpoint):
                                 content_type='text/plain')
 
         if request.GET.get('download') is not None:
-            filename = "{}{}.crash".format(
+            filename = u"{}{}.crash".format(
                 event.event_id, symbolicated and '-symbolicated' or '')
             response = StreamingHttpResponse(
                 apple_crash_report_string,

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import functools
 import logging
 import six
 import time
@@ -15,19 +16,25 @@ from rest_framework.parsers import JSONParser
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from simplejson import JSONDecodeError
 
 from sentry import tsdb
-from sentry.app import raven
-from sentry.models import ApiKey, AuditLogEntry
+from sentry.auth import access
+from sentry.models import Environment
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin
+from sentry.utils.audit import create_audit_entry
+from sentry.utils.sdk import capture_exception
+from sentry.utils import json
+
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import Paginator
 from .permissions import NoPermission
 
-__all__ = ['DocSection', 'Endpoint', 'StatsMixin']
+
+__all__ = ['DocSection', 'Endpoint', 'EnvironmentMixin', 'StatsMixin']
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -35,7 +42,8 @@ ONE_DAY = ONE_HOUR * 24
 
 LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
 
-DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuthentication, )
+DEFAULT_AUTHENTICATION = (
+    TokenAuthentication, ApiKeyAuthentication, SessionAuthentication, )
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('sentry.audit.api')
@@ -63,7 +71,7 @@ class Endpoint(APIView):
         )
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = '{0}?{1}'.format(base_url, querystring)
+            base_url = u'{0}?{1}'.format(base_url, querystring)
         else:
             base_url = base_url + '?'
 
@@ -79,48 +87,45 @@ class Endpoint(APIView):
 
     def handle_exception(self, request, exc):
         try:
-            return super(Endpoint, self).handle_exception(exc)
+            response = super(Endpoint, self).handle_exception(exc)
         except Exception as exc:
             import sys
             import traceback
             sys.stderr.write(traceback.format_exc())
-            event_id = raven.captureException(request=request)
+            event_id = capture_exception()
             context = {
                 'detail': 'Internal Error',
                 'errorId': event_id,
             }
-            return Response(context, status=500)
+            response = Response(context, status=500)
+            response.exception = True
+        return response
 
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
-        user = request.user if request.user.is_authenticated() else None
-        api_key = request.auth if isinstance(request.auth, ApiKey) else None
+        return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
 
-        entry = AuditLogEntry(
-            actor=user, actor_key=api_key, ip_address=request.META['REMOTE_ADDR'], **kwargs
-        )
+    def load_json_body(self, request):
+        """
+        Attempts to load the request body when it's JSON.
 
-        # Only create a real AuditLogEntry record if we are passing an event type
-        # otherwise, we want to still log to our actual logging
-        if entry.event is not None:
-            entry.save()
+        The end result is ``request.json_body`` having a value. When it can't
+        load the body as JSON, for any reason, ``request.json_body`` is None.
 
-        extra = {
-            'ip_address': entry.ip_address,
-            'organization_id': entry.organization_id,
-            'object_id': entry.target_object,
-            'entry_id': entry.id,
-            'actor_label': entry.actor_label
-        }
-        if entry.actor_id:
-            extra['actor_id'] = entry.actor_id
-        if entry.actor_key_id:
-            extra['actor_key_id'] = entry.actor_key_id
-        if transaction_id is not None:
-            extra['transaction_id'] = transaction_id
+        The request flow is unaffected and no exceptions are ever raised.
+        """
 
-        audit_logger.info(entry.get_event_display(), extra=extra)
+        request.json_body = None
 
-        return entry
+        if not request.META.get('CONTENT_TYPE', '').startswith('application/json'):
+            return
+
+        if not len(request.body):
+            return
+
+        try:
+            request.json_body = json.loads(request.body)
+        except JSONDecodeError:
+            return
 
     def initialize_request(self, request, *args, **kwargs):
         rv = super(Endpoint, self).initialize_request(request, *args, **kwargs)
@@ -142,6 +147,7 @@ class Endpoint(APIView):
         self.args = args
         self.kwargs = kwargs
         request = self.initialize_request(request, *args, **kwargs)
+        self.load_json_body(request)
         self.request = request
         self.headers = self.default_response_headers  # deprecate?
 
@@ -158,21 +164,28 @@ class Endpoint(APIView):
             if origin and request.auth:
                 allowed_origins = request.auth.get_allowed_origins()
                 if not is_valid_origin(origin, allowed=allowed_origins):
-                    response = Response('Invalid origin: %s' % (origin, ), status=400)
-                    self.response = self.finalize_response(request, response, *args, **kwargs)
+                    response = Response('Invalid origin: %s' %
+                                        (origin, ), status=400)
+                    self.response = self.finalize_response(
+                        request, response, *args, **kwargs)
                     return self.response
 
             self.initial(request, *args, **kwargs)
 
             # Get the appropriate handler method
             if request.method.lower() in self.http_method_names:
-                handler = getattr(self, request.method.lower(), self.http_method_not_allowed)
+                handler = getattr(self, request.method.lower(),
+                                  self.http_method_not_allowed)
 
                 (args, kwargs) = self.convert_args(request, *args, **kwargs)
                 self.args = args
                 self.kwargs = kwargs
             else:
                 handler = self.http_method_not_allowed
+
+            if getattr(request, 'access', None) is None:
+                # setup default access
+                request.access = access.from_request(request)
 
             response = handler(request, *args, **kwargs)
 
@@ -182,13 +195,15 @@ class Endpoint(APIView):
         if origin:
             self.add_cors_headers(request, response)
 
-        self.response = self.finalize_response(request, response, *args, **kwargs)
+        self.response = self.finalize_response(
+            request, response, *args, **kwargs)
 
         return self.response
 
     def add_cors_headers(self, request, response):
         response['Access-Control-Allow-Origin'] = request.META['HTTP_ORIGIN']
-        response['Access-Control-Allow-Methods'] = ', '.join(self.http_method_names)
+        response['Access-Control-Allow-Methods'] = ', '.join(
+            self.http_method_names)
 
     def add_cursor_headers(self, request, response, cursor_result):
         if cursor_result.hits is not None:
@@ -197,7 +212,8 @@ class Endpoint(APIView):
             response['X-Max-Hits'] = cursor_result.max_hits
         response['Link'] = ', '.join(
             [
-                self.build_cursor_link(request, 'previous', cursor_result.prev),
+                self.build_cursor_link(
+                    request, 'previous', cursor_result.prev),
                 self.build_cursor_link(request, 'next', cursor_result.next),
             ]
         )
@@ -206,8 +222,11 @@ class Endpoint(APIView):
         return Response(context, **kwargs)
 
     def paginate(
-        self, request, on_results=None, paginator_cls=Paginator, default_per_page=100, **kwargs
+        self, request, on_results=None, paginator=None,
+        paginator_cls=Paginator, default_per_page=100, max_per_page=100, **paginator_kwargs
     ):
+        assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
+
         per_page = int(request.GET.get('per_page', default_per_page))
         input_cursor = request.GET.get('cursor')
         if input_cursor:
@@ -215,9 +234,11 @@ class Endpoint(APIView):
         else:
             input_cursor = None
 
-        assert per_page <= max(100, default_per_page)
+        assert per_page <= max(max_per_page, default_per_page)
 
-        paginator = paginator_cls(**kwargs)
+        if not paginator:
+            paginator = paginator_cls(**paginator_kwargs)
+
         cursor_result = paginator.get_result(
             limit=per_page,
             cursor=input_cursor,
@@ -226,14 +247,56 @@ class Endpoint(APIView):
         # map results based on callback
         if on_results:
             results = on_results(cursor_result.results)
+        else:
+            results = cursor_result.results
 
         response = Response(results)
         self.add_cursor_headers(request, response, cursor_result)
         return response
 
 
+class EnvironmentMixin(object):
+    def _get_environment_func(self, request, organization_id):
+        """\
+        Creates a function that when called returns the ``Environment``
+        associated with a request object, or ``None`` if no environment was
+        provided. If the environment doesn't exist, an ``Environment.DoesNotExist``
+        exception will be raised.
+
+        This returns as a callable since some objects outside of the API
+        endpoint need to handle the "environment was provided but does not
+        exist" state in addition to the two non-exceptional states (the
+        environment was provided and exists, or the environment was not
+        provided.)
+        """
+        return functools.partial(
+            self._get_environment_from_request,
+            request,
+            organization_id,
+        )
+
+    def _get_environment_id_from_request(self, request, organization_id):
+        environment = self._get_environment_from_request(request, organization_id)
+        return environment and environment.id
+
+    def _get_environment_from_request(self, request, organization_id):
+        if not hasattr(request, '_cached_environment'):
+            environment_param = request.GET.get('environment')
+            if environment_param is None:
+                environment = None
+            else:
+                environment = Environment.get_for_organization_id(
+                    name=environment_param,
+                    organization_id=organization_id,
+                )
+
+            request._cached_environment = environment
+
+        return request._cached_environment
+
+
 class StatsMixin(object):
-    def _parse_args(self, request):
+    def _parse_args(self, request, environment_id=None):
         resolution = request.GET.get('resolution')
         if resolution:
             resolution = self._parse_resolution(resolution)
@@ -256,6 +319,7 @@ class StatsMixin(object):
             'start': start,
             'end': end,
             'rollup': resolution,
+            'environment_id': environment_id,
         }
 
     def _parse_resolution(self, value):

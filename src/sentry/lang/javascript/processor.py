@@ -4,6 +4,7 @@ __all__ = ['JavaScriptStacktraceProcessor']
 
 import logging
 import re
+import sys
 import base64
 import six
 import zlib
@@ -56,7 +57,10 @@ CLEAN_MODULE_RE = re.compile(
 VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 NODE_MODULES_RE = re.compile(r'\bnode_modules/')
 SOURCE_MAPPING_URL_RE = re.compile(r'\/\/# sourceMappingURL=(.*)$')
-# the maximum number of remote resources (i.e. sourc eifles) that should be
+CACHE_CONTROL_RE = re.compile(r'max-age=(\d+)')
+CACHE_CONTROL_MAX = 7200
+CACHE_CONTROL_MIN = 60
+# the maximum number of remote resources (i.e. source files) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
 
@@ -244,8 +248,8 @@ def fetch_release_file(filename, release, dist=None):
             with metrics.timer('sourcemaps.release_file_read'):
                 with releasefile.file.getfile() as fp:
                     z_body, body = compress_file(fp)
-        except Exception as e:
-            logger.exception(six.text_type(e))
+        except Exception:
+            logger.error('sourcemap.compress_read_failed', exc_info=sys.exc_info())
             cache.set(cache_key, -1, 3600)
             result = None
         else:
@@ -325,16 +329,30 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
             verify_ssl = bool(project.get_option('sentry:verify_ssl', False))
             token = project.get_option('sentry:token')
             if token:
-                token_header = project.get_option(
-                    'sentry:token_header',
-                    'X-Sentry-Token',
-                )
+                token_header = project.get_option('sentry:token_header') or 'X-Sentry-Token'
                 headers[token_header] = token
 
         with metrics.timer('sourcemaps.fetch'):
             result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
             z_body = zlib.compress(result.body)
-            cache.set(cache_key, (url, result.headers, z_body, result.status, result.encoding), 60)
+            cache.set(
+                cache_key,
+                (url,
+                 result.headers,
+                 z_body,
+                 result.status,
+                 result.encoding),
+                get_max_age(result.headers))
+
+    # If we did not get a 200 OK we just raise a cannot fetch here.
+    if result.status != 200:
+        raise http.CannotFetch(
+            {
+                'type': EventError.FETCH_INVALID_HTTP_CODE,
+                'value': result.status,
+                'url': http.expose_url(url),
+            }
+        )
 
     # Make sure the file we're getting back is six.binary_type. The only
     # reason it'd not be binary would be from old cached blobs, so
@@ -372,6 +390,17 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
             raise http.CannotFetch(error)
 
     return result
+
+
+def get_max_age(headers):
+    cache_control = headers.get('cache-control')
+    max_age = CACHE_CONTROL_MIN
+
+    if cache_control:
+        match = CACHE_CONTROL_RE.search(cache_control)
+        if match:
+            max_age = max(CACHE_CONTROL_MIN, int(match.group(1)))
+    return min(max_age, CACHE_CONTROL_MAX)
 
 
 def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=True):
@@ -418,9 +447,6 @@ def generate_module(src):
         return UNKNOWN_MODULE
 
     filename, ext = splitext(urlsplit(src).path)
-    if ext not in ('.js', '.jsx', '.coffee'):
-        return UNKNOWN_MODULE
-
     if filename.endswith('.min'):
         filename = filename[:-4]
 
@@ -451,7 +477,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
         self.max_fetches = MAX_RESOURCE_FETCHES
-        self.allow_scraping = self.project.get_option('sentry:scrape_javascript', True)
+        self.allow_scraping = (
+            self.project.organization.get_option('sentry:scrape_javascript', True) is not False
+            and self.project.get_option('sentry:scrape_javascript', True)
+        )
         self.fetch_count = 0
         self.sourcemaps_touched = set()
         self.cache = SourceCache()
@@ -498,7 +527,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get('platform') or self.data.get('platform')
-        return (settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and platform == 'javascript')
+        return (settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and platform in ('javascript', 'node'))
 
     def preprocess_frame(self, processable_frame):
         # Stores the resolved token.  This is used to cross refer to other
@@ -518,6 +547,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # can't fetch source if there's no filename present or no line
         if not frame.get('abs_path') or not frame.get('lineno'):
+            return
+
+        # can't fetch if this is internal node module as well
+        # therefore we only process user-land frames (starting with /)
+        # or those created by bundle/webpack internals
+        if self.data.get('platform') == 'node' and \
+                not frame.get('abs_path').startswith(('/', 'app:', 'webpack:')):
             return
 
         errors = cache.get_errors(frame['abs_path'])
@@ -591,7 +627,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 )
                 source = self.get_sourceview(abs_path)
 
-            if not source:
+            if source is None:
                 errors = cache.get_errors(abs_path)
                 if errors:
                     all_errors.extend(errors)
@@ -642,19 +678,29 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     else:
                         filename = filename.split('webpack:///', 1)[-1]
 
-                    # As noted above, '~/' means they're coming from node_modules,
-                    # so these are not app dependencies
-                    if filename.startswith('~/'):
+                    # As noted above:
+                    # * [js/node] '~/' means they're coming from node_modules, so these are not app dependencies
+                    # * [node] sames goes for `./node_modules/` and '../node_modules/', which is used when bundling node apps
+                    # * [node] and webpack, which includes it's own code to bootstrap all modules and its internals
+                    #   eg. webpack:///webpack/bootstrap, webpack:///external
+                    if filename.startswith('~/') or \
+                            '/node_modules/' in filename or \
+                            not filename.startswith('./'):
                         in_app = False
                     # And conversely, local dependencies start with './'
                     elif filename.startswith('./'):
                         in_app = True
-
                     # We want to explicitly generate a webpack module name
                     new_frame['module'] = generate_module(filename)
 
+                # while you could technically use a subpath of 'node_modules' for your libraries,
+                # it would be an extremely complicated decision and we've not seen anyone do it
+                # so instead we assume if node_modules is in the path its part of the vendored code
+                elif '/node_modules/' in abs_path:
+                    in_app = False
+
                 if abs_path.startswith('app:'):
-                    if NODE_MODULES_RE.search(filename):
+                    if filename and NODE_MODULES_RE.search(filename):
                         in_app = False
                     else:
                         in_app = True
@@ -794,6 +840,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # a fetch error that may be confusing.
             if f['abs_path'] == '<anonymous>':
                 continue
+            # we cannot fetch any other files than those uploaded by user
+            if self.data.get('platform') == 'node' and \
+                    not f.get('abs_path').startswith('app:'):
+                continue
             pending_file_list.add(f['abs_path'])
 
         for idx, filename in enumerate(pending_file_list):
@@ -807,5 +857,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             metrics.incr(
                 'sourcemaps.processed',
                 amount=len(self.sourcemaps_touched),
-                instance=self.project.id
+                skip_internal=True,
+                tags={
+                    'project_id': self.project.id,
+                },
             )

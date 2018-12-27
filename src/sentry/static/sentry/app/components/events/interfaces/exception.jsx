@@ -1,30 +1,32 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from '../eventDataSection';
-import SentryTypes from '../../../proptypes';
-import {isStacktraceNewestFirst} from './stacktrace';
-import CrashHeader from './crashHeader';
-import CrashContent from './crashContent';
+import {t} from 'app/locale';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import SentryTypes from 'app/sentryTypes';
+import {isStacktraceNewestFirst} from 'app/components/events/interfaces/stacktrace';
+import CrashHeader from 'app/components/events/interfaces/crashHeader';
+import CrashContent from 'app/components/events/interfaces/crashContent';
 
-const ExceptionInterface = React.createClass({
-  propTypes: {
+class ExceptionInterface extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired
-  },
+    data: PropTypes.object.isRequired,
+  };
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       stackView: this.props.data.hasSystemFrames ? 'app' : 'full',
       newestFirst: isStacktraceNewestFirst(),
-      stackType: 'original'
+      stackType: 'original',
     };
-  },
+  }
 
-  eventHasThreads() {
+  eventHasThreads = () => {
     return !!this.props.event.entries.find(x => x.type === 'threads');
-  },
+  };
 
   render() {
     let group = this.props.group;
@@ -44,6 +46,7 @@ const ExceptionInterface = React.createClass({
     let title = (
       <CrashHeader
         group={group}
+        title={t('Exception')}
         platform={event.platform}
         exception={data}
         stackView={stackView}
@@ -61,7 +64,8 @@ const ExceptionInterface = React.createClass({
         event={event}
         type={this.props.type}
         title={title}
-        wrapTitle={false}>
+        wrapTitle={false}
+      >
         <CrashContent
           group={group}
           event={event}
@@ -73,6 +77,6 @@ const ExceptionInterface = React.createClass({
       </GroupEventDataSection>
     );
   }
-});
+}
 
 export default ExceptionInterface;
