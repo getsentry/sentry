@@ -16,17 +16,37 @@ const CHART_KEY = '__CHART_KEY__';
  * @param {Object} query Query state corresponding to data
  * @param {Object} [options] Options object
  * @param {Boolean} [options.hideFieldName] (default: false) Hide field name in results set
+ * @param {Boolean} [options.includePercentages] (default: false) Include aggregation's percentages
  * @returns {Array}
  */
 export function getChartData(data, query, options = {}) {
   const {fields} = query;
 
+  const totalsBySeries = new Map();
+
+  if (options.includePercentages) {
+    query.aggregations.forEach(aggregation => {
+      totalsBySeries.set(
+        aggregation[2],
+        data.reduce((acc, res) => {
+          acc += res[aggregation[2]];
+          return acc;
+        }, 0)
+      );
+    });
+  }
+
   return query.aggregations.map(aggregation => {
+    const total = options.includePercentages && totalsBySeries.get(aggregation[2]);
     return {
       seriesName: aggregation[2],
       data: data.map(res => {
         return {
           value: res[aggregation[2]],
+          percentage:
+            options.includePercentages && total
+              ? Math.round(res[aggregation[2]] / total * 10000) / 100
+              : undefined,
           name: fields
             .map(field => `${options.hideFieldName ? '' : `${field} `}${res[field]}`)
             .join(options.separator || ' '),

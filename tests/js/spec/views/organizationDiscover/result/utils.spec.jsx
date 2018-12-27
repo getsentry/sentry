@@ -66,6 +66,10 @@ describe('Utils', function() {
             {value: 10, name: 'project.id 5, environment production'},
           ],
         },
+        {
+          seriesName: 'uniq_id',
+          data: [],
+        },
       ];
 
       expect(getChartData(raw, query, {separator: ', '})).toEqual(expected);
@@ -94,6 +98,31 @@ describe('Utils', function() {
       ];
 
       expect(getChartData(raw, query, {hideFieldName: true})).toEqual(expected);
+    });
+
+    it('returns chart data with percentages', function() {
+      const expected = [
+        {
+          seriesName: 'count',
+          data: [
+            {value: 2, percentage: 16.67, name: 'project.id 5 environment null'},
+            {value: 2, percentage: 16.67, name: 'project.id 5 environment staging'},
+            {value: 2, percentage: 16.67, name: 'project.id 5 environment alpha'},
+            {value: 6, percentage: 50, name: 'project.id 5 environment production'},
+          ],
+        },
+        {
+          seriesName: 'uniq_id',
+          data: [
+            {value: 1, percentage: 5.56, name: 'project.id 5 environment null'},
+            {value: 3, percentage: 16.67, name: 'project.id 5 environment staging'},
+            {value: 4, percentage: 22.22, name: 'project.id 5 environment alpha'},
+            {value: 10, percentage: 55.56, name: 'project.id 5 environment production'},
+          ],
+        },
+      ];
+
+      expect(getChartData(raw, query, {includePercentages: true})).toEqual(expected);
     });
   });
 
