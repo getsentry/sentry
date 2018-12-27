@@ -9,54 +9,28 @@ from sentry.utils import snuba
 
 
 class SnubaUtilTest(TestCase):
-    def test_referenced_columns(self):
-        # a = 1 AND b = 1
-        conditions = [
-            ['a', '=', '1'],
-            ['b', '=', '1'],
-        ]
-        assert set(snuba.all_referenced_columns(conditions)) == set(['a', 'b'])
-
-        # a = 1 AND (b = 1 OR c = 1)
-        conditions = [
-            ['a', '=', '1'],
-            [
-                ['b', '=', '1'],
-                ['c', '=', '1'],
+    def test_filter_keys_set(self):
+        snuba.raw_query(
+            start=datetime.now(),
+            end=datetime.now(),
+            filter_keys={
+                'project_id': set([1]),
+                'logger': set(['asdf']),
+            },
+            aggregations=[
+                ['count()', '', 'count'],
             ],
-        ]
-        assert set(snuba.all_referenced_columns(conditions)) == set(['a', 'b', 'c'])
-
-        # a = 1 AND (b = 1 OR foo(c) = 1)
-        conditions = [
-            ['a', '=', '1'],
-            [
-                ['b', '=', '1'],
-                [['foo', ['c']], '=', '1'],
-            ],
-        ]
-        assert set(snuba.all_referenced_columns(conditions)) == set(['a', 'b', 'c'])
-
-        # a = 1 AND (b = 1 OR foo(c, bar(d)) = 1)
-        conditions = [
-            ['a', '=', '1'],
-            [
-                ['b', '=', '1'],
-                [['foo', ['c', ['bar', ['d']]]], '=', '1'],
-            ],
-        ]
-        assert set(snuba.all_referenced_columns(conditions)) == set(['a', 'b', 'c', 'd'])
+        )
 
     def test_shrink_timeframe(self):
         now = datetime.now()
         year_ago = now - timedelta(days=365)
-        year_ahead = now + timedelta(days=365)
 
         issues = None
-        assert snuba.shrink_time_window(issues, year_ago, year_ahead) == (year_ago, year_ahead)
+        assert snuba.shrink_time_window(issues, year_ago) == year_ago
 
         issues = []
-        assert snuba.shrink_time_window(issues, year_ago, year_ahead) == (year_ago, year_ahead)
+        assert snuba.shrink_time_window(issues, year_ago) == year_ago
 
         group1 = self.create_group()
         group1.first_seen = now - timedelta(hours=1)
@@ -67,16 +41,12 @@ class SnubaUtilTest(TestCase):
         group2 = self.create_group()
         GroupHash.objects.create(project_id=group2.project_id, group=group2, hash='b' * 32)
 
-        # issues is a list like [(gid, pid, [(hash, tombstone_date), ...]), ...]
-        issues = [(group1.id, group1.project_id, [('a' * 32, None)])]
-        assert snuba.shrink_time_window(issues, year_ago, year_ahead) == \
-            (now - timedelta(hours=1, minutes=5), now + timedelta(minutes=5))
+        issues = [group1.id]
+        assert snuba.shrink_time_window(issues, year_ago) == \
+            now - timedelta(hours=1, minutes=5)
 
-        issues = [
-            (group1.id, group1.project_id, [('a' * 32, None)]),
-            (group2.id, group2.project_id, [('b' * 32, None)]),
-        ]
-        assert snuba.shrink_time_window(issues, year_ago, year_ahead) == (year_ago, year_ahead)
+        issues = [group1.id, group2.id]
+        assert snuba.shrink_time_window(issues, year_ago) == year_ago
 
         with pytest.raises(snuba.QueryOutsideGroupActivityError):
             # query a group for a time range before it had any activity
@@ -91,3 +61,12 @@ class SnubaUtilTest(TestCase):
                     ['count()', '', 'count'],
                 ],
             )
+
+    def test_override_options(self):
+        assert snuba.OVERRIDE_OPTIONS == {'consistent': False}
+        with snuba.options_override({'foo': 1}):
+            assert snuba.OVERRIDE_OPTIONS == {'foo': 1, 'consistent': False}
+            with snuba.options_override({'foo': 2}):
+                assert snuba.OVERRIDE_OPTIONS == {'foo': 2, 'consistent': False}
+            assert snuba.OVERRIDE_OPTIONS == {'foo': 1, 'consistent': False}
+        assert snuba.OVERRIDE_OPTIONS == {'consistent': False}

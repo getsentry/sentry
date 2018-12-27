@@ -58,6 +58,8 @@ class Tooltip extends React.Component {
 
     this.$ref.tooltip({
       title,
+      delay: 100,
+      container: 'body',
       ...options,
     });
   };

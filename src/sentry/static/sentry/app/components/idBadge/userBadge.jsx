@@ -28,7 +28,10 @@ const UserBadge = ({
           hideEmail={hideEmail}
           to={member && orgId && `/settings/${orgId}/members/${member.id}/`}
         >
-          {displayName || userFromPropsOrMember.name || userFromPropsOrMember.email}
+          {displayName ||
+            userFromPropsOrMember.name ||
+            userFromPropsOrMember.email ||
+            userFromPropsOrMember.ipAddress}
         </StyledName>
         {!hideEmail && (
           <StyledEmail>{displayEmail || userFromPropsOrMember.email}</StyledEmail>
@@ -83,7 +86,7 @@ const StyledName = styled(
   ({useLink, hideEmail, to, ...props}) =>
     useLink ? <Link to={to} {...props} /> : <span {...props} />
 )`
-  font-weight: bold;
+  font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
   ${overflowEllipsis};
 `;

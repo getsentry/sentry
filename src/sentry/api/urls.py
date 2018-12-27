@@ -61,7 +61,7 @@ from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
 from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
 from .endpoints.organization_discover_saved_query_detail import OrganizationDiscoverSavedQueryDetailEndpoint
-from .endpoints.organization_events import OrganizationEventsEndpoint
+from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsMetaEndpoint, OrganizationEventsStatsEndpoint
 from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
@@ -92,6 +92,12 @@ from .endpoints.organization_config_integrations import OrganizationConfigIntegr
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
+from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
+from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
+from .endpoints.organization_tags import OrganizationTagsEndpoint
+from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
+from .endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
+from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
@@ -147,12 +153,15 @@ from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
+from .endpoints.prompts_activity import PromptsActivityEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.debug_files import DebugFilesEndpoint, DifAssembleEndpoint, \
     UnknownDebugFilesEndpoint, AssociateDSymFilesEndpoint
 from .endpoints.sentry_apps import SentryAppsEndpoint
+from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
+from .endpoints.sentry_app_authorizations import SentryAppAuthorizationsEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
@@ -254,6 +263,11 @@ urlpatterns = patterns(
     ),
     url(r'^api-tokens/$', ApiTokensEndpoint.as_view(),
         name='sentry-api-0-api-tokens'),
+    url(
+        r'^promptsactivity/$',
+        PromptsActivityEndpoint.as_view(),
+        name='sentry-api-0-promptsactivity',
+    ),
 
     # Auth
     url(r'^auth/$', AuthIndexEndpoint.as_view(), name='sentry-api-0-auth'),
@@ -484,6 +498,16 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-events'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/events-stats/$',
+        OrganizationEventsStatsEndpoint.as_view(),
+        name='sentry-api-0-organization-events-stats'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/events-meta/$',
+        OrganizationEventsMetaEndpoint.as_view(),
+        name='sentry-api-0-organization-events-meta'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/issues/new/$',
         OrganizationIssuesNewEndpoint.as_view(),
     ),
@@ -606,6 +630,26 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-release-commits'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/user-feedback/$',
+        OrganizationUserReportsEndpoint.as_view(),
+        name='sentry-api-0-organization-user-feedback'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/sentry-app-installations/$',
+        SentryAppInstallationsEndpoint.as_view(),
+        name='sentry-api-0-sentry-app-installations'
+    ),
+    url(
+        r'^sentry-app-installations/(?P<uuid>[^\/]+)/$',
+        SentryAppInstallationDetailsEndpoint.as_view(),
+        name='sentry-api-0-sentry-app-installation-details'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/sentry-apps/$',
+        OrganizationSentryAppsEndpoint.as_view(),
+        name='sentry-api-0-organization-sentry-apps'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/stats/$',
         OrganizationStatsEndpoint.as_view(),
         name='sentry-api-0-organization-stats'
@@ -614,6 +658,16 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/teams/$',
         OrganizationTeamsEndpoint.as_view(),
         name='sentry-api-0-organization-teams'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/tags/$',
+        OrganizationTagsEndpoint.as_view(),
+        name='sentry-api-0-organization-tags'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/tags/(?P<key>[^/]+)/values/$',
+        OrganizationTagKeyValuesEndpoint.as_view(),
+        name='sentry-api-0-organization-tagkey-values'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/onboarding-tasks/$',
@@ -712,7 +766,7 @@ urlpatterns = patterns(
         name='sentry-api-0-project-events'
     ),
     url(
-        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/$',
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>(?:\d+|[A-Fa-f0-9]{32}))/$',
         ProjectEventDetailsEndpoint.as_view(),
         name='sentry-api-0-project-event-details'
     ),
@@ -1090,6 +1144,17 @@ urlpatterns = patterns(
         r'^sentry-apps/$',
         SentryAppsEndpoint.as_view(),
         name='sentry-api-0-sentry-apps'
+    ),
+    url(
+        r'^sentry-apps/(?P<sentry_app_slug>[^\/]+)/$',
+        SentryAppDetailsEndpoint.as_view(),
+        name='sentry-api-0-sentry-app-details'
+    ),
+
+    url(
+        r'^sentry-app-installations/(?P<uuid>[^\/]+)/authorizations/$',
+        SentryAppAuthorizationsEndpoint.as_view(),
+        name='sentry-api-0-sentry-app-authorizations'
     ),
 
     # Internal

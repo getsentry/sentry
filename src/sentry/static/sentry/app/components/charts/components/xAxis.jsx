@@ -1,11 +1,18 @@
-import moment from 'moment';
-
+import {getFormattedDate} from 'app/utils/dates';
 import theme from 'app/utils/theme';
+import {truncationFormatter} from '../utils';
 
-export default function XAxis({isGroupedByDate, ...props} = {}) {
-  const axisLabelFormatter = isGroupedByDate
-    ? (value, index) => moment.utc(value).format('MMM Do')
-    : undefined;
+export default function XAxis({isGroupedByDate, interval, utc, ...props} = {}) {
+  const axisLabelFormatter = value => {
+    if (isGroupedByDate) {
+      const format = interval === 'hour' ? 'LT' : 'MMM Do';
+      return getFormattedDate(value, format, {local: !utc});
+    } else if (props.truncate) {
+      return truncationFormatter(value, props.truncate);
+    } else {
+      return undefined;
+    }
+  };
 
   return {
     type: 'category',

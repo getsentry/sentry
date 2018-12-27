@@ -1,24 +1,25 @@
 import {
   getQueryFromQueryString,
   getQueryStringFromQuery,
-  getOrderByOptions,
+  getOrderbyFields,
   parseSavedQuery,
+  generateQueryName,
 } from 'app/views/organizationDiscover/utils';
 
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
 import {COLUMNS} from 'app/views/organizationDiscover/data';
 
 const queryString =
-  '?aggregations=%5B%5B%22count()%22%2Cnull%2C%22count%22%5D%2C%5B%22uniq%22%2C%22os_build%22%2C%22uniq_os_build%22%5D%5D&conditions=%5B%5D&end=%222018-07-10T01%3A18%3A04%22&fields=%5B%22event_id%22%2C%22timestamp%22%5D&limit=1000&orderby=%22-timestamp%22&projects=%5B8%5D&start=%222018-06-26T01%3A18%3A04%22';
+  '?aggregations=%5B%5B%22count()%22%2Cnull%2C%22count%22%5D%2C%5B%22uniq%22%2C%22os_build%22%2C%22uniq_os_build%22%5D%5D&conditions=%5B%5D&end=%222018-07-10T01%3A18%3A04%22&fields=%5B%22id%22%2C%22timestamp%22%5D&limit=1000&orderby=%22-timestamp%22&projects=%5B8%5D&start=%222018-06-26T01%3A18%3A04%22';
 
 const queryStringWithInvalidKey =
-  '?aggregations=%5B%5B%22count()%22%2Cnull%2C%22count%22%5D%2C%5B%22uniq%22%2C%22os_build%22%2C%22uniq_os_build%22%5D%5D&conditions=%5B%5D&end=%222018-07-10T01%3A18%3A04%22&fields=%5B%22event_id%22%2C%22timestamp%22%5D&limit=1000&orderby=%22-timestamp%22&projects=%5B8%5D&start=%222018-06-26T01%3A18%3A04%22&invalid=true';
+  '?aggregations=%5B%5B%22count()%22%2Cnull%2C%22count%22%5D%2C%5B%22uniq%22%2C%22os_build%22%2C%22uniq_os_build%22%5D%5D&conditions=%5B%5D&end=%222018-07-10T01%3A18%3A04%22&fields=%5B%22id%22%2C%22timestamp%22%5D&limit=1000&orderby=%22-timestamp%22&projects=%5B8%5D&start=%222018-06-26T01%3A18%3A04%22&invalid=true';
 
 const query = {
   aggregations: [['count()', null, 'count'], ['uniq', 'os_build', 'uniq_os_build']],
   conditions: [],
   end: '2018-07-10T01:18:04',
-  fields: ['event_id', 'timestamp'],
+  fields: ['id', 'timestamp'],
   limit: 1000,
   orderby: '-timestamp',
   projects: [8],
@@ -45,36 +46,32 @@ describe('getQueryStringFromQuery()', function() {
   });
 });
 
-describe('getOrderByOptions()', function() {
+describe('getOrderbyFields()', function() {
   const organization = TestStubs.Organization({projects: [TestStubs.Project()]});
   const queryBuilder = createQueryBuilder({}, organization);
 
-  it('allows ordering by all fields when no aggregations except project_name', function() {
-    expect(getOrderByOptions(queryBuilder)).toHaveLength((COLUMNS.length - 1) * 2);
+  it('allows ordering by all fields when no aggregations except project.name and issue.id', function() {
+    expect(getOrderbyFields(queryBuilder)).toHaveLength(COLUMNS.length - 2);
   });
 
   it('allows ordering by aggregations with aggregations and no fields', function() {
+    queryBuilder.updateField('fields', []);
     queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
-    const options = getOrderByOptions(queryBuilder);
-    expect(options).toHaveLength(2);
-    expect(options).toEqual([
-      {label: 'count asc', value: 'count'},
-      {label: 'count desc', value: '-count'},
-    ]);
+    const options = getOrderbyFields(queryBuilder);
+    expect(options).toHaveLength(1);
+    expect(options).toEqual([{label: 'count', value: 'count'}]);
   });
 
   it('allows ordering by aggregations and fields', function() {
     queryBuilder.updateField('fields', ['message']);
     queryBuilder.updateField('aggregations', [['count()', null, 'count']]);
 
-    const options = getOrderByOptions(queryBuilder);
-    expect(options).toHaveLength(4);
+    const options = getOrderbyFields(queryBuilder);
+    expect(options).toHaveLength(2);
     expect(options).toEqual([
-      {label: 'message asc', value: 'message'},
-      {label: 'message desc', value: '-message'},
-      {label: 'count asc', value: 'count'},
-      {label: 'count desc', value: '-count'},
+      {label: 'message', value: 'message'},
+      {label: 'count', value: 'count'},
     ]);
   });
 });
@@ -98,5 +95,11 @@ describe('parseSavedQuery', function() {
       conditions: [],
       limit: 10,
     });
+  });
+});
+
+describe('generateQueryName', function() {
+  it('generates name', function() {
+    expect(generateQueryName()).toBe('Result - Oct 17 02:41:20');
   });
 });

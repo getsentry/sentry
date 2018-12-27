@@ -19,13 +19,13 @@ from rest_framework.views import APIView
 from simplejson import JSONDecodeError
 
 from sentry import tsdb
-from sentry.app import raven
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.sdk import capture_exception
 from sentry.utils import json
 
 
@@ -92,7 +92,7 @@ class Endpoint(APIView):
             import sys
             import traceback
             sys.stderr.write(traceback.format_exc())
-            event_id = raven.captureException(request=request)
+            event_id = capture_exception()
             context = {
                 'detail': 'Internal Error',
                 'errorId': event_id,
@@ -116,7 +116,7 @@ class Endpoint(APIView):
 
         request.json_body = None
 
-        if request.META.get('CONTENT_TYPE') != 'application/json':
+        if not request.META.get('CONTENT_TYPE', '').startswith('application/json'):
             return
 
         if not len(request.body):
@@ -172,13 +172,6 @@ class Endpoint(APIView):
 
             self.initial(request, *args, **kwargs)
 
-            if getattr(request, 'user', None) and request.user.is_authenticated():
-                raven.user_context({
-                    'id': request.user.id,
-                    'username': request.user.username,
-                    'email': request.user.email,
-                })
-
             # Get the appropriate handler method
             if request.method.lower() in self.http_method_names:
                 handler = getattr(self, request.method.lower(),
@@ -230,7 +223,7 @@ class Endpoint(APIView):
 
     def paginate(
         self, request, on_results=None, paginator=None,
-        paginator_cls=Paginator, default_per_page=100, **paginator_kwargs
+        paginator_cls=Paginator, default_per_page=100, max_per_page=100, **paginator_kwargs
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
 
@@ -241,7 +234,7 @@ class Endpoint(APIView):
         else:
             input_cursor = None
 
-        assert per_page <= max(100, default_per_page)
+        assert per_page <= max(max_per_page, default_per_page)
 
         if not paginator:
             paginator = paginator_cls(**paginator_kwargs)
@@ -326,7 +319,7 @@ class StatsMixin(object):
             'start': start,
             'end': end,
             'rollup': resolution,
-            'environment_id': environment_id,
+            'environment_ids': environment_id and [environment_id],
         }
 
     def _parse_resolution(self, value):

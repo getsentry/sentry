@@ -3,30 +3,16 @@ from __future__ import absolute_import, print_function
 __all__ = ['IntegrationPipeline']
 
 from django.db import IntegrityError
-from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.integrations.exceptions import IntegrationError
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.pipeline import Pipeline
-from sentry.utils import json
-from sentry.integrations.exceptions import IntegrationError
+from sentry.web.helpers import render_to_response
 from . import default_manager
-
-DIALOG_RESPONSE = """
-<!doctype html>
-<html>
-<body>
-<script>
-window.opener.postMessage({json}, document.origin);
-window.close();
-</script>
-<noscript>Please wait...</noscript>
-</body>
-</html>
-"""
 
 
 def ensure_integration(key, data):
@@ -121,7 +107,7 @@ class IntegrationPipeline(Pipeline):
             except IntegrityError:
                 # If the external_id is already used for a different user or
                 # the user already has a different external_id remove those
-                # identities and recreate it, except in the case of Github
+                # identities and recreate it, except in the case of GitHub
                 # where we need to be more careful because users may be using
                 # those identities to log in.
                 if idp.type in ('github', 'vsts'):
@@ -161,12 +147,13 @@ class IntegrationPipeline(Pipeline):
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 
     def _dialog_response(self, data, success):
-        return HttpResponse(
-            DIALOG_RESPONSE.format(
-                json=json.dumps({
-                    'success': success,
-                    'data': data,
-                })
-            ),
-            content_type='text/html',
-        )
+        context = {
+            'payload': {
+                'success': success,
+                'data': data
+            }
+        }
+        return render_to_response(
+            'sentry/integrations/dialog-complete.html',
+            context,
+            self.request)

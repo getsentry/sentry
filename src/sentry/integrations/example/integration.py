@@ -72,6 +72,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
         return ['project']
 
     def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'example_integration'
         fields = super(ExampleIntegration, self).get_create_issue_config(group, **kwargs)
         default = self.get_project_defaults(group.project_id)
         example_project_field = self.generate_example_project_field(default)
@@ -116,7 +117,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_repositories(self):
         return [{
             'name': 'repo',
-            'id': 'user/repo',
+            'identifier': 'user/repo',
         }]
 
     def get_unmigratable_repositories(self):

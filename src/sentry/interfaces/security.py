@@ -73,6 +73,12 @@ DEFAULT_DISALLOWED_SOURCES = (
     'connectionstrenth.com',
     'siteheart.net',
     'netanalitics.space',
+    'printapplink.com',
+    'godlinkapp.com',
+    'devappstor.com',
+    'hoholikik.club',
+    'smartlink.cool',
+    'promfflinkdev.com',
 )  # yapf: disable
 
 
@@ -81,7 +87,6 @@ class SecurityReport(Interface):
     A browser security violation report.
     """
 
-    path = None
     title = None
 
     @classmethod
@@ -107,9 +112,6 @@ class SecurityReport(Interface):
 
     def get_message(self):
         raise NotImplementedError
-
-    def get_path(self):
-        return self.path
 
     def get_tags(self):
         raise NotImplementedError
@@ -153,7 +155,6 @@ class Hpkp(SecurityReport):
     score = 1300
     display_score = 1300
 
-    path = 'hpkp'
     title = 'HPKP Report'
 
     @classmethod
@@ -214,7 +215,6 @@ class ExpectStaple(SecurityReport):
     score = 1300
     display_score = 1300
 
-    path = 'expectstaple'
     title = 'Expect-Staple Report'
 
     @classmethod
@@ -277,7 +277,6 @@ class ExpectCT(SecurityReport):
     score = 1300
     display_score = 1300
 
-    path = 'expectct'
     title = 'Expect-CT Report'
 
     @classmethod
@@ -336,7 +335,6 @@ class Csp(SecurityReport):
     score = 1300
     display_score = 1300
 
-    path = 'sentry.interfaces.Csp'
     title = 'CSP Report'
 
     @classmethod

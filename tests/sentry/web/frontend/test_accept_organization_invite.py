@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 from django.db.models import F
+from datetime import timedelta
 
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, Authenticator,
@@ -143,6 +144,50 @@ class AcceptInviteTest(TestCase):
         resp = self.client.post(reverse('sentry-accept-invite', args=[om.id, om.token]))
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/accept-organization-invite.html')
+
+    def test_cannot_accept_expired(self):
+        self.login_as(self.user)
+
+        om = OrganizationMember.objects.create(
+            email='newuser@example.com',
+            token='abc',
+            organization=self.organization,
+        )
+        OrganizationMember.objects.filter(id=om.id).update(
+            token_expires_at=om.token_expires_at - timedelta(days=31)
+        )
+        resp = self.client.post(reverse('sentry-accept-invite', args=[om.id, om.token]))
+        assert resp.status_code == 302
+
+        om = OrganizationMember.objects.get(id=om.id)
+        assert om.is_pending, 'should not have been accepted'
+        assert om.token, 'should not have been accepted'
+
+    def test_member_already_exists(self):
+        self.login_as(self.user)
+
+        om = OrganizationMember.objects.create(
+            email='newuser@example.com',
+            role='member',
+            token='abc',
+            organization=self.organization,
+        )
+        resp = self.client.post(reverse('sentry-accept-invite', args=[om.id, om.token]))
+        assert resp.status_code == 302
+
+        om = OrganizationMember.objects.get(id=om.id)
+        assert om.email is None
+        assert om.user == self.user
+
+        om2 = OrganizationMember.objects.create(
+            email='newuser1@example.com',
+            role='member',
+            token='abcd',
+            organization=self.organization,
+        )
+        resp = self.client.post(reverse('sentry-accept-invite', args=[om2.id, om2.token]))
+        assert resp.status_code == 302
+        assert not OrganizationMember.objects.filter(id=om2.id).exists()
 
     def test_can_accept_when_user_has_2fa(self):
         self._require_2fa_for_organization()

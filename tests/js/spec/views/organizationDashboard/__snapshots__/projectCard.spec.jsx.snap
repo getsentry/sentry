@@ -14,9 +14,7 @@ exports[`ProjectCard renders 1`] = `
       "isBookmarked": false,
       "isMember": true,
       "name": "Project Name",
-      "platforms": Array [
-        "javascript",
-      ],
+      "platform": "javascript",
       "slug": "project-slug",
       "stats": Array [
         Array [
@@ -82,9 +80,7 @@ exports[`ProjectCard renders 1`] = `
                       "isBookmarked": false,
                       "isMember": true,
                       "name": "Project Name",
-                      "platforms": Array [
-                        "javascript",
-                      ],
+                      "platform": "javascript",
                       "slug": "project-slug",
                       "stats": Array [
                         Array [
@@ -115,9 +111,7 @@ exports[`ProjectCard renders 1`] = `
                         "isBookmarked": false,
                         "isMember": true,
                         "name": "Project Name",
-                        "platforms": Array [
-                          "javascript",
-                        ],
+                        "platform": "javascript",
                         "slug": "project-slug",
                         "stats": Array [
                           Array [
@@ -157,9 +151,7 @@ exports[`ProjectCard renders 1`] = `
                               "isBookmarked": false,
                               "isMember": true,
                               "name": "Project Name",
-                              "platforms": Array [
-                                "javascript",
-                              ],
+                              "platform": "javascript",
                               "slug": "project-slug",
                               "stats": Array [
                                 Array [
@@ -192,9 +184,7 @@ exports[`ProjectCard renders 1`] = `
                                 "isBookmarked": false,
                                 "isMember": true,
                                 "name": "Project Name",
-                                "platforms": Array [
-                                  "javascript",
-                                ],
+                                "platform": "javascript",
                                 "slug": "project-slug",
                                 "stats": Array [
                                   Array [
@@ -231,9 +221,7 @@ exports[`ProjectCard renders 1`] = `
                                         "isBookmarked": false,
                                         "isMember": true,
                                         "name": "Project Name",
-                                        "platforms": Array [
-                                          "javascript",
-                                        ],
+                                        "platform": "javascript",
                                         "slug": "project-slug",
                                         "stats": Array [
                                           Array [
@@ -260,9 +248,7 @@ exports[`ProjectCard renders 1`] = `
                                           "isBookmarked": false,
                                           "isMember": true,
                                           "name": "Project Name",
-                                          "platforms": Array [
-                                            "javascript",
-                                          ],
+                                          "platform": "javascript",
                                           "slug": "project-slug",
                                           "stats": Array [
                                             Array [
@@ -289,9 +275,7 @@ exports[`ProjectCard renders 1`] = `
                                             "isBookmarked": false,
                                             "isMember": true,
                                             "name": "Project Name",
-                                            "platforms": Array [
-                                              "javascript",
-                                            ],
+                                            "platform": "javascript",
                                             "slug": "project-slug",
                                             "stats": Array [
                                               Array [
@@ -313,7 +297,7 @@ exports[`ProjectCard renders 1`] = `
                                           consistentWidth={false}
                                           direction="right"
                                           hasTooltip={false}
-                                          max={3}
+                                          max={1}
                                           platforms={
                                             Array [
                                               "javascript",
@@ -324,13 +308,13 @@ exports[`ProjectCard renders 1`] = `
                                           <PlatformIcons
                                             consistentWidth={false}
                                             direction="right"
-                                            max={3}
+                                            max={1}
                                             size={24}
                                           >
                                             <div
                                               className="css-12u7e6y-PlatformIcons ezvce7z0"
                                               direction="right"
-                                              max={3}
+                                              max={1}
                                               size={24}
                                             >
                                               <StyledPlatformIcon
@@ -382,7 +366,7 @@ exports[`ProjectCard renders 1`] = `
                                           data-test-id="badge-display-name"
                                         >
                                           <span
-                                            className="css-1wwlq08-DisplayName e165dl3i2"
+                                            className="css-d0rtl9-DisplayName e165dl3i2"
                                             data-test-id="badge-display-name"
                                           >
                                             <span>
@@ -669,9 +653,7 @@ exports[`ProjectCard renders 1`] = `
                   "isBookmarked": false,
                   "isMember": true,
                   "name": "Project Name",
-                  "platforms": Array [
-                    "javascript",
-                  ],
+                  "platform": "javascript",
                   "slug": "project-slug",
                   "stats": Array [
                     Array [

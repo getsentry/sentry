@@ -1,14 +1,16 @@
-import sdk from 'app/utils/sdk';
+import * as Sentry from '@sentry/browser';
+
 import {Client} from 'app/api';
 import GroupActions from 'app/actions/groupActions';
 import {buildUserId, buildTeamId} from 'app/utils';
+import {uniqueId} from 'app/utils/guid';
 
 export function assignToUser(params) {
   const api = new Client();
 
   let endpoint = `/issues/${params.id}/`;
 
-  let id = api.uniqueId();
+  let id = uniqueId();
 
   GroupActions.assignTo(id, params.id, {
     email: (params.member && params.member.email) || '',
@@ -40,7 +42,7 @@ export function clearAssignment(groupId) {
 
   let endpoint = `/issues/${groupId}/`;
 
-  let id = api.uniqueId();
+  let id = uniqueId();
 
   GroupActions.assignTo(id, groupId, {
     email: '',
@@ -70,7 +72,7 @@ export function assignToActor({id, actor}) {
 
   let endpoint = `/issues/${id}/`;
 
-  let uniqueId = api.uniqueId();
+  let guid = uniqueId();
   let actorId;
   switch (actor.type) {
     case 'user':
@@ -82,8 +84,9 @@ export function assignToActor({id, actor}) {
       break;
 
     default:
-      sdk.captureException('Unknown assignee type', {
-        extra: {actor},
+      Sentry.withScope(scope => {
+        scope.setExtra('actor', actor);
+        Sentry.captureException('Unknown assignee type');
       });
   }
 
@@ -93,9 +96,9 @@ export function assignToActor({id, actor}) {
       data: {assignedTo: actorId},
     })
     .then(data => {
-      GroupActions.assignToSuccess(uniqueId, id, data);
+      GroupActions.assignToSuccess(guid, id, data);
     })
     .catch(data => {
-      GroupActions.assignToError(uniqueId, id, data);
+      GroupActions.assignToError(guid, id, data);
     });
 }

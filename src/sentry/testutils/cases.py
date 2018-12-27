@@ -11,7 +11,7 @@ from __future__ import absolute_import
 __all__ = (
     'TestCase', 'TransactionTestCase', 'APITestCase', 'TwoFactorAPITestCase', 'AuthProviderTestCase', 'RuleTestCase',
     'PermissionTestCase', 'PluginTestCase', 'CliTestCase', 'AcceptanceTestCase',
-    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase',
+    'IntegrationTestCase', 'UserReportEnvironmentTestCase', 'SnubaTestCase', 'IntegrationRepositoryTestCase', 'ReleaseCommitPatchTest'
 )
 
 import base64
@@ -24,8 +24,9 @@ import six
 import types
 import logging
 
+from sentry_sdk import Hub
+
 from click.testing import CliRunner
-from contextlib import contextmanager
 from datetime import datetime
 from django.conf import settings
 from django.contrib.auth import login
@@ -39,7 +40,7 @@ from django.test import TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from django.utils.importlib import import_module
-from exam import before, fixture, Exam
+from exam import before, after, fixture, Exam
 from mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
@@ -76,6 +77,10 @@ class BaseTestCase(Fixtures, Exam):
         resp = getattr(self.client, method.lower())(path)
         assert resp.status_code == 302
         assert resp['Location'].startswith('http://testserver' + reverse('sentry-login'))
+
+    @after
+    def teardown_internal_sdk(self):
+        Hub.main.bind_client(None)
 
     @before
     def setup_dummy_auth_provider(self):
@@ -134,12 +139,15 @@ class BaseTestCase(Fixtures, Exam):
         request.META['REMOTE_ADDR'] = '127.0.0.1'
         request.META['SERVER_NAME'] = 'testserver'
         request.META['SERVER_PORT'] = 80
+        request.REQUEST = {}
+
         # order matters here, session -> user -> other things
         request.session = self.session
         request.auth = auth
         request.user = user or AnonymousUser()
         request.superuser = Superuser(request)
         request.is_superuser = lambda: request.superuser.is_active
+        request.successful_authenticator = None
         return request
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
@@ -268,6 +276,21 @@ class BaseTestCase(Fixtures, Exam):
                 **extra
             )
 
+    def _postUnrealWithHeader(self, upload_unreal_crash, data=None, key=None, **extra):
+        path = reverse(
+            'sentry-api-unreal',
+            kwargs={
+                'project_id': self.project.id,
+                'sentry_key': self.projectkey.public_key})
+        with self.tasks():
+            return self.client.post(
+                path,
+                data=upload_unreal_crash,
+                content_type='application/octet-stream',
+                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
+                **extra
+            )
+
     def _getWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
         if key is None:
             key = self.projectkey.public_key
@@ -319,19 +342,6 @@ class BaseTestCase(Fixtures, Exam):
         back to the original value when exiting the context.
         """
         return override_options(options)
-
-    @contextmanager
-    def dsn(self, dsn):
-        """
-        A context manager that temporarily sets the internal client's DSN
-        """
-        from raven.contrib.django.models import client
-
-        try:
-            client.set_dsn(dsn)
-            yield
-        finally:
-            client.set_dsn(None)
 
     _postWithSignature = _postWithHeader
     _postWithNewSignature = _postWithHeader
@@ -419,7 +429,18 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
-    pass
+    endpoint = None
+    method = 'get'
+
+    def get_response(self, *args, **params):
+        if self.endpoint is None:
+            raise Exception('Implement self.endpoint to use this method.')
+        url = self.endpoint.format(*args)
+        return getattr(self.client, self.method)(
+            url,
+            format='json',
+            data=params,
+        )
 
 
 class TwoFactorAPITestCase(APITestCase):
@@ -563,6 +584,7 @@ class RuleTestCase(TestCase):
         kwargs.setdefault('is_new', True)
         kwargs.setdefault('is_regression', True)
         kwargs.setdefault('is_new_group_environment', True)
+        kwargs.setdefault('has_reappeared', True)
         return EventState(**kwargs)
 
     def assertPasses(self, rule, event=None, **kwargs):
@@ -815,7 +837,7 @@ class SnubaTestCase(TestCase):
             'group_id': event.group_id,
             'event_id': event.event_id,
             'project_id': event.project_id,
-            'message': event.message,
+            'message': event.real_message,
             'platform': event.platform,
             'datetime': event.datetime,
             'data': dict(data),
@@ -832,9 +854,6 @@ class SnubaTestCase(TestCase):
         doesn't run them through the 'real' event pipeline. In a perfect
         world all test events would go through the full regular pipeline.
         """
-
-        from sentry.event_manager import get_hashes_from_fingerprint, md5_from_hash
-
         event = super(SnubaTestCase, self).create_event(*args, **kwargs)
 
         data = event.data.data
@@ -854,11 +873,7 @@ class SnubaTestCase(TestCase):
                 group_id=event.group_id,
             )
 
-        hashes = get_hashes_from_fingerprint(
-            event,
-            data.get('fingerprint', ['{{ default }}']),
-        )
-        primary_hash = md5_from_hash(hashes[0])
+        primary_hash = event.get_primary_hash()
 
         grouphash, _ = GroupHash.objects.get_or_create(
             project=event.project,
@@ -880,3 +895,71 @@ class SnubaTestCase(TestCase):
             settings.SENTRY_SNUBA + '/tests/insert',
             data=json.dumps(events)
         ).status_code == 200
+
+
+class IntegrationRepositoryTestCase(APITestCase):
+    def setUp(self):
+        super(IntegrationRepositoryTestCase, self).setUp()
+        self.login_as(self.user)
+
+    def add_create_repository_responses(self, repository_config):
+        raise NotImplementedError
+
+    def create_repository(self, repository_config, integration_id,
+                          organization_slug=None, add_responses=True):
+        if add_responses:
+            self.add_create_repository_responses(repository_config)
+        with self.feature({'organizations:repos': True}):
+            if not integration_id:
+                data = {
+                    'provider': self.provider_name,
+                    'identifier': repository_config['id'],
+                }
+            else:
+                data = {
+                    'provider': self.provider_name,
+                    'installation': integration_id,
+                    'identifier': repository_config['id'],
+                }
+
+            response = self.client.post(
+                path=reverse(
+                    'sentry-api-0-organization-repositories',
+                    args=[organization_slug or self.organization.slug]
+                ),
+                data=data
+            )
+        return response
+
+    def assert_error_message(self, response, error_type, error_message):
+        assert response.data['error_type'] == error_type
+        assert error_message in response.data['errors']['__all__']
+
+
+class ReleaseCommitPatchTest(APITestCase):
+    def setUp(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        self.org = self.create_organization()
+        self.org.save()
+
+        team = self.create_team(organization=self.org)
+        self.project = self.create_project(name='foo', organization=self.org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=self.org)
+        self.login_as(user=user)
+
+    @fixture
+    def url(self):
+        raise NotImplementedError
+
+    def assert_commit(self, commit, repo_id, key, author_id, message):
+        assert commit.organization_id == self.org.id
+        assert commit.repository_id == repo_id
+        assert commit.key == key
+        assert commit.author_id == author_id
+        assert commit.message == message
+
+    def assert_file_change(self, file_change, type, filename, commit_id):
+        assert file_change.type == type
+        assert file_change.filename == filename
+        assert file_change.commit_id == commit_id

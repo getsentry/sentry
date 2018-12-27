@@ -1,13 +1,15 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
+
+import {withMeta} from 'app/components/events/meta/metaProxy';
 import ApiMixin from 'app/mixins/apiMixin';
 import EventEntries from 'app/components/events/eventEntries';
+import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
 import GroupEventToolbar from 'app/views/groupDetails/eventToolbar';
 import GroupSidebar from 'app/components/group/sidebar';
 import GroupState from 'app/mixins/groupState';
-import MutedBox from 'app/components/mutedBox';
-import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import MutedBox from 'app/components/mutedBox';
 import ResolutionBox from 'app/components/resolutionBox';
 import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
@@ -36,12 +38,15 @@ const GroupEventDetails = createReactClass({
   },
 
   fetchData() {
-    let eventId = this.props.params.eventId || 'latest';
+    const eventId = this.props.params.eventId || 'latest';
+    const groupId = this.getGroup().id;
+    const orgSlug = this.getOrganization().slug;
+    const projSlug = this.getProject().slug;
 
     let url =
       eventId === 'latest' || eventId === 'oldest'
-        ? '/issues/' + this.getGroup().id + '/events/' + eventId + '/'
-        : '/events/' + eventId + '/';
+        ? `/issues/${groupId}/events/${eventId}/`
+        : `/projects/${orgSlug}/${projSlug}/events/${eventId}/`;
 
     this.setState({
       loading: true,
@@ -57,9 +62,9 @@ const GroupEventDetails = createReactClass({
         });
 
         this.api.bulkUpdate({
-          orgId: this.getOrganization().slug,
-          projectId: this.getProject().slug,
-          itemIds: [this.getGroup().id],
+          orgId: orgSlug,
+          projectId: projSlug,
+          itemIds: [groupId],
           failSilently: true,
           data: {hasSeen: true},
         });
@@ -75,7 +80,7 @@ const GroupEventDetails = createReactClass({
 
   render() {
     let group = this.getGroup();
-    let evt = this.state.event;
+    let evt = withMeta(this.state.event);
     let params = this.props.params;
 
     return (

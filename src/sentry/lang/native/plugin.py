@@ -8,15 +8,15 @@ from symbolic import parse_addr, find_best_instruction, arch_get_ip_reg_name, \
     ObjectLookup
 
 from sentry import options
-from django.db import transaction, IntegrityError
-from sentry.models import VersionDSymFile, DifPlatform, DSymApp
 from sentry.plugins import Plugin2
+from sentry.lang.native.cfi import reprocess_minidump_with_cfi
+from sentry.lang.native.minidump import is_minidump_event
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
-from sentry.lang.native.utils import \
-    get_sdk_from_event, cpu_name_from_data, \
-    rebase_addr, version_build_from_data
+from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data, \
+    rebase_addr
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 from sentry.stacktraces import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
 
@@ -31,17 +31,18 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
-        debug_meta = self.data.get('debug_meta')
+
         self.arch = cpu_name_from_data(self.data)
         self.sym = None
         self.difs_referenced = set()
-        if debug_meta:
+
+        images = get_path(self.data, 'debug_meta', 'images', default=(),
+                          filter=(lambda img: img and img.get('type') in self.supported_images))
+
+        if images:
             self.available = True
-            self.debug_meta = debug_meta
             self.sdk_info = get_sdk_from_event(self.data)
-            self.object_lookup = ObjectLookup(
-                [img for img in self.debug_meta['images'] if img['type'] in self.supported_images]
-            )
+            self.object_lookup = ObjectLookup(images)
         else:
             self.available = False
 
@@ -73,16 +74,12 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             # The signal is useful information for symbolic in some situations
             # to disambiugate the first frame.  If we can get this information
             # from the mechanism we want to pass it onwards.
-            signal = None
-            exc = self.data.get('sentry.interfaces.Exception')
-            if exc is not None:
-                mechanism = exc['values'][0].get('mechanism')
-                if mechanism and 'meta' in mechanism and \
-                    'signal' in mechanism['meta'] and \
-                        'number' in mechanism['meta']['signal']:
-                    signal = int(mechanism['meta']['signal']['number'])
-            registers = processable_frame.stacktrace_info.stacktrace.get(
-                'registers')
+            exceptions = get_path(self.data, 'exception', 'values', filter=True)
+            signal = get_path(exceptions, 0, 'mechanism', 'meta', 'signal', 'number')
+            if signal is not None:
+                signal = int(signal)
+
+            registers = processable_frame.stacktrace_info.stacktrace.get('registers')
             if registers:
                 ip_reg_name = arch_get_ip_reg_name(self.arch)
                 if ip_reg_name:
@@ -136,38 +133,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             if pf.cache_value is None and pf.data['debug_id'] is not None
         )
 
-        app_info = version_build_from_data(self.data)
-        if app_info is not None:
-            def on_referenced(dif):
-                dsym_app = DSymApp.objects.create_or_update_app(
-                    sync_id=None,
-                    app_id=app_info.id,
-                    project=self.project,
-                    data={'name': app_info.name},
-                    platform=DifPlatform.APPLE,
-                    no_fetch=True
-                )
-                try:
-                    with transaction.atomic():
-                        version_dsym_file, created = VersionDSymFile.objects.get_or_create(
-                            dsym_file=dif,
-                            version=app_info.version,
-                            build=app_info.build,
-                            defaults=dict(dsym_app=dsym_app),
-                        )
-                except IntegrityError:
-                    # XXX: this can currently happen because we only
-                    # support one app per debug file.  Since this can
-                    # happen in some cases anyways we ignore it.
-                    pass
-        else:
-            on_referenced = None
-
         self.sym = Symbolizer(
             self.project,
             self.object_lookup,
             referenced_images=referenced_images,
-            on_dif_referenced=on_referenced
         )
 
         if options.get('symbolserver.enabled'):
@@ -238,10 +207,14 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 symbolicated_frames = self.sym.symbolize_frame(
                     instruction_addr,
                     self.sdk_info,
-                    symbolserver_match=processable_frame.data['symbolserver_match']
+                    symbolserver_match=processable_frame.data['symbolserver_match'],
+                    trust=raw_frame.get('trust'),
                 )
                 if not symbolicated_frames:
-                    return None, [raw_frame], []
+                    if raw_frame.get('trust') == 'scan':
+                        return [], [raw_frame], []
+                    else:
+                        return None, [raw_frame], []
             except SymbolicationFailed as e:
                 # User fixable but fatal errors are reported as processing
                 # issues
@@ -304,6 +277,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
 class NativePlugin(Plugin2):
     can_disable = False
+
+    def get_event_enhancers(self, data):
+        if is_minidump_event(data):
+            return [reprocess_minidump_with_cfi]
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
         if any(platform in NativeStacktraceProcessor.supported_platforms for platform in platforms):

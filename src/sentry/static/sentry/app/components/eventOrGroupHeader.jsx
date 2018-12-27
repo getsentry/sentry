@@ -61,6 +61,12 @@ class EventOrGroupHeader extends React.Component {
     }
   }
 
+  getLocation() {
+    let {data} = this.props;
+    let {metadata} = data || {};
+    return metadata.filename || null;
+  }
+
   getTitle() {
     let {hideIcons, hideLevel, includeLink, orgId, projectId, data} = this.props;
     let {id, level, groupID} = data || {};
@@ -73,7 +79,9 @@ class EventOrGroupHeader extends React.Component {
         pathname: `/${orgId}/${projectId}/issues/${isEvent ? groupID : id}/${isEvent
           ? `events/${data.id}/`
           : ''}`,
-        search: `${this.props.query ? `?query=${this.props.query}` : ''}`,
+        search: `${this.props.query
+          ? `?query=${window.encodeURIComponent(this.props.query)}`
+          : ''}`,
       };
       Wrapper = ProjectLink;
     } else {
@@ -105,10 +113,12 @@ class EventOrGroupHeader extends React.Component {
     let {className} = this.props;
     let cx = classNames('event-issue-header', className);
     let message = this.getMessage();
+    let location = this.getLocation();
 
     return (
       <div className={cx}>
         <Title>{this.getTitle()}</Title>
+        {location && <Location>{location}</Location>}
         {message && <Message>{message}</Message>}
       </div>
     );
@@ -132,6 +142,27 @@ const Title = styled.div`
     color: ${p => p.theme.gray3};
   }
 `;
+
+const LocationWrapper = styled.div`
+  ${truncateStyles};
+  direction: rtl;
+  text-align: left;
+  font-size: 14px;
+  margin: 0 0 5px;
+  color: ${p => p.theme.gray3};
+  span {
+    direction: ltr;
+  }
+`;
+
+function Location(props) {
+  let {children, ...rest} = props;
+  return (
+    <LocationWrapper {...rest}>
+      in <span>{children}</span>
+    </LocationWrapper>
+  );
+}
 
 const Message = styled.div`
   ${truncateStyles};

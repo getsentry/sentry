@@ -8,6 +8,13 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
     <SettingsPageHeading
       title="Issue Owners"
     />
+    <PermissionAlert
+      access={
+        Array [
+          "project:write",
+        ]
+      }
+    />
     <Panel>
       <PanelHeader>
         Ownership Rules
@@ -64,6 +71,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
           </CodeBlock>
         </Block>
         <OwnerInput
+          disabled={false}
           initialText="url:src @dummy@example.com"
           organization={
             Object {
@@ -165,6 +173,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
             Object {
               "fields": Array [
                 Object {
+                  "disabled": false,
                   "help": "Issue owners will receive notifications for issues they are responsible for.",
                   "label": "All users with access to this project are issue owners",
                   "name": "fallthrough",

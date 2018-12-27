@@ -1,6 +1,7 @@
+import moment from 'moment';
 import {Client} from 'app/api';
-
 import {isValidAggregation} from './aggregations/utils';
+import {NON_SNUBA_FIELDS} from './data';
 
 export function getQueryFromQueryString(queryString) {
   const validQueryKeys = new Set([
@@ -38,7 +39,7 @@ export function getQueryStringFromQuery(query) {
   return `?${queryProperties.join('&')}`;
 }
 
-export function getOrderByOptions(queryBuilder) {
+export function getOrderbyFields(queryBuilder) {
   const columns = queryBuilder.getColumns();
   const query = queryBuilder.getInternal();
 
@@ -59,33 +60,37 @@ export function getOrderByOptions(queryBuilder) {
       }
     }
 
-    // Never allow ordering by project_name since this can't be done in Snuba
-    if (name === 'project_name') {
+    // Never allow ordering by project.name or issue.id since this can't be done in Snuba
+    if (NON_SNUBA_FIELDS.includes(name)) {
       return acc;
     }
 
-    return [
-      ...acc,
-      {value: name, label: `${name} asc`},
-      {value: `-${name}`, label: `${name} desc`},
-    ];
+    return [...acc, {value: name, label: name}];
   }, []);
 
   const aggregationOptions = [
     // Ensure aggregations are unique (since users might input duplicates)
     ...new Set(validAggregations.map(aggregation => aggregation[2])),
   ].reduce((acc, agg) => {
-    return [
-      ...acc,
-      {value: agg, label: `${agg} asc`},
-      {value: `-${agg}`, label: `${agg} desc`},
-    ];
+    return [...acc, {value: agg, label: agg}];
   }, []);
 
   return [...columnOptions, ...aggregationOptions];
 }
 
-export function getView(requestedView) {
+/**
+ * Takes the params object and the requested view querystring and returns the
+ * correct view to be displayed
+ *
+ * @param {Object} params
+ * @param {String} reqeustedView
+ * @returns {String} View
+ */
+export function getView(params, requestedView) {
+  if (typeof params.savedQueryId !== 'undefined') {
+    requestedView = 'saved';
+  }
+
   switch (requestedView) {
     case 'saved':
       return 'saved';
@@ -152,4 +157,13 @@ export function deleteSavedQuery(organization, id) {
   return api.requestPromise(endpoint, {
     method: 'DELETE',
   });
+}
+
+/**
+ * Generate a saved query name based on the current timestamp
+ *
+ * @returns {String}
+ */
+export function generateQueryName() {
+  return `Result - ${moment.utc().format('MMM DD HH:mm:ss')}`;
 }

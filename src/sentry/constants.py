@@ -79,6 +79,8 @@ MAX_EMAIL_FIELD_LENGTH = 75
 ENVIRONMENT_NAME_PATTERN = r'^[^\n\r\f\/]*$'
 ENVIRONMENT_NAME_MAX_LENGTH = 64
 
+SENTRY_APP_SLUG_MAX_LENGTH = 64
+
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
 RESERVED_ORGANIZATION_SLUGS = frozenset(
@@ -90,7 +92,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
         'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions',
         'plugins', 'themonitor', 'settings', 'legal', 'avatar', 'organization-avatar',
-        'project-avatar', 'team-avatar', 'careers', '_experiment',
+        'project-avatar', 'team-avatar', 'careers', '_experiment', 'sentry-apps',
     )
 )
 
@@ -98,6 +100,7 @@ RESERVED_PROJECT_SLUGS = frozenset((
     'api-keys', 'audit-log', 'auth', 'members', 'projects',
     'rate-limits', 'repos', 'settings', 'teams', 'billing',
     'payments', 'legal', 'subscription', 'support', 'integrations',
+    'developer-settings',
 ))
 
 LOG_LEVELS = {
@@ -148,6 +151,7 @@ SENTRY_RULES = (
     'sentry.rules.conditions.every_event.EveryEventCondition',
     'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
     'sentry.rules.conditions.regression_event.RegressionEventCondition',
+    'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
     'sentry.rules.conditions.tagged_event.TaggedEventCondition',
     'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
     'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
@@ -163,6 +167,7 @@ CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
     'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
     'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id', '_meta',
+    'applecrashreport', 'device', 'repos', 'query', 'type', 'hashes',
 )
 
 # XXX: Must be all lowercase
@@ -282,6 +287,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "celery": "python-celery",
     "rq": "python-rq",
     "bottle": "python-bottle",
+    "pythonawslambda": "python-awslambda",
     "pyramid": "python-pyramid",
     "pylons": "python-pylons",
     "laravel": "php-laravel",

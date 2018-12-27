@@ -5,9 +5,9 @@ from django.utils.crypto import constant_time_compare
 from rest_framework.authentication import (BasicAuthentication, get_authorization_header)
 from rest_framework.exceptions import AuthenticationFailed
 
-from sentry.app import raven
-from sentry.models import ApiApplication, ApiKey, ApiToken, Relay
+from sentry.models import ApiApplication, ApiKey, ApiToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.utils.sdk import configure_scope
 
 import semaphore
 
@@ -15,6 +15,25 @@ import semaphore
 class QuietBasicAuthentication(BasicAuthentication):
     def authenticate_header(self, request):
         return 'xBasic realm="%s"' % self.www_authenticate_realm
+
+
+class StandardAuthentication(QuietBasicAuthentication):
+    token_name = None
+
+    def authenticate(self, request):
+        auth = get_authorization_header(request).split()
+
+        if not auth or auth[0].lower() != self.token_name:
+            return None
+
+        if len(auth) == 1:
+            msg = 'Invalid token header. No credentials provided.'
+            raise AuthenticationFailed(msg)
+        elif len(auth) > 2:
+            msg = 'Invalid token header. Token string should not contain spaces.'
+            raise AuthenticationFailed(msg)
+
+        return self.authenticate_credentials(auth[1])
 
 
 class RelayAuthentication(BasicAuthentication):
@@ -28,9 +47,8 @@ class RelayAuthentication(BasicAuthentication):
         return self.authenticate_credentials(relay_id, relay_sig, request)
 
     def authenticate_credentials(self, relay_id, relay_sig, request):
-        raven.tags_context({
-            'relay_id': relay_id,
-        })
+        with configure_scope() as scope:
+            scope.set_tag('relay_id', relay_id)
 
         try:
             relay = Relay.objects.get(relay_id=relay_id)
@@ -63,9 +81,8 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         if not key.is_active:
             raise AuthenticationFailed('Key is disabled')
 
-        raven.tags_context({
-            'api_key': key.id,
-        })
+        with configure_scope() as scope:
+            scope.set_tag("api_key", key.id)
 
         return (AnonymousUser(), key)
 
@@ -106,21 +123,8 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
             raise invalid_pair_error
 
 
-class TokenAuthentication(QuietBasicAuthentication):
-    def authenticate(self, request):
-        auth = get_authorization_header(request).split()
-
-        if not auth or auth[0].lower() != b'bearer':
-            return None
-
-        if len(auth) == 1:
-            msg = 'Invalid token header. No credentials provided.'
-            raise AuthenticationFailed(msg)
-        elif len(auth) > 2:
-            msg = 'Invalid token header. Token string should not contain spaces.'
-            raise AuthenticationFailed(msg)
-
-        return self.authenticate_credentials(auth[1])
+class TokenAuthentication(StandardAuthentication):
+    token_name = b'bearer'
 
     def authenticate_credentials(self, token):
         try:
@@ -139,8 +143,27 @@ class TokenAuthentication(QuietBasicAuthentication):
         if token.application and not token.application.is_active:
             raise AuthenticationFailed('UserApplication inactive or deleted')
 
-        raven.tags_context({
-            'api_token': token.id,
-        })
+        with configure_scope() as scope:
+            scope.set_tag("api_token_type", self.token_name)
+            scope.set_tag("api_token", token.id)
 
         return (token.user, token)
+
+
+class DSNAuthentication(StandardAuthentication):
+    token_name = b'dsn'
+
+    def authenticate_credentials(self, token):
+        try:
+            key = ProjectKey.from_dsn(token)
+        except ProjectKey.DoesNotExist:
+            raise AuthenticationFailed('Invalid token')
+
+        if not key.is_active:
+            raise AuthenticationFailed('Invalid token')
+
+        with configure_scope() as scope:
+            scope.set_tag("api_token_type", self.token_name)
+            scope.set_tag("api_project_key", key.id)
+
+        return (AnonymousUser(), key)

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.utils.numbers import base36_encode, base36_decode, \
-    base32_encode, base32_decode
+    base32_encode, base32_decode, format_bytes
 
 
 def test_base36():
@@ -34,3 +34,15 @@ def test_base32():
     ]
 
     assert [base32_decode(base32_encode(x)) for x in range(128)] == list(map(int, range(128)))
+
+
+def test_format_bytes():
+    assert format_bytes(50) == '50 B'
+    assert format_bytes(1024) == '1.00 KB'
+    assert format_bytes(3000) == '2.93 KB'
+    assert format_bytes(30000) == '29.30 KB'
+    assert format_bytes(3000000) == '2.86 MB'
+    assert format_bytes(3000000000) == '2.79 GB'
+    assert format_bytes(3000000000000) == '2.73 TB'
+
+    assert format_bytes(3000000000000, units=['B', 'KB', 'MB', 'GB']) == '2793.97 GB'

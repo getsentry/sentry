@@ -10,38 +10,34 @@ sentry.coreapi
 #       metadata (rather than generic log messages which aren't useful).
 from __future__ import absolute_import, print_function
 
+import abc
 import base64
-import jsonschema
 import logging
 import re
 import six
 import zlib
 
-from collections import MutableMapping
 from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import constant_time_compare
 from gzip import GzipFile
 from six import BytesIO
 from time import time
 
-from sentry import filters
 from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
-from sentry.interfaces.base import get_interface
-from sentry.event_manager import EventManager
 from sentry.models import ProjectKey
 from sentry.tasks.store import preprocess_event, \
     preprocess_event_from_reprocessing
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.http import origin_from_request
-from sentry.utils.data_filters import is_valid_ip, \
-    is_valid_release, is_valid_error_message, FilterStatKeys
 from sentry.utils.strings import decompress
+from sentry.utils.sdk import configure_scope
 from sentry.utils.canonical import CANONICAL_TYPES
 
 
 _dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
+logger = logging.getLogger("sentry.api")
 
 
 class APIError(Exception):
@@ -100,57 +96,16 @@ class ClientContext(object):
     def bind_project(self, project):
         self.project = project
         self.project_id = project.id
+        with configure_scope() as scope:
+            scope.set_tag("project", project.id)
 
     def bind_auth(self, auth):
         self.agent = auth.client
         self.version = auth.version
 
-    def get_tags_context(self):
-        return {'project': self.project_id, 'agent': self.agent, 'protocol': self.version}
-
-
-class ClientLogHelper(object):
-    def __init__(self, context):
-        self.context = context
-        self.logger = logging.getLogger('sentry.api')
-
-    def debug(self, *a, **k):
-        self.logger.debug(*a, **self._metadata(**k))
-
-    def info(self, *a, **k):
-        self.logger.info(*a, **self._metadata(**k))
-
-    def warning(self, *a, **k):
-        self.logger.warning(*a, **self._metadata(**k))
-
-    def error(self, *a, **k):
-        self.logger.error(*a, **self._metadata(**k))
-
-    def _metadata(self, tags=None, extra=None, **kwargs):
-        if not extra:
-            extra = {}
-        if not tags:
-            tags = {}
-
-        context = self.context
-
-        project = context.project
-        if project:
-            project_label = '%s/%s' % (project.organization.slug, project.slug)
-        else:
-            project_label = 'id=%s' % (context.project_id, )
-
-        tags.update(context.get_tags_context())
-        tags['project'] = project_label
-
-        extra['tags'] = tags
-        extra['agent'] = context.agent
-        extra['protocol'] = context.version
-        extra['project'] = project_label
-
-        kwargs['extra'] = extra
-
-        return kwargs
+        with configure_scope() as scope:
+            scope.set_tag("agent", self.agent)
+            scope.set_tag("protocol", self.version)
 
 
 class ClientApiHelper(object):
@@ -161,40 +116,6 @@ class ClientApiHelper(object):
             project_id=project_id,
             ip_address=ip_address,
         )
-        self.log = ClientLogHelper(self.context)
-
-    def auth_from_request(self, request):
-        result = {k: request.GET[k] for k in six.iterkeys(
-            request.GET) if k[:7] == 'sentry_'}
-
-        if request.META.get('HTTP_X_SENTRY_AUTH', '')[:7].lower() == 'sentry ':
-            if result:
-                raise SuspiciousOperation(
-                    'Multiple authentication payloads were detected.')
-            result = parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
-        elif request.META.get('HTTP_AUTHORIZATION', '')[:7].lower() == 'sentry ':
-            if result:
-                raise SuspiciousOperation(
-                    'Multiple authentication payloads were detected.')
-            result = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
-
-        if not result:
-            raise APIUnauthorized('Unable to find authentication information')
-
-        origin = self.origin_from_request(request)
-        auth = Auth(result, is_public=bool(origin))
-        # default client to user agent
-        if not auth.client:
-            auth.client = request.META.get('HTTP_USER_AGENT')
-        return auth
-
-    def origin_from_request(self, request):
-        """
-        Returns either the Origin or Referer value from the request headers.
-        """
-        if request.META.get('HTTP_ORIGIN') == 'null':
-            return 'null'
-        return origin_from_request(request)
 
     def project_key_from_auth(self, auth):
         if not auth.public_key:
@@ -226,125 +147,13 @@ class ClientApiHelper(object):
     def project_id_from_auth(self, auth):
         return self.project_key_from_auth(auth).project_id
 
-    def decode_data(self, encoded_data):
-        try:
-            return encoded_data.decode('utf-8')
-        except UnicodeDecodeError as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' %
-                           (type(e).__name__, e))
-
-    def decompress_deflate(self, encoded_data):
-        try:
-            return zlib.decompress(encoded_data).decode('utf-8')
-        except Exception as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' %
-                           (type(e).__name__, e))
-
-    def decompress_gzip(self, encoded_data):
-        try:
-            fp = BytesIO(encoded_data)
-            try:
-                f = GzipFile(fileobj=fp)
-                return f.read().decode('utf-8')
-            finally:
-                f.close()
-        except Exception as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' %
-                           (type(e).__name__, e))
-
-    def decode_and_decompress_data(self, encoded_data):
-        try:
-            try:
-                return decompress(encoded_data).decode('utf-8')
-            except zlib.error:
-                return base64.b64decode(encoded_data).decode('utf-8')
-        except Exception as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data decoding request (%s, %s)' %
-                           (type(e).__name__, e))
-
-    def safely_load_json_string(self, json_string):
-        try:
-            if isinstance(json_string, six.binary_type):
-                json_string = json_string.decode('utf-8')
-            obj = json.loads(json_string)
-            assert isinstance(obj, dict)
-        except Exception as e:
-            # This error should be caught as it suggests that there's a
-            # bug somewhere in the client's code.
-            self.log.debug(six.text_type(e), exc_info=True)
-            raise APIError('Bad data reconstructing object (%s, %s)' %
-                           (type(e).__name__, e))
-        return obj
-
-    def parse_client_as_sdk(self, value):
-        if not value:
-            return {}
-        try:
-            name, version = value.split('/', 1)
-        except ValueError:
-            try:
-                name, version = value.split(' ', 1)
-            except ValueError:
-                return {}
-        return {
-            'name': name,
-            'version': version,
-        }
-
-    def should_filter(self, project, data, ip_address=None):
-        """
-        returns (result: bool, reason: string or None)
-        Result is True if an event should be filtered
-        The reason for filtering is passed along as a string
-        so that we can store it in metrics
-        """
-        if ip_address and not is_valid_ip(project, ip_address):
-            return (True, FilterStatKeys.IP_ADDRESS)
-
-        release = data.get('release')
-        if release and not is_valid_release(project, release):
-            return (True, FilterStatKeys.RELEASE_VERSION)
-
-        message_interface = data.get('sentry.interfaces.Message', {})
-        error_message = message_interface.get('formatted', ''
-                                              ) or message_interface.get('message', '')
-        if error_message and not is_valid_error_message(project, error_message):
-            return (True, FilterStatKeys.ERROR_MESSAGE)
-
-        for exception_interface in data.get('sentry.interfaces.Exception', {}).get('values', []):
-            message = u': '.join(filter(None, map(exception_interface.get, ['type', 'value'])))
-            if message and not is_valid_error_message(project, message):
-                return (True, FilterStatKeys.ERROR_MESSAGE)
-
-        for filter_cls in filters.all():
-            filter_obj = filter_cls(project)
-            if filter_obj.is_enabled() and filter_obj.test(data):
-                return (True, six.text_type(filter_obj.id))
-
-        return (False, None)
-
-    def validate_data(self, data):
-        return data
-
     def ensure_does_not_have_ip(self, data):
-        if 'sentry.interfaces.Http' in data:
-            if 'env' in data['sentry.interfaces.Http']:
-                data['sentry.interfaces.Http']['env'].pop('REMOTE_ADDR', None)
+        if 'request' in data:
+            if 'env' in data['request']:
+                data['request']['env'].pop('REMOTE_ADDR', None)
 
-        if 'sentry.interfaces.User' in data:
-            data['sentry.interfaces.User'].pop('ip_address', None)
+        if 'user' in data:
+            data['user'].pop('ip_address', None)
 
         if 'sdk' in data:
             data['sdk'].pop('client_ip', None)
@@ -355,11 +164,11 @@ class ClientApiHelper(object):
             start_time = time()
 
         # we might be passed some sublcasses of dict that fail dumping
-        if isinstance(data, DOWNGRADE_DATA_TYPES):
+        if isinstance(data, CANONICAL_TYPES):
             data = dict(data.items())
 
         cache_timeout = 3600
-        cache_key = u'e:{1}:{0}'.format(data['project'], data['event_id'])
+        cache_key = cache_key_for_event(data)
         default_cache.set(cache_key, data, cache_timeout)
 
         # Attachments will be empty or None if the "event-attachments" feature
@@ -374,12 +183,62 @@ class ClientApiHelper(object):
                    event_id=data['event_id'])
 
 
-class MinidumpApiHelper(ClientApiHelper):
-    def origin_from_request(self, request):
+@six.add_metaclass(abc.ABCMeta)
+class AbstractAuthHelper(object):
+    @abc.abstractmethod
+    def auth_from_request(cls, request):
+        pass
+
+    @abc.abstractmethod
+    def origin_from_request(cls, request):
+        pass
+
+
+class ClientAuthHelper(AbstractAuthHelper):
+    @classmethod
+    def auth_from_request(cls, request):
+        result = {k: request.GET[k] for k in six.iterkeys(
+            request.GET) if k[:7] == 'sentry_'}
+
+        if request.META.get('HTTP_X_SENTRY_AUTH', '')[:7].lower() == 'sentry ':
+            if result:
+                raise SuspiciousOperation(
+                    'Multiple authentication payloads were detected.')
+            result = parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
+        elif request.META.get('HTTP_AUTHORIZATION', '')[:7].lower() == 'sentry ':
+            if result:
+                raise SuspiciousOperation(
+                    'Multiple authentication payloads were detected.')
+            result = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
+
+        if not result:
+            raise APIUnauthorized('Unable to find authentication information')
+
+        origin = cls.origin_from_request(request)
+        auth = Auth(result, is_public=bool(origin))
+        # default client to user agent
+        if not auth.client:
+            auth.client = request.META.get('HTTP_USER_AGENT')
+        return auth
+
+    @classmethod
+    def origin_from_request(cls, request):
+        """
+        Returns either the Origin or Referer value from the request headers.
+        """
+        if request.META.get('HTTP_ORIGIN') == 'null':
+            return 'null'
+        return origin_from_request(request)
+
+
+class MinidumpAuthHelper(AbstractAuthHelper):
+    @classmethod
+    def origin_from_request(cls, request):
         # We don't use an origin here
         return None
 
-    def auth_from_request(self, request):
+    @classmethod
+    def auth_from_request(cls, request):
         key = request.GET.get('sentry_key')
         if not key:
             raise APIUnauthorized('Unable to find authentication information')
@@ -392,17 +251,16 @@ class MinidumpApiHelper(ClientApiHelper):
         return auth
 
 
-class SecurityApiHelper(ClientApiHelper):
-
-    report_interfaces = ('sentry.interfaces.Csp', 'hpkp', 'expectct', 'expectstaple')
-
-    def origin_from_request(self, request):
+class SecurityAuthHelper(AbstractAuthHelper):
+    @classmethod
+    def origin_from_request(cls, request):
         # In the case of security reports, the origin is not available at the
         # dispatch() stage, as we need to parse it out of the request body, so
         # we do our own CORS check once we have parsed it.
         return None
 
-    def auth_from_request(self, request):
+    @classmethod
+    def auth_from_request(cls, request):
         key = request.GET.get('sentry_key')
         if not key:
             raise APIUnauthorized('Unable to find authentication information')
@@ -415,142 +273,70 @@ class SecurityApiHelper(ClientApiHelper):
         auth.client = request.META.get('HTTP_USER_AGENT')
         return auth
 
-    def should_filter(self, project, data, ip_address=None):
-        for name in self.report_interfaces:
-            if name in data:
-                interface = get_interface(name)
-                if interface.to_python(data[name]).should_filter(project):
-                    return (True, FilterStatKeys.INVALID_CSP)
 
-        return super(SecurityApiHelper, self).should_filter(project, data, ip_address)
+def cache_key_for_event(data):
+    return u'e:{1}:{0}'.format(data['project'], data['event_id'])
 
-    def validate_data(self, data):
+
+def decompress_deflate(encoded_data):
+    try:
+        return zlib.decompress(encoded_data).decode("utf-8")
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
+
+
+def decompress_gzip(encoded_data):
+    try:
+        fp = BytesIO(encoded_data)
         try:
-            interface = get_interface(data.pop('interface'))
-            report = data.pop('report')
-        except KeyError:
-            raise APIForbidden('No report or interface data')
+            f = GzipFile(fileobj=fp)
+            return f.read().decode("utf-8")
+        finally:
+            f.close()
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
 
-        # To support testing, we can either accept a buillt interface instance, or the raw data in
-        # which case we build the instance ourselves
+
+def decode_and_decompress_data(encoded_data):
+    try:
         try:
-            instance = report if isinstance(report, interface) else interface.from_raw(report)
-        except jsonschema.ValidationError as e:
-            raise APIError('Invalid security report: %s' % str(e).splitlines()[0])
-
-        def clean(d):
-            return dict(filter(lambda x: x[1], d.items()))
-
-        data.update({
-            'logger': 'csp',
-            'message': instance.get_message(),
-            'culprit': instance.get_culprit(),
-            instance.get_path(): instance.to_json(),
-            'tags': instance.get_tags(),
-            'errors': [],
-
-            'sentry.interfaces.User': {
-                'ip_address': self.context.ip_address,
-            },
-
-            # Construct a faux Http interface based on the little information we have
-            # This is a bit weird, since we don't have nearly enough
-            # information to create an Http interface, but
-            # this automatically will pick up tags for the User-Agent
-            # which is actually important here for CSP
-            'sentry.interfaces.Http': {
-                'url': instance.get_origin(),
-                'headers': clean({
-                    'User-Agent': self.context.agent,
-                    'Referer': instance.get_referrer(),
-                })
-            },
-        })
-
-        return data
+            return decompress(encoded_data).decode("utf-8")
+        except zlib.error:
+            return base64.b64decode(encoded_data).decode("utf-8")
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
 
 
-class LazyData(MutableMapping):
-    def __init__(self, data, content_encoding, helper, project, key, auth, client_ip):
-        self._data = data
-        self._content_encoding = content_encoding
-        self._helper = helper
-        self._project = project
-        self._key = key
-        self._auth = auth
-        self._client_ip = client_ip
-        self._decoded = False
-
-    def _decode(self):
-        data = self._data
-        content_encoding = self._content_encoding
-        helper = self._helper
-        auth = self._auth
-
-        # TODO(dcramer): CSP is passing already decoded JSON, which sort of
-        # defeats the purpose of a lot of lazy evaluation. It needs refactored
-        # to avoid doing that.
-        if isinstance(data, six.binary_type):
-            if content_encoding == 'gzip':
-                data = helper.decompress_gzip(data)
-            elif content_encoding == 'deflate':
-                data = helper.decompress_deflate(data)
-            elif data[0] != b'{':
-                data = helper.decode_and_decompress_data(data)
-            else:
-                data = helper.decode_data(data)
-        if isinstance(data, six.text_type):
-            data = helper.safely_load_json_string(data)
-
-        # We need data validation/etc to apply as part of LazyData so that
-        # if there are filters present, they can operate on a normalized
-        # version of the data
-
-        # mutates data
-        data = helper.validate_data(data)
-
-        data['project'] = self._project.id
-        data['key_id'] = self._key.id
-        data['sdk'] = data.get('sdk') or helper.parse_client_as_sdk(auth.client)
-
-        # does not mutate data, must use return value of normalize
-        manager = EventManager(data, version=auth.version)
-        self._data = manager.normalize(request_env={
-            'client_ip': self._client_ip,
-            'auth': self._auth,
-        })
-
-        self._decoded = True
-
-    def __getitem__(self, name):
-        if not self._decoded:
-            self._decode()
-        return self._data[name]
-
-    def __setitem__(self, name, value):
-        if not self._decoded:
-            self._decode()
-        self._data[name] = value
-
-    def __delitem__(self, name):
-        if not self._decoded:
-            self._decode()
-        del self._data[name]
-
-    def __contains__(self, name):
-        if not self._decoded:
-            self._decode()
-        return name in self._data
-
-    def __len__(self):
-        if not self._decoded:
-            self._decode()
-        return len(self._data)
-
-    def __iter__(self):
-        if not self._decoded:
-            self._decode()
-        return iter(self._data)
+def decode_data(encoded_data):
+    try:
+        return encoded_data.decode("utf-8")
+    except UnicodeDecodeError as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError("Bad data decoding request (%s, %s)" % (type(e).__name__, e))
 
 
-DOWNGRADE_DATA_TYPES = CANONICAL_TYPES + (LazyData,)
+def safely_load_json_string(json_string):
+    try:
+        if isinstance(json_string, six.binary_type):
+            json_string = json_string.decode("utf-8")
+        obj = json.loads(json_string)
+        assert isinstance(obj, dict)
+    except Exception as e:
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the client's code.
+        logger.debug(six.text_type(e), exc_info=True)
+        raise APIError(
+            "Bad data reconstructing object (%s, %s)" % (type(e).__name__, e)
+        )
+    return obj

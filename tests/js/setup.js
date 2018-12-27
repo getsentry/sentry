@@ -100,12 +100,20 @@ jest.mock('echarts-for-react/lib/core', () => {
   };
 });
 
-jest.mock('app/utils/sdk', () => ({
-  captureMessage: jest.fn(),
-  captureException: jest.fn(),
-  showReportDialog: jest.fn(),
-  lastEventId: jest.fn(),
-}));
+jest.mock('@sentry/browser', () => {
+  const SentryBrowser = require.requireActual('@sentry/browser');
+  return {
+    init: jest.fn(),
+    configureScope: jest.fn(),
+    captureBreadcrumb: jest.fn(),
+    addBreadcrumb: jest.fn(),
+    captureMessage: jest.fn(),
+    captureException: jest.fn(),
+    showReportDialog: jest.fn(),
+    lastEventId: jest.fn(),
+    withScope: jest.spyOn(SentryBrowser, 'withScope'),
+  };
+});
 
 // We generally use actual jQuery, and jest mocks takes precedence over node_modules
 jest.unmock('jquery');
@@ -187,6 +195,5 @@ window.TestStubs = {
   AllAuthenticators: () => {
     return Object.values(fixtures.Authenticators()).map(x => x());
   },
-
   ...fixtures,
 };

@@ -1,4 +1,6 @@
 import React from 'react';
+
+import {Value} from 'react-select';
 import PropTypes from 'prop-types';
 import {Box} from 'grid-emotion';
 import SelectControl from 'app/components/forms/selectControl';
@@ -6,18 +8,21 @@ import {t} from 'app/locale';
 
 import {getInternal, getExternal} from './utils';
 import {PlaceholderText} from '../styles';
+import {ARRAY_FIELD_PREFIXES} from '../data';
 
 export default class Aggregation extends React.Component {
   static propTypes = {
     value: PropTypes.array.isRequired,
     onChange: PropTypes.func.isRequired,
     columns: PropTypes.array.isRequired,
+    disabled: PropTypes.bool,
   };
 
   constructor(props) {
     super(props);
     this.state = {
       inputValue: '',
+      isOpen: false,
     };
   }
 
@@ -37,10 +42,12 @@ export default class Aggregation extends React.Component {
     ];
 
     if (input.startsWith('uniq')) {
-      optionList = this.props.columns.map(({name}) => ({
-        value: `uniq(${name})`,
-        label: `uniq(${name})`,
-      }));
+      optionList = this.props.columns
+        .filter(({name}) => !ARRAY_FIELD_PREFIXES.some(prefix => name.startsWith(prefix)))
+        .map(({name}) => ({
+          value: `uniq(${name})`,
+          label: `uniq(${name})`,
+        }));
     }
 
     if (input.startsWith('avg')) {
@@ -63,7 +70,7 @@ export default class Aggregation extends React.Component {
     if (option.value === 'uniq' || option.value === 'avg') {
       this.setState({inputValue: option.value}, this.focus);
     } else {
-      this.setState({inputValue: option.value});
+      this.setState({inputValue: option.value, isOpen: false});
       this.props.onChange(getExternal(option.value));
     }
   };
@@ -72,24 +79,39 @@ export default class Aggregation extends React.Component {
     if (this.state.inputValue === '') {
       this.setState({
         inputValue: getInternal(this.props.value),
+        isOpen: true,
       });
     }
   };
 
   inputRenderer = props => {
+    const onChange = evt => {
+      if (evt.target.value === '') {
+        // React select won't trigger an onChange event when a value is completely
+        // cleared, so we'll force this before calling onChange
+        this.setState({inputValue: evt.target.value}, props.onChange(evt));
+      } else {
+        props.onChange(evt);
+      }
+    };
+
     return (
       <input
         type="text"
         {...props}
-        value={props.value || this.state.inputValue}
-        style={{width: '100%', border: 0}}
+        onChange={onChange}
+        value={this.state.inputValue}
+        style={{width: '100%', border: 0, backgroundColor: 'transparent'}}
       />
     );
   };
 
-  valueRenderer = option => {
-    const hideValue = this.state.inputValue;
-    return hideValue ? '' : option.value;
+  valueComponent = props => {
+    if (this.state.isOpen) {
+      return null;
+    }
+
+    return <Value {...props} />;
   };
 
   handleInputChange = value => {
@@ -118,8 +140,9 @@ export default class Aggregation extends React.Component {
           backspaceRemoves={false}
           deleteRemoves={false}
           inputRenderer={this.inputRenderer}
-          valueRenderer={this.valueRenderer}
+          valueComponent={this.valueComponent}
           onInputChange={this.handleInputChange}
+          disabled={this.props.disabled}
         />
       </Box>
     );

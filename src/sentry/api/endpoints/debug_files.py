@@ -5,19 +5,20 @@ import jsonschema
 import logging
 import posixpath
 
+from django.db import transaction
+from django.db.models import Q
 from rest_framework.response import Response
-from rest_framework import serializers
 
 from sentry import ratelimits
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ListField
+from sentry.constants import KNOWN_DIF_TYPES
 from sentry.models import ChunkFileState, FileBlobOwner, ProjectDebugFile, \
-    VersionDSymFile, DSymApp, DIF_PLATFORMS, create_files_from_dif_zip, \
-    get_assemble_status, set_assemble_status
+    create_files_from_dif_zip, get_assemble_status, set_assemble_status
 from sentry.utils import json
 
 try:
@@ -29,18 +30,6 @@ except ImportError:
 
 logger = logging.getLogger('sentry.api')
 ERR_FILE_EXISTS = 'A file matching this debug identifier already exists'
-
-
-class AssociateDsymSerializer(serializers.Serializer):
-    checksums = ListField(child=serializers.CharField(max_length=40))
-    platform = serializers.ChoiceField(choices=zip(
-        DIF_PLATFORMS.keys(),
-        DIF_PLATFORMS.keys(),
-    ))
-    name = serializers.CharField(max_length=250)
-    appId = serializers.CharField(max_length=250)
-    version = serializers.CharField(max_length=40)
-    build = serializers.CharField(max_length=40, required=False)
 
 
 def upload_from_request(request, project):
@@ -74,9 +63,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 }, status=403
             )
 
-        debug_file = ProjectDebugFile.objects.filter(
-            id=debug_file_id
-        ).first()
+        debug_file = ProjectDebugFile.objects.filter(id=debug_file_id).first()
 
         if debug_file is None:
             raise Http404
@@ -103,33 +90,71 @@ class DebugFilesEndpoint(ProjectEndpoint):
         Retrieve a list of debug information files for a given project.
 
         :pparam string organization_slug: the slug of the organization the
-                                          release belongs to.
+                                          file belongs to.
         :pparam string project_slug: the slug of the project to list the
                                      DIFs of.
+        :qparam string query: If set, this parameter is used to locate DIFs with.
+        :qparam string id: If set, the specified DIF will be sent in the response.
+        :auth: required
+        """
+        query = request.GET.get('query')
+
+        queryset = ProjectDebugFile.objects.filter(
+            project=project,
+        ).select_related('file')
+
+        if query:
+            q = Q(object_name__icontains=query) \
+                | Q(debug_id__icontains=query) \
+                | Q(cpu_name__icontains=query) \
+                | Q(file__headers__icontains=query)
+
+            KNOWN_DIF_TYPES_REVERSE = dict((v, k) for (k, v) in six.iteritems(KNOWN_DIF_TYPES))
+            dif_type = KNOWN_DIF_TYPES_REVERSE.get(query)
+            if dif_type:
+                q |= Q(file__headers__icontains=dif_type)
+
+            queryset = queryset.filter(q)
+
+        download_requested = request.GET.get('id') is not None
+        if download_requested and (request.access.has_scope('project:write')):
+            return self.download(request.GET.get('id'), project)
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by='-id',
+            paginator_cls=OffsetPaginator,
+            default_per_page=20,
+            on_results=lambda x: serialize(x, request.user),
+        )
+
+    def delete(self, request, project):
+        """
+        Delete a specific Project's Debug Information File
+        ```````````````````````````````````````````````````
+
+        Delete a debug information file for a given project.
+
+        :pparam string organization_slug: the slug of the organization the
+                                          file belongs to.
+        :pparam string project_slug: the slug of the project to delete the
+                                     DIF.
+        :qparam string id: The id of the DIF to delete.
         :auth: required
         """
 
-        apps = DSymApp.objects.filter(project=project)
-        debug_files = VersionDSymFile.objects.filter(
-            dsym_app=apps
-        ).select_related('dsym_file').order_by('-build', 'version')
+        if request.GET.get('id') and (request.access.has_scope('project:write')):
+            with transaction.atomic():
+                debug_file = ProjectDebugFile.objects.filter(
+                    id=request.GET.get('id'),
+                    project=project,
+                ).select_related('file').first()
+                if debug_file is not None:
+                    debug_file.delete()
+                    return Response(status=204)
 
-        file_list = ProjectDebugFile.objects.filter(
-            project=project,
-            versiondsymfile__isnull=True,
-        ).select_related('file')[:100]
-
-        download_requested = request.GET.get('download_id') is not None
-        if download_requested and (request.access.has_scope('project:write')):
-            return self.download(request.GET.get('download_id'), project)
-
-        return Response(
-            {
-                'apps': serialize(list(apps)),
-                'debugSymbols': serialize(list(debug_files)),
-                'unreferencedDebugSymbols': serialize(list(file_list)),
-            }
-        )
+        return Response(status=404)
 
     def post(self, request, project):
         """
@@ -170,42 +195,9 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
     permission_classes = (ProjectReleasePermission, )
 
+    # Legacy endpoint, kept for backwards compatibility
     def post(self, request, project):
-        serializer = AssociateDsymSerializer(data=request.DATA)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        data = serializer.object
-
-        associated = []
-        dsym_app = DSymApp.objects.create_or_update_app(
-            sync_id=None,
-            app_id=data['appId'],
-            project=project,
-            data={'name': data['name']},
-            platform=DIF_PLATFORMS[data['platform']],
-        )
-
-        # There can be concurrent deletes on the underlying file object
-        # that the project dsym file references.  This means that we can
-        # get errors if we don't prefetch this when serializing.  Additionally
-        # performance wise it's a better idea to fetch this in one go.
-        difs = ProjectDebugFile.objects.find_by_checksums(
-            data['checksums'], project).select_related('file')
-
-        for dif in difs:
-            version_dsym_file, created = VersionDSymFile.objects.get_or_create(
-                dsym_file=dif,
-                version=data['version'],
-                build=data.get('build'),
-                defaults=dict(dsym_app=dsym_app),
-            )
-            if created:
-                associated.append(dif)
-
-        return Response({
-            'associatedDsymFiles': serialize(associated, request.user),
-        })
+        return Response({'associatedDsymFiles': []})
 
 
 def find_missing_chunks(organization, chunks):
@@ -222,8 +214,8 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         """
-        Assmble one or multiple chunks (FileBlob) into debug files
-        ``````````````````````````````````````````````````````````
+        Assemble one or multiple chunks (FileBlob) into debug files
+        ````````````````````````````````````````````````````````````
 
         :auth: required
         """
@@ -278,10 +270,12 @@ class DifAssembleEndpoint(ProjectEndpoint):
             # Next, check if this project already owns the ProjectDebugFile.
             # This can under rare circumstances yield more than one file
             # which is why we use first() here instead of get().
-            dif = ProjectDebugFile.objects.filter(
-                project=project,
-                file__checksum=checksum
-            ).select_related('file').first()
+            dif = ProjectDebugFile.objects \
+                .filter(project=project, file__checksum=checksum) \
+                .select_related('file') \
+                .order_by('-id') \
+                .first()
+
             if dif is not None:
                 file_response[checksum] = {
                     'state': ChunkFileState.OK,

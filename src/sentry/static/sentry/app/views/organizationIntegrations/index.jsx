@@ -5,28 +5,46 @@ import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {analytics} from 'app/utils/analytics';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
+import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/providerRow';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
+import withOrganization from 'app/utils/withOrganization';
 
-export default class OrganizationIntegrations extends AsyncComponent {
+class OrganizationIntegrations extends AsyncComponent {
   // Some integrations require visiting a different website to add them. When
   // we come back to the tab we want to show our integrations as soon as we can.
+  shouldReload = true;
   reloadOnVisible = true;
   shouldReloadOnVisible = true;
+
+  componentDidMount() {
+    analytics('integrations.index_viewed', {
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+  }
 
   getEndpoints() {
     let {orgId} = this.props.params;
     const query = {plugins: ['vsts', 'github', 'bitbucket']};
-
-    return [
+    let endpoints = [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integrations', `/organizations/${orgId}/integrations/`],
       ['plugins', `/organizations/${orgId}/plugins/`, {query}],
+    ];
+    if (!this.props.organization.features.includes('internal-catchall')) {
+      return endpoints;
+    }
+    return [
+      ...endpoints,
+      ['applications', `/organizations/${orgId}/sentry-apps/`],
+      ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
     ];
   }
 
@@ -115,6 +133,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
   // Rendering
 
   renderBody() {
+    const {reloading, applications, appInstalls} = this.state;
     const providers = this.providers
       .sort((a, b) => b.isInstalled - a.isInstalled)
       .map(provider => (
@@ -134,6 +153,7 @@ export default class OrganizationIntegrations extends AsyncComponent {
     return (
       <React.Fragment>
         {!this.props.hideHeader && <SettingsPageHeader title={t('Integrations')} />}
+        <PermissionAlert access={['org:integrations']} />
 
         <MigrationWarnings
           orgId={this.props.params.orgId}
@@ -146,9 +166,18 @@ export default class OrganizationIntegrations extends AsyncComponent {
             <Box px={2} flex="1">
               {t('Integrations')}
             </Box>
-            {this.state.reloading && <StyledLoadingIndicator mini />}
+            {reloading && <StyledLoadingIndicator mini />}
           </PanelHeader>
-          <PanelBody>{providers}</PanelBody>
+          <PanelBody>
+            {providers}
+            {applications && (
+              <SentryAppInstallations
+                orgId={this.props.params.orgId}
+                installs={appInstalls}
+                applications={applications}
+              />
+            )}
+          </PanelBody>
         </Panel>
       </React.Fragment>
     );
@@ -161,3 +190,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   top: 50%;
   transform: translateY(-16px);
 `;
+
+export default withOrganization(OrganizationIntegrations);
+export {OrganizationIntegrations};

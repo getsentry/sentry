@@ -7,6 +7,7 @@ from sentry.plugins import Plugin2
 from sentry.stacktraces import StacktraceProcessor
 from sentry.models import ProjectDebugFile, EventError
 from sentry.reprocessing import report_processing_issue
+from sentry.utils.safe import get_path
 
 FRAME_CACHE_VERSION = 2
 
@@ -14,16 +15,14 @@ FRAME_CACHE_VERSION = 2
 class JavaStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
-        debug_meta = self.data.get('debug_meta')
+
         self.images = set()
-        if debug_meta:
-            self.available = True
-            self.debug_meta = debug_meta
-            for img in debug_meta['images']:
-                if img['type'] == 'proguard':
-                    self.images.add(six.text_type(img['uuid']).lower())
-        else:
-            self.available = False
+        self.available = False
+
+        for image in get_path(self.data, 'debug_meta', 'images', filter=True, default=()):
+            if image.get('type') == 'proguard':
+                self.available = True
+                self.images.add(six.text_type(image['uuid']).lower())
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get('platform') or self.data.get('platform')
@@ -41,7 +40,8 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         if not self.available:
             return False
 
-        dif_paths = ProjectDebugFile.difcache.fetch_difs(self.project, self.images)
+        dif_paths = ProjectDebugFile.difcache.fetch_difs(
+            self.project, self.images, features=['mapping'])
         self.mapping_views = []
 
         for debug_id in self.images:
@@ -60,11 +60,11 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if error_type is None:
                 continue
 
-            self.data.setdefault('errors',
-                                 []).append({
-                                     'type': error_type,
-                                     'mapping_uuid': debug_id,
-                                 })
+            self.data.setdefault('errors', []).append({
+                'type': error_type,
+                'mapping_uuid': debug_id,
+            })
+
             report_processing_issue(
                 self.data,
                 scope='proguard',

@@ -13,13 +13,17 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer, ReleaseHeadCommitSerializerDeprecated, ListField
 )
-from sentry.models import Activity, Environment, Release, ReleaseEnvironment
+from sentry.models import (
+    Activity,
+    Project,
+    Release,
+)
 from sentry.signals import release_created
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
-@scenario('CreateNewOrganizationRelease')
-def create_new_org_release_scenario(runner):
+@scenario('CreateNewOrganizationReleaseWithRef')
+def create_new_org_release_ref_scenario(runner):
     runner.request(
         method='POST',
         path='/organizations/%s/releases/' % (runner.org.slug, ),
@@ -27,6 +31,33 @@ def create_new_org_release_scenario(runner):
             'version': '2.0rc2',
             'ref': '6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb',
             'projects': [runner.default_project.slug],
+        }
+    )
+
+
+@scenario('CreateNewOrganizationReleaseWithCommits')
+def create_new_org_release_commit_scenario(runner):
+    runner.request(
+        method='POST',
+        path='/organizations/%s/releases/' % (runner.org.slug, ),
+        data={
+            'version': '2.0rc3',
+            'projects': [runner.default_project.slug],
+            'commits': [
+                {
+                    "patch_set": [
+                        {"path": "path/to/added-file.html", "type": "A"},
+                        {"path": "path/to/modified-file.html", "type": "M"},
+                        {"path": "path/to/deleted-file.html", "type": "D"}
+                    ],
+                    "repository": "owner-name/repo-name",
+                    "author_name": "Author Name",
+                    "author_email": "author_email@example.com",
+                    "timestamp": "2018-09-20T11:50:22+03:00",
+                    "message": "This is the commit message.",
+                    "id": "8371445ab8a9facd271df17038ff295a48accae7"
+                }
+            ]
         }
     )
 
@@ -65,33 +96,36 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                               "starts with" filter for the version.
         """
         query = request.GET.get('query')
-        try:
-            environment = self._get_environment_from_request(
-                request,
-                organization.id,
-            )
-        except Environment.DoesNotExist:
-            queryset = Release.objects.none()
-        else:
-            queryset = Release.objects.filter(
-                organization=organization,
-                projects__in=self.get_allowed_projects(request, organization)
-            ).select_related('owner')
 
-            if environment is not None:
-                queryset = queryset.filter(id__in=ReleaseEnvironment.objects.filter(
-                    organization_id=organization.id,
-                    environment_id=environment.id,
-                ).values_list('release_id', flat=True))
+        filter_params = self.get_filter_params(
+            request,
+            organization,
+            date_filter_optional=True,
+        )
+
+        queryset = Release.objects.filter(
+            organization=organization,
+            projects__id__in=filter_params['project_id'],
+        ).select_related('owner').distinct()
+
+        if 'environment' in filter_params:
+            queryset = queryset.filter(
+                releaseprojectenvironment__environment__name__in=filter_params['environment'],
+                releaseprojectenvironment__project_id__in=filter_params['project_id'],
+            )
 
         if query:
             queryset = queryset.filter(
                 version__istartswith=query,
             )
 
-        queryset = queryset.extra(select={
-            'sort': 'COALESCE(date_released, date_added)',
-        })
+        sort_query = 'COALESCE(sentry_release.date_released, sentry_release.date_added)'
+        queryset = queryset.extra(select={'sort': sort_query})
+        if filter_params['start'] and filter_params['end']:
+            queryset = queryset.extra(
+                where=['%s BETWEEN %%s and %%s' % sort_query],
+                params=[filter_params['start'], filter_params['end']]
+            )
 
         return self.paginate(
             request=request,
@@ -101,7 +135,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             on_results=lambda x: serialize(x, request.user),
         )
 
-    @attach_scenarios([create_new_org_release_scenario])
+    @attach_scenarios([create_new_org_release_ref_scenario, create_new_org_release_commit_scenario])
     def post(self, request, organization):
         """
         Create a New Release for an Organization
@@ -130,8 +164,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
         :param array commits: an optional list of commit data to be associated
                               with the release. Commits must include parameters
                               ``id`` (the sha of the commit), and can optionally
-                              include ``repository``, ``message``, ``author_name``,
-                              ``author_email``, and ``timestamp``.
+                              include ``repository``, ``message``, ``patch_set``,
+                              ``author_name``, ``author_email``, and ``timestamp``.
+                              See [release without integration example](/workflow/releases/).
         :param array refs: an optional way to indicate the start and end commits
                            for each repository included in a release. Head commits
                            must include parameters ``repository`` and ``commit``
@@ -146,8 +181,10 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
             result = serializer.object
 
             allowed_projects = {
-                p.slug: p for p in self.get_allowed_projects(
-                    request, organization)}
+                p.slug: p for p in Project.objects.filter(
+                    id__in=self.get_project_ids(request, organization)
+                )
+            }
 
             projects = []
             for slug in result['projects']:

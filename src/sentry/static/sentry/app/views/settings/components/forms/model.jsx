@@ -148,6 +148,14 @@ class FormModel {
   }
 
   /**
+   * Remove a field from the descriptor map and errors.
+   */
+  removeField(id) {
+    this.fieldDescriptor.delete(id);
+    this.errors.delete(id);
+  }
+
+  /**
    * Creates a cloned Map of `this.fields` and returns a closure that when called
    * will save Map to `snapshots
    */
@@ -234,7 +242,6 @@ class FormModel {
   doApiRequest({apiEndpoint, apiMethod, data}) {
     let endpoint = apiEndpoint || this.options.apiEndpoint;
     let method = apiMethod || this.options.apiMethod;
-
     return new Promise((resolve, reject) => {
       this.api.request(endpoint, {
         method,
@@ -331,9 +338,7 @@ class FormModel {
   @action
   saveForm() {
     this.validateForm();
-
     if (this.isError) return null;
-
     let saveSnapshot = this.createSnapshot();
 
     let request = this.doApiRequest({
@@ -341,7 +346,6 @@ class FormModel {
     });
 
     this.formState = FormState.SAVING;
-
     request
       .then(resp => {
         // save snapshot

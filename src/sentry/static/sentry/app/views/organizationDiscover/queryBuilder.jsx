@@ -1,19 +1,24 @@
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
-
-import moment from 'moment-timezone';
+import React from 'react';
 import {uniq} from 'lodash';
+import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
+
+import {openModal} from 'app/actionCreators/modal';
+
+import MissingProjectWarningModal from './missingProjectWarningModal';
 import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
 
 const DEFAULTS = {
   projects: [],
-  fields: [],
+  fields: ['id', 'issue.id', 'project.name', 'platform', 'timestamp'],
   conditions: [],
   aggregations: [],
-  range: '14d',
+  range: DEFAULT_STATS_PERIOD,
   orderby: '-timestamp',
   limit: 1000,
 };
@@ -37,6 +42,7 @@ export default function createQueryBuilder(initial = {}, organization) {
   const defaultProjects = organization.projects
     .filter(projects => projects.isMember)
     .map(project => parseInt(project.id, 10));
+  const columns = COLUMNS.map(col => ({...col, isTag: false}));
   let tags = [];
 
   return {
@@ -51,7 +57,7 @@ export default function createQueryBuilder(initial = {}, organization) {
   };
 
   /**
-   * Loads tags keys for user's projectsand updates `tags` with the result.
+   * Loads tags keys for user's projects and updates `tags` with the result.
    * If the request fails updates `tags` to be the hardcoded list of predefined
    * promoted tags.
    *
@@ -64,15 +70,19 @@ export default function createQueryBuilder(initial = {}, organization) {
       aggregations: [['count()', null, 'count']],
       orderby: '-count',
       range: '90d',
+      turbo: true,
     })
       .then(res => {
         tags = res.data.map(tag => {
           const type = SPECIAL_TAGS[tags.tags_key] || 'string';
-          return {name: `tags[${tag.tags_key}]`, type};
+          return {name: tag.tags_key, type, isTag: true};
         });
       })
       .catch(err => {
-        tags = PROMOTED_TAGS;
+        tags = PROMOTED_TAGS.map(tag => {
+          const type = SPECIAL_TAGS[tag] || 'string';
+          return {name: tag, type, isTag: true};
+        });
       });
   }
 
@@ -164,9 +174,10 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @param {Object} [data] Optional field to provide data to fetch
    * @returns {Promise<Object|Error>}
    */
-  function fetch(data) {
+  function fetch(data, cursor = '0:0:1') {
     const api = new Client();
-    const endpoint = `/organizations/${organization.slug}/discover/query/`;
+    const limit = data.limit || 1000;
+    const endpoint = `/organizations/${organization.slug}/discover/query/?per_page=${limit}&cursor=${cursor}`;
 
     data = data || getExternal();
 
@@ -186,11 +197,12 @@ export default function createQueryBuilder(initial = {}, organization) {
     }
 
     return api
-      .requestPromise(endpoint, {
-        method: 'POST',
-        data,
+      .requestPromise(endpoint, {includeAllArgs: true, method: 'POST', data})
+      .then(([responseData, _, utils]) => {
+        responseData.pageLinks = utils.getResponseHeader('Link');
+        return responseData;
       })
-      .catch(() => {
+      .catch(err => {
         throw new Error(t('An error occurred'));
       });
   }
@@ -208,18 +220,18 @@ export default function createQueryBuilder(initial = {}, organization) {
         ...originalQuery,
         groupby: ['time'],
         rollup: 60 * 60 * 24,
-        orderby: 'time',
+        orderby: '-time',
         limit: 1000,
       };
     }
 
-    // If there are no aggregations, always ensure we fetch event ID and
-    // project ID so we can display the link to event
+    // If id or issue.id is present in query fields, always fetch the project.id
+    // so we can generate links
     if (type === 'baseQuery') {
-      return !originalQuery.aggregations.length && originalQuery.fields.length
+      return originalQuery.fields.some(field => field === 'id' || field === 'issue.id')
         ? {
             ...originalQuery,
-            fields: uniq([...originalQuery.fields, 'event_id', 'project_id']),
+            fields: uniq([...originalQuery.fields, 'project.id']),
           }
         : originalQuery;
     }
@@ -233,15 +245,30 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @returns {Array<{name: String, type: String}>}
    */
   function getColumns() {
-    return [...COLUMNS, ...tags];
+    return [...columns, ...tags];
   }
 
   /**
-   * Resets the query to defaults
+   * Resets the query to defaults or the query provided
+   * Displays a warning if user does not have access to any project in the query
    *
    * @returns {Void}
    */
   function reset(q = {}) {
+    const invalidProjects = (q.projects || []).filter(
+      project => !defaultProjects.includes(project)
+    );
+
+    if (invalidProjects.length) {
+      openModal(deps => (
+        <MissingProjectWarningModal
+          organization={organization}
+          projects={invalidProjects}
+          {...deps}
+        />
+      ));
+    }
+
     query = applyDefaults(q);
   }
 }

@@ -21,7 +21,7 @@ from six.moves import reduce
 
 from sentry import buffer
 from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.base import TagStorage
+from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils import db
 
 from . import models
@@ -341,8 +341,11 @@ class LegacyTagStorage(TagStorage):
 
         return transformers[models.GroupTagKey](instance)
 
-    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
+    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None, keys=None):
         qs = models.GroupTagKey.objects.filter(group_id=group_id)
+
+        if keys is not None:
+            qs = qs.filter(key__in=keys)
 
         if limit is not None:
             qs = qs[:limit]
@@ -353,9 +356,9 @@ class LegacyTagStorage(TagStorage):
         from sentry.tagstore.exceptions import GroupTagValueNotFound
 
         value = self.get_group_list_tag_value(
-            project_id,
+            [project_id],
             [group_id],
-            environment_id,
+            [environment_id] if environment_id is not None else environment_id,
             key,
             value,
         ).get(group_id)
@@ -373,7 +376,7 @@ class LegacyTagStorage(TagStorage):
 
         return set(map(transformers[models.GroupTagValue], qs))
 
-    def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
+    def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
         qs = models.GroupTagValue.objects.filter(
             group_id__in=group_id_list,
             key=key,
@@ -495,9 +498,13 @@ class LegacyTagStorage(TagStorage):
 
         return {'id__in': set(matches)}
 
-    def get_groups_user_counts(self, project_id, group_ids, environment_id):
+    def get_groups_user_counts(self, project_ids, group_ids, environment_ids):
+        # only the snuba backend supports multi project
+        if len(project_ids) > 1:
+            raise NotImplementedError
+
         qs = models.GroupTagKey.objects.filter(
-            project_id=project_id,
+            project_id=project_ids[0],
             group_id__in=group_ids,
             key='sentry:user'
         )
@@ -532,7 +539,8 @@ class LegacyTagStorage(TagStorage):
             last_seen__gte=cutoff,
         ).aggregate(t=Sum('times_seen'))['t']
 
-    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
+    def get_top_group_tag_values(self, project_id, group_id,
+                                 environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
         if db.is_postgres():
             # This doesnt guarantee percentage is accurate, but it does ensure
             # that the query has a maximum cost
@@ -685,7 +693,7 @@ class LegacyTagStorage(TagStorage):
             )
 
     def get_tag_value_paginator(self, project_id, environment_id, key, query=None,
-            order_by='-last_seen'):
+                                order_by='-last_seen'):
         from sentry.api.paginator import DateTimePaginator
 
         queryset = models.TagValue.objects.filter(
@@ -712,7 +720,7 @@ class LegacyTagStorage(TagStorage):
         return RangeQuerySetWrapper(queryset=qs, callbacks=callbacks)
 
     def get_group_tag_value_paginator(self, project_id, group_id, environment_id, key,
-            order_by='-id'):
+                                      order_by='-id'):
         from sentry.api.paginator import DateTimePaginator, Paginator
 
         qs = self.get_group_tag_value_qs(project_id, group_id, environment_id, key)

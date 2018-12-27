@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+import pytest
+
 from django.http import HttpRequest
 from rest_framework.exceptions import AuthenticationFailed
 
-from sentry.api.authentication import ClientIdSecretAuthentication
-from sentry.mediators.sentry_apps import Creator
+from sentry.api.authentication import ClientIdSecretAuthentication, DSNAuthentication
+from sentry.models import ProjectKeyStatus
 from sentry.testutils import TestCase
 
 
@@ -15,11 +17,9 @@ class TestClientIdSecretAuthentication(TestCase):
         self.auth = ClientIdSecretAuthentication()
         self.org = self.create_organization(owner=self.user)
 
-        self.sentry_app = Creator.run(
+        self.sentry_app = self.create_sentry_app(
             name="foo",
             organization=self.org,
-            scopes=(),
-            webhook_url='https://example.com',
         )
 
         self.api_app = self.sentry_app.application
@@ -78,4 +78,33 @@ class TestClientIdSecretAuthentication(TestCase):
         }
 
         with self.assertRaises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+
+class TestDSNAuthentication(TestCase):
+    def setUp(self):
+        super(TestDSNAuthentication, self).setUp()
+
+        self.auth = DSNAuthentication()
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org)
+        self.project_key = self.create_project_key(project=self.project)
+
+    def test_authenticate(self):
+        request = HttpRequest()
+        request.META['HTTP_AUTHORIZATION'] = u'DSN {}'.format(self.project_key.dsn_public)
+
+        result = self.auth.authenticate(request)
+        assert result is not None
+
+        user, auth = result
+        assert user.is_anonymous()
+        assert auth == self.project_key
+
+    def test_inactive_key(self):
+        self.project_key.update(status=ProjectKeyStatus.INACTIVE)
+        request = HttpRequest()
+        request.META['HTTP_AUTHORIZATION'] = u'DSN {}'.format(self.project_key.dsn_public)
+
+        with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)

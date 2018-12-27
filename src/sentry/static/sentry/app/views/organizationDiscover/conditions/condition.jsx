@@ -1,10 +1,11 @@
 import React from 'react';
+import {Value} from 'react-select';
 import PropTypes from 'prop-types';
 import {Box} from 'grid-emotion';
 import {t} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
-import {getInternal, getExternal, isValidCondition} from './utils';
+import {getInternal, getExternal, isValidCondition, ignoreCase} from './utils';
 import {CONDITION_OPERATORS, ARRAY_FIELD_PREFIXES} from '../data';
 import {PlaceholderText} from '../styles';
 
@@ -15,12 +16,14 @@ export default class Condition extends React.Component {
     columns: PropTypes.arrayOf(
       PropTypes.shape({name: PropTypes.string, type: PropTypes.string})
     ).isRequired,
+    disabled: PropTypes.bool,
   };
 
   constructor(props) {
     super(props);
     this.state = {
       inputValue: '',
+      isOpen: false,
     };
   }
 
@@ -35,6 +38,7 @@ export default class Condition extends React.Component {
       this.setState(
         {
           inputValue: '',
+          isOpen: false,
         },
         this.props.onChange(external)
       );
@@ -54,6 +58,7 @@ export default class Condition extends React.Component {
     if (this.state.inputValue === '') {
       this.setState({
         inputValue: getInternal(this.props.value),
+        isOpen: true,
       });
     }
   };
@@ -71,7 +76,7 @@ export default class Condition extends React.Component {
     const stringOnlyOperators = new Set(['LIKE', 'NOT LIKE']);
 
     return CONDITION_OPERATORS.filter(operator => {
-      if (colType === 'number') {
+      if (colType === 'number' || colType === 'datetime') {
         return !stringOnlyOperators.has(operator);
       }
 
@@ -85,8 +90,8 @@ export default class Condition extends React.Component {
     });
   }
 
-  filterOptions = (options, input) => {
-    input = input || this.state.inputValue;
+  filterOptions = options => {
+    const input = this.state.inputValue;
 
     let optionList = options;
     const external = getExternal(input, this.props.columns);
@@ -121,23 +126,38 @@ export default class Condition extends React.Component {
   };
 
   isValidNewOption = ({label}) => {
+    label = ignoreCase(label);
     return isValidCondition(getExternal(label, this.props.columns), this.props.columns);
   };
 
   inputRenderer = props => {
+    const onChange = evt => {
+      if (evt.target.value === '') {
+        // React select won't trigger an onChange event when a value is completely
+        // cleared, so we'll force this before calling onChange
+        this.setState({inputValue: evt.target.value}, props.onChange(evt));
+      } else {
+        props.onChange(evt);
+      }
+    };
+
     return (
       <input
         type="text"
         {...props}
+        onChange={onChange}
         value={this.state.inputValue}
-        style={{width: '100%', border: 0, zIndex: 1000}}
+        style={{width: '100%', border: 0, zIndex: 1000, backgroundColor: 'transparent'}}
       />
     );
   };
 
-  valueRenderer = option => {
-    const hideValue = this.state.inputValue;
-    return hideValue ? '' : option.value;
+  valueComponent = props => {
+    if (this.state.inputValue) {
+      return null;
+    }
+
+    return <Value {...props} />;
   };
 
   shouldKeyDownEventCreateNewOption = keyCode => {
@@ -147,10 +167,31 @@ export default class Condition extends React.Component {
 
   handleInputChange = value => {
     this.setState({
-      inputValue: value,
+      inputValue: ignoreCase(value),
     });
 
     return value;
+  };
+
+  handleBlur = evt => {
+    const external = getExternal(evt.target.value, this.props.columns);
+    const isValid = isValidCondition(external, this.props.columns);
+    if (isValid) {
+      this.setState(
+        {
+          inputValue: '',
+        },
+        this.props.onChange(external)
+      );
+    }
+  };
+
+  newOptionCreator = ({label, labelKey, valueKey}) => {
+    label = ignoreCase(label);
+    return {
+      [valueKey]: label,
+      [labelKey]: label,
+    };
   };
 
   render() {
@@ -172,11 +213,14 @@ export default class Condition extends React.Component {
           deleteRemoves={false}
           isValidNewOption={this.isValidNewOption}
           inputRenderer={this.inputRenderer}
-          valueRenderer={this.valueRenderer}
+          valueComponent={this.valueComponent}
           onInputChange={this.handleInputChange}
+          onBlur={this.handleBlur}
           creatable={true}
           promptTextCreator={text => text}
           shouldKeyDownEventCreateNewOption={this.shouldKeyDownEventCreateNewOption}
+          disabled={this.props.disabled}
+          newOptionCreator={this.newOptionCreator}
         />
       </Box>
     );

@@ -6,23 +6,27 @@ from sentry.plugins import plugins
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_plugin import OrganizationPluginSerializer
+from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import ProjectOption
 
 
 class OrganizationPluginsEndpoint(OrganizationEndpoint):
     def get(self, request, organization):
-        # Just load all Plugins once.
         all_plugins = dict([
             (p.slug, p) for p in plugins.all()
         ])
 
         if 'plugins' in request.GET:
+            if request.GET.get('plugins') == '_all':
+                return Response(serialize([p for p in plugins.all()],
+                                          request.user, PluginSerializer()))
+
             desired_plugins = set(request.GET.getlist('plugins'))
         else:
             desired_plugins = set(all_plugins.keys())
 
-        if not desired_plugins.issubset(set(all_plugins.keys())):
-            return Response({'detail': 'Invalid plugins'}, status=422)
+        # Ignore plugins that are not available to this Sentry install.
+        desired_plugins = desired_plugins & set(all_plugins.keys())
 
         # Each tuple represents an enabled Plugin (of only the ones we care
         # about) and its corresponding Project.

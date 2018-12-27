@@ -19,7 +19,7 @@ from sentry.models import (
     Activity,
     Environment,
     Group,
-    GroupHashTombstone,
+    GroupHash,
     GroupRelease,
     GroupSeen,
     GroupStatus,
@@ -216,7 +216,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             user_reports = UserReport.objects.none()
 
         else:
-            get_range = functools.partial(tsdb.get_range, environment_id=environment_id)
+            get_range = functools.partial(tsdb.get_range,
+                                          environment_ids=environment_id and [environment_id])
             tags = tagstore.get_group_tag_keys(
                 group.project_id, group.id, environment_id, limit=100)
             if environment_id is None:
@@ -393,13 +394,12 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             project = group.project
 
             eventstream_state = eventstream.start_delete_groups(group.project_id, [group.id])
-
-            GroupHashTombstone.tombstone_groups(
-                project_id=project.id,
-                group_ids=[group.id],
-            )
-
             transaction_id = uuid4().hex
+
+            GroupHash.objects.filter(
+                project_id=group.project_id,
+                group__id=group.id,
+            ).delete()
 
             delete_groups.apply_async(
                 kwargs={

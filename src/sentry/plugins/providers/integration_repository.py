@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
+import dateutil.parser
 import six
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.serializers import serialize
 from sentry.integrations.exceptions import IntegrationError
-from sentry.models import Repository
+from sentry.models import Repository, Integration
 from sentry.signals import repo_linked
 
 
@@ -26,22 +28,12 @@ class IntegrationRepositoryProvider(object):
     def dispatch(self, request, organization, **kwargs):
         try:
             config = self.get_repository_data(organization, request.DATA)
-        except Exception as e:
-            return self.handle_api_error(e)
-
-        try:
             result = self.build_repository_config(
                 organization=organization,
                 data=config,
             )
-        except IntegrationError as e:
-            return Response(
-                {
-                    'errors': {
-                        '__all__': e.message
-                    },
-                }, status=400
-            )
+        except Exception as e:
+            return self.handle_api_error(e)
 
         try:
             with transaction.atomic():
@@ -88,15 +80,33 @@ class IntegrationRepositoryProvider(object):
         context = {
             'error_type': 'unknown',
         }
+
         if isinstance(error, IntegrationError):
-            # TODO(dcramer): we should have a proper validation error
+            if '503' in error.message:
+                context.update({
+                    'error_type': 'service unavailable',
+                    'errors': {
+                        '__all__': error.message
+                    },
+                })
+                status = 503
+            else:
+                # TODO(dcramer): we should have a proper validation error
+                context.update({
+                    'error_type': 'validation',
+                    'errors': {
+                        '__all__': error.message
+                    },
+                })
+                status = 400
+        elif isinstance(error, Integration.DoesNotExist):
             context.update({
-                'error_type': 'validation',
+                'error_type': 'not found',
                 'errors': {
                     '__all__': error.message
                 },
             })
-            status = 400
+            status = 404
         else:
             if self.logger:
                 self.logger.exception(six.text_type(error))
@@ -131,8 +141,40 @@ class IntegrationRepositoryProvider(object):
     def on_delete_repository(self, repo):
         pass
 
+    def format_date(self, date):
+        if not date:
+            return None
+        return dateutil.parser.parse(date).astimezone(timezone.utc)
+
     def compare_commits(self, repo, start_sha, end_sha):
+        """
+        Generate a list of commits between the start & end sha
+        Commits should be of the following format:
+            >>> {
+            >>>     'id': commit['id'],
+            >>>     'repository': repo.name,
+            >>>     'author_email': commit['author']['email'],
+            >>>     'author_name': commit['author']['name'],
+            >>>     'message': commit['message'],
+            >>>     'timestamp': self.format_date(commit['timestamp']),
+            >>>     'patch_set': commit['patch_set'],
+            >>> }
+        """
         raise NotImplementedError
+
+    def pull_request_url(self, repo, pull_request):
+        """
+        Generate a URL to a pull request on the repository provider.
+        """
+        return None
+
+    def repository_external_slug(self, repo):
+        """
+        Generate the public facing 'external_slug' for a repository
+        The shape of this id must match the `identifier` returned by
+        the integration's Integration.get_repositories() method
+        """
+        return repo.name
 
     @staticmethod
     def should_ignore_commit(message):

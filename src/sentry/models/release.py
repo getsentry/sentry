@@ -16,6 +16,7 @@ from django.db import models, IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 from jsonfield import JSONField
+from time import time
 
 from sentry.app import locks
 from sentry.db.models import (
@@ -24,6 +25,7 @@ from sentry.db.models import (
 
 from sentry.models import CommitFileChange
 
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.retries import TimedRetryPolicy
@@ -74,7 +76,7 @@ class Release(Model):
     data = JSONField(default={})
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
-    owner = FlexibleForeignKey('sentry.User', null=True, blank=True)
+    owner = FlexibleForeignKey('sentry.User', null=True, blank=True, on_delete=models.SET_NULL)
 
     # materialized stats
     commit_count = BoundedPositiveIntegerField(null=True, default=0)
@@ -347,6 +349,7 @@ class Release(Model):
         lock_key = type(self).get_lock_key(self.organization_id, self.id)
         lock = locks.get(lock_key, duration=10)
         with TimedRetryPolicy(10)(lock.acquire):
+            start = time()
             with transaction.atomic():
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
@@ -451,6 +454,7 @@ class Release(Model):
                     ],
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
+                metrics.timing('release.set_commits.duration', time() - start)
 
         # fill any missing ReleaseHeadCommit entries
         for repo_id, commit_id in six.iteritems(head_commit_by_repo):
@@ -534,6 +538,7 @@ class Release(Model):
                 Group.objects.filter(
                     id=group_id,
                 ).update(status=GroupStatus.RESOLVED)
+                metrics.incr('group.resolved', instance='in_commit', skip_internal=True)
 
             kick_off_status_syncs.apply_async(kwargs={
                 'project_id': group_project_lookup[group_id],

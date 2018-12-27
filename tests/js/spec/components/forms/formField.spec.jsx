@@ -70,4 +70,28 @@ describe('FormField + model', function() {
     expect(model.initialData.fieldName).toBe('foofoo');
     expect(model.fields.get('fieldName')).toBe('foofoo');
   });
+
+  it('sets field descriptor in model', function() {
+    wrapper = mount(
+      <Form model={model} initialData={{fieldName: 'test'}}>
+        <TextField name="fieldName" required />
+      </Form>,
+      routerContext
+    );
+
+    expect(model.getDescriptor('fieldName', 'required')).toBe(true);
+  });
+
+  it('removes field descriptor in model on unmount', function() {
+    wrapper = mount(
+      <Form model={model} initialData={{fieldName: 'test'}}>
+        <TextField name="fieldName" required />
+      </Form>,
+      routerContext
+    );
+    expect(model.fieldDescriptor.has('fieldName')).toBe(true);
+
+    wrapper.unmount();
+    expect(model.fieldDescriptor.has('fieldName')).toBe(false);
+  });
 });

@@ -1,16 +1,14 @@
 from __future__ import absolute_import
 
 import logging
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 from django.db import transaction
 
 from sentry import eventstream, tagstore
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
-from sentry.event_manager import (
-    generate_culprit, get_fingerprint_for_event, get_hashes_from_fingerprint, md5_from_hash
-)
+from sentry.event_manager import generate_culprit
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupRelease, Project, Release, UserReport
@@ -144,11 +142,7 @@ def get_group_backfill_attributes(caches, group, events):
 
 def get_fingerprint(event):
     # TODO: This *might* need to be protected from an IndexError?
-    primary_hash = get_hashes_from_fingerprint(
-        event,
-        get_fingerprint_for_event(event),
-    )[0]
-    return md5_from_hash(primary_hash)
+    return event.get_primary_hash()
 
 
 def migrate_events(caches, project, source_id, destination_id,
@@ -296,7 +290,7 @@ def collect_group_environment_data(events):
     Find the first release for a each group and environment pair from a
     date-descending sorted list of events.
     """
-    results = {}
+    results = OrderedDict()
     for event in events:
         results[(event.group_id, get_environment_name(event))] = event.get_tag('sentry:release')
     return results
@@ -304,9 +298,11 @@ def collect_group_environment_data(events):
 
 def repair_group_environment_data(caches, project, events):
     for (group_id, env_name), first_release in collect_group_environment_data(events).items():
-        fields = {
-            'first_release_id': caches['Release'](project.organization_id, first_release).id,
-        }
+        fields = {}
+        if first_release:
+            fields['first_release_id'] = caches['Release'](
+                project.organization_id, first_release
+            ).id
 
         GroupEnvironment.objects.create_or_update(
             environment_id=caches['Environment'](project.organization_id, env_name).id,
@@ -317,7 +313,7 @@ def repair_group_environment_data(caches, project, events):
 
 
 def collect_tag_data(events):
-    results = {}
+    results = OrderedDict()
 
     for event in events:
         environment = get_environment_name(event)
@@ -383,7 +379,7 @@ def get_environment_name(event):
 
 
 def collect_release_data(caches, project, events):
-    results = {}
+    results = OrderedDict()
 
     for event in events:
         release = event.get_tag('sentry:release')
@@ -463,7 +459,7 @@ def collect_tsdb_data(caches, project, events):
 
         counters[event.datetime][tsdb.models.group][(event.group_id, environment.id)] += 1
 
-        user = event.data.get('sentry.interfaces.User')
+        user = event.data.get('user')
         if user:
             sets[event.datetime][tsdb.models.users_affected_by_group][(event.group_id, environment.id)].add(
                 get_event_user_from_interface(user).tag_value,

@@ -46,7 +46,7 @@ class ThreadsTest(TestCase):
 
     def test_basics(self):
         self.create_event(data={
-            'sentry.interfaces.Exception': self.interface.to_json(),
+            'exception': self.interface.to_json(),
         })
         context = self.interface.get_api_context()
         assert context['values'][0]['stacktrace']['frames'][0]['function'] == 'main'
@@ -55,6 +55,29 @@ class ThreadsTest(TestCase):
         assert context['values'][0]['name'] == 'Main Thread'
         assert context['values'][0]['crashed'] is False
         assert context['values'][0]['current'] is True
+
+    def test_null_values(self):
+        sink = {"values": []}
+        assert Threads.to_python({}).to_json() == sink
+        assert Threads.to_python({'values': []}).to_json() == sink
+        assert Threads.to_python({'values': None}).to_json() == sink
+
+        # TODO(markus): Should eventually generate values: [None]
+        assert Threads.to_python({"values": [None]}).to_json() == sink
+
+    def test_null_values_in_values(self):
+        sink = {"values": [{
+            "crashed": False,
+            "current": False,
+            "id": None,
+            "name": None,
+            "stacktrace": None
+        }]}
+
+        assert Threads.to_python({"values": [{}]}).to_json() == sink
+        assert Threads.to_python({"values": [{"id": None}]}).to_json() == sink
+        assert Threads.to_python({"values": [{"name": None}]}).to_json() == sink
+        assert Threads.to_python({"values": [{"stacktrace": None}]}).to_json() == sink
 
     def test_get_hash(self):
         result = self.interface.get_hash()

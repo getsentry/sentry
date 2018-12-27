@@ -6,11 +6,11 @@ from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from sentry import options
-from sentry.models import ApiToken, FileBlob
-from sentry.models.file import DEFAULT_BLOB_SIZE
+from sentry.models import ApiToken, FileBlob, MAX_FILE_SIZE
 from sentry.testutils import APITestCase
 from sentry.api.endpoints.chunk import (MAX_CHUNKS_PER_REQUEST, MAX_CONCURRENCY,
-                                        HASH_ALGORITHM, MAX_REQUEST_SIZE)
+                                        HASH_ALGORITHM, MAX_REQUEST_SIZE,
+                                        CHUNK_UPLOAD_BLOB_SIZE)
 
 
 class ChunkUploadTest(APITestCase):
@@ -35,9 +35,10 @@ class ChunkUploadTest(APITestCase):
             endpoint = options.get('system.url-prefix')
 
         assert response.status_code == 200, response.content
-        assert response.data['chunkSize'] == DEFAULT_BLOB_SIZE
+        assert response.data['chunkSize'] == CHUNK_UPLOAD_BLOB_SIZE
         assert response.data['chunksPerRequest'] == MAX_CHUNKS_PER_REQUEST
         assert response.data['maxRequestSize'] == MAX_REQUEST_SIZE
+        assert response.data['maxFileSize'] == options.get('system.maximum-file-size')
         assert response.data['concurrency'] == MAX_CONCURRENCY
         assert response.data['hashAlgorithm'] == HASH_ALGORITHM
         assert response.data['url'] == options.get('system.url-prefix') + self.url
@@ -50,6 +51,16 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.data['url'] == options.get('system.upload-url-prefix') + self.url
+
+    def test_large_uploads(self):
+        with self.feature('organizations:large-debug-files'):
+            response = self.client.get(
+                self.url,
+                HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token),
+                format='json'
+            )
+
+        assert response.data['maxFileSize'] == MAX_FILE_SIZE
 
     def test_wrong_api_token(self):
         token = ApiToken.objects.create(
@@ -141,7 +152,7 @@ class ChunkUploadTest(APITestCase):
 
     def test_too_large_chunk(self):
         files = []
-        content = "x" * (DEFAULT_BLOB_SIZE + 1)
+        content = "x" * (CHUNK_UPLOAD_BLOB_SIZE + 1)
         files.append(SimpleUploadedFile(sha1(content).hexdigest(), content))
 
         response = self.client.post(
@@ -157,7 +168,7 @@ class ChunkUploadTest(APITestCase):
 
     def test_checksum_missmatch(self):
         files = []
-        content = "x" * (DEFAULT_BLOB_SIZE + 1)
+        content = "x" * (CHUNK_UPLOAD_BLOB_SIZE + 1)
         files.append(SimpleUploadedFile('wrong checksum', content))
 
         response = self.client.post(

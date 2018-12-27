@@ -1,15 +1,12 @@
 from __future__ import absolute_import
 
-import re
-
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
 from sentry.web.helpers import render_to_response
-from sentry.models.apitoken import generate_token
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.identity.gitlab import get_user_info
+from sentry.identity.gitlab import get_user_info, get_oauth_data
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
 from sentry.integrations import (
     FeatureDescription,
@@ -18,9 +15,11 @@ from sentry.integrations import (
     IntegrationProvider,
     IntegrationMetadata
 )
+from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import NestedPipelineView, PipelineView
 from sentry.utils.http import absolute_uri
+from sentry.utils.hashlib import sha1_text
 
 from .client import GitLabApiClient, GitLabSetupClient
 from .issues import GitlabIssueBasic
@@ -78,7 +77,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
         self.default_identity = None
 
     def get_group_id(self):
-        return self.model.external_id.split(':')[1]
+        return self.model.metadata['group_id']
 
     def get_client(self):
         if self.default_identity is None:
@@ -89,80 +88,115 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
-        resp = self.get_client().get_group_projects(group, query)
+        resp = self.get_client().search_group_projects(group, query)
         return [{
             'identifier': repo['id'],
             'name': repo['name_with_namespace'],
         } for repo in resp]
 
+    def search_projects(self, query):
+        client = self.get_client()
+        group_id = self.get_group_id()
+        return client.search_group_projects(group_id, query)
+
+    def search_issues(self, project_id, query, iids):
+        client = self.get_client()
+        return client.search_project_issues(project_id, query, iids)
+
 
 class InstallationForm(forms.Form):
     url = forms.CharField(
-        label=_("Installation Url"),
-        help_text=_('The "base URL" for your GitLab instance, '
-                    'includes the host and protocol.'),
+        label=_('GitLab URL'),
+        help_text=_('The base URL for your GitLab instance, including the host and protocol. '
+                    'Do not include group path.'
+                    '<br>'
+                    'If using gitlab.com, enter https://gitlab.com/'),
         widget=forms.TextInput(
             attrs={'placeholder': 'https://gitlab.example.com'}
         ),
     )
     group = forms.CharField(
-        label=_("GitLab Group Name"),
+        label=_('GitLab Group Path'),
+        help_text=_('This can be found in the URL of your group\'s GitLab page. '
+                    '<br>'
+                    'For example, if your group can be found at '
+                    'https://gitlab.com/my-group/my-subgroup, enter `my-group/my-subgroup`.'),
         widget=forms.TextInput(
-            attrs={'placeholder': _('my-awesome-group')}
+            attrs={'placeholder': _('my-group/my-subgroup')}
         )
     )
     verify_ssl = forms.BooleanField(
-        label=_("Verify SSL"),
+        label=_('Verify SSL'),
         help_text=_('By default, we verify SSL certificates '
                     'when delivering payloads to your GitLab instance, '
                     'and request GitLab to verify SSL when it delivers '
                     'webhooks to Sentry.'),
         widget=forms.CheckboxInput(),
-        required=False
+        required=False,
+        initial=True
     )
     client_id = forms.CharField(
-        label=_("GitLab Application ID"),
+        label=_('GitLab Application ID'),
         widget=forms.TextInput(
             attrs={'placeholder': _(
                 '5832fc6e14300a0d962240a8144466eef4ee93ef0d218477e55f11cf12fc3737')}
         )
     )
     client_secret = forms.CharField(
-        label=_("GitLab Application Secret"),
+        label=_('GitLab Application Secret'),
         widget=forms.TextInput(
             attrs={'placeholder': _('XXXXXXXXXXXXXXXXXXXXXXXXXXX')}
         )
     )
 
-    def __init__(self, *args, **kwargs):
-        super(InstallationForm, self).__init__(*args, **kwargs)
-        self.fields['verify_ssl'].initial = True
+    def clean_url(self):
+        """Strip off trailing / as they cause invalid URLs downstream"""
+        return self.cleaned_data['url'].rstrip('/')
 
 
 class InstallationConfigView(PipelineView):
     def dispatch(self, request, pipeline):
-        form = InstallationForm(request.POST)
-        if form.is_valid():
-            form_data = form.cleaned_data
+        if request.method == 'POST':
+            form = InstallationForm(request.POST)
+            if form.is_valid():
+                form_data = form.cleaned_data
 
-            pipeline.bind_state('installation_data', form_data)
+                pipeline.bind_state('installation_data', form_data)
 
-            pipeline.bind_state('oauth_config_information', {
-                "access_token_url": u"{}/oauth/token".format(form_data.get('url')),
-                "authorize_url": u"{}/oauth/authorize".format(form_data.get('url')),
-                "client_id": form_data.get('client_id'),
-                "client_secret": form_data.get('client_secret'),
-                "verify_ssl": form_data.get('verify_ssl')
-            })
+                pipeline.bind_state('oauth_config_information', {
+                    "access_token_url": u"{}/oauth/token".format(form_data.get('url')),
+                    "authorize_url": u"{}/oauth/authorize".format(form_data.get('url')),
+                    "client_id": form_data.get('client_id'),
+                    "client_secret": form_data.get('client_secret'),
+                    "verify_ssl": form_data.get('verify_ssl')
+                })
 
-            return pipeline.next_step()
-
-        project_form = InstallationForm()
+                return pipeline.next_step()
+        else:
+            form = InstallationForm()
 
         return render_to_response(
             template='sentry/integrations/gitlab-config.html',
             context={
-                'form': project_form,
+                'form': form,
+            },
+            request=request,
+        )
+
+
+class InstallationGuideView(PipelineView):
+    def dispatch(self, request, pipeline):
+        if 'completed_installation_guide' in request.GET:
+            return pipeline.next_step()
+        return render_to_response(
+            template='sentry/integrations/gitlab-config.html',
+            context={
+                'next_url': '%s%s' % (absolute_uri('extensions/gitlab/setup/'), '?completed_installation_guide'),
+                'setup_values': [
+                    {'label': 'Name', 'value': 'Sentry'},
+                    {'label': 'Redirect URI', 'value': absolute_uri('/extensions/gitlab/setup/')},
+                    {'label': 'Scopes', 'value': 'api'}
+                ]
             },
             request=request,
         )
@@ -170,7 +204,7 @@ class InstallationConfigView(PipelineView):
 
 class GitlabIntegrationProvider(IntegrationProvider):
     key = 'gitlab'
-    name = 'Gitlab'
+    name = 'GitLab'
     metadata = metadata
     integration_cls = GitlabIntegration
 
@@ -194,10 +228,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         method should be late bound into the pipeline vies.
         """
         identity_pipeline_config = dict(
-            oauth_scopes=(
-                'api',
-                'sudo',
-            ),
+            oauth_scopes=sorted(GitlabIdentityProvider.oauth_scopes),
             redirect_url=absolute_uri('/extensions/gitlab/setup/'),
             **self.pipeline.fetch_state('oauth_config_information')
         )
@@ -209,62 +240,59 @@ class GitlabIntegrationProvider(IntegrationProvider):
             config=identity_pipeline_config,
         )
 
-    def get_oauth_data(self, payload):
-        data = {'access_token': payload['access_token']}
-
-        # https://docs.gitlab.com/ee/api/oauth2.html#2-requesting-access-token
-        # doesn't seem to be correct, format we actually get:
-        # {
-        #   "access_token": "123432sfh29uhs29347",
-        #   "token_type": "bearer",
-        #   "refresh_token": "29f43sdfsk22fsj929",
-        #   "created_at": 1536798907,
-        #   "scope": "api sudo"
-        # }
-        if 'refresh_token' in payload:
-            data['refresh_token'] = payload['refresh_token']
-        if 'token_type' in payload:
-            data['token_type'] = payload['token_type']
-
-        return data
-
     def get_group_info(self, access_token, installation_data):
         client = GitLabSetupClient(
             installation_data['url'],
             access_token,
             installation_data['verify_ssl']
         )
-        resp = client.get_group(installation_data['group'])
-
-        return resp.json
+        try:
+            resp = client.get_group(installation_data['group'])
+            return resp.json
+        except ApiError:
+            raise IntegrationError('The requested GitLab group could not be found.')
 
     def get_pipeline_views(self):
-        return [InstallationConfigView(), lambda: self._make_identity_pipeline_view()]
+        return [InstallationGuideView(), InstallationConfigView(),
+                lambda: self._make_identity_pipeline_view()]
 
     def build_integration(self, state):
         data = state['identity']['data']
-        oauth_data = self.get_oauth_data(data)
+        oauth_data = get_oauth_data(data)
         user = get_user_info(data['access_token'], state['installation_data'])
         group = self.get_group_info(data['access_token'], state['installation_data'])
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state['installation_data']['url']
-        domain_name = '%s/%s' % (re.sub(r'https?://', '', base_url), group['path'])
+
+        hostname = urlparse(base_url).netloc
         verify_ssl = state['installation_data']['verify_ssl']
 
+        # Generate a hash to prevent stray hooks from being accepted
+        # use a consistent hash so that reinstalls/shared integrations don't
+        # rotate secrets.
+        secret = sha1_text(''.join([hostname, state['installation_data']['client_id']]))
+
         integration = {
-            'name': group['name'],
-            'external_id': u'{}:{}'.format(urlparse(base_url).netloc, group['id']),
+            'name': group['full_name'],
+            # Splice the gitlab host and project together to
+            # act as unique link between a gitlab instance, group + sentry.
+            # This value is embedded then in the webook token that we
+            # give to gitlab to allow us to find the integration a hook came
+            # from.
+            'external_id': u'{}:{}'.format(hostname, group['full_path']),
             'metadata': {
                 'icon': group['avatar_url'],
-                'domain_name': domain_name,
+                'instance': hostname,
+                'domain_name': u'{}/{}'.format(hostname, group['full_path']),
                 'scopes': scopes,
                 'verify_ssl': verify_ssl,
                 'base_url': base_url,
-                'webhook_secret': generate_token()
+                'webhook_secret': secret.hexdigest(),
+                'group_id': group['id'],
             },
             'user_identity': {
                 'type': 'gitlab',
-                'external_id': u'{}:{}'.format(urlparse(base_url).netloc, user['id']),
+                'external_id': u'{}:{}'.format(hostname, user['id']),
                 'scopes': scopes,
                 'data': oauth_data,
             },

@@ -1,33 +1,21 @@
-import moment from 'moment';
 import 'echarts/lib/component/tooltip';
 
-const DEFAULT_TRUNCATE_LENGTH = 80;
+import {getFormattedDate} from 'app/utils/dates';
+import {truncationFormatter} from '../utils';
 
-// Truncates labels for tooltip
-function truncateLabel(seriesName, truncate) {
-  if (!truncate) {
-    return seriesName;
-  }
-
-  let result = seriesName;
-  let truncateLength = typeof truncate === 'number' ? truncate : DEFAULT_TRUNCATE_LENGTH;
-  0;
-
-  if (seriesName.length > truncateLength) {
-    result = seriesName.substring(0, truncateLength) + '…';
-  }
-  return result;
-}
-
-function formatAxisLabel(value, isTimestamp) {
+function defaultFormatAxisLabel(value, isTimestamp, utc) {
   if (!isTimestamp) {
     return value;
   }
 
-  return moment(value).format('MMM D, YYYY');
+  return getFormattedDate(value, 'MMM D, YYYY', utc);
 }
 
-function getFormatter({filter, isGroupedByDate, truncate}) {
+function valueFormatter(value) {
+  return value.toLocaleString();
+}
+
+function getFormatter({filter, isGroupedByDate, truncate, formatAxisLabel, utc}) {
   const getFilter = seriesParam => {
     const value = seriesParam.data[1];
     if (typeof filter === 'function') {
@@ -40,15 +28,21 @@ function getFormatter({filter, isGroupedByDate, truncate}) {
   return seriesParams => {
     const label =
       seriesParams.length &&
-      formatAxisLabel(seriesParams[0].axisValueLabel, isGroupedByDate);
+      (formatAxisLabel || defaultFormatAxisLabel)(
+        seriesParams[0].axisValueLabel,
+        isGroupedByDate,
+        utc
+      );
     return [
-      `<div>${truncateLabel(label, truncate)}</div>`,
+      `<div>${truncationFormatter(label, truncate)}</div>`,
       seriesParams
         .filter(getFilter)
         .map(
           s =>
-            `<div>${s.marker} ${truncateLabel(s.seriesName, truncate)}:  ${s
-              .data[1]}</div>`
+            `<div>${s.marker} ${truncationFormatter(
+              s.seriesName,
+              truncate
+            )}:  ${valueFormatter(s.data[1])}</div>`
         )
         .join(''),
     ].join('');
@@ -56,9 +50,10 @@ function getFormatter({filter, isGroupedByDate, truncate}) {
 }
 
 export default function Tooltip(
-  {filter, isGroupedByDate, formatter, truncate, ...props} = {}
+  {filter, isGroupedByDate, formatter, truncate, utc, formatAxisLabel, ...props} = {}
 ) {
-  formatter = formatter || getFormatter({filter, isGroupedByDate, truncate});
+  formatter =
+    formatter || getFormatter({filter, isGroupedByDate, truncate, utc, formatAxisLabel});
 
   return {
     show: true,

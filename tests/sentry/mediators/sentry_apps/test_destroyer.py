@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 from django.db import connection
 
-from sentry.mediators.sentry_apps import Creator, Destroyer
-from sentry.models import ApiApplication, User, SentryApp
+from sentry.mediators.sentry_apps import Destroyer
+from sentry.models import ApiApplication, User, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 
 
@@ -12,14 +12,22 @@ class TestDestroyer(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        self.sentry_app = Creator.run(
+        self.sentry_app = self.create_sentry_app(
             name='blah',
             organization=self.org,
             scopes=('project:read',),
-            webhook_url='https://example.com',
         )
 
         self.destroyer = Destroyer(sentry_app=self.sentry_app)
+
+    def test_deletes_app_installations(self):
+        install = self.create_sentry_app_installation(
+            organization=self.org,
+            slug=self.sentry_app.slug,
+            user=self.user,
+        )
+        self.destroyer.call()
+        assert not SentryAppInstallation.objects.filter(pk=install.id).exists()
 
     def test_deletes_api_application(self):
         application = self.sentry_app.application

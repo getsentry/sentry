@@ -125,7 +125,7 @@ class ProjectSerializer(Serializer):
                 end=now,
                 start=now - ((segments - 1) * interval),
                 rollup=int(interval.total_seconds()),
-                environment_id=self.environment_id,
+                environment_ids=self.environment_id and [self.environment_id],
             )
         else:
             stats = None
@@ -157,17 +157,21 @@ class ProjectSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         from sentry import features
+        from sentry.features.base import ProjectFeature
 
-        feature_list = []
-        for feature in (
-            'global-events', 'data-forwarding', 'rate-limits', 'discard-groups', 'similarity-view',
-            'custom-inbound-filters',
-        ):
-            if features.has('projects:' + feature, obj, actor=user):
-                feature_list.append(feature)
+        # Retrieve all registered organization features
+        project_features = features.all(feature_type=ProjectFeature).keys()
+        feature_list = set()
+
+        for feature_name in project_features:
+            if not feature_name.startswith('projects:'):
+                continue
+            if features.has(feature_name, obj, actor=user):
+                # Remove the project scope prefix
+                feature_list.add(feature_name[len('projects:'):])
 
         if obj.flags.has_releases:
-            feature_list.append('releases')
+            feature_list.add('releases')
 
         status_label = STATUS_LABELS.get(obj.status, 'unknown')
 
@@ -501,7 +505,7 @@ class SharedProjectSerializer(Serializer):
         from sentry import features
 
         feature_list = []
-        for feature in ('global-events', ):
+        for feature in ():
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)
 

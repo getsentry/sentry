@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
+from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
 from sentry.models import ExternalIssue, Integration
 from sentry.testutils import APITestCase
 
 import json
 import responses
+import six
 
 
 class BitbucketIssueTest(APITestCase):
@@ -22,6 +24,14 @@ class BitbucketIssueTest(APITestCase):
                 'subject': self.subject,
             }
         )
+        self.group = self.create_group()
+        self.create_event(group=self.group)
+        self.repo_choices = [('myaccount/repo1', 'myaccount/repo1'),
+                             ('myaccount/repo2', 'myaccount/repo2')]
+        self.org_integration = self.integration.add_organization(self.organization)
+
+    def build_autocomplete_url(self):
+        return '/extensions/bitbucket/search/baz/%d/' % self.integration.id
 
     @responses.activate
     def test_link_issue(self):
@@ -74,3 +84,179 @@ class BitbucketIssueTest(APITestCase):
         assert responses.calls[0].response.status_code == 201
         payload = json.loads(request.body)
         assert payload == {'content': {'raw': comment['comment']}}
+
+    @responses.activate
+    def test_default_repo_link_fields(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/myaccount',
+            body=b"""{
+                "values": [
+                    {"full_name": "myaccount/repo1"},
+                    {"full_name": "myaccount/repo2"}
+                ]
+            }""",
+            content_type='application/json',
+        )
+        self.org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(self.group.project_id): {'repo': 'myaccount/repo1'}
+            }
+        }
+        self.org_integration.save()
+        installation = self.integration.get_installation(self.organization.id)
+        fields = installation.get_link_issue_config(self.group)
+        repo_field = [field for field in fields if field['name'] == 'repo'][0]
+        assert repo_field['default'] == 'myaccount/repo1'
+
+    @responses.activate
+    def test_default_repo_create_fields(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/myaccount',
+            body=b"""{
+                "values": [
+                    {"full_name": "myaccount/repo1"},
+                    {"full_name": "myaccount/repo2"}
+                ]
+            }""",
+            content_type='application/json',
+        )
+        self.org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(self.group.project_id): {'repo': 'myaccount/repo1'}
+            }
+        }
+        self.org_integration.save()
+        installation = self.integration.get_installation(self.organization.id)
+        fields = installation.get_create_issue_config(self.group)
+        for field in fields:
+            if field['name'] == 'repo':
+                repo_field = field
+                break
+        assert repo_field['default'] == 'myaccount/repo1'
+
+    @responses.activate
+    def test_default_repo_link_fields_no_repos(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/myaccount',
+            body=b"""{
+                "values": []
+            }""",
+            content_type='application/json',
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        fields = installation.get_link_issue_config(self.group)
+        repo_field = [field for field in fields if field['name'] == 'repo'][0]
+        assert repo_field['default'] == ''
+        assert repo_field['choices'] == []
+
+    @responses.activate
+    def test_default_repo_create_fields_no_repos(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/myaccount',
+            body=b"""{
+                "values": []
+            }""",
+            content_type='application/json',
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        fields = installation.get_create_issue_config(self.group)
+        repo_field = [field for field in fields if field['name'] == 'repo'][0]
+        assert repo_field['default'] == ''
+        assert repo_field['choices'] == []
+
+    @responses.activate
+    def test_get_create_issue_config(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/myaccount',
+            json={
+                'values': [
+                    {'full_name': 'myaccount/repo1'},
+                    {'full_name': 'myaccount/repo2'}
+                ]
+            },
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        assert installation.get_create_issue_config(self.group) == [
+            {
+                'name': 'repo',
+                'required': True,
+                'updatesForm': True,
+                'type': 'select',
+                'url': self.build_autocomplete_url(),
+                'choices': self.repo_choices,
+                'default': self.repo_choices[0][0],
+                'label': 'Bitbucket Repository',
+            }, {
+                'name': 'title',
+                'label': 'Title',
+                'default': u'message',
+                'type': 'string',
+                'required': True,
+            }, {
+                'name': 'description',
+                'label': 'Description',
+                'default': u'Sentry Issue: [BAR-1](http://testserver/baz/bar/issues/%d/?referrer=bitbucket_integration)\n\n```\nStacktrace (most recent call last):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```' % self.group.id,
+                'type': 'textarea',
+                'autosize': True,
+                'maxRows': 10,
+            }, {
+                'name': 'issue_type',
+                'label': 'Issue type',
+                'default': ISSUE_TYPES[0][0],
+                'type': 'select',
+                'choices': ISSUE_TYPES
+            }, {
+                'name': 'priority',
+                'label': 'Priority',
+                'default': PRIORITIES[0][0],
+                'type': 'select',
+                'choices': PRIORITIES
+            }
+        ]
+
+    @responses.activate
+    def test_get_link_issue_config(self):
+        responses.add(
+            responses.GET,
+            'https://api.bitbucket.org/2.0/repositories/myaccount',
+            json={
+                'values': [
+                    {'full_name': 'myaccount/repo1'},
+                    {'full_name': 'myaccount/repo2'}
+                ]
+            },
+        )
+        installation = self.integration.get_installation(self.organization.id)
+        assert installation.get_link_issue_config(self.group) == [
+            {
+                'name': 'repo',
+                'required': True,
+                'updatesForm': True,
+                'type': 'select',
+                'url': self.build_autocomplete_url(),
+                'choices': self.repo_choices,
+                'default': self.repo_choices[0][0],
+                'label': 'Bitbucket Repository',
+            }, {
+                'name': 'externalIssue',
+                'label': 'Issue',
+                'default': '',
+                'type': 'select',
+                'required': True,
+                'url': self.build_autocomplete_url(),
+            }, {
+                'name': 'comment',
+                'label': 'Comment',
+                'default': '',
+                'type': 'textarea',
+                'required': False,
+                'help': ('Leave blank if you don\'t want to '
+                         'add a comment to the Bitbucket issue.'),
+            }]

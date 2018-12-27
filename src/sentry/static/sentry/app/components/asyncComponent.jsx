@@ -1,8 +1,8 @@
 import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import AsyncComponentSearchInput from 'app/components/asyncComponentSearchInput';
@@ -50,6 +50,15 @@ export default class AsyncComponent extends React.Component {
   // eslint-disable-next-line react/sort-comp
   shouldReloadOnVisible = false;
 
+  // This affects how the component behaves when `remountComponent` is called
+  // By default, the component gets put back into a "loading" state when re-fetching data.
+  // If this is true, then when we fetch data, the original ready component remains mounted
+  // and it will need to handle any additional "reloading" states
+  shouldReload = false;
+
+  // should `renderError` render the `detail` attribute of a 400 error
+  shouldRenderBadRequests = false;
+
   constructor(props, context) {
     super(props, context);
 
@@ -68,22 +77,29 @@ export default class AsyncComponent extends React.Component {
     }
   }
 
-  componentWillReceiveProps(nextProps, nextContext) {
-    const isRouterInContext = !!this.context.router;
-    const isLocationInProps = nextProps.location !== undefined;
+  // Compatiblity shim for child classes that call super on this hook.
+  componentWillReceiveProps(newProps, newContext) {}
+
+  componentDidUpdate(prevProps, prevContext) {
+    const isRouterInContext = !!prevContext.router;
+    const isLocationInProps = prevProps.location !== undefined;
 
     const currentLocation = isLocationInProps
       ? this.props.location
       : isRouterInContext ? this.context.router.location : null;
-    const nextLocation = isLocationInProps
-      ? nextProps.location
-      : isRouterInContext ? nextContext.router.location : null;
+    const prevLocation = isLocationInProps
+      ? prevProps.location
+      : isRouterInContext ? prevContext.router.location : null;
 
-    // re-fetch data when router params change
+    if (!(currentLocation && prevLocation)) {
+      return;
+    }
+
+    // Re-fetch data when router params change.
     if (
-      !isEqual(this.props.params, nextProps.params) ||
-      currentLocation.search !== nextLocation.search ||
-      currentLocation.state !== nextLocation.state
+      !isEqual(this.props.params, prevProps.params) ||
+      currentLocation.search !== prevLocation.search ||
+      currentLocation.state !== prevLocation.state
     ) {
       this.remountComponent();
     }
@@ -113,7 +129,16 @@ export default class AsyncComponent extends React.Component {
   }
 
   remountComponent = () => {
-    this.setState(this.getDefaultState(), this.fetchData);
+    if (this.shouldReload) {
+      this.setState(
+        {
+          reloading: true,
+        },
+        this.fetchData
+      );
+    } else {
+      this.setState(this.getDefaultState(), this.fetchData);
+    }
   };
 
   visibilityReloader = () =>
@@ -161,10 +186,10 @@ export default class AsyncComponent extends React.Component {
         },
         error: error => {
           // Allow endpoints to fail
+          // allowError can have side effects to handle the error
           if (options.allowError && options.allowError(error)) {
             error = null;
           }
-
           this.handleError(error, [stateKey, endpoint, params, options]);
         },
       });
@@ -196,7 +221,7 @@ export default class AsyncComponent extends React.Component {
 
   handleError(error, [stateKey]) {
     if (error && error.responseText) {
-      sdk.captureBreadcrumb({
+      Sentry.addBreadcrumb({
         message: error.responseText,
         category: 'xhr',
         level: 'error',
@@ -247,12 +272,13 @@ export default class AsyncComponent extends React.Component {
     return [['data', endpoint, this.getEndpointParams()]];
   }
 
-  renderSearchInput({onSearchSubmit, stateKey, url, ...other}) {
+  renderSearchInput({onSearchSubmit, stateKey, url, updateRoute, ...other}) {
     const [firstEndpoint] = this.getEndpoints() || [];
     const stateKeyOrDefault = stateKey || (firstEndpoint && firstEndpoint[0]);
     const urlOrDefault = url || (firstEndpoint && firstEndpoint[1]);
     return (
       <AsyncComponentSearchInput
+        updateRoute={updateRoute}
         onSearchSubmit={onSearchSubmit}
         stateKey={stateKeyOrDefault}
         url={urlOrDefault}
@@ -299,6 +325,19 @@ export default class AsyncComponent extends React.Component {
       return <PermissionDenied />;
     }
 
+    if (this.shouldRenderBadRequests) {
+      let badRequests = Object.values(this.state.errors)
+        .filter(
+          resp =>
+            resp && resp.status === 400 && resp.responseJSON && resp.responseJSON.detail
+        )
+        .map(resp => resp.responseJSON.detail);
+
+      if (badRequests.length) {
+        return <LoadingError message={badRequests.join('\n')} />;
+      }
+    }
+
     return (
       <RouteError
         error={error}
@@ -310,7 +349,7 @@ export default class AsyncComponent extends React.Component {
   }
 
   renderComponent() {
-    return this.state.loading && !this.state.reloading
+    return this.state.loading && (!this.shouldReload || !this.state.reloading)
       ? this.renderLoading()
       : this.state.error
         ? this.renderError(new Error('Unable to load all required endpoints'))

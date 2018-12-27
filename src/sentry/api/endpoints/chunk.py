@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+import six
 from io import BytesIO
 from gzip import GzipFile
 from itertools import izip
@@ -8,15 +10,16 @@ from six.moves.urllib.parse import urljoin
 from rest_framework.response import Response
 from django.core.urlresolvers import reverse
 from django.conf import settings
-from django.db import IntegrityError, transaction
 
 from sentry import options
-from sentry.models import FileBlob, FileBlobOwner
-from sentry.models.file import DEFAULT_BLOB_SIZE
+from sentry.models import FileBlob
 from sentry.api.bases.organization import (OrganizationEndpoint,
                                            OrganizationReleasePermission)
+from sentry.utils.files import get_max_file_size
 
 
+# The blob size must be a power of two
+CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 4
@@ -51,8 +54,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         return Response(
             {
                 'url': endpoint,
-                'chunkSize': DEFAULT_BLOB_SIZE,
+                'chunkSize': CHUNK_UPLOAD_BLOB_SIZE,
                 'chunksPerRequest': MAX_CHUNKS_PER_REQUEST,
+                'maxFileSize': get_max_file_size(organization),
                 'maxRequestSize': MAX_REQUEST_SIZE,
                 'concurrency': MAX_CONCURRENCY,
                 'hashAlgorithm': HASH_ALGORITHM,
@@ -70,45 +74,49 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
 
         :auth: required
         """
+        # Create a unique instance so our logger can be decoupled from the request
+        # and used in threads.
+        logger = logging.getLogger('sentry.files')
+        logger.info('chunkupload.start')
+
         files = request.FILES.getlist('file')
         files += [GzipChunk(chunk) for chunk in request.FILES.getlist('file_gzip')]
         if len(files) == 0:
             # No files uploaded is ok
+            logger.info('chunkupload.end', extra={'status': status.HTTP_200_OK})
             return Response(status=status.HTTP_200_OK)
+
+        logger.info('chunkupload.post.files', extra={'len': len(files)})
 
         # Validate file size
         checksums = []
         size = 0
         for chunk in files:
             size += chunk.size
-            if chunk.size > DEFAULT_BLOB_SIZE:
+            if chunk.size > CHUNK_UPLOAD_BLOB_SIZE:
+                logger.info('chunkupload.end', extra={'status': status.HTTP_400_BAD_REQUEST})
                 return Response({'error': 'Chunk size too large'},
                                 status=status.HTTP_400_BAD_REQUEST)
             checksums.append(chunk.name)
 
         if size > MAX_REQUEST_SIZE:
+            logger.info('chunkupload.end', extra={'status': status.HTTP_400_BAD_REQUEST})
             return Response({'error': 'Request too large'},
                             status=status.HTTP_400_BAD_REQUEST)
 
         if len(files) > MAX_CHUNKS_PER_REQUEST:
+            logger.info('chunkupload.end', extra={'status': status.HTTP_400_BAD_REQUEST})
             return Response({'error': 'Too many chunks'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        for checksum, chunk in izip(checksums, files):
-            # Here we create the actual blob
-            blob = FileBlob.from_file(chunk)
-            # Add ownership to the blob here
-            try:
-                with transaction.atomic():
-                    FileBlobOwner.objects.create(
-                        organization=organization,
-                        blob=blob
-                    )
-            except IntegrityError:
-                pass
-            if blob.checksum != checksum:
-                # We do not clean up here since we have a cleanup job
-                return Response({'error': 'Checksum missmatch'},
-                                status=status.HTTP_400_BAD_REQUEST)
+        try:
+            FileBlob.from_files(izip(files, checksums),
+                                organization=organization,
+                                logger=logger)
+        except IOError as err:
+            logger.info('chunkupload.end', extra={'status': status.HTTP_400_BAD_REQUEST})
+            return Response({'error': six.text_type(err)},
+                            status=status.HTTP_400_BAD_REQUEST)
 
+        logger.info('chunkupload.end', extra={'status': status.HTTP_200_OK})
         return Response(status=status.HTTP_200_OK)

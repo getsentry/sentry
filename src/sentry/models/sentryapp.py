@@ -4,13 +4,23 @@ import six
 import uuid
 
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.template.defaultfilters import slugify
 
-from sentry.constants import SentryAppStatus
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, ParanoidModel
+from sentry.constants import SentryAppStatus, SENTRY_APP_SLUG_MAX_LENGTH
 from sentry.models import Organization
 from sentry.models.apiscopes import HasApiScopes
+from sentry.db.models import (
+    ArrayField,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    ParanoidModel,
+)
+
+VALID_EVENTS = (
+    'issue',
+)
 
 
 def default_uuid():
@@ -42,7 +52,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
                                related_name='owned_sentry_apps')
 
     name = models.TextField()
-    slug = models.CharField(max_length=64, unique=True)
+    slug = models.CharField(max_length=SENTRY_APP_SLUG_MAX_LENGTH, unique=True)
     status = BoundedPositiveIntegerField(
         default=SentryAppStatus.UNPUBLISHED,
         choices=SentryAppStatus.as_choices(),
@@ -51,7 +61,15 @@ class SentryApp(ParanoidModel, HasApiScopes):
     uuid = models.CharField(max_length=64,
                             default=default_uuid)
 
-    webhook_url = models.TextField()
+    redirect_url = models.URLField(null=True)
+    webhook_url = models.URLField()
+    # does the application subscribe to `event.alert`,
+    # meaning can it be used in alert rules as a {service} ?
+    is_alertable = models.BooleanField(default=False)
+
+    events = ArrayField(of=models.TextField, null=True)
+
+    overview = models.TextField(null=True)
 
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)
@@ -59,6 +77,15 @@ class SentryApp(ParanoidModel, HasApiScopes):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_sentryapp'
+
+    @classmethod
+    def visible_for_user(cls, user):
+        if user.is_superuser:
+            return cls.objects.all()
+
+        return cls.objects.filter(
+            Q(status=SentryAppStatus.PUBLISHED) | Q(owner__in=user.get_orgs()),
+        )
 
     @property
     def organizations(self):
@@ -78,6 +105,10 @@ class SentryApp(ParanoidModel, HasApiScopes):
             return Team.objects.none()
 
         return Team.objects.filter(organization__in=self.organizations)
+
+    @property
+    def is_published(self):
+        return self.status == SentryAppStatus.PUBLISHED
 
     def save(self, *args, **kwargs):
         self._set_slug()

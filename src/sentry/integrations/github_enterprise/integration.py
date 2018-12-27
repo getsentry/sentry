@@ -136,7 +136,7 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
 class InstallationForm(forms.Form):
     url = forms.CharField(
         label="Installation Url",
-        help_text=_('The "base URL" for your github enterprise instance, '
+        help_text=_('The "base URL" for your GitHub enterprise instance, '
                     'includes the host and protocol.'),
         widget=forms.TextInput(
             attrs={'placeholder': _('https://github.example.com')}
@@ -212,29 +212,30 @@ class InstallationForm(forms.Form):
 
 class InstallationConfigView(PipelineView):
     def dispatch(self, request, pipeline):
-        form = InstallationForm(request.POST)
-        if form.is_valid():
-            form_data = form.cleaned_data
-            form_data['url'] = urlparse(form_data['url']).netloc
+        if request.method == 'POST':
+            form = InstallationForm(request.POST)
+            if form.is_valid():
+                form_data = form.cleaned_data
+                form_data['url'] = urlparse(form_data['url']).netloc
 
-            pipeline.bind_state('installation_data', form_data)
+                pipeline.bind_state('installation_data', form_data)
 
-            pipeline.bind_state('oauth_config_information', {
-                "access_token_url": u"https://{}/login/oauth/access_token".format(form_data.get('url')),
-                "authorize_url": u"https://{}/login/oauth/authorize".format(form_data.get('url')),
-                "client_id": form_data.get('client_id'),
-                "client_secret": form_data.get('client_secret'),
-                "verify_ssl": form_data.get('verify_ssl'),
-            })
+                pipeline.bind_state('oauth_config_information', {
+                    "access_token_url": u"https://{}/login/oauth/access_token".format(form_data.get('url')),
+                    "authorize_url": u"https://{}/login/oauth/authorize".format(form_data.get('url')),
+                    "client_id": form_data.get('client_id'),
+                    "client_secret": form_data.get('client_secret'),
+                    "verify_ssl": form_data.get('verify_ssl'),
+                })
 
-            return pipeline.next_step()
-
-        project_form = InstallationForm()
+                return pipeline.next_step()
+        else:
+            form = InstallationForm()
 
         return render_to_response(
             template='sentry/integrations/github-enterprise-config.html',
             context={
-                'form': project_form,
+                'form': form,
             },
             request=request,
         )

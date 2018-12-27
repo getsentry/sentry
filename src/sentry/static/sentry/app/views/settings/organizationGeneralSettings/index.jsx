@@ -18,7 +18,6 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import recreateRoute from 'app/utils/recreateRoute';
 
 import OrganizationSettingsForm from './organizationSettingsForm';
 
@@ -42,22 +41,6 @@ const OrganizationGeneralSettings = createReactClass({
   componentDidMount() {
     Promise.all([this.fetchData()]).then(
       ([data]) => {
-        // Redirect if can't write to org
-        if (
-          data &&
-          data.access.indexOf('org:admin') === -1 &&
-          data.access.indexOf('org:write') === -1
-        ) {
-          browserHistory.replace(
-            recreateRoute('teams', {
-              params: this.props.params,
-              routes: this.props.routes,
-              stepBack: -1,
-            })
-          );
-          return;
-        }
-
         this.setState({data, loading: false});
       },
       () => {

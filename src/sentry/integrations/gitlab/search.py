@@ -2,12 +2,11 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.models import Integration
 
 
-class GitlabIssueSearchEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationPermission, )
+class GitlabIssueSearchEndpoint(IntegrationEndpoint):
 
     def get(self, request, organization, integration_id):
         try:
@@ -29,17 +28,27 @@ class GitlabIssueSearchEndpoint(OrganizationEndpoint):
         installation = integration.get_installation(organization.id)
 
         if field == 'externalIssue':
-            response = installation.get_client().search_issues(query)
+            project = request.GET.get('project')
+            if project is None:
+                return Response({'detail': 'project is a required parameter'}, status=400)
+            try:
+                iids = [int(query)]
+                query = None
+            except ValueError:
+                iids = None
+
+            response = installation.search_issues(query=query, project_id=project, iids=iids)
+
             return Response([{
                 'label': '(#%s) %s' % (i['iid'], i['title']),
                 'value': '%s#%s' % (i['project_id'], i['iid'])
             } for i in response])
 
-        if field == 'project':
-            response = installation.get_client().get_projects(query=query)
+        elif field == 'project':
+            response = installation.search_projects(query)
             return Response([{
                 'label': project['name_with_namespace'],
-                'value': project['path_with_namespace'],
+                'value': project['id'],
             } for project in response])
 
         return Response({'detail': 'invalid field value'}, status=400)

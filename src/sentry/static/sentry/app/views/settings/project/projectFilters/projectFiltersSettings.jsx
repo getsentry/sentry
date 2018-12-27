@@ -3,14 +3,23 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
+import {
+  Panel,
+  PanelAlert,
+  PanelBody,
+  PanelHeader,
+  PanelItem,
+} from 'app/components/panels';
 import {t} from 'app/locale';
+import Access from 'app/components/acl/access';
 import AsyncComponent from 'app/components/asyncComponent';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
 import HookStore from 'app/stores/hookStore';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import SentryTypes from 'app/sentryTypes';
 import Switch from 'app/components/switch';
 import filterGroups, {customFilterFields} from 'app/data/forms/inboundFilters';
@@ -59,6 +68,7 @@ class LegacyBrowserFilterRow extends React.Component {
   static propTypes = {
     data: PropTypes.object.isRequired,
     onToggle: PropTypes.func.isRequired,
+    disabled: PropTypes.bool,
   };
 
   constructor(props) {
@@ -103,17 +113,20 @@ class LegacyBrowserFilterRow extends React.Component {
   };
 
   render() {
+    let {disabled} = this.props;
     return (
       <div>
-        <BulkFilter>
-          <BulkFilterLabel>{t('Filter')}:</BulkFilterLabel>
-          <BulkFilterItem onClick={this.handleToggleSubfilters.bind(this, true)}>
-            {t('All')}
-          </BulkFilterItem>
-          <BulkFilterItem onClick={this.handleToggleSubfilters.bind(this, false)}>
-            {t('None')}
-          </BulkFilterItem>
-        </BulkFilter>
+        {!disabled && (
+          <BulkFilter>
+            <BulkFilterLabel>{t('Filter')}:</BulkFilterLabel>
+            <BulkFilterItem onClick={this.handleToggleSubfilters.bind(this, true)}>
+              {t('All')}
+            </BulkFilterItem>
+            <BulkFilterItem onClick={this.handleToggleSubfilters.bind(this, false)}>
+              {t('None')}
+            </BulkFilterItem>
+          </BulkFilter>
+        )}
 
         <FilterGrid>
           {LEGACY_BROWSER_KEYS.map(key => {
@@ -131,6 +144,7 @@ class LegacyBrowserFilterRow extends React.Component {
 
                   <Switch
                     isActive={this.state.subfilters.has(key)}
+                    isDisabled={disabled}
                     css={{flexShrink: 0, marginLeft: 6}}
                     toggle={this.handleToggleSubfilters.bind(this, key)}
                     size="lg"
@@ -148,7 +162,6 @@ class LegacyBrowserFilterRow extends React.Component {
 class ProjectFiltersSettings extends AsyncComponent {
   static propTypes = {
     project: SentryTypes.Project,
-    organization: SentryTypes.Organization,
     params: PropTypes.object,
     features: PropTypes.object,
   };
@@ -171,12 +184,38 @@ class ProjectFiltersSettings extends AsyncComponent {
     onBlur(subfilters, e);
   };
 
-  renderDisabledFeature(fields) {
-    let {project, organization} = this.props;
-    return this.state.hooksDisabled.map(hook =>
-      hook(organization, project, null, fields)
-    );
-  }
+  renderDisabledCustomFilters = p => (
+    <FeatureDisabled
+      featureName={t('Custom Inbound Filters')}
+      features={p.features}
+      alert={PanelAlert}
+      message={t(
+        'Release and Error Message filtering are not enabled on your Sentry installation'
+      )}
+    />
+  );
+
+  renderCustomFilters = disabled => () => (
+    <Feature
+      features={['projects:custom-inbound-filters']}
+      renderDisabled={({children, ...props}) =>
+        children({...props, renderDisabled: this.renderDisabledCustomFilters})}
+    >
+      {({hasFeature, organization, renderDisabled, ...featureProps}) => (
+        <React.Fragment>
+          {!hasFeature && renderDisabled({organization, ...featureProps})}
+
+          {customFilterFields.map(field => (
+            <FieldFromConfig
+              key={field.name}
+              field={field}
+              disabled={disabled || !hasFeature}
+            />
+          ))}
+        </React.Fragment>
+      )}
+    </Feature>
+  );
 
   renderBody() {
     let {features, params} = this.props;
@@ -188,86 +227,84 @@ class ProjectFiltersSettings extends AsyncComponent {
     let filtersEndpoint = `${projectEndpoint}filters/`;
 
     return (
-      <React.Fragment>
-        <Panel>
-          <PanelHeader>{t('Filters')}</PanelHeader>
-          <PanelBody>
-            {this.state.filterList.map((filter, idx) => {
-              let fieldProps = {
-                name: filter.id,
-                label: filter.name,
-                help: filter.description,
-              };
+      <Access access={['project:write']}>
+        {({hasAccess}) => (
+          <React.Fragment>
+            <Panel>
+              <PanelHeader>{t('Filters')}</PanelHeader>
+              <PanelBody>
+                {this.state.filterList.map((filter, idx) => {
+                  let fieldProps = {
+                    name: filter.id,
+                    label: filter.name,
+                    help: filter.description,
+                    disabled: !hasAccess,
+                  };
 
-              // Note by default, forms generate data in the format of:
-              // { [fieldName]: [value] }
-              // Endpoints for these filters expect data to be:
-              // { 'active': [value] }
-              return (
-                <PanelItem key={filter.id} p={0}>
-                  <NestedForm
-                    apiMethod="PUT"
-                    apiEndpoint={`${filtersEndpoint}${filter.id}/`}
-                    initialData={{[filter.id]: filter.active}}
-                    saveOnBlur
-                  >
-                    {filter.id !== 'legacy-browsers' ? (
-                      <FieldFromConfig
-                        key={filter.id}
-                        getData={data => ({active: data[filter.id]})}
-                        field={{
-                          type: 'boolean',
-                          ...fieldProps,
-                        }}
-                      />
-                    ) : (
-                      <FormField
-                        inline={false}
-                        {...fieldProps}
-                        getData={data => ({subfilters: data[filter.id]})}
+                  // Note by default, forms generate data in the format of:
+                  // { [fieldName]: [value] }
+                  // Endpoints for these filters expect data to be:
+                  // { 'active': [value] }
+                  return (
+                    <PanelItem key={filter.id} p={0}>
+                      <NestedForm
+                        apiMethod="PUT"
+                        apiEndpoint={`${filtersEndpoint}${filter.id}/`}
+                        initialData={{[filter.id]: filter.active}}
+                        saveOnBlur
                       >
-                        {({onChange, onBlur}) => (
-                          <LegacyBrowserFilterRow
+                        {filter.id !== 'legacy-browsers' ? (
+                          <FieldFromConfig
                             key={filter.id}
-                            data={filter}
-                            onToggle={this.handleLegacyChange.bind(
-                              this,
-                              onChange,
-                              onBlur
-                            )}
+                            getData={data => ({active: data[filter.id]})}
+                            field={{
+                              type: 'boolean',
+                              ...fieldProps,
+                            }}
                           />
+                        ) : (
+                          <FormField
+                            inline={false}
+                            {...fieldProps}
+                            getData={data => ({subfilters: data[filter.id]})}
+                          >
+                            {({onChange, onBlur}) => (
+                              <LegacyBrowserFilterRow
+                                key={filter.id}
+                                data={filter}
+                                disabled={!hasAccess}
+                                onToggle={this.handleLegacyChange.bind(
+                                  this,
+                                  onChange,
+                                  onBlur
+                                )}
+                              />
+                            )}
+                          </FormField>
                         )}
-                      </FormField>
-                    )}
-                  </NestedForm>
-                </PanelItem>
-              );
-            })}
-          </PanelBody>
-        </Panel>
+                      </NestedForm>
+                    </PanelItem>
+                  );
+                })}
+              </PanelBody>
+            </Panel>
 
-        <Form
-          apiMethod="PUT"
-          apiEndpoint={projectEndpoint}
-          initialData={this.state.project.options}
-          saveOnBlur
-        >
-          <JsonForm
-            features={features}
-            forms={filterGroups}
-            renderFooter={() => {
-              // Render additional fields that are behind a feature flag
-              let customFilters = customFilterFields.map(field => (
-                <FieldFromConfig key={field.name} field={field} />
-              ));
-
-              return features.has('custom-inbound-filters')
-                ? customFilters
-                : this.renderDisabledFeature(customFilters);
-            }}
-          />
-        </Form>
-      </React.Fragment>
+            <Form
+              apiMethod="PUT"
+              apiEndpoint={projectEndpoint}
+              initialData={this.state.project.options}
+              saveOnBlur
+            >
+              <JsonForm
+                features={features}
+                forms={filterGroups}
+                disabled={!hasAccess}
+                renderFooter={this.renderCustomFilters(!hasAccess)}
+              />
+            </Form>
+          </React.Fragment>
+        )}
+      </Access>
     );
   }
 }

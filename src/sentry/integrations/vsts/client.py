@@ -18,9 +18,11 @@ INVALID_ACCESS_TOKEN = 'HTTP 400 (invalid_request): The access token is not vali
 
 
 class VstsApiPath(object):
+    commit = u'{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}'
     commits = u'{instance}_apis/git/repositories/{repo_id}/commits'
     commits_batch = u'{instance}_apis/git/repositories/{repo_id}/commitsBatch'
     commits_changes = u'{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
+    project = u'{instance}_apis/projects/{project_id}'
     projects = u'{instance}_apis/projects'
     repository = u'{instance}{project}_apis/git/repositories/{repo_id}'
     repositories = u'{instance}{project}_apis/git/repositories'
@@ -197,8 +199,16 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             },
         )
 
-    def get_commit_filechanges(self, instance, repo_id, commit):
+    def get_commit(self, instance, repo_id, commit):
+        return self.get(
+            VstsApiPath.commit.format(
+                instance=instance,
+                repo_id=repo_id,
+                commit_id=commit
+            )
+        )
 
+    def get_commit_filechanges(self, instance, repo_id, commit):
         resp = self.get(
             VstsApiPath.commits_changes.format(
                 instance=instance,
@@ -227,6 +237,15 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             }
         )
 
+    def get_project(self, instance, project_id):
+        return self.get(
+            VstsApiPath.project.format(
+                instance=instance,
+                project_id=project_id,
+            ),
+            params={'stateFilter': 'WellFormed'}
+        )
+
     def get_projects(self, instance):
         # TODO(dcramer): VSTS doesn't provide a way to search, so we're
         # making the assumption that a user has 100 or less projects today.
@@ -237,15 +256,20 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             params={'stateFilter': 'WellFormed'}
         )
 
-    def get_users(self, account_name):
+    def get_users(self, account_name, continuation_token=None):
+        """
+        Gets Users with access to a given account/organization
+        https://docs.microsoft.com/en-us/rest/api/azure/devops/graph/users/list?view=azure-devops-rest-4.1
+        """
         return self.get(
             VstsApiPath.users.format(
                 account_name=account_name,
             ),
             api_preview=True,
+            params={'continuationToken': continuation_token},
         )
 
-    def create_subscription(self, instance, external_id, shared_secret):
+    def create_subscription(self, instance, shared_secret):
         return self.post(
             VstsApiPath.subscriptions.format(
                 instance=instance

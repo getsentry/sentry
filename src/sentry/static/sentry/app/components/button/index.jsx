@@ -9,7 +9,7 @@ import Tooltip from 'app/components/tooltip';
 
 class Button extends React.Component {
   static propTypes = {
-    priority: PropTypes.oneOf(['primary', 'danger', 'link', 'success']),
+    priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
     size: PropTypes.oneOf(['zero', 'small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
@@ -88,7 +88,8 @@ class Button extends React.Component {
     } = this.props;
 
     // For `aria-label`
-    let screenReaderLabel = label || typeof children === 'string' ? children : undefined;
+    let screenReaderLabel =
+      label || (typeof children === 'string' ? children : undefined);
 
     // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
     // Let's use props to determine which to serve up, so we don't have to think about it.

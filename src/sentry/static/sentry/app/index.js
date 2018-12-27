@@ -1,12 +1,13 @@
 /* global module */
-import {AppContainer} from 'react-hot-loader';
+import 'app/utils/emotion-setup';
+
 import {renderToStaticMarkup} from 'react-dom/server';
 import * as Emotion from 'emotion';
 import * as EmotionTheming from 'emotion-theming';
 import * as GridEmotion from 'grid-emotion';
 import JsCookie from 'js-cookie';
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
+import * as Sentry from '@sentry/browser';
 import React from 'react';
 import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 import ReactDOM from 'react-dom';
@@ -17,13 +18,47 @@ import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 import moment from 'moment';
 
-import 'app/utils/emotion-setup';
-
+import {metric} from 'app/utils/analytics';
 import Main from 'app/main';
-import * as api from 'app/api';
 import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
+import * as api from 'app/api';
 import * as il8n from 'app/locale';
 import plugins from 'app/plugins';
+
+// SDK INIT  --------------------------------------------------------
+// window.__SENTRY__OPTIONS will be emmited by sdk-config.html before loading this script
+Sentry.init(window.__SENTRY__OPTIONS);
+
+Sentry.configureScope(scope => {
+  if (window.__SENTRY__USER) {
+    scope.setUser(window.__SENTRY__USER);
+  }
+  if (window.__SENTRY__VERSION) {
+    scope.setTag('sentry_version', window.__SENTRY__VERSION);
+  }
+});
+
+function __raven_deprecated() {
+  const message = '[DEPRECATED]: Please no longer use Raven, use Sentry instead';
+  console.error(message);
+  Sentry.captureMessage(message);
+}
+
+const Raven = {
+  captureMessage: () => __raven_deprecated(),
+  captureException: () => __raven_deprecated(),
+  captureBreadcrumb: () => __raven_deprecated(),
+  showReportDialog: () => __raven_deprecated(),
+  setTagsContext: () => __raven_deprecated(),
+  setExtraContext: () => __raven_deprecated(),
+  setUserContext: () => __raven_deprecated(),
+};
+window.Raven = Raven;
+// -----------------------------------------------------------------
+
+// Used for operational metrics to determine that the application js
+// bundle was loaded by browser.
+metric.mark('sentry-app-init');
 
 // setup jquery for CSRF tokens
 jQuery.ajaxSetup({
@@ -36,26 +71,15 @@ jQuery.ajaxSetup({
 
 let render = Component => {
   let rootEl = document.getElementById('blk_router');
-  ReactDOM.render(
-    <AppContainer>
-      <Component />
-    </AppContainer>,
-    rootEl
-  );
+  ReactDOM.render(<Component />, rootEl);
 };
-
-if (module.hot) {
-  // webpack 2 has built in support for es2015 modules, so don't have to re-require
-  module.hot.accept('./main', () => {
-    render(Main);
-  });
-}
 
 export default {
   jQuery,
   moment,
-  Raven,
+  Sentry,
   React,
+  Raven,
   ReactDOM: {
     findDOMNode: ReactDOM.findDOMNode,
     render: ReactDOM.render,
@@ -151,9 +175,13 @@ export default {
     PanelHeader: require('app/components/panels/panelHeader').default,
     PanelBody: require('app/components/panels/panelBody').default,
     PanelItem: require('app/components/panels/panelItem').default,
+    PanelAlert: require('app/components/panels/panelAlert').default,
+    EmptyMessage: require('app/views/settings/components/emptyMessage').default,
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
+    CreateSampleEvent: require('app/components/createSampleEvent').default,
+    InstallPromptBanner: require('app/components/installPromptBanner').default,
     SentryTypes: require('app/sentryTypes').default,
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
@@ -169,6 +197,7 @@ export default {
     U2fSign: require('app/components/u2fsign').default,
     Waiting: require('app/views/onboarding/configure/waiting').default,
     Badge: require('app/components/badge').default,
+    Tag: require('app/views/settings/components/tag').default,
     Switch: require('app/components/switch').default,
     GlobalModal: require('app/components/globalModal').default,
     SetupWizard: require('app/components/setupWizard').default,
@@ -178,6 +207,9 @@ export default {
       errorHandler: require('app/utils/errorHandler').default,
       ajaxCsrfSetup: require('app/utils/ajaxCsrfSetup').default,
       logging: require('app/utils/logging'),
+      descopeFeatureName: require('app/utils').descopeFeatureName,
+      onboardingSteps: require('app/views/onboarding/utils').onboardingSteps,
+      stepDescriptions: require('app/views/onboarding/utils').stepDescriptions,
     },
   },
 };

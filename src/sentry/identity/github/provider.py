@@ -18,7 +18,7 @@ def get_user_info(access_token):
     return resp
 
 
-# Github has 2 types of apps -- Github apps and OAuth apps. SSO is implemented
+# GitHub has 2 types of apps -- GitHub apps and OAuth apps. SSO is implemented
 # using OAuth App, but signup and integrations use the github app. When github
 # apps have API parity with OAuth apps, we should move SSO to it as well.
 # https://developer.github.com/apps/differences-between-apps/

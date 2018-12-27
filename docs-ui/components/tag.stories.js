@@ -2,6 +2,7 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
+import Tooltip from 'app/components/tooltip';
 import Tag from 'app/views/settings/components/tag';
 
 storiesOf('UI|Tags', module)
@@ -24,6 +25,23 @@ storiesOf('UI|Tags', module)
     ))
   )
   .add(
+    'beta',
+    withInfo(
+      'An attention grabbing thing. Use this to communicate shiny new functionality.'
+    )(() => (
+      <Tooltip
+        title="This feature is in beta and may change in the future."
+        tooltipOptions={{
+          placement: 'right',
+        }}
+      >
+        <span>
+          <Tag priority="beta">beta</Tag>
+        </span>
+      </Tooltip>
+    ))
+  )
+  .add(
     'small',
     withInfo('A small tag-like thing. Use this when space is at a premium')(() => (
       <Tag size="small" border>
@@ -38,4 +56,10 @@ storiesOf('UI|Tags', module)
         Development
       </Tag>
     ))
+  )
+  .add(
+    'with icon',
+    withInfo(
+      'A tag-like thing with an icon. Use when you need to represent something'
+    )(() => <Tag icon="icon-lock">Locked</Tag>)
   );

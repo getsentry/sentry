@@ -29,60 +29,22 @@ exports[`OrganizationRepositories renders with a repository 1`] = `
       flex={false}
     >
       <Box>
-        <RepoRow
+        <RepositoryRow
+          api={Client {}}
           key="4"
-        >
-          <Box
-            flex="1"
-            p={2}
-            style={Object {}}
-          >
-            <Flex
-              direction="column"
-            >
-              <Box
-                pb={1}
-              >
-                <strong>
-                  repo-name
-                </strong>
-              </Box>
-              <Box
-                style={Object {}}
-              >
-                <small />
-                <small>
-                   
-                  — 
-                  <a
-                    href="https://github.com/example/repo-name"
-                  >
-                    https://github.com/example/repo-name
-                  </a>
-                </small>
-              </Box>
-            </Flex>
-          </Box>
-          <Box
-            p={2}
-          >
-            <Confirm
-              cancelText="Cancel"
-              confirmText="Confirm"
-              disableConfirmButton={false}
-              disabled={false}
-              message="Are you sure you want to remove this repository?"
-              onConfirm={[Function]}
-              priority="primary"
-            >
-              <Button
-                disabled={false}
-                icon="icon-trash"
-                size="xsmall"
-              />
-            </Confirm>
-          </Box>
-        </RepoRow>
+          orgId="org-slug"
+          repository={
+            Object {
+              "externalSlug": "example/repo-name",
+              "id": "4",
+              "name": "example/repo-name",
+              "provider": "github",
+              "status": "active",
+              "url": "https://github.com/example/repo-name",
+            }
+          }
+          showProvider={true}
+        />
       </Box>
     </PanelBody>
   </Panel>

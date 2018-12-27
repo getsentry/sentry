@@ -113,6 +113,10 @@ const StyledSelect = styled(React.forwardRef(forwardRef))`
     }
   }
 
+  &.Select--single.is-disabled .Select-control .Select-value .Select-value-label {
+    color: ${p => p.theme.disabled};
+  }
+
   .Select-option.is-focused {
     color: white;
     background-color: ${p => p.theme.purple};

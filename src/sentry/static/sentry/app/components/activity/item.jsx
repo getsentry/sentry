@@ -3,7 +3,7 @@ import React from 'react';
 import {Link} from 'react-router';
 import marked from 'marked';
 
-import PullRequestLink from 'app/views/releases/pullRequestLink';
+import PullRequestLink from 'app/components/pullRequestLink';
 
 import CommitLink from 'app/components/commitLink';
 import Duration from 'app/components/duration';
@@ -210,8 +210,8 @@ class ActivityItem extends React.Component {
         });
       case 'unmerge_destination':
         return tn(
-          '%2$s migrated %1$d fingerprint from %3$s to %4$s',
-          '%2$s migrated %1$d fingerprints from %3$s to %4$s',
+          '%2$s migrated %1$s fingerprint from %3$s to %4$s',
+          '%2$s migrated %1$s fingerprints from %3$s to %4$s',
           data.fingerprints.length,
           author,
           data.source ? (

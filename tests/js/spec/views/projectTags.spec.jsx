@@ -45,6 +45,19 @@ describe('ProjectTags', function() {
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
   });
 
+  it('disables delete button for users without access', function() {
+    const context = {
+      organization: TestStubs.Organization({access: []}),
+    };
+
+    wrapper = mount(
+      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
+      TestStubs.routerContext([context])
+    );
+
+    expect(wrapper.find('Button[disabled=false]')).toHaveLength(0);
+  });
+
   it('renders', function() {
     expect(wrapper).toMatchSnapshot();
   });

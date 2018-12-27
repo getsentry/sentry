@@ -141,4 +141,28 @@ describe('DropdownAutoCompleteMenu', function() {
     wrapper.find('StyledInput').simulate('change', {target: {value: 'U-S-A'}});
     expect(wrapper.find('EmptyMessage').text()).toBe('No search results');
   });
+
+  it('hides filter with `hideInput` prop', function() {
+    const wrapper = mount(
+      <DropdownAutoCompleteMenu isOpen={true} items={items} hideInput>
+        {() => 'Click Me!'}
+      </DropdownAutoCompleteMenu>,
+      routerContext
+    );
+
+    expect(wrapper.find('StyledInput')).toHaveLength(0);
+  });
+
+  it('filters using a value from prop instead of input', function() {
+    const wrapper = mount(
+      <DropdownAutoCompleteMenu isOpen={true} items={items} filterValue="Apple">
+        {() => 'Click Me!'}
+      </DropdownAutoCompleteMenu>,
+      routerContext
+    );
+    wrapper.find('StyledInput').simulate('change', {target: {value: 'U-S-A'}});
+    expect(wrapper.find('EmptyMessage')).toHaveLength(0);
+    expect(wrapper.find('AutoCompleteItem')).toHaveLength(1);
+    expect(wrapper.find('AutoCompleteItem').text()).toBe('Apple');
+  });
 });

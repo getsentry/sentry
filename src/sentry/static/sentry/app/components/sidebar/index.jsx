@@ -1,3 +1,4 @@
+import {isEqual} from 'lodash';
 import {withRouter} from 'react-router';
 import {ThemeProvider} from 'emotion-theming';
 import $ from 'jquery';
@@ -12,7 +13,7 @@ import {load as loadIncidents} from 'app/actionCreators/incidents';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import InlineSvg from 'app/components/inlineSvg';
-import Feature from 'app/components/feature';
+import Feature from 'app/components/acl/feature';
 import SentryTypes from 'app/sentryTypes';
 import PreferencesStore from 'app/stores/preferencesStore';
 import theme from 'app/utils/theme';
@@ -38,6 +39,8 @@ class Sidebar extends React.Component {
     super(props);
     this.state = {
       horizontal: false,
+      currentPanel: '',
+      showPanel: false,
     };
 
     if (!window.matchMedia) return;
@@ -48,7 +51,7 @@ class Sidebar extends React.Component {
   }
 
   componentDidMount() {
-    let {router} = this.props;
+    let {organization, router} = this.props;
     jQuery(document.body).addClass('body-sidebar');
     jQuery(document).on('click', this.documentClickHandler);
 
@@ -62,7 +65,10 @@ class Sidebar extends React.Component {
       router.listen(() => {
         $('.tooltip').tooltip('hide');
       });
-    this.doCollapse(this.props.collapsed);
+
+    // If there is no organization (i.e. no org in context, or error loading org)
+    // then sidebar should default to collapsed state
+    this.doCollapse(!!organization ? this.props.collapsed : true);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -77,6 +83,21 @@ class Sidebar extends React.Component {
     if (collapsed === nextProps.collapsed) return;
 
     this.doCollapse(nextProps.collapsed);
+  }
+
+  // Sidebar doesn't use children, so don't use it to compare
+  // Also ignore location, will re-render when routes change (instead of query params)
+  shouldComponentUpdate({children, location, ...nextPropsToCompare}, nextState) {
+    const {
+      children: _children, // eslint-disable-line no-unused-vars
+      location: _location, // eslint-disable-line no-unused-vars
+      ...currentPropsToCompare
+    } = this.props;
+
+    return (
+      !isEqual(currentPropsToCompare, nextPropsToCompare) ||
+      !isEqual(this.state, nextState)
+    );
   }
 
   componentWillUnmount() {
@@ -196,24 +217,32 @@ class Sidebar extends React.Component {
                   label={t('Projects')}
                   to={`/${organization.slug}/`}
                 />
-
-                <Feature feature={['discover']}>
+                <Feature features={['sentry10']}>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
-                    icon={<InlineSvg src="icon-discover" />}
-                    label={t('Discover')}
-                    to={`/organizations/${organization.slug}/discover/`}
+                    icon={<InlineSvg src="icon-releases" />}
+                    label={t('Releases')}
+                    to={`/organizations/${organization.slug}/releases/`}
                   />
                 </Feature>
-
-                <Feature feature={['events-stream']}>
+                <Feature features={['global-views']}>
                   <SidebarItem
                     {...sidebarItemProps}
                     onClick={this.hidePanel}
                     icon={<InlineSvg src="icon-stack" />}
                     label={t('Events')}
                     to={`/organizations/${organization.slug}/events/`}
+                  />
+                </Feature>
+
+                <Feature features={['discover']}>
+                  <SidebarItem
+                    {...sidebarItemProps}
+                    onClick={this.hidePanel}
+                    icon={<InlineSvg src="icon-discover" />}
+                    label={t('Discover')}
+                    to={`/organizations/${organization.slug}/discover/`}
                   />
                 </Feature>
               </SidebarSection>
@@ -288,6 +317,17 @@ class Sidebar extends React.Component {
                 hidePanel={this.hidePanel}
               />
             </SidebarSection>
+            <Feature features={['sentry10']}>
+              <SidebarSection>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  onClick={this.hidePanel}
+                  icon={<InlineSvg src="icon-settings" />}
+                  label={t('Settings')}
+                  to={`/organizations/${organization.slug}/settings/`}
+                />
+              </SidebarSection>
+            </Feature>
 
             {!horizontal && (
               <SidebarSection noMargin>

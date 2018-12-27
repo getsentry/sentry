@@ -12,7 +12,6 @@ import logging
 from datetime import datetime
 import six
 
-from raven.contrib.django.models import client as Raven
 from time import time
 from django.utils import timezone
 
@@ -26,6 +25,7 @@ from sentry.stacktraces import process_stacktraces, \
     should_process_for_stacktraces
 from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
+from sentry.utils.sdk import configure_scope
 from sentry.models import EventAttachment, File, ProjectOption, Activity, Project
 
 error_logger = logging.getLogger('sentry.errors.events')
@@ -70,9 +70,9 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
 
     data = CanonicalKeyDict(data)
     project = data['project']
-    Raven.tags_context({
-        'project': project,
-    })
+
+    with configure_scope() as scope:
+        scope.set_tag("project", project)
 
     if should_process(data):
         process_event.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
@@ -124,15 +124,25 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
 
     data = CanonicalKeyDict(data)
     project = data['project']
-    Raven.tags_context({
-        'project': project,
-    })
+
+    with configure_scope() as scope:
+        scope.set_tag("project", project)
+
     has_changed = False
 
     # Fetch the reprocessing revision
     reprocessing_rev = reprocessing.get_reprocessing_revision(project)
 
-    # Stacktrace based event processors.  These run before anything else.
+    # Event enhancers.  These run before anything else.
+    for plugin in plugins.all(version=2):
+        enhancers = safe_execute(plugin.get_event_enhancers, data=data)
+        for enhancer in (enhancers or ()):
+            enhanced = safe_execute(enhancer, data)
+            if enhanced:
+                data = enhanced
+                has_changed = True
+
+    # Stacktrace based event processors.
     new_data = process_stacktraces(data)
     if new_data is not None:
         has_changed = True
@@ -368,13 +378,13 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
         return
 
-    Raven.tags_context({
-        'project': project_id,
-    })
+    with configure_scope() as scope:
+        scope.set_tag("project", project_id)
 
+    event = None
     try:
         manager = EventManager(data)
-        event = manager.save(project_id)
+        event = manager.save(project_id, assume_normalized=True)
 
         # Always load attachments from the cache so we can later prune them.
         # Only save them if the event-attachments feature is active, though.
@@ -421,7 +431,12 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
     finally:
         if cache_key:
             default_cache.delete(cache_key)
-            attachment_cache.delete(cache_key)
+
+            # For the unlikely case that we did not manage to persist the
+            # event we also delete the key always.
+            if event is None or \
+               features.has('organizations:event-attachments', event.project.organization, actor=None):
+                attachment_cache.delete(cache_key)
 
         if start_time:
             metrics.timing(

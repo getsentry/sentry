@@ -3,14 +3,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
-import moment from 'moment';
 import styled from 'react-emotion';
 
+import {openSudo} from 'app/actionCreators/modal';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import {t} from 'app/locale';
 import Alert from 'app/components/alert';
 import ApiMixin from 'app/mixins/apiMixin';
-import BroadcastModal from 'app/components/broadcastModal';
 import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import LoadingError from 'app/components/loadingError';
@@ -45,7 +44,6 @@ const OrganizationContext = createReactClass({
       error: false,
       errorType: null,
       organization: null,
-      showBroadcast: false,
     };
   },
 
@@ -103,11 +101,10 @@ const OrganizationContext = createReactClass({
           error: false,
           errorType: null,
           hooks,
-          showBroadcast: this.shouldShowBroadcast(data),
         });
       },
 
-      error: (_, textStatus, errorThrown) => {
+      error: (err, textStatus, errorThrown) => {
         let errorType = null;
         switch (errorThrown) {
           case 'NOT FOUND':
@@ -115,10 +112,20 @@ const OrganizationContext = createReactClass({
             break;
           default:
         }
+
         this.setState({
           loading: false,
           error: true,
           errorType,
+        });
+
+        // If user is superuser, open sudo window
+        let user = ConfigStore.get('user');
+        if (!user || !user.isSuperuser || err.status !== 403) {
+          return;
+        }
+        openSudo({
+          retryRequest: () => Promise.resolve(this.fetchData()),
         });
       },
     });
@@ -133,33 +140,6 @@ const OrganizationContext = createReactClass({
     return 'Sentry';
   },
 
-  shouldShowBroadcast(data) {
-    let user = ConfigStore.get('user');
-    let options = user ? user.options : {};
-    let seen = options.seenReleaseBroadcast;
-    let tasks = data.onboardingTasks;
-    // don't show broadcast they've seen it
-    if (seen) {
-      return false;
-    }
-
-    // also if they havn't sent their first event
-    let sentFirstEvent = tasks.find(
-      ({task, status}) => task == 2 && status == 'complete'
-    );
-
-    if (!sentFirstEvent) {
-      return false;
-    }
-
-    // show it if they sent their first event more than 2 days ago
-    return moment().diff(sentFirstEvent.dateCompleted, 'days') > 2;
-  },
-
-  closeBroadcast() {
-    this.setState({showBroadcast: false});
-  },
-
   renderSidebar() {
     if (!this.props.includeSidebar) return null;
 
@@ -167,18 +147,21 @@ const OrganizationContext = createReactClass({
   },
 
   renderError() {
+    let errorComponent;
+
     switch (this.state.errorType) {
       case ERROR_TYPES.ORG_NOT_FOUND:
-        return (
-          <OrganizationNotFound>
-            <Alert type="error">
-              {t('The organization you were looking for was not found.')}
-            </Alert>
-          </OrganizationNotFound>
+        errorComponent = (
+          <Alert type="error">
+            {t('The organization you were looking for was not found.')}
+          </Alert>
         );
+        break;
       default:
-        return <LoadingError onRetry={this.remountComponent} />;
+        errorComponent = <LoadingError onRetry={this.remountComponent} />;
     }
+
+    return <ErrorWrapper>{errorComponent}</ErrorWrapper>;
   },
 
   render() {
@@ -201,11 +184,7 @@ const OrganizationContext = createReactClass({
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {this.state.hooks}
-          {this.state.showBroadcast && (
-            <BroadcastModal closeBroadcast={this.closeBroadcast} />
-          )}
           {this.renderSidebar()}
-
           {this.props.children}
         </div>
       </DocumentTitle>
@@ -215,6 +194,6 @@ const OrganizationContext = createReactClass({
 
 export default OrganizationContext;
 
-const OrganizationNotFound = styled('div')`
-  margin: ${space(3)};
+const ErrorWrapper = styled('div')`
+  padding: ${space(3)};
 `;

@@ -4,7 +4,7 @@ import React from 'react';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import {openIntegrationDetails} from 'app/actionCreators/modal';
-import OrganizationIntegrations from 'app/views/organizationIntegrations';
+import {OrganizationIntegrations} from 'app/views/organizationIntegrations';
 
 jest.mock('app/actionCreators/modal', () => ({
   openIntegrationDetails: jest.fn(),
@@ -55,8 +55,58 @@ describe('OrganizationIntegrations', function() {
         url: `/organizations/${org.slug}/repos/?status=unmigratable`,
         body: [],
       });
+      const sentryAppsRequest = Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-apps/`,
+        body: [],
+      });
+      const sentryInstallsRequest = Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        body: [],
+      });
 
-      const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
+      const wrapper = mount(
+        <OrganizationIntegrations organization={org} params={params} />,
+        routerContext
+      );
+
+      it('renders with internal-catchall', function() {
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/integrations/`,
+          body: [],
+        });
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/config/integrations/`,
+          body: {providers: [githubProvider, jiraProvider]},
+        });
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/plugins/`,
+          body: [],
+        });
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/repos/?status=unmigratable`,
+          body: [],
+        });
+        const appsRequest = Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [],
+        });
+        const installsRequest = Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-app-installations/`,
+          body: [],
+        });
+        const organization = {...org, features: ['internal-catchall']};
+        mount(
+          <OrganizationIntegrations organization={organization} params={params} />,
+          TestStubs.routerContext([{organization}])
+        );
+        expect(appsRequest).toHaveBeenCalled();
+        expect(installsRequest).toHaveBeenCalled();
+      });
+
+      it('Does`t hit sentry apps endpoints when internal-catchall isn`t present', function() {
+        expect(sentryAppsRequest).not.toHaveBeenCalled();
+        expect(sentryInstallsRequest).not.toHaveBeenCalled();
+      });
 
       it('Displays integration providers', function() {
         expect(wrapper).toMatchSnapshot();
@@ -74,7 +124,7 @@ describe('OrganizationIntegrations', function() {
           .first()
           .simulate('click');
 
-        expect(openIntegrationDetails).toBeCalledWith(options);
+        expect(openIntegrationDetails).toHaveBeenCalledWith(options);
       });
     });
 
@@ -96,7 +146,10 @@ describe('OrganizationIntegrations', function() {
         body: [],
       });
 
-      const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
+      const wrapper = mount(
+        <OrganizationIntegrations organization={org} params={params} />,
+        routerContext
+      );
 
       const updatedIntegration = Object.assign({}, githubIntegration, {
         domain_name: 'updated-integration.github.com',
@@ -168,9 +221,12 @@ describe('OrganizationIntegrations', function() {
         ],
       });
 
-      const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
+      const wrapper = mount(
+        <OrganizationIntegrations organization={org} params={params} />,
+        routerContext
+      );
 
-      it('displays an Upgrade when the Plugin is enabled but a new Integration is not', function() {
+      it('displays an Update when the Plugin is enabled but a new Integration is not', function() {
         expect(
           wrapper
             .find('ProviderRow')
@@ -178,7 +234,7 @@ describe('OrganizationIntegrations', function() {
             .find('Button')
             .first()
             .text()
-        ).toBe('Upgrade');
+        ).toBe('Update');
       });
 
       it('displays Add Another button when both Integration and Plugin are enabled', () => {

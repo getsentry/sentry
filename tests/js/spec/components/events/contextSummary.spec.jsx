@@ -1,7 +1,10 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import ContextSummary, {OsSummary} from 'app/components/events/contextSummary';
+import ContextSummary, {
+  OsSummary,
+  GpuSummary,
+} from 'app/components/events/contextSummary';
 
 const CONTEXT_USER = {
   email: 'mail@example.org',
@@ -168,6 +171,31 @@ describe('OsSummary', function() {
       };
 
       const wrapper = shallow(<OsSummary data={os} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+  });
+});
+
+describe('GpuSummary', function() {
+  describe('render()', function() {
+    it('should render name and vendor', () => {
+      const gpu = {
+        name: 'Mali-T880',
+        vendor_name: 'ARM',
+        version: 'OpenGL ES 3.2 v1.r22p0-01rel0.f294e54ceb2cb2d81039204fa4b0402e',
+      };
+
+      const wrapper = shallow(<GpuSummary data={gpu} />);
+      expect(wrapper).toMatchSnapshot();
+    });
+
+    it('should render unknown when no vendor', () => {
+      const gpu = {
+        type: 'gpu',
+        name: 'Apple A8 GPU',
+      };
+
+      const wrapper = shallow(<GpuSummary data={gpu} />);
       expect(wrapper).toMatchSnapshot();
     });
   });

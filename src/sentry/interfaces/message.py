@@ -14,7 +14,7 @@ import six
 
 from django.conf import settings
 
-from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.utils import json
 from sentry.utils.safe import trim
 
@@ -38,6 +38,8 @@ class Message(Interface):
     """
     score = 0
     display_score = 2050
+    path = 'logentry'
+    external_type = 'message'
 
     @classmethod
     def to_python(cls, data):
@@ -90,8 +92,12 @@ class Message(Interface):
 
         return cls(**kwargs)
 
-    def get_path(self):
-        return 'sentry.interfaces.Message'
+    def to_json(self):
+        return prune_empty_keys({
+            'message': self.message,
+            'formatted': self.formatted,
+            'params': self.params or None
+        })
 
     def get_hash(self):
         return [self.message]

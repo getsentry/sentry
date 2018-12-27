@@ -178,6 +178,46 @@ exports[`ContextSummary render() should skip non-default named contexts 1`] = `
 </div>
 `;
 
+exports[`GpuSummary render() should render name and vendor 1`] = `
+<div
+  className="context-item arm"
+>
+  <span
+    className="context-item-icon"
+  />
+  <h3>
+    Mali-T880
+  </h3>
+  <p>
+    <strong>
+      Vendor:
+    </strong>
+     
+    ARM
+  </p>
+</div>
+`;
+
+exports[`GpuSummary render() should render unknown when no vendor 1`] = `
+<div
+  className="context-item apple-a"
+>
+  <span
+    className="context-item-icon"
+  />
+  <h3>
+    Apple A8 GPU
+  </h3>
+  <p>
+    <strong>
+      Vendor:
+    </strong>
+     
+    Unknown
+  </p>
+</div>
+`;
+
 exports[`OsSummary render() should render the kernel version when no version 1`] = `
 <div
   className="context-item mac-os-x"

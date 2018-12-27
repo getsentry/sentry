@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import re
 
 from django.core.urlresolvers import reverse
-from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.integrations.exceptions import ApiError, IntegrationError, ApiUnauthorized
 from sentry.integrations.issues import IssueBasicMixin
 
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r'.+:(.+)#(.+)')
@@ -22,9 +22,31 @@ class GitlabIssueBasic(IssueBasicMixin):
             issue_id,
         )
 
+    def get_persisted_default_config_fields(self):
+        return ['project']
+
+    def get_projects_and_default(self, group, **kwargs):
+        params = kwargs.get('params', {})
+        defaults = self.get_project_defaults(group.project_id)
+        kwargs['repo'] = params.get('project', defaults.get('project'))
+
+        # In GitLab Repositories are called Projects
+        default_project, project_choices = self.get_repository_choices(group, **kwargs)
+        return default_project, project_choices
+
+    def create_default_repo_choice(self, default_repo):
+        client = self.get_client()
+        try:
+            # default_repo should be the project_id
+            project = client.get_project(default_repo)
+        except (ApiError, ApiUnauthorized):
+            return ('', '')
+        return (project['id'], project['name_with_namespace'])
+
     def get_create_issue_config(self, group, **kwargs):
+        default_project, project_choices = self.get_projects_and_default(group, **kwargs)
+        kwargs['link_referrer'] = 'gitlab_integration'
         fields = super(GitlabIssueBasic, self).get_create_issue_config(group, **kwargs)
-        # TODO(lb): Add Default Project Functionality when avaliable
 
         org = group.organization
         autocomplete_url = reverse(
@@ -37,7 +59,8 @@ class GitlabIssueBasic(IssueBasicMixin):
                 'label': 'Gitlab Project',
                 'type': 'select',
                 'url': autocomplete_url,
-                'updatesForm': True,
+                'choices': project_choices,
+                'defaultValue': default_project,
                 'required': True,
             }
         ] + fields
@@ -74,6 +97,8 @@ class GitlabIssueBasic(IssueBasicMixin):
         }
 
     def get_link_issue_config(self, group, **kwargs):
+        default_project, project_choices = self.get_projects_and_default(group, **kwargs)
+
         org = group.organization
         autocomplete_url = reverse(
             'sentry-extensions-gitlab-search', args=[org.slug, self.model.id],
@@ -81,13 +106,22 @@ class GitlabIssueBasic(IssueBasicMixin):
 
         return [
             {
+                'name': 'project',
+                'label': 'GitLab Project',
+                'type': 'select',
+                'default': default_project,
+                'choices': project_choices,
+                'url': autocomplete_url,
+                'updatesForm': True,
+                'required': True,
+            },
+            {
                 'name': 'externalIssue',
                 'label': 'Issue',
                 'default': '',
                 'type': 'select',
                 'url': autocomplete_url,
                 'required': True,
-                'updatesForm': True,
             },
         ]
 

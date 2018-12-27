@@ -1,6 +1,6 @@
 import {isString} from 'lodash';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import {defined} from 'app/utils';
 
 export function escapeQuotes(v) {
@@ -44,8 +44,9 @@ export function getCurlCommand(data) {
         if (isString(data.data)) {
           result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
         } else {
-          sdk.captureException(new Error('Unknown event data'), {
-            extra: data,
+          Sentry.withScope(scope => {
+            scope.setExtra('data', data);
+            Sentry.captureException(new Error('Unknown event data'));
           });
         }
     }

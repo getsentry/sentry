@@ -11,7 +11,7 @@ from django.http import HttpResponse, HttpResponseServerError
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from six import iteritems
+from six import iteritems, add_metaclass
 from six.moves.urllib.parse import urlparse
 
 from sentry import options
@@ -40,6 +40,14 @@ except ImportError:
 
     def OneLogin_Saml2_Settings(*args, **kwargs):
         raise NotImplementedError('Missing SAML libraries')
+
+    class OneLogin_Saml2_ConstantsType(type):
+        def __getattr__(self, attr):
+            raise NotImplementedError('Missing SAML libraries')
+
+    @add_metaclass(OneLogin_Saml2_ConstantsType)
+    class OneLogin_Saml2_Constants(object):
+        pass
 
 
 ERR_NO_SAML_SSO = _('The organization does not exist or does not have SAML SSO enabled.')
@@ -154,6 +162,7 @@ class SAML2ACSView(AuthView):
 
 
 class SAML2SLSView(BaseView):
+    @method_decorator(csrf_exempt)
     def dispatch(self, request, organization_slug):
         provider = get_provider(organization_slug)
         if provider is None:
@@ -185,11 +194,9 @@ class SAML2SLSView(BaseView):
 class SAML2MetadataView(BaseView):
     def dispatch(self, request, organization_slug):
         provider = get_provider(organization_slug)
-        if provider is None:
-            messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
-            return self.redirect('/')
+        config = provider.config if provider else {}
 
-        saml_config = build_saml_config(provider.config, organization_slug)
+        saml_config = build_saml_config(config, organization_slug)
         saml_settings = OneLogin_Saml2_Settings(settings=saml_config, sp_validation_only=True)
         metadata = saml_settings.get_sp_metadata()
         errors = saml_settings.validate_metadata(metadata)
@@ -337,8 +344,6 @@ def build_saml_config(provider_config, org):
         'wantNameId': False,
     }
 
-    idp = provider_config['idp']
-
     # TODO(epurkhiser): This is also available in the helper and should probably come from there.
     acs_url = absolute_uri(reverse('sentry-auth-organization-saml-acs', args=[org]))
     sls_url = absolute_uri(reverse('sentry-auth-organization-saml-sls', args=[org]))
@@ -346,12 +351,6 @@ def build_saml_config(provider_config, org):
 
     saml_config = {
         'strict': True,
-        'idp': {
-            'entityId': idp['entity_id'],
-            'x509cert': idp['x509cert'],
-            'singleSignOnService': {'url': idp['sso_url']},
-            'singleLogoutService': {'url': idp['slo_url']},
-        },
         'sp': {
             'entityId': metadata_url,
             'assertionConsumerService': {
@@ -365,6 +364,16 @@ def build_saml_config(provider_config, org):
         },
         'security': security_config,
     }
+
+    idp = provider_config.get('idp')
+
+    if idp is not None:
+        saml_config['idp'] = {
+            'entityId': idp['entity_id'],
+            'x509cert': idp['x509cert'],
+            'singleSignOnService': {'url': idp['sso_url']},
+            'singleLogoutService': {'url': idp['slo_url']},
+        }
 
     if avd.get('x509cert') is not None:
         saml_config['sp']['x509cert'] = avd['x509cert']

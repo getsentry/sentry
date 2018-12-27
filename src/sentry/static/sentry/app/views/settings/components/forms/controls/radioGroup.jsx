@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 
 import {growIn} from 'app/styles/animations';
 
-const RadioGroup = ({value, choices, label, onChange, ...props}) => {
+const RadioGroup = ({value, disabled, choices, label, onChange, ...props}) => {
   const isSelected = id => {
     return value ? value === id : id === 0;
   };
@@ -14,16 +14,19 @@ const RadioGroup = ({value, choices, label, onChange, ...props}) => {
       {(choices || []).map(([id, name], index) => (
         <RadioLineItem
           key={index}
-          onClick={e => onChange(id, e)}
+          onClick={e => !disabled && onChange(id, e)}
           role="radio"
           index={index}
           tabIndex={isSelected(id) ? 0 : -1}
           aria-checked={isSelected(id)}
+          disabled={disabled}
         >
           <RadioLineButton>
-            {isSelected(id) && <RadioLineButtonFill animate={value !== ''} />}
+            {isSelected(id) && (
+              <RadioLineButtonFill disabled={disabled} animate={value !== ''} />
+            )}
           </RadioLineButton>
-          <RadioLineText>{name}</RadioLineText>
+          <RadioLineText disabled={disabled}>{name}</RadioLineText>
         </RadioLineItem>
       ))}
     </div>
@@ -33,6 +36,7 @@ const RadioGroup = ({value, choices, label, onChange, ...props}) => {
 RadioGroup.propTypes = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   choices: PropTypes.arrayOf(PropTypes.array),
+  disabled: PropTypes.bool,
   label: PropTypes.string,
   onChange: PropTypes.func,
 };
@@ -49,10 +53,10 @@ const RadioLineButton = styled.div`
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
 `;
 
-const RadioLineItem = styled.div`
+const RadioLineItem = styled(({disabled, ...props}) => <div {...props} />)`
   display: flex;
   align-items: center;
-  cursor: pointer;
+  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   margin-top: ${p => (p.index ? '0.5em' : '0')};
   outline: none;
 
@@ -61,18 +65,20 @@ const RadioLineItem = styled.div`
   }
 `;
 
-const RadioLineButtonFill = styled.div`
+const RadioLineButtonFill = styled(({disabled, animate, ...props}) => <div {...props} />)`
   width: 1rem;
   height: 1rem;
   border-radius: 50%;
   background-color: ${p => p.theme.green};
   animation: ${p => (p.animate ? `0.2s ${growIn} ease` : 'none')};
+  opacity: ${p => (p.disabled ? 0.4 : null)};
 `;
 
-const RadioLineText = styled.div`
+const RadioLineText = styled(({disabled, ...props}) => <div {...props} />)`
   margin-left: 0.5em;
   font-size: 0.875em;
   font-weight: bold;
+  opacity: ${p => (p.disabled ? 0.4 : null)};
 `;
 
 export default RadioGroup;
