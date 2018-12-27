@@ -12,6 +12,10 @@ class Switch extends React.Component {
     toggle: PropTypes.func.isRequired,
   };
 
+  static defaultProps = {
+    size: 'sm',
+  };
+
   render() {
     let {size, isActive, isLoading, isDisabled, toggle, id} = this.props;
     let switchClasses = classNames('switch', {

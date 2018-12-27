@@ -3,28 +3,9 @@ import PropTypes from 'prop-types';
 import createReactClass from 'create-react-class';
 import styled, {css} from 'react-emotion';
 
-import ApiMixin from '../mixins/apiMixin';
-import LoadingIndicator from './loadingIndicator';
-import rawStacktraceContent from './events/interfaces/rawStacktraceContent';
-
-const getLoadingStyle = p =>
-  (p.loading &&
-    css`
-      background-color: white;
-      justify-content: center;
-    `) ||
-  '';
-
-const IssueDiffWrapper = styled.div`
-  background-color: #f7f8f9;
-  overflow: auto;
-  padding: 10px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-
-  ${getLoadingStyle};
-`;
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 
 class IssueDiff extends React.Component {
   static propTypes = {
@@ -78,11 +59,20 @@ class IssueDiff extends React.Component {
     // diff multiple exceptions
     //
     // See: https://github.com/getsentry/sentry/issues/6055
-    const exc = event.entries.find(({type}) => type === 'exception');
+    let exc = event.entries.find(({type}) => type === 'exception');
 
-    if (!exc || !exc.data) return [];
+    if (!exc) {
+      // Look for a message if not an exception
+      let msg = event.entries.find(({type}) => type === 'message');
+      if (!msg) return [];
+
+      return msg.data && msg.data.message && [msg.data.message];
+    }
+
+    if (!exc.data) return [];
 
     return exc.data.values
+      .filter(value => !!value.stacktrace)
       .map(value => rawStacktraceContent(value.stacktrace, event.platform, value))
       .reduce((acc, value) => {
         return acc.concat(value);
@@ -107,11 +97,12 @@ class IssueDiff extends React.Component {
   }
 
   render() {
+    let {className} = this.props;
     let DiffComponent = this.state.SplitDiffAsync;
     let diffReady = !this.state.loading && !!DiffComponent;
 
     return (
-      <IssueDiffWrapper loading={this.state.loading}>
+      <StyledIssueDiff className={className} loading={this.state.loading}>
         {this.state.loading && <LoadingIndicator />}
         {diffReady &&
           this.state.baseEvent.map((value, i) => (
@@ -122,7 +113,7 @@ class IssueDiff extends React.Component {
               type="words"
             />
           ))}
-      </IssueDiffWrapper>
+      </StyledIssueDiff>
     );
   }
 }
@@ -137,3 +128,22 @@ const IssueDiffContainer = createReactClass({
 
 export default IssueDiffContainer;
 export {IssueDiff};
+
+const getLoadingStyle = p =>
+  (p.loading &&
+    css`
+      background-color: white;
+      justify-content: center;
+    `) ||
+  '';
+
+const StyledIssueDiff = styled('div')`
+  background-color: #f7f8f9;
+  overflow: auto;
+  padding: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  ${getLoadingStyle};
+`;

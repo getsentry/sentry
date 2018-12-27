@@ -7,16 +7,17 @@ import classNames from 'classnames';
 import {MentionsInput, Mention} from 'react-mentions';
 import _ from 'lodash';
 
-import ApiMixin from '../../mixins/apiMixin';
-import OrganizationState from '../../mixins/organizationState';
+import ApiMixin from 'app/mixins/apiMixin';
+import OrganizationState from 'app/mixins/organizationState';
 
-import GroupStore from '../../stores/groupStore';
-import ProjectsStore from '../../stores/projectsStore';
-import IndicatorStore from '../../stores/indicatorStore';
-import {logException} from '../../utils/logging';
-import localStorage from '../../utils/localStorage';
-import {t} from '../../locale';
-import mentionsStyle from '../../../styles/mentions-styles';
+import GroupStore from 'app/stores/groupStore';
+import ProjectsStore from 'app/stores/projectsStore';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {logException} from 'app/utils/logging';
+import localStorage from 'app/utils/localStorage';
+import NavTabs from 'app/components/navTabs';
+import {t} from 'app/locale';
+import mentionsStyle from 'app/../styles/mentions-styles';
 
 const localStorageKey = 'noteinput:latest';
 
@@ -275,7 +276,7 @@ const NoteInput = createReactClass({
 
   mentionableTeams() {
     let {group} = this.props;
-    return (ProjectsStore.getAll().find(p => p.slug == group.project.slug) || {
+    return (ProjectsStore.getBySlug(group.project.slug) || {
       teams: [],
     }).teams.map(team => ({
       id: buildTeamId(team.id),
@@ -296,15 +297,19 @@ const NoteInput = createReactClass({
       mentionableTeams,
     } = this.state;
 
-    let hasTeamMentions = new Set(this.getOrganization().features).has(
-      'internal-catchall'
+    let placeHolderText = t(
+      'Add details or updates to this event. \nTag users with @, or teams with #'
     );
-    let placeHolderText = hasTeamMentions
-      ? t('Add details or updates to this event. \nTag users with @, or teams with #')
-      : t('Add details or updates to this event. \nTag users with @');
 
     let btnText = updating ? t('Save Comment') : t('Post Comment');
 
+    let errorMessage =
+      (errorJSON &&
+        (typeof errorJSON.detail === 'string'
+          ? errorJSON.detail
+          : (errorJSON.detail && errorJSON.detail.message) ||
+            t('Unable to post comment'))) ||
+      null;
     return (
       <form
         noValidate
@@ -315,7 +320,7 @@ const NoteInput = createReactClass({
         onSubmit={this.onSubmit}
       >
         <div className="activity-notes">
-          <ul className="nav nav-tabs">
+          <NavTabs>
             <li className={!preview ? 'active' : ''}>
               <a onClick={this.toggleEdit}>{updating ? t('Edit') : t('Write')}</a>
             </li>
@@ -326,7 +331,7 @@ const NoteInput = createReactClass({
               <span className="icon-markdown" />
               <span className="supported">{t('Markdown supported')}</span>
             </li>
-          </ul>
+          </NavTabs>
           {preview ? (
             <div
               className="note-preview"
@@ -353,20 +358,17 @@ const NoteInput = createReactClass({
                 onAdd={this.onAddMember}
                 appendSpaceOnAdd={true}
               />
-              {hasTeamMentions ? (
-                <Mention
-                  type="team"
-                  trigger="#"
-                  data={mentionableTeams}
-                  onAdd={this.onAddTeam}
-                  appendSpaceOnAdd={true}
-                />
-              ) : null}
+              <Mention
+                type="team"
+                trigger="#"
+                data={mentionableTeams}
+                onAdd={this.onAddTeam}
+                appendSpaceOnAdd={true}
+              />
             </MentionsInput>
           )}
           <div className="activity-actions">
-            {errorJSON &&
-              errorJSON.detail && <small className="error">{errorJSON.detail}</small>}
+            {errorMessage && <small className="error">{errorMessage}</small>}
             <button className="btn btn-default" type="submit" disabled={loading}>
               {btnText}
             </button>

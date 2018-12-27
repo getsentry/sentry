@@ -6,10 +6,23 @@ from sentry import roles
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
 from sentry.models import (
     ApiKey, Organization, OrganizationAccessRequest, OrganizationAvatar, OrganizationOnboardingTask,
     OrganizationOption, OrganizationStatus, Project, ProjectStatus, Team, TeamStatus
 )
+
+# org option default values
+PROJECT_RATE_LIMIT_DEFAULT = 100
+ACCOUNT_RATE_LIMIT_DEFAULT = 0
+REQUIRE_SCRUB_DATA_DEFAULT = False
+REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
+SENSITIVE_FIELDS_DEFAULT = None
+SAFE_FIELDS_DEFAULT = None
+STORE_CRASH_REPORTS_DEFAULT = False
+REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
+SCRAPE_JAVASCRIPT_DEFAULT = True
+TRUSTED_RELAYS_DEFAULT = None
 
 
 @register(Organization)
@@ -30,7 +43,7 @@ class OrganizationSerializer(Serializer):
         if attrs.get('avatar'):
             avatar = {
                 'avatarType': attrs['avatar'].get_avatar_type_display(),
-                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file else None
+                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file_id else None
             }
         else:
             avatar = {
@@ -50,6 +63,7 @@ class OrganizationSerializer(Serializer):
             'name': obj.name or obj.slug,
             'dateCreated': obj.date_added,
             'isEarlyAdopter': bool(obj.flags.early_adopter),
+            'require2FA': bool(obj.flags.require_2fa),
             'avatar': avatar,
         }
 
@@ -67,23 +81,23 @@ class OnboardingTasksSerializer(Serializer):
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def serialize(self, obj, attrs, user):
-        from sentry import features
+        from sentry import features, experiments
         from sentry.app import env
-        from sentry.api.serializers.models.project import ProjectWithTeamSerializer
+        from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
 
-        team_list = list(Team.objects.filter(
+        team_list = sorted(Team.objects.filter(
             organization=obj,
             status=TeamStatus.VISIBLE,
-        ))
+        ), key=lambda x: x.slug)
 
         for team in team_list:
             team._organization_cache = obj
 
-        project_list = list(Project.objects.filter(
+        project_list = sorted(Project.objects.filter(
             organization=obj,
             status=ProjectStatus.VISIBLE,
-        ))
+        ), key=lambda x: x.slug)
 
         for project in project_list:
             project._organization_cache = obj
@@ -105,30 +119,59 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('api-keys')
         if features.has('organizations:group-unmerge', obj, actor=user):
             feature_list.append('group-unmerge')
-        if features.has('organizations:integrations-v3', obj, actor=user):
-            feature_list.append('integrations-v3')
-        if features.has('organizations:new-settings', obj, actor=user):
-            feature_list.append('new-settings')
+        if features.has('organizations:github-apps', obj, actor=user):
+            feature_list.append('github-apps')
         if features.has('organizations:require-2fa', obj, actor=user):
             feature_list.append('require-2fa')
-        if features.has('organizations:environments', obj, actor=user):
-            feature_list.append('environments')
         if features.has('organizations:repos', obj, actor=user):
             feature_list.append('repos')
         if features.has('organizations:internal-catchall', obj, actor=user):
             feature_list.append('internal-catchall')
+        if features.has('organizations:new-issue-ui', obj, actor=user):
+            feature_list.append('new-issue-ui')
+        if features.has('organizations:github-enterprise', obj, actor=user):
+            feature_list.append('github-enterprise')
+        if features.has('organizations:bitbucket-integration', obj, actor=user):
+            feature_list.append('bitbucket-integration')
+        if features.has('organizations:jira-integration', obj, actor=user):
+            feature_list.append('jira-integration')
+        if features.has('organizations:vsts-integration', obj, actor=user):
+            feature_list.append('vsts-integration')
+        if features.has('organizations:integrations-issue-basic', obj, actor=user):
+            feature_list.append('integrations-issue-basic')
+        if features.has('organizations:integrations-issue-sync', obj, actor=user):
+            feature_list.append('integrations-issue-sync')
         if features.has('organizations:suggested-commits', obj, actor=user):
             feature_list.append('suggested-commits')
-
+        if features.has('organizations:new-teams', obj, actor=user):
+            feature_list.append('new-teams')
+        if features.has('organizations:unreleased-changes', obj, actor=user):
+            feature_list.append('unreleased-changes')
+        if features.has('organizations:relay', obj, actor=user):
+            feature_list.append('relay')
+        if features.has('organizations:js-loader', obj, actor=user):
+            feature_list.append('js-loader')
+        if features.has('organizations:health', obj, actor=user):
+            feature_list.append('health')
+        if features.has('organizations:discover', obj, actor=user):
+            feature_list.append('discover')
+        if OrganizationOption.objects.filter(
+                organization=obj, key__in=LEGACY_RATE_LIMIT_OPTIONS).exists():
+            feature_list.append('legacy-rate-limits')
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
         if not getattr(obj.flags, 'disable_shared_issues'):
             feature_list.append('shared-issues')
         if getattr(obj.flags, 'require_2fa'):
             feature_list.append('require-2fa')
+        if features.has('organizations:event-attachments', obj, actor=user):
+            feature_list.append('event-attachments')
+
+        experiment_assignments = experiments.all(org=obj)
 
         context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
+        context['experiments'] = experiment_assignments
         context['quota'] = {
             'maxRate': max_rate[0],
             'maxRateInterval': max_rate[1],
@@ -136,14 +179,14 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 OrganizationOption.objects.get_value(
                     organization=obj,
                     key='sentry:account-rate-limit',
-                    default=0,
+                    default=ACCOUNT_RATE_LIMIT_DEFAULT,
                 )
             ),
             'projectLimit': int(
                 OrganizationOption.objects.get_value(
                     organization=obj,
                     key='sentry:project-rate-limit',
-                    default=100,
+                    default=PROJECT_RATE_LIMIT_DEFAULT,
                 )
             ),
         }
@@ -159,14 +202,17 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             'require2FA': bool(obj.flags.require_2fa),
             'allowSharedIssues': not obj.flags.disable_shared_issues,
             'enhancedPrivacy': bool(obj.flags.enhanced_privacy),
-            'dataScrubber': bool(obj.get_option('sentry:require_scrub_data', False)),
-            'dataScrubberDefaults': bool(obj.get_option('sentry:require_scrub_defaults', False)),
-            'sensitiveFields': obj.get_option('sentry:sensitive_fields', None) or [],
-            'safeFields': obj.get_option('sentry:safe_fields', None) or [],
-            'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', False)),
+            'dataScrubber': bool(obj.get_option('sentry:require_scrub_data', REQUIRE_SCRUB_DATA_DEFAULT)),
+            'dataScrubberDefaults': bool(obj.get_option('sentry:require_scrub_defaults', REQUIRE_SCRUB_DEFAULTS_DEFAULT)),
+            'sensitiveFields': obj.get_option('sentry:sensitive_fields', SENSITIVE_FIELDS_DEFAULT) or [],
+            'safeFields': obj.get_option('sentry:safe_fields', SAFE_FIELDS_DEFAULT) or [],
+            'storeCrashReports': bool(obj.get_option('sentry:store_crash_reports', STORE_CRASH_REPORTS_DEFAULT)),
+            'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', REQUIRE_SCRUB_IP_ADDRESS_DEFAULT)),
+            'scrapeJavaScript': bool(obj.get_option('sentry:scrape_javascript', SCRAPE_JAVASCRIPT_DEFAULT)),
+            'trustedRelays': obj.get_option('sentry:trusted-relays', TRUSTED_RELAYS_DEFAULT) or [],
         })
         context['teams'] = serialize(team_list, user, TeamSerializer())
-        context['projects'] = serialize(project_list, user, ProjectWithTeamSerializer())
+        context['projects'] = serialize(project_list, user, ProjectSummarySerializer())
         if env.request:
             context['access'] = access.from_request(env.request, obj).scopes
         else:

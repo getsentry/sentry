@@ -1,4 +1,4 @@
-import {t, tct} from '../../locale';
+import {t, tct} from 'app/locale';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/notifications/';
@@ -38,13 +38,13 @@ export const fields = {
     name: 'personalActivityNotifications',
     type: 'boolean',
     label: t('Notify Me About My Own Activity'),
-    help: t('Enable this to recieve notifications about your own actions on Sentry.'),
+    help: t('Enable this to receive notifications about your own actions on Sentry.'),
   },
   selfAssignOnResolve: {
     name: 'selfAssignOnResolve',
     type: 'boolean',
     label: t("Claim Unassigned Issues I've Resolved"),
-    help: t("You'll recieve notifications about any changes that happen afterwards."),
+    help: t("You'll receive notifications about any changes that happen afterwards."),
   },
 };
 

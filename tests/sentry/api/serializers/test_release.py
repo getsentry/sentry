@@ -19,6 +19,7 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     ReleaseProject,
+    ReleaseProjectEnvironment,
     User,
     UserEmail,
 )
@@ -35,8 +36,29 @@ class ReleaseSerializerTest(TestCase):
         )
         release.add_project(project)
         release.add_project(project2)
+
         ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
         ReleaseProject.objects.filter(release=release, project=project2).update(new_groups=1)
+
+        environment = Environment.objects.create(
+            organization_id=project.organization_id,
+            name='prod',
+        )
+        environment.add_project(project)
+        environment.add_project(project2)
+
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project.id,
+            release_id=release.id,
+            environment_id=environment.id,
+            new_issues_count=1,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project2.id,
+            release_id=release.id,
+            environment_id=environment.id,
+            new_issues_count=1,
+        )
         key = 'sentry:release'
         value = release.version
         tagstore.create_tag_value(
@@ -366,6 +388,7 @@ class ReleaseSerializerTest(TestCase):
             commit=commit2,
             order=2,
         )
+        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
         release.update(
             authors=[
                 six.text_type(commit_author1.id),
@@ -385,12 +408,18 @@ class ReleaseSerializerTest(TestCase):
             organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
-        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
+
         env = Environment.objects.create(
             organization_id=project.organization_id,
             name='production',
         )
         env.add_project(project)
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project.id,
+            release_id=release.id,
+            environment_id=env.id,
+            new_issues_count=1,
+        )
         deploy = Deploy.objects.create(
             organization_id=project.organization_id,
             release=release,

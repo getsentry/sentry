@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import Router from 'react-router';
-import EventStore from '../../stores/eventStore';
-import Avatar from '../avatar';
-import TimeSince from '../timeSince';
+import {Link} from 'react-router';
+import EventStore from 'app/stores/eventStore';
+import Avatar from 'app/components/avatar';
+import TimeSince from 'app/components/timeSince';
 
 class EventRow extends React.Component {
   static propTypes = {
@@ -45,7 +45,7 @@ class EventRow extends React.Component {
       <tr>
         <td>
           <h5>
-            <Router.Link to={eventLink}>{event.message}</Router.Link>
+            <Link to={eventLink}>{event.message}</Link>
           </h5>
           <small className="tagList">
             {tagList.map(tag => {

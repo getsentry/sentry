@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry import features, roles, options
+from sentry import roles, options
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.models import (
@@ -76,15 +76,10 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             user_id=owner.user_id,
             transaction_id=transaction_id)
 
-        is_internal = features.has(
-            'organizations:internal-catchall',
-            project.organization,
-            actor=request.user,
-        )
         context = {
             'email': email,
             'from_org': project.organization.name,
-            'project_name': project.slug if is_internal else project.name,
+            'project_name': project.slug,
             'request_time': timezone.now(),
             'url':
             absolute_uri('/accept-transfer/') + '?' + urlencode({'data': url_data}),

@@ -18,9 +18,9 @@ class IntegrationManager(object):
 
     def all(self):
         for key in six.iterkeys(self.__values):
-            provider = self.get(key)
-            if provider.is_configured():
-                yield provider
+            integration = self.get(key)
+            if integration.visible:
+                yield integration
 
     def get(self, key, **kwargs):
         try:

@@ -1,7 +1,7 @@
 // import {platforms} from '../../../../../integration-docs/_platforms.json';
 // eslint-disable-next-line import/extensions
 import {platforms} from 'integration-docs-platforms';
-import {t} from '../../locale';
+import {t} from 'app/locale';
 
 const popular = [
   'javascript',
@@ -56,23 +56,29 @@ const backend = [
   'python',
   'python-django',
   'python-flask',
+  'python-sanic',
   'python-celery',
   'python-bottle',
   'python-pylons',
   'python-pyramid',
   'python-tornado',
   'python-rq',
+  'python-awslambda',
   'ruby',
   'ruby-rails',
   'ruby-rack',
+  'rust',
   'elixir',
 ];
 
+const desktop = ['cocoa', 'csharp', 'java', 'electron', 'minidump'];
+
 const categoryList = [
   {id: 'popular', name: t('Popular'), platforms: popular},
-  {id: 'frontend', name: t('Frontend'), platforms: frontend},
+  {id: 'browser', name: t('Browser'), platforms: frontend},
+  {id: 'server', name: t('Server'), platforms: backend},
   {id: 'mobile', name: t('Mobile'), platforms: mobile},
-  {id: 'backend', name: t('Backend'), platforms: backend},
+  {id: 'desktop', name: t('Desktop'), platforms: desktop},
 ];
 
 const additional = platforms.concat({

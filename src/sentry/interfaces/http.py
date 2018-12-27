@@ -264,3 +264,32 @@ class Http(Interface):
             'inferredContentType': self.inferred_content_type,
         }
         return data
+
+    def get_api_meta(self, meta, is_public=False):
+        if is_public:
+            return None
+
+        headers = meta.get('headers')
+        if headers:
+            headers_meta = headers.pop('', None)
+            headers = {six.text_type(i): {'1': h[1]} for i, h in enumerate(sorted(headers.items()))}
+            if headers_meta:
+                headers[''] = headers_meta
+
+        cookies = meta.get('cookies')
+        if cookies:
+            cookies_meta = cookies.pop('', None)
+            cookies = {six.text_type(i): {'1': h[1]} for i, h in enumerate(sorted(cookies.items()))}
+            if cookies_meta:
+                cookies[''] = cookies_meta
+
+        return {
+            '': meta.get(''),
+            'method': meta.get('method'),
+            'url': meta.get('url'),
+            'query': meta.get('query_string'),
+            'data': meta.get('data'),
+            'headers': headers,
+            'cookies': cookies,
+            'env': meta.get('env'),
+        }

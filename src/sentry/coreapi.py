@@ -25,6 +25,7 @@ from six import BytesIO
 from time import time
 
 from sentry import filters
+from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.interfaces.base import get_interface
 from sentry.event_manager import EventManager
@@ -37,6 +38,7 @@ from sentry.utils.http import origin_from_request
 from sentry.utils.data_filters import is_valid_ip, \
     is_valid_release, is_valid_error_message, FilterStatKeys
 from sentry.utils.strings import decompress
+from sentry.utils.canonical import CANONICAL_TYPES
 
 
 _dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
@@ -344,14 +346,28 @@ class ClientApiHelper(object):
         if 'sentry.interfaces.User' in data:
             data['sentry.interfaces.User'].pop('ip_address', None)
 
-    def insert_data_to_database(self, data, start_time=None, from_reprocessing=False):
+        if 'sdk' in data:
+            data['sdk'].pop('client_ip', None)
+
+    def insert_data_to_database(self, data, start_time=None,
+                                from_reprocessing=False, attachments=None):
         if start_time is None:
             start_time = time()
-        # we might be passed LazyData
-        if isinstance(data, LazyData):
+
+        # we might be passed some sublcasses of dict that fail dumping
+        if isinstance(data, DOWNGRADE_DATA_TYPES):
             data = dict(data.items())
-        cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
-        default_cache.set(cache_key, data, timeout=3600)
+
+        cache_timeout = 3600
+        cache_key = u'e:{1}:{0}'.format(data['project'], data['event_id'])
+        default_cache.set(cache_key, data, cache_timeout)
+
+        # Attachments will be empty or None if the "event-attachments" feature
+        # is turned off. For native crash reports it will still contain the
+        # crash dump (e.g. minidump) so we can load it during processing.
+        if attachments is not None:
+            attachment_cache.set(cache_key, attachments, cache_timeout)
+
         task = from_reprocessing and \
             preprocess_event_from_reprocessing or preprocess_event
         task.delay(cache_key=cache_key, start_time=start_time,
@@ -368,14 +384,17 @@ class MinidumpApiHelper(ClientApiHelper):
         if not key:
             raise APIUnauthorized('Unable to find authentication information')
 
-        auth = Auth({'sentry_key': key}, is_public=True)
+        # Minidump requests are always "trusted".  We at this point only
+        # use is_public to identify requests that have an origin set (via
+        # CORS)
+        auth = Auth({'sentry_key': key}, is_public=False)
         auth.client = 'sentry-minidump'
         return auth
 
 
 class SecurityApiHelper(ClientApiHelper):
 
-    report_interfaces = ('sentry.interfaces.Csp', 'expectct', 'expectstaple')
+    report_interfaces = ('sentry.interfaces.Csp', 'hpkp', 'expectct', 'expectstaple')
 
     def origin_from_request(self, request):
         # In the case of security reports, the origin is not available at the
@@ -494,14 +513,13 @@ class LazyData(MutableMapping):
         data['key_id'] = self._key.id
         data['sdk'] = data.get('sdk') or helper.parse_client_as_sdk(auth.client)
 
-        # mutates data
+        # does not mutate data, must use return value of normalize
         manager = EventManager(data, version=auth.version)
-        manager.normalize(request_env={
+        self._data = manager.normalize(request_env={
             'client_ip': self._client_ip,
             'auth': self._auth,
         })
 
-        self._data = data
         self._decoded = True
 
     def __getitem__(self, name):
@@ -533,3 +551,6 @@ class LazyData(MutableMapping):
         if not self._decoded:
             self._decode()
         return iter(self._data)
+
+
+DOWNGRADE_DATA_TYPES = CANONICAL_TYPES + (LazyData,)

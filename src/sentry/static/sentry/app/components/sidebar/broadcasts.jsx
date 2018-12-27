@@ -1,22 +1,25 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-
 import createReactClass from 'create-react-class';
 
-import ApiMixin from '../../mixins/apiMixin';
-import LoadingIndicator from '../loadingIndicator';
-import {t} from '../../locale';
-
-import SidebarPanel from '../sidebarPanel';
-import SidebarPanelItem from '../sidebarPanelItem';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import InlineSvg from 'app/components/inlineSvg';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SidebarItem from 'app/components/sidebar/sidebarItem';
+import SidebarPanel from 'app/components/sidebar/sidebarPanel';
+import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
+import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
 
 const MARK_SEEN_DELAY = 1000;
-const POLLER_DELAY = 60000;
+const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
 
 const Broadcasts = createReactClass({
   displayName: 'Broadcasts',
 
   propTypes: {
+    orientation: PropTypes.oneOf(['top', 'left']),
+    collapsed: PropTypes.bool,
     showPanel: PropTypes.bool,
     currentPanel: PropTypes.string,
     hidePanel: PropTypes.func,
@@ -33,8 +36,10 @@ const Broadcasts = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
+
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
   },
 
   componentWillUnmount() {
@@ -42,10 +47,11 @@ const Broadcasts = createReactClass({
       window.clearTimeout(this.timer);
       this.timer = null;
     }
+
     if (this.poller) {
-      window.clearTimeout(this.poller);
-      this.poller = null;
+      this.stopPoll();
     }
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   },
 
   remountComponent() {
@@ -54,8 +60,9 @@ const Broadcasts = createReactClass({
 
   fetchData() {
     if (this.poller) {
-      window.clearTimeout(this.poller);
+      this.stopPoll();
     }
+
     this.api.request('/broadcasts/', {
       method: 'GET',
       success: data => {
@@ -63,24 +70,47 @@ const Broadcasts = createReactClass({
           broadcasts: data || [],
           loading: false,
         });
-        this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
+        this.startPoll();
       },
       error: () => {
         this.setState({
           loading: false,
           error: true,
         });
-        this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
+        this.startPoll();
       },
     });
   },
 
-  onShowPanel() {
+  startPoll() {
+    this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
+  },
+
+  stopPoll() {
+    window.clearTimeout(this.poller);
+    this.poller = null;
+  },
+
+  /**
+   * If tab/window loses visiblity (note: this is different than focus), stop polling for broadcasts data, otherwise,
+   * if it gains visibility, start polling again.
+   */
+  handleVisibilityChange() {
+    if (document.hidden) {
+      this.stopPoll();
+    } else {
+      this.startPoll();
+    }
+  },
+
+  handleShowPanel() {
     this.timer = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
     this.props.onShowPanel();
   },
 
   getUnseenIds() {
+    if (!this.state.broadcasts) return [];
+
     return this.state.broadcasts
       .filter(item => {
         return !item.hasSeen;
@@ -112,35 +142,45 @@ const Broadcasts = createReactClass({
   },
 
   render() {
+    let {orientation, collapsed, currentPanel, showPanel, hidePanel} = this.props;
     let {broadcasts, loading} = this.state;
+
+    let unseenPosts = this.getUnseenIds();
+
     return (
-      <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null}>
-        <a
-          className="broadcasts-toggle"
-          onClick={this.onShowPanel}
-          title={t('Updates from Sentry')}
-        >
-          <span className="icon icon-globe" />
-          {this.getUnseenIds() > 0 && <span className="activity-indicator" />}
-        </a>
-        {this.props.showPanel &&
-          this.props.currentPanel == 'broadcasts' && (
+      <React.Fragment>
+        <SidebarItem
+          data-test-id="sidebar-broadcasts"
+          orientation={orientation}
+          collapsed={collapsed}
+          active={currentPanel == 'broadcasts'}
+          badge={unseenPosts.length}
+          icon={<InlineSvg src="icon-broadcast" size="22px" />}
+          label={t("What's new")}
+          onClick={this.handleShowPanel}
+        />
+
+        {showPanel &&
+          currentPanel == 'broadcasts' && (
             <SidebarPanel
-              title={t('Recent updates from Sentry')}
-              hidePanel={this.props.hidePanel}
+              data-test-id="sidebar-broadcasts-panel"
+              orientation={orientation}
+              collapsed={collapsed}
+              title={t("What's new in Sentry")}
+              hidePanel={hidePanel}
             >
               {loading ? (
                 <LoadingIndicator />
               ) : broadcasts.length === 0 ? (
-                <div className="sidebar-panel-empty">
+                <SidebarPanelEmpty>
                   {t('No recent updates from the Sentry team.')}
-                </div>
+                </SidebarPanelEmpty>
               ) : (
                 broadcasts.map(item => {
                   return (
                     <SidebarPanelItem
                       key={item.id}
-                      className={!item.hasSeen && 'unseen'}
+                      hasSeen={item.hasSeen}
                       title={item.title}
                       message={item.message}
                       link={item.link}
@@ -150,7 +190,7 @@ const Broadcasts = createReactClass({
               )}
             </SidebarPanel>
           )}
-      </li>
+      </React.Fragment>
     );
   },
 });

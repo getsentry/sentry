@@ -1,18 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`ProjectTeamsSettings render() renders 1`] = `
-.glamor-0 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
+exports[`Project Ownership Input renders 1`] = `
 <OwnerInput
   initialText="url:src @dummy@example.com"
   organization={
@@ -33,6 +21,7 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       "name": "Organization Name",
       "onboardingTasks": Array [],
       "projects": Array [],
+      "scrapeJavaScript": true,
       "slug": "org-slug",
       "status": Object {
         "id": "active",
@@ -49,37 +38,883 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
   }
   project={
     Object {
-      "allowedDomains": Array [
-        "example.com",
-        "https://example.com",
-      ],
-      "dataScrubber": false,
-      "dataScrubberDefaults": false,
-      "digestsMaxDelay": 60,
-      "digestsMinDelay": 5,
-      "features": Array [],
+      "hasAccess": true,
       "id": "2",
+      "isBookmarked": false,
+      "isMember": true,
       "name": "Project Name",
-      "resolveAge": 48,
-      "safeFields": Array [
-        "business-email",
-        "company",
-      ],
-      "scrapeJavaScript": true,
-      "scrubIPAddresses": false,
-      "securityToken": "security-token",
-      "securityTokenHeader": "x-security-header",
-      "sensitiveFields": Array [
-        "creditcard",
-        "ssn",
-      ],
       "slug": "project-slug",
-      "subjectTemplate": "[$project] \${tag:level}: $title",
       "teams": Array [],
-      "verifySSL": true,
     }
   }
 >
+  <RuleBuilder
+    onAddRule={[Function]}
+    organization={
+      Object {
+        "access": Array [
+          "org:read",
+          "org:write",
+          "org:admin",
+          "project:read",
+          "project:write",
+          "project:admin",
+          "team:read",
+          "team:write",
+          "team:admin",
+        ],
+        "features": Array [],
+        "id": "3",
+        "name": "Organization Name",
+        "onboardingTasks": Array [],
+        "projects": Array [],
+        "scrapeJavaScript": true,
+        "slug": "org-slug",
+        "status": Object {
+          "id": "active",
+          "name": "active",
+        },
+        "teams": Array [],
+      }
+    }
+    project={
+      Object {
+        "hasAccess": true,
+        "id": "2",
+        "isBookmarked": false,
+        "isMember": true,
+        "name": "Project Name",
+        "slug": "project-slug",
+        "teams": Array [],
+      }
+    }
+  >
+    <BuilderBar>
+      <div
+        className="css-1kvuz3c-BuilderBar e1hyuoc75"
+      >
+        <BuilderSelect
+          clearable={false}
+          name="select-type"
+          onChange={[Function]}
+          options={
+            Array [
+              Object {
+                "label": "Path",
+                "value": "path",
+              },
+              Object {
+                "label": "URL",
+                "value": "url",
+              },
+            ]
+          }
+          showSearch={false}
+          style={
+            Object {
+              "width": 140,
+            }
+          }
+          value="path"
+        >
+          <SelectField
+            className="css-1bclqmz-BuilderSelect e1hyuoc76"
+            clearable={false}
+            disabled={false}
+            hideErrorMessage={false}
+            multiple={false}
+            name="select-type"
+            onChange={[Function]}
+            options={
+              Array [
+                Object {
+                  "label": "Path",
+                  "value": "path",
+                },
+                Object {
+                  "label": "URL",
+                  "value": "url",
+                },
+              ]
+            }
+            required={false}
+            showSearch={false}
+            style={
+              Object {
+                "width": 140,
+              }
+            }
+            value="path"
+          >
+            <div
+              className="css-1bclqmz-BuilderSelect e1hyuoc76"
+              style={
+                Object {
+                  "width": 140,
+                }
+              }
+            >
+              <div
+                className="controls"
+              >
+                <StyledSelectControl
+                  clearable={false}
+                  disabled={false}
+                  id="id-select-type"
+                  multiple={false}
+                  name="select-type"
+                  onChange={[Function]}
+                  options={
+                    Array [
+                      Object {
+                        "label": "Path",
+                        "value": "path",
+                      },
+                      Object {
+                        "label": "URL",
+                        "value": "url",
+                      },
+                    ]
+                  }
+                  required={false}
+                  value="path"
+                >
+                  <SelectControl
+                    className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                    clearable={false}
+                    disabled={false}
+                    height={36}
+                    id="id-select-type"
+                    multiple={false}
+                    name="select-type"
+                    onChange={[Function]}
+                    options={
+                      Array [
+                        Object {
+                          "label": "Path",
+                          "value": "path",
+                        },
+                        Object {
+                          "label": "URL",
+                          "value": "url",
+                        },
+                      ]
+                    }
+                    required={false}
+                    value="path"
+                  >
+                    <StyledSelect
+                      arrowRenderer={[Function]}
+                      backspaceRemoves={false}
+                      className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                      clearable={false}
+                      deleteRemoves={false}
+                      disabled={false}
+                      height={36}
+                      id="id-select-type"
+                      multiple={false}
+                      name="select-type"
+                      onChange={[Function]}
+                      options={
+                        Array [
+                          Object {
+                            "label": "Path",
+                            "value": "path",
+                          },
+                          Object {
+                            "label": "URL",
+                            "value": "url",
+                          },
+                        ]
+                      }
+                      required={false}
+                      value="path"
+                    >
+                      <SelectPicker
+                        arrowRenderer={[Function]}
+                        backspaceRemoves={false}
+                        className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
+                        clearable={false}
+                        deleteRemoves={false}
+                        disabled={false}
+                        height={36}
+                        id="id-select-type"
+                        multiple={false}
+                        name="select-type"
+                        onChange={[Function]}
+                        options={
+                          Array [
+                            Object {
+                              "label": "Path",
+                              "value": "path",
+                            },
+                            Object {
+                              "label": "URL",
+                              "value": "url",
+                            },
+                          ]
+                        }
+                        required={false}
+                        value="path"
+                      >
+                        <Select
+                          arrowRenderer={[Function]}
+                          autosize={true}
+                          backspaceRemoves={false}
+                          backspaceToRemoveMessage="Press backspace to remove {label}"
+                          className="e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20"
+                          clearAllText="Clear all"
+                          clearRenderer={[Function]}
+                          clearValueText="Clear value"
+                          clearable={false}
+                          closeOnSelect={true}
+                          deleteRemoves={false}
+                          delimiter=","
+                          disabled={false}
+                          escapeClearsValue={true}
+                          filterOptions={[Function]}
+                          height={36}
+                          id="id-select-type"
+                          ignoreAccents={true}
+                          ignoreCase={true}
+                          inputProps={Object {}}
+                          isLoading={false}
+                          joinValues={false}
+                          labelKey="label"
+                          matchPos="any"
+                          matchProp="any"
+                          menuBuffer={0}
+                          menuRenderer={[Function]}
+                          multi={false}
+                          multiple={false}
+                          name="select-type"
+                          noResultsText="No results found"
+                          onBlurResetsInput={true}
+                          onChange={[Function]}
+                          onCloseResetsInput={true}
+                          onSelectResetsInput={true}
+                          openOnClick={true}
+                          optionComponent={[Function]}
+                          options={
+                            Array [
+                              Object {
+                                "label": "Path",
+                                "value": "path",
+                              },
+                              Object {
+                                "label": "URL",
+                                "value": "url",
+                              },
+                            ]
+                          }
+                          pageSize={5}
+                          placeholder="Select..."
+                          removeSelected={true}
+                          required={false}
+                          rtl={false}
+                          scrollMenuIntoView={true}
+                          searchable={true}
+                          simpleValue={false}
+                          tabSelectsValue={true}
+                          trimFilter={true}
+                          value="path"
+                          valueComponent={[Function]}
+                          valueKey="value"
+                        >
+                          <div
+                            className="Select e1qrhqd00 css-17e2btp-StyledSelect-StyledSelectControl eho28m20 has-value is-searchable Select--single"
+                          >
+                            <input
+                              disabled={false}
+                              key="hidden.0"
+                              name="select-type"
+                              type="hidden"
+                              value="path"
+                            />
+                            <div
+                              className="Select-control"
+                              onKeyDown={[Function]}
+                              onMouseDown={[Function]}
+                              onTouchEnd={[Function]}
+                              onTouchMove={[Function]}
+                              onTouchStart={[Function]}
+                            >
+                              <span
+                                className="Select-multi-value-wrapper"
+                                id="react-select-2--value"
+                              >
+                                <Value
+                                  disabled={false}
+                                  id="react-select-2--value-item"
+                                  instancePrefix="react-select-2-"
+                                  onClick={null}
+                                  placeholder="Select..."
+                                  value={
+                                    Object {
+                                      "label": "Path",
+                                      "value": "path",
+                                    }
+                                  }
+                                >
+                                  <div
+                                    className="Select-value"
+                                  >
+                                    <span
+                                      aria-selected="true"
+                                      className="Select-value-label"
+                                      id="react-select-2--value-item"
+                                      role="option"
+                                    >
+                                      Path
+                                    </span>
+                                  </div>
+                                </Value>
+                                <AutosizeInput
+                                  aria-activedescendant="react-select-2--value"
+                                  aria-expanded="false"
+                                  aria-haspopup="false"
+                                  aria-owns=""
+                                  className="Select-input"
+                                  id="id-select-type"
+                                  injectStyles={true}
+                                  minWidth="5"
+                                  onBlur={[Function]}
+                                  onChange={[Function]}
+                                  onFocus={[Function]}
+                                  required={false}
+                                  role="combobox"
+                                  value=""
+                                >
+                                  <div
+                                    className="Select-input"
+                                    style={
+                                      Object {
+                                        "display": "inline-block",
+                                      }
+                                    }
+                                  >
+                                    <input
+                                      aria-activedescendant="react-select-2--value"
+                                      aria-expanded="false"
+                                      aria-haspopup="false"
+                                      aria-owns=""
+                                      id="id-select-type"
+                                      onBlur={[Function]}
+                                      onChange={[Function]}
+                                      onFocus={[Function]}
+                                      required={false}
+                                      role="combobox"
+                                      style={
+                                        Object {
+                                          "boxSizing": "content-box",
+                                          "width": "5px",
+                                        }
+                                      }
+                                      value=""
+                                    />
+                                    <div
+                                      style={
+                                        Object {
+                                          "height": 0,
+                                          "left": 0,
+                                          "overflow": "scroll",
+                                          "position": "absolute",
+                                          "top": 0,
+                                          "visibility": "hidden",
+                                          "whiteSpace": "pre",
+                                        }
+                                      }
+                                    />
+                                  </div>
+                                </AutosizeInput>
+                              </span>
+                              <span
+                                className="Select-arrow-zone"
+                                onMouseDown={[Function]}
+                              >
+                                <span
+                                  className="icon-arrow-down"
+                                />
+                              </span>
+                            </div>
+                          </div>
+                        </Select>
+                      </SelectPicker>
+                    </StyledSelect>
+                  </SelectControl>
+                </StyledSelectControl>
+              </div>
+            </div>
+          </SelectField>
+        </BuilderSelect>
+        <BuilderInput
+          controlled={true}
+          onChange={[Function]}
+          placeholder="src/example/*"
+          value=""
+        >
+          <input
+            className="css-1h4gu9a-Input-inputStyles-BuilderInput e1hyuoc77"
+            onChange={[Function]}
+            placeholder="src/example/*"
+            value=""
+          />
+        </BuilderInput>
+        <Divider
+          src="icon-chevron-right"
+        >
+          <InlineSvg
+            className="css-a4tn6s-Divider e1hyuoc78"
+            src="icon-chevron-right"
+          >
+            <StyledSvg
+              className="css-a4tn6s-Divider e1hyuoc78"
+              height="1em"
+              viewBox={Object {}}
+              width="1em"
+            >
+              <svg
+                className="e1hyuoc78 css-1uv43pt-StyledSvg-Divider e2idor0"
+                height="1em"
+                viewBox={Object {}}
+                width="1em"
+              >
+                <use
+                  href="#test"
+                  xlinkHref="#test"
+                />
+              </svg>
+            </StyledSvg>
+          </InlineSvg>
+        </Divider>
+        <Flex
+          align="center"
+          flex="1"
+          mr={1}
+        >
+          <Base
+            align="center"
+            className="css-1q48dzo"
+            flex="1"
+            mr={1}
+          >
+            <div
+              className="css-1q48dzo"
+              is={null}
+            >
+              <SelectOwners
+                onChange={[Function]}
+                organization={
+                  Object {
+                    "access": Array [
+                      "org:read",
+                      "org:write",
+                      "org:admin",
+                      "project:read",
+                      "project:write",
+                      "project:admin",
+                      "team:read",
+                      "team:write",
+                      "team:admin",
+                    ],
+                    "features": Array [],
+                    "id": "3",
+                    "name": "Organization Name",
+                    "onboardingTasks": Array [],
+                    "projects": Array [],
+                    "scrapeJavaScript": true,
+                    "slug": "org-slug",
+                    "status": Object {
+                      "id": "active",
+                      "name": "active",
+                    },
+                    "teams": Array [],
+                  }
+                }
+                project={
+                  Object {
+                    "hasAccess": true,
+                    "id": "2",
+                    "isBookmarked": false,
+                    "isMember": true,
+                    "name": "Project Name",
+                    "slug": "project-slug",
+                    "teams": Array [],
+                  }
+                }
+                value={Array []}
+              >
+                <MultiSelectControl
+                  async={true}
+                  cache={false}
+                  className="css-1domaf0"
+                  clearable={true}
+                  defaultOptions={true}
+                  filterOptions={[Function]}
+                  loadOptions={[Function]}
+                  onChange={[Function]}
+                  onInputChange={[Function]}
+                  placeholder="Add Owners"
+                  value={Array []}
+                  valueComponent={[Function]}
+                >
+                  <SelectControl
+                    async={true}
+                    cache={false}
+                    className="css-1domaf0"
+                    clearable={true}
+                    defaultOptions={true}
+                    filterOptions={[Function]}
+                    height={36}
+                    loadOptions={[Function]}
+                    multiple={true}
+                    onChange={[Function]}
+                    onInputChange={[Function]}
+                    placeholder="Add Owners"
+                    value={Array []}
+                    valueComponent={[Function]}
+                  >
+                    <StyledSelect
+                      arrowRenderer={[Function]}
+                      async={true}
+                      backspaceRemoves={true}
+                      cache={false}
+                      className="css-1domaf0"
+                      clearable={true}
+                      defaultOptions={true}
+                      deleteRemoves={true}
+                      filterOptions={[Function]}
+                      height={36}
+                      loadOptions={[Function]}
+                      multi={true}
+                      multiple={true}
+                      onChange={[Function]}
+                      onInputChange={[Function]}
+                      placeholder="Add Owners"
+                      value={Array []}
+                      valueComponent={[Function]}
+                    >
+                      <SelectPicker
+                        arrowRenderer={[Function]}
+                        async={true}
+                        backspaceRemoves={true}
+                        cache={false}
+                        className="css-dovswj-StyledSelect eho28m20"
+                        clearable={true}
+                        defaultOptions={true}
+                        deleteRemoves={true}
+                        filterOptions={[Function]}
+                        height={36}
+                        loadOptions={[Function]}
+                        multi={true}
+                        multiple={true}
+                        onChange={[Function]}
+                        onInputChange={[Function]}
+                        placeholder="Add Owners"
+                        value={Array []}
+                        valueComponent={[Function]}
+                      >
+                        <Async
+                          arrowRenderer={[Function]}
+                          autoload={true}
+                          backspaceRemoves={true}
+                          cache={false}
+                          className="css-dovswj-StyledSelect eho28m20"
+                          clearable={true}
+                          defaultOptions={true}
+                          deleteRemoves={true}
+                          filterOptions={[Function]}
+                          height={36}
+                          ignoreAccents={true}
+                          ignoreCase={true}
+                          loadOptions={[Function]}
+                          loadingPlaceholder="Loading..."
+                          multi={true}
+                          multiple={true}
+                          onChange={[Function]}
+                          onInputChange={[Function]}
+                          options={Array []}
+                          placeholder="Add Owners"
+                          searchPromptText="Type to search"
+                          value={Array []}
+                          valueComponent={[Function]}
+                        >
+                          <Select
+                            arrowRenderer={[Function]}
+                            autoload={true}
+                            autosize={true}
+                            backspaceRemoves={true}
+                            backspaceToRemoveMessage="Press backspace to remove {label}"
+                            cache={false}
+                            className="css-dovswj-StyledSelect eho28m20"
+                            clearAllText="Clear all"
+                            clearRenderer={[Function]}
+                            clearValueText="Clear value"
+                            clearable={true}
+                            closeOnSelect={true}
+                            defaultOptions={true}
+                            deleteRemoves={true}
+                            delimiter=","
+                            disabled={false}
+                            escapeClearsValue={true}
+                            filterOptions={[Function]}
+                            height={36}
+                            ignoreAccents={true}
+                            ignoreCase={true}
+                            inputProps={Object {}}
+                            isLoading={true}
+                            joinValues={false}
+                            labelKey="label"
+                            loadOptions={[Function]}
+                            loadingPlaceholder="Loading..."
+                            matchPos="any"
+                            matchProp="any"
+                            menuBuffer={0}
+                            menuRenderer={[Function]}
+                            multi={true}
+                            multiple={true}
+                            noResultsText="Loading..."
+                            onBlurResetsInput={true}
+                            onChange={[Function]}
+                            onCloseResetsInput={true}
+                            onInputChange={[Function]}
+                            onSelectResetsInput={true}
+                            openOnClick={true}
+                            optionComponent={[Function]}
+                            options={Array []}
+                            pageSize={5}
+                            placeholder="Loading..."
+                            removeSelected={true}
+                            required={false}
+                            rtl={false}
+                            scrollMenuIntoView={true}
+                            searchPromptText="Type to search"
+                            searchable={true}
+                            simpleValue={false}
+                            tabSelectsValue={true}
+                            trimFilter={true}
+                            value={Array []}
+                            valueComponent={[Function]}
+                            valueKey="value"
+                          >
+                            <div
+                              className="Select css-dovswj-StyledSelect eho28m20 is-clearable is-loading is-searchable Select--multi"
+                            >
+                              <div
+                                className="Select-control"
+                                onKeyDown={[Function]}
+                                onMouseDown={[Function]}
+                                onTouchEnd={[Function]}
+                                onTouchMove={[Function]}
+                                onTouchStart={[Function]}
+                              >
+                                <span
+                                  className="Select-multi-value-wrapper"
+                                  id="react-select-3--value"
+                                >
+                                  <div
+                                    className="Select-placeholder"
+                                  >
+                                    Loading...
+                                  </div>
+                                  <AutosizeInput
+                                    aria-activedescendant="react-select-3--value"
+                                    aria-expanded="false"
+                                    aria-haspopup="false"
+                                    aria-owns=""
+                                    className="Select-input"
+                                    injectStyles={true}
+                                    minWidth="5"
+                                    onBlur={[Function]}
+                                    onChange={[Function]}
+                                    onFocus={[Function]}
+                                    required={false}
+                                    role="combobox"
+                                    value=""
+                                  >
+                                    <div
+                                      className="Select-input"
+                                      style={
+                                        Object {
+                                          "display": "inline-block",
+                                        }
+                                      }
+                                    >
+                                      <input
+                                        aria-activedescendant="react-select-3--value"
+                                        aria-expanded="false"
+                                        aria-haspopup="false"
+                                        aria-owns=""
+                                        onBlur={[Function]}
+                                        onChange={[Function]}
+                                        onFocus={[Function]}
+                                        required={false}
+                                        role="combobox"
+                                        style={
+                                          Object {
+                                            "boxSizing": "content-box",
+                                            "width": "5px",
+                                          }
+                                        }
+                                        value=""
+                                      />
+                                      <div
+                                        style={
+                                          Object {
+                                            "height": 0,
+                                            "left": 0,
+                                            "overflow": "scroll",
+                                            "position": "absolute",
+                                            "top": 0,
+                                            "visibility": "hidden",
+                                            "whiteSpace": "pre",
+                                          }
+                                        }
+                                      />
+                                    </div>
+                                  </AutosizeInput>
+                                </span>
+                                <span
+                                  aria-hidden="true"
+                                  className="Select-loading-zone"
+                                >
+                                  <span
+                                    className="Select-loading"
+                                  />
+                                </span>
+                                <span
+                                  className="Select-arrow-zone"
+                                  onMouseDown={[Function]}
+                                >
+                                  <span
+                                    className="icon-arrow-down"
+                                  />
+                                </span>
+                              </div>
+                            </div>
+                          </Select>
+                        </Async>
+                      </SelectPicker>
+                    </StyledSelect>
+                  </SelectControl>
+                </MultiSelectControl>
+              </SelectOwners>
+            </div>
+          </Base>
+        </Flex>
+        <AddButton
+          disabled={true}
+          icon="icon-circle-add"
+          onClick={[Function]}
+          priority="primary"
+          size="small"
+        >
+          <Button
+            className="css-po7kq7-AddButton e1hyuoc79"
+            disabled={true}
+            icon="icon-circle-add"
+            onClick={[Function]}
+            priority="primary"
+            size="small"
+          >
+            <StyledButton
+              className="css-po7kq7-AddButton e1hyuoc79"
+              disabled={true}
+              href={null}
+              onClick={[Function]}
+              priority="primary"
+              role="button"
+              size="small"
+              to={null}
+            >
+              <Component
+                className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton eqrebog0"
+                disabled={true}
+                href={null}
+                onClick={[Function]}
+                priority="primary"
+                role="button"
+                size="small"
+                to={null}
+              >
+                <button
+                  className="e1hyuoc79 css-in0b2i-StyledButton-getColors-AddButton eqrebog0"
+                  disabled={true}
+                  href={null}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
+                  size="small"
+                  to={null}
+                >
+                  <ButtonLabel
+                    priority="primary"
+                    size="small"
+                  >
+                    <Component
+                      className="css-7ui8bl-ButtonLabel eqrebog1"
+                      priority="primary"
+                      size="small"
+                    >
+                      <span
+                        className="css-7ui8bl-ButtonLabel eqrebog1"
+                      >
+                        <Icon
+                          hasChildren={false}
+                          size="small"
+                        >
+                          <Component
+                            className="css-ljhpxy-Icon eqrebog2"
+                            hasChildren={false}
+                            size="small"
+                          >
+                            <span
+                              className="css-ljhpxy-Icon eqrebog2"
+                              size="small"
+                            >
+                              <StyledInlineSvg
+                                size="12px"
+                                src="icon-circle-add"
+                              >
+                                <InlineSvg
+                                  className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                  size="12px"
+                                  src="icon-circle-add"
+                                >
+                                  <StyledSvg
+                                    className="css-1ov3rcq-StyledInlineSvg eqrebog3"
+                                    height="12px"
+                                    viewBox={Object {}}
+                                    width="12px"
+                                  >
+                                    <svg
+                                      className="eqrebog3 css-1jjmnki-StyledSvg-StyledInlineSvg e2idor0"
+                                      height="12px"
+                                      viewBox={Object {}}
+                                      width="12px"
+                                    >
+                                      <use
+                                        href="#test"
+                                        xlinkHref="#test"
+                                      />
+                                    </svg>
+                                  </StyledSvg>
+                                </InlineSvg>
+                              </StyledInlineSvg>
+                            </span>
+                          </Component>
+                        </Icon>
+                      </span>
+                    </Component>
+                  </ButtonLabel>
+                </button>
+              </Component>
+            </StyledButton>
+          </Button>
+        </AddButton>
+      </div>
+    </BuilderBar>
+  </RuleBuilder>
   <div
     onKeyDown={[Function]}
     style={
@@ -88,320 +923,122 @@ exports[`ProjectTeamsSettings render() renders 1`] = `
       }
     }
   >
-    <withDefaultStyle(MentionsInput)
+    <StyledTextArea
       autoCapitalize="off"
       autoComplete="off"
       autoCorrect="off"
-      autoFocus={true}
-      displayTransform={[Function]}
-      markup="**[sentry.strip:__type__]__display__**"
       onChange={[Function]}
       placeholder="#example usage
-
-path:src/sentry/pipeline/* person@sentry.io #platform
-
-url:http://sentry.io/settings/* #workflow"
-      required={true}
+path:src/example/pipeline/* person@sentry.io #infra
+url:http://example.com/settings/* #product"
       spellCheck="false"
-      style={
-        Object {
-          "&multiLine": Object {
-            "control": Object {
-              "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-            },
-            "highlighter": Object {
-              "padding": 20,
-            },
-            "input": Object {
-              "border": "1 solid",
-              "minHeight": 140,
-              "outline": 0,
-              "overflow": "auto",
-              "padding": "5px 5px 0",
-            },
-          },
-          "&singleLine": Object {
-            "control": Object {
-              "display": "inline-block",
-              "width": 130,
-            },
-            "highlighter": Object {
-              "border": "2px inset transparent",
-              "padding": 1,
-            },
-            "input": Object {
-              "border": "2px inset",
-              "padding": 1,
-            },
-          },
-          "control": Object {
-            "backgroundColor": "#fff",
-            "fontSize": 15,
-            "fontWeight": "normal",
-          },
-          "input": Object {
-            "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-            "margin": 0,
-            "whiteSpace": "pre-wrap",
-            "wordBreak": "break-all",
-          },
-          "suggestions": Object {
-            "item": Object {
-              "&focused": Object {
-                "backgroundColor": "#f8f6f9",
-              },
-              "borderBottom": "1px solid rgba(0,0,0,0.15)",
-              "padding": "5px 15px",
-            },
-            "list": Object {
-              "backgroundColor": "white",
-              "border": "1px solid rgba(0,0,0,0.15)",
-              "fontSize": 15,
-              "maxHeight": 150,
-              "overflow": "auto",
-            },
-          },
-        }
-      }
       value="new"
     >
-      <MentionsInput
+      <TextareaAutosize
+        async={false}
         autoCapitalize="off"
         autoComplete="off"
         autoCorrect="off"
-        autoFocus={true}
-        displayTransform={[Function]}
-        markup="**[sentry.strip:__type__]__display__**"
-        onBlur={[Function]}
+        className="css-biid8w-StyledTextArea-inputStyles en3n9di2"
         onChange={[Function]}
-        onKeyDown={[Function]}
-        onSelect={[Function]}
         placeholder="#example usage
-
-path:src/sentry/pipeline/* person@sentry.io #platform
-
-url:http://sentry.io/settings/* #workflow"
-        required={true}
-        singleLine={false}
+path:src/example/pipeline/* person@sentry.io #infra
+url:http://example.com/settings/* #product"
+        rows={1}
         spellCheck="false"
-        style={[Function]}
         value="new"
       >
-        <div
-          style={
-            Object {
-              "overflowY": "visible",
-              "position": "relative",
-            }
-          }
-        >
-          <div
-            style={
-              Object {
-                "backgroundColor": "#fff",
-                "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                "fontSize": 15,
-                "fontWeight": "normal",
-              }
-            }
-          >
-            <withDefaultStyle(Highlighter)
-              displayTransform={[Function]}
-              inputStyle={
-                Object {
-                  "backgroundColor": "transparent",
-                  "border": "1 solid",
-                  "bottom": 0,
-                  "boxSizing": "border-box",
-                  "display": "block",
-                  "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                  "height": "100%",
-                  "margin": 0,
-                  "minHeight": 140,
-                  "outline": 0,
-                  "overflow": "auto",
-                  "padding": "5px 5px 0",
-                  "position": "absolute",
-                  "resize": "none",
-                  "top": 0,
-                  "whiteSpace": "pre-wrap",
-                  "width": "100%",
-                  "wordBreak": "break-all",
-                }
-              }
-              markup="**[sentry.strip:__type__]__display__**"
-              onCaretPositionChange={[Function]}
-              selection={
-                Object {
-                  "end": null,
-                  "start": null,
-                }
-              }
-              singleLine={false}
-              style={[Function]}
-              value="new"
-            >
-              <Highlighter
-                displayTransform={[Function]}
-                inputStyle={
-                  Object {
-                    "backgroundColor": "transparent",
-                    "border": "1 solid",
-                    "bottom": 0,
-                    "boxSizing": "border-box",
-                    "display": "block",
-                    "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                    "height": "100%",
-                    "margin": 0,
-                    "minHeight": 140,
-                    "outline": 0,
-                    "overflow": "auto",
-                    "padding": "5px 5px 0",
-                    "position": "absolute",
-                    "resize": "none",
-                    "top": 0,
-                    "whiteSpace": "pre-wrap",
-                    "width": "100%",
-                    "wordBreak": "break-all",
-                  }
-                }
-                markup="**[sentry.strip:__type__]__display__**"
-                onCaretPositionChange={[Function]}
-                selection={
-                  Object {
-                    "end": null,
-                    "start": null,
-                  }
-                }
-                singleLine={false}
-                style={[Function]}
-                value="new"
-              >
-                <div
-                  style={
-                    Object {
-                      "backgroundColor": "transparent",
-                      "border": "1 solid",
-                      "bottom": 0,
-                      "boxSizing": "border-box",
-                      "color": "transparent",
-                      "display": "block",
-                      "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                      "height": "100%",
-                      "margin": 0,
-                      "minHeight": 140,
-                      "outline": 0,
-                      "overflow": "hidden",
-                      "padding": 20,
-                      "position": "relative",
-                      "resize": "none",
-                      "top": 0,
-                      "whiteSpace": "pre-wrap",
-                      "width": "inherit",
-                      "wordBreak": "break-all",
-                      "wordWrap": "break-word",
-                    }
-                  }
-                >
-                  <span
-                    key="0"
-                    style={
-                      Object {
-                        "visibility": "hidden",
-                      }
-                    }
-                  >
-                    new
-                  </span>
-                   
-                </div>
-              </Highlighter>
-            </withDefaultStyle(Highlighter)>
-            <textarea
-              autoCapitalize="off"
-              autoComplete="off"
-              autoCorrect="off"
-              autoFocus={true}
-              onBlur={[Function]}
-              onChange={[Function]}
-              onCompositionEnd={[Function]}
-              onCompositionStart={[Function]}
-              onKeyDown={[Function]}
-              onSelect={[Function]}
-              placeholder="#example usage
-
-path:src/sentry/pipeline/* person@sentry.io #platform
-
-url:http://sentry.io/settings/* #workflow"
-              required={true}
-              spellCheck="false"
-              style={
-                Object {
-                  "backgroundColor": "transparent",
-                  "border": "1 solid",
-                  "bottom": 0,
-                  "boxSizing": "border-box",
-                  "display": "block",
-                  "fontFamily": "Monaco, Consolas, \\"Courier New\\", monospace",
-                  "height": "100%",
-                  "margin": 0,
-                  "minHeight": 140,
-                  "outline": 0,
-                  "overflow": "auto",
-                  "padding": "5px 5px 0",
-                  "position": "absolute",
-                  "resize": "none",
-                  "top": 0,
-                  "whiteSpace": "pre-wrap",
-                  "width": "100%",
-                  "wordBreak": "break-all",
-                }
-              }
-              value="new"
-            />
-          </div>
-        </div>
-      </MentionsInput>
-    </withDefaultStyle(MentionsInput)>
-    <div
-      style={
-        Object {
-          "paddingTop": "10px",
-          "textAlign": "end",
-        }
-      }
+        <textarea
+          async={false}
+          autoCapitalize="off"
+          autoComplete="off"
+          autoCorrect="off"
+          className="css-biid8w-StyledTextArea-inputStyles en3n9di2"
+          onChange={[Function]}
+          placeholder="#example usage
+path:src/example/pipeline/* person@sentry.io #infra
+url:http://example.com/settings/* #product"
+          rows={1}
+          spellCheck="false"
+          value="new"
+        />
+      </TextareaAutosize>
+    </StyledTextArea>
+    <Flex
+      align="center"
+      justify="space-between"
     >
-      <Button
-        disabled={false}
-        onClick={[Function]}
-        priority="primary"
-        size="small"
+      <Base
+        align="center"
+        className="css-v7pzd9"
+        justify="space-between"
       >
-        <button
-          className="button button-primary button-sm"
-          disabled={false}
-          onClick={[Function]}
-          role="button"
+        <div
+          className="css-v7pzd9"
+          is={null}
         >
-          <Flex
-            align="center"
-            className="button-label"
-          >
-            <Base
-              align="center"
-              className="button-label glamor-0"
+          <div />
+          <SaveButton>
+            <div
+              className="css-5zvod-SaveButton en3n9di1"
             >
-              <div
-                className="button-label glamor-0"
-                is={null}
+              <Button
+                disabled={false}
+                onClick={[Function]}
+                priority="primary"
+                size="small"
               >
-                Save Changes
-              </div>
-            </Base>
-          </Flex>
-        </button>
-      </Button>
-    </div>
+                <StyledButton
+                  aria-label="Save Changes"
+                  disabled={false}
+                  onClick={[Function]}
+                  priority="primary"
+                  role="button"
+                  size="small"
+                >
+                  <Component
+                    aria-label="Save Changes"
+                    className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                    disabled={false}
+                    onClick={[Function]}
+                    priority="primary"
+                    role="button"
+                    size="small"
+                  >
+                    <button
+                      aria-label="Save Changes"
+                      className="css-zvpqlo-StyledButton-getColors eqrebog0"
+                      disabled={false}
+                      onClick={[Function]}
+                      priority="primary"
+                      role="button"
+                      size="small"
+                    >
+                      <ButtonLabel
+                        priority="primary"
+                        size="small"
+                      >
+                        <Component
+                          className="css-7ui8bl-ButtonLabel eqrebog1"
+                          priority="primary"
+                          size="small"
+                        >
+                          <span
+                            className="css-7ui8bl-ButtonLabel eqrebog1"
+                          >
+                            Save Changes
+                          </span>
+                        </Component>
+                      </ButtonLabel>
+                    </button>
+                  </Component>
+                </StyledButton>
+              </Button>
+            </div>
+          </SaveButton>
+        </div>
+      </Base>
+    </Flex>
   </div>
 </OwnerInput>
 `;

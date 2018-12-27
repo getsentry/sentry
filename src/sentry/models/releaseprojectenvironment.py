@@ -17,6 +17,7 @@ class ReleaseProjectEnvironment(Model):
     new_issues_count = BoundedPositiveIntegerField(default=0)
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    last_deploy_id = BoundedPositiveIntegerField(null=True, db_index=True)
 
     class Meta:
         app_label = 'sentry'
@@ -27,7 +28,7 @@ class ReleaseProjectEnvironment(Model):
 
     @classmethod
     def get_cache_key(cls, release_id, project_id, environment_id):
-        return 'releaseprojectenv:{}:{}:{}'.format(
+        return u'releaseprojectenv:{}:{}:{}'.format(
             release_id,
             project_id,
             environment_id,

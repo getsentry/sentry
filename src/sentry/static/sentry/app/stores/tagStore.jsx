@@ -1,11 +1,19 @@
 import Reflux from 'reflux';
 import _ from 'lodash';
 
-import TagActions from '../actions/tagActions';
-import MemberListStore from './memberListStore';
+import TagActions from 'app/actions/tagActions';
+import MemberListStore from 'app/stores/memberListStore';
+
+const uuidPattern = /[0-9a-f]{32}$/;
 
 const getUsername = ({isManaged, username, email}) => {
-  return !isManaged && username ? username : email;
+  // Users created via SAML receive unique UUID usernames. Use
+  // their email in these cases, instead.
+  if (username && uuidPattern.test(username)) {
+    return email;
+  } else {
+    return !isManaged && username ? username : email;
+  }
 };
 
 const getMemberListStoreUsernames = () => {
@@ -76,6 +84,8 @@ const TagStore = Reflux.createStore({
       timesSeen: {
         key: 'timesSeen',
         name: 'Times Seen',
+        isInput: true,
+        // Below values are required or else SearchBar will attempt to get values // This is required or else SearchBar will attempt to get values
         values: [],
         predefined: true,
       },

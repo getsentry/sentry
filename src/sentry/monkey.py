@@ -70,5 +70,19 @@ def patch_parse_cookie():
     http.parse_cookie = safe_parse_cookie
 
 
-for patch in patch_parse_cookie, patch_httprequest_repr:
+def patch_django_views_debug():
+    # Prevent exposing any Django SETTINGS on our debug error page
+    # This information is not useful for Sentry development
+    # and poses a significant security risk if this is exposed by accident
+    # in any production system if, by change, it were deployed
+    # with DEBUG=True.
+    try:
+        from django.views import debug
+    except ImportError:
+        return
+
+    debug.get_safe_settings = lambda: {}
+
+
+for patch in patch_parse_cookie, patch_httprequest_repr, patch_django_views_debug:
     patch()

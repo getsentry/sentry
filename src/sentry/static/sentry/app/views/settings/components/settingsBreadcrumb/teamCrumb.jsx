@@ -1,12 +1,13 @@
-import {Flex} from 'grid-emotion';
 import {browserHistory} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import BreadcrumbDropdown from './breadcrumbDropdown';
-import TextLink from '../../../../components/textLink';
-import recreateRoute from '../../../../utils/recreateRoute';
-import withTeams from '../../../../utils/withTeams';
+import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import IdBadge from 'app/components/idBadge';
+import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
+import TextLink from 'app/components/textLink';
+import recreateRoute from 'app/utils/recreateRoute';
+import withTeams from 'app/utils/withTeams';
 
 class TeamCrumb extends React.Component {
   static propTypes = {
@@ -32,12 +33,12 @@ class TeamCrumb extends React.Component {
               params: {...params, teamId: team.slug},
             })}
           >
-            <Flex align="center">#{team.slug}</Flex>
+            <IdBadge avatarSize={18} team={team} />
           </TextLink>
         }
         onSelect={item => {
           browserHistory.push(
-            recreateRoute(route, {
+            recreateRoute('', {
               routes,
               params: {...params, teamId: item.value},
             })
@@ -45,9 +46,13 @@ class TeamCrumb extends React.Component {
         }}
         hasMenu={hasMenu}
         route={route}
-        items={teams.map(({slug}) => ({
-          value: slug,
-          label: slug,
+        items={teams.map(teamItem => ({
+          value: teamItem.slug,
+          label: (
+            <MenuItem>
+              <IdBadge team={teamItem} />
+            </MenuItem>
+          ),
         }))}
         {...props}
       />

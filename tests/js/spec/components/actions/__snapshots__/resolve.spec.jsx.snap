@@ -94,6 +94,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
         <Confirm
           cancelText="Cancel"
           confirmText="Resolve"
+          disableConfirmButton={false}
           message="Are you sure???"
           onConfirm={[Function]}
           priority="primary"
@@ -105,7 +106,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
           >
              
             <span
-              className="icon-checkmark"
+              className="icon-checkmark hidden-xs"
               style={
                 Object {
                   "marginRight": 5,
@@ -116,13 +117,30 @@ exports[`ResolveActions with confirmation step renders 1`] = `
               target="resolve"
               type="text"
             >
-              <div
-                className="guide-anchor anchor-type-text"
+              <GuideAnchorContainer
+                innerRef={[Function]}
+                type="text"
               >
-                <span
-                  className="resolve guide-anchor-ping"
-                />
-              </div>
+                <div
+                  className="css-9u5for-GuideAnchorContainer e130o4350"
+                  type="text"
+                >
+                  <StyledGuideAnchor
+                    active={false}
+                    className="guide-anchor-ping resolve"
+                  >
+                    <div
+                      className="guide-anchor-ping resolve css-1yndvnf-StyledGuideAnchor e130o4351"
+                    >
+                      <StyledGuideAnchorRipples>
+                        <div
+                          className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
+                        />
+                      </StyledGuideAnchorRipples>
+                    </div>
+                  </StyledGuideAnchor>
+                </div>
+              </GuideAnchorContainer>
             </GuideAnchor>
             Resolve
           </a>
@@ -190,6 +208,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
         title=""
       >
         <DropdownMenu
+          alwaysRenderMenu={true}
           keepMenuOpen={false}
         >
           <span
@@ -213,6 +232,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
             <ul
               className="dropdown-menu"
               onClick={[Function]}
+              onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >
               <MenuItem
@@ -251,6 +271,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                       <Confirm
                         cancelText="Cancel"
                         confirmText="Resolve"
+                        disableConfirmButton={false}
                         message="Are you sure???"
                         onConfirm={[Function]}
                         priority="primary"
@@ -333,6 +354,7 @@ exports[`ResolveActions with confirmation step renders 1`] = `
                       <Confirm
                         cancelText="Cancel"
                         confirmText="Resolve"
+                        disableConfirmButton={false}
                         message="Are you sure???"
                         onConfirm={[Function]}
                         priority="primary"
@@ -526,7 +548,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
           onClick={[Function]}
         >
           <span
-            className="icon-checkmark"
+            className="icon-checkmark hidden-xs"
             style={
               Object {
                 "marginRight": 5,
@@ -537,13 +559,30 @@ exports[`ResolveActions without confirmation renders 1`] = `
             target="resolve"
             type="text"
           >
-            <div
-              className="guide-anchor anchor-type-text"
+            <GuideAnchorContainer
+              innerRef={[Function]}
+              type="text"
             >
-              <span
-                className="resolve guide-anchor-ping"
-              />
-            </div>
+              <div
+                className="css-9u5for-GuideAnchorContainer e130o4350"
+                type="text"
+              >
+                <StyledGuideAnchor
+                  active={false}
+                  className="guide-anchor-ping resolve"
+                >
+                  <div
+                    className="guide-anchor-ping resolve css-1yndvnf-StyledGuideAnchor e130o4351"
+                  >
+                    <StyledGuideAnchorRipples>
+                      <div
+                        className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
+                      />
+                    </StyledGuideAnchorRipples>
+                  </div>
+                </StyledGuideAnchor>
+              </div>
+            </GuideAnchorContainer>
           </GuideAnchor>
           Resolve
         </a>
@@ -558,6 +597,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
         title=""
       >
         <DropdownMenu
+          alwaysRenderMenu={true}
           keepMenuOpen={false}
         >
           <span
@@ -581,6 +621,7 @@ exports[`ResolveActions without confirmation renders 1`] = `
             <ul
               className="dropdown-menu"
               onClick={[Function]}
+              onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >
               <MenuItem

@@ -48,7 +48,7 @@ from sentry.utils.distutils import (
 )
 
 # The version of sentry
-VERSION = '8.23.0.dev0'
+VERSION = '9.1.0.dev0'
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
@@ -66,7 +66,7 @@ IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
 
 def get_requirements(env):
-    with open('requirements-{}.txt'.format(env)) as fp:
+    with open(u'requirements-{}.txt'.format(env)) as fp:
         return [x.strip() for x in fp.read().split('\n') if not x.startswith('#')]
 
 
@@ -74,6 +74,15 @@ install_requires = get_requirements('base')
 dev_requires = get_requirements('dev')
 tests_require = get_requirements('test')
 optional_requires = get_requirements('optional')
+
+# override django version in requirements file if DJANGO_VERSION is set
+DJANGO_VERSION = os.environ.get('DJANGO_VERSION')
+if DJANGO_VERSION:
+    install_requires = [
+        u'Django{}'.format(DJANGO_VERSION)
+        if r.startswith('Django>=') else r
+        for r in install_requires
+    ]
 
 
 class SentrySDistCommand(SDistCommand):
@@ -133,8 +142,6 @@ setup(
     entry_points={
         'console_scripts': [
             'sentry = sentry.runner:main',
-        ],
-        'flake8.extension': [
         ],
     },
     classifiers=[

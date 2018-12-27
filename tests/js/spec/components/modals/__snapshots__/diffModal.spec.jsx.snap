@@ -4,7 +4,6 @@ exports[`DiffModal renders 1`] = `
 <Body>
   <IssueDiffContainer
     Body={[Function]}
-    className="diff-modal"
   />
 </Body>
 `;

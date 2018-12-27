@@ -1,25 +1,18 @@
 import Reflux from 'reflux';
-import {toTitleCase} from '../utils';
+import {toTitleCase} from 'app/utils';
 
-import ProjectActions from '../actions/projectActions';
-import EnvironmentActions from '../actions/environmentActions';
+import ProjectActions from 'app/actions/projectActions';
+import EnvironmentActions from 'app/actions/environmentActions';
 
-import {setActiveEnvironment} from '../actionCreators/environments';
-
-const PRODUCTION_ENV_NAMES = new Set([
-  'production',
-  'prod',
-  'release',
-  'master',
-  'trunk',
-]);
+import {setActiveEnvironment} from 'app/actionCreators/environments';
+import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 
 const DEFAULT_EMPTY_ENV_NAME = '(No Environment)';
 const DEFAULT_EMPTY_ROUTING_NAME = 'none';
 
 const EnvironmentStore = Reflux.createStore({
   init() {
-    this.items = null;
+    this.items = [];
     this.hidden = null;
     this.defaultEnvironment = null;
     this.listenTo(EnvironmentActions.loadData, this.loadInitialData);
@@ -31,7 +24,12 @@ const EnvironmentStore = Reflux.createStore({
   loadInitialData(items, activeEnvironmentName) {
     this.loadActiveData(items);
     // Update the default environment in the latest context store
-    const activeEnvironment = this.getByName(activeEnvironmentName) || this.getDefault();
+    // The active environment will be null (aka All Environments) if the name matches
+    // ALL_ENVIRONMENTS_KEY otherwise find the environment matching the name provided
+    let activeEnvironment = null;
+    if (activeEnvironmentName !== ALL_ENVIRONMENTS_KEY) {
+      activeEnvironment = this.getByName(activeEnvironmentName) || this.getDefault();
+    }
     setActiveEnvironment(activeEnvironment);
   },
 
@@ -59,7 +57,7 @@ const EnvironmentStore = Reflux.createStore({
   },
 
   getByName(name) {
-    const envs = this.items || [];
+    const envs = this.items;
     return envs.find(item => item.name === name) || null;
   },
 
@@ -80,13 +78,11 @@ const EnvironmentStore = Reflux.createStore({
   // Default environment is either the first based on the set of common names
   // or the first in the environment list if none match
   getDefault() {
-    let allEnvs = this.items || [];
+    let allEnvs = this.items;
 
     let defaultEnv = allEnvs.find(e => e.name === this.defaultEnvironment);
 
-    let prodEnvs = allEnvs.filter(e => PRODUCTION_ENV_NAMES.has(e.name));
-
-    return defaultEnv || (prodEnvs.length && prodEnvs[0]) || null;
+    return defaultEnv || null;
   },
 });
 

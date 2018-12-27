@@ -2,10 +2,10 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import DynamicWrapper from 'sentry-ui/dynamicWrapper';
+import DynamicWrapper from 'app/components/dynamicWrapper';
 
-storiesOf('DynamicWrapper', module).add(
-  'default',
+storiesOf('Utility|DynamicWrapper', module).add(
+  'DynamicWrapper',
   withInfo(
     `
     Use this to wrap dynamic content (i.e. dates) for acceptance/snapshot tests.

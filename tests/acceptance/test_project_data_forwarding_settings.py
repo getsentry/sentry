@@ -25,7 +25,7 @@ class ProjectDataForwardingSettingsTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.path = '/{}/{}/settings/data-forwarding/'.format(self.org.slug, self.project.slug)
+        self.path = u'/{}/{}/settings/data-forwarding/'.format(self.org.slug, self.project.slug)
 
     def test_simple(self):
         self.browser.get(self.path)

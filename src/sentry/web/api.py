@@ -1,8 +1,11 @@
 from __future__ import absolute_import, print_function
 
 import base64
+import math
+
 import jsonschema
 import logging
+import os
 import six
 import traceback
 import uuid
@@ -13,7 +16,9 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.urlresolvers import reverse
+from django.core.files import uploadhandler
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed
+from django.http.multipartparser import MultiPartParser
 from django.utils.encoding import force_bytes
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
@@ -21,8 +26,10 @@ from django.views.generic.base import View as BaseView
 from functools import wraps
 from querystring_parser import parser
 from raven.contrib.django.models import client as Raven
+from symbolic import ProcessMinidumpError
 
-from sentry import quotas, tsdb
+from sentry import features, quotas, tsdb
+from sentry.attachments import CachedAttachment
 from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, SecurityApiHelper, LazyData,
     MinidumpApiHelper,
@@ -54,6 +61,7 @@ logger = logging.getLogger('sentry')
 PIXEL = base64.b64decode('R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
 
 PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5', '6', '7'))
+
 
 pubsub = QueuedPublisher(
     RedisPublisher(getattr(settings, 'REQUESTS_PUBSUB_CONNECTION', None))
@@ -134,7 +142,7 @@ class APIView(BaseView):
             response['X-Sentry-Error'] = context['error']
 
             if isinstance(e, APIRateLimited) and e.retry_after is not None:
-                response['Retry-After'] = six.text_type(e.retry_after)
+                response['Retry-After'] = six.text_type(int(math.ceil(e.retry_after)))
 
         except Exception as e:
             # TODO(dcramer): test failures are not outputting the log message
@@ -226,27 +234,6 @@ class APIView(BaseView):
             # implicitly fetched from database.
             project.organization = Organization.objects.get_from_cache(
                 id=project.organization_id)
-
-            if auth.version != '2.0':
-                if not auth.secret_key:
-                    # If we're missing a secret_key, check if we are allowed
-                    # to do a CORS request.
-
-                    # If we're missing an Origin/Referrer header entirely,
-                    # we only want to support this on GET requests. By allowing
-                    # un-authenticated CORS checks for POST, we basially
-                    # are obsoleting our need for a secret key entirely.
-                    if origin is None and request.method != 'GET':
-                        raise APIForbidden(
-                            'Missing required attribute in authentication header: sentry_secret'
-                        )
-
-                    if not is_valid_origin(origin, project):
-                        if project:
-                            tsdb.incr(
-                                tsdb.models.project_total_received_cors, project.id)
-                        raise APIForbidden(
-                            'Missing required Origin or Referer header')
 
             response = super(APIView, self).dispatch(
                 request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
@@ -342,7 +329,7 @@ class StoreView(APIView):
             response['X-Sentry-ID'] = response_or_event_id
         return response
 
-    def process(self, request, project, key, auth, helper, data, **kwargs):
+    def process(self, request, project, key, auth, helper, data, attachments=None, **kwargs):
         metrics.incr('events.total')
 
         if not data:
@@ -399,7 +386,7 @@ class StoreView(APIView):
                 project=project,
                 sender=type(self),
             )
-            raise APIForbidden('Event dropped due to filter')
+            raise APIForbidden('Event dropped due to filter: %s' % (filter_reason,))
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
         rate_limit = safe_execute(
@@ -498,7 +485,7 @@ class StoreView(APIView):
             helper.ensure_does_not_have_ip(data)
 
         # mutates data (strips a lot of context if not queued)
-        helper.insert_data_to_database(data, start_time=start_time)
+        helper.insert_data_to_database(data, start_time=start_time, attachments=attachments)
 
         cache.set(cache_key, '', 60 * 5)
 
@@ -557,7 +544,7 @@ class MinidumpView(StoreView):
             request=request, project=project, auth=auth, helper=helper, key=key, **kwargs
         )
 
-    def post(self, request, **kwargs):
+    def post(self, request, project, **kwargs):
         # Minidump request payloads do not have the same structure as
         # usual events from other SDKs. Most notably, the event needs
         # to be transfered in the `sentry` form field. All other form
@@ -581,7 +568,12 @@ class MinidumpView(StoreView):
         # data from the event payload and set defaults for processing.
         extra.update(data.get('extra', {}))
         data['extra'] = extra
-        data['platform'] = 'native'
+
+        # Assign our own UUID so we can track this minidump. We cannot trust the
+        # uploaded filename, and if reading the minidump fails there is no way
+        # we can ever retrieve the original UUID from the minidump.
+        event_id = data.get('event_id') or uuid.uuid4().hex
+        data['event_id'] = event_id
 
         # At this point, we only extract the bare minimum information
         # needed to continue processing. This requires to process the
@@ -593,8 +585,77 @@ class MinidumpView(StoreView):
         except KeyError:
             raise APIError('Missing minidump upload')
 
-        merge_minidump_event(data, minidump)
-        response_or_event_id = self.process(request, data=data, **kwargs)
+        # Breakpad on linux sometimes stores the entire HTTP request body as
+        # dump file instead of just the minidump. The Electron SDK then for
+        # example uploads a multipart formdata body inside the minidump file.
+        # It needs to be re-parsed, to extract the actual minidump before
+        # continuing.
+        minidump.seek(0)
+        if minidump.read(2) == b'--':
+            # The remaining bytes of the first line are the form boundary. We
+            # have already read two bytes, the remainder is the form boundary
+            # (excluding the initial '--').
+            boundary = minidump.readline().rstrip()
+            minidump.seek(0)
+
+            # Next, we have to fake a HTTP request by specifying the form
+            # boundary and the content length, or otherwise Django will not try
+            # to parse our form body. Also, we need to supply new upload
+            # handlers since they cannot be reused from the current request.
+            meta = {
+                'CONTENT_TYPE': b'multipart/form-data; boundary=%s' % boundary,
+                'CONTENT_LENGTH': minidump.size,
+            }
+            handlers = [
+                uploadhandler.load_handler(handler, request)
+                for handler in settings.FILE_UPLOAD_HANDLERS
+            ]
+
+            _, files = MultiPartParser(meta, minidump, handlers).parse()
+            try:
+                minidump = files['upload_file_minidump']
+            except KeyError:
+                raise APIError('Missing minidump upload')
+
+        if minidump.size == 0:
+            raise APIError('Empty minidump upload received')
+
+        if settings.SENTRY_MINIDUMP_CACHE:
+            if not os.path.exists(settings.SENTRY_MINIDUMP_PATH):
+                os.mkdir(settings.SENTRY_MINIDUMP_PATH, 0o744)
+
+            with open('%s/%s.dmp' % (settings.SENTRY_MINIDUMP_PATH, event_id), 'wb') as out:
+                for chunk in minidump.chunks():
+                    out.write(chunk)
+
+        # Always store the minidump in attachments so we can access it during
+        # processing, regardless of the event-attachments feature. This will
+        # allow us to stack walk again with CFI once symbols are loaded.
+        attachments = []
+        minidump.seek(0)
+        attachments.append(CachedAttachment.from_upload(minidump, type='event.minidump'))
+
+        # Append all other files as generic attachments. We can skip this if the
+        # feature is disabled since they won't be saved.
+        if features.has('organizations:event-attachments',
+                        project.organization, actor=request.user):
+            for name, file in six.iteritems(request.FILES):
+                if name != 'upload_file_minidump':
+                    attachments.append(CachedAttachment.from_upload(file))
+
+        try:
+            merge_minidump_event(data, minidump)
+        except ProcessMinidumpError as e:
+            logger.exception(e)
+            raise APIError(e.message.split('\n', 1)[0])
+
+        response_or_event_id = self.process(
+            request,
+            attachments=attachments,
+            data=data,
+            project=project,
+            **kwargs)
+
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
 
@@ -688,13 +749,14 @@ class SecurityReportView(StoreView):
         )
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
-        return HttpResponse(status=201)
+        return HttpResponse(content_type='application/javascript', status=201)
 
     def security_report_type(self, body):
         report_type_for_key = {
             'csp-report': 'sentry.interfaces.Csp',
             'expect-ct-report': 'expectct',
             'expect-staple-report': 'expectstaple',
+            'known-pins': 'hpkp',
         }
         if isinstance(body, dict):
             for k in report_type_for_key:

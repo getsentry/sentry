@@ -146,164 +146,192 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
               <div
                 className="platform-picker"
               >
-                <ul
-                  className="nav nav-tabs"
-                >
-                  <li
-                    style={
-                      Object {
-                        "float": "right",
-                        "marginRight": 0,
+                <NavTabs>
+                  <ul
+                    className="nav nav-tabs"
+                  >
+                    <li
+                      style={
+                        Object {
+                          "float": "right",
+                          "marginRight": 0,
+                        }
                       }
-                    }
-                  >
-                    <div
-                      className="platform-filter-container"
                     >
-                      <span
-                        className="icon icon-search"
-                      />
-                      <input
-                        className="platform-filter"
-                        label="Filter"
-                        onChange={[Function]}
-                        placeholder="Filter"
-                        type="text"
-                        value=""
-                      />
-                    </div>
-                  </li>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    key="popular"
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className="active"
-                    >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <div
+                        className="platform-filter-container"
                       >
-                        <a
-                          onClick={[Function]}
-                          style={Object {}}
-                        >
-                          Popular
-                        </a>
-                      </Link>
+                        <span
+                          className="icon icon-search"
+                        />
+                        <input
+                          className="platform-filter"
+                          label="Filter"
+                          onChange={[Function]}
+                          placeholder="Filter"
+                          type="text"
+                          value=""
+                        />
+                      </div>
                     </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    key="frontend"
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="popular"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className="active"
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          Frontend
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    key="mobile"
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Popular
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="browser"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className=""
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          Mobile
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    key="backend"
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Browser
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="server"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className=""
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          Backend
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    key="all"
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Server
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="mobile"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className=""
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          All
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                </ul>
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Mobile
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="desktop"
+                      onClick={[Function]}
+                      to=""
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onClick={[Function]}
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to=""
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Desktop
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="all"
+                      onClick={[Function]}
+                      to=""
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onClick={[Function]}
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to=""
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            All
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                  </ul>
+                </NavTabs>
                 <ul
                   className="client-platform-list platform-tiles"
                 >
@@ -324,7 +352,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled csharp csharp "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-csharp"
@@ -355,7 +382,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled java java "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-java"
@@ -386,7 +412,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-angular javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-angular"
@@ -417,7 +442,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript"
@@ -448,7 +472,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-react javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-react"
@@ -479,7 +502,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled node-express node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node-express"
@@ -510,7 +532,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled node node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node"
@@ -541,7 +562,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled php-laravel php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-laravel"
@@ -572,7 +592,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled php php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php"
@@ -603,7 +622,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled php-symfony2 php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-symfony2"
@@ -634,7 +652,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled python-django python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-django"
@@ -665,7 +682,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled python-flask python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-flask"
@@ -696,7 +712,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled python python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python"
@@ -727,7 +742,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled cocoa cocoa "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-cocoa"
@@ -758,7 +772,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby-rails ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby-rails"
@@ -789,7 +802,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby"
@@ -849,7 +861,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                 </button>
               </div>
               <p>
-                Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+                Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
               </p>
             </div>
           </div>
@@ -966,6 +978,12 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   "csharp",
                 ],
               ],
+              "results": Array [
+                Object {
+                  "isThrow": false,
+                  "value": undefined,
+                },
+              ],
             }
           }
           setTeam={[Function]}
@@ -990,6 +1008,12 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       "csharp",
                     ],
                   ],
+                  "results": Array [
+                    Object {
+                      "isThrow": false,
+                      "value": undefined,
+                    },
+                  ],
                 }
               }
               setTeam={[Function]}
@@ -1000,164 +1024,192 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
               <div
                 className="platform-picker"
               >
-                <ul
-                  className="nav nav-tabs"
-                >
-                  <li
-                    style={
-                      Object {
-                        "float": "right",
-                        "marginRight": 0,
+                <NavTabs>
+                  <ul
+                    className="nav nav-tabs"
+                  >
+                    <li
+                      style={
+                        Object {
+                          "float": "right",
+                          "marginRight": 0,
+                        }
                       }
-                    }
-                  >
-                    <div
-                      className="platform-filter-container"
                     >
-                      <span
-                        className="icon icon-search"
-                      />
-                      <input
-                        className="platform-filter"
-                        label="Filter"
-                        onChange={[Function]}
-                        placeholder="Filter"
-                        type="text"
-                        value=""
-                      />
-                    </div>
-                  </li>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    key="popular"
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className="active"
-                    >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <div
+                        className="platform-filter-container"
                       >
-                        <a
-                          onClick={[Function]}
-                          style={Object {}}
-                        >
-                          Popular
-                        </a>
-                      </Link>
+                        <span
+                          className="icon icon-search"
+                        />
+                        <input
+                          className="platform-filter"
+                          label="Filter"
+                          onChange={[Function]}
+                          placeholder="Filter"
+                          type="text"
+                          value=""
+                        />
+                      </div>
                     </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    key="frontend"
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="popular"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className="active"
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          Frontend
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    key="mobile"
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Popular
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="browser"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className=""
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          Mobile
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    key="backend"
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Browser
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="server"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className=""
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          Backend
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    key="all"
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Server
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="mobile"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className=""
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          All
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                </ul>
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Mobile
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="desktop"
+                      onClick={[Function]}
+                      to=""
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onClick={[Function]}
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to=""
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Desktop
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="all"
+                      onClick={[Function]}
+                      to=""
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onClick={[Function]}
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to=""
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            All
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                  </ul>
+                </NavTabs>
                 <ul
                   className="client-platform-list platform-tiles"
                 >
@@ -1178,7 +1230,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled csharp csharp "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-csharp"
@@ -1209,7 +1260,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled java java "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-java"
@@ -1240,7 +1290,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-angular javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-angular"
@@ -1271,7 +1320,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript"
@@ -1302,7 +1350,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-react javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-react"
@@ -1333,7 +1380,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled node-express node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node-express"
@@ -1364,7 +1410,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled node node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node"
@@ -1395,7 +1440,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled php-laravel php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-laravel"
@@ -1426,7 +1470,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled php php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php"
@@ -1457,7 +1500,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled php-symfony2 php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-symfony2"
@@ -1488,7 +1530,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled python-django python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-django"
@@ -1519,7 +1560,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled python-flask python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-flask"
@@ -1550,7 +1590,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled python python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python"
@@ -1581,7 +1620,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled cocoa cocoa "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-cocoa"
@@ -1612,7 +1650,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby-rails ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby-rails"
@@ -1643,7 +1680,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby"
@@ -1703,7 +1739,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                 </button>
               </div>
               <p>
-                Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+                Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
               </p>
             </div>
           </div>

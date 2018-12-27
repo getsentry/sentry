@@ -124,7 +124,7 @@ class DSymFilesUploadTest(APITestCase):
         assert vdf.version == '1.0'
         assert vdf.build == '1'
         assert vdf.dsym_app.app_id == 'com.example.myapp'
-        assert vdf.dsym_file.uuid == PROGUARD_UUID
+        assert vdf.dsym_file.debug_id == PROGUARD_UUID
 
     def test_associate_proguard_dsym_no_build(self):
         project = self.create_project(name='foo')
@@ -190,7 +190,7 @@ class DSymFilesUploadTest(APITestCase):
         assert vdf.version == '1.0'
         assert vdf.build is None
         assert vdf.dsym_app.app_id == 'com.example.myapp'
-        assert vdf.dsym_file.uuid == PROGUARD_UUID
+        assert vdf.dsym_file.debug_id == PROGUARD_UUID
 
     def test_dsyms_requests(self):
         project = self.create_project(name='foo')

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import {selectText} from '../utils/selectText';
+import {selectText} from 'app/utils/selectText';
 
 class AutoSelectText extends React.Component {
   static propTypes = {
@@ -36,9 +36,13 @@ class AutoSelectText extends React.Component {
       });
     }
 
+    // use an inner span here for the selection as otherwise the selectText
+    // function will create a range that includes the entire part of the
+    // div (including the div itself) which causes newlines to be selected
+    // in chrome.
     return (
-      <div {...props} ref={this.handleMount} onClick={this.selectText}>
-        {children}
+      <div {...props} onClick={this.selectText} className="auto-select-text">
+        <span ref={this.handleMount}>{children}</span>
       </div>
     );
   }

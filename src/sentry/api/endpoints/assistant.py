@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from copy import deepcopy
+
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from django.utils import timezone
@@ -8,37 +10,43 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.assistant.guides import GUIDES
 from sentry.models import AssistantActivity
+from sentry.assistant import manager
 
-
-VALID_GUIDE_IDS = frozenset(v['id'] for v in GUIDES.values())
 VALID_STATUSES = frozenset(('viewed', 'dismissed'))
 
 
 class AssistantSerializer(serializers.Serializer):
-    guide_id = serializers.ChoiceField(
-        choices=zip(VALID_GUIDE_IDS, VALID_GUIDE_IDS),
-        required=True,
-    )
+    guide_id = serializers.IntegerField(required=True)
     status = serializers.ChoiceField(
         choices=zip(VALID_STATUSES, VALID_STATUSES),
         required=True,
     )
     useful = serializers.BooleanField()
 
+    def validate_guide_id(self, attrs, source):
+        value = attrs[source]
+        valid_ids = manager.get_valid_ids()
+
+        if not value:
+            raise serializers.ValidationError('Assistant guide id is required')
+        if value not in valid_ids:
+            raise serializers.ValidationError('Not a valid assistant guide id')
+        return attrs
+
 
 class AssistantEndpoint(Endpoint):
     permission_classes = (IsAuthenticated, )
 
     def get(self, request):
-        """Return all the guides the user has not viewed or dismissed."""
-        exclude_ids = set(AssistantActivity.objects.filter(
+        """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
+        guides = deepcopy(manager.all())
+        seen_ids = set(AssistantActivity.objects.filter(
             user=request.user,
         ).values_list('guide_id', flat=True))
-        result = {k: v for k, v in GUIDES.items() if v['id'] not in exclude_ids}
-
-        return Response(result)
+        for k, v in guides.items():
+            v['seen'] = v['id'] in seen_ids
+        return Response(guides)
 
     def put(self, request):
         """Mark a guide as viewed or dismissed.

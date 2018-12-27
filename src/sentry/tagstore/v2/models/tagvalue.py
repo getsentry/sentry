@@ -9,7 +9,7 @@ from __future__ import absolute_import, print_function
 
 import six
 
-from django.db import models
+from django.db import models, router, connections
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register
@@ -39,14 +39,25 @@ class TagValue(Model):
     first_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
 
-    objects = TagStoreManager(select_related=('_key',))
+    objects = TagStoreManager()
 
     class Meta:
         app_label = 'tagstore'
         unique_together = (('project_id', '_key', 'value'), )
         index_together = (('project_id', '_key', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', '_key', 'value')
+    __repr__ = sane_repr('project_id', '_key_id', 'value')
+
+    def delete(self):
+        using = router.db_for_read(TagValue)
+        cursor = connections[using].cursor()
+        cursor.execute(
+            """
+            DELETE FROM tagstore_tagvalue
+            WHERE project_id = %s
+              AND id = %s
+        """, [self.project_id, self.id]
+        )
 
     @property
     def key(self):
@@ -98,6 +109,38 @@ class TagValue(Model):
             cache.set(cache_key, rv, 3600)
 
         return rv, created
+
+    @classmethod
+    def get_or_create_bulk(cls, project_id, tags):
+        # Attempt to create a bunch of models in one big batch with as few
+        # queries and cache calls as possible.
+        # In best case, this is all done in 1 cache get.
+        # If we miss cache hit here, we have to fall back to old behavior.
+        key_to_model = {tag: None for tag in tags}
+        tags_by_key_id = {tag[0].id: tag for tag in tags}
+        remaining_keys = set(tags)
+
+        # First attempt to hit from cache, which in theory is the hot case
+        cache_key_to_key = {cls.get_cache_key(project_id, tk.id, v): (tk, v) for tk, v in tags}
+        cache_key_to_models = cache.get_many(cache_key_to_key.keys())
+        for model in cache_key_to_models.values():
+            key_to_model[tags_by_key_id[model._key_id]] = model
+            remaining_keys.remove(tags_by_key_id[model._key_id])
+
+        if not remaining_keys:
+            # 100% cache hit on all items, good work team
+            return key_to_model
+
+        # Fall back to just doing it manually
+        # Further optimizations start to become not so great.
+        # For some reason, when trying to do a bulk SELECT with all of the
+        # key value pairs in big OR ends up using the wrong index and ultimating
+        # generating a significantly less efficient query. The only alternative is to
+        # splice this up a bit and do all of the SELECTs, then do a bulk INSERT for remaining
+        for key in remaining_keys:
+            key_to_model[key] = cls.get_or_create(project_id, key[0].id, key[1])[0]
+
+        return key_to_model
 
 
 @register(TagValue)

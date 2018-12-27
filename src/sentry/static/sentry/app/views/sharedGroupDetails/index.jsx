@@ -3,15 +3,15 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
 
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import EventEntries from '../../components/events/eventEntries';
-import Footer from '../../components/footer';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import NotFound from '../../components/errors/notFound';
-import SentryTypes from '../../proptypes';
-import SharedGroupHeader from './sharedGroupHeader';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import EventEntries from 'app/components/events/eventEntries';
+import Footer from 'app/components/footer';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import NotFound from 'app/components/errors/notFound';
+import SentryTypes from 'app/sentryTypes';
+import SharedGroupHeader from 'app/views/sharedGroupDetails/sharedGroupHeader';
 
 const SharedGroupDetails = createReactClass({
   displayName: 'SharedGroupDetails',

@@ -30,7 +30,7 @@ class ReactPageViewTest(TestCase):
         resp = self.client.get(path)
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver{}'.format(
+        assert resp['Location'] == u'http://testserver{}'.format(
             reverse('sentry-auth-organization', args=[org.slug]),
         )
 
@@ -40,7 +40,7 @@ class ReactPageViewTest(TestCase):
         resp = self.client.get(path)
 
         assert resp.status_code == 302
-        assert resp['Location'] != 'http://testserver{}'.format(
+        assert resp['Location'] != u'http://testserver{}'.format(
             reverse('sentry-auth-organization', args=[org.slug]),
         )
 

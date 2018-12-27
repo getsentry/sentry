@@ -1,27 +1,26 @@
+import {Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
-import {t} from '../../locale';
-import Checkbox from '../../components/checkbox';
-import ExternalLink from '../../components/externalLink';
-import PluginIcon from '../../plugins/components/pluginIcon';
-import SentryTypes from '../../proptypes';
-import DynamicWrapper from '../../components/dynamicWrapper';
+import {t} from 'app/locale';
+import DynamicWrapper from 'app/components/dynamicWrapper';
+import ExternalLink from 'app/components/externalLink';
+import Feature from 'app/components/feature';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import SentryTypes from 'app/sentryTypes';
+import Switch from 'app/components/switch';
+import recreateRoute from 'app/utils/recreateRoute';
 
-const StyledPluginIcon = styled(PluginIcon)`
-  position: absolute;
-  top: 15px;
-  left: 16px;
+const grayText = css`
+  color: #979ba0;
 `;
 
 class ProjectPluginRow extends React.PureComponent {
   static propTypes = {
     ...SentryTypes.Plugin,
     onChange: PropTypes.func,
-    orgId: PropTypes.string,
-    projectId: PropTypes.string,
   };
 
   handleChange = () => {
@@ -31,8 +30,6 @@ class ProjectPluginRow extends React.PureComponent {
 
   render() {
     let {
-      orgId,
-      projectId,
       id,
       name,
       slug,
@@ -40,38 +37,79 @@ class ProjectPluginRow extends React.PureComponent {
       author,
       hasConfiguration,
       enabled,
+      canDisable,
     } = this.props;
 
+    let configureUrl = recreateRoute(id, this.props);
     return (
-      <tr key={id} className={slug}>
-        <td colSpan={2}>
-          <StyledPluginIcon size={48} pluginId={id} />
-          <h5>
-            {`${name} `}
-            <DynamicWrapper
-              value={<span>{version ? `v${version}` : <em>{t('n/a')}</em>}</span>}
-              fixed={<span>v10</span>}
-            />
-          </h5>
-          <p>
-            {author && <ExternalLink href={author.url}>{author.name}</ExternalLink>}
-            {hasConfiguration && (
-              <span>
-                {' '}
-                &middot;{' '}
-                <Link to={`/${orgId}/${projectId}/settings/plugins/${id}/`}>
-                  {t('Configure plugin')}
-                </Link>
-              </span>
-            )}
-          </p>
-        </td>
-        <td className="align-right">
-          <Checkbox name={slug} checked={enabled} onChange={this.handleChange} />
-        </td>
-      </tr>
+      <Feature access={['project:write']}>
+        {({hasAccess}) => {
+          const LinkOrSpan = hasAccess ? Link : 'span';
+
+          return (
+            <Flex key={id} className={slug} flex="1" align="center">
+              <PluginInfo>
+                <StyledPluginIcon size={48} pluginId={id} />
+                <Flex justify="center" direction="column">
+                  <PluginName>
+                    {`${name} `}
+                    <DynamicWrapper
+                      value={
+                        <Version>{version ? `v${version}` : <em>{t('n/a')}</em>}</Version>
+                      }
+                      fixed={<Version>v10</Version>}
+                    />
+                  </PluginName>
+                  <div>
+                    {author && (
+                      <ExternalLink css={grayText} href={author.url}>
+                        {author.name}
+                      </ExternalLink>
+                    )}
+                    {hasConfiguration && (
+                      <span>
+                        {' '}
+                        &middot;{' '}
+                        <LinkOrSpan css={grayText} to={configureUrl}>
+                          {t('Configure plugin')}
+                        </LinkOrSpan>
+                      </span>
+                    )}
+                  </div>
+                </Flex>
+              </PluginInfo>
+              <Switch
+                size="lg"
+                isDisabled={!hasAccess || !canDisable}
+                isActive={enabled}
+                toggle={this.handleChange}
+              />
+            </Flex>
+          );
+        }}
+      </Feature>
     );
   }
 }
 
 export default ProjectPluginRow;
+
+// Includes icon, name, version, configure link
+const PluginInfo = styled.div`
+  display: flex;
+  flex: 1;
+  line-height: 24px;
+`;
+
+const PluginName = styled.div`
+  font-size: 16px;
+`;
+
+const StyledPluginIcon = styled(PluginIcon)`
+  margin-right: 16px;
+`;
+
+// Keeping these colors the same from old integrations page
+const Version = styled.span`
+  color: #babec2;
+`;

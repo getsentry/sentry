@@ -1,4 +1,4 @@
-import MemberActions from '../actions/memberActions';
+import MemberActions from 'app/actions/memberActions';
 
 export function updateMember(api, params) {
   MemberActions.update(params.memberId, params.data);

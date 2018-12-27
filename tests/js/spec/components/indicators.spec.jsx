@@ -1,7 +1,6 @@
 import React from 'react';
-import {ThemeProvider} from 'emotion-theming';
 import {mount} from 'enzyme';
-import theme from 'app/utils/theme';
+
 import Indicators from 'app/components/indicators';
 import IndicatorStore from 'app/stores/indicatorStore';
 import {
@@ -17,11 +16,7 @@ jest.useFakeTimers();
 describe('Indicators', function() {
   let wrapper;
   beforeEach(function() {
-    wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <Indicators />
-      </ThemeProvider>
-    );
+    wrapper = mount(<Indicators />, TestStubs.routerContext());
 
     clearIndicators();
     jest.runAllTimers();

@@ -1,5 +1,6 @@
-import {Client} from '../api';
-import GuideActions from '../actions/guideActions';
+import {Client} from 'app/api';
+import GuideActions from 'app/actions/guideActions';
+import analytics from 'app/utils/analytics';
 
 const api = new Client();
 
@@ -28,7 +29,7 @@ export function closeGuide() {
   GuideActions.closeGuide();
 }
 
-export function markUseful(guideId, useful) {
+export function recordFinish(guideId, useful) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {
@@ -37,14 +38,22 @@ export function markUseful(guideId, useful) {
       useful,
     },
   });
+  analytics('assistant.guide_finished', {
+    guide: guideId,
+    useful,
+  });
 }
 
-export function dismiss(guideId) {
+export function recordDismiss(guideId, step) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {
       guide_id: guideId,
       status: 'dismissed',
     },
+  });
+  analytics('assistant.guide_dismissed', {
+    guide: guideId,
+    step,
   });
 }

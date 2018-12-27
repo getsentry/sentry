@@ -3,7 +3,7 @@ import {mount} from 'enzyme';
 import SuggestedOwners from 'app/components/group/suggestedOwners';
 import MemberListStore from 'app/stores/memberListStore';
 import {Client} from 'app/api';
-import SentryTypes from 'app/proptypes';
+import SentryTypes from 'app/sentryTypes';
 
 describe('SuggestedOwners', function() {
   let sandbox;
@@ -55,7 +55,7 @@ describe('SuggestedOwners', function() {
       );
 
       wrapper.setContext({
-        organization: {id: '1', features: new Set(['internal-catchall'])},
+        organization: {id: '1', features: new Set(['code-owners'])},
       });
 
       expect(wrapper).toMatchSnapshot();

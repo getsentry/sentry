@@ -17,12 +17,10 @@ class UserReportSerializer(Serializer):
 
         # If a event list with multiple project IDs is passed to this and event IDs are not unique
         # this could return the wrong eventIDs
-        events_list = Event.objects.filter(
+        events_dict = dict(Event.objects.filter(
             project_id__in={i.project_id for i in item_list},
             event_id__in=[i.event_id for i in item_list]
-        ).values('id', 'event_id')
-
-        events_dict = {e['event_id']: e['id'] for e in events_list}
+        ).values_list('id', 'event_id'))
 
         attrs = {}
         for item in item_list:

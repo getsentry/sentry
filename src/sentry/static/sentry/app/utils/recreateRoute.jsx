@@ -1,6 +1,6 @@
 import {findLastIndex} from 'lodash';
 
-import replaceRouterParams from './replaceRouterParams';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 // Given a route object or a string and a list of routes + params from router, this will attempt to
 // recreate a location string while replacing url params.
@@ -8,7 +8,7 @@ import replaceRouterParams from './replaceRouterParams';
 // Can additionally specify the number of routes to move back
 //
 // See tests for examples
-export default function recreateRoute(to, {routes, params, stepBack}) {
+export default function recreateRoute(to, {routes, params, location, stepBack}) {
   let paths = routes.map(({path}) => path || '');
   let lastRootIndex = findLastIndex(paths, path => path[0] === '/');
   let routeIndex;
@@ -19,11 +19,15 @@ export default function recreateRoute(to, {routes, params, stepBack}) {
 
   let baseRoute = paths.slice(lastRootIndex, routeIndex);
 
-  if (typeof stepBack !== 'undefined') {
+  if (stepBack >= 0) {
+    throw new Error('`stepBack` needs to be < 0');
+  } else if (typeof stepBack !== 'undefined') {
     baseRoute = baseRoute.slice(0, stepBack);
   }
 
-  let fullRoute = `${baseRoute.join('')}${routeToRoute ? '' : to}`;
+  let query = typeof location !== 'undefined' && location.search ? location.search : '';
+
+  let fullRoute = `${baseRoute.join('')}${routeToRoute ? '' : to}${query}`;
 
   return replaceRouterParams(fullRoute, params);
 }

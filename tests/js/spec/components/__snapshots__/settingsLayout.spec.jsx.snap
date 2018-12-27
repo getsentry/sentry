@@ -1,13 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`SettingsLayout renders 1`] = `
-<div>
+<Fragment>
   <SettingsHeader>
     <SettingsSubheader>
       <Container>
-        <withOrganizations>
-          Back to Project
-        </withOrganizations>
+        <withOrganizations(withLatestContext(BackButton)) />
       </Container>
     </SettingsSubheader>
     <Container>
@@ -18,19 +16,22 @@ exports[`SettingsLayout renders 1`] = `
         <Box
           flex="1"
         >
-          <SettingsBreadcrumb
+          <ConnectedSettingsBreadcrumb
             route={Object {}}
             routes={Array []}
           />
         </Box>
-        <withRouter(SettingsSearchContainer) />
+        <SettingsSearch
+          routes={Array []}
+        />
       </Flex>
     </Container>
   </SettingsHeader>
-  <Container>
-    <Content>
-      <NewSettingsWarning />
-    </Content>
-  </Container>
-</div>
+  <ContentContainerWrapper>
+    <Container>
+      <Content />
+    </Container>
+  </ContentContainerWrapper>
+  <Footer />
+</Fragment>
 `;

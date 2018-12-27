@@ -4,17 +4,15 @@ import ReactDOMServer from 'react-dom/server';
 import createReactClass from 'create-react-class';
 import moment from 'moment';
 
-import {intcomma} from '../../../../utils';
-import {t, tn} from '../../../../locale';
-import ApiMixin from '../../../../mixins/apiMixin';
-import EmptyMessage from '../../../settings/components/emptyMessage';
-import LoadingError from '../../../../components/loadingError';
-import LoadingIndicator from '../../../../components/loadingIndicator';
-import Panel from '../../../settings/components/panel';
-import PanelBody from '../../../settings/components/panelBody';
-import PanelHeader from '../../../settings/components/panelHeader';
-import StackedBarChart from '../../../../components/stackedBarChart';
-import TextBlock from '../../../settings/components/text/textBlock';
+import {intcomma} from 'app/utils';
+import {t, tn} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import StackedBarChart from 'app/components/stackedBarChart';
+import TextBlock from 'app/views/settings/components/text/textBlock';
 
 const noMarginBottom = {marginBottom: 0};
 
@@ -178,6 +176,7 @@ const ProjectFiltersChart = createReactClass({
     let isLoading = loading || !this.state.formattedData;
     let hasError = !isLoading && error;
     let hasLoaded = !isLoading && !error;
+    let classes = Object.keys(this.getStatOpts());
 
     return (
       <Panel>
@@ -191,9 +190,10 @@ const ProjectFiltersChart = createReactClass({
               <StackedBarChart
                 series={this.state.formattedData}
                 label="events"
-                barClasses={Object.keys(this.getStatOpts())}
+                barClasses={classes}
                 className="standard-barchart filtered-stats-barchart"
                 tooltip={this.renderTooltip}
+                minHeights={classes.map(p => p == 'legacy-browsers' ? 1 : 0)}
               />
             )}
           {hasLoaded &&

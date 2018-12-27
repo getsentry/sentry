@@ -2,8 +2,9 @@ from __future__ import absolute_import
 
 from django.db.models.signals import post_save
 
+from sentry import analytics
 from sentry.adoption import manager
-from sentry.models import FeatureAdoption, GroupTombstone
+from sentry.models import FeatureAdoption, GroupTombstone, Organization
 from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_DATA
@@ -22,6 +23,17 @@ from sentry.signals import (
     inbound_filter_toggled,
     sso_enabled,
     data_scrubber_enabled,
+    repo_linked,
+    release_created,
+    deploy_created,
+    resolved_with_commit,
+    ownership_rule_created,
+    issue_ignored,
+    team_created,
+    issue_deleted,
+    integration_added,
+    integration_issue_created,
+    integration_issue_linked,
 )
 from sentry.utils.javascript import has_sourcemap
 
@@ -103,23 +115,56 @@ def record_project_created(project, user, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, **kwargs):
+def record_member_joined(member, organization, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=member.organization_id, feature_slug="invite_team", complete=True
+    )
+    analytics.record(
+        'organization.joined',
+        user_id=member.user.id,
+        organization_id=organization.id,
     )
 
 
 @issue_assigned.connect(weak=False)
-def record_issue_assigned(project, group, **kwargs):
+def record_issue_assigned(project, group, user, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="assignment", complete=True
     )
 
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+    analytics.record(
+        'issue.assigned',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        group_id=group.id,
+    )
+
 
 @issue_resolved_in_release.connect(weak=False)
-def record_issue_resolved_in_release(project, **kwargs):
+def record_issue_resolved_in_release(project, group, user, resolution_type, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="resolved_in_release", complete=True
+    )
+
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    analytics.record(
+        'issue.resolved',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        group_id=group.id,
+        resolution_type=resolution_type,
     )
 
 
@@ -131,9 +176,23 @@ def record_advanced_search(project, **kwargs):
 
 
 @save_search_created.connect(weak=False)
-def record_save_search_created(project, **kwargs):
+def record_save_search_created(project, user, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="saved_search", complete=True
+    )
+
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    analytics.record(
+        'search.saved',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        project_id=project.id,
+        organization_id=project.organization_id,
     )
 
 
@@ -145,12 +204,27 @@ def record_inbound_filter_toggled(project, **kwargs):
 
 
 @alert_rule_created.connect(weak=False)
-def record_alert_rule_created(project, rule, **kwargs):
+def record_alert_rule_created(user, project, rule, **kwargs):
     if rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
         return
 
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="alert_rules", complete=True
+    )
+
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    analytics.record(
+        'alert.created',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        rule_id=rule.id,
+        actions=[a['id'] for a in rule.data.get('actions', [])],
     )
 
 
@@ -171,9 +245,16 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
 
 
 @sso_enabled.connect(weak=False)
-def record_sso_enabled(organization, **kwargs):
+def record_sso_enabled(organization, user, provider, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=organization.id, feature_slug="sso", complete=True
+    )
+
+    analytics.record(
+        'sso.enabled',
+        user_id=user.id,
+        organization_id=organization.id,
+        provider=provider,
     )
 
 
@@ -190,6 +271,163 @@ def deleted_and_discarded_issue(instance, created, **kwargs):
             organization_id=instance.project.organization_id,
             feature_slug="delete_and_discard"
         )
+
+
+@repo_linked.connect(weak=False)
+def record_repo_linked(repo, user, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=repo.organization_id, feature_slug="repo_linked", complete=True
+    )
+
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = Organization.objects.get(id=repo.organization_id).get_default_owner().id
+
+    analytics.record(
+        'repo.linked',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=repo.organization_id,
+        repository_id=repo.id,
+        provider=repo.provider,
+    )
+
+
+@release_created.connect(weak=False)
+def record_release_created(release, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=release.organization_id, feature_slug="release_created", complete=True
+    )
+
+
+@deploy_created.connect(weak=False)
+def record_deploy_created(deploy, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=deploy.organization_id, feature_slug="deploy_created", complete=True
+    )
+
+
+@resolved_with_commit.connect(weak=False)
+def record_resolved_with_commit(organization_id, user, group, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=organization_id, feature_slug="resolved_with_commit", complete=True
+    )
+
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = group.organization.get_default_owner().id
+
+    analytics.record(
+        'issue.resolved',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=organization_id,
+        group_id=group.id,
+        resolution_type='with_commit',
+    )
+
+
+@ownership_rule_created.connect(weak=False)
+def record_ownership_rule_created(project, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id, feature_slug="ownership_rule_created", complete=True
+    )
+
+
+@issue_ignored.connect(weak=False)
+def record_issue_ignored(project, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id, feature_slug="issue_ignored", complete=True
+    )
+
+
+@team_created.connect(weak=False)
+def record_team_created(organization, user, team, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = organization.get_default_owner().id
+
+    analytics.record(
+        'team.created',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=organization.id,
+        team_id=team.id,
+    )
+
+
+@integration_added.connect(weak=False)
+def record_integration_added(integration, organization, user, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = organization.get_default_owner().id
+    analytics.record(
+        'integration.added',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=organization.id,
+        provider=integration.provider,
+        id=integration.id,
+    )
+
+
+@integration_issue_created.connect(weak=False)
+def record_integration_issue_created(integration, organization, user, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = organization.get_default_owner().id
+    analytics.record(
+        'integration.issue.created',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=organization.id,
+        provider=integration.provider,
+        id=integration.id,
+    )
+
+
+@integration_issue_linked.connect(weak=False)
+def record_integration_issue_linked(integration, organization, user, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = organization.get_default_owner().id
+    analytics.record(
+        'integration.issue.linked',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=organization.id,
+        provider=integration.provider,
+        id=integration.id,
+    )
+
+
+@issue_deleted.connect(weak=False)
+def record_issue_deleted(group, user, delete_type, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = group.project.organization.get_default_owner().id
+    analytics.record(
+        'issue.deleted',
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=group.project.organization_id,
+        group_id=group.id,
+        delete_type=delete_type,
+    )
 
 
 post_save.connect(

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from mock import patch
+
 from datetime import timedelta
 from django.utils import timezone
 from time import time
@@ -13,7 +15,8 @@ class ScheduleAutoResolutionTest(TestCase):
     def test_task_persistent_name(self):
         assert schedule_auto_resolution.name == 'sentry.tasks.schedule_auto_resolution'
 
-    def test_simple(self):
+    @patch('sentry.tasks.auto_resolve_issues.kick_off_status_syncs')
+    def test_simple(self, mock_kick_off_status_syncs):
         project = self.create_project()
         project2 = self.create_project()
         project3 = self.create_project()
@@ -58,6 +61,13 @@ class ScheduleAutoResolutionTest(TestCase):
         assert Group.objects.get(
             id=group3.id,
         ).status == GroupStatus.UNRESOLVED
+
+        mock_kick_off_status_syncs.apply_async.assert_called_once_with(
+            kwargs={
+                'project_id': group1.project_id,
+                'group_id': group1.id,
+            }
+        )
 
         assert project.get_option('sentry:_last_auto_resolve') > current_ts
         assert not project2.get_option('sentry:_last_auto_resolve')

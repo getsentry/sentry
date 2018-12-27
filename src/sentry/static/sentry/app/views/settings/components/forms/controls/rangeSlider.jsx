@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../../../locale';
+import {t} from 'app/locale';
 
 class RangeSlider extends React.Component {
   static propTypes = {
@@ -104,6 +104,13 @@ class RangeSlider extends React.Component {
     }
   };
 
+  handleBlur = e => {
+    let {onBlur} = this.props;
+    if (typeof onBlur !== 'function') return;
+
+    onBlur(e);
+  };
+
   render() {
     let {name, min, max, step, allowedValues, formatLabel} = this.props;
     let {sliderValue} = this.state;
@@ -133,8 +140,8 @@ class RangeSlider extends React.Component {
           step={step}
           onInput={this.handleInput}
           onChange={() => {}}
-          onMouseUp={e => this.props.onBlur(e)}
-          onKeyUp={e => this.props.onBlur(e)}
+          onMouseUp={this.handleBlur}
+          onKeyUp={this.handleBlur}
           value={sliderValue}
         />
       </div>
@@ -145,25 +152,10 @@ class RangeSlider extends React.Component {
 export default RangeSlider;
 
 const Slider = styled.input`
+  /* stylelint-disable-next-line property-no-vendor-prefix */
   -webkit-appearance: none;
   width: 100%;
   margin: ${p => p.theme.grid}px 0 ${p => p.theme.grid * 2}px;
-
-  &:focus {
-    outline: none;
-
-    &::-webkit-slider-runnable-track {
-      background: ${p => p.theme.borderDark};
-    }
-
-    &::-ms-fill-upper {
-      background: ${p => p.theme.borderDark};
-    }
-
-    &::-ms-fill-lower {
-      background: ${p => p.theme.borderDark};
-    }
-  }
 
   &::-webkit-slider-runnable-track {
     width: 100%;
@@ -199,6 +191,7 @@ const Slider = styled.input`
     border-radius: 50%;
     background: ${p => p.theme.purple};
     cursor: pointer;
+    /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
     margin-top: -7px;
     border: 0;
@@ -211,6 +204,7 @@ const Slider = styled.input`
     border-radius: 50%;
     background: ${p => p.theme.purple};
     cursor: pointer;
+    /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
     margin-top: -7px;
     border: 0;
@@ -223,6 +217,7 @@ const Slider = styled.input`
     border-radius: 50%;
     background: ${p => p.theme.purple};
     cursor: pointer;
+    /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-appearance: none;
     margin-top: -7px;
     border: 0;
@@ -238,6 +233,22 @@ const Slider = styled.input`
     background: ${p => p.theme.borderLight});
     border: 0;
     border-radius: 50%;
+  }
+
+  &:focus {
+    outline: none;
+
+    &::-webkit-slider-runnable-track {
+      background: ${p => p.theme.borderDark};
+    }
+
+    &::-ms-fill-upper {
+      background: ${p => p.theme.borderDark};
+    }
+
+    &::-ms-fill-lower {
+      background: ${p => p.theme.borderDark};
+    }
   }
 `;
 

@@ -28,20 +28,20 @@ post_save.connect(
 
 
 def _get_task_name(task):
-    return task.name or '{0}.{1}'.format(task.__module__, task.__name__)
+    return task.name or u'{0}.{1}'.format(task.__module__, task.__name__)
 
 
 def record_task_signal(signal, name, **options):
     def handler(sender, **kwargs):
         if not isinstance(sender, six.string_types):
             sender = _get_task_name(sender)
-        metrics.incr('jobs.{0}'.format(name), instance=sender, **options)
-        metrics.incr('jobs.all.{0}'.format(name))
+        metrics.incr(u'jobs.{0}'.format(name), instance=sender, **options)
+        metrics.incr(u'jobs.all.{0}'.format(name))
 
     signal.connect(
         handler,
         weak=False,
-        dispatch_uid='sentry.stats.tasks.{0}'.format(name),
+        dispatch_uid=u'sentry.stats.tasks.{0}'.format(name),
     )
 
 

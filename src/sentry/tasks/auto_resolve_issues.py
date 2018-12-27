@@ -9,6 +9,7 @@ from time import time
 
 from sentry.models import (Activity, Group, GroupStatus, Project, ProjectOption)
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.integrations import kick_off_status_syncs
 
 ONE_HOUR = 3600
 
@@ -86,6 +87,11 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
                     'age': age,
                 },
             )
+
+            kick_off_status_syncs.apply_async(kwargs={
+                'project_id': group.project_id,
+                'group_id': group.id,
+            })
 
     if might_have_more:
         auto_resolve_project_issues.delay(

@@ -10,7 +10,7 @@ describe('ProjectTeamsSettings', function() {
 
   beforeEach(function() {
     org = TestStubs.Organization();
-    project = TestStubs.Project();
+    project = TestStubs.ProjectDetails();
 
     Client.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,

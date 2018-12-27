@@ -20,7 +20,7 @@ def create_user_feedback_scenario(runner):
     with runner.isolated_project('Plain Proxy') as project:
         runner.request(
             method='POST',
-            path='/projects/{}/{}/user-feedback/'.format(runner.org.slug, project.slug),
+            path=u'/projects/{}/{}/user-feedback/'.format(runner.org.slug, project.slug),
             data={
                 'name': 'Jane Smith',
                 'email': 'jane@example.com',
@@ -119,7 +119,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         try:
             event = Event.objects.filter(project_id=project.id,
-                                         event_id=report.event_id).select_related('group')[0]
+                                         event_id=report.event_id)[0]
         except IndexError:
             try:
                 report.group = Group.objects.from_event_id(project, report.event_id)

@@ -1,6 +1,6 @@
-import {Client} from '../api';
-import ConfigStore from '../stores/configStore';
-import IndicatorStore from '../stores/indicatorStore';
+import {Client} from 'app/api';
+import ConfigStore from 'app/stores/configStore';
+import IndicatorStore from 'app/stores/indicatorStore';
 
 export function disconnectIdentity(identity) {
   const api = new Client();

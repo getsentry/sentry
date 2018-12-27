@@ -30,6 +30,7 @@ class UserSerializerTest(TestCase):
         assert len(result['emails']) == 1
         assert result['emails'][0]['email'] == user.email
         assert result['emails'][0]['is_verified']
+        assert result['isSuperuser'] is False
 
     def test_no_useremail(self):
         user = self.create_user()
@@ -40,18 +41,18 @@ class UserSerializerTest(TestCase):
         result = serialize(user)
         assert len(result['emails']) == 0
 
-    def test_self_permissions(self):
-        user = self.create_user()
-        UserPermission.objects.create(user=user, permission='foo')
+    def test_is_superuser(self):
+        """Test that the user is a superuser"""
+        user = self.create_user(is_superuser=True)
 
-        result = serialize(user, user)
-        assert result['id'] == six.text_type(user.id)
-        assert result['permissions'] == ['foo']
+        result = serialize(user)
+        assert result['isSuperuser'] is True
 
 
 class DetailedUserSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()
+        UserPermission.objects.create(user=user, permission='foo')
 
         org = self.create_organization(owner=user)
 
@@ -82,3 +83,4 @@ class DetailedUserSerializerTest(TestCase):
         assert 'authenticators' in result
         assert len(result['authenticators']) == 1
         assert result['authenticators'][0]['id'] == six.text_type(auth.id)
+        assert result['permissions'] == ['foo']

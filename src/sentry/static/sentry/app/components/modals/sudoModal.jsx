@@ -1,13 +1,18 @@
+import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {t} from '../../locale';
-import ApiForm from '../forms/apiForm';
-import ApiMixin from '../../mixins/apiMixin';
-import LoadingIndicator from '../loadingIndicator';
-import SimplePasswordField from '../forms/simplePasswordField';
-import U2fContainer from '../u2fContainer';
+import {t} from 'app/locale';
+import Alert from 'app/components/alert';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/button';
+import ConfigStore from 'app/stores/configStore';
+import Form from 'app/views/settings/components/forms/form';
+import InputField from 'app/views/settings/components/forms/inputField';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import U2fContainer from 'app/components/u2fContainer';
+import space from 'app/styles/space';
 
 class SudoModal extends React.Component {
   static propTypes = {
@@ -16,7 +21,12 @@ class SudoModal extends React.Component {
     /**
      * expects a function that returns a Promise
      */
-    retryRequest: PropTypes.func.isRequired,
+    retryRequest: PropTypes.func,
+
+    // User is a superuser without an active su session
+    superuser: PropTypes.bool,
+    router: PropTypes.object,
+    user: PropTypes.object,
 
     Header: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
     Body: PropTypes.oneOfType([PropTypes.func, PropTypes.node]).isRequired,
@@ -30,13 +40,18 @@ class SudoModal extends React.Component {
     };
   }
 
-  handleSubmit = () => {
-    this.setState({busy: true});
-  };
-
   handleSuccess = () => {
-    let {closeModal, retryRequest} = this.props;
-    if (!retryRequest) return;
+    let {closeModal, superuser, router, retryRequest} = this.props;
+
+    if (!retryRequest) {
+      closeModal();
+      return;
+    }
+
+    if (superuser) {
+      router.replace({...router.getCurrentLocation(), state: {forceUpdate: new Date()}});
+      return;
+    }
 
     this.setState(
       {
@@ -66,8 +81,8 @@ class SudoModal extends React.Component {
     this.setState({busy: true});
     // u2Interface expects this to return a promise
     return this.props.api
-      .requestPromise('/sudo/', {
-        method: 'POST',
+      .requestPromise('/auth/', {
+        method: 'PUT',
         data,
       })
       .then(() => {
@@ -82,36 +97,75 @@ class SudoModal extends React.Component {
   };
 
   render() {
-    let {closeModal, Header, Body} = this.props;
+    let {closeModal, superuser, user, Header, Body} = this.props;
 
     return (
-      <ApiForm
-        apiMethod="POST"
-        apiEndpoint="/sudo/"
-        footerClass="modal-footer"
-        submitLabel={t('Continue')}
-        onSubmit={this.handleSubmit}
-        onSubmitSuccess={this.handleSuccess}
-        onSubmitError={this.handleError}
-        hideErrors
-        resetOnError
-      >
+      <React.Fragment>
         <Header closeButton onHide={closeModal}>
-          {t('Confirm Your Identity')}
+          {t('Confirm Password to Continue')}
         </Header>
 
         <Body>
-          {this.state.busy && <LoadingIndicator css={{zIndex: 1}} overlay />}
-          <p>{t('Help us keep your account safe by confirming your identity.')}</p>
-          {this.state.error && (
-            <div className="alert alert-error alert-block">{t('Incorrect password')}</div>
+          {!user.hasPasswordAuth ? (
+            <div>
+              <TextBlock>{t('You will need to reauthenticate to continue.')}</TextBlock>
+              <Button
+                priority="primary"
+                href={`/auth/login/?next=${encodeURIComponent(location.pathname)}`}
+              >
+                {t('Continue')}
+              </Button>
+            </div>
+          ) : (
+            <React.Fragment>
+              <TextBlock css={{marginBottom: space(1)}}>
+                {superuser
+                  ? t(
+                      'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
+                    )
+                  : t('Help us keep your account safe by confirming your identity.')}
+              </TextBlock>
+
+              {this.state.error && (
+                <Alert
+                  css={{marginBottom: 0}}
+                  type="error"
+                  icon="icon-circle-exclamation"
+                >
+                  {t('Incorrect password')}
+                </Alert>
+              )}
+
+              <Form
+                apiMethod="PUT"
+                apiEndpoint="/auth/"
+                submitLabel={t('Confirm Password')}
+                onSubmit={this.handleSubmit}
+                onSubmitSuccess={this.handleSuccess}
+                onSubmitError={this.handleError}
+                hideErrors
+                resetOnError
+                hideFooter={!user.hasPasswordAuth}
+              >
+                <InputField
+                  autoFocus
+                  type="password"
+                  inline={false}
+                  label={t('Password')}
+                  flexibleControlStateSize
+                  name="password"
+                  css={{
+                    paddingLeft: 0,
+                    paddingRight: 0,
+                    borderBottom: 'none',
+                  }}
+                />
+                <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
+              </Form>
+            </React.Fragment>
           )}
-
-          <SimplePasswordField label={t('Password')} required name="password" />
-
-          <U2fContainer displayMode="sudo" onTap={this.handleU2fTap} />
         </Body>
-      </ApiForm>
+      </React.Fragment>
     );
   }
 }
@@ -121,9 +175,10 @@ const SudoModalContainer = createReactClass({
   mixins: [ApiMixin],
 
   render() {
-    return <SudoModal {...this.props} api={this.api} />;
+    let user = ConfigStore.get('user');
+    return <SudoModal {...this.props} user={user} api={this.api} />;
   },
 });
 
-export default SudoModalContainer;
+export default withRouter(SudoModalContainer);
 export {SudoModal};

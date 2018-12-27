@@ -36,16 +36,16 @@ class GroupTagValue(Model):
     first_seen = models.DateTimeField(
         default=timezone.now, db_index=True, null=True)
 
-    objects = TagStoreManager(select_related=('_value', '_key'))
+    objects = TagStoreManager()
 
     class Meta:
         app_label = 'tagstore'
         unique_together = (('project_id', 'group_id', '_key', '_value'), )
         index_together = (('project_id', '_key', '_value', 'last_seen'), )
 
-    __repr__ = sane_repr('project_id', 'group_id', '_key', '_value')
+    __repr__ = sane_repr('project_id', 'group_id', '_key_id', '_value_id')
 
-    def delete_for_merge(self):
+    def delete(self):
         using = router.db_for_read(GroupTagValue)
         cursor = connections[using].cursor()
         cursor.execute(
@@ -67,10 +67,15 @@ class GroupTagValue(Model):
         # fallback
         from sentry.tagstore.v2.models import TagKey
 
-        tk = TagKey.objects.filter(
-            project_id=self.project_id,
-            id=self._key_id,
-        ).values_list('key', flat=True).get()
+        try:
+            tk = TagKey.objects.filter(
+                project_id=self.project_id,
+                id=self._key_id,
+            ).values_list('key', flat=True).get()
+        except TagKey.DoesNotExist:
+            # Data got inconsistent, I must delete myself.
+            self.delete()
+            return None
 
         # cache for future calls
         self.key = tk
@@ -92,10 +97,15 @@ class GroupTagValue(Model):
         # fallback
         from sentry.tagstore.v2.models import TagValue
 
-        tv = TagValue.objects.filter(
-            project_id=self.project_id,
-            id=self._value_id,
-        ).values_list('value', flat=True).get()
+        try:
+            tv = TagValue.objects.filter(
+                project_id=self.project_id,
+                id=self._value_id,
+            ).values_list('value', flat=True).get()
+        except TagValue.DoesNotExist:
+            # Data got inconsistent, I must delete myself.
+            self.delete()
+            return None
 
         # cache for future calls
         self.value = tv

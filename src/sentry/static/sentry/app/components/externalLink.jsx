@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import '../../less/components/externalLink.less';
 
 /**
  * Use this component when creating external links.

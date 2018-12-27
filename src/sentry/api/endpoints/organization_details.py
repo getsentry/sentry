@@ -4,7 +4,6 @@ import logging
 import six
 
 from rest_framework import serializers, status
-from rest_framework.response import Response
 from uuid import uuid4
 
 from sentry import roles
@@ -13,27 +12,37 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.organization import (
-    DetailedOrganizationSerializer)
+from sentry.api.serializers.models import organization as org_serializers
 from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.auth.providers.saml2 import SAML2Provider
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
-    AuditLogEntryEvent, Authenticator, Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus
+    AuditLogEntryEvent, Authenticator, AuthProvider, Organization, OrganizationAvatar,
+    OrganizationOption, OrganizationStatus,
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
 
+ERR_NO_USER = 'This request requires an authenticated user.'
+
 ORG_OPTIONS = (
-    # serializer field name, option key name, type
-    ('projectRateLimit', 'sentry:project-rate-limit', int),
-    ('accountRateLimit', 'sentry:account-rate-limit', int),
-    ('dataScrubber', 'sentry:require_scrub_data', bool),
-    ('dataScrubberDefaults', 'sentry:require_scrub_defaults', bool),
-    ('sensitiveFields', 'sentry:sensitive_fields', list),
-    ('safeFields', 'sentry:safe_fields', list),
-    ('scrubIPAddresses', 'sentry:require_scrub_ip_address', bool),
+    # serializer field name, option key name, type, default value
+    ('projectRateLimit', 'sentry:project-rate-limit', int, org_serializers.PROJECT_RATE_LIMIT_DEFAULT),
+    ('accountRateLimit', 'sentry:account-rate-limit', int, org_serializers.ACCOUNT_RATE_LIMIT_DEFAULT),
+    ('dataScrubber', 'sentry:require_scrub_data', bool, org_serializers.REQUIRE_SCRUB_DATA_DEFAULT),
+    ('sensitiveFields', 'sentry:sensitive_fields', list, org_serializers.SENSITIVE_FIELDS_DEFAULT),
+    ('safeFields', 'sentry:safe_fields', list, org_serializers.SAFE_FIELDS_DEFAULT),
+    ('scrapeJavaScript', 'sentry:scrape_javascript', bool, org_serializers.SCRAPE_JAVASCRIPT_DEFAULT),
+    ('dataScrubberDefaults', 'sentry:require_scrub_defaults',
+     bool, org_serializers.REQUIRE_SCRUB_DEFAULTS_DEFAULT),
+    ('storeCrashReports', 'sentry:store_crash_reports',
+     bool, org_serializers.STORE_CRASH_REPORTS_DEFAULT),
+    ('scrubIPAddresses', 'sentry:require_scrub_ip_address',
+     bool, org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT),
+    ('trustedRelays', 'sentry:trusted-relays', list, org_serializers.TRUSTED_RELAYS_DEFAULT),
 )
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -81,9 +90,28 @@ class OrganizationSerializer(serializers.Serializer):
     dataScrubberDefaults = serializers.BooleanField(required=False)
     sensitiveFields = ListField(child=serializers.CharField(), required=False)
     safeFields = ListField(child=serializers.CharField(), required=False)
+    storeCrashReports = serializers.BooleanField(required=False)
     scrubIPAddresses = serializers.BooleanField(required=False)
+    scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
+    trustedRelays = ListField(child=serializers.CharField(), required=False)
+
+    @memoize
+    def _has_legacy_rate_limits(self):
+        org = self.context['organization']
+        return OrganizationOption.objects.filter(
+            organization=org,
+            key__in=LEGACY_RATE_LIMIT_OPTIONS,
+        ).exists()
+
+    def _has_saml_enabled(self):
+        org = self.context['organization']
+        try:
+            provider = AuthProvider.objects.get(organization=org).get_provider()
+        except AuthProvider.DoesNotExist:
+            return False
+        return isinstance(provider, SAML2Provider)
 
     def validate_slug(self, attrs, source):
         value = attrs[source]
@@ -124,7 +152,39 @@ class OrganizationSerializer(serializers.Serializer):
         has_2fa = Authenticator.objects.user_has_2fa(user)
         if value and not has_2fa:
             raise serializers.ValidationError(
-                'User setting two-factor authentication enforcement without two-factor authentication enabled.')
+                'Cannot require two-factor authentication without personal two-factor enabled.')
+        if value and self._has_saml_enabled():
+            raise serializers.ValidationError(
+                'Cannot require two-factor authentication with SAML SSO enabled')
+        return attrs
+
+    def validate_trustedRelays(self, attrs, source):
+        if not attrs[source]:
+            return attrs
+
+        from sentry import features
+
+        organization = self.context['organization']
+        request = self.context["request"]
+        has_relays = features.has('organizations:relay',
+                                  organization,
+                                  actor=request.user)
+        if not has_relays:
+            raise serializers.ValidationError(
+                'Organization does not have the relay feature enabled'
+            )
+        return attrs
+
+    def validate_accountRateLimit(self, attrs, source):
+        if not self._has_legacy_rate_limits:
+            raise serializers.ValidationError(
+                'The accountRateLimit option cannot be configured for this organization')
+        return attrs
+
+    def validate_projectRateLimit(self, attrs, source):
+        if not self._has_legacy_rate_limits:
+            raise serializers.ValidationError(
+                'The accountRateLimit option cannot be configured for this organization')
         return attrs
 
     def validate(self, attrs):
@@ -146,7 +206,7 @@ class OrganizationSerializer(serializers.Serializer):
         org = self.context['organization']
         changed_data = {}
 
-        for key, option, type_ in ORG_OPTIONS:
+        for key, option, type_, default_value in ORG_OPTIONS:
             if key not in self.init_data:
                 continue
             try:
@@ -158,11 +218,9 @@ class OrganizationSerializer(serializers.Serializer):
                     key=option,
                     value=type_(self.init_data[key]),
                 )
-                # TODO(kelly): This will not work if new ORG_OPTIONS are added and their
-                # default value evaluates as truthy, but this should work for now with the
-                # current ORG_OPTIONS (assumes ORG_OPTIONS are falsy)
-                if type_(self.init_data[key]):
-                    changed_data[key] = self.init_data[key]
+
+                if self.init_data[key] != default_value:
+                    changed_data[key] = u'to {}'.format(self.init_data[key])
             else:
                 option_inst.value = self.init_data[key]
                 # check if ORG_OPTIONS changed
@@ -194,7 +252,8 @@ class OrganizationSerializer(serializers.Serializer):
                 'allow_joinleave': org.flags.allow_joinleave.is_set,
                 'enhanced_privacy': org.flags.enhanced_privacy.is_set,
                 'disable_shared_issues': org.flags.disable_shared_issues.is_set,
-                'early_adopter': org.flags.early_adopter.is_set
+                'early_adopter': org.flags.early_adopter.is_set,
+                'require_2fa': org.flags.require_2fa.is_set,
             }
         }
 
@@ -217,10 +276,10 @@ class OrganizationSerializer(serializers.Serializer):
                 relation={'organization': org},
                 type=self.init_data.get('avatarType', 'upload'),
                 avatar=self.init_data.get('avatar'),
-                filename='{}.png'.format(org.slug),
+                filename=u'{}.png'.format(org.slug),
             )
         if 'require2FA' in self.init_data and self.init_data['require2FA'] is True:
-            org.send_setup_2fa_emails()
+            org.handle_2fa_required(self.context['request'])
         return org, changed_data
 
 
@@ -257,9 +316,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         context = serialize(
             organization,
             request.user,
-            DetailedOrganizationSerializer(),
+            org_serializers.DetailedOrganizationSerializer(),
         )
-        return Response(context)
+        return self.respond(context)
 
     @attach_scenarios([update_organization_scenario])
     def put(self, request, organization):
@@ -287,12 +346,16 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         serializer = serializer_cls(
             data=request.DATA,
             partial=True,
-            context={'organization': organization, 'user': request.user},
+            context={
+                'organization': organization,
+                'user': request.user,
+                'request': request,
+            },
         )
         if serializer.is_valid():
             organization, changed_data = serializer.save()
 
-            if was_pending_deletion and organization.status == OrganizationStatus.VISIBLE:
+            if was_pending_deletion:
                 self.create_audit_entry(
                     request=request,
                     organization=organization,
@@ -307,23 +370,23 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         'model': Organization.__name__,
                     }
                 )
+            elif changed_data:
+                self.create_audit_entry(
+                    request=request,
+                    organization=organization,
+                    target_object=organization.id,
+                    event=AuditLogEntryEvent.ORG_EDIT,
+                    data=changed_data
+                )
 
-            self.create_audit_entry(
-                request=request,
-                organization=organization,
-                target_object=organization.id,
-                event=AuditLogEntryEvent.ORG_EDIT,
-                data=changed_data
-            )
-
-            return Response(
+            return self.respond(
                 serialize(
                     organization,
                     request.user,
-                    DetailedOrganizationSerializer(),
+                    org_serializers.DetailedOrganizationSerializer(),
                 )
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @sudo_required
     def delete(self, request, organization):
@@ -345,10 +408,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :auth: required, user-context-needed
         """
         if not request.user.is_authenticated():
-            return Response({'detail': 'This request requires a user.'}, status=401)
+            return self.respond({'detail': ERR_NO_USER}, status=401)
 
         if organization.is_default:
-            return Response({'detail': ERR_DEFAULT_ORG}, status=400)
+            return self.respond({'detail': ERR_DEFAULT_ORG}, status=400)
 
         updated = Organization.objects.filter(
             id=organization.id,
@@ -387,4 +450,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 }
             )
 
-        return Response(status=204)
+        context = serialize(
+            organization,
+            request.user,
+            org_serializers.DetailedOrganizationSerializer(),
+        )
+        return self.respond(context, status=202)

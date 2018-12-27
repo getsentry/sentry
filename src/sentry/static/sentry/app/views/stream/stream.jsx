@@ -1,31 +1,40 @@
+import {Link, browserHistory} from 'react-router';
+import {omit, isEqual} from 'lodash';
+import Cookies from 'js-cookie';
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import {Link, browserHistory} from 'react-router';
-import Cookies from 'js-cookie';
-import {StickyContainer, Sticky} from 'react-sticky';
 import classNames from 'classnames';
+import createReactClass from 'create-react-class';
+import qs from 'query-string';
 
-import SentryTypes from '../../proptypes';
-import ApiMixin from '../../mixins/apiMixin';
-import GroupStore from '../../stores/groupStore';
-import EnvironmentStore from '../../stores/environmentStore';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import ProjectState from '../../mixins/projectState';
-import Pagination from '../../components/pagination';
-import StreamGroup from '../../components/stream/group';
-import StreamActions from './../stream/actions';
-import StreamFilters from './../stream/filters';
-import StreamSidebar from './../stream/sidebar';
-import TimeSince from '../../components/timeSince';
-import utils from '../../utils';
-import queryString from '../../utils/queryString';
-import {logAjaxError} from '../../utils/logging';
-import parseLinkHeader from '../../utils/parseLinkHeader';
-import {t, tn, tct} from '../../locale';
-import {setActiveEnvironment} from '../../actionCreators/environments';
+import {Panel, PanelBody} from 'app/components/panels';
+import {logAjaxError} from 'app/utils/logging';
+import {
+  setActiveEnvironment,
+  setActiveEnvironmentName,
+} from 'app/actionCreators/environments';
+import {t, tn, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import ConfigStore from 'app/stores/configStore';
+import EnvironmentStore from 'app/stores/environmentStore';
+import ErrorRobot from 'app/components/errorRobot';
+import GroupStore from 'app/stores/groupStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import ProjectState from 'app/mixins/projectState';
+import SentryTypes from 'app/sentryTypes';
+import StreamActions from 'app/views/stream/actions';
+import StreamFilters from 'app/views/stream/filters';
+import StreamGroup from 'app/components/stream/group';
+import StreamSidebar from 'app/views/stream/sidebar';
+import TimeSince from 'app/components/timeSince';
+import analytics from 'app/utils/analytics';
+import parseApiError from 'app/utils/parseApiError';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
+import queryString from 'app/utils/queryString';
+import utils from 'app/utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -37,7 +46,6 @@ const Stream = createReactClass({
 
   propTypes: {
     environment: SentryTypes.Environment,
-    hasEnvironmentsFeature: PropTypes.bool,
     tags: PropTypes.object,
     tagsLoading: PropTypes.bool,
   },
@@ -94,10 +102,9 @@ const Stream = createReactClass({
 
     this.fetchSavedSearches();
     this.fetchProcessingIssues();
-  },
-
-  componentDidMount() {
-    this.fetchData();
+    if (!this.state.loading) {
+      this.fetchData();
+    }
   },
 
   componentWillReceiveProps(nextProps) {
@@ -115,10 +122,20 @@ const Stream = createReactClass({
     let nextSearchId = nextProps.params.searchId || null;
 
     let searchIdChanged = this.state.isDefaultSearch
-      ? nextSearchId
+      ? nextSearchId !== null
       : nextSearchId !== this.state.searchId;
 
-    if (searchIdChanged || nextProps.location.search !== this.props.location.search) {
+    // We are using qs.parse with location.search since this.props.location.query
+    // returns the same value as nextProps.location.query
+    let currentSearchTerm = qs.parse(this.props.location.search);
+    let nextSearchTerm = qs.parse(nextProps.location.search);
+
+    let searchTermChanged = !isEqual(
+      omit(currentSearchTerm, 'environment'),
+      omit(nextSearchTerm, 'environment')
+    );
+
+    if (searchIdChanged || searchTermChanged) {
       this.setState(this.getQueryState(nextProps), this.fetchData);
     }
   },
@@ -178,8 +195,18 @@ const Stream = createReactClass({
             data.find(search => search.isDefault);
 
           if (defaultResult) {
+            // Check if there is an environment specified in the default search
+            const envName = queryString.getQueryEnvironment(defaultResult.query);
+            const env = EnvironmentStore.getByName(envName);
+            if (env) {
+              setActiveEnvironment(env);
+            }
+
             newState.searchId = defaultResult.id;
-            newState.query = defaultResult.query;
+
+            newState.query = queryString.getQueryStringWithoutEnvironment(
+              defaultResult.query
+            );
             newState.isDefaultSearch = true;
           }
         }
@@ -259,21 +286,18 @@ const Stream = createReactClass({
         search => search.id === searchId
       );
       if (searchResult) {
-        // New behavior is that we'll no longer want to support environment in saved search
+        // New behavior is that we no longer support environment in saved search
         // We check if the query contains a valid environment and update the global setting if so
         // We'll always strip environment from the querystring whether valid or not
-        if (this.props.hasEnvironmentsFeature) {
-          const queryEnv = queryString.getQueryEnvironment(searchResult.query);
-          if (queryEnv) {
-            const env = EnvironmentStore.getByName(queryEnv);
-            setActiveEnvironment(env);
-          }
-          newState.query = queryString.getQueryStringWithoutEnvironment(
-            searchResult.query
-          );
-        } else {
-          // Old behavior, keep the environment in the querystring
-          newState.query = searchResult.query;
+        const queryEnv = queryString.getQueryEnvironment(searchResult.query);
+        if (queryEnv) {
+          const env = EnvironmentStore.getByName(queryEnv);
+          setActiveEnvironment(env);
+        }
+        newState.query = queryString.getQueryStringWithoutEnvironment(searchResult.query);
+
+        if (this.state.searchId && !props.params.searchId) {
+          newState.isDefaultSearch = true;
         }
       } else {
         newState.searchId = null;
@@ -352,15 +376,21 @@ const Stream = createReactClass({
         // the current props one as the shortIdLookup can return results for
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          if (data[0].matchingEventId) {
-            return void browserHistory.push(
-              `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0]
-                .id}/events/${data[0].matchingEventId}/`
-            );
+          if (data && data[0].matchingEventId) {
+            let {project, id, matchingEventId, matchingEventEnvironment} = data[0];
+            let redirect = `/${this.props.params
+              .orgId}/${project.slug}/issues/${id}/events/${matchingEventId}/`;
+            // Also direct to the environment of this specific event if this
+            // key exists. We need to explicitly check against undefined becasue
+            // an environment name may be an empty string, which is perfectly valid.
+            if (typeof matchingEventEnvironment !== 'undefined') {
+              setActiveEnvironmentName(matchingEventEnvironment);
+              redirect = `${redirect}?${qs.stringify({
+                environment: matchingEventEnvironment,
+              })}`;
+            }
+            return void browserHistory.push(redirect);
           }
-          return void browserHistory.push(
-            `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`
-          );
         }
 
         this._streamManager.push(data);
@@ -380,10 +410,8 @@ const Stream = createReactClass({
         });
       },
       error: err => {
-        let error = err.responseJSON || true;
-        error = error.detail || true;
         this.setState({
-          error,
+          error: parseApiError(err),
           dataLoading: false,
         });
       },
@@ -459,15 +487,12 @@ const Stream = createReactClass({
       // We no longer want to support environments specified in the querystring
       // To keep this aligned with old behavior though we'll update the global environment
       // and remove it from the query if someone does provide it this way
-      if (this.props.hasEnvironmentsFeature) {
-        const queryEnvironment = queryString.getQueryEnvironment(query);
-        if (queryEnvironment !== null) {
-          const env = EnvironmentStore.getByName(queryEnvironment);
-          setActiveEnvironment(env);
-        }
-
-        query = queryString.getQueryStringWithoutEnvironment(query);
+      const queryEnvironment = queryString.getQueryEnvironment(query);
+      if (queryEnvironment !== null) {
+        const env = EnvironmentStore.getByName(queryEnvironment);
+        setActiveEnvironment(env);
       }
+      query = queryString.getQueryStringWithoutEnvironment(query);
 
       this.setState(
         {
@@ -476,6 +501,16 @@ const Stream = createReactClass({
         },
         this.transitionTo
       );
+    }
+
+    // Ignore saved searches
+    if (this.state.savedSearchList.map(s => s.query == this.state.query).length > 0) {
+      let {orgId, projectId} = this.props.params;
+      analytics('issue.search', {
+        query: this.state.query,
+        organization_id: orgId,
+        project_id: projectId,
+      });
     }
   },
 
@@ -505,9 +540,11 @@ const Stream = createReactClass({
   },
 
   transitionTo() {
-    let queryParams = {
-      ...this.props.location.query,
-    };
+    let queryParams = {};
+
+    if (this.props.location.query.environment) {
+      queryParams.environment = this.props.location.query.environment;
+    }
 
     if (!this.state.searchId) {
       queryParams.query = this.state.query;
@@ -529,19 +566,6 @@ const Stream = createReactClass({
     browserHistory.push({
       pathname: path,
       query: queryParams,
-    });
-  },
-
-  createSampleEvent() {
-    let params = this.props.params;
-    let url = `/projects/${params.orgId}/${params.projectId}/create-sample/`;
-    this.api.request(url, {
-      method: 'POST',
-      success: data => {
-        browserHistory.push(
-          `/${params.orgId}/${params.projectId}/issues/${data.groupID}/`
-        );
-      },
     });
   },
 
@@ -599,7 +623,10 @@ const Stream = createReactClass({
       /* we should not go here but what do we know */ return null;
     }
     return (
-      <div className={classNames(className)}>
+      <div
+        className={classNames(className)}
+        style={{margin: '-1px -1px 0', padding: '10px 16px'}}
+      >
         {showButton && (
           <Link to={link} className="btn btn-default btn-sm pull-right">
             {t('Show details')}
@@ -611,8 +638,16 @@ const Stream = createReactClass({
   },
 
   renderGroupNodes(ids, statsPeriod) {
+    // Restrict this guide to only show for new users (joined<30 days) and add guide anhor only to the first issue
+    let userDateJoined = new Date(ConfigStore.get('user').dateJoined);
+    let dateCutoff = new Date();
+    dateCutoff.setDate(dateCutoff.getDate() - 30);
+
+    let topIssue = ids[0];
+
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map(id => {
+      let hasGuideAnchor = userDateJoined > dateCutoff && id === topIssue;
       return (
         <StreamGroup
           key={id}
@@ -620,80 +655,47 @@ const Stream = createReactClass({
           orgId={orgId}
           projectId={projectId}
           statsPeriod={statsPeriod}
+          query={this.state.query}
+          hasGuideAnchor={hasGuideAnchor}
         />
       );
     });
-    return <ul className="group-list">{groupNodes}</ul>;
+    return <PanelBody className="ref-group-list">{groupNodes}</PanelBody>;
   },
 
   renderAwaitingEvents() {
     let org = this.getOrganization();
     let project = this.getProject();
-    let sampleLink = null;
-    if (this.state.groupIds.length > 0) {
-      let sampleIssueId = this.state.groupIds[0];
-
-      sampleLink = (
-        <p>
-          <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
-            {t('Or see your sample event')}
-          </Link>
-        </p>
-      );
-    } else {
-      sampleLink = (
-        <p>
-          <a onClick={this.createSampleEvent.bind(this, project.platform)}>
-            {t('Create a sample event')}
-          </a>
-        </p>
-      );
-    }
-
+    let sampleIssueId = this.state.groupIds.length > 0 ? this.state.groupIds[0] : '';
     return (
-      <div className="box awaiting-events">
-        <div className="wrap">
-          <div className="robot">
-            <span className="eye" />
-          </div>
-          <h3>{t('Waiting for events…')}</h3>
-          <p>
-            {tct(
-              'Our error robot is waiting to [cross:devour] receive your first event.',
-              {
-                cross: <span className="strikethrough" />,
-              }
-            )}
-          </p>
-          <p>
-            <Link
-              to={`/${org.slug}/${project.slug}/getting-started/`}
-              className="btn btn-primary btn-lg"
-            >
-              {t('Installation Instructions')}
-            </Link>
-          </p>
-          {sampleLink}
-        </div>
-      </div>
+      <ErrorRobot
+        org={org}
+        project={project}
+        sampleIssueId={sampleIssueId}
+        gradient={true}
+      />
     );
   },
 
   renderEmpty() {
+    const {environment} = this.state;
+    const message = environment
+      ? tct('Sorry no events match your filters in the [env] environment.', {
+          env: environment.displayName,
+        })
+      : t('Sorry, no events match your filters.');
+
+    // TODO(lyn): Extract empty state to a separate component
     return (
-      <div className="box empty-stream">
+      <div className="empty-stream" style={{border: 0}}>
         <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no events match your filters.')}</p>
+        <p>{message}</p>
       </div>
     );
   },
 
   renderLoading() {
-    return (
-      <div className="box">
-        <LoadingIndicator />
-      </div>
-    );
+    return <LoadingIndicator />;
   },
 
   renderStreamBody() {
@@ -726,58 +728,56 @@ const Stream = createReactClass({
     let access = this.getAccess();
     let projectFeatures = this.getProjectFeatures();
     return (
-      <StickyContainer>
-        <div className={classNames(classes)}>
-          <div className="stream-content">
-            <StreamFilters
-              access={access}
-              orgId={orgId}
-              projectId={projectId}
-              query={this.state.query}
-              sort={this.state.sort}
-              searchId={searchId}
-              queryCount={this.state.queryCount}
-              queryMaxCount={this.state.queryMaxCount}
-              onSortChange={this.onSortChange}
-              onSearch={this.onSearch}
-              onSavedSearchCreate={this.onSavedSearchCreate}
-              onSidebarToggle={this.onSidebarToggle}
-              isSearchDisabled={this.state.isSidebarVisible}
-              savedSearchList={this.state.savedSearchList}
-            />
-            <Sticky topOffset={59}>
-              {props => (
-                <div className={classNames('group-header', {sticky: props.isSticky})}>
-                  <StreamActions
-                    orgId={params.orgId}
-                    projectId={params.projectId}
-                    hasReleases={projectFeatures.has('releases')}
-                    latestRelease={this.context.project.latestRelease}
-                    query={this.state.query}
-                    onSelectStatsPeriod={this.onSelectStatsPeriod}
-                    onRealtimeChange={this.onRealtimeChange}
-                    realtimeActive={this.state.realtimeActive}
-                    statsPeriod={this.state.statsPeriod}
-                    groupIds={this.state.groupIds}
-                    allResultsVisible={this.allResultsVisible()}
-                  />
-                </div>
-              )}
-            </Sticky>
-            {this.renderProcessingIssuesHint()}
-            {this.renderStreamBody()}
-            <Pagination pageLinks={this.state.pageLinks} />
-          </div>
-          <StreamSidebar
-            loading={this.props.tagsLoading}
-            tags={this.props.tags}
+      <div className={classNames(classes)}>
+        <div className="stream-content">
+          <StreamFilters
+            access={access}
+            orgId={orgId}
+            projectId={projectId}
             query={this.state.query}
-            onQueryChange={this.onSearch}
-            orgId={params.orgId}
-            projectId={params.projectId}
+            sort={this.state.sort}
+            searchId={searchId}
+            queryCount={this.state.queryCount}
+            queryMaxCount={this.state.queryMaxCount}
+            onSortChange={this.onSortChange}
+            onSearch={this.onSearch}
+            onSavedSearchCreate={this.onSavedSearchCreate}
+            onSidebarToggle={this.onSidebarToggle}
+            isSearchDisabled={this.state.isSidebarVisible}
+            savedSearchList={this.state.savedSearchList}
           />
+          <Panel>
+            <StreamActions
+              orgId={params.orgId}
+              projectId={params.projectId}
+              hasReleases={projectFeatures.has('releases')}
+              latestRelease={this.context.project.latestRelease}
+              environment={this.state.environment}
+              query={this.state.query}
+              queryCount={this.state.queryCount}
+              onSelectStatsPeriod={this.onSelectStatsPeriod}
+              onRealtimeChange={this.onRealtimeChange}
+              realtimeActive={this.state.realtimeActive}
+              statsPeriod={this.state.statsPeriod}
+              groupIds={this.state.groupIds}
+              allResultsVisible={this.allResultsVisible()}
+            />
+            <PanelBody>
+              {this.renderProcessingIssuesHint()}
+              {this.renderStreamBody()}
+            </PanelBody>
+          </Panel>
+          <Pagination pageLinks={this.state.pageLinks} />
         </div>
-      </StickyContainer>
+        <StreamSidebar
+          loading={this.props.tagsLoading}
+          tags={this.props.tags}
+          query={this.state.query}
+          onQueryChange={this.onSearch}
+          orgId={params.orgId}
+          projectId={params.projectId}
+        />
+      </div>
     );
   },
 });

@@ -1,20 +1,15 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-import {t} from '../../locale';
-import {fetchPlugins, enablePlugin, disablePlugin} from '../../actionCreators/plugins';
-import withPlugins from '../../utils/withPlugins';
-import ProjectPlugins from './projectPlugins';
-import OrganizationIntegrations from './organizationIntegrations';
-import SentryTypes from '../../proptypes';
-import SettingsPageHeader from '../settings/components/settingsPageHeader';
+import {fetchPlugins, enablePlugin, disablePlugin} from 'app/actionCreators/plugins';
+import {t} from 'app/locale';
+import ProjectPlugins from 'app/views/projectPlugins/projectPlugins';
+import SentryTypes from 'app/sentryTypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import withPlugins from 'app/utils/withPlugins';
 
 class ProjectPluginsContainer extends React.Component {
   static propTypes = {
     plugins: SentryTypes.PluginsStore,
-    organization: PropTypes.shape({
-      features: PropTypes.arrayOf(PropTypes.string),
-    }),
   };
 
   componentDidMount() {
@@ -33,20 +28,10 @@ class ProjectPluginsContainer extends React.Component {
 
   render() {
     let {loading, error, plugins} = this.props.plugins || {};
-    const {features} = this.props.organization;
-
-    const globalIntegrations = features.includes('integrations-v3') ? (
-      <OrganizationIntegrations
-        orgId={this.props.params.orgId}
-        projectId={this.props.params.projectId}
-      />
-    ) : null;
 
     return (
       <React.Fragment>
-        <SettingsPageHeader title={t('Integrations')} />
-
-        {globalIntegrations}
+        <SettingsPageHeader title={t('Legacy Integrations')} />
 
         <ProjectPlugins
           {...this.props}

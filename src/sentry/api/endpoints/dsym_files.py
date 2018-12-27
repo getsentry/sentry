@@ -23,7 +23,7 @@ except ImportError:
 
 
 logger = logging.getLogger('sentry.api')
-ERR_FILE_EXISTS = 'A file matching this uuid already exists'
+ERR_FILE_EXISTS = 'A file matching this debug identifier already exists'
 
 
 class AssociateDsymSerializer(serializers.Serializer):
@@ -69,26 +69,26 @@ class DSymFilesEndpoint(ProjectEndpoint):
                 }, status=403
             )
 
-        dsym = ProjectDSymFile.objects.filter(
+        debug_file = ProjectDSymFile.objects.filter(
             id=project_dsym_id
         ).first()
 
-        if dsym is None:
+        if debug_file is None:
             raise Http404
 
         suffix = ".dSYM"
-        if dsym.dsym_type == 'proguard' and dsym.object_name == 'proguard-mapping':
+        if debug_file.dsym_type == 'proguard' and debug_file.object_name == 'proguard-mapping':
             suffix = ".txt"
 
         try:
-            fp = dsym.file.getfile()
+            fp = debug_file.file.getfile()
             response = StreamingHttpResponse(
                 iter(lambda: fp.read(4096), b''),
                 content_type='application/octet-stream'
             )
-            response['Content-Length'] = dsym.file.size
+            response['Content-Length'] = debug_file.file.size
             response['Content-Disposition'] = 'attachment; filename="%s%s"' % (posixpath.basename(
-                dsym.uuid
+                debug_file.debug_id
             ), suffix)
             return response
         except IOError:
@@ -111,7 +111,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
         apps = DSymApp.objects.filter(project=project)
         dsym_files = VersionDSymFile.objects.filter(
             dsym_app=apps
-        ).select_related('projectdsymfile').order_by('-build', 'version')
+        ).select_related('dsym_file').order_by('-build', 'version')
 
         file_list = ProjectDSymFile.objects.filter(
             project=project,
@@ -132,8 +132,8 @@ class DSymFilesEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         """
-        Upload a New Files
-        ``````````````````
+        Upload a New File
+        `````````````````
 
         Upload a new dsym file for the given release.
 
@@ -184,8 +184,13 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
             data={'name': data['name']},
             platform=DSYM_PLATFORMS[data['platform']],
         )
+
+        # There can be concurrent deletes on the underlying file object
+        # that the project dsym file references.  This means that we can
+        # get errors if we don't prefetch this when serializing.  Additionally
+        # performance wise it's a better idea to fetch this in one go.
         dsym_files = ProjectDSymFile.objects.find_by_checksums(
-            data['checksums'], project)
+            data['checksums'], project).select_related('file')
 
         for dsym_file in dsym_files:
             version_dsym_file, created = VersionDSymFile.objects.get_or_create(

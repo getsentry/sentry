@@ -6,6 +6,7 @@ from collections import OrderedDict
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
+from sentry.utils.canonical import get_canonical_name
 from sentry.utils.html import escape
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
@@ -13,6 +14,7 @@ from sentry.utils.safe import safe_execute
 
 def get_interface(name):
     try:
+        name = get_canonical_name(name)
         import_path = settings.SENTRY_INTERFACES[name]
     except KeyError:
         raise ValueError('Invalid interface name: %s' % (name, ))
@@ -65,7 +67,7 @@ class Interface(object):
         self._data = data or {}
 
     def __eq__(self, other):
-        if type(self) != type(other):
+        if not isinstance(self, type(other)):
             return False
         return self._data == other._data
 
@@ -92,6 +94,9 @@ class Interface(object):
 
     def get_api_context(self, is_public=False):
         return self.to_json()
+
+    def get_api_meta(self, meta, is_public=False):
+        return meta
 
     def to_json(self):
         # eliminate empty values for serialization to compress the keyspace

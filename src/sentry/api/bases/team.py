@@ -51,5 +51,7 @@ class TeamEndpoint(Endpoint):
             'organization': team.organization_id,
         })
 
+        request._request.organization = team.organization
+
         kwargs['team'] = team
         return (args, kwargs)

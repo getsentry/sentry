@@ -2,28 +2,36 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import BooleanField from './booleanField';
+import EmailField from './emailField';
+import NumberField from './numberField';
 import RangeField from './rangeField';
-// import Select2FieldAutocomplete from './select2FieldAutocomplete';
-import Select2Field from './select2Field';
-// import Select2TextField from './select2TextField';
+import SelectField from './selectField';
 import TextField from './textField';
 import TextareaField from './textareaField';
 import RadioField from './radioField';
 import InputField from './inputField';
+import ChoiceMapper from './choiceMapper';
 
 export default class FieldFromConfig extends React.Component {
   static propTypes = {
     field: PropTypes.shape({
       name: PropTypes.string,
       type: PropTypes.oneOf([
-        'secret',
-        'string',
         'array',
         'boolean',
-        'radio',
         'choice',
-        'select',
+        'choice_mapper',
+        'email',
+        'multichoice',
+        'number',
+        'radio',
         'range',
+        'secret',
+        'select',
+        'string',
+        'text',
+        'textarea',
+        'url',
       ]),
       required: PropTypes.bool,
       multiline: PropTypes.bool,
@@ -32,7 +40,19 @@ export default class FieldFromConfig extends React.Component {
       help: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
       visible: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
       disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
+      /**
+       * Function to format the value displayed in the undo toast. May also be
+       * specified as false to disable showing the changed fields in the toast.
+       */
+      formatMessageValue: PropTypes.oneOfType([PropTypes.func, PropTypes.oneOf([false])]),
+      /**
+       * Should show a "return key" icon in input?
+       */
       showReturnButton: PropTypes.bool,
+      /**
+       * Iff false, disable saveOnBlur for field, instead show a save/cancel button
+       */
+      saveOnBlur: PropTypes.bool,
       getValue: PropTypes.func,
       setValue: PropTypes.func,
     }).isRequired,
@@ -41,7 +61,6 @@ export default class FieldFromConfig extends React.Component {
   render() {
     let {field, ...otherProps} = this.props;
 
-    // TODO(billy) Not sure of structure yet
     let props = {
       ...otherProps,
       ...field,
@@ -56,30 +75,33 @@ export default class FieldFromConfig extends React.Component {
       case 'boolean':
         return <BooleanField {...props} />;
       case 'email':
-        return <InputField {...props} type="email" />;
+        return <EmailField {...props} />;
       case 'string':
       case 'text':
       case 'url':
         if (props.multiline) {
           return <TextareaField {...props} />;
         }
+
+        // TODO(billy): Handle `props.choices` with a "creatable" SelectField
         // if (props.choices) return <Select2TextField {...props} />;
+
         return <TextField {...props} />;
       case 'number':
-        return <InputField {...props} type="number" />;
+        return <NumberField {...props} />;
       case 'textarea':
         return <TextareaField {...props} />;
       case 'choice':
       case 'select':
       case 'array':
-        // the chrome required tip winds up in weird places
-        // for select2 elements, so just make it look like
-        // it's required (with *) and rely on server validation
-        delete props.required;
+        // TODO(billy): Handle `props.has_autocomplete` with an "async" SelectField
         // if (props.has_autocomplete) {
-        // return <Select2FieldAutocomplete {...props} />;
+        // return <SelectAsyncField {...props} />;
         // }
-        return <Select2Field {...props} />;
+
+        return <SelectField {...props} />;
+      case 'choice_mapper':
+        return <ChoiceMapper {...props} />;
       case 'radio':
         return <RadioField {...props} />;
       default:

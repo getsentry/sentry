@@ -27,7 +27,7 @@ class Migration(SchemaMigration):
                 ('status', self.gf('django.db.models.fields.PositiveSmallIntegerField')(default=0)),
                 (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

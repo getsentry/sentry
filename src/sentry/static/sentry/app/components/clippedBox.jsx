@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {t} from '../locale';
+import {t} from 'app/locale';
 
 class ClippedBox extends React.Component {
   static propTypes = {

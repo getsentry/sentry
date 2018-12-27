@@ -22,7 +22,7 @@ from sentry.utils import json
 
 def react_plugin_config(plugin, project, request):
     response = client.get(
-        '/projects/{}/{}/plugins/{}/'.format(
+        u'/projects/{}/{}/plugins/{}/'.format(
             project.organization.slug,
             project.slug,
             plugin.slug,
@@ -35,7 +35,7 @@ def react_plugin_config(plugin, project, request):
     <div id="ref-plugin-config"></div>
     <script>
     $(function(){
-        ReactDOM.render(React.createFactory(Sentry.PluginConfig)({
+        ReactDOM.render(React.createFactory(SentryApp.PluginConfig)({
             project: %s,
             organization: %s,
             data: %s

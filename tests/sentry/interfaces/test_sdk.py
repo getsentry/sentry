@@ -14,11 +14,19 @@ class SdkTest(TestCase):
         assert Sdk.to_python({
             'name': 'sentry-java',
             'version': '1.0',
-            'integrations': ['log4j']
+            'integrations': ['log4j'],
+            'packages': [{
+                'name': 'maven:io.sentry.sentry',
+                'version': '1.7.10',
+            }],
         }).to_json() == {
             'name': 'sentry-java',
             'version': '1.0',
-            'integrations': ['log4j']
+            'integrations': ['log4j'],
+            'packages': [{
+                'name': 'maven:io.sentry.sentry',
+                'version': '1.7.10',
+            }],
         }
 
     def test_missing_name(self):

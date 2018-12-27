@@ -1,18 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from '../eventDataSection';
-import SentryTypes from '../../../proptypes';
-import GuideAnchor from '../../../components/assistant/guideAnchor';
-import Breadcrumb from './breadcrumbs/breadcrumb';
-import {t} from '../../../locale';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import SentryTypes from 'app/sentryTypes';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Breadcrumb from 'app/components/events/interfaces/breadcrumbs/breadcrumb';
+import {t, tct} from 'app/locale';
 
 function Collapsed(props) {
   return (
     <li className="crumbs-collapsed">
-      <span className="icon-container">
-        <span className="icon icon-ellipsis" />
-      </span>
-      <a onClick={props.onClick}>Show {props.count} collapsed crumbs</a>
+      <a onClick={props.onClick}>
+        <span className="icon-container">
+          <span className="icon icon-ellipsis" />
+        </span>
+        {tct('Show [count] collapsed crumbs', {count: props.count})}
+      </a>
     </li>
   );
 }
@@ -39,7 +41,6 @@ class BreadcrumbsInterface extends React.Component {
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    isShare: PropTypes.bool,
   };
 
   static contextTypes = {

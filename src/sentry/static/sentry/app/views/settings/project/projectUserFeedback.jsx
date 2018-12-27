@@ -2,17 +2,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import {t} from '../../../locale';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import Form from '../components/forms/form';
-import JsonForm from '../components/forms/jsonForm';
-import Panel from '../components/panel';
-import PanelBody from '../components/panelBody';
-import PanelHeader from '../components/panelHeader';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
-import formGroups from '../../../data/forms/userFeedback';
+import sdk from 'app/utils/sdk';
+import {t} from 'app/locale';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/button';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import formGroups from 'app/data/forms/userFeedback';
 
 const CodeBlock = styled.pre`
   word-break: break-all;
@@ -23,7 +22,7 @@ const TextBlockNoMargin = styled(TextBlock)`
   margin-bottom: 0;
 `;
 
-class ProjectUserReportSettings extends AsyncView {
+class ProjectUserFeedbackSettings extends AsyncView {
   static propTypes = {
     setProjectNavSection: PropTypes.func,
   };
@@ -117,7 +116,7 @@ class ProjectUserReportSettings extends AsyncView {
   }
 
   handleClick = () => {
-    Raven.showReportDialog({
+    sdk.showReportDialog({
       // should never make it to the Sentry API, but just in case, use throwaway id
       eventId: '00000000000000000000000000000000',
     });
@@ -129,13 +128,6 @@ class ProjectUserReportSettings extends AsyncView {
     return (
       <div>
         <SettingsPageHeader title={t('User Feedback')} />
-
-        <div className="alert alert-block alert-info">
-          {t(
-            'Psst! This feature is still a work-in-progress. Thanks for being an early adopter!'
-          )}
-        </div>
-
         <TextBlock>
           {t(
             'Enabling User Feedback allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.'
@@ -186,4 +178,4 @@ class ProjectUserReportSettings extends AsyncView {
   }
 }
 
-export default ProjectUserReportSettings;
+export default ProjectUserFeedbackSettings;

@@ -1,31 +1,37 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import classNames from 'classnames';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import {t} from '../locale';
-import {valueIsEqual, buildUserId, buildTeamId} from '../utils';
-import SentryTypes from '../proptypes';
-import Avatar from '../components/avatar';
-import TeamAvatar from '../components/teamAvatar';
-import ActorAvatar from '../components/actorAvatar';
-import DropdownLink from './dropdownLink';
-import FlowLayout from './flowLayout';
-import MenuItem from './menuItem';
-import {assignToUser, assignToActor, clearAssignment} from '../actionCreators/group';
-import GroupStore from '../stores/groupStore';
-import ProjectsStore from '../stores/projectsStore';
-import LoadingIndicator from '../components/loadingIndicator';
-import MemberListStore from '../stores/memberListStore';
-import ConfigStore from '../stores/configStore';
+import {StyledMenu} from 'app/components/dropdownAutoCompleteMenu';
+import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
+import {t} from 'app/locale';
+import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
+import ActorAvatar from 'app/components/actorAvatar';
+import Avatar from 'app/components/avatar';
+import ConfigStore from 'app/stores/configStore';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import GroupStore from 'app/stores/groupStore';
+import Highlight from 'app/components/highlight';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MemberListStore from 'app/stores/memberListStore';
+import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/sentryTypes';
+import TextOverflow from 'app/components/textOverflow';
+import space from 'app/styles/space';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 
-const AssigneeSelector = createReactClass({
+const AssigneeSelectorComponent = createReactClass({
   displayName: 'AssigneeSelector',
 
   propTypes: {
     id: PropTypes.string.isRequired,
+    size: PropTypes.number,
   },
+
   contextTypes: {
     organization: SentryTypes.Organization,
   },
@@ -35,20 +41,10 @@ const AssigneeSelector = createReactClass({
   ],
 
   statics: {
-    filterMembers(memberList, filter) {
-      if (!memberList) return [];
-      if (!filter) return memberList;
-
-      filter = filter.toLowerCase();
-      return memberList.filter(item => {
-        let fullName = [item.name, item.email].join(' ').toLowerCase();
-
-        return fullName.indexOf(filter) !== -1;
-      });
-    },
-
     putSessionUserFirst(members) {
       // If session user is in the filtered list of members, put them at the top
+      if (!members) return [];
+
       let sessionUser = ConfigStore.get('user');
       let sessionUserIndex = members.findIndex(
         member => sessionUser && member.id === sessionUser.id
@@ -62,20 +58,27 @@ const AssigneeSelector = createReactClass({
     },
   },
 
+  getDefaultProps() {
+    return {
+      size: 20,
+    };
+  },
+
   getInitialState() {
     let group = GroupStore.get(this.props.id);
+    let memberList = MemberListStore.loaded ? MemberListStore.getAll() : null;
+    let loading = GroupStore.hasStatus(this.props.id, 'assignTo');
+
     return {
       assignedTo: group && group.assignedTo,
-      memberList: MemberListStore.loaded ? MemberListStore.getAll() : null,
-      filter: '',
-      isOpen: false,
-      loading: false,
+      memberList,
+      loading,
     };
   },
 
   componentWillReceiveProps(nextProps) {
     let loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
-    if (nextProps.id != this.props.id || loading != this.state.loading) {
+    if (nextProps.id !== this.props.id || loading !== this.state.loading) {
       let group = GroupStore.get(this.props.id);
       this.setState({
         loading,
@@ -85,11 +88,7 @@ const AssigneeSelector = createReactClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    if (
-      nextState.isOpen !== this.state.isOpen ||
-      nextState.filter !== this.state.filter ||
-      nextState.loading !== this.state.loading
-    ) {
+    if (nextState.loading !== this.state.loading) {
       return true;
     }
 
@@ -108,14 +107,23 @@ const AssigneeSelector = createReactClass({
   assignableTeams() {
     let group = GroupStore.get(this.props.id);
 
-    return (ProjectsStore.getAll().find(p => p.slug == group.project.slug) || {
+    // TODO(billyvg): There seems to be a race condition after merging where `group`
+    // is not found in `GroupStore`, show an error toast for now
+    if (!group) {
+      addErrorMessage(t('Error loading teams, please try again.'));
+      return [];
+    }
+
+    return (ProjectsStore.getBySlug(group.project.slug) || {
       teams: [],
-    }).teams.map(team => ({
-      id: buildTeamId(team.id),
-      display: `#${team.slug}`,
-      email: team.id,
-      team,
-    }));
+    }).teams
+      .sort((a, b) => a.slug.localeCompare(b.slug))
+      .map(team => ({
+        id: buildTeamId(team.id),
+        display: `#${team.slug}`,
+        email: team.id,
+        team,
+      }));
   },
 
   onGroupChange(itemIds) {
@@ -131,229 +139,248 @@ const AssigneeSelector = createReactClass({
 
   assignToUser(user) {
     assignToUser({id: this.props.id, user});
-    this.setState({filter: '', loading: true});
+    this.setState({loading: true});
   },
 
   assignToTeam(team) {
     assignToActor({actor: {id: team.id, type: 'team'}, id: this.props.id});
-    this.setState({filter: '', loading: true});
+    this.setState({loading: true});
   },
 
-  clearAssignTo() {
-    //clears assignment
-    clearAssignment(this.props.id);
-    this.setState({filter: '', loading: true});
-  },
-
-  onFilterKeyUp(evt) {
-    if (evt.key === 'Escape') {
-      this.onDropdownClose();
-    } else {
-      this.setState({
-        filter: evt.target.value,
-      });
+  handleAssign({value: {type, assignee}}, state, e) {
+    if (type === 'member') {
+      this.assignToUser(assignee);
     }
-  },
 
-  onFilterKeyDown(evt) {
-    if (evt.key === 'Enter' && this.state.filter) {
-      let members = AssigneeSelector.filterMembers(
-        this.state.memberList,
-        this.state.filter
-      );
-      if (members.length > 0) {
-        this.assignToUser(members[0]);
-      }
+    if (type === 'team') {
+      this.assignToTeam(assignee);
     }
-  },
 
-  onFilterMount(ref) {
-    if (ref) {
-      // focus filter input
-      ref.focus();
-    }
-  },
-
-  onFilterClick(e) {
-    // Prevent dropdown menu from closing when filter input is clicked
     e.stopPropagation();
   },
 
-  onDropdownOpen() {
-    this.setState({isOpen: true});
+  clearAssignTo(e) {
+    // clears assignment
+    clearAssignment(this.props.id);
+    this.setState({loading: true});
+    e.stopPropagation();
   },
 
-  onDropdownClose() {
-    this.setState({
-      isOpen: false,
-      filter: '',
+  renderNewMemberNodes() {
+    let {memberList} = this.state;
+    let {size} = this.props;
+    let members = AssigneeSelectorComponent.putSessionUserFirst(memberList);
+
+    return members.map(member => {
+      return {
+        value: {type: 'member', assignee: member},
+        searchKey: `${member.email} ${member.name} ${member.slug}`,
+        label: ({inputValue}) => (
+          <MenuItemWrapper
+            key={buildUserId(member.id)}
+            onSelect={this.assignToUser.bind(this, member)}
+          >
+            <IconContainer>
+              <Avatar user={member} size={size} />
+            </IconContainer>
+            <Label>
+              <Highlight text={inputValue}>{member.name || member.email}</Highlight>
+            </Label>
+          </MenuItemWrapper>
+        ),
+      };
     });
   },
 
-  highlight(text, highlightText) {
-    if (!highlightText) {
-      return text;
-    }
-    highlightText = highlightText.toLowerCase();
-    let idx = text.toLowerCase().indexOf(highlightText);
-    if (idx === -1) {
-      return text;
-    }
-    return (
-      <span>
-        {text.substr(0, idx)}
-        <strong className="highlight">{text.substr(idx, highlightText.length)}</strong>
-        {text.substr(idx + highlightText.length)}
-      </span>
-    );
+  renderNewTeamNodes() {
+    let {size} = this.props;
+
+    return this.assignableTeams().map(({id, display, team}) => {
+      return {
+        value: {type: 'team', assignee: team},
+        searchKey: team.slug,
+        label: ({inputValue}) => (
+          <MenuItemWrapper key={id} onSelect={this.assignToTeam.bind(this, team)}>
+            <IconContainer>
+              <Avatar team={team} size={size} />
+            </IconContainer>
+            <Label>
+              <Highlight text={inputValue}>{display}</Highlight>
+            </Label>
+          </MenuItemWrapper>
+        ),
+      };
+    });
   },
 
-  renderMemberNodes() {
-    let {filter, memberList} = this.state;
-    let members = AssigneeSelector.filterMembers(memberList, filter);
-    members = AssigneeSelector.putSessionUserFirst(members);
+  renderNewDropdownItems() {
+    let teams = this.renderNewTeamNodes();
+    let members = this.renderNewMemberNodes();
 
-    return members && members.length ? (
-      members.map(item => {
-        return (
-          <MenuItem
-            key={buildUserId(item.id)}
-            onSelect={this.assignToUser.bind(this, item)}
-          >
-            <Avatar user={item} className="avatar" size={48} />
-            {this.highlight(item.name || item.email, filter)}
-          </MenuItem>
-        );
-      })
-    ) : (
-      <li className="not-found">
-        <span>{t('No matching users found.')}</span>
-      </li>
-    );
-  },
-
-  renderTeamNodes() {
-    let {filter} = this.state;
-    let teamNodes = [];
-    let org = this.context.organization;
-    let features = new Set(org.features);
-
-    if (features.has('internal-catchall')) {
-      teamNodes = AssigneeSelector.filterMembers(
-        this.assignableTeams(),
-        filter
-      ).map(({id, display, team}) => {
-        return (
-          <MenuItem key={id} onSelect={this.assignToTeam.bind(this, team)}>
-            <TeamAvatar team={team} className="avatar" size={48} />
-            {this.highlight(display, filter)}
-          </MenuItem>
-        );
-      });
-      if (teamNodes.length > 0) {
-        teamNodes = [...teamNodes, <hr key="divider" style={{margin: 0}} />];
-      }
-    }
-    return teamNodes;
+    return [
+      {id: 'team-header', hideGroupLabel: true, items: teams},
+      {id: 'members-header', items: members},
+    ];
   },
 
   render() {
-    let {loading, assignedTo} = this.state;
-    let group = GroupStore.get(this.props.id);
-
-    let org = this.context.organization;
-    let features = new Set(org.features);
-    let access = new Set(org.access);
-
-    let assigneeListLoading = this.state.memberList === null || !group;
-
-    if (loading) {
-      return (
-        <div>
-          <div className="assignee-selector anchor-right">
-            <LoadingIndicator mini style={{marginRight: '10px'}} />
-          </div>
-        </div>
-      );
-    }
-
-    let className = classNames('assignee-selector anchor-right', {
-      unassigned: !assignedTo,
-    });
+    let {className} = this.props;
+    let {organization} = this.context;
+    let {loading, assignedTo, memberList} = this.state;
+    let canInvite = ConfigStore.get('invitesEnabled');
+    let hasOrgWrite = organization.access.includes('org:write');
 
     return (
-      <div>
-        <div className={className}>
-          <DropdownLink
-            className="assignee-selector-toggle"
-            onOpen={this.onDropdownOpen}
-            onClose={this.onDropdownClose}
-            isOpen={this.state.isOpen}
-            alwaysRenderMenu={false}
-            title={
-              assignedTo ? (
-                <ActorAvatar actor={assignedTo} className="avatar" size={48} />
-              ) : (
-                <span className="icon-user" />
+      <div className={className}>
+        {loading && (
+          <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
+        )}
+        {!loading && (
+          <DropdownAutoComplete
+            maxHeight={400}
+            zIndex={2}
+            onOpen={e => {
+              // This can be called multiple times and does not always have `event`
+              if (!e) return;
+              e.stopPropagation();
+            }}
+            busy={memberList === null}
+            items={memberList !== null ? this.renderNewDropdownItems() : null}
+            alignMenu="right"
+            onSelect={this.handleAssign}
+            itemSize="small"
+            searchPlaceholder={t('Filter teams and people')}
+            menuWithArrow
+            emptyHidesInput
+            menuHeader={
+              assignedTo && (
+                <MenuItemWrapper
+                  data-test-id="clear-assignee"
+                  disabled={!loading}
+                  onClick={this.clearAssignTo}
+                  py={0}
+                >
+                  <IconContainer>
+                    <ClearAssigneeIcon />
+                  </IconContainer>
+                  <Label>{t('Clear Assignee')}</Label>
+                </MenuItemWrapper>
+              )
+            }
+            menuFooter={
+              canInvite &&
+              hasOrgWrite && (
+                <InviteMemberLink
+                  data-test-id="invite-member"
+                  disabled={loading}
+                  to={`/settings/${this.context.organization
+                    .slug}/members/new/?referrer=assignee_selector`}
+                >
+                  <MenuItemWrapper>
+                    <IconContainer>
+                      <InviteMemberIcon />
+                    </IconContainer>
+                    <Label>{t('Invite Member')}</Label>
+                  </MenuItemWrapper>
+                </InviteMemberLink>
               )
             }
           >
-            {assigneeListLoading ? (
-              <li>
-                <FlowLayout center className="list-loading-container">
-                  <LoadingIndicator mini />
-                </FlowLayout>
-              </li>
-            ) : (
-              <React.Fragment>
-                <MenuItem noAnchor>
-                  <input
-                    type="text"
-                    className="form-control input-sm"
-                    placeholder={
-                      features.has('internal-catchall')
-                        ? t('Filter teams and people')
-                        : t('Filter members')
-                    }
-                    ref={ref => this.onFilterMount(ref)}
-                    onClick={this.onFilterClick}
-                    onKeyDown={this.onFilterKeyDown}
-                    onKeyUp={this.onFilterKeyUp}
-                  />
-                </MenuItem>
-
-                {assignedTo && (
-                  <MenuItem
-                    className="clear-assignee"
-                    disabled={!loading}
-                    onSelect={this.clearAssignTo}
-                  >
-                    <span className="icon-circle-cross" /> {t('Clear Assignee')}
-                  </MenuItem>
-                )}
-
-                <li>
-                  <ul>{[...this.renderTeamNodes(), ...this.renderMemberNodes()]}</ul>
-                </li>
-              </React.Fragment>
-            )}
-
-            {ConfigStore.get('invitesEnabled') &&
-              access.has('org:write') && (
-                <MenuItem
-                  className="invite-member"
-                  disabled={!loading}
-                  to={`/settings/organization/${this.context.organization
-                    .slug}/members/new/`}
-                >
-                  <span className="icon-plus" /> {t('Invite Member')}
-                </MenuItem>
-              )}
-          </DropdownLink>
-        </div>
+            {({getActorProps}) => {
+              return (
+                <DropdownButton {...getActorProps({})}>
+                  {assignedTo ? (
+                    <ActorAvatar actor={assignedTo} className="avatar" size={24} />
+                  ) : (
+                    <IconUser src="icon-user" />
+                  )}
+                  <StyledChevron src="icon-chevron-down" />
+                </DropdownButton>
+              );
+            }}
+          </DropdownAutoComplete>
+        )}
       </div>
     );
   },
 });
 
+const AssigneeSelector = styled(AssigneeSelectorComponent)`
+  display: flex;
+  justify-content: flex-end;
+
+  /* manually align menu underneath dropdown caret */
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  ${StyledMenu} {
+    right: -14px;
+  }
+`;
+
 export default AssigneeSelector;
+export {AssigneeSelectorComponent};
+
+const getSvgStyle = () => `
+  font-size: 16px;
+  opacity: 0.3;
+`;
+
+const IconUser = styled(InlineSvg)`
+  color: ${p => p.theme.gray3};
+  height: 20px;
+  width: 20px;
+
+  /* We need this to center with Avatar */
+  margin-right: 2px;
+`;
+
+const IconContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+`;
+
+const MenuItemWrapper = styled(({py, ...props}) => <div {...props} />)`
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  ${props =>
+    typeof props.py !== 'undefined' &&
+    `
+      padding-top: ${props.py};
+      padding-bottom: ${props.py};
+    `};
+`;
+
+const InviteMemberLink = styled(Link)`
+  color: ${p => p.theme.textColor};
+`;
+
+const Label = styled(TextOverflow)`
+  margin-left: 6px;
+`;
+
+const ClearAssigneeIcon = styled(props => (
+  <InlineSvg {...props} src="icon-circle-close" />
+))`
+  ${getSvgStyle};
+`;
+
+const InviteMemberIcon = styled(props => <InlineSvg {...props} src="icon-circle-add" />)`
+  ${getSvgStyle};
+`;
+
+const StyledChevron = styled(InlineSvg)`
+  margin-left: ${space(1)};
+  width: 12px;
+  height: 12px;
+`;
+
+const DropdownButton = styled('div')`
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+`;

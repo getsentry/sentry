@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import {defined} from '../../../utils';
+import {defined} from 'app/utils';
 
-import StacktraceContent from './stacktraceContent';
-import ExceptionMechanism from './exceptionMechanism';
+import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
+import ExceptionMechanism from 'app/components/events/interfaces/exceptionMechanism';
 
 class ExceptionContent extends React.Component {
   static propTypes = {

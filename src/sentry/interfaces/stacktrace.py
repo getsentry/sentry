@@ -13,6 +13,7 @@ __all__ = ('Stacktrace', )
 import re
 import six
 import posixpath
+from itertools import islice, chain
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -37,9 +38,13 @@ _filename_version_re = re.compile(
 
 # Java Spring specific anonymous classes.
 # see: http://mydailyjava.blogspot.co.at/2013/11/cglib-missing-manual.html
-_java_enhancer_re = re.compile(r'''
-(\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?
-''', re.X)
+_java_cglib_enhancer_re = re.compile(r'''(\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?''', re.X)
+
+# Handle Javassist auto-generated classes and filenames:
+#   com.example.api.entry.EntriesResource_$$_javassist_74
+#   com.example.api.entry.EntriesResource_$$_javassist_seam_74
+#   EntriesResource_$$_javassist_seam_74.java
+_java_assist_enhancer_re = re.compile(r'''(\$\$_javassist)(?:_seam)?(?:_[0-9]+)?''', re.X)
 
 # Clojure anon functions are compiled down to myapp.mymodule$fn__12345
 _clojure_enhancer_re = re.compile(r'''(\$fn__)\d+''', re.X)
@@ -183,15 +188,20 @@ def remove_filename_outliers(filename, platform=None):
     # contain things like /Users/foo/Dropbox/...
     if platform == 'cocoa':
         return posixpath.basename(filename)
+    elif platform == 'java':
+        filename = _java_assist_enhancer_re.sub(r'\1<auto>', filename)
     return _filename_version_re.sub('<version>/', filename)
 
 
-def remove_module_outliers(module):
+def remove_module_outliers(module, platform=None):
     """Remove things that augment the module but really should not."""
-    if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
-        return 'sun.reflect.GeneratedMethodAccessor'
-    module = _java_enhancer_re.sub(r'\1<auto>', module)
-    return _clojure_enhancer_re.sub(r'\1<auto>', module)
+    if platform == 'java':
+        if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
+            return 'sun.reflect.GeneratedMethodAccessor'
+        module = _java_cglib_enhancer_re.sub(r'\1<auto>', module)
+        module = _java_assist_enhancer_re.sub(r'\1<auto>', module)
+        module = _clojure_enhancer_re.sub(r'\1<auto>', module)
+    return module
 
 
 def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
@@ -406,10 +416,10 @@ class Frame(Interface):
             return output
 
         if self.module:
-            if self.is_unhashable_module():
+            if self.is_unhashable_module(platform):
                 output.append('<module>')
             else:
-                output.append(remove_module_outliers(self.module))
+                output.append(remove_module_outliers(self.module, platform))
         elif self.filename and not self.is_url() and not self.is_caused_by():
             output.append(remove_filename_outliers(self.filename, platform))
 
@@ -448,40 +458,26 @@ class Frame(Interface):
 
     def get_api_context(self, is_public=False, pad_addr=None):
         data = {
-            'filename':
-            self.filename,
-            'absPath':
-            self.abs_path,
-            'module':
-            self.module,
-            'package':
-            self.package,
-            'platform':
-            self.platform,
-            'instructionAddr':
-            pad_hex_addr(self.instruction_addr, pad_addr),
-            'symbolAddr':
-            pad_hex_addr(self.symbol_addr, pad_addr),
-            'function':
-            self.function,
-            'symbol':
-            self.symbol,
-            'context':
-            get_context(
+            'filename': self.filename,
+            'absPath': self.abs_path,
+            'module': self.module,
+            'package': self.package,
+            'platform': self.platform,
+            'instructionAddr': pad_hex_addr(self.instruction_addr, pad_addr),
+            'symbolAddr': pad_hex_addr(self.symbol_addr, pad_addr),
+            'function': self.function,
+            'symbol': self.symbol,
+            'context': get_context(
                 lineno=self.lineno,
                 context_line=self.context_line,
                 pre_context=self.pre_context,
                 post_context=self.post_context,
                 filename=self.filename or self.module,
             ),
-            'lineNo':
-            self.lineno,
-            'colNo':
-            self.colno,
-            'inApp':
-            self.in_app,
-            'errors':
-            self.errors,
+            'lineNo': self.lineno,
+            'colNo': self.colno,
+            'inApp': self.in_app,
+            'errors': self.errors,
         }
         if not is_public:
             data['vars'] = self.vars
@@ -502,6 +498,33 @@ class Frame(Interface):
 
         return data
 
+    def get_meta_context(self, meta, is_public=False):
+        if not meta:
+            return
+
+        return {
+            'filename': meta.get('filename'),
+            'absPath': meta.get('abs_path'),
+            'module': meta.get('module'),
+            'package': meta.get('package'),
+            'platform': meta.get('platform'),
+            'instructionAddr': meta.get('instruction_addr'),
+            'symbolAddr': meta.get('symbol_addr'),
+            'function': meta.get('function'),
+            'symbol': meta.get('symbol'),
+            'context': get_context(
+                lineno=meta.get('lineno'),
+                context_line=meta.get('context_line'),
+                pre_context=meta.get('pre_context'),
+                post_context=meta.get('post_context'),
+                filename=meta.get('filename') if self.filename else meta.get('module'),
+            ),
+            'lineNo': meta.get('lineno'),
+            'colNo': meta.get('colno'),
+            'inApp': meta.get('in_app'),
+            'errors': meta.get('errors'),
+        }
+
     def is_url(self):
         if not self.abs_path:
             return False
@@ -518,9 +541,15 @@ class Frame(Interface):
         # values (see raven-java#125)
         return self.filename.startswith('Caused by: ')
 
-    def is_unhashable_module(self):
-        # TODO(dcramer): this is Java specific
-        return '$$Lambda$' in self.module
+    def is_unhashable_module(self, platform):
+        # Fix for the case where module is a partial copy of the URL
+        # and should not be hashed
+        if (platform == 'javascript' and '/' in self.module
+                and self.abs_path and self.abs_path.endswith(self.module)):
+            return True
+        elif platform == 'java' and '$$Lambda$' in self.module:
+            return True
+        return False
 
     def is_unhashable_function(self):
         # TODO(dcramer): lambda$ is Java specific
@@ -676,9 +705,16 @@ class Stacktrace(Interface):
         if not is_valid:
             raise InterfaceValidationError("Invalid stack frame data.")
 
+        # Trim down the frame list to a hard limit. Leave the last frame in place in case
+        # it's useful for debugging.
+        frameiter = data['frames']
+        if len(data['frames']) > settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT:
+            frameiter = chain(
+                islice(data['frames'], settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT - 1), (data['frames'][-1],))
+
         frame_list = [
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            Frame.to_python(f or {}, raw=raw) for f in data['frames']
+            Frame.to_python(f or {}, raw=raw) for f in frameiter
         ]
 
         kwargs = {
@@ -725,6 +761,22 @@ class Stacktrace(Interface):
             'framesOmitted': self.frames_omitted,
             'registers': self.registers,
             'hasSystemFrames': self.get_has_system_frames(),
+        }
+
+    def get_api_meta(self, meta, is_public=False):
+        if not meta:
+            return meta
+
+        frame_meta = {}
+        for index, value in six.iteritems(meta.get('frames', {})):
+            frame = self.frames[int(index)]
+            frame_meta[index] = frame.get_api_meta(value, is_public=is_public)
+
+        return {
+            '': meta.get(''),
+            'frames': frame_meta,
+            'framesOmitted': meta.get('frames_omitted'),
+            'registers': meta.get('registers'),
         }
 
     def to_json(self):

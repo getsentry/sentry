@@ -11,9 +11,9 @@ const spin = keyframes`
 `;
 
 const Spinner = styled.div`
-  animation: ${spin} .4s linear infinite;
+  animation: ${spin} 0.4s linear infinite;
   width: 18px;
-  height: 18px
+  height: 18px;
   border-radius: 18px;
   border-top: 2px solid ${p => p.theme.borderLight};
   border-right: 2px solid ${p => p.theme.borderLight};

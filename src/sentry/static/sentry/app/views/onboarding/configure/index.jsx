@@ -1,17 +1,22 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
-import Raven from 'raven-js';
 
-import Waiting from './waiting';
-import ApiMixin from '../../../mixins/apiMixin';
-import ProjectContext from '../../projects/projectContext';
-import ProjectDocsContext from '../../projectInstall/docsContext';
-import ProjectInstallPlatform from '../../projectInstall/platform';
-import HookStore from '../../../stores/hookStore';
+import sdk from 'app/utils/sdk';
+import analytics from 'app/utils/analytics';
+import ApiMixin from 'app/mixins/apiMixin';
+import HookStore from 'app/stores/hookStore';
+import ProjectContext from 'app/views/projects/projectContext';
+import ProjectDocsContext from 'app/views/projectInstall/docsContext';
+import ProjectInstallPlatform from 'app/views/projectInstall/platform';
+import SentryTypes from 'app/sentryTypes';
+import Waiting from 'app/views/onboarding/configure/waiting';
 
 const Configure = createReactClass({
   displayName: 'Configure',
+  contextTypes: {
+    organization: SentryTypes.Organization,
+  },
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -27,7 +32,6 @@ const Configure = createReactClass({
     if (!platform || platform === 'other') {
       this.redirectToNeutralDocs();
     }
-
     this.fetchEventData();
     this.timer = setInterval(() => {
       this.fetchEventData();
@@ -77,7 +81,7 @@ const Configure = createReactClass({
       },
 
       error: err => {
-        Raven.captureMessage('Polling for events in onboarding configure failed', {
+        sdk.captureMessage('Polling for events in onboarding configure failed', {
           extra: err,
         });
       },
@@ -85,8 +89,9 @@ const Configure = createReactClass({
   },
 
   submit() {
-    this.redirectUrl();
     HookStore.get('analytics:onboarding-complete').forEach(cb => cb());
+    analytics('onboarding.complete', {project: this.props.params.projectId});
+    this.redirectUrl();
   },
 
   redirectToNeutralDocs() {
@@ -116,7 +121,12 @@ const Configure = createReactClass({
               />
             </ProjectDocsContext>
           </ProjectContext>
-          <Waiting skip={this.submit} hasEvent={this.state.hasSentRealEvent} />
+          <Waiting
+            skip={this.submit}
+            hasEvent={this.state.hasSentRealEvent}
+            params={this.props.params}
+            organization={this.context.organization}
+          />
         </div>
       </div>
     );

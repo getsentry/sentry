@@ -1,44 +1,73 @@
 from __future__ import absolute_import
 
-from sentry import features
+from uuid import uuid4
+
+from django.http import Http404
+
 from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationIntegrationsPermission
 )
 from sentry.api.serializers import serialize
-from sentry.models import Integration, OrganizationIntegration
+from sentry.integrations.exceptions import IntegrationError
+from sentry.models import Integration, ObjectStatus, OrganizationIntegration
+from sentry.tasks.deletion import delete_organization_integration
 
 
 class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission, )
 
-    def has_feature(self, request, organization):
-        return features.has(
-            'organizations:integrations-v3',
-            organization=organization,
-            actor=request.user,
-        )
-
     def get(self, request, organization, integration_id):
-        if not self.has_feature(request, organization):
-            return self.respond({'detail': ['You do not have that feature enabled']}, status=400)
-
-        integration = Integration.objects.get(
-            organizations=organization,
-            id=integration_id,
-        )
+        try:
+            integration = OrganizationIntegration.objects.get(
+                integration_id=integration_id,
+                organization=organization,
+            )
+        except OrganizationIntegration.DoesNotExist:
+            raise Http404
 
         return self.respond(serialize(integration, request.user))
 
     def delete(self, request, organization, integration_id):
-        if not self.has_feature(request, organization):
-            return self.respond({'detail': ['You do not have that feature enabled']}, status=400)
+        # Removing the integration removes the organization
+        # integrations and all linked issues.
+        try:
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=integration_id,
+                organization=organization,
+            )
+        except OrganizationIntegration.DoesNotExist:
+            raise Http404
 
-        integration = Integration.objects.get(
-            organizations=organization,
-            id=integration_id,
-        )
-        OrganizationIntegration.objects.filter(
-            integration=integration,
-            organization=organization,
-        ).delete()
+        updated = OrganizationIntegration.objects.filter(
+            id=org_integration.id,
+            status=ObjectStatus.VISIBLE,
+        ).update(status=ObjectStatus.PENDING_DELETION)
+
+        if updated:
+            delete_organization_integration.apply_async(
+                kwargs={
+                    'object_id': org_integration.id,
+                    'transaction_id': uuid4().hex,
+                    'actor_id': request.user.id,
+                },
+                countdown=0,
+            )
+
         return self.respond(status=204)
+
+    def post(self, request, organization, integration_id):
+        try:
+            integration = Integration.objects.get(
+                id=integration_id,
+                organizations=organization,
+            )
+        except Integration.DoesNotExist:
+            raise Http404
+
+        installation = integration.get_installation(organization.id)
+        try:
+            installation.update_organization_config(request.DATA)
+        except IntegrationError as e:
+            return self.respond({'detail': e.message}, status=400)
+
+        return self.respond(status=200)

@@ -1,27 +1,37 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectPlugins renders 1`] = `
-<div
-  className="panel panel-default"
->
-  <table
-    className="table integrations simple"
+<Panel>
+  <PanelHeader>
+    <div>
+      Legacy Integration
+    </div>
+    <div>
+      Enabled
+    </div>
+  </PanelHeader>
+  <PanelBody
+    direction="column"
+    disablePadding={true}
+    flex={false}
   >
-    <thead>
-      <tr>
-        <th
-          colSpan={2}
-        >
-          Legacy Integration
-        </th>
-        <th
-          className="align-right"
-        >
-          Enabled
-        </th>
-      </tr>
-    </thead>
-    <tbody>
+    <PanelAlert
+      type="warning"
+    >
+      <FeatureContainer
+        access={
+          Array [
+            "org:integrations",
+          ]
+        }
+      >
+        <Component />
+      </FeatureContainer>
+    </PanelAlert>
+    <PanelItem
+      key="amazon-sqs"
+      p={2}
+    >
       <ProjectPluginRow
         assets={Array []}
         author={
@@ -34,13 +44,21 @@ exports[`ProjectPlugins renders 1`] = `
         enabled={false}
         hasConfiguration={true}
         id="amazon-sqs"
-        key="amazon-sqs"
         name="Amazon SQS"
-        orgId="org-slug"
-        projectId="project-slug"
+        params={
+          Object {
+            "orgId": "org-slug",
+            "projectId": "project-slug",
+          }
+        }
         slug="amazon-sqs"
         version="8.23.0.dev0"
       />
+    </PanelItem>
+    <PanelItem
+      key="github"
+      p={2}
+    >
       <ProjectPluginRow
         assets={Array []}
         author={
@@ -52,14 +70,17 @@ exports[`ProjectPlugins renders 1`] = `
         canDisable={false}
         enabled={true}
         id="github"
-        key="github"
         name="GitHub"
-        orgId="org-slug"
-        projectId="project-slug"
+        params={
+          Object {
+            "orgId": "org-slug",
+            "projectId": "project-slug",
+          }
+        }
         slug="github"
         version="8.23.0.dev0"
       />
-    </tbody>
-  </table>
-</div>
+    </PanelItem>
+  </PanelBody>
+</Panel>
 `;

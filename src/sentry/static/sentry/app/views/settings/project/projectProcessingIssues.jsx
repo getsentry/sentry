@@ -1,27 +1,31 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {addLoadingMessage, removeIndicator} from '../../../actionCreators/indicator';
-import {t, tn} from '../../../locale';
-import formGroups from '../../../data/forms/processingIssues';
-import ApiMixin from '../../../mixins/apiMixin';
-import Form from '../components/forms/form';
-import JsonForm from '../components/forms/jsonForm';
-import LoadingError from '../../../components/loadingError';
-import LoadingIndicator from '../../../components/loadingIndicator';
-import OrganizationState from '../../../mixins/organizationState';
-import SettingsPageHeader from '../components/settingsPageHeader';
-import TextBlock from '../components/text/textBlock';
-import TimeSince from '../../../components/timeSince';
+import {addLoadingMessage, removeIndicator} from 'app/actionCreators/indicator';
+import {t, tn} from 'app/locale';
+import formGroups from 'app/data/forms/processingIssues';
+import ApiMixin from 'app/mixins/apiMixin';
+import Form from 'app/views/settings/components/forms/form';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationState from 'app/mixins/organizationState';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import TimeSince from 'app/components/timeSince';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel} from 'app/components/panels';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
   native_internal_failure: t('Internal failure when attempting to symbolicate: {error}'),
-  native_bad_dsym: t('The debug symbol file used was broken.'),
-  native_missing_optionally_bundled_dsym: t('An optional debug symbol file was missing.'),
-  native_missing_dsym: t('A required debug symbol file was missing.'),
-  native_missing_system_dsym: t('A system debug symbol file was missing.'),
-  native_missing_symbol: t('Unable to resolve a symbol.'),
+  native_bad_dsym: t('The debug information file used was broken.'),
+  native_missing_optionally_bundled_dsym: t(
+    'An optional debug information file was missing.'
+  ),
+  native_missing_dsym: t('A required debug information file was missing.'),
+  native_missing_system_dsym: t('A system debug information file was missing.'),
+  native_missing_symbol: t('Could not resolve one or more frames in debug information file.'),
   native_simulator_frame: t('Encountered an unprocessable simulator frame.'),
   native_unknown_image: t('A binary image is referenced that is unknown.'),
   proguard_missing_mapping: t('A proguard mapping file was missing.'),
@@ -130,8 +134,7 @@ const ProjectProcessingIssues = createReactClass({
     this.setState({
       expected: this.state.expected + 1,
     });
-    // Note: inconsistency with missing trailing slash, but matches route in backend
-    this.api.request(`/projects/${orgId}/${projectId}/processingissues/discard`, {
+    this.api.request(`/projects/${orgId}/${projectId}/processingissues/discard/`, {
       method: 'DELETE',
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
@@ -186,12 +189,12 @@ const ProjectProcessingIssues = createReactClass({
 
   renderDebugTable() {
     let body;
-
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (
       this.state.processingIssues.hasIssues ||
-      this.state.processingIssues.resolveableIssues
+      this.state.processingIssues.resolveableIssues ||
+      this.state.processingIssues.issuesProcessing
     )
       body = this.renderResults();
     else body = this.renderEmpty();
@@ -209,10 +212,11 @@ const ProjectProcessingIssues = createReactClass({
 
   renderEmpty() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{t('Good news! There are no processing issues.')}</p>
-      </div>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('Good news! There are no processing issues.')}</p>
+        </EmptyStateWarning>
+      </Panel>
     );
   },
 
@@ -222,7 +226,7 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   getImageName(path) {
-    let pathSegments = path.split(/\//g);
+    let pathSegments = path.split(/^[a-z]:\\/i.test(path) ? '\\' : '/');
     return pathSegments[pathSegments.length - 1];
   },
 
@@ -297,7 +301,7 @@ const ProjectProcessingIssues = createReactClass({
       fixLinkBlock = (
         <div className="panel panel-info">
           <div className="panel-heading">
-            <h3>{t('Having trouble uploading debug symbols? We can help!')}</h3>
+            <h3>{t('Having trouble uploading debug informations? We can help!')}</h3>
           </div>
           <div className="panel-body">
             <div className="form-group" style={{marginBottom: 0}}>
@@ -317,6 +321,27 @@ const ProjectProcessingIssues = createReactClass({
         </div>
       );
     }
+    let processingRow = null;
+    if (this.state.processingIssues.issuesProcessing > 0) {
+      processingRow = (
+        <div className="list-group-item alert-info">
+          <div className="row row-flex row-center-vertically">
+            <div className="col-sm-12">
+              <span
+                className="icon icon-processing play"
+                style={{display: 'inline', marginRight: 12}}
+              />
+              {tn(
+                'Reprocessing %d event …',
+                'Reprocessing %d events …',
+                this.state.processingIssues.issuesProcessing
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div>
         {fixLinkBlock}
@@ -341,6 +366,7 @@ const ProjectProcessingIssues = createReactClass({
             </div>
           </div>
           <div className="list-group">
+            {processingRow}
             {this.state.processingIssues.issues.map((item, idx) => {
               return (
                 <div key={idx} className="list-group-item">
@@ -391,9 +417,9 @@ const ProjectProcessingIssues = createReactClass({
             `
           For some platforms the event processing requires configuration or
           manual action.  If a misconfiguration happens or some necessary
-          steps are skipped issues can occur during processing.  In these
-          cases you can see all the problems here with guides of how to correct
-          them.
+          steps are skipped, issues can occur during processing. (The most common
+          reason for this is missing debug symbols.) In these cases you can see
+          all the problems here with guides of how to correct them.
         `
           )}
         </TextBlock>

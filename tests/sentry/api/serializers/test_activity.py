@@ -19,7 +19,7 @@ class GroupActivityTestCase(TestCase):
         group = self.create_group(
             status=GroupStatus.UNRESOLVED,
         )
-        repo = self.create_repo(self.project)
+        repo = self.create_repo(self.project, name='organization-bar')
         pr = PullRequest.objects.create(
             organization_id=self.org.id,
             repository_id=repo.id,
@@ -51,7 +51,7 @@ class GroupActivityTestCase(TestCase):
         group = self.create_group(
             status=GroupStatus.UNRESOLVED,
         )
-        repo = self.create_repo(self.project)
+        repo = self.create_repo(self.project, name='organization-bar')
 
         commit = Commit.objects.create(
             organization_id=self.org.id,

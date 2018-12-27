@@ -1,10 +1,8 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
-// import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import Avatar from 'sentry-ui/avatar';
-import TeamAvatar from 'sentry-ui/teamAvatar';
+import Avatar from 'app/components/avatar';
 
 const USER = {
   id: 1,
@@ -13,7 +11,7 @@ const USER = {
 };
 
 // eslint-disable-next-line
-storiesOf('Avatar', module)
+storiesOf('UI|Avatar', module)
   .add(
     'Letters',
     withInfo('This is the default avatar')(() => {
@@ -55,6 +53,6 @@ storiesOf('Avatar', module)
         name: 'Captain Planet',
         slug: 'captain-planet',
       };
-      return <TeamAvatar team={team} />;
+      return <Avatar team={team} />;
     })
   );

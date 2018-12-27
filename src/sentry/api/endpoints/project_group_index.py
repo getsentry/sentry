@@ -11,7 +11,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry import features, search
+from sentry import analytics, features, search
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import ActorField, Actor
@@ -24,14 +24,15 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, Environment, Group, GroupAssignee, GroupBookmark, GroupHash, GroupResolution,
     GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription, GroupSubscriptionReason,
-    GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption, User, Team
+    GroupHashTombstone, GroupTombstone, Release, TOMBSTONE_FIELDS_FROM_GROUP, UserOption, User, Team
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
 from sentry.receivers import DEFAULT_SAVED_SEARCHES
 from sentry.search.utils import InvalidQuery, parse_query
-from sentry.signals import advanced_search, issue_resolved_in_release
+from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release, issue_deleted
 from sentry.tasks.deletion import delete_group
+from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_group
 from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import Cursor, CursorResult
@@ -224,7 +225,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
     def _search(self, request, project, extra_query_kwargs=None):
         query_kwargs = self._build_query_params_from_request(request, project)
-
         if extra_query_kwargs is not None:
             assert 'environment' not in extra_query_kwargs
             query_kwargs.update(extra_query_kwargs)
@@ -240,7 +240,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             result = CursorResult([], None, None, hits=0, max_hits=1000)
         else:
             result = search.query(**query_kwargs)
-
         return result, query_kwargs
 
     def _subscribe_and_assign_issue(self, acting_user, group, result):
@@ -323,6 +322,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                             event_id=query, project_id=project.id)
                     except Event.DoesNotExist:
                         pass
+                    else:
+                        Event.objects.bind_nodes([matching_event], 'data')
 
             # If the query looks like a short id, we want to provide some
             # information about where that is.  Note that this can return
@@ -337,10 +338,18 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     matching_group = None
 
             if matching_group is not None:
+                matching_event_environment = None
+
+                try:
+                    matching_event_environment = matching_event.get_environment().name if matching_event else None
+                except Environment.DoesNotExist:
+                    pass
+
                 response = Response(
                     serialize(
                         [matching_group], request.user, serializer(
                             matching_event_id=getattr(matching_event, 'id', None),
+                            matching_event_environment=matching_event_environment,
                         )
                     )
                 )
@@ -366,6 +375,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         if results and query not in SAVED_SEARCH_QUERIES:
             advanced_search.send(project=project, sender=request.user)
+            analytics.record('project_issue.searched', user_id=request.user.id,
+                             organization_id=project.organization_id, project_id=project.id,
+                             query=query)
 
         return response
 
@@ -494,7 +506,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                             group_tombstone_id=tombstone.id,
                         )
 
-            self._delete_groups(request, project, groups_to_delete)
+            self._delete_groups(request, project, groups_to_delete, delete_type='discard')
 
             return Response(status=204)
 
@@ -518,6 +530,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
                 res_type = GroupResolution.Type.in_next_release
+                res_type_str = 'in_next_release'
                 res_status = GroupResolution.Status.pending
             elif statusDetails.get('inRelease'):
                 release = statusDetails['inRelease']
@@ -531,9 +544,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
                 res_type = GroupResolution.Type.in_release
+                res_type_str = 'in_release'
                 res_status = GroupResolution.Status.resolved
             else:
                 release = None
+                res_type_str = 'now'
                 activity_type = Activity.SET_RESOLVED
                 activity_data = {}
                 status_details = {}
@@ -589,11 +604,18 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         if not is_bulk:
                             activity.send_notification()
 
-                issue_resolved_in_release.send(
+                issue_resolved_in_release.send_robust(
                     group=group,
                     project=project,
-                    sender=acting_user,
+                    user=acting_user,
+                    resolution_type=res_type_str,
+                    sender=self.__class__,
                 )
+
+                kick_off_status_syncs.apply_async(kwargs={
+                    'project_id': group.project_id,
+                    'group_id': group.id,
+                })
 
             result.update({
                 'status': 'resolved',
@@ -667,6 +689,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                 'ignoreWindow': ignore_window,
                                 'actor': serialize(extract_lazy_object(request.user), request.user),
                             }
+                        issue_ignored.send_robust(project=project, sender=self.__class__)
                     else:
                         GroupSnooze.objects.filter(
                             group__in=group_ids,
@@ -711,6 +734,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                 reason=GroupSubscriptionReason.status_change,
                             )
                         activity.send_notification()
+
+                    if new_status == GroupStatus.UNRESOLVED:
+                        kick_off_status_syncs.apply_async(kwargs={
+                            'project_id': group.project_id,
+                            'group_id': group.id,
+                        })
 
         if 'assignedTo' in result:
             assigned_actor = result['assignedTo']
@@ -893,19 +922,27 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 )
             )
         else:
-            # missing any kind of filter
-            return Response(
-                {"detail": "You must specify a list of IDs for this operation"}, status=400
-            )
+            try:
+                # bulk mutations are limited to 1000 items
+                # TODO(dcramer): it'd be nice to support more than this, but its
+                # a bit too complicated right now
+                cursor_result, _ = self._search(request, project, {
+                    'limit': 1000,
+                    'paginator_options': {'max_limit': 1000},
+                })
+            except ValidationError as exc:
+                return Response({'detail': six.text_type(exc)}, status=400)
+
+            group_list = list(cursor_result)
 
         if not group_list:
             return Response(status=204)
 
-        self._delete_groups(request, project, group_list)
+        self._delete_groups(request, project, group_list, delete_type='delete')
 
         return Response(status=204)
 
-    def _delete_groups(self, request, project, group_list):
+    def _delete_groups(self, request, project, group_list, delete_type):
         group_ids = [g.id for g in group_list]
 
         Group.objects.filter(
@@ -914,7 +951,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             GroupStatus.PENDING_DELETION,
             GroupStatus.DELETION_IN_PROGRESS,
         ]).update(status=GroupStatus.PENDING_DELETION)
-        GroupHash.objects.filter(group__id__in=group_ids).delete()
+
+        GroupHashTombstone.tombstone_groups(
+            project_id=project.id,
+            group_ids=group_ids,
+        )
 
         transaction_id = uuid4().hex
 
@@ -942,3 +983,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     'model': type(group).__name__,
                 }
             )
+
+            issue_deleted.send_robust(
+                group=group,
+                user=request.user,
+                delete_type=delete_type,
+                sender=self.__class__)

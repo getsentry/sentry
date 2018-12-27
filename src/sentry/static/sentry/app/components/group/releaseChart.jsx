@@ -2,10 +2,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import StackedBarChart from '../stackedBarChart';
-import SentryTypes from '../../proptypes';
-import {t} from '../../locale';
-import {escape, intcomma} from '../../utils';
+import StackedBarChart from 'app/components/stackedBarChart';
+import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
+import {escape, intcomma} from 'app/utils';
+import theme from 'app/utils/theme';
 
 const GroupReleaseChart = createReactClass({
   displayName: 'GroupReleaseChart',
@@ -15,10 +16,8 @@ const GroupReleaseChart = createReactClass({
     release: PropTypes.shape({
       version: PropTypes.string.isRequired,
     }),
-    releaseStats: PropTypes.object,
     statsPeriod: PropTypes.string.isRequired,
     environment: PropTypes.string,
-    environmentStats: PropTypes.object,
     firstSeen: PropTypes.string,
     lastSeen: PropTypes.string,
     title: PropTypes.string,
@@ -120,6 +119,8 @@ const GroupReleaseChart = createReactClass({
           label: t('First seen'),
           x: firstSeenX,
           className: 'first-seen',
+          offset: -7.5,
+          fill: theme.pink,
         });
       }
     }
@@ -131,6 +132,7 @@ const GroupReleaseChart = createReactClass({
           label: t('Last seen'),
           x: lastSeenX,
           className: 'last-seen',
+          fill: theme.green,
         });
       }
     }
@@ -147,6 +149,8 @@ const GroupReleaseChart = createReactClass({
           markers={markers}
           barClasses={['release', 'environment', 'inactive']}
           tooltip={this.renderTooltip}
+          gap={0.75}
+          minHeights={[0, 0, 5]}
         />
       </div>
     );

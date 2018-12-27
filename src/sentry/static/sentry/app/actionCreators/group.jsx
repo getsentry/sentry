@@ -1,6 +1,7 @@
-import {Client} from '../api';
-import GroupActions from '../actions/groupActions';
-import {buildUserId, buildTeamId} from '../utils';
+import sdk from 'app/utils/sdk';
+import {Client} from 'app/api';
+import GroupActions from 'app/actions/groupActions';
+import {buildUserId, buildTeamId} from 'app/utils';
 
 export function assignToUser(params) {
   const api = new Client();
@@ -81,7 +82,7 @@ export function assignToActor({id, actor}) {
       break;
 
     default:
-      Raven.captureException('Unknown assignee type', {
+      sdk.captureException('Unknown assignee type', {
         extra: {actor},
       });
   }

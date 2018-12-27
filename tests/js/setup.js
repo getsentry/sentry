@@ -1,17 +1,78 @@
+/* global __dirname */
+/* eslint import/no-nodejs-modules:0 */
+import fs from 'fs';
+
+import {channel, createBroadcast} from 'emotion-theming';
 import jQuery from 'jquery';
 import sinon from 'sinon';
-import ConfigStore from 'app/stores/configStore';
+import Adapter from 'enzyme-adapter-react-16';
+import Enzyme from 'enzyme';
 import MockDate from 'mockdate';
 import PropTypes from 'prop-types';
-import SentryTypes from 'app/proptypes';
-import Enzyme from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
 
+import ConfigStore from 'app/stores/configStore';
+import theme from 'app/utils/theme';
+
+export * from './helpers/select';
+
+jest.mock('lodash/debounce', () => jest.fn(fn => fn));
+jest.mock('app/utils/recreateRoute');
 jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('scroll-to-element', () => {});
+jest.mock('react-router', () => {
+  const ReactRouter = require.requireActual('react-router');
+  return {
+    IndexRedirect: ReactRouter.IndexRedirect,
+    IndexRoute: ReactRouter.IndexRoute,
+    Link: ReactRouter.Link,
+    Redirect: ReactRouter.Redirect,
+    Route: ReactRouter.Route,
+    withRouter: ReactRouter.withRouter,
+    browserHistory: {
+      push: jest.fn(),
+      replace: jest.fn(),
+      listen: jest.fn(() => {}),
+    },
+  };
+});
+jest.mock('react-lazyload', () => {
+  const LazyLoadMock = ({children}) => children;
+  return LazyLoadMock;
+});
 
-const constantDate = new Date('2017-10-17T04:41:20'); //National Pasta Day
+jest.mock('react-virtualized', () => {
+  const ActualReactVirtualized = require.requireActual('react-virtualized');
+  return {
+    ...ActualReactVirtualized,
+    AutoSizer: ({children}) => {
+      return children({width: 100, height: 100});
+    },
+  };
+});
+
+jest.mock('echarts-for-react/lib/core', () => {
+  // We need to do this because `jest.mock` gets hoisted by babel and `React` is not
+  // guaranteed to be in scope
+  const ReactActual = require('react');
+
+  // We need a class component here because `BaseChart` passes `ref` which will
+  // error if we return a stateless/functional component
+  return class extends ReactActual.Component {
+    render() {
+      return null;
+    }
+  };
+});
+
+jest.mock('app/utils/sdk', () => ({
+  captureMessage: jest.fn(),
+  captureException: jest.fn(),
+  showReportDialog: jest.fn(),
+  lastEventId: jest.fn(),
+}));
+
+const constantDate = new Date(1508208080000); //National Pasta Day
 MockDate.set(constantDate);
 
 // We generally use actual jQuery, and jest mocks takes precedence over node_modules
@@ -20,36 +81,80 @@ jest.unmock('jquery');
 Enzyme.configure({adapter: new Adapter()});
 Enzyme.configure({disableLifecycleMethods: true});
 
+// This is so we can use async/await in tests instead of wrapping with `setTimeout`
+window.tick = () => new Promise(resolve => setTimeout(resolve));
+
 window.$ = window.jQuery = jQuery;
 window.sinon = sinon;
-window.scrollTo = sinon.spy();
+window.scrollTo = jest.fn();
 
-window.Raven = {
-  captureMessage: sinon.spy(),
-  captureException: sinon.spy(),
-  lastEventId: sinon.spy(),
-};
+// emotion context broadcast
+const broadcast = createBroadcast(theme);
+
+// Dynamically load fixtures
+const fixturesPath = `${__dirname}/fixtures`;
+const modules = fs
+  .readdirSync(fixturesPath)
+  .map(filename => require(`${fixturesPath}/${filename}`));
+
+modules.forEach(exports => {
+  if (Object.keys(exports).includes('default')) {
+    throw new Error('Javascript fixtures cannot use default export');
+  }
+});
+
+const fixtures = modules.reduce(
+  (acc, exports) => ({
+    ...acc,
+    ...exports,
+  }),
+  {}
+);
+
 window.TestStubs = {
   // react-router's 'router' context
-  router: () => ({
-    push: sinon.spy(),
-    replace: sinon.spy(),
-    go: sinon.spy(),
-    goBack: sinon.spy(),
-    goForward: sinon.spy(),
-    setRouteLeaveHook: sinon.spy(),
-    isActive: sinon.spy(),
-    createHref: sinon.spy(),
-    location: {},
+  router: (params = {}) => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    go: jest.fn(),
+    goBack: jest.fn(),
+    goForward: jest.fn(),
+    listen: jest.fn(),
+    setRouteLeaveHook: jest.fn(),
+    isActive: jest.fn(),
+    createHref: jest.fn(),
+    location: {query: {}},
+    ...params,
   }),
 
-  location: () => ({
+  location: (params = {}) => ({
     query: {},
     pathame: '/mock-pathname/',
+    ...params,
+  }),
+
+  routes: () => [
+    {path: '/'},
+    {path: '/:orgId/'},
+    {name: 'this should be skipped'},
+    {path: '/organizations/:orgId/'},
+    {path: 'api-keys/', name: 'API Key'},
+  ],
+
+  routerProps: (params = {}) => ({
+    location: TestStubs.location(),
+    params: {},
+    routes: [],
+    stepBack: () => {},
+    ...params,
   }),
 
   routerContext: ([context, childContextTypes] = []) => ({
     context: {
+      [channel]: {
+        subscribe: broadcast.subscribe,
+        unsubscribe: broadcast.unsubscribe,
+      },
       location: TestStubs.location(),
       router: TestStubs.router(),
       organization: TestStubs.Organization(),
@@ -57,24 +162,12 @@ window.TestStubs = {
       ...context,
     },
     childContextTypes: {
+      [channel]: PropTypes.object,
       router: PropTypes.object,
       location: PropTypes.object,
       organization: PropTypes.object,
       project: PropTypes.object,
       ...childContextTypes,
-    },
-  }),
-
-  routerOrganizationContext: () => ({
-    context: {
-      location: TestStubs.location(),
-      router: TestStubs.router(),
-      organization: TestStubs.Organization(),
-    },
-    childContextTypes: {
-      router: PropTypes.object,
-      location: PropTypes.object,
-      organization: SentryTypes.Organization,
     },
   }),
 
@@ -121,49 +214,7 @@ window.TestStubs = {
       dateCreated: '2018-02-21T03:04:23.157Z',
       ipAddress: '127.0.0.1',
       id: '465',
-      actor: {
-        username: 'billy@sentry.io',
-        emails: [
-          {is_verified: true, id: '5', email: 'billy@sentry.io'},
-          {is_verified: false, id: '17', email: 'billy36@sentry.io'},
-          {is_verified: false, id: '11', email: 'awerawer@awe.com'},
-          {is_verified: false, id: '28', email: 'test@test.com'},
-          {is_verified: true, id: '10', email: 'billy2@sentry.io'},
-        ],
-        isManaged: false,
-        lastActive: '2018-02-21T17:40:31.555Z',
-        identities: [
-          {
-            name: '79684',
-            dateVerified: '2018-02-21T17:09:46.248Z',
-            provider: {id: 'github', name: 'GitHub'},
-            dateSynced: '2018-02-21T17:09:46.248Z',
-            organization: {slug: 'default', name: 'default'},
-            id: '1',
-          },
-        ],
-        id: '1',
-        isActive: true,
-        has2fa: true,
-        name: 'billy vong',
-        avatarUrl:
-          'https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm',
-        dateJoined: '2018-01-10T00:19:59Z',
-        options: {
-          timezone: 'America/Los_Angeles',
-          seenReleaseBroadcast: true,
-          stacktraceOrder: -1,
-          language: 'en',
-          clock24Hours: false,
-        },
-        avatar: {
-          avatarUuid: '483ed7478a2248d59211f538c2997e0b',
-          avatarType: 'letter_avatar',
-        },
-        lastLogin: '2018-02-14T07:09:37.536Z',
-        permissions: [],
-        email: 'billy@sentry.io',
-      },
+      actor: TestStubs.User({isSuperuser: true}),
       event: 'project.edit',
     },
     {
@@ -174,55 +225,17 @@ window.TestStubs = {
       dateCreated: '2018-02-16T23:45:59.813Z',
       ipAddress: '127.0.0.1',
       id: '408',
-      actor: {
-        username: 'billy@sentry.io',
-        emails: [
-          {is_verified: true, id: '5', email: 'billy@sentry.io'},
-          {is_verified: false, id: '17', email: 'billy36@sentry.io'},
-          {is_verified: false, id: '11', email: 'awerawer@awe.com'},
-          {is_verified: false, id: '28', email: 'test@test.com'},
-          {is_verified: true, id: '10', email: 'billy2@sentry.io'},
-        ],
-        isManaged: false,
-        lastActive: '2018-02-21T17:40:31.555Z',
-        identities: [
-          {
-            name: '79684',
-            dateVerified: '2018-02-21T17:09:46.248Z',
-            provider: {id: 'github', name: 'GitHub'},
-            dateSynced: '2018-02-21T17:09:46.248Z',
-            organization: {slug: 'default', name: 'default'},
-            id: '1',
-          },
-        ],
-        id: '1',
-        isActive: true,
-        has2fa: true,
-        name: 'billy vong',
-        avatarUrl:
-          'https://secure.gravatar.com/avatar/7b544e8eb9d08ed777be5aa82121155a?s=32&d=mm',
-        dateJoined: '2018-01-10T00:19:59Z',
-        options: {
-          timezone: 'America/Los_Angeles',
-          seenReleaseBroadcast: true,
-          stacktraceOrder: -1,
-          language: 'en',
-          clock24Hours: false,
-        },
-        avatar: {
-          avatarUuid: '483ed7478a2248d59211f538c2997e0b',
-          avatarType: 'letter_avatar',
-        },
-        lastLogin: '2018-02-14T07:09:37.536Z',
-        permissions: [],
-        email: 'billy@sentry.io',
-      },
+      actor: TestStubs.User({isSuperuser: false}),
       event: 'org.edit',
     },
   ],
 
   AuthProviders: () => {
-    return [['dummy', 'Dummy']];
+    return [['dummy', 'Dummy', false]];
+  },
+
+  AuthProvidersSaml: () => {
+    return [['dummy', 'Dummy', true]];
   },
 
   AuthProvider: () => {
@@ -294,7 +307,7 @@ window.TestStubs = {
         lastUsedAt: null,
         enrollButton: 'Activate',
         description:
-          'Recovery codes can be used to access your account in the event you lose access to your device and cannot receive two-factor authentication codes.',
+          'Recovery codes are the only way to access your account if you lose your device and cannot receive two-factor authentication codes.',
         isEnrolled: true,
         removeButton: null,
         id: 'recovery',
@@ -305,9 +318,14 @@ window.TestStubs = {
         authId: '16',
         canValidateOtp: true,
         isBackupInterface: true,
+        codes: ['ABCD-1234', 'EFGH-5678'],
         ...params,
       }),
     };
+  },
+
+  AllAuthenticators: () => {
+    return Object.values(TestStubs.Authenticators()).map(x => x());
   },
 
   AccountEmails: () => {
@@ -329,6 +347,20 @@ window.TestStubs = {
       },
     ];
   },
+
+  Broadcast: params => ({
+    dateCreated: new Date(),
+    dateExpires: new Date(),
+    hasSeen: false,
+    id: '8',
+    isActive: true,
+    link:
+      'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/#uploading-source-maps-to-sentry',
+    message:
+      'Source maps are JSON files that contain information on how to map your transpiled source code back to their original source.',
+    title: 'Learn about Source Maps',
+    ...params,
+  }),
 
   DebugSymbols: params => ({
     debugSymbols: [
@@ -382,8 +414,24 @@ window.TestStubs = {
       id: '1',
       message: 'ApiException',
       groupID: '1',
-      eventID: '12345',
+      eventID: '12345678901234567890123456789012',
       ...params,
+    };
+  },
+
+  EventIdQueryResult: params => {
+    let event = TestStubs.Event({
+      metadata: {
+        type: 'event type',
+        value: 'event description',
+      },
+    });
+    return {
+      organizationSlug: 'org-slug',
+      projectSlug: 'project-slug',
+      groupId: event.groupID,
+      eventId: event.eventID,
+      event,
     };
   },
 
@@ -421,7 +469,10 @@ window.TestStubs = {
     return {
       key: 'github',
       name: 'GitHub',
+      canAdd: true,
       config: [],
+      externalIssues: [],
+      features: [],
       setupDialog: {
         url: '/github-integration-setup-uri/',
         width: 100,
@@ -429,13 +480,43 @@ window.TestStubs = {
       },
       metadata: {
         description: '*markdown* formatted _description_',
+        features: [{description: '*markdown* feature description'}],
         author: 'Morty',
+        noun: 'Installation',
         issue_url: 'http://example.com/integration_issue_url',
         source_url: 'http://example.com/integration_source_url',
         aspects: {
-          alert_link: {
-            text: 'This is a *alert link* with markdown formatting',
-            link: '/url/with/params/{orgId}/',
+          alerts: [
+            {
+              type: 'warning',
+              text: 'This is a an alert example',
+            },
+          ],
+        },
+      },
+      ...params,
+    };
+  },
+
+  JiraIntegrationProvider: params => {
+    return {
+      key: 'jira',
+      name: 'Jira',
+      canAdd: false,
+      config: [],
+      features: [],
+      metadata: {
+        description: '*markdown* formatted Jira _description_',
+        features: [{description: '*markdown* feature description'}],
+        author: 'Rick',
+        noun: 'Instance',
+        issue_url: 'http://example.com/jira_integration_issue_url',
+        source_url: 'http://example.com/jira_integration_source_url',
+        aspects: {
+          externalInstall: {
+            url: 'http://jira.com',
+            buttonText: 'Visit Jira',
+            noticeText: 'You must visit jira to install the integration',
           },
         },
       },
@@ -445,13 +526,57 @@ window.TestStubs = {
 
   GitHubIntegration: params => {
     return {
-      domain_name: 'gtithub.com/test-integration',
+      domainName: 'github.com/test-integration',
       icon: 'http://example.com/integration_icon.png',
       id: '1',
       name: 'Test Integration',
       provider: {
         name: 'GitHub',
         key: 'github',
+        canAdd: true,
+        features: [],
+      },
+      projects: [],
+      configOrganization: [],
+      configData: {},
+      ...params,
+    };
+  },
+
+  JiraIntegration: params => {
+    return {
+      domainName: 'jira.com/test-integration',
+      icon: 'http://jira.example.com/integration_icon.png',
+      id: '2',
+      name: 'Jira Test Integration',
+      provider: {
+        name: 'Jira',
+        key: 'jira',
+        canAdd: true,
+        features: [],
+      },
+      projects: [],
+      configOrganization: [],
+      configData: {},
+      ...params,
+    };
+  },
+
+  VstsIntegrationProvider: params => {
+    return {
+      key: 'vsts',
+      name: 'VSTS',
+      canAdd: true,
+      config: [],
+      features: [],
+      metadata: {
+        description: '*markdown* formatted VSTS _description_',
+        features: [{description: '*markdown* feature description'}],
+        author: 'Frank',
+        noun: 'Instance',
+        issue_url: 'http://example.com/vsts_issue_url',
+        source_url: 'http://example.com/vsts_source_url',
+        aspects: {},
       },
       ...params,
     };
@@ -475,36 +600,42 @@ window.TestStubs = {
     };
   },
 
-  Members: () => [
-    {
-      id: '1',
-      email: '',
-      name: '',
-      roleName: '',
-      pending: false,
-      flags: {
-        'sso:linked': false,
-      },
-      user: {
-        id: '1',
-        has2fa: false,
-        name: 'Sentry 1 Name',
-        email: 'sentry1@test.com',
-        username: 'Sentry 1 Username',
-      },
+  Incident: params => ({
+    id: '1',
+    title: 'Test Incident',
+    updates: ['First Update', 'Second Update'],
+    url: 'https://status.sentry.io',
+  }),
+
+  Member: params => ({
+    id: '1',
+    email: 'sentry1@test.com',
+    name: 'Sentry 1 Name',
+    role: 'member',
+    roleName: 'Member',
+    pending: false,
+    flags: {
+      'sso:linked': false,
     },
+    user: TestStubs.User(),
+    ...params,
+  }),
+
+  Members: () => [
+    TestStubs.Member(),
     {
       id: '2',
-      email: '',
-      name: '',
-      roleName: '',
-      pending: false,
+      name: 'Sentry 2 Name',
+      email: 'sentry2@test.com',
+      role: 'member',
+      roleName: 'Member',
+      pending: true,
       flags: {
         'sso:linked': false,
       },
       user: {
         id: '2',
-        has2fa: true,
+        has2fa: false,
         name: 'Sentry 2 Name',
         email: 'sentry2@test.com',
         username: 'Sentry 2 Username',
@@ -512,9 +643,10 @@ window.TestStubs = {
     },
     {
       id: '3',
-      email: '',
-      name: '',
-      roleName: '',
+      name: 'Sentry 3 Name',
+      email: 'sentry3@test.com',
+      role: 'owner',
+      roleName: 'Owner',
       pending: false,
       flags: {
         'sso:linked': true,
@@ -525,6 +657,24 @@ window.TestStubs = {
         name: 'Sentry 3 Name',
         email: 'sentry3@test.com',
         username: 'Sentry 3 Username',
+      },
+    },
+    {
+      id: '4',
+      name: 'Sentry 4 Name',
+      email: 'sentry4@test.com',
+      role: 'owner',
+      roleName: 'Owner',
+      pending: false,
+      flags: {
+        'sso:linked': true,
+      },
+      user: {
+        id: '4',
+        has2fa: true,
+        name: 'Sentry 4 Name',
+        email: 'sentry4@test.com',
+        username: 'Sentry 4 Username',
       },
     },
   ],
@@ -549,12 +699,40 @@ window.TestStubs = {
         id: 'active',
         name: 'active',
       },
+      scrapeJavaScript: true,
       features: [],
       onboardingTasks: [],
       teams: [],
       projects: [],
       ...params,
     };
+  },
+
+  Organizations: params => {
+    return [
+      {
+        id: '1',
+        name: 'test 1',
+        slug: 'test 1',
+        require2FA: false,
+        status: {
+          id: 'active',
+          name: 'active',
+        },
+        ...params,
+      },
+      {
+        id: '2',
+        name: 'test 2',
+        slug: 'test 2',
+        require2FA: false,
+        status: {
+          id: 'active',
+          name: 'active',
+        },
+        ...params,
+      },
+    ];
   },
 
   Plugin: params => {
@@ -603,7 +781,18 @@ window.TestStubs = {
       id: '2',
       slug: 'project-slug',
       name: 'Project Name',
+      hasAccess: true,
+      isMember: true,
+      isBookmarked: false,
+      teams: [],
+      ...params,
+    };
+  },
+
+  ProjectDetails: params => {
+    return TestStubs.Project({
       subjectTemplate: '[$project] ${tag:level}: $title',
+      subjectPrefix: '[my-org]',
       digestsMinDelay: 5,
       digestsMaxDelay: 60,
       dataScrubber: false,
@@ -612,20 +801,26 @@ window.TestStubs = {
       resolveAge: 48,
       sensitiveFields: ['creditcard', 'ssn'],
       safeFields: ['business-email', 'company'],
+      storeCrashReports: false,
       allowedDomains: ['example.com', 'https://example.com'],
       scrapeJavaScript: true,
       securityToken: 'security-token',
       securityTokenHeader: 'x-security-header',
       verifySSL: true,
       features: [],
-      teams: [],
       ...params,
-    };
+    });
   },
 
   ProjectAlertRule: () => {
     return {
       id: '1',
+      name: 'My alert rule',
+      environment: 'staging',
+      conditions: [{name: 'An alert is first seen', id: 'sentry.rules.conditions.1'}],
+      actions: [
+        {name: 'Send a notification to all services', id: 'sentry.rules.actions.notify1'},
+      ],
     };
   },
 
@@ -633,16 +828,16 @@ window.TestStubs = {
     return {
       actions: [
         {
-          html: 'Send a notification for all services',
           id: 'sentry.rules.actions.notify1',
           label: 'Send a notification for all services',
+          enabled: true,
         },
       ],
       conditions: [
         {
-          html: 'An event is seen',
           id: 'sentry.rules.conditions.1',
           label: 'An event is seen',
+          enabled: true,
         },
       ],
     };
@@ -690,6 +885,8 @@ window.TestStubs = {
           public: 'http://188ee45a58094d939428d8585aa6f661@dev.getsentry.net:8000/1',
           csp:
             'http://dev.getsentry.net:8000/api/1/csp-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
+          security:
+            'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f661',
         },
         public: '188ee45a58094d939428d8585aa6f661',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2d',
@@ -736,6 +933,22 @@ window.TestStubs = {
     },
   ],
 
+  ShortIdQueryResult: params => {
+    let group = TestStubs.Group({
+      metadata: {
+        type: 'group type',
+        value: 'group description',
+      },
+    });
+    return {
+      organizationSlug: 'org-slug',
+      projectSlug: 'project-slug',
+      groupId: group.id,
+      shortId: 'test-1',
+      group,
+    };
+  },
+
   Subscriptions: () => {
     return [
       {
@@ -775,6 +988,7 @@ window.TestStubs = {
       id: '1',
       slug: 'team-slug',
       name: 'Team Name',
+      isMember: true,
       ...params,
     };
   },
@@ -874,8 +1088,26 @@ window.TestStubs = {
     username: 'foo@example.com',
     email: 'foo@example.com',
     name: 'Foo Bar',
+    isAuthenticated: true,
+    options: {
+      timezone: 'UTC',
+    },
+    hasPasswordAuth: true,
+    flags: {
+      newsletter_consent_prompt: false,
+    },
     ...params,
   }),
+
+  UserFeedback: () => ({
+    id: '123',
+    name: 'Lyn',
+    email: 'lyn@sentry.io',
+    comments: 'Something bad happened',
+    issue: TestStubs.Group(),
+  }),
+
+  ...fixtures,
 };
 
 // this is very commonly used, so expose it globally
@@ -883,11 +1115,6 @@ window.MockApiClient = require.requireMock('app/api').Client;
 
 // default configuration
 ConfigStore.loadInitialData({
-  user: {
-    isAuthenticated: true,
-    email: 'foo@example.com',
-    options: {
-      timezone: 'UTC',
-    },
-  },
+  messages: [],
+  user: TestStubs.User(),
 });

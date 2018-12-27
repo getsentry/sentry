@@ -1,21 +1,21 @@
 import {Flex, Box} from 'grid-emotion';
 import DocumentTitle from 'react-document-title';
+import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'react-emotion';
+import styled, {css} from 'react-emotion';
 
-import {t} from '../../locale';
-import ConfigStore from '../../stores/configStore';
-import ExternalLink from '../../components/externalLink';
-import InlineSvg from '../../components/inlineSvg';
-import Link from '../../components/link';
-import LoadingIndicator from '../../components/loadingIndicator';
-import Panel from './components/panel';
-import PanelBody from './components/panelBody';
-import PanelHeader from './components/panelHeader';
-import SentryTypes from '../../proptypes';
-import SettingsLayout from './settingsLayout';
-import TextOverflow from '../../components/textOverflow';
-import withLatestContext from '../../utils/withLatestContext';
+import {t} from 'app/locale';
+import Avatar from 'app/components/avatar';
+import ConfigStore from 'app/stores/configStore';
+import ExternalLink from 'app/components/externalLink';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import SentryTypes from 'app/sentryTypes';
+import SettingsLayout from 'app/views/settings/components/settingsLayout';
+import withLatestContext from 'app/utils/withLatestContext';
 
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
@@ -24,64 +24,19 @@ const LINKS = {
   DOCUMENTATION_CLI: 'https://docs.sentry.io/learn/cli/',
   DOCUMENTATION_API: 'https://docs.sentry.io/hosted/api/',
   API: '/settings/account/api/',
-  API_APPLICATION: '/settings/account/api/application/',
+  API_APPLICATIONS: '/settings/account/api/applications/',
   MANAGE: '/manage/',
   FORUM: 'https://forum.sentry.io/',
   GITHUB_ISSUES: 'https://github.com/getsentry/sentry/issues',
   SERVICE_STATUS: 'https://status.sentry.io/',
 };
 
-const HomePanelHeader = styled(PanelHeader)`
-  background: #fff;
-  text-align: center;
-  font-size: 18px;
-  text-transform: unset;
-  padding: 35px 30px;
-`;
+const HOME_ICON_SIZE = 76;
 
-const HomePanelBody = styled(PanelBody)`
-  padding: 30px;
-
-  h3 {
-    font-size: 14px;
-  }
-
-  ul {
-    margin: 0;
-    li {
-      line-height: 1.6;
-      /* Bullet color */
-      color: ${p => p.theme.gray1};
-    }
-  }
-`;
-
-const HomeIcon = styled.div`
-  background: ${p => p.theme[p.color || 'gray2']};
-  color: #fff;
-  width: 76px;
-  height: 76px;
-  border-radius: 76px;
-  margin: 0 auto 20px;
-  > svg {
-    margin-top: 14px;
-  }
-`;
-
-const HomeLink = styled(Link)`
-  color: ${p => p.theme.purple};
-
-  &:hover {
-    color: ${p => p.theme.purpleDark};
-  }
-`;
-
-const ExternalHomeLink = styled(ExternalLink)`
-  color: ${p => p.theme.purple};
-
-  &:hover {
-    color: ${p => p.theme.purpleDark};
-  }
+const flexCenter = css`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 class SettingsIndex extends React.Component {
@@ -96,13 +51,14 @@ class SettingsIndex extends React.Component {
     let isSuperuser = user.isSuperuser;
 
     let organizationSettingsUrl =
-      (organization && `/settings/organization/${organization.slug}/`) || '';
+      (organization && `/settings/${organization.slug}/`) || '';
 
-    let supportLinkProps = isOnPremise
-      ? {href: LINKS.FORUM}
-      : {to: `${organizationSettingsUrl}support`};
+    let supportLinkProps = {
+      isOnPremise,
+      href: LINKS.FORUM,
+      to: `${organizationSettingsUrl}support`,
+    };
     let supportText = isOnPremise ? t('Community Forums') : t('Contact Support');
-    let SupportLinkComponent = isOnPremise ? ExternalHomeLink : HomeLink;
 
     return (
       <DocumentTitle title={organization ? `${organization.slug} Settings` : 'Settings'}>
@@ -111,19 +67,19 @@ class SettingsIndex extends React.Component {
             <Box w={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
-                  <HomeLink to="/settings/account/">
-                    <HomeIcon color="blue">
-                      <InlineSvg src="icon-user" size="44px" />
-                    </HomeIcon>
+                  <HomeLinkIcon to="/settings/account/">
+                    <AvatarContainer>
+                      <Avatar user={user} size={HOME_ICON_SIZE} />
+                    </AvatarContainer>
                     {t('My Account')}
-                  </HomeLink>
+                  </HomeLinkIcon>
                 </HomePanelHeader>
 
                 <HomePanelBody>
                   <h3>{t('Quick links')}:</h3>
                   <ul>
                     <li>
-                      <HomeLink href="/settings/account/security/">
+                      <HomeLink to="/settings/account/security/">
                         {t('Change my password')}
                       </HomeLink>
                     </li>
@@ -133,9 +89,7 @@ class SettingsIndex extends React.Component {
                       </HomeLink>
                     </li>
                     <li>
-                      <HomeLink to="/settings/account/avatar/">
-                        {t('Change my avatar')}
-                      </HomeLink>
+                      <HomeLink to="/settings/account/">{t('Change my avatar')}</HomeLink>
                     </li>
                   </ul>
                 </HomePanelBody>
@@ -145,33 +99,39 @@ class SettingsIndex extends React.Component {
             <Box w={1 / 3} px={2}>
               {/* if admin */}
               <Panel>
-                {!organization && <LoadingIndicator overlay />}
+                {!organization && <LoadingIndicator overlay hideSpinner />}
                 <HomePanelHeader>
-                  <HomeLink to={organizationSettingsUrl}>
-                    <HomeIcon color="green">
-                      <InlineSvg src="icon-stack" size="44px" />
-                    </HomeIcon>
-                    <TextOverflow css={{lineHeight: '1.1em'}}>
-                      {organization ? organization.slug : t('Organization')}
-                    </TextOverflow>
-                  </HomeLink>
+                  <HomeLinkIcon to={organizationSettingsUrl}>
+                    {organization ? (
+                      <AvatarContainer>
+                        <Avatar organization={organization} size={HOME_ICON_SIZE} />
+                      </AvatarContainer>
+                    ) : (
+                      <HomeIcon color="green">
+                        <InlineSvg src="icon-stack" size="44px" />
+                      </HomeIcon>
+                    )}
+                    <OrganizationName css={{lineHeight: '1.1em'}}>
+                      {organization ? organization.slug : t('No Organization')}
+                    </OrganizationName>
+                  </HomeLinkIcon>
                 </HomePanelHeader>
                 <HomePanelBody>
                   <h3>{t('Quick links')}:</h3>
                   <ul>
                     <li>
+                      <HomeLink to={`${organizationSettingsUrl}projects/`}>
+                        {t('Projects')}
+                      </HomeLink>
+                    </li>
+                    <li>
                       <HomeLink to={`${organizationSettingsUrl}teams/`}>
-                        {t('Projects & Teams')}
+                        {t('Teams')}
                       </HomeLink>
                     </li>
                     <li>
                       <HomeLink to={`${organizationSettingsUrl}members/`}>
                         {t('Members')}
-                      </HomeLink>
-                    </li>
-                    <li>
-                      <HomeLink to={`${organizationSettingsUrl}stats/`}>
-                        {t('Stats')}
                       </HomeLink>
                     </li>
                   </ul>
@@ -182,7 +142,7 @@ class SettingsIndex extends React.Component {
             <Box w={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
-                  <ExternalHomeLink href={LINKS.DOCUMENTATION}>
+                  <ExternalHomeLink css={flexCenter} href={LINKS.DOCUMENTATION}>
                     <HomeIcon color="orange">
                       <InlineSvg src="icon-docs" size="48px" />
                     </HomeIcon>
@@ -218,7 +178,7 @@ class SettingsIndex extends React.Component {
             <Box w={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
-                  <SupportLinkComponent {...supportLinkProps}>
+                  <SupportLinkComponent css={flexCenter} {...supportLinkProps}>
                     <HomeIcon color="purple">
                       <InlineSvg src="icon-support" size="48px" />
                     </HomeIcon>
@@ -252,12 +212,12 @@ class SettingsIndex extends React.Component {
             <Box w={1 / 3} px={2}>
               <Panel>
                 <HomePanelHeader>
-                  <HomeLink to={LINKS.API}>
+                  <HomeLinkIcon to={LINKS.API}>
                     <HomeIcon>
                       <InlineSvg src="icon-lock" size="48px" />
                     </HomeIcon>
                     {t('API Keys')}
-                  </HomeLink>
+                  </HomeLinkIcon>
                 </HomePanelHeader>
 
                 <HomePanelBody>
@@ -267,7 +227,7 @@ class SettingsIndex extends React.Component {
                       <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
                     </li>
                     <li>
-                      <HomeLink to={LINKS.API_APPLICATION}>{t('Applications')}</HomeLink>
+                      <HomeLink to={LINKS.API_APPLICATIONS}>{t('Applications')}</HomeLink>
                     </li>
                     <li>
                       <ExternalHomeLink href={LINKS.DOCUMENTATION_API}>
@@ -283,12 +243,12 @@ class SettingsIndex extends React.Component {
               <Box w={1 / 3} px={2}>
                 <Panel>
                   <HomePanelHeader>
-                    <HomeLink href={LINKS.MANAGE}>
+                    <HomeLinkIcon href={LINKS.MANAGE}>
                       <HomeIcon color="red">
                         <InlineSvg src="icon-laptop" size="48px" />
                       </HomeIcon>
                       {t('Server Admin')}
-                    </HomeLink>
+                    </HomeLinkIcon>
                   </HomePanelHeader>
                   <HomePanelBody>
                     <h3>{t('Quick links')}:</h3>
@@ -307,4 +267,92 @@ class SettingsIndex extends React.Component {
     );
   }
 }
+
+export {SettingsIndex};
 export default withLatestContext(SettingsIndex);
+
+const HomePanelHeader = styled(PanelHeader)`
+  background: #fff;
+  flex-direction: column;
+  text-align: center;
+  justify-content: center;
+  font-size: 18px;
+  text-transform: unset;
+  padding: 35px 30px;
+`;
+
+const HomePanelBody = styled(PanelBody)`
+  padding: 30px;
+
+  h3 {
+    font-size: 14px;
+  }
+
+  ul {
+    margin: 0;
+    li {
+      line-height: 1.6;
+      /* Bullet color */
+      color: ${p => p.theme.gray1};
+    }
+  }
+`;
+
+const getHomeIconMargin = css`
+  margin-bottom: 20px;
+`;
+
+const HomeIcon = styled.div`
+  background: ${p => p.theme[p.color || 'gray2']};
+  color: #fff;
+  width: ${HOME_ICON_SIZE}px;
+  height: ${HOME_ICON_SIZE}px;
+  border-radius: ${HOME_ICON_SIZE}px;
+  ${getHomeIconMargin} > svg {
+    margin-top: 14px;
+  }
+`;
+
+const HomeLink = styled(Link)`
+  color: ${p => p.theme.purple};
+
+  &:hover {
+    color: ${p => p.theme.purpleDark};
+  }
+`;
+
+const HomeLinkIcon = styled(HomeLink)`
+  overflow: hidden;
+  width: 100%;
+  ${flexCenter};
+`;
+
+const ExternalHomeLink = styled(ExternalLink)`
+  color: ${p => p.theme.purple};
+
+  &:hover {
+    color: ${p => p.theme.purpleDark};
+  }
+`;
+
+const SupportLinkComponent = ({isOnPremise, href, to, ...props}) => {
+  if (isOnPremise) {
+    return <ExternalHomeLink href={href} {...props} />;
+  }
+  return <HomeLink to={to} {...props} />;
+};
+SupportLinkComponent.propTypes = {
+  isOnPremise: PropTypes.bool,
+  href: PropTypes.string,
+  to: PropTypes.string,
+};
+
+const AvatarContainer = styled.div`
+  margin-bottom: 20px;
+`;
+
+const OrganizationName = styled('div')`
+  line-height: 1.1em;
+
+  ${overflowEllipsis};
+`;

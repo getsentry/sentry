@@ -182,10 +182,14 @@ class OrganizationMember(Model):
 
         email = self.get_email()
 
-        recover_uri = '{path}?{query}'.format(
+        recover_uri = u'{path}?{query}'.format(
             path=reverse('sentry-account-recover'),
             query=urlencode({'email': email}),
         )
+
+        # Nothing to send if this member isn't associated to a user
+        if not self.user_id:
+            return
 
         context = {
             'email': email,
@@ -220,7 +224,7 @@ class OrganizationMember(Model):
         return self.email or self.id
 
     def get_email(self):
-        if self.user_id:
+        if self.user_id and self.user.email:
             return self.user.email
         return self.email
 
@@ -231,20 +235,21 @@ class OrganizationMember(Model):
 
     def get_audit_log_data(self):
         from sentry.models import Team
+        teams = list(Team.objects.filter(
+            id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember=self,
+                is_active=True,
+            ).values_list('team', flat=True)
+        ).values('id', 'slug')
+        )
+
         return {
             'email':
-            self.email,
+            self.get_email(),
             'user':
             self.user_id,
-            'teams':
-            list(
-                Team.objects.filter(
-                    id__in=OrganizationMemberTeam.objects.filter(
-                        organizationmember=self,
-                        is_active=True,
-                    ).values_list('team', flat=True)
-                ).values_list('id', flat=True)
-            ),
+            'teams': [t['id'] for t in teams],
+            'teams_slugs': [t['slug'] for t in teams],
             'has_global_access':
             self.has_global_access,
             'role':

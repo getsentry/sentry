@@ -22,6 +22,7 @@ exports[`AccountEmails renders with emails 1`] = `
           isPrimary={true}
           isVerified={true}
           onRemove={[Function]}
+          onVerify={[Function]}
         />
         <EmailRow
           email="secondary1@example.com"
@@ -30,6 +31,7 @@ exports[`AccountEmails renders with emails 1`] = `
           key="secondary1@example.com"
           onRemove={[Function]}
           onSetPrimary={[Function]}
+          onVerify={[Function]}
         />
         <EmailRow
           email="secondary2@example.com"
@@ -38,6 +40,7 @@ exports[`AccountEmails renders with emails 1`] = `
           key="secondary2@example.com"
           onRemove={[Function]}
           onSetPrimary={[Function]}
+          onVerify={[Function]}
         />
       </PanelBody>
     </Panel>
@@ -47,13 +50,13 @@ exports[`AccountEmails renders with emails 1`] = `
       apiMethod="POST"
       cancelLabel="Cancel"
       className="form-stacked"
-      footerClass="form-actions align-right"
       onSubmitError={[Function]}
       onSubmitSuccess={[Function]}
       requireChanges={false}
       saveOnBlur={true}
       submitDisabled={false}
       submitLabel="Save Changes"
+      submitPriority="primary"
     >
       <JsonForm
         additionalFieldProps={Object {}}
@@ -78,6 +81,7 @@ exports[`AccountEmails renders with emails 1`] = `
     </Form>
     <AlertLink
       icon="icon-stack"
+      priority="warning"
       to="/settings/account/notifications"
     >
       Want to change how many emails you get? Use the notifications panel.

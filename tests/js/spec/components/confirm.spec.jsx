@@ -8,7 +8,8 @@ describe('Confirm', function() {
     let wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
-      </Confirm>
+      </Confirm>,
+      TestStubs.routerContext()
     );
     expect(wrapper).toMatchSnapshot();
   });
@@ -18,7 +19,8 @@ describe('Confirm', function() {
     let wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
-      </Confirm>
+      </Confirm>,
+      TestStubs.routerContext()
     );
 
     wrapper.find('button').simulate('click');
@@ -31,7 +33,8 @@ describe('Confirm', function() {
     let wrapper = shallow(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
-      </Confirm>
+      </Confirm>,
+      TestStubs.routerContext()
     );
 
     let button = wrapper.find('button');
@@ -46,7 +49,8 @@ describe('Confirm', function() {
     let wrapper = mount(
       <Confirm message="Are you sure?" onConfirm={mock}>
         <button>Confirm?</button>
-      </Confirm>
+      </Confirm>,
+      TestStubs.routerContext()
     );
 
     expect(mock).not.toHaveBeenCalled();

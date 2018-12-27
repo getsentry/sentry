@@ -7,7 +7,7 @@ sentry.event_manager
 from __future__ import absolute_import, print_function
 
 import logging
-import math
+import re
 import six
 
 from datetime import datetime, timedelta
@@ -19,26 +19,28 @@ from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 from uuid import uuid4
 
-from sentry import eventtypes, features, buffer
-# we need a bunch of unexposed functions from tsdb
-from sentry.tsdb import backend as tsdb
+from sentry import buffer, eventtypes, eventstream, features, tsdb
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, LOG_LEVELS_MAP, DEFAULT_LOG_LEVEL,
     DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH, VALID_PLATFORMS
 )
 from sentry.interfaces.base import get_interface, InterfaceValidationError
+from sentry.interfaces.exception import normalize_mechanism_meta
 from sentry.interfaces.schemas import validate_and_default_interface
+from sentry.lang.native.utils import get_sdk_from_event
 from sentry.models import (
     Activity, Environment, Event, EventError, EventMapping, EventUser, Group,
     GroupEnvironment, GroupHash, GroupRelease, GroupResolution, GroupStatus,
-    Project, Release, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment, UserReport
+    Project, Release, ReleaseEnvironment, ReleaseProject, ReleaseProjectEnvironment,
+    UserReport
 )
 from sentry.plugins import plugins
-from sentry.signals import event_discarded, event_saved, first_event_received, regression_signal
+from sentry.signals import event_discarded, event_saved, first_event_received
+from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_group
-from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
 from sentry.utils.cache import default_cache
+from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict, get_path
 from sentry.utils.strings import truncatechars
@@ -46,7 +48,9 @@ from sentry.utils.validators import is_float
 from sentry.stacktraces import normalize_in_app
 
 
+HASH_RE = re.compile(r'^[0-9a-f]{32}$')
 DEFAULT_FINGERPRINT_VALUES = frozenset(['{{ default }}', '{{default}}'])
+ALLOWED_FUTURE_DELTA = timedelta(minutes=1)
 
 
 def count_limit(count):
@@ -76,8 +80,6 @@ def get_fingerprint_for_event(event):
     fingerprint = event.data.get('fingerprint')
     if fingerprint is None:
         return ['{{ default }}']
-    if isinstance(fingerprint, six.string_types):
-        return [fingerprint]
     return fingerprint
 
 
@@ -200,8 +202,7 @@ def process_timestamp(value, current_datetime=None):
         try:
             value = datetime.fromtimestamp(float(value))
         except Exception:
-            raise InvalidTimestamp(
-                'Invalid value for timestamp: %r' % value)
+            raise InvalidTimestamp(EventError.INVALID_DATA)
     elif not isinstance(value, datetime):
         # all timestamps are in UTC, but the marker is optional
         if value.endswith('Z'):
@@ -217,19 +218,16 @@ def process_timestamp(value, current_datetime=None):
         try:
             value = datetime.strptime(value, fmt)
         except Exception:
-            raise InvalidTimestamp(
-                'Invalid value for timestamp: %r' % value)
+            raise InvalidTimestamp(EventError.INVALID_DATA)
 
     if current_datetime is None:
         current_datetime = datetime.now()
 
-    if value > current_datetime + timedelta(minutes=1):
-        raise InvalidTimestamp(
-            'Invalid value for timestamp (in future): %r' % value)
+    if value > current_datetime + ALLOWED_FUTURE_DELTA:
+        raise InvalidTimestamp(EventError.FUTURE_TIMESTAMP)
 
     if value < current_datetime - timedelta(days=30):
-        raise InvalidTimestamp(
-            'Invalid value for timestamp (too old): %r' % value)
+        raise InvalidTimestamp(EventError.PAST_TIMESTAMP)
 
     return float(value.strftime('%s'))
 
@@ -238,36 +236,60 @@ class HashDiscarded(Exception):
     pass
 
 
-class ScoreClause(object):
-    def __init__(self, group):
-        self.group = group
+try:
+    from django.db.models import Func
+except ImportError:
+    # XXX(dramer): compatibility hack for Django 1.6
+    class ScoreClause(object):
+        def __init__(self, group=None, *args, **kwargs):
+            self.group = group
+            super(ScoreClause, self).__init__(*args, **kwargs)
 
-    def __int__(self):
-        # Calculate the score manually when coercing to an int.
-        # This is used within create_or_update and friends
-        return self.group.get_score()
+        def __int__(self):
+            # Calculate the score manually when coercing to an int.
+            # This is used within create_or_update and friends
+            return self.group.get_score() if self.group else 0
 
-    def prepare_database_save(self, unused):
-        return self
+        def prepare_database_save(self, unused):
+            return self
 
-    def prepare(self, evaluator, query, allow_joins):
-        return
+        def prepare(self, evaluator, query, allow_joins):
+            return
 
-    def evaluate(self, node, qn, connection):
-        engine = get_db_engine(getattr(connection, 'alias', 'default'))
-        if engine.startswith('postgresql'):
-            sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-        elif engine.startswith('mysql'):
-            sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
-        else:
-            # XXX: if we cant do it atomically let's do it the best we can
-            sql = int(self)
+        def evaluate(self, node, qn, connection):
+            engine = get_db_engine(getattr(connection, 'alias', 'default'))
+            if engine.startswith('postgresql'):
+                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
+            elif engine.startswith('mysql'):
+                sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
+            else:
+                # XXX: if we cant do it atomically let's do it the best we can
+                sql = int(self)
 
-        return (sql, [])
+            return (sql, [])
+else:
+    # XXX(dramer): compatibility hack for Django 1.8+
+    class ScoreClause(Func):
+        def __init__(self, group, *args, **kwargs):
+            self.group = group
+            super(ScoreClause, self).__init__(*args, **kwargs)
 
-    @classmethod
-    def calculate(cls, times_seen, last_seen):
-        return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))
+        def __int__(self):
+            # Calculate the score manually when coercing to an int.
+            # This is used within create_or_update and friends
+            return self.group.get_score() if self.group else 0
+
+        def as_sql(self, compiler, connection, function=None, template=None):
+            engine = get_db_engine(getattr(connection, 'alias', 'default'))
+            if engine.startswith('postgresql'):
+                sql = 'log(times_seen) * 600 + last_seen::abstime::int'
+            elif engine.startswith('mysql'):
+                sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
+            else:
+                # XXX: if we cant do it atomically let's do it the best we can
+                sql = int(self)
+
+            return (sql, [])
 
 
 class InvalidTimestamp(Exception):
@@ -278,13 +300,16 @@ class EventManager(object):
     logger = logging.getLogger('sentry.events')
 
     def __init__(self, data, version='5'):
-        self.data = data
+        self.data = CanonicalKeyDict(data)
         self.version = version
 
     def normalize(self, request_env=None):
         request_env = request_env or {}
         data = self.data
         errors = data['errors'] = []
+
+        # Ignore event meta data for now.
+        data.pop('_meta', None)
 
         # Before validating with a schema, attempt to cast values to their desired types
         # so that the schema doesn't have to take every type variation into account.
@@ -294,30 +319,35 @@ class EventManager(object):
         def to_values(v):
             return {'values': v} if v and isinstance(v, (tuple, list)) else v
 
+        def stringify(f):
+            if isinstance(f, float):
+                return text(int(f)) if abs(f) < (1 << 53) else None
+            return text(f)
+
         casts = {
             'environment': lambda v: text(v) if v is not None else v,
-            'fingerprint': lambda v: list(map(text, v)) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
+            'fingerprint': lambda v: list(x for x in map(stringify, v) if x is not None) if isinstance(v, list) and all(isinstance(f, fp_types) for f in v) else v,
             'release': lambda v: text(v) if v is not None else v,
             'dist': lambda v: text(v).strip() if v is not None else v,
             'time_spent': lambda v: int(v) if v is not None else v,
             'tags': lambda v: [(text(v_k).replace(' ', '-').strip(), text(v_v).strip()) for (v_k, v_v) in dict(v).items()],
             'timestamp': lambda v: process_timestamp(v),
             'platform': lambda v: v if v in VALID_PLATFORMS else 'other',
-            'sentry.interfaces.Message': lambda v: v if isinstance(v, dict) else {'message': v},
+            'logentry': lambda v: v if isinstance(v, dict) else {'message': v},
 
             # These can be sent as lists and need to be converted to {'values': [...]}
             'exception': to_values,
-            'sentry.interfaces.Exception': to_values,
             'breadcrumbs': to_values,
-            'sentry.interfaces.Breadcrumbs': to_values,
             'threads': to_values,
-            'sentry.interfaces.Threads': to_values,
         }
 
         for c in casts:
             if c in data:
                 try:
                     data[c] = casts[c](data[c])
+                except InvalidTimestamp as it:
+                    errors.append({'type': it.args[0], 'name': c, 'value': data[c]})
+                    del data[c]
                 except Exception as e:
                     errors.append({'type': EventError.INVALID_DATA, 'name': c, 'value': data[c]})
                     del data[c]
@@ -328,9 +358,20 @@ class EventManager(object):
         # See GH-3248
         msg_str = data.pop('message', None)
         if msg_str:
-            msg_if = data.setdefault('sentry.interfaces.Message', {'message': msg_str})
+            msg_if = data.get('logentry')
+            msg_meta = data.get('_meta', {}).get('message')
+
+            if not msg_if:
+                msg_if = data['logentry'] = {'message': msg_str}
+                if msg_meta:
+                    data.setdefault('_meta', {}).setdefault('logentry', {})['message'] = msg_meta
+
             if msg_if.get('message') != msg_str:
-                msg_if.setdefault('formatted', msg_str)
+                if not msg_if.get('formatted'):
+                    msg_if['formatted'] = msg_str
+                    if msg_meta:
+                        data.setdefault('_meta', {}).setdefault(
+                            'logentry', {})['formatted'] = msg_meta
 
         # Fill in ip addresses marked as {{auto}}
         client_ip = request_env.get('client_ip')
@@ -347,8 +388,10 @@ class EventManager(object):
             if get_path(data, ['user', 'ip_address']) == '{{auto}}':
                 data['user']['ip_address'] = client_ip
 
-        # Validate main event body and tags against schema
-        is_valid, event_errors = validate_and_default_interface(data, 'event')
+        # Validate main event body and tags against schema.
+        # XXX(ja): jsonschema does not like CanonicalKeyDict, so we need to pass
+        #          in the inner data dict.
+        is_valid, event_errors = validate_and_default_interface(data.data, 'event')
         errors.extend(event_errors)
         if 'tags' in data:
             is_valid, tag_errors = validate_and_default_interface(data['tags'], 'tags', name='tags')
@@ -445,6 +488,17 @@ class EventManager(object):
             exception['values'][0]['stacktrace'] = stacktrace
             del data['sentry.interfaces.Stacktrace']
 
+        # Exception mechanism needs SDK information to resolve proper names in
+        # exception meta (such as signal names). "SDK Information" really means
+        # the operating system version the event was generated on. Some
+        # normalization still works without sdk_info, such as mach_exception
+        # names (they can only occur on macOS).
+        if exception:
+            sdk_info = get_sdk_from_event(data)
+            for ex in exception['values']:
+                if 'mechanism' in ex:
+                    normalize_mechanism_meta(ex['mechanism'], sdk_info)
+
         # If there is no User ip_addres, update it either from the Http interface
         # or the client_ip of the request.
         auth = request_env.get('auth')
@@ -456,9 +510,6 @@ class EventManager(object):
             data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', http_ip)
         elif client_ip and (is_public or data.get('platform') in add_ip_platforms):
             data.setdefault('sentry.interfaces.User', {}).setdefault('ip_address', client_ip)
-
-        if client_ip and data.get('sdk'):
-            data['sdk']['client_ip'] = client_ip
 
         # Trim values
         data['logger'] = trim(data['logger'].strip(), 64)
@@ -474,18 +525,39 @@ class EventManager(object):
 
     def save(self, project, raw=False):
         from sentry.tasks.post_process import index_event_tags
+        data = self.data
 
         project = Project.objects.get_from_cache(id=project)
 
-        data = self.data.copy()
+        # Check to make sure we're not about to do a bunch of work that's
+        # already been done if we've processed an event with this ID. (This
+        # isn't a perfect solution -- this doesn't handle ``EventMapping`` and
+        # there's a race condition between here and when the event is actually
+        # saved, but it's an improvement. See GH-7677.)
+        try:
+            event = Event.objects.get(
+                project_id=project.id,
+                event_id=data['event_id'],
+            )
+        except Event.DoesNotExist:
+            pass
+        else:
+            self.logger.info(
+                'duplicate.found',
+                exc_info=True,
+                extra={
+                    'event_uuid': data['event_id'],
+                    'project_id': project.id,
+                    'model': Event.__name__,
+                }
+            )
+            return event
 
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
         level = data.pop('level')
-
-        culprit = data.pop('transaction', None)
-        if not culprit:
-            culprit = data.pop('culprit', None)
+        transaction_name = data.pop('transaction', None)
+        culprit = data.pop('culprit', None)
         logger_name = data.pop('logger', None)
         server_name = data.pop('server_name', None)
         site = data.pop('site', None)
@@ -501,14 +573,14 @@ class EventManager(object):
         message = data.pop('message', '')
 
         if not culprit:
-            # if we generate an implicit culprit, lets not call it a
-            # transaction
-            transaction_name = None
-            culprit = generate_culprit(data, platform=platform)
-        else:
-            transaction_name = culprit
+            if transaction_name:
+                culprit = transaction_name
+            else:
+                culprit = generate_culprit(data, platform=platform)
 
         culprit = force_text(culprit)
+        if transaction_name:
+            transaction_name = force_text(transaction_name)
 
         recorded_timestamp = data.pop('timestamp')
         date = datetime.fromtimestamp(recorded_timestamp)
@@ -527,6 +599,7 @@ class EventManager(object):
             **kwargs
         )
         event._project_cache = project
+        data = event.data.data
 
         # convert this to a dict to ensure we're only storing one value per key
         # as most parts of Sentry dont currently play well with multiple values
@@ -589,10 +662,7 @@ class EventManager(object):
         # tags are stored as a tuple
         tags = tags.items()
 
-        # XXX(dcramer): we're relying on mutation of the data object to ensure
-        # this propagates into Event
         data['tags'] = tags
-
         data['fingerprint'] = fingerprint or ['{{ default }}']
 
         # prioritize fingerprint over checksum as its likely the client defaulted
@@ -600,7 +670,10 @@ class EventManager(object):
         if fingerprint:
             hashes = [md5_from_hash(h) for h in get_hashes_from_fingerprint(event, fingerprint)]
         elif checksum:
-            hashes = [checksum]
+            if HASH_RE.match(checksum):
+                hashes = [checksum]
+            else:
+                hashes = [md5_from_hash([checksum]), checksum]
             data['checksum'] = checksum
         else:
             hashes = [md5_from_hash(h) for h in get_hashes_for_event(event)]
@@ -691,6 +764,7 @@ class EventManager(object):
         else:
             event_saved.send_robust(
                 project=project,
+                event_size=event.size,
                 sender=EventManager,
             )
 
@@ -719,24 +793,6 @@ class EventManager(object):
                     }
                 )
                 return event
-
-        # We now always need to check the Event table for dupes
-        # since EventMapping isn't exactly the canonical source of truth.
-        if Event.objects.filter(
-            project_id=project.id,
-            event_id=event_id,
-        ).exists():
-            self.logger.info(
-                'duplicate.found',
-                exc_info=True,
-                extra={
-                    'event_uuid': event_id,
-                    'project_id': project.id,
-                    'group_id': group.id,
-                    'model': Event.__name__,
-                }
-            )
-            return event
 
         environment = Environment.get_or_create(
             project=project,
@@ -879,23 +935,23 @@ class EventManager(object):
         if not raw:
             if not project.first_event:
                 project.update(first_event=date)
-                first_event_received.send(project=project, group=group, sender=Project)
+                first_event_received.send_robust(project=project, group=group, sender=Project)
 
-            post_process_group.delay(
-                group=group,
-                event=event,
-                is_new=is_new,
-                is_sample=is_sample,
-                is_regression=is_regression,
-                is_new_group_environment=is_new_group_environment,
-                primary_hash=hashes[0],
-            )
-        else:
-            self.logger.info('post_process.skip.raw_event', extra={'event_id': event.id})
-
-        # TODO: move this to the queue
-        if is_regression and not raw:
-            regression_signal.send_robust(sender=Group, instance=group)
+        eventstream.publish(
+            group=group,
+            event=event,
+            is_new=is_new,
+            is_sample=is_sample,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
+            primary_hash=hashes[0],
+            # We are choosing to skip consuming the event back
+            # in the eventstream if it's flagged as raw.
+            # This means that we want to publish the event
+            # through the event stream, but we don't care
+            # about post processing and handling the commit.
+            skip_consume=raw,
+        )
 
         metrics.timing(
             'events.latency',
@@ -924,7 +980,7 @@ class EventManager(object):
         if not euser.hash:
             return
 
-        cache_key = 'euserid:1:{}:{}'.format(
+        cache_key = u'euserid:1:{}:{}'.format(
             project.id,
             euser.hash,
         )
@@ -1006,7 +1062,6 @@ class EventManager(object):
         # it should be resolved by the hash merging function later but this
         # should be better tested/reviewed
         if existing_group_id is None:
-            kwargs['score'] = ScoreClause.calculate(1, kwargs['last_seen'])
             # it's possible the release was deleted between
             # when we queried for the release and now, so
             # make sure it still exists
@@ -1169,6 +1224,11 @@ class EventManager(object):
                 }
             )
             activity.send_notification()
+
+            kick_off_status_syncs.apply_async(kwargs={
+                'project_id': group.project_id,
+                'group_id': group.id,
+            })
 
         return is_regression
 

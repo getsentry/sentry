@@ -1,9 +1,7 @@
 import jQuery from 'jquery';
 import React from 'react';
 
-import Footer from '../components/footer';
-
-class NarryLayout extends React.Component {
+class NarrowLayout extends React.Component {
   componentWillMount() {
     jQuery(document.body).addClass('narrow');
   }
@@ -26,10 +24,9 @@ class NarryLayout extends React.Component {
             <div className="box-content with-padding">{this.props.children}</div>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
 }
 
-export default NarryLayout;
+export default NarrowLayout;

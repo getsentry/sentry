@@ -3,9 +3,9 @@ import {storiesOf} from '@storybook/react';
 // import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import AlertMessage from 'sentry-ui/alertMessage';
+import AlertMessage from 'app/components/alertMessage';
 
-storiesOf('AlertMessage', module)
+storiesOf('UI|Alerts/AlertMessage', module)
   .add(
     'Default',
     withInfo('Inline alert messages')(() => (

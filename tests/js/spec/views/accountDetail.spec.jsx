@@ -27,7 +27,7 @@ describe('AccountDetails', function() {
     expect(wrapper.find('input[name="name"]')).toHaveLength(1);
 
     // Stacktrace order, language, timezone
-    expect(wrapper.find('select')).toHaveLength(3);
+    expect(wrapper.find('SelectControl')).toHaveLength(3);
 
     expect(wrapper.find('BooleanField')).toHaveLength(1);
     expect(wrapper.find('RadioGroup')).toHaveLength(1);
@@ -42,13 +42,13 @@ describe('AccountDetails', function() {
   });
 
   describe('Managed User', function() {
-    it.skip('does not have password fields', function() {
+    it('does not have password fields', function() {
       mockUserDetails({isManaged: true});
       let wrapper = mount(<AccountDetails location={{}} />, TestStubs.routerContext());
 
       expect(wrapper.find('input[name="name"]')).toHaveLength(1);
       expect(wrapper.find('input[name="password"]')).toHaveLength(0);
-      expect(wrapper.find('input[name="passwordVierfy"]')).toHaveLength(0);
+      expect(wrapper.find('input[name="passwordVerify"]')).toHaveLength(0);
     });
 
     it('has disabled username field if it is different than email', function() {

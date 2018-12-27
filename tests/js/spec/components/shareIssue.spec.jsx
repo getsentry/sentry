@@ -10,7 +10,7 @@ describe('ShareIssue', function() {
     expect(wrapper).toMatchSnapshot();
   });
 
-  it('renders when not shared', function() {
+  it('renders when shared ', function() {
     let wrapper = shallow(
       <ShareIssue
         isSharing={true}

@@ -7,6 +7,7 @@ import entries from '../../mocks/entries';
 jest.mock('app/api');
 
 describe('IssueDiff', function() {
+  let routerContext = TestStubs.routerContext();
   let api = new MockApiClient();
 
   it('is loading when initially rendering', function() {
@@ -32,20 +33,39 @@ describe('IssueDiff', function() {
 
     // Need `mount` because of componentDidMount in <IssueDiff>
     let wrapper = mount(
-      <IssueDiff api={api} baseIssueId="base" targetIssueId="target" />
+      <IssueDiff api={api} baseIssueId="base" targetIssueId="target" />,
+      routerContext
     );
 
-    await new Promise(resolve => {
-      wrapper.instance().componentDidUpdate = jest.fn(() => {
-        if (wrapper.state('loading') || !wrapper.state('SplitDiffAsync')) {
-          wrapper.update();
-        } else {
-          resolve();
-        }
-      });
-    });
-    wrapper.instance().componentDidUpdate.mockRestore();
+    await tick();
+    wrapper.update();
 
+    expect(wrapper.find('SplitDiff')).toHaveLength(1);
+    expect(wrapper).toMatchSnapshot();
+  });
+
+  it('can diff message', async function() {
+    Client.addMockResponse({
+      url: '/issues/target/events/latest/',
+      body: {
+        entries: [{type: 'message', data: {message: 'Hello World'}}],
+      },
+    });
+    Client.addMockResponse({
+      url: '/issues/base/events/latest/',
+      body: {
+        platform: 'javascript',
+        entries: [{type: 'message', data: {message: 'Foo World'}}],
+      },
+    });
+
+    // Need `mount` because of componentDidMount in <IssueDiff>
+    let wrapper = mount(
+      <IssueDiff api={api} baseIssueId="base" targetIssueId="target" />,
+      routerContext
+    );
+
+    await tick();
     wrapper.update();
 
     expect(wrapper.find('SplitDiff')).toHaveLength(1);

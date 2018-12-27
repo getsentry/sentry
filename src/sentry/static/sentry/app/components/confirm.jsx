@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Modal from 'react-bootstrap/lib/Modal';
 
-import Button from './buttons/button';
-import {t} from '../locale';
+import Button from 'app/components/button';
+import {t} from 'app/locale';
 
 class Confirm extends React.PureComponent {
   static propTypes = {
@@ -11,6 +11,10 @@ class Confirm extends React.PureComponent {
     confirmText: PropTypes.string.isRequired,
     cancelText: PropTypes.string.isRequired,
     priority: PropTypes.oneOf(['primary', 'danger']).isRequired,
+    /**
+     * If true, will skip the confirmation modal and call `onConfirm`
+     */
+    bypass: PropTypes.bool,
     message: PropTypes.node,
     /**
      * Renderer that passes:
@@ -18,37 +22,49 @@ class Confirm extends React.PureComponent {
      * `close`: Allows renderer to toggle confirm modal
      */
     renderMessage: PropTypes.func,
-
     disabled: PropTypes.bool,
+    disableConfirmButton: PropTypes.bool,
     onConfirming: PropTypes.func,
     onCancel: PropTypes.func,
+    header: PropTypes.node,
   };
 
   static defaultProps = {
     priority: 'primary',
+    disableConfirmButton: false,
     cancelText: t('Cancel'),
     confirmText: t('Confirm'),
   };
 
-  constructor(...args) {
-    super(...args);
+  static getDerivedStateFromProps(props, state) {
+    // Reset the state to handle prop changes from ConfirmDelete
+    if (props.disableConfirmButton !== state.disableConfirmButton) {
+      return {
+        disableConfirmButton: props.disableConfirmButton,
+      };
+    }
+    return null;
+  }
+
+  constructor(props) {
+    super(props);
 
     this.state = {
       isModalOpen: false,
-      disableConfirmButton: false,
+      disableConfirmButton: props.disableConfirmButton,
     };
     this.confirming = false;
   }
 
   openModal = () => {
-    let {onConfirming} = this.props;
+    let {onConfirming, disableConfirmButton} = this.props;
     if (typeof onConfirming === 'function') {
       onConfirming();
     }
 
     this.setState(state => ({
       isModalOpen: true,
-      disableConfirmButton: false,
+      disableConfirmButton,
     }));
 
     // always reset `confirming` when modal visibility changes
@@ -56,13 +72,13 @@ class Confirm extends React.PureComponent {
   };
 
   closeModal = () => {
-    let {onCancel} = this.props;
+    let {onCancel, disableConfirmButton} = this.props;
     if (typeof onCancel === 'function') {
       onCancel();
     }
     this.setState(state => ({
       isModalOpen: false,
-      disableConfirmButton: false,
+      disableConfirmButton,
     }));
 
     // always reset `confirming` when modal visibility changes
@@ -84,8 +100,13 @@ class Confirm extends React.PureComponent {
   };
 
   handleToggle = e => {
-    let {disabled} = this.props;
+    let {disabled, bypass} = this.props;
     if (disabled) return;
+
+    if (bypass) {
+      this.props.onConfirm();
+      return;
+    }
 
     // Current state is closed, means it will toggle open
     if (!this.state.isModalOpen) {
@@ -104,10 +125,10 @@ class Confirm extends React.PureComponent {
       confirmText,
       cancelText,
       children,
+      header,
     } = this.props;
 
     let confirmMessage;
-
     if (typeof renderMessage === 'function') {
       confirmMessage = renderMessage({
         confirm: this.handleConfirm,
@@ -130,17 +151,23 @@ class Confirm extends React.PureComponent {
               close: this.closeModal,
               open: this.openModal,
             })
-          : React.cloneElement(children, {disabled, onClick: this.handleToggle})}
+          : React.cloneElement(children, {
+              disabled,
+              onClick: this.handleToggle,
+            })}
         <Modal show={this.state.isModalOpen} animation={false} onHide={this.handleToggle}>
+          {header && <div className="modal-header">{header}</div>}
           <div className="modal-body">{confirmMessage}</div>
           <div className="modal-footer">
             <Button style={{marginRight: 10}} onClick={this.handleToggle}>
               {cancelText}
             </Button>
             <Button
+              data-test-id="confirm-modal"
               disabled={this.state.disableConfirmButton}
               priority={priority}
               onClick={this.handleConfirm}
+              autoFocus
             >
               {confirmText}
             </Button>

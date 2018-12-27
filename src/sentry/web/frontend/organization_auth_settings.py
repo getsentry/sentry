@@ -11,7 +11,6 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
-from sentry.auth.providers.saml2 import SAML2Provider, HAS_SAML2
 from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember, User
 from sentry.plugins import Response
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
@@ -59,17 +58,17 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         if db.is_sqlite():
             for om in OrganizationMember.objects.filter(organization=organization):
-                setattr(om.flags, 'sso:linked', False)
-                setattr(om.flags, 'sso:invalid', False)
+                om.flags['sso:linked'] = False
+                om.flags['sso:invalid'] = False
                 om.save()
         else:
             OrganizationMember.objects.filter(
                 organization=organization,
             ).update(
                 flags=F('flags').bitand(
-                    ~getattr(OrganizationMember.flags, 'sso:linked'),
+                    ~OrganizationMember.flags['sso:linked'],
                 ).bitand(
-                    ~getattr(OrganizationMember.flags, 'sso:invalid'),
+                    ~OrganizationMember.flags['sso:invalid'],
                 ),
             )
 
@@ -104,7 +103,10 @@ class OrganizationAuthSettingsView(OrganizationView):
                     OK_REMINDERS_SENT,
                 )
 
-                next_uri = reverse('sentry-organization-auth-settings', args=[organization.slug])
+                next_uri = reverse(
+                    'sentry-organization-auth-provider-settings',
+                    args=[
+                        organization.slug])
                 return self.redirect(next_uri)
 
         form = AuthProviderSettingsForm(
@@ -137,7 +139,7 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         pending_links_count = OrganizationMember.objects.filter(
             organization=organization,
-            flags=~getattr(OrganizationMember.flags, 'sso:linked'),
+            flags=F('flags').bitand(~OrganizationMember.flags['sso:linked']),
         ).count()
 
         context = {
@@ -180,7 +182,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         if request.method == 'POST':
             provider_key = request.POST.get('provider')
             if not manager.exists(provider_key):
-                raise ValueError('Provider not found: {}'.format(provider_key))
+                raise ValueError(u'Provider not found: {}'.format(provider_key))
 
             helper = AuthHelper(
                 request=request,
@@ -202,20 +204,7 @@ class OrganizationAuthSettingsView(OrganizationView):
             # render first time setup view
             return helper.current_step()
 
-        provider_list = []
-
-        for k, v in manager:
-            if issubclass(v, SAML2Provider) and not HAS_SAML2:
-                continue
-
-            feature = v.required_feature
-            if feature and not features.has(feature, organization, actor=request.user):
-                continue
-
-            provider_list.append((k, v.name))
-
-        context = {
-            'provider_list': provider_list,
-        }
-
-        return self.respond('sentry/organization-auth-settings.html', context)
+        # Otherwise user is in bad state since frontend/react should handle this case
+        return HttpResponseRedirect(
+            reverse('sentry-organization-home', args=[organization.slug])
+        )

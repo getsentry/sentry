@@ -9,6 +9,7 @@ sentry.rules.conditions.tagged_event
 from __future__ import absolute_import
 
 import json
+import six
 
 from collections import OrderedDict
 from django import forms
@@ -69,8 +70,6 @@ class FixedTypeaheadInput(forms.TextInput):
 class EventAttributeForm(forms.Form):
     attribute = forms.CharField(
         widget=FixedTypeaheadInput(
-            attrs={'style': 'width:200px',
-                   'placeholder': 'i.e. exception.type'},
             choices=[{
                 'id': a,
                 'text': a
@@ -78,14 +77,10 @@ class EventAttributeForm(forms.Form):
         )
     )
     match = forms.ChoiceField(
-        MATCH_CHOICES.items(), widget=forms.Select(
-            attrs={'style': 'width:150px'},
-        )
+        MATCH_CHOICES.items()
     )
     value = forms.CharField(
-        widget=forms.TextInput(
-            attrs={'placeholder': 'value'},
-        ), required=False
+        widget=forms.TextInput(), required=False
     )
 
 
@@ -108,9 +103,24 @@ class EventAttributeCondition(EventCondition):
     form_cls = EventAttributeForm
     label = u'An event\'s {attribute} value {match} {value}'
 
+    form_fields = {
+        'attribute': {
+            'type': 'choice',
+            'placeholder': 'i.e. exception.type',
+            'choices': [[a, a] for a in ATTR_CHOICES]
+        },
+        'match': {
+            'type': 'choice',
+            'choices': MATCH_CHOICES.items()
+        },
+        'value': {
+            'type': 'string',
+            'placeholder': 'value'
+        }
+    }
+
     def _get_attribute_values(self, event, attr):
         # TODO(dcramer): we should validate attributes (when we can) before
-
         path = attr.split('.')
 
         if path[0] in ('message', 'platform'):
@@ -211,7 +221,11 @@ class EventAttributeCondition(EventCondition):
         except KeyError:
             attribute_values = []
 
-        attribute_values = [v.lower() for v in attribute_values if v is not None]
+        attribute_values = [
+            six.text_type(v).lower()
+            for v in attribute_values
+            if v is not None
+        ]
 
         if match == MatchType.EQUAL:
             for a_value in attribute_values:

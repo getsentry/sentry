@@ -3,9 +3,9 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 // import {action} from '@storybook/addon-actions';
 
-import ClippedBox from 'sentry-ui/clippedBox';
+import ClippedBox from 'app/components/clippedBox';
 
-storiesOf('ClippedBox', module).add(
+storiesOf('UI|ClippedBox', module).add(
   'default',
   withInfo('Component that clips content and allows expansion of container')(() => (
     <div>

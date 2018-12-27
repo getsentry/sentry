@@ -6,3 +6,10 @@ exports[`PluginIcon renders 1`] = `
   size={20}
 />
 `;
+
+exports[`PluginIcon renders with default icon with invalid plugin id 1`] = `
+<IntegrationIcon
+  image="github"
+  size={20}
+/>
+`;

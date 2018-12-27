@@ -2,6 +2,14 @@ from __future__ import absolute_import, print_function
 
 from django.conf.urls import include, patterns, url
 
+from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
+from .endpoints.relay_heartbeat import RelayHeartbeatEndpoint
+from .endpoints.relay_projectconfigs import RelayProjectConfigsEndpoint
+from .endpoints.relay_publickeys import RelayPublicKeysEndpoint
+from .endpoints.relay_index import RelayIndexEndpoint
+from .endpoints.relay_details import RelayDetailsEndpoint
+from .endpoints.relay_register import RelayRegisterChallengeEndpoint, \
+    RelayRegisterResponseEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
@@ -9,18 +17,22 @@ from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
+from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
+from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
+from .endpoints.event_attachments import EventAttachmentsEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
-from .endpoints.group_environment_details import GroupEnvironmentDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
 from .endpoints.group_events_latest import GroupEventsLatestEndpoint
 from .endpoints.group_events_oldest import GroupEventsOldestEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
+from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
+from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
 from .endpoints.group_participants import GroupParticipantsEndpoint
@@ -44,8 +56,15 @@ from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEnd
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_provider_send_reminders import OrganizationAuthProviderSendRemindersEndpoint
+from .endpoints.organization_avatar import OrganizationAvatarEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
+from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
+from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
+from .endpoints.organization_discover_saved_query_detail import OrganizationDiscoverSavedQueryDetailEndpoint
+from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
+from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
+from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
 from .endpoints.organization_issues_new import OrganizationIssuesNewEndpoint
 from .endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
@@ -53,10 +72,12 @@ from .endpoints.organization_member_index import OrganizationMemberIndexEndpoint
 from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
 from .endpoints.organization_member_issues_bookmarked import OrganizationMemberIssuesBookmarkedEndpoint
 from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
+from .endpoints.organization_member_unreleased_commits import OrganizationMemberUnreleasedCommitsEndpoint
 from .endpoints.organization_member_team_details import OrganizationMemberTeamDetailsEndpoint
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
+from .endpoints.organization_plugins import OrganizationPluginsEndpoint
 from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
@@ -64,6 +85,7 @@ from .endpoints.organization_release_file_details import OrganizationReleaseFile
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
 from .endpoints.organization_integration_details import OrganizationIntegrationDetailsEndpoint
+from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
 from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
 from .endpoints.organization_config_integrations import OrganizationConfigIntegrationsEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
@@ -73,6 +95,7 @@ from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
+from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_transfer import ProjectTransferEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
@@ -117,6 +140,7 @@ from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint,
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
+from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.project_user_stats import ProjectUserStatsEndpoint
@@ -130,12 +154,12 @@ from .endpoints.dif_files import DifAssembleEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
-from .endpoints.sudo import SudoEndpoint
+from .endpoints.team_avatar import TeamAvatarEndpoint
 from .endpoints.team_details import TeamDetailsEndpoint
 from .endpoints.team_groups_new import TeamGroupsNewEndpoint
 from .endpoints.team_groups_trending import TeamGroupsTrendingEndpoint
 from .endpoints.team_members import TeamMembersEndpoint
-from .endpoints.team_project_index import TeamProjectIndexEndpoint
+from .endpoints.team_projects import TeamProjectsEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.useravatar import UserAvatarEndpoint
 from .endpoints.user_appearance import UserAppearanceEndpoint
@@ -146,6 +170,8 @@ from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_emails import UserEmailsEndpoint
+from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
+from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
@@ -159,6 +185,49 @@ from .endpoints.setup_wizard import SetupWizard
 
 urlpatterns = patterns(
     '',
+
+    # Relay
+    url(
+        r'^relays/$',
+        RelayIndexEndpoint.as_view(),
+        name='sentry-api-0-relays-index'
+    ),
+
+    url(
+        r'^relays/register/challenge/$',
+        RelayRegisterChallengeEndpoint.as_view(),
+        name='sentry-api-0-relay-register-challenge'
+    ),
+
+    url(
+        r'^relays/register/response/$',
+        RelayRegisterResponseEndpoint.as_view(),
+        name='sentry-api-0-relay-register-response'
+    ),
+
+    url(
+        r'^relays/heartbeat/$',
+        RelayHeartbeatEndpoint.as_view(),
+        name='sentry-api-0-relay-heartbeat'
+    ),
+
+    url(
+        r'^relays/projectconfigs/$',
+        RelayProjectConfigsEndpoint.as_view(),
+        name='sentry-api-0-relay-projectconfigs'
+    ),
+
+    url(
+        r'^relays/publickeys/$',
+        RelayPublicKeysEndpoint.as_view(),
+        name='sentry-api-0-relay-publickeys'
+    ),
+
+    url(
+        r'^relays/(?P<relay_id>[^\/]+)/$',
+        RelayDetailsEndpoint.as_view(),
+        name='sentry-api-0-relays-details'
+    ),
 
     # Api Data
     url(
@@ -192,12 +261,14 @@ urlpatterns = patterns(
         AuthenticatorIndexEndpoint.as_view(),
         name='sentry-api-0-authenticator-index'),
 
-    # Sudo
-    url(r'^sudo/$', SudoEndpoint.as_view(), name='sentry-api-0-sudo'),
-
     # Broadcasts
     url(r'^broadcasts/$', BroadcastIndexEndpoint.as_view(),
         name='sentry-api-0-broadcast-index'),
+    url(r'^broadcasts/(?P<broadcast_id>[^\/]+)/$', BroadcastDetailsEndpoint.as_view()),
+
+    # Project transfer
+    url(r'^accept-transfer/$', AcceptProjectTransferEndpoint.as_view(),
+        name='sentry-api-0-accept-project-transfer'),
 
     # Users
     url(r'^users/$', UserIndexEndpoint.as_view(), name='sentry-api-0-user-index'),
@@ -242,9 +313,19 @@ urlpatterns = patterns(
         name='sentry-api-0-user-emails'
     ),
     url(
+        r'^users/(?P<user_id>[^\/]+)/emails/confirm/$',
+        UserEmailsConfirmEndpoint.as_view(),
+        name='sentry-api-0-user-emails-confirm'
+    ),
+    url(
         r'^users/(?P<user_id>[^\/]+)/identities/(?P<identity_id>[^\/]+)/$',
         UserIdentityDetailsEndpoint.as_view(),
         name='sentry-api-0-user-identity-details'
+    ),
+    url(
+        r'^users/(?P<user_id>[^\/]+)/ips/$',
+        UserIPsEndpoint.as_view(),
+        name='sentry-api-0-user-ips'
     ),
     url(
         r'^users/(?P<user_id>[^\/]+)/organizations/$',
@@ -296,9 +377,39 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-details'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/discover/query/$',
+        OrganizationDiscoverQueryEndpoint.as_view(),
+        name='sentry-api-0-organization-discover-query'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/discover/saved/$',
+        OrganizationDiscoverSavedQueriesEndpoint.as_view(),
+        name='sentry-api-0-organization-discover-saved-queries'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/discover/saved/(?P<query_id>[^\/]+)/$',
+        OrganizationDiscoverSavedQueryDetailEndpoint.as_view(),
+        name='sentry-api-0-organization-discover-saved-query-detail'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/health/top/$',
+        OrganizationHealthTopEndpoint.as_view(),
+        name='sentry-api-0-organization-health-top',
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/health/graph/$',
+        OrganizationHealthGraphEndpoint.as_view(),
+        name='sentry-api-0-organization-health-graph',
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$',
         ShortIdLookupEndpoint.as_view(),
         name='sentry-api-0-short-id-lookup'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/eventids/(?P<event_id>[^\/]+)/$',
+        EventIdLookupEndpoint.as_view(),
+        name='sentry-api-0-event-id-lookup'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/slugs/$',
@@ -351,6 +462,11 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-auth-provider-send-reminders'
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/avatar/$',
+        OrganizationAvatarEndpoint.as_view(),
+        name='sentry-api-0-organization-avatar'
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/config/integrations/$',
         OrganizationConfigIntegrationsEndpoint.as_view(),
         name='sentry-api-0-organization-config-integrations'
@@ -374,6 +490,10 @@ urlpatterns = patterns(
         OrganizationIntegrationDetailsEndpoint.as_view(),
     ),
     url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repos/$',
+        OrganizationIntegrationReposEndpoint.as_view(),
+    ),
+    url(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
         OrganizationMemberIndexEndpoint.as_view(),
         name='sentry-api-0-organization-member-index'
@@ -392,6 +512,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/$',
         OrganizationMemberDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-member-details'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/unreleased-commits/$',
+        OrganizationMemberUnreleasedCommitsEndpoint.as_view(),
+        name='sentry-api-0-organization-member-unreleased-commits'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/assigned/$',
@@ -432,6 +557,11 @@ urlpatterns = patterns(
         r'^organizations/(?P<organization_slug>[^\/]+)/repos/(?P<repo_id>[^\/]+)/commits/$',
         OrganizationRepositoryCommitsEndpoint.as_view(),
         name='sentry-api-0-organization-repository-commits'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/plugins/$',
+        OrganizationPluginsEndpoint.as_view(),
+        name='sentry-api-0-organization-plugins'
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/releases/$',
@@ -483,6 +613,11 @@ urlpatterns = patterns(
         OrganizationOnboardingTaskEndpoint.as_view(),
         name='sentry-api-0-organization-onboardingtasks'
     ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/environments/$',
+        OrganizationEnvironmentsEndpoint.as_view(),
+        name='sentry-api-0-organization-environments',
+    ),
 
     # Teams
     url(
@@ -507,13 +642,18 @@ urlpatterns = patterns(
     ),
     url(
         r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/projects/$',
-        TeamProjectIndexEndpoint.as_view(),
+        TeamProjectsEndpoint.as_view(),
         name='sentry-api-0-team-project-index'
     ),
     url(
         r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/stats/$',
         TeamStatsEndpoint.as_view(),
         name='sentry-api-0-team-stats'
+    ),
+    url(
+        r'^teams/(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/avatar/$',
+        TeamAvatarEndpoint.as_view(),
+        name='sentry-api-0-team-avatar'
     ),
 
     # Projects
@@ -523,6 +663,11 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$',
         ProjectDetailsEndpoint.as_view(),
         name='sentry-api-0-project-details'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/avatar/$',
+        ProjectAvatarEndpoint.as_view(),
+        name='sentry-api-0-project-avatar'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/create-sample/$',
@@ -563,6 +708,16 @@ urlpatterns = patterns(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/$',
         ProjectEventDetailsEndpoint.as_view(),
         name='sentry-api-0-project-event-details'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/attachments/$',
+        EventAttachmentsEndpoint.as_view(),
+        name='sentry-api-0-event-attachments'
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/attachments/(?P<attachment_id>[\w-]+)/$',
+        EventAttachmentDetailsEndpoint.as_view(),
+        name='sentry-api-0-event-attachment-details'
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/committers/$',
@@ -611,6 +766,10 @@ urlpatterns = patterns(
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/$',
         ProjectServiceHookDetailsEndpoint.as_view(),
+    ),
+    url(
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/(?P<hook_id>[^\/]+)/stats/$',
+        ProjectServiceHookStatsEndpoint.as_view(),
     ),
     url(
         r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:issues|groups)/$',
@@ -772,7 +931,7 @@ urlpatterns = patterns(
         name='sentry-api-0-project-reprocessing'
     ),
     url(
-        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/discard$',
+        r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/discard/$',
         ProjectProcessingIssuesDiscardEndpoint.as_view(),
         name='sentry-api-0-project-discard-processing-issues'
     ),
@@ -845,11 +1004,6 @@ urlpatterns = patterns(
         name='sentry-api-0-group-stats'
     ),
     url(
-        r'^(?:issues|groups)/(?P<issue_id>\d+)/environments/(?P<environment>[^/]+)/$',
-        GroupEnvironmentDetailsEndpoint.as_view(),
-        name='sentry-api-0-group-environment-details'
-    ),
-    url(
         r'^(?:issues|groups)/(?P<issue_id>\d+)/tags/$',
         GroupTagsEndpoint.as_view(),
         name='sentry-api-0-group-tags'
@@ -873,6 +1027,16 @@ urlpatterns = patterns(
         r'^(?:issues|groups)/(?P<issue_id>\d+)/similar/$',
         GroupSimilarIssuesEndpoint.as_view(),
         name='sentry-api-0-group-similar-issues'
+    ),
+    url(
+        r'^(?:issues|groups)/(?P<issue_id>\d+)/integrations/$',
+        GroupIntegrationsEndpoint.as_view(),
+        name='sentry-api-0-group-integrations'
+    ),
+    url(
+        r'^(?:issues|groups)/(?P<issue_id>\d+)/integrations/(?P<integration_id>\d+)/$',
+        GroupIntegrationDetailsEndpoint.as_view(),
+        name='sentry-api-0-group-integration-details'
     ),
     # Load plugin group urls
     url(

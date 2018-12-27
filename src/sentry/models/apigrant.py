@@ -13,6 +13,14 @@ from sentry.db.models import ArrayField, Model, FlexibleForeignKey
 DEFAULT_EXPIRATION = timedelta(minutes=10)
 
 
+def default_expiration():
+    return timezone.now() + DEFAULT_EXPIRATION
+
+
+def generate_code():
+    return uuid4().hex
+
+
 class ApiGrant(Model):
     """
     A grant represents a token with a short lifetime that can
@@ -23,9 +31,9 @@ class ApiGrant(Model):
 
     user = FlexibleForeignKey('sentry.User')
     application = FlexibleForeignKey('sentry.ApiApplication')
-    code = models.CharField(max_length=64, db_index=True, default=lambda: ApiGrant.generate_code())
+    code = models.CharField(max_length=64, db_index=True, default=generate_code)
     expires_at = models.DateTimeField(
-        db_index=True, default=lambda: timezone.now() + DEFAULT_EXPIRATION
+        db_index=True, default=default_expiration
     )
     redirect_uri = models.CharField(max_length=255)
     scopes = BitField(
@@ -48,10 +56,6 @@ class ApiGrant(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_apigrant'
-
-    @classmethod
-    def generate_code(cls):
-        return uuid4().hex
 
     def get_scopes(self):
         if self.scope_list:

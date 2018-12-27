@@ -1,3 +1,0 @@
-[submodule "docs/_sentryext"]
-	path = docs/_sentryext
-	url = https://github.com/getsentry/sentry-doc-support

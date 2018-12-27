@@ -1,14 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import SentryTypes from '../../../proptypes';
-import rawStacktraceContent from './rawStacktraceContent';
-import StacktraceContent from './stacktraceContent';
-import ExceptionContent from './exceptionContent';
-import RawExceptionContent from './rawExceptionContent';
+
+import ErrorBoundary from 'app/components/errorBoundary';
+import ExceptionContent from 'app/components/events/interfaces/exceptionContent';
+import RawExceptionContent from 'app/components/events/interfaces/rawExceptionContent';
+import SentryTypes from 'app/sentryTypes';
+import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
+import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 
 class CrashContent extends React.Component {
   static propTypes = {
-    group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     stackView: PropTypes.string.isRequired,
     stackType: PropTypes.string,
@@ -56,10 +57,10 @@ class CrashContent extends React.Component {
 
   render() {
     if (this.props.exception) {
-      return this.renderException();
+      return <ErrorBoundary mini>{this.renderException()}</ErrorBoundary>;
     }
     if (this.props.stacktrace) {
-      return this.renderStacktrace();
+      return <ErrorBoundary mini>{this.renderStacktrace()}</ErrorBoundary>;
     }
     return null;
   }

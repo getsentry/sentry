@@ -1,8 +1,14 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import KeyValueList from './interfaces/keyValueList';
-import {t} from '../../locale';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import {t} from 'app/locale';
+
+const keyMapping = {
+  image_uuid: 'Debug ID',
+  image_name: 'File Name',
+  image_path: 'File Path',
+};
 
 class EventErrorItem extends React.Component {
   static propTypes = {
@@ -40,7 +46,7 @@ class EventErrorItem extends React.Component {
       data.image_path = path.length ? path.join(separator) + separator : '';
     }
 
-    return _.mapKeys(data, (value, key) => _.startCase(key));
+    return _.mapKeys(data, (value, key) => t(keyMapping[key] || _.startCase(key)));
   }
 
   render() {

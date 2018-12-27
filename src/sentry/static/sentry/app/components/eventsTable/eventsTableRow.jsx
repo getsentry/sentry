@@ -1,27 +1,21 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
-import classNames from 'classnames';
 
-import CustomPropTypes from '../../proptypes';
-import Avatar from '../../components/avatar';
-import DateTime from '../../components/dateTime';
-import deviceNameMapper from '../../utils/deviceNameMapper';
-
-import '../../../less/components/eventsTableRow.less';
+import CustomPropTypes from 'app/sentryTypes';
+import Avatar from 'app/components/avatar';
+import DateTime from 'app/components/dateTime';
+import DeviceName from 'app/components/deviceName';
 
 class EventsTableRow extends React.Component {
   static propTypes = {
     hasUser: PropTypes.bool,
-    truncate: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     event: CustomPropTypes.Event.isRequired,
     tagList: PropTypes.arrayOf(CustomPropTypes.Tag),
   };
-
-  static defaultProps = {truncate: false};
 
   getEventTitle = event => {
     switch (event.type) {
@@ -39,26 +33,16 @@ class EventsTableRow extends React.Component {
   };
 
   render() {
-    let {
-      className,
-      event,
-      orgId,
-      projectId,
-      groupId,
-      tagList,
-      truncate,
-      hasUser,
-    } = this.props;
-    let cx = classNames('events-table-row', className);
+    let {className, event, orgId, projectId, groupId, tagList, hasUser} = this.props;
     let tagMap = {};
     event.tags.forEach(tag => {
       tagMap[tag.key] = tag.value;
     });
 
     return (
-      <tr key={event.id} className={cx}>
+      <tr key={event.id} className={className}>
         <td>
-          <h5 className={truncate ? 'truncate' : ''}>
+          <h5>
             <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${event.id}/`}>
               <DateTime date={event.dateCreated} />
             </Link>
@@ -70,7 +54,7 @@ class EventsTableRow extends React.Component {
           <td className="event-user table-user-info">
             {event.user ? (
               <div>
-                <Avatar user={event.user} size={64} className="avatar" gravatar={false} />
+                <Avatar user={event.user} size={24} className="avatar" gravatar={false} />
                 {event.user.email}
               </div>
             ) : (
@@ -82,10 +66,12 @@ class EventsTableRow extends React.Component {
         {tagList.map(tag => {
           return (
             <td key={tag.key}>
-              <div className={truncate ? 'truncate' : ''}>
-                {tag.key === 'device'
-                  ? deviceNameMapper(tagMap[tag.key])
-                  : tagMap[tag.key]}
+              <div>
+                {tag.key === 'device' ? (
+                  <DeviceName>{tagMap[tag.key]}</DeviceName>
+                ) : (
+                  tagMap[tag.key]
+                )}
               </div>
             </td>
           );

@@ -61,7 +61,7 @@ class Message(Interface):
 
         if kwargs['formatted']:
             if not isinstance(kwargs['formatted'], six.string_types):
-                data['formatted'] = json.dumps(data['formatted'])
+                kwargs['formatted'] = json.dumps(data['formatted'])
         # support python-esque formatting (e.g. %s)
         elif '%' in kwargs['message'] and kwargs['params']:
             if isinstance(kwargs['params'], list):

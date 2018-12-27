@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
-import Raven from 'raven-js';
 import React from 'react';
 
-import {t} from '../locale';
-import LoadingError from './loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
+import sdk from 'app/utils/sdk';
+import {t} from 'app/locale';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import retryableImport from 'app/utils/retryableImport';
 
 class LazyLoad extends React.Component {
   static propTypes = {
@@ -58,15 +59,20 @@ class LazyLoad extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    this.handleFetchError(error);
+    sdk.captureException(error);
+    this.handleError(error);
   }
 
   getComponentGetter = () => this.props.component || this.props.route.componentPromise;
 
   handleFetchError = error => {
+    sdk.captureException(error, {fingerprint: ['webpack', 'error loading chunk']});
+    this.handleError(error);
+  };
+
+  handleError = error => {
     // eslint-disable-next-line no-console
     console.error(error);
-    Raven.captureException(error);
     this.setState({
       error,
     });
@@ -75,7 +81,7 @@ class LazyLoad extends React.Component {
   fetchComponent = () => {
     let getComponent = this.getComponentGetter();
 
-    getComponent()
+    retryableImport(getComponent)
       .then(Component => {
         // Always load default export if available
         this.setState({

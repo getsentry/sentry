@@ -6,7 +6,7 @@ from exam import fixture
 class GroupUserReport(UserReportEnvironmentTestCase):
     @fixture
     def path(self):
-        return '/api/0/groups/{}/user-feedback/'.format(
+        return u'/api/0/groups/{}/user-feedback/'.format(
             self.group.id,
         )
 

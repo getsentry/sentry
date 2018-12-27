@@ -1,54 +1,86 @@
 from __future__ import absolute_import
 
+from django.utils.translation import ugettext_lazy as _
+
 from sentry import http
-from sentry.integrations import Integration, IntegrationMetadata
-from sentry.utils.pipeline import NestedPipelineView
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.integrations import (
+    IntegrationFeatures, IntegrationMetadata, IntegrationProvider, FeatureDescription,
+)
+from sentry.pipeline import NestedPipelineView
 from sentry.utils.http import absolute_uri
 
 DESCRIPTION = """
-Define a relationship between Sentry and your Slack workspace(s).
-
- * Unfurls Sentry URLs in slack, providing context and actionability on issues
-   directly within your Slack workspace.
- * Resolve, ignore, and assign issues with minimal context switching.
- * Configure rule based Slack notifications to automatically be posted into the
-   specified channel.
+Connect your Sentry organization to one or more Slack workspaces, and start
+getting errors right in front of you where all the action happens in your
+office!
 """
 
-alert_link = {
-    'text': 'Looking to send Sentry alerts to Slack? Add an **Alert Rule** for this project.',
-    'link': '/settings/organization/{orgId}/project/{projectId}/alerts/rules/'
+FEATURES = [
+    FeatureDescription(
+        """
+        Unfurls Sentry URLs directly within Slack, providing you context and
+        actionability on issues right at your fingertips.
+        """,
+        IntegrationFeatures.CHAT_UNFURL,
+    ),
+    FeatureDescription(
+        """
+        Resolve, ignore, and assign issues with minimal context switching.
+        """,
+        IntegrationFeatures.ACTION_NOTIFICATION,
+    ),
+    FeatureDescription(
+        """
+        Configure rule based Slack notifications to automatically be posted into a
+        specific channel. Want any error that's happening more than 100 times a
+        minute to be posted in `#critical-errors`? Setup a rule for it!
+        """,
+        IntegrationFeatures.ALERT_RULE,
+    ),
+]
+
+setup_alert = {
+    'type': 'info',
+    'text': 'The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.',
 }
 
 metadata = IntegrationMetadata(
-    description=DESCRIPTION.strip(),
+    description=_(DESCRIPTION.strip()),
+    features=FEATURES,
     author='The Sentry Team',
+    noun=_('Workspace'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Slack%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack',
     aspects={
-        'alert_link': alert_link,
+        'alerts': [setup_alert],
     }
 )
 
 
-class SlackIntegration(Integration):
+class SlackIntegrationProvider(IntegrationProvider):
     key = 'slack'
     name = 'Slack'
     metadata = metadata
+    features = frozenset([
+        IntegrationFeatures.ACTION_NOTIFICATION,
+        IntegrationFeatures.CHAT_UNFURL,
+        IntegrationFeatures.ALERT_RULE,
+    ])
 
     identity_oauth_scopes = frozenset([
         'channels:read',
-        'commands',
+        'groups:read',
+        'users:read',
+        'chat:write',
         'links:read',
         'links:write',
         'team:read',
-        'chat:write'
     ])
 
     setup_dialog_config = {
         'width': 600,
-        'height': 800,
+        'height': 900,
     }
 
     def get_pipeline_views(self):
@@ -96,7 +128,7 @@ class SlackIntegration(Integration):
             },
             'user_identity': {
                 'type': 'slack',
-                'external_id': data['installer_user_id'],
+                'external_id': data['authorizing_user_id'],
                 'scopes': [],
                 'data': {},
             },

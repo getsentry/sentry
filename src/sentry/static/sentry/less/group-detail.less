@@ -25,11 +25,6 @@
     }
   }
 
-  .short-id {
-    font-size: 17px !important;
-    font-family: @font-family-code;
-  }
-
   .event-message,
   .event-meta {
     line-height: 1.2;
@@ -165,20 +160,6 @@
     margin-bottom: 0;
   }
 
-  // loading indicator for the group needs extra fixing up.
-  .assignee-selector {
-    display: inline-block;
-
-    .loading {
-      margin: 0;
-
-      .loading-indicator {
-        left: auto !important;
-        right: 0 !important;
-      }
-    }
-  }
-
   &:before {
     position: absolute;
     display: block;
@@ -188,41 +169,6 @@
     right: -40px;
     height: 1px;
     background: @trim;
-  }
-}
-
-.seen-by {
-  margin-top: 15px;
-  float: right;
-
-  ul {
-    .list-unstyled;
-
-    li:first-child {
-      background: @white-darker;
-      color: darken(@gray, 10);
-      border-radius: 2px;
-      .square(28px);
-      line-height: 26px;
-      text-align: center;
-
-      .icon-eye {
-        opacity: 0.4;
-        position: relative;
-        top: 2px;
-      }
-    }
-
-    li {
-      float: left;
-      margin-left: 5px;
-
-      .avatar {
-        display: inline-block;
-        position: relative;
-        .square(28px);
-      }
-    }
   }
 }
 
@@ -395,40 +341,43 @@
     }
   }
 
-  .seen-info .tip {
+  .seen-info .dotted-underline {
     border-bottom: 1px dotted @trim;
   }
 
-  .bar-chart figure a {
+  .bar-chart figure a,
+  .bar-chart figure g {
     height: 50px;
 
-    span {
+    span,
+    .barchart-rect {
       background: @purple;
-      #gradient > .vertical(@purple-light, @purple);
+      fill: @purple;
 
       &.inactive {
         background: @gray-lightest;
-        #gradient > .vertical(@gray-lightest, @gray-lightest);
+        fill: @gray-lightest;
       }
 
       &.environment {
         background: @purple-lightest;
-        #gradient > .vertical(@purple-lightest, @purple-lightest);
+        fill: @purple-lightest;
       }
     }
 
-    &:hover span {
+    &:hover span,
+    &:hover .barchart-rect {
       background: @purple-dark;
-      #gradient > .vertical(@purple, @purple-dark);
+      fill: @purple-dark;
 
       &.inactive {
         background: @gray-lighter;
-        #gradient > .vertical(@gray-lighter, @gray-lighter);
+        fill: @gray-lighter;
       }
 
       &.environment {
         background: @purple;
-        #gradient > .vertical(@purple, @purple);
+        fill: @purple;
       }
     }
   }
@@ -601,7 +550,6 @@
         position: absolute;
         left: 0;
         top: 0;
-        .square(38px);
       }
 
       .activity-bubble {
@@ -736,9 +684,7 @@
         opacity: 0.6;
       }
 
-      .avatar {
-        width: 18px;
-        height: 18px;
+      .activity-avatar {
         margin-right: 4px;
         border-radius: 2px;
         position: relative;
@@ -751,7 +697,6 @@
           color: @gray-darker;
           font-size: 16px;
           background: @white;
-          top: -4px;
         }
       }
 
@@ -977,6 +922,26 @@
       }
     }
 
+    &.electron .context-item-icon {
+      background-image: url(../images/icons/context/electron.png);
+    }
+
+    &.net-framework .context-item-icon {
+      background-image: url(../images/icons/context/netframework.svg);
+    }
+
+    &.net-core .context-item-icon {
+      background-image: url(../images/icons/context/netcore.svg);
+    }
+
+    &.mono .context-item-icon {
+      background-image: url(../images/icons/context/mono-gorilla.svg);
+    }
+
+    &.php .context-item-icon {
+      background-image: url(../images/icons/context/php.svg);
+    }
+
     &.ipad .context-item-icon {
       background-image: url(../images/icons/context/ipad.svg);
     }
@@ -1008,6 +973,7 @@
       }
     }
 
+    &.darwin,
     &.ios,
     &.macos,
     &.tvos,
@@ -1015,7 +981,7 @@
     &.mac,
     &.watchos {
       .context-item-icon {
-        background-image: url(../images/icons/context/ios.svg);
+        background-image: url(../images/icons/context/apple-ios.svg);
         top: -2px;
       }
     }
@@ -1137,16 +1103,6 @@
   }
 }
 
-.sticky .event-toolbar {
-  margin: 0 0 0 200px;
-  padding-left: 20px;
-  padding-right: 20px;
-}
-
-.sticky + div .event {
-  margin-top: 82px;
-}
-
 .module-user .avatar {
   .square(64px);
 
@@ -1185,14 +1141,6 @@
   }
 }
 
-.sticky-sidebar {
-  .event-stats {
-    position: fixed;
-    top: 84px;
-    right: 20px;
-  }
-}
-
 .user-widget {
   position: relative;
   margin-bottom: 20px;
@@ -1203,6 +1151,8 @@
     top: 0;
     right: 0;
     box-shadow: 0 0 0 5px #fff;
+    background: #fff;
+    border-radius: 50% 0 50% 50%;
   }
 
   .btn-group {
@@ -1374,18 +1324,6 @@ div.traceback > ul {
 
       .informal {
         font-style: italic;
-      }
-
-      a.annotation {
-        &.trigger-popover {
-          cursor: pointer;
-        }
-        color: inherit;
-        padding: 0 1px;
-        border-bottom: 1px dotted #666;
-        &:hover {
-          text-decoration: none;
-        }
       }
     }
 
@@ -1574,6 +1512,9 @@ div.traceback > ul {
       &:first-of-type {
         margin-top: 0;
       }
+      &:first-child {
+        margin-top: -20px;
+      }
     }
 
     .tag-app {
@@ -1717,6 +1658,7 @@ div.traceback > ul {
   ol.context {
     margin: 0;
     list-style-position: inside;
+    list-style-type: decimal-leading-zero;
     border-radius: 3px;
     padding-left: 0;
 
@@ -2452,11 +2394,11 @@ ul.crumbs {
         padding: 0;
         margin-top: 1px;
         background: none;
+        word-break: break-all;
       }
     }
 
     div.summary {
-      max-height: 42px;
       overflow: hidden;
 
       &.can-expand {
@@ -2748,18 +2690,6 @@ ul.crumbs {
 
     .meta {
       font-size: 13px;
-    }
-
-    .assignee-selector {
-      .dropdown-menu {
-        left: 0 !important;
-        right: auto !important;
-
-        &:before,
-        &:after {
-          display: none;
-        }
-      }
     }
 
     .short-id-box {

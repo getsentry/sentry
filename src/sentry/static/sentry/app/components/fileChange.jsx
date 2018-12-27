@@ -1,11 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import Avatar from '../components/avatar';
-import IconFileGeneric from '../icons/icon-file-generic';
-
-import TooltipMixin from '../mixins/tooltip';
-import ApiMixin from '../mixins/apiMixin';
+import Avatar from 'app/components/avatar';
+import IconFileGeneric from 'app/icons/icon-file-generic';
+import Tooltip from 'app/components/tooltip';
+import ApiMixin from 'app/mixins/apiMixin';
 
 const FileChange = createReactClass({
   displayName: 'FileChange',
@@ -13,15 +12,9 @@ const FileChange = createReactClass({
   propTypes: {
     filename: PropTypes.string.isRequired,
     authors: PropTypes.array.isRequired,
-    types: PropTypes.object.isRequired,
   },
 
-  mixins: [
-    ApiMixin,
-    TooltipMixin({
-      selector: '.tip',
-    }),
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -42,13 +35,11 @@ const FileChange = createReactClass({
           <div className="col-sm-3 avatar-grid align-right">
             {authors.map((author, i) => {
               return (
-                <span
-                  key={i}
-                  className="avatar-grid-item m-b-0 tip"
-                  title={author.name + ' ' + author.email}
-                >
-                  <Avatar user={author} />
-                </span>
+                <Tooltip key={i} title={`${author.name} ${author.email}`}>
+                  <span className="avatar-grid-item m-b-0">
+                    <Avatar user={author} />
+                  </span>
+                </Tooltip>
               );
             })}
           </div>

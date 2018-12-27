@@ -8,7 +8,7 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.utils.pipeline import Pipeline
+from sentry.pipeline import Pipeline
 from sentry.models import Identity, IdentityStatus, IdentityProvider
 
 from . import default_manager
@@ -26,7 +26,10 @@ class IdentityProviderPipeline(Pipeline):
     provider_model_cls = IdentityProvider
 
     def redirect_url(self):
-        associate_url = reverse('sentry-account-link-identity')
+        associate_url = reverse('sentry-extension-setup', kwargs={
+            # TODO(adhiraj): Remove provider_id from the callback URL, it's unused.
+            'provider_id': 'default',
+        })
 
         # Use configured redirect_url if specified for the pipeline if available
         return self.config.get('redirect_url', associate_url)

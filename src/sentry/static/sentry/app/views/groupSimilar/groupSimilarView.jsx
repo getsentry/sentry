@@ -4,13 +4,13 @@ import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
 
-import {t} from '../../locale';
-import GroupingActions from '../../actions/groupingActions';
-import GroupingStore from '../../stores/groupingStore';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import ProjectState from '../../mixins/projectState';
-import SimilarList from './similarList';
+import {t} from 'app/locale';
+import GroupingActions from 'app/actions/groupingActions';
+import GroupingStore from 'app/stores/groupingStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import ProjectState from 'app/mixins/projectState';
+import SimilarList from 'app/views/groupSimilar/similarList';
 
 const GroupGroupingView = createReactClass({
   displayName: 'GroupGroupingView',

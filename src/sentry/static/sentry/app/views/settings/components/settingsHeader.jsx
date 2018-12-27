@@ -5,7 +5,8 @@ const SettingsHeader = styled.div`
   top: 0;
   height: ${p => p.theme.settings.headerHeight};
   z-index: ${p => p.theme.zIndex.header};
-  &:before {
+
+  &::before {
     position: absolute;
     display: block;
     content: '';
@@ -13,6 +14,7 @@ const SettingsHeader = styled.div`
     right: 0;
     left: 0;
     bottom: 5px;
+
     background-image: linear-gradient(
       to bottom,
       #fcfcfc 0%,

@@ -1,8 +1,11 @@
-import {DEFAULT_TOAST_DURATION} from '../constants';
-import {t} from '../locale';
-import IndicatorActions from '../actions/indicatorActions';
+import React from 'react';
+import styled from 'react-emotion';
 
-// Removes a single indicator
+import {DEFAULT_TOAST_DURATION} from 'app/constants';
+import {t, tct} from 'app/locale';
+import IndicatorActions from 'app/actions/indicatorActions';
+
+// RFormValueoves a single indicator
 export function removeIndicator(indicator) {
   IndicatorActions.remove(indicator);
 }
@@ -20,7 +23,10 @@ export function addMessage(msg, type, options = {}) {
   duration = typeof duration === 'undefined' ? DEFAULT_TOAST_DURATION : duration;
 
   let action = options.append ? 'append' : 'replace';
-  return IndicatorActions[action](msg, type, {...options, duration});
+  // XXX: This differs from `IndicatorStore.add` since it won't return the indicator that is created
+  // because we are firing an action. You can just add a new message and it will, by default,
+  // replace active indicator
+  IndicatorActions[action](msg, type, {...options, duration});
 }
 
 function addMessageWithType(type) {
@@ -39,6 +45,34 @@ export function addSuccessMessage(...args) {
   return addMessageWithType('success')(...args);
 }
 
+const PRETTY_VALUES = {
+  '': '<empty>',
+  [null]: '<none>',
+  [undefined]: '<unset>',
+  [false]: 'disabled',
+  [true]: 'enabled',
+};
+
+// Transform form values into a string
+// Otherwise bool values will not get rendered and empty strings look like a bug
+const prettyFormString = (val, model, fieldName) => {
+  let descriptor = model.fieldDescriptor.get(fieldName);
+
+  if (descriptor && typeof descriptor.formatMessageValue === 'function') {
+    let initialData = model.initialData;
+    // XXX(epurkhsier): We pass the "props" as the descriptor and initialData.
+    // This isn't necessarily all of the props of the form field, but should
+    // make up a good portion needed for formatting.
+    return descriptor.formatMessageValue(val, {...descriptor, initialData});
+  }
+
+  if (val in PRETTY_VALUES) {
+    return PRETTY_VALUES[val];
+  }
+
+  return `${val}`;
+};
+
 /**
  * This will call an action creator to generate a "Toast" message that
  * notifies user the field that changed with its previous and current values.
@@ -53,8 +87,22 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
 
   if (!label) return;
 
+  let prettifyValue = val => prettyFormString(val, model, fieldName);
+
+  // Hide the change text when formatMessageValue is explicitly set to false
+  let showChangeText = model.getDescriptor(fieldName, 'formatMessageValue') !== false;
+
   addSuccessMessage(
-    `Changed ${label} from "${change.old}" to "${change.new}"`,
+    tct(
+      showChangeText
+        ? 'Changed [fieldName] from [oldValue] to [newValue]'
+        : 'Changed [fieldName]',
+      {
+        fieldName: <strong>{label}</strong>,
+        oldValue: <FormValue>{prettifyValue(change.old)}</FormValue>,
+        newValue: <FormValue>{prettifyValue(change.new)}</FormValue>,
+      }
+    ),
     DEFAULT_TOAST_DURATION,
     {
       model,
@@ -69,12 +117,48 @@ export function saveOnBlurUndoMessage(change, model, fieldName) {
         if (!didUndo) return;
         if (!label) return;
 
-        model.saveField(fieldName, newValue).then(() => {
-          addMessage(`Restored ${label} from "${oldValue}" to "${newValue}"`, 'undo', {
-            duration: DEFAULT_TOAST_DURATION,
-          });
+        // `saveField` can return null if it can't save
+        let saveResult = model.saveField(fieldName, newValue);
+
+        if (!saveResult) {
+          addErrorMessage(
+            tct(
+              showChangeText
+                ? 'Unable to restore [fieldName] from [oldValue] to [newValue]'
+                : 'Unable to restore [fieldName]',
+              {
+                fieldName: <strong>{label}</strong>,
+                oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
+                newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
+              }
+            )
+          );
+          return;
+        }
+
+        saveResult.then(() => {
+          addMessage(
+            tct(
+              showChangeText
+                ? 'Restored [fieldName] from [oldValue] to [newValue]'
+                : 'Restored [fieldName]',
+              {
+                fieldName: <strong>{label}</strong>,
+                oldValue: <FormValue>{prettifyValue(oldValue)}</FormValue>,
+                newValue: <FormValue>{prettifyValue(newValue)}</FormValue>,
+              }
+            ),
+            'undo',
+            {
+              duration: DEFAULT_TOAST_DURATION,
+            }
+          );
         });
       },
     }
   );
 }
+
+const FormValue = styled('span')`
+  font-style: italic;
+`;

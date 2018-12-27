@@ -4,23 +4,21 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
+import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
   removeIndicator,
-} from '../../../actionCreators/indicator';
-import {t} from '../../../locale';
-import ApiMixin from '../../../mixins/apiMixin';
-import AsyncView from '../../asyncView';
-import Button from '../../../components/buttons/button';
-import EmptyMessage from '../components/emptyMessage';
-import IndicatorStore from '../../../stores/indicatorStore';
-import Panel from '../components/panel';
-import PanelBody from '../components/panelBody';
-import PanelHeader from '../components/panelHeader';
-import PanelItem from '../components/panelItem';
-import SettingsPageHeader from '../components/settingsPageHeader';
+} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/button';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import IndicatorStore from 'app/stores/indicatorStore';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import getDynamicText from 'app/utils/getDynamicText';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
@@ -82,9 +80,13 @@ const ApiApplicationRow = createReactClass({
       <PanelItem justify="space-between" px={2} py={2}>
         <Box flex="1">
           <h4 style={{marginBottom: 5}}>
-            <Link to={`${ROUTE_PREFIX}applications/${app.id}/`}>{app.name}</Link>
+            <Link to={`${ROUTE_PREFIX}applications/${app.id}/`}>
+              {getDynamicText({value: app.name, fixed: 'PERCY_APPLICATION_NAME'})}
+            </Link>
           </h4>
-          <small style={{color: '#999'}}>{app.clientID}</small>
+          <small style={{color: '#999'}}>
+            {getDynamicText({value: app.clientID, fixed: 'PERCY_CLIENT_ID'})}
+          </small>
         </Box>
 
         <Flex align="center">
@@ -157,22 +159,18 @@ class ApiApplications extends AsyncView {
       <div>
         <SettingsPageHeader title="API Applications" action={action} />
 
-        {isEmpty && (
-          <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
-        )}
+        <Panel>
+          <PanelHeader disablePadding>
+            <Flex align="center">
+              <Box px={2} flex="1">
+                {t('Application Name')}
+              </Box>
+            </Flex>
+          </PanelHeader>
 
-        {!isEmpty && (
-          <Panel>
-            <PanelHeader disablePadding>
-              <Flex align="center">
-                <Box px={2} flex="1">
-                  {t('Application Name')}
-                </Box>
-              </Flex>
-            </PanelHeader>
-
-            <PanelBody>
-              {this.state.appList.map(app => {
+          <PanelBody>
+            {!isEmpty ? (
+              this.state.appList.map(app => {
                 return (
                   <ApiApplicationRow
                     key={app.id}
@@ -180,10 +178,14 @@ class ApiApplications extends AsyncView {
                     onRemove={this.handleRemoveApplication}
                   />
                 );
-              })}
-            </PanelBody>
-          </Panel>
-        )}
+              })
+            ) : (
+              <EmptyMessage>
+                {t("You haven't created any applications yet.")}
+              </EmptyMessage>
+            )}
+          </PanelBody>
+        </Panel>
       </div>
     );
   }

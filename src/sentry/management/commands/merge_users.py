@@ -46,7 +46,7 @@ class Command(BaseCommand):
         return members_by_email.values()
 
     def _confirm_merge(self, primary_user, other_users):
-        message = "Merge {} into {}? [Yn] ".format(
+        message = u"Merge {} into {}? [Yn] ".format(
             ', '.join(o.username for o in other_users),
             primary_user.username,
         )
@@ -93,7 +93,7 @@ class Command(BaseCommand):
             return
 
         sys.stdout.write(
-            "Found {} unique account(s) with duplicate identities.\n".format(len(unique_users))
+            u"Found {} unique account(s) with duplicate identities.\n".format(len(unique_users))
         )
 
         for user_list in unique_users:
@@ -111,7 +111,7 @@ class Command(BaseCommand):
             for user in user_list[1:]:
                 user.merge_to(primary_user)
                 sys.stdout.write(
-                    "{} was merged into {}\n".format(
+                    u"{} was merged into {}\n".format(
                         user.username,
                         primary_user.username,
                     )

@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Confirm renders 1`] = `
-<React.Fragment>
+<Fragment>
   <button
     onClick={[Function]}
   >
@@ -56,6 +56,8 @@ exports[`Confirm renders 1`] = `
         Cancel
       </Button>
       <Button
+        autoFocus={true}
+        data-test-id="confirm-modal"
         disabled={false}
         onClick={[Function]}
         priority="primary"
@@ -64,5 +66,5 @@ exports[`Confirm renders 1`] = `
       </Button>
     </div>
   </Modal>
-</React.Fragment>
+</Fragment>
 `;

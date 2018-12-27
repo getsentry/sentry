@@ -8,12 +8,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import FieldControl from './fieldControl';
-import FieldDescription from './fieldDescription';
-import FieldHelp from './fieldHelp';
-import FieldLabel from './fieldLabel';
-import FieldRequiredBadge from './fieldRequiredBadge';
-import FieldWrapper from './fieldWrapper';
+import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
+import FieldDescription from 'app/views/settings/components/forms/field/fieldDescription';
+import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
+import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
+import FieldRequiredBadge from 'app/views/settings/components/forms/field/fieldRequiredBadge';
+import FieldWrapper from 'app/views/settings/components/forms/field/fieldWrapper';
 
 class Field extends React.Component {
   static propTypes = {
@@ -50,7 +50,7 @@ class Field extends React.Component {
     /**
      * Hide ControlState component
      */
-    hideControlState: PropTypes.bool,
+    flexibleControlStateSize: PropTypes.bool,
 
     /**
      * User-facing field name
@@ -68,6 +68,11 @@ class Field extends React.Component {
     inline: PropTypes.bool,
 
     /**
+     * Should the field display in a stacked manner (no borders + reduced padding
+     */
+    stacked: PropTypes.bool,
+
+    /**
      * The control's `id` property
      */
     id: PropTypes.string,
@@ -76,6 +81,14 @@ class Field extends React.Component {
      * The Control component
      */
     children: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
+
+    /**
+     * Class name for inner control
+     */
+    controlClassName: PropTypes.string,
+
+    /** Inline style */
+    style: PropTypes.object,
   };
 
   static defaultProps = {
@@ -87,7 +100,9 @@ class Field extends React.Component {
   };
 
   render() {
+    let {className, ...otherProps} = this.props;
     let {
+      controlClassName,
       alignRight,
       inline,
       highlighted,
@@ -95,12 +110,14 @@ class Field extends React.Component {
       visible,
       disabled,
       disabledReason,
-      hideControlState,
+      flexibleControlStateSize,
       label,
       help,
       id,
+      stacked,
       children,
-    } = this.props;
+      style,
+    } = otherProps;
     let isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
     let isVisible = typeof visible === 'function' ? visible(this.props) : visible;
     let Control;
@@ -109,42 +126,44 @@ class Field extends React.Component {
       return null;
     }
 
+    let controlProps = {
+      className: controlClassName,
+      inline,
+      alignRight,
+      disabled: isDisabled,
+      disabledReason,
+      flexibleControlStateSize,
+    };
+
     // See comments in prop types
     if (typeof children === 'function') {
       Control = children({
-        ...this.props,
-        alignRight,
-        disabled: isDisabled,
-        disabledReason,
+        ...otherProps,
+        ...controlProps,
       });
     } else {
-      Control = (
-        <FieldControl
-          inline={inline}
-          alignRight={alignRight}
-          disabled={isDisabled}
-          disabledReason={disabledReason}
-          hideControlState={hideControlState}
-        >
-          {children}
-        </FieldControl>
-      );
+      Control = <FieldControl {...controlProps}>{children}</FieldControl>;
     }
 
     return (
       <FieldWrapper
+        className={className}
         inline={inline}
+        stacked={stacked}
         highlighted={highlighted}
-        hasControlState={!hideControlState}
+        hasControlState={!flexibleControlStateSize}
+        style={style}
       >
-        <FieldDescription inline={inline} htmlFor={id}>
-          {label && (
-            <FieldLabel>
-              {label} {required && <FieldRequiredBadge />}
-            </FieldLabel>
-          )}
-          {help && <FieldHelp>{help}</FieldHelp>}
-        </FieldDescription>
+        {(label || help) && (
+          <FieldDescription inline={inline} htmlFor={id}>
+            {label && (
+              <FieldLabel>
+                {label} {required && <FieldRequiredBadge />}
+              </FieldLabel>
+            )}
+            {help && <FieldHelp>{help}</FieldHelp>}
+          </FieldDescription>
+        )}
 
         {Control}
       </FieldWrapper>

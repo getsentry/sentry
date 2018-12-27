@@ -9,6 +9,15 @@ export const growIn = keyframes`
   }
 `;
 
+export const growDown = height => keyframes`
+  0% {
+    height: 0;
+  }
+  100% {
+    height: ${height};
+  }
+`;
+
 export const fadeOut = keyframes`
   0% {
     opacity: 1;
@@ -27,5 +36,52 @@ export const pulse = keyframes`
   }
   100% {
     transform: scale(1, 1);
+  }
+`;
+
+export const expandOut = keyframes`
+  0% {
+    transform: scale(1, 1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(5, 5);
+    opacity: 0;
+  }
+`;
+
+export const slideInRight = keyframes`
+  0% {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+`;
+
+export const slideInUp = keyframes`
+  0% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+`;
+
+export const highlight = color => keyframes`
+  0%,
+  100% {
+    background: rgba(255, 255, 255, 0);
+  }
+
+  25% {
+    background: ${color};
   }
 `;

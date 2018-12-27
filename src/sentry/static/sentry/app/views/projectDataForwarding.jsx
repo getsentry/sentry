@@ -1,20 +1,19 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {t, tct} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import ExternalLink from '../components/externalLink';
-import HookStore from '../stores/hookStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import Panel from './settings/components/panel';
-import PanelBody from './settings/components/panelBody';
-import PanelHeader from './settings/components/panelHeader';
-import PluginList from '../components/pluginList';
-import ProjectState from '../mixins/projectState';
-import SettingsPageHeader from './settings/components/settingsPageHeader';
-import StackedBarChart from '../components/stackedBarChart';
-import TextBlock from './settings/components/text/textBlock';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import ExternalLink from 'app/components/externalLink';
+import HookStore from 'app/stores/hookStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import PluginList from 'app/components/pluginList';
+import ProjectState from 'app/mixins/projectState';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import StackedBarChart from 'app/components/stackedBarChart';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 
 const DataForwardingStats = createReactClass({
   displayName: 'DataForwardingStats',
@@ -206,10 +205,11 @@ export default createReactClass({
 
   renderEmpty() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{t('There are no integrations available for data forwarding.')}</p>
-      </div>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('There are no integrations available for data forwarding.')}</p>
+        </EmptyStateWarning>
+      </Panel>
     );
   },
 

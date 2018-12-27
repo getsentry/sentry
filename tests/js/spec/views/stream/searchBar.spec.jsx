@@ -1,8 +1,36 @@
 import React from 'react';
 import {shallow, mount} from 'enzyme';
 
-import SearchBar from 'app/views/stream/searchBar';
+import SearchBar, {addSpace, removeSpace} from 'app/views/stream/searchBar';
 import TagStore from 'app/stores/tagStore';
+
+describe('addSpace()', function() {
+  it('should add a space when there is no trailing space', function() {
+    expect(addSpace('one')).toEqual('one ');
+  });
+
+  it('should not add another space when there is already one', function() {
+    expect(addSpace('one ')).toEqual('one ');
+  });
+
+  it('should leave the empty string alone', function() {
+    expect(addSpace('')).toEqual('');
+  });
+});
+
+describe('removeSpace()', function() {
+  it('should remove a trailing space', function() {
+    expect(removeSpace('one ')).toEqual('one');
+  });
+
+  it('should not remove the last character if it is not a space', function() {
+    expect(removeSpace('one')).toEqual('one');
+  });
+
+  it('should leave the empty string alone', function() {
+    expect(removeSpace('')).toEqual('');
+  });
+});
 
 describe('SearchBar', function() {
   let sandbox;
@@ -17,7 +45,7 @@ describe('SearchBar', function() {
     sandbox = sinon.sandbox.create();
 
     options = {
-      context: {organization: {id: '123', features: ['environments']}},
+      context: {organization: {id: '123'}},
     };
 
     urlTagValuesMock = MockApiClient.addMockResponse({
@@ -33,6 +61,40 @@ describe('SearchBar', function() {
   afterEach(function() {
     MockApiClient.clearMockResponses();
     sandbox.restore();
+  });
+
+  describe('componentWillReceiveProps()', function() {
+    it('should add a space when setting state.query', function() {
+      let searchBar = shallow(<SearchBar query="one" />, options);
+
+      expect(searchBar.state().query).toEqual('one ');
+    });
+
+    it('should update state.query if props.query is updated from outside', function() {
+      let searchBar = shallow(<SearchBar query="one" />, options);
+
+      searchBar.setProps({query: 'two'});
+
+      expect(searchBar.state().query).toEqual('two ');
+    });
+
+    it('should not reset user input if a noop props change happens', function() {
+      let searchBar = shallow(<SearchBar query="one" />, options);
+      searchBar.setState({query: 'two'});
+
+      searchBar.setProps({query: 'one'});
+
+      expect(searchBar.state().query).toEqual('two');
+    });
+
+    it('should reset user input if a meaningful props change happens', function() {
+      let searchBar = shallow(<SearchBar query="one" />, options);
+      searchBar.setState({query: 'two'});
+
+      searchBar.setProps({query: 'three'});
+
+      expect(searchBar.state().query).toEqual('three ');
+    });
   });
 
   describe('getQueryTerms()', function() {
@@ -150,7 +212,12 @@ describe('SearchBar', function() {
     it('invokes onSearch() when submitting the form', function() {
       let stubbedOnSearch = sandbox.spy();
       let wrapper = mount(
-        <SearchBar onSearch={stubbedOnSearch} orgId="123" projectId="456" />,
+        <SearchBar
+          onSearch={stubbedOnSearch}
+          orgId="123"
+          projectId="456"
+          query="is:unresolved"
+        />,
         options
       );
 
@@ -158,7 +225,7 @@ describe('SearchBar', function() {
         preventDefault() {},
       });
 
-      expect(stubbedOnSearch.called).toBe(true);
+      expect(stubbedOnSearch.calledWith('is:unresolved')).toBe(true);
     });
 
     it('invokes onSearch() when search is cleared', function(done) {
@@ -250,7 +317,7 @@ describe('SearchBar', function() {
       searchBar.getCursorPosition.mockReturnValue(15); // end of line
       searchBar.updateAutoCompleteItems();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      expect(searchBar.state.searchItems.length).toEqual(0);
+      expect(searchBar.state.searchItems).toHaveLength(0);
       expect(searchBar.state.activeSearchItem).toEqual(0);
     });
 
@@ -281,6 +348,23 @@ describe('SearchBar', function() {
       searchBar.updateAutoCompleteItems();
       clock.tick(301);
       expect(environmentTagValuesMock).not.toHaveBeenCalled();
+    });
+
+    it('does not request values when tag is `timesSeen`', function() {
+      // This should never get called
+      let mock = MockApiClient.addMockResponse({
+        url: '/projects/123/456/tags/timesSeen/values/',
+        body: [],
+      });
+      let props = {
+        orgId: '123',
+        projectId: '456',
+        query: 'timesSeen:',
+      };
+      let searchBar = mount(<SearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+      clock.tick(301);
+      expect(mock).not.toHaveBeenCalled();
     });
   });
 });

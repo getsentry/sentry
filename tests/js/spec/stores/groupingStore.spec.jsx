@@ -131,8 +131,8 @@ describe('Grouping Store', function() {
       let calls = trigger.mock.calls;
       let arg = calls[calls.length - 1][0];
 
-      expect(arg.filteredSimilarItems.length).toBe(1);
-      expect(arg.similarItems.length).toBe(3);
+      expect(arg.filteredSimilarItems).toHaveLength(1);
+      expect(arg.similarItems).toHaveLength(3);
       expect(arg).toMatchObject({
         loading: false,
         error: false,
@@ -221,7 +221,7 @@ describe('Grouping Store', function() {
       let calls = trigger.mock.calls;
       return promise.then(() => {
         let arg = calls[calls.length - 1][0];
-        expect(arg.mergedItems.length).toBe(5);
+        expect(arg.mergedItems).toHaveLength(5);
         expect(arg).toMatchObject({
           loading: false,
           error: false,

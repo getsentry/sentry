@@ -1,13 +1,12 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
-// import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import StackedBarChart from 'sentry-ui/stackedBarChart';
+import StackedBarChart from 'app/components/stackedBarChart';
 
-storiesOf('StackedBarChart', module).add(
-  'default',
-  withInfo('')(() => (
+storiesOf('Charts|StackedBarChart (old)', module).add(
+  'StackedBarChart',
+  withInfo('An older, non ECharts chart')(() => (
     <div style={{height: 400}}>
       <StackedBarChart
         series={[
@@ -24,7 +23,7 @@ storiesOf('StackedBarChart', module).add(
             label: 'blacklisted',
           },
         ]}
-        className="dashboard-barchart standard-barchart"
+        className="standard-barchart"
         height="100%"
         label="events"
         barClasses={['received', 'blacklisted', 'rejected']}

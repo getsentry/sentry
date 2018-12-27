@@ -29,7 +29,7 @@ describe('ProjectTags', function() {
     );
   });
 
-  it.skip('renders empty', function() {
+  it('renders empty', function() {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
@@ -53,7 +53,7 @@ describe('ProjectTags', function() {
     let tags = wrapper.state('tags').length;
 
     wrapper
-      .find('a.btn')
+      .find('Button')
       .first()
       .simulate('click');
 
@@ -64,6 +64,6 @@ describe('ProjectTags', function() {
 
     wrapper.update();
 
-    expect(wrapper.state('tags').length).toBe(tags - 1);
+    expect(wrapper.state('tags')).toHaveLength(tags - 1);
   });
 });

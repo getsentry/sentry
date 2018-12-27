@@ -1,18 +1,21 @@
 import React from 'react';
 import {render} from 'enzyme';
 
-import {Client} from 'app/api';
 import OrganizationDetails from 'app/views/organizationDetails';
 
 describe('OrganizationDetails', function() {
   beforeEach(function() {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/broadcasts/',
+      body: [],
+    });
   });
 
   describe('render()', function() {
     describe('pending deletion', () => {
       it('should render a restoration prompt', function() {
-        Client.addMockResponse({
+        MockApiClient.addMockResponse({
           url: '/organizations/org-slug/',
           body: TestStubs.Organization({
             slug: 'org-slug',
@@ -22,12 +25,15 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        let tree = render(<OrganizationDetails params={{orgId: 'org-slug'}} />);
+        let tree = render(
+          <OrganizationDetails params={{orgId: 'org-slug'}} />,
+          TestStubs.routerContext()
+        );
         expect(tree).toMatchSnapshot();
       });
 
       it('should render a restoration prompt without action for members', function() {
-        Client.addMockResponse({
+        MockApiClient.addMockResponse({
           url: '/organizations/org-slug/',
           body: TestStubs.Organization({
             slug: 'org-slug',
@@ -38,14 +44,17 @@ describe('OrganizationDetails', function() {
             },
           }),
         });
-        let tree = render(<OrganizationDetails params={{orgId: 'org-slug'}} />);
+        let tree = render(
+          <OrganizationDetails params={{orgId: 'org-slug'}} />,
+          TestStubs.routerContext()
+        );
         expect(tree).toMatchSnapshot();
       });
     });
 
     describe('deletion in progress', () => {
       beforeEach(() => {
-        Client.addMockResponse({
+        MockApiClient.addMockResponse({
           url: '/organizations/org-slug/',
           body: TestStubs.Organization({
             slug: 'org-slug',
@@ -58,7 +67,10 @@ describe('OrganizationDetails', function() {
       });
 
       it('should render a deletion in progress prompt', function() {
-        let tree = render(<OrganizationDetails params={{orgId: 'org-slug'}} />);
+        let tree = render(
+          <OrganizationDetails params={{orgId: 'org-slug'}} />,
+          TestStubs.routerContext()
+        );
         expect(tree).toMatchSnapshot();
       });
     });

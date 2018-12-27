@@ -2,13 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import moment from 'moment';
-import SentryTypes from '../../proptypes';
-import ApiMixin from '../../mixins/apiMixin';
-import BarChart from '../../components/barChart';
-import DynamicWrapper from '../../components/dynamicWrapper';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import ProjectState from '../../mixins/projectState';
+import SentryTypes from 'app/sentryTypes';
+import ApiMixin from 'app/mixins/apiMixin';
+import BarChart from 'app/components/barChart';
+import DynamicWrapper from 'app/components/dynamicWrapper';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import ProjectState from 'app/mixins/projectState';
 
 const ProjectChart = createReactClass({
   displayName: 'ProjectChart',
@@ -36,10 +36,10 @@ const ProjectChart = createReactClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    // We only need to refetch data if environment or resolution timeframe is changing
     if (
       nextProps.environment !== this.props.environment ||
-      nextProps.resolution !== this.props.resolution
+      nextProps.resolution !== this.props.resolution ||
+      nextProps.dateSince !== this.props.dateSince
     ) {
       this.setState(
         {
@@ -128,6 +128,7 @@ const ProjectChart = createReactClass({
           markers={markers}
           label="events"
           height={150}
+          gap={0.2}
           className="standard-barchart"
         />
         <small className="date-legend">

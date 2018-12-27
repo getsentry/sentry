@@ -29,7 +29,7 @@ def get_all_languages():
             continue
         if '_' in path:
             pre, post = path.split('_', 1)
-            path = '{}-{}'.format(pre, post.lower())
+            path = u'{}-{}'.format(pre, post.lower())
         results.append(path)
     return results
 
@@ -86,9 +86,16 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         'pricing', 'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide', 'privacy',
         'security', 'terms', 'from', 'sponsorship', 'for', 'at', 'platforms', 'branding', 'vs',
         'answers', '_admin', 'support', 'contact', 'onboarding', 'ext', 'extension', 'extensions',
-        'plugins', 'themonitor', 'settings', 'legal',
+        'plugins', 'themonitor', 'settings', 'legal', 'avatar', 'organization-avatar',
+        'project-avatar', 'team-avatar', 'careers', '_experiment',
     )
 )
+
+RESERVED_PROJECT_SLUGS = frozenset((
+    'api-keys', 'audit-log', 'auth', 'members', 'projects',
+    'rate-limits', 'repos', 'settings', 'teams', 'billing',
+    'payments', 'legal', 'subscription', 'support', 'integrations',
+))
 
 LOG_LEVELS = {
     logging.NOTSET: 'sample',
@@ -152,7 +159,7 @@ HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD',
 CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
     'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
-    'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id',
+    'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id', '_meta',
 )
 
 # XXX: Must be all lowercase
@@ -267,6 +274,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
     "koa": "node-koa",
     "django": "python-django",
     "flask": "python-flask",
+    "sanic": "python-sanic",
     "tornado": "python-tornado",
     "celery": "python-celery",
     "rq": "python-rq",
@@ -352,3 +360,5 @@ class ObjectStatus(object):
 
 
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
+
+LEGACY_RATE_LIMIT_OPTIONS = frozenset(('sentry:project-rate-limit', 'sentry:account-rate-limit'))

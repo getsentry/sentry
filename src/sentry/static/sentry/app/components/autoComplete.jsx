@@ -11,7 +11,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import DropdownMenu from './dropdownMenu';
+import DropdownMenu from 'app/components/dropdownMenu';
 
 // Checks if `fn` is a function and calls it with `args`
 const callIfFunction = (fn, ...args) => typeof fn === 'function' && fn(...args);
@@ -25,15 +25,32 @@ class AutoComplete extends React.Component {
     itemToString: PropTypes.func.isRequired,
     defaultHighlightedIndex: PropTypes.number,
     defaultInputValue: PropTypes.string,
+    disabled: PropTypes.bool,
+    /**
+     * Resets autocomplete input when menu closes
+     */
+    resetInputOnClose: PropTypes.bool,
     /**
      * Currently, this does not act as a "controlled" prop, only for initial state of dropdown
      */
     isOpen: PropTypes.bool,
+    /**
+     * If input should be considered an "actor". If there is another parent actor, then this should be `false`.
+     * e.g. You have a button that opens this <AutoComplete> in a dropdown.
+     */
+    inputIsActor: PropTypes.bool,
     onSelect: PropTypes.func,
+    onOpen: PropTypes.func,
+    onClose: PropTypes.func,
+    onMenuOpen: PropTypes.func,
+    closeOnSelect: PropTypes.bool,
   };
 
   static defaultProps = {
     itemToString: i => i,
+    inputIsActor: true,
+    disabled: false,
+    closeOnSelect: true,
   };
 
   constructor(props) {
@@ -57,6 +74,14 @@ class AutoComplete extends React.Component {
     this.items.clear();
   }
 
+  isControlled = () => typeof this.props.isOpen !== 'undefined';
+
+  getOpenState = () => {
+    let {isOpen} = this.props;
+
+    return this.isControlled() ? isOpen : this.state.isOpen;
+  };
+
   /**
    * Resets `this.items` and `this.state.highlightedIndex`.
    * Should be called whenever `inputValue` changes.
@@ -74,9 +99,9 @@ class AutoComplete extends React.Component {
     // We force `isOpen: true` here because:
     // 1) it's possible to have menu closed but input with focus (i.e. hitting "Esc")
     // 2) you select an item, input still has focus, and then change input
+    this.openMenu();
     this.setState({
       inputValue: value,
-      isOpen: true,
     });
 
     callIfFunction(onChange, e);
@@ -104,12 +129,24 @@ class AutoComplete extends React.Component {
     }, 200);
   };
 
+  // Dropdown detected click outside, we should close
+  handleClickOutside = () => {
+    // Otherwise, it's possible that this gets fired multiple times
+    // e.g. click outside triggers closeMenu and at the same time input gets blurred, so
+    // a timer is set to close the menu
+    if (this.blurTimer) {
+      clearTimeout(this.blurTimer);
+    }
+
+    this.closeMenu();
+  };
+
   handleInputKeyDown = ({onKeyDown} = {}, e) => {
     let shouldSelectWithEnter =
       e.key === 'Enter' && this.items.size && this.items.has(this.state.highlightedIndex);
 
     if (shouldSelectWithEnter) {
-      this.handleSelect(this.items.get(this.state.highlightedIndex));
+      this.handleSelect(this.items.get(this.state.highlightedIndex), e);
       e.preventDefault();
     }
 
@@ -137,19 +174,29 @@ class AutoComplete extends React.Component {
     callIfFunction(onClick, item, e);
   };
 
+  handleMenuMouseDown = () => {
+    // Cancel close menu from input blur (mouseDown event can occur before input blur :()
+    setTimeout(() => this.blurTimer && clearTimeout(this.blurTimer));
+  };
+
   /**
    * When an item is selected via clicking or using the keyboard (e.g. pressing "Enter")
    */
-  handleSelect = item => {
-    let {onSelect, itemToString} = this.props;
+  handleSelect = (item, e) => {
+    let {onSelect, itemToString, closeOnSelect} = this.props;
 
-    callIfFunction(onSelect, item);
+    callIfFunction(onSelect, item, this.state, e);
 
-    this.closeMenu();
-    this.setState({
+    let newState = {
       selectedItem: item,
-      inputValue: itemToString(item),
-    });
+    };
+
+    if (closeOnSelect) {
+      this.closeMenu();
+      newState.inputValue = itemToString(item);
+    }
+
+    this.setState(newState);
   };
 
   moveHighlightedIndex = (step, e) => {
@@ -169,7 +216,14 @@ class AutoComplete extends React.Component {
    *
    * This is exposed to render function
    */
-  openMenu = () => {
+  openMenu = (...args) => {
+    let {onOpen, disabled} = this.props;
+
+    callIfFunction(onOpen, ...args);
+
+    if (disabled || this.isControlled()) return;
+
+    this.resetHighlightState();
     this.setState({
       isOpen: true,
     });
@@ -180,9 +234,18 @@ class AutoComplete extends React.Component {
    *
    * This is exposed to render function
    */
-  closeMenu = () => {
-    this.setState({
-      isOpen: false,
+  closeMenu = (...args) => {
+    let {onClose, resetInputOnClose} = this.props;
+
+    callIfFunction(onClose, ...args);
+
+    if (this.isControlled()) return;
+
+    this.setState(state => {
+      return {
+        isOpen: false,
+        inputValue: resetInputOnClose ? '' : state.inputValue,
+      };
     });
   };
 
@@ -210,23 +273,34 @@ class AutoComplete extends React.Component {
     };
   };
 
-  getMenuProps = props => ({
-    ...props,
+  getMenuProps = menuProps => ({
+    ...menuProps,
+    onMouseDown: this.handleMenuMouseDown.bind(this, menuProps),
   });
 
   render() {
-    let {children} = this.props;
+    let {children, onMenuOpen} = this.props;
+    let isOpen = this.getOpenState();
 
     return (
       <DropdownMenu
-        isOpen={this.state.isOpen}
-        onClickOutside={() => this.setState({isOpen: false})}
+        isOpen={isOpen}
+        onClickOutside={this.handleClickOutside}
+        onOpen={onMenuOpen}
       >
         {dropdownMenuProps =>
           children({
             ...dropdownMenuProps,
+            getMenuProps: props =>
+              dropdownMenuProps.getMenuProps(this.getMenuProps(props)),
             getInputProps: props => {
-              return dropdownMenuProps.getActorProps(this.getInputProps(props));
+              const inputProps = this.getInputProps(props);
+
+              if (!this.props.inputIsActor) {
+                return inputProps;
+              }
+
+              return dropdownMenuProps.getActorProps(inputProps);
             },
             getItemProps: this.getItemProps,
             inputValue: this.state.inputValue,
