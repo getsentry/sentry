@@ -16,6 +16,7 @@ from django.db import models, IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 from jsonfield import JSONField
+from time import time
 
 from sentry.app import locks
 from sentry.db.models import (
@@ -24,6 +25,7 @@ from sentry.db.models import (
 
 from sentry.models import CommitFileChange
 
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.retries import TimedRetryPolicy
@@ -74,7 +76,7 @@ class Release(Model):
     data = JSONField(default={})
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
-    owner = FlexibleForeignKey('sentry.User', null=True, blank=True)
+    owner = FlexibleForeignKey('sentry.User', null=True, blank=True, on_delete=models.SET_NULL)
 
     # materialized stats
     commit_count = BoundedPositiveIntegerField(null=True, default=0)
@@ -101,7 +103,7 @@ class Release(Model):
 
     @classmethod
     def get_lock_key(cls, organization_id, release_id):
-        return 'releasecommits:{}:{}'.format(organization_id, release_id)
+        return u'releasecommits:{}:{}'.format(organization_id, release_id)
 
     @classmethod
     def get(cls, project, version):
@@ -338,6 +340,7 @@ class Release(Model):
             ReleaseCommit, ReleaseHeadCommit, Repository, PullRequest
         )
         from sentry.plugins.providers.repository import RepositoryProvider
+        from sentry.tasks.integrations import kick_off_status_syncs
         # todo(meredith): implement for IntegrationRepositoryProvider
         commit_list = [
             c for c in commit_list
@@ -346,6 +349,7 @@ class Release(Model):
         lock_key = type(self).get_lock_key(self.organization_id, self.id)
         lock = locks.get(lock_key, duration=10)
         with TimedRetryPolicy(10)(lock.acquire):
+            start = time()
             with transaction.atomic():
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
@@ -360,7 +364,7 @@ class Release(Model):
                 latest_commit = None
                 for idx, data in enumerate(commit_list):
                     repo_name = data.get('repository'
-                                         ) or 'organization-{}'.format(self.organization_id)
+                                         ) or u'organization-{}'.format(self.organization_id)
                     if repo_name not in repos:
                         repos[repo_name] = repo = Repository.objects.get_or_create(
                             organization_id=self.organization_id,
@@ -423,6 +427,8 @@ class Release(Model):
                             update_kwargs['message'] = defaults['message']
                         if commit.author_id is None and defaults['author'] is not None:
                             update_kwargs['author'] = defaults['author']
+                        if defaults.get('date_added') is not None:
+                            update_kwargs['date_added'] = defaults['date_added']
                         if update_kwargs:
                             commit.update(**update_kwargs)
 
@@ -448,6 +454,7 @@ class Release(Model):
                     ],
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
+                metrics.timing('release.set_commits.duration', time() - start)
 
         # fill any missing ReleaseHeadCommit entries
         for repo_id, commit_id in six.iteritems(head_commit_by_repo):
@@ -502,7 +509,15 @@ class Release(Model):
 
         user_by_author = {None: None}
 
-        for group_id, author in itertools.chain(commit_group_authors, pull_request_group_authors):
+        commits_and_prs = list(
+            itertools.chain(commit_group_authors, pull_request_group_authors),
+        )
+
+        group_project_lookup = dict(Group.objects.filter(
+            id__in=[group_id for group_id, _ in commits_and_prs],
+        ).values_list('id', 'project_id'))
+
+        for group_id, author in commits_and_prs:
             if author not in user_by_author:
                 try:
                     user_by_author[author] = author.find_users()[0]
@@ -523,3 +538,9 @@ class Release(Model):
                 Group.objects.filter(
                     id=group_id,
                 ).update(status=GroupStatus.RESOLVED)
+                metrics.incr('group.resolved', instance='in_commit', skip_internal=True)
+
+            kick_off_status_syncs.apply_async(kwargs={
+                'project_id': group_project_lookup[group_id],
+                'group_id': group_id,
+            })

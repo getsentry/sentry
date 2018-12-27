@@ -9,21 +9,21 @@ class EventAttributeConditionTest(RuleTestCase):
 
     def get_event(self):
         event = self.create_event(
-            message='hello world',
             platform='php',
             data={
+                'message': 'hello world',
                 'type': 'error',
-                'sentry.interfaces.Http': {
+                'request': {
                     'method': 'GET',
                     'url': 'http://example.com',
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     'id': '1',
                     'ip_address': '127.0.0.1',
                     'email': 'foo@example.com',
                     'username': 'foo',
                 },
-                'sentry.interfaces.Exception': {
+                'exception': {
                     'values': [
                         {
                             'type': 'SyntaxError',
@@ -187,6 +187,25 @@ class EventAttributeConditionTest(RuleTestCase):
             'value': 'staging',
         })
         self.assertDoesNotPass(rule, event)
+
+    def test_compares_case_insensitive(self):
+        event = self.get_event()
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'environment',
+            'value': 'PRODUCTION',
+        })
+        self.assertPasses(rule, event)
+
+    def test_compare_int_value(self):
+        event = self.get_event()
+        event.data['extra']['number'] = 1
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'extra.number',
+            'value': '1',
+        })
+        self.assertPasses(rule, event)
 
     def test_http_method(self):
         event = self.get_event()

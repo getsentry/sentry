@@ -173,13 +173,13 @@ def get_date_params(value, from_field, to_field):
         date_from_value, date_from_inclusive = date_from
         result.update({
             from_field: date_from_value,
-            '{}_inclusive'.format(from_field): date_from_inclusive,
+            u'{}_inclusive'.format(from_field): date_from_inclusive,
         })
     if date_to is not None:
         date_to_value, date_to_inclusive = date_to
         result.update({
             to_field: date_to_value,
-            '{}_inclusive'.format(to_field): date_to_inclusive,
+            u'{}_inclusive'.format(to_field): date_to_inclusive,
         })
     return result
 
@@ -212,38 +212,42 @@ def parse_user_value(value, user):
 numeric_modifiers = [
     (
         '>=', lambda field, value: {
-            '{}_lower'.format(field): value,
-            '{}_lower_inclusive'.format(field): True, }
+            u'{}_lower'.format(field): value,
+            u'{}_lower_inclusive'.format(field): True, }
     ),
     (
         '<=', lambda field, value: {
-            '{}_upper'.format(field): value,
-            '{}_upper_inclusive'.format(field): True, }
+            u'{}_upper'.format(field): value,
+            u'{}_upper_inclusive'.format(field): True, }
     ),
     (
         '>', lambda field, value: {
-            '{}_lower'.format(field): value,
-            '{}_lower_inclusive'.format(field): False, }
+            u'{}_lower'.format(field): value,
+            u'{}_lower_inclusive'.format(field): False, }
     ),
     (
         '<', lambda field, value: {
-            '{}_upper'.format(field): value,
-            '{}_upper_inclusive'.format(field): False, }
+            u'{}_upper'.format(field): value,
+            u'{}_upper_inclusive'.format(field): False, }
     ),
 ]
 
 
 def get_numeric_field_value(field, raw_value, type=int):
-    for modifier, function in numeric_modifiers:
-        if raw_value.startswith(modifier):
-            return function(
-                field,
-                type(raw_value[len(modifier):]),
-            )
-    else:
-        return {
-            field: type(raw_value),
-        }
+    try:
+        for modifier, function in numeric_modifiers:
+            if raw_value.startswith(modifier):
+                return function(
+                    field,
+                    type(raw_value[len(modifier):]),
+                )
+        else:
+            return {
+                field: type(raw_value),
+            }
+    except ValueError:
+        msg = u'"{}" could not be converted to a number.'.format(raw_value)
+        raise InvalidQuery(msg)
 
 
 def tokenize_query(query):

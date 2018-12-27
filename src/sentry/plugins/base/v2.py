@@ -15,6 +15,7 @@ import six
 from django.http import HttpResponseRedirect
 from threading import local
 
+from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
 from sentry.plugins.base.response import Response
@@ -107,6 +108,14 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
                 return self.project_default_enabled
 
         return True
+
+    def is_hidden(self):
+        """
+        Should this plugin be hidden in the UI
+
+        We use this to hide plugins as they are replaced with integrations.
+        """
+        return self.slug in HIDDEN_PLUGINS
 
     def reset_options(self, project=None, user=None):
         from sentry.plugins.helpers import reset_options
@@ -390,6 +399,26 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
                 if 'cocoa' in platforms:
                     return [CocoaProcessor(data, stacktrace_infos)]
         """
+
+    def get_event_enhancers(self, data, **kwargs):
+        """
+        Return a list of enhancers to apply to the given event.
+
+        An enhancer is a function that takes the normalized data blob as an
+        input and returns modified data as output. If no changes to the data are
+        made it is safe to return ``None``.
+
+        As opposed to event (pre)processors, enhancers run **before** stacktrace
+        processing and can be used to perform more extensive event normalization
+        or add additional data before stackframes are symbolicated.
+
+        Enhancers should not be returned if there is nothing to do with the
+        event data.
+
+        >>> def get_event_enhancers(self, data, **kwargs):
+        >>>     return [lambda x: x]
+        """
+        return []
 
     def get_feature_hooks(self, **kwargs):
         """

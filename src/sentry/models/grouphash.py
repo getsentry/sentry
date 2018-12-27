@@ -47,20 +47,20 @@ class GroupHash(Model):
     @classmethod
     def fetch_last_processed_event_id(cls, group_hash_ids):
         with cls.__get_last_processed_event_id_cluster().map() as client:
-            results = [client.get('gh:lp:{}'.format(id)) for id in group_hash_ids]
+            results = [client.get(u'gh:lp:{}'.format(id)) for id in group_hash_ids]
         return [result.value for result in results]
 
     @classmethod
     def record_last_processed_event_id(cls, group_hash_id, event_id):
         with cls.__get_last_processed_event_id_cluster().map() as client:
-            key = 'gh:lp:{}'.format(group_hash_id)
-            client.set(key, '{}'.format(event_id))
+            key = u'gh:lp:{}'.format(group_hash_id)
+            client.set(key, u'{}'.format(event_id))
             client.expire(key, 7776000)  # 90d
 
     @classmethod
     def delete_last_processed_event_id(cls, group_hash_id):
         with cls.__get_last_processed_event_id_cluster().map() as client:
-            client.delete('gh:lp:{}'.format(group_hash_id))
+            client.delete(u'gh:lp:{}'.format(group_hash_id))
 
 
 post_delete.connect(

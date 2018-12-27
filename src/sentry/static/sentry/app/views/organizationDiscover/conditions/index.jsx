@@ -7,13 +7,14 @@ import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import Condition from './condition';
-import {PlaceholderText, SelectListItem, AddText} from '../styles';
+import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
 
 export default class Conditions extends React.Component {
   static propTypes = {
     value: PropTypes.arrayOf(PropTypes.array).isRequired,
     onChange: PropTypes.func.isRequired,
-    columns: PropTypes.array,
+    columns: PropTypes.array.isRequired,
+    disabled: PropTypes.bool,
   };
 
   addRow() {
@@ -35,25 +36,28 @@ export default class Conditions extends React.Component {
   }
 
   render() {
-    const {value, columns} = this.props;
+    const {value, columns, disabled} = this.props;
 
     return (
       <div>
         <div>
-          <strong>{t('Conditions')}</strong>
-          <AddText>
-            (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
-          </AddText>
+          <SidebarLabel>{t('Conditions')}</SidebarLabel>
+          {!disabled && (
+            <AddText>
+              (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
+            </AddText>
+          )}
         </div>
         {!value.length && (
           <PlaceholderText>{t('None, showing all events')}</PlaceholderText>
         )}
         {value.map((condition, idx) => (
-          <SelectListItem key={idx}>
+          <SelectListItem key={`${idx}_${condition[2]}`}>
             <Condition
               value={condition}
               onChange={val => this.handleChange(val, idx)}
               columns={columns}
+              disabled={disabled}
             />
             <Box ml={1}>
               <a onClick={() => this.removeRow(idx)}>

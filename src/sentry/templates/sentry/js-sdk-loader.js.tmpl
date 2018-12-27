@@ -1,17 +1,27 @@
 {% load sentry_helpers %}// Sentry Loader
-(function(_window, _document, _script, _onerror, _onunhandledrejection, _namespace, _publicKey, _sdkBundleUrl, _config) {
+(function(
+  _window,
+  _document,
+  _script,
+  _onerror,
+  _onunhandledrejection,
+  _namespace,
+  _publicKey,
+  _sdkBundleUrl,
+  _config
+) {
   var lazy = true;
   var forceLoad = false;
 
   for (var i = 0; i < document.scripts.length; i++) {
     if (document.scripts[i].src.indexOf(_publicKey) > -1) {
-      lazy = !(document.scripts[i].dataset.lazy === 'no');
+      lazy = !(document.scripts[i].getAttribute('data-lazy') === 'no');
       break;
     }
   }
 
   var injected = false;
-  var onLoadCallback;
+  var onLoadCallbacks = [];
 
   // Create a namespace and attach function that will store captured exception
   // Because functions are also objects, we can attach the queue itself straight to it and save some bytes
@@ -20,19 +30,22 @@
     // content.p = promise rejection
     // content.f = function call the Sentry
     if (
-      (content.e || content.p || (content.f && content.f.indexOf('capture') > -1)) &&
+      (content.e ||
+        content.p ||
+        (content.f && content.f.indexOf('capture') > -1) ||
+        (content.f && content.f.indexOf('showReportDialog') > -1)) &&
       lazy
     ) {
       // We only want to lazy inject/load the sdk bundle if
       // an error or promise rejection occured
       // OR someone called `capture...` on the SDK
-      injectSdk(onLoadCallback);
+      injectSdk(onLoadCallbacks);
     }
     queue.data.push(content);
   };
   queue.data = [];
 
-  function injectSdk(callback) {
+  function injectSdk(callbacks) {
     if (injected) {
       return;
     }
@@ -71,7 +84,7 @@
           oldInit(target);
         };
 
-        sdkLoaded(callback, SDK);
+        sdkLoaded(callbacks, SDK);
       } catch (o_O) {
         console.error(o_O);
       }
@@ -80,22 +93,37 @@
     _currentScriptTag.parentNode.insertBefore(_newScriptTag, _currentScriptTag);
   }
 
-  function sdkLoaded(callback, SDK) {
+  function sdkLoaded(callbacks, SDK) {
     try {
-      if (callback) {
-        callback();
+      for (var i = 0; i < callbacks.length; i++) {
+        if (typeof callbacks[i] === 'function') {
+          callbacks[i]();
+        }
       }
+
       var data = queue.data;
 
       // We want to replay all calls to Sentry first to make sure init is called before
       // we call all our internal error handlers
+      var firstInitCall = false;
+      var calledSentry = false;
       for (var i = 0; i < data.length; i++) {
         if (data[i].f) {
+          calledSentry = true;
           var call = data[i];
+          if (firstInitCall === false && call.f !== 'init') {
+            // First call always has to be init, this is a conveniece for the user
+            // so call to init is optional
+            SDK.init();
+          }
+          firstInitCall = true;
           SDK[call.f].apply(SDK, call.a);
         }
       }
-
+      if (calledSentry === false) {
+        // Sentry has never been called but we need Sentry.init() so call it
+        SDK.init();
+      }
       // Because we installed the SDK, at this point we have an access to TraceKit's handler,
       // which can take care of browser differences (eg. missing exception argument in onerror)
       var tracekitErrorHandler = _window[_onerror];
@@ -116,21 +144,21 @@
   // We don't want to _window.Sentry = _window.Sentry || { ... } since we want to make sure
   // that the first Sentry "instance" is our with onLoad
   _window[_namespace] = {
-    onLoad: function(callback) {
+    onLoad: function (callback) {
+      onLoadCallbacks.push(callback);
       if (lazy && !forceLoad) {
-        onLoadCallback = callback;
-      } else {
-        injectSdk(callback);
+        return;
       }
+      injectSdk(onLoadCallbacks);
     },
     forceLoad: function() {
       forceLoad = true;
       if (lazy) {
         setTimeout(function() {
-          injectSdk(onLoadCallback);
+          injectSdk(onLoadCallbacks);
         });
       }
-    },
+    }
   };
 
   [
@@ -140,9 +168,11 @@
     'captureException',
     'captureEvent',
     'configureScope',
+    'withScope',
+    'showReportDialog'
   ].forEach(function(f) {
     _window[_namespace][f] = function() {
-      queue({f: f, a: arguments});
+      queue({ f: f, a: arguments });
     };
   });
 
@@ -152,7 +182,7 @@
   _window[_onerror] = function(message, source, lineno, colno, exception) {
     // Use keys as "data type" to save some characters"
     queue({
-      e: [].slice.call(arguments),
+      e: [].slice.call(arguments)
     });
 
     if (_oldOnerror) _oldOnerror.apply(_window, arguments);
@@ -162,8 +192,14 @@
   var _oldOnunhandledrejection = _window[_onunhandledrejection];
   _window[_onunhandledrejection] = function(exception) {
     queue({
-      p: exception.reason,
+      p: exception.reason
     });
     if (_oldOnunhandledrejection) _oldOnunhandledrejection.apply(_window, arguments);
   };
+
+  if (!lazy) {
+    setTimeout(function() {
+      injectSdk(onLoadCallbacks);
+    });
+  }
 })(window, document, "script", "onerror", "onunhandledrejection", "Sentry", "{{ publicKey|safe }}", "{{ jsSdkUrl|safe }}", {{ config|to_json|safe }});

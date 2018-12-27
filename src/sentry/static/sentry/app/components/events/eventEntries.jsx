@@ -3,7 +3,7 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import {logException} from 'app/utils/logging';
 import EventAttachments from 'app/components/events/eventAttachments';
 import EventCause from 'app/components/events/eventCause';

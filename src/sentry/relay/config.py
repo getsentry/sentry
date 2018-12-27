@@ -3,11 +3,13 @@ from __future__ import absolute_import
 import re
 import six
 import uuid
+import json
 
 from datetime import datetime
 from pytz import utc
 
 from sentry.models import ProjectKey, OrganizationOption
+from sentry.utils.sdk import configure_scope
 
 
 def _generate_pii_config(project, org_options):
@@ -40,10 +42,10 @@ def _generate_pii_config(project, org_options):
                 'redaction': 'remove',
                 'keyPattern': r'\b%s\n' % '|'.join(re.escape(x) for x in fields),
             }
-            databag_rules.push('strip-fields')
+            databag_rules.append('strip-fields')
 
     if scrub_ip_address:
-        ip_rules.push('@ip')
+        ip_rules.append('@ip')
 
     return {
         'rules': custom_rules,
@@ -57,8 +59,22 @@ def _generate_pii_config(project, org_options):
     }
 
 
+def get_pii_config(project, org_options):
+    value = project.get_option('sentry:relay_pii_config')
+    if value is not None:
+        try:
+            return json.loads(value)
+        except (TypeError, ValueError):
+            return None
+    return _generate_pii_config(project, org_options)
+
+
 def get_project_options(project):
     """Returns a dict containing the config for a project for the sentry relay"""
+
+    with configure_scope() as scope:
+        scope.set_tag("project", project.id)
+
     project_keys = ProjectKey.objects.filter(
         project=project,
     ).all()
@@ -82,7 +98,7 @@ def get_project_options(project):
         'config': {
             'allowedDomains': project.get_option('sentry:origins', ['*']),
             'trustedRelays': org_options.get('sentry:trusted-relays', []),
-            'piiConfig': _generate_pii_config(project, org_options),
+            'piiConfig': get_pii_config(project, org_options),
         },
     }
     return rv

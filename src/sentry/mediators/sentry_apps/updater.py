@@ -3,22 +3,31 @@ from __future__ import absolute_import
 import six
 
 from collections import Iterable
-from rest_framework.serializers import ValidationError
+from sentry.coreapi import APIError
 
+from sentry.constants import SentryAppStatus
 from sentry.mediators import Mediator, Param
 from sentry.mediators.param import if_param
 
 
 class Updater(Mediator):
-    sentry_app = Param('sentry.models.sentryapp.SentryApp')
+    sentry_app = Param('sentry.models.SentryApp')
     name = Param(six.string_types, required=False)
     scopes = Param(Iterable, required=False)
+    events = Param(Iterable, required=False)
     webhook_url = Param(six.string_types, required=False)
+    redirect_url = Param(six.string_types, required=False)
+    is_alertable = Param(bool, required=False)
+    overview = Param(six.string_types, required=False)
 
     def call(self):
         self._update_name()
         self._update_scopes()
+        self._update_events()
         self._update_webhook_url()
+        self._update_redirect_url()
+        self._update_is_alertable()
+        self._update_overview()
         self.sentry_app.save()
         return self.sentry_app
 
@@ -28,17 +37,27 @@ class Updater(Mediator):
 
     @if_param('scopes')
     def _update_scopes(self):
-        self._validate_only_added_scopes()
+        if self.sentry_app.status == SentryAppStatus.PUBLISHED:
+            raise APIError('Cannot update scopes on published App.')
         self.sentry_app.scope_list = self.scopes
+
+    @if_param('events')
+    def _update_events(self):
+        from sentry.mediators.service_hooks.creator import expand_events
+        self.sentry_app.events = expand_events(self.events)
 
     @if_param('webhook_url')
     def _update_webhook_url(self):
         self.sentry_app.webhook_url = self.webhook_url
 
-    def _validate_only_added_scopes(self):
-        if any(self._scopes_removed):
-            raise ValidationError('Cannot remove `scopes` already in use.')
+    @if_param('redirect_url')
+    def _update_redirect_url(self):
+        self.sentry_app.redirect_url = self.redirect_url
 
-    @property
-    def _scopes_removed(self):
-        return [s for s in self.sentry_app.scope_list if s not in self.scopes]
+    @if_param('is_alertable')
+    def _update_is_alertable(self):
+        self.sentry_app.is_alertable = self.is_alertable
+
+    @if_param('overview')
+    def _update_overview(self):
+        self.sentry_app.overview = self.overview

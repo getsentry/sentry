@@ -35,7 +35,7 @@ class ApiIndexTest(APITestCase):
         url = reverse('sentry-api-index')
         response = self.client.get(
             url,
-            HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(key.key)),
+            HTTP_AUTHORIZATION='Basic ' + b64encode(u'{}:'.format(key.key)),
         )
         assert response.status_code == 200
         assert response.data['version'] == '0'
@@ -49,7 +49,7 @@ class ApiIndexTest(APITestCase):
         url = reverse('sentry-api-index')
         response = self.client.get(
             url,
-            HTTP_AUTHORIZATION='Bearer {}'.format(token.token),
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(token.token),
         )
         assert response.status_code == 200
         assert response.data['version'] == '0'

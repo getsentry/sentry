@@ -3,7 +3,7 @@ import React from 'react';
 
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {openSudo} from 'app/actionCreators/modal';
-import Feature from 'app/components/feature';
+import Access from 'app/components/acl/access';
 
 const ACTIONS = [
   {
@@ -104,9 +104,9 @@ class CommandSource extends React.Component {
 }
 
 const CommandSourceWithFeature = props => (
-  <Feature isSuperuser>
+  <Access isSuperuser>
     {({hasSuperuser}) => <CommandSource {...props} isSuperuser={hasSuperuser} />}
-  </Feature>
+  </Access>
 );
 
 export default CommandSourceWithFeature;

@@ -202,12 +202,16 @@ class BitHandler(object):
             raise AttributeError('%s is not a valid flag' % key)
         return self.get_bit(self._keys.index(key))
 
+    __getitem__ = __getattr__
+
     def __setattr__(self, key, value):
         if key.startswith('_'):
             return object.__setattr__(self, key, value)
         if key not in self._keys:
             raise AttributeError('%s is not a valid flag' % key)
         self.set_bit(self._keys.index(key), value)
+
+    __setitem__ = __setattr__
 
     def __iter__(self):
         return self.iteritems()  # NOQA

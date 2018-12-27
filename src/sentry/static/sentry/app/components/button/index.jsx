@@ -1,4 +1,3 @@
-import {Flex, Box} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -8,15 +7,9 @@ import ExternalLink from 'app/components/externalLink';
 import InlineSvg from 'app/components/inlineSvg';
 import Tooltip from 'app/components/tooltip';
 
-const alignToFlexMap = {
-  left: 'flex-start',
-  center: 'center',
-  right: 'flex-end',
-};
-
 class Button extends React.Component {
   static propTypes = {
-    priority: PropTypes.oneOf(['primary', 'danger', 'link', 'success']),
+    priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
     size: PropTypes.oneOf(['zero', 'small', 'xsmall', 'large']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
@@ -50,17 +43,11 @@ class Button extends React.Component {
      */
     label: PropTypes.string,
 
-    /**
-     * Button label alignment
-     */
-    alignLabel: PropTypes.oneOf(['left', 'center', 'right']),
-
     onClick: PropTypes.func,
   };
 
   static defaultProps = {
     disabled: false,
-    alignLabel: 'left',
   };
 
   // Intercept onClick and propagate
@@ -92,7 +79,6 @@ class Button extends React.Component {
       label,
       borderless,
       priority,
-      alignLabel,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -102,9 +88,8 @@ class Button extends React.Component {
     } = this.props;
 
     // For `aria-label`
-    let screenReaderLabel = label || typeof children === 'string' ? children : undefined;
-
-    let buttonLabelJustify = alignToFlexMap[alignLabel] || 'left';
+    let screenReaderLabel =
+      label || (typeof children === 'string' ? children : undefined);
 
     // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
     // Let's use props to determine which to serve up, so we don't have to think about it.
@@ -121,12 +106,7 @@ class Button extends React.Component {
         onClick={this.handleClick}
         role="button"
       >
-        <ButtonLabel
-          justify={buttonLabelJustify}
-          size={size}
-          priority={priority}
-          borderless={borderless}
-        >
+        <ButtonLabel size={size} priority={priority} borderless={borderless}>
           {icon && (
             <Icon size={size} hasChildren={!!children}>
               <StyledInlineSvg
@@ -271,8 +251,11 @@ const getLabelPadding = ({size, priority, borderless}) => {
 };
 
 const ButtonLabel = styled(({size, priority, borderless, ...props}) => (
-  <Flex align="center" {...props} />
+  <span {...props} />
 ))`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: ${getLabelPadding};
 `;
 
@@ -285,7 +268,7 @@ const getIconMargin = ({size, hasChildren}) => {
   return size && size.endsWith('small') ? '6px' : '8px';
 };
 
-const Icon = styled(({hasChildren, ...props}) => <Box {...props} />)`
+const Icon = styled(({hasChildren, ...props}) => <span {...props} />)`
   margin-right: ${getIconMargin};
 `;
 

@@ -5,9 +5,8 @@ import {withInfo} from '@storybook/addon-info';
 
 import PieChart from 'app/components/charts/pieChart';
 
-// eslint-disable-next-line
-storiesOf('Charts/PieChart', module).add(
-  'default',
+storiesOf('Charts|PieChart', module).add(
+  'PieChart',
   withInfo('PieChart')(() => (
     <PieChart
       startDate={new Date()}

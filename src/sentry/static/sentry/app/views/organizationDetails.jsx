@@ -8,7 +8,7 @@ import {Client} from 'app/api';
 import OrganizationContext from 'app/views/organizationContext';
 import NarrowLayout from 'app/components/narrowLayout';
 import Footer from 'app/components/footer';
-import LazyLoad from 'app/components/lazyLoad';
+import Hook from 'app/components/hook';
 import {t, tct} from 'app/locale';
 
 class DeletionInProgress extends Component {
@@ -135,15 +135,11 @@ class OrganizationDetailsBody extends Component {
       }
     return (
       <React.Fragment>
-        <LazyLoad
-          component={() =>
-            import(/*webpackChunkName: "NewSidebar"*/ 'app/components/sidebar').then(
-              mod => mod.default
-            )}
-          {...this.props}
-          organization={organization}
+        <Hook
+          name="component:install-prompt-banner"
+          params={{organization}}
+          key="banner"
         />
-
         <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
       </React.Fragment>
@@ -154,7 +150,7 @@ class OrganizationDetailsBody extends Component {
 export default class OrganizationDetails extends Component {
   render() {
     return (
-      <OrganizationContext {...this.props}>
+      <OrganizationContext includeSidebar {...this.props}>
         <OrganizationDetailsBody>{this.props.children}</OrganizationDetailsBody>
       </OrganizationContext>
     );

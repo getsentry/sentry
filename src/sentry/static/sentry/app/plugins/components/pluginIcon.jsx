@@ -15,6 +15,7 @@ import gitlab from 'app/../images/integrations/gitlab-logo.png';
 import heroku from 'app/../images/integrations/heroku-logo.png';
 import hipchat from 'app/../images/integrations/hipchat-logo.png';
 import jira from 'app/../images/integrations/jira-logo.png';
+import jiraserver from 'app/../images/integrations/jira-server-logo.png';
 import lighthouse from 'app/../images/integrations/lighthouse-logo.png';
 import opsgenie from 'app/../images/integrations/opsgenie-logo.png';
 import pagerduty from 'app/../images/integrations/pagerduty-logo.png';
@@ -27,7 +28,7 @@ import taiga from 'app/../images/integrations/taiga-logo.png';
 import teamwork from 'app/../images/integrations/teamwork-logo.png';
 import trello from 'app/../images/integrations/trello-logo.png';
 import twilio from 'app/../images/integrations/twilio-logo.png';
-import vsts from 'app/../images/integrations/vsts-logo.svg';
+import vsts from 'app/../images/integrations/azure-devops.png';
 import youtrack from 'app/../images/integrations/youtrack-logo.png';
 
 // Map of plugin id -> logo filename
@@ -56,6 +57,7 @@ export const ICON_PATHS = {
   jira,
   'jira-atlassian-connect': jira,
   'jira-ac': jira,
+  jira_server: jiraserver,
   lighthouse,
   opsgenie,
   pagerduty,

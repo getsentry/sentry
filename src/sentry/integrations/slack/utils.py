@@ -2,8 +2,6 @@ from __future__ import absolute_import
 
 import logging
 
-from six.moves.urllib.parse import parse_qs, urlencode, urlparse, urlunparse
-
 from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.utils import json
@@ -18,15 +16,21 @@ from sentry.models import (
 logger = logging.getLogger('sentry.integrations.slack')
 
 # Attachment colors used for issues with no actions take
-NEW_ISSUE_COLOR = '#E03E2F'
 ACTIONED_ISSUE_COLOR = '#EDEEEF'
+LEVEL_TO_COLOR = {
+    'debug': '#fbe14f',
+    'info': '#2788ce',
+    'warning': '#f18500',
+    'error': '#E03E2F',
+    'fatal': '#d20f2a',
+}
 
 
 def format_actor_option(actor):
     if isinstance(actor, User):
         return {'text': actor.get_display_name(), 'value': u'user:{}'.format(actor.id)}
     if isinstance(actor, Team):
-        return {'text': actor.slug, 'value': u'team:{}'.format(actor.id)}
+        return {'text': u'#{}'.format(actor.slug), 'value': u'team:{}'.format(actor.id)}
 
     raise NotImplementedError
 
@@ -57,15 +61,6 @@ def get_assignee(group):
         return format_actor_option(assigned_actor.resolve())
     except assigned_actor.type.DoesNotExist:
         return None
-
-
-def add_notification_referrer_param(url, provider):
-    parsed_url = urlparse(url)
-    query = parse_qs(parsed_url.query)
-    query['referrer'] = provider
-    url_list = list(parsed_url)
-    url_list[4] = urlencode(query, doseq=True)
-    return urlunparse(url_list)
 
 
 def build_attachment_title(group, event=None):
@@ -101,7 +96,7 @@ def build_assigned_text(group, identity, assignee):
         return
 
     if actor.type == Team:
-        assignee_text = assigned_actor.slug
+        assignee_text = u'#{}'.format(assigned_actor.slug)
     elif actor.type == User:
         try:
             assignee_ident = Identity.objects.get(
@@ -152,7 +147,9 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
     teams = get_team_assignees(group)
 
     logo_url = absolute_uri(get_asset_url('sentry', 'images/sentry-email-avatar.png'))
-    color = NEW_ISSUE_COLOR
+    color = LEVEL_TO_COLOR.get(
+        event.get_tag('level'),
+        'error') if event else LEVEL_TO_COLOR['error']
 
     text = build_attachment_text(group, event) or ''
 
@@ -269,7 +266,7 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
     return {
         'fallback': u'[{}] {}'.format(group.project.slug, group.title),
         'title': build_attachment_title(group, event),
-        'title_link': add_notification_referrer_param(group.get_absolute_url(), 'slack'),
+        'title_link': group.get_absolute_url(params={'referrer': 'slack'}),
         'text': text,
         'fields': fields,
         'mrkdwn_in': ['text'],

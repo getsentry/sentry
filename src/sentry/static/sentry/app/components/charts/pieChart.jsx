@@ -1,9 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import theme from 'app/utils/theme';
+
+import BaseChart from './baseChart';
 import Legend from './components/legend';
 import PieSeries from './series/pieSeries';
-import BaseChart from './baseChart';
 
 class PieChart extends React.Component {
   static propTypes = {
@@ -34,15 +36,13 @@ class PieChart extends React.Component {
   // echarts Legend does not have access to percentages (but tooltip does :/)
   getSeriesPercentages = series => {
     const total = series.data.reduce((acc, {value}) => acc + value, 0);
-    return series.data
-      .map(({name, value}) => [name, Math.round(value / total * 10000) / 100])
-      .reduce(
-        (acc, [name, value]) => ({
-          ...acc,
-          [name]: value,
-        }),
-        {}
-      );
+    return series.data.reduce(
+      (acc, {name, value}) => ({
+        ...acc,
+        [name]: Math.round(value / total * 10000) / 100,
+      }),
+      {}
+    );
   };
 
   // Select a series to highlight (e.g. shows details of series)
@@ -68,6 +68,20 @@ class PieChart extends React.Component {
     });
   };
 
+  // echarts Legend does not have access to percentages (but tooltip does :/)
+  getSeriesPercentages = series => {
+    const total = series.data.reduce((acc, {value}) => acc + value, 0);
+    return series.data
+      .map(({name, value}) => [name, Math.round(value / total * 10000) / 100])
+      .reduce(
+        (acc, [name, value]) => ({
+          ...acc,
+          [name]: value,
+        }),
+        {}
+      );
+  };
+
   render() {
     const {series, ...props} = this.props;
     if (!series || !series.length) return null;
@@ -84,6 +98,11 @@ class PieChart extends React.Component {
       <BaseChart
         ref={this.chart}
         onChartReady={this.handleChartReady}
+        colors={
+          firstSeries &&
+          firstSeries.data &&
+          theme.charts.getColorPalette(firstSeries.data.length)
+        }
         onEvents={{
           // when legend highlights it does NOT pass dataIndex :(
           highlight: ({name}) => {
@@ -123,39 +142,41 @@ class PieChart extends React.Component {
                 : ''}`;
             },
           }),
-          series: [
-            PieSeries({
-              name: firstSeries.seriesName,
-              data: firstSeries.data,
-              avoidLabelOverlap: false,
-              label: {
-                normal: {
-                  formatter: ({name, percent, dataIndex}) => {
-                    return `${name}\n${percent}%`;
-                  },
-                  show: false,
-                  position: 'center',
-                },
-                emphasis: {
-                  show: true,
-                  textStyle: {
-                    fontSize: '18',
-                  },
-                },
-              },
-              itemStyle: {
-                normal: {
-                  label: {
-                    show: false,
-                  },
-                  labelLine: {
-                    show: false,
-                  },
-                },
-              },
-            }),
-          ],
         }}
+        series={[
+          PieSeries({
+            name: firstSeries.seriesName,
+            data: firstSeries.data,
+            avoidLabelOverlap: false,
+            label: {
+              normal: {
+                formatter: ({name, percent, dataIndex}) => {
+                  return `${name}\n${percent}%`;
+                },
+                show: false,
+                position: 'center',
+              },
+              emphasis: {
+                show: true,
+                textStyle: {
+                  fontSize: '18',
+                },
+              },
+            },
+            itemStyle: {
+              normal: {
+                label: {
+                  show: false,
+                },
+                labelLine: {
+                  show: false,
+                },
+              },
+            },
+          }),
+        ]}
+        xAxis={null}
+        yAxis={null}
       />
     );
   }

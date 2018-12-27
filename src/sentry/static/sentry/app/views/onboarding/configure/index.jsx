@@ -1,18 +1,22 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {browserHistory} from 'react-router';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
-import analytics from 'app/utils/analytics';
-import Waiting from 'app/views/onboarding/configure/waiting';
+import {analytics, amplitude} from 'app/utils/analytics';
 import ApiMixin from 'app/mixins/apiMixin';
+import Hook from 'app/components/hook';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
-import HookStore from 'app/stores/hookStore';
+import SentryTypes from 'app/sentryTypes';
+import Waiting from 'app/views/onboarding/configure/waiting';
 
 const Configure = createReactClass({
   displayName: 'Configure',
+  contextTypes: {
+    organization: SentryTypes.Organization,
+  },
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -28,11 +32,28 @@ const Configure = createReactClass({
     if (!platform || platform === 'other') {
       this.redirectToNeutralDocs();
     }
-
     this.fetchEventData();
     this.timer = setInterval(() => {
       this.fetchEventData();
     }, 2000);
+  },
+
+  componentDidMount() {
+    let {organization} = this.context;
+    let {params} = this.props;
+    let data = {
+      project: params.projectId,
+      platform: params.platform,
+    };
+
+    amplitude(
+      'Viewed Onboarding Installation Instructions',
+      parseInt(organization.id, 10),
+      data
+    );
+
+    data.org_id = parseInt(organization.id, 10);
+    analytics('onboarding.configure_viewed', data);
   },
 
   componentWillUpdate(nextProps, nextState) {
@@ -78,16 +99,23 @@ const Configure = createReactClass({
       },
 
       error: err => {
-        sdk.captureMessage('Polling for events in onboarding configure failed', {
-          extra: err,
+        Sentry.withScope(scope => {
+          scope.setExtra('err', err);
+          Sentry.captureMessage('Polling for events in onboarding configure failed');
         });
       },
     });
   },
 
   submit() {
-    HookStore.get('analytics:onboarding-complete').forEach(cb => cb());
-    analytics('onboarding.complete', {project: this.props.params.projectId});
+    let {projectId} = this.props.params;
+    let {organization} = this.context;
+    analytics('onboarding.complete', {project: projectId});
+    amplitude(
+      'Completed Onboarding Installation Instructions',
+      parseInt(organization.id, 10),
+      {projectId}
+    );
     this.redirectUrl();
   },
 
@@ -100,11 +128,23 @@ const Configure = createReactClass({
 
   render() {
     let {orgId, projectId} = this.props.params;
+    let {hasSentRealEvent} = this.state;
+
+    let data = {
+      params: this.props.params,
+      organization: this.context.organization,
+      source: 'header',
+    };
 
     return (
       <div>
         <div className="onboarding-Configure">
-          <h2 style={{marginBottom: 30}}>Configure your application</h2>
+          <h2 style={{marginBottom: 30}}>
+            Configure your application
+            {!hasSentRealEvent && (
+              <Hook name="component:create-sample-event" params={data} key="header" />
+            )}
+          </h2>
           <ProjectContext projectId={projectId} orgId={orgId} style={{marginBottom: 30}}>
             <ProjectDocsContext>
               <ProjectInstallPlatform
@@ -118,7 +158,12 @@ const Configure = createReactClass({
               />
             </ProjectDocsContext>
           </ProjectContext>
-          <Waiting skip={this.submit} hasEvent={this.state.hasSentRealEvent} />
+          <Waiting
+            skip={this.submit}
+            hasEvent={this.state.hasSentRealEvent}
+            params={this.props.params}
+            organization={this.context.organization}
+          />
         </div>
       </div>
     );

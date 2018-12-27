@@ -9,7 +9,7 @@ const readOnlyStyle = props =>
 
 const inputStyles = props => {
   return css`
-    color: ${props.theme.gray5};
+    color: ${props.disabled ? props.theme.disabled : props.theme.gray5};
     display: block;
     width: 100%;
     background: #fff;
@@ -38,6 +38,13 @@ const inputStyles = props => {
 
     &[disabled] {
       background: ${props.theme.whiteDark};
+      color: ${props.theme.gray2};
+      border: 1px solid ${props.theme.borderDark};
+      cursor: not-allowed;
+
+      &::placeholder {
+        color: ${props.theme.disabled};
+      }
     }
   `;
 };

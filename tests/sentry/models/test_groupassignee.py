@@ -112,7 +112,7 @@ class GroupAssigneeTestCase(TestCase):
             provider='example',
             external_id='123456',
         )
-        integration.add_organization(group.organization.id)
+        integration.add_organization(group.organization, self.user)
 
         OrganizationIntegration.objects.filter(
             integration_id=integration.id,
@@ -143,7 +143,6 @@ class GroupAssigneeTestCase(TestCase):
 
         with self.feature({
             'organizations:integrations-issue-sync': True,
-            'organizations:internal-catchall': True,
         }):
             with self.tasks():
                 GroupAssignee.objects.assign(self.group, self.user)
@@ -175,7 +174,7 @@ class GroupAssigneeTestCase(TestCase):
             provider='example',
             external_id='123456',
         )
-        integration.add_organization(group.organization.id)
+        integration.add_organization(group.organization, self.user)
 
         OrganizationIntegration.objects.filter(
             integration_id=integration.id,
@@ -208,7 +207,6 @@ class GroupAssigneeTestCase(TestCase):
 
         with self.feature({
             'organizations:integrations-issue-sync': True,
-            'organizations:internal-catchall': True,
         }):
             with self.tasks():
                 GroupAssignee.objects.deassign(self.group)
@@ -235,7 +233,7 @@ class GroupAssigneeTestCase(TestCase):
             provider='example',
             external_id='123456',
         )
-        integration.add_organization(group.organization.id)
+        integration.add_organization(group.organization, user_no_access)
 
         OrganizationIntegration.objects.filter(
             integration_id=integration.id,
@@ -291,7 +289,7 @@ class GroupAssigneeTestCase(TestCase):
             provider='example',
             external_id='123456',
         )
-        integration.add_organization(group.organization.id)
+        integration.add_organization(group.organization, self.user)
 
         OrganizationIntegration.objects.filter(
             integration_id=integration.id,

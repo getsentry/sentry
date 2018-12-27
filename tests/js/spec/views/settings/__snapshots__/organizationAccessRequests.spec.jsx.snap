@@ -60,7 +60,6 @@ exports[`OrganizationAccessRequests renders list 1`] = `
         p={2}
       >
         <Button
-          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="primary"
@@ -74,7 +73,6 @@ exports[`OrganizationAccessRequests renders list 1`] = `
           Approve
         </Button>
         <Button
-          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           size="small"

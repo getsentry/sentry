@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.integrations.example import ExampleIntegrationProvider
-from sentry.integrations.migrate import PluginMigrator
+from sentry.mediators.plugins import Migrator
 from sentry.models import Integration, Repository
 from sentry.plugins import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
@@ -15,29 +15,30 @@ class ExamplePlugin(IssuePlugin2):
 plugins.register(ExamplePlugin)
 
 
-class PluginMigratorTest(TestCase):
+class MigratorTest(TestCase):
     def setUp(self):
-        super(PluginMigratorTest, self).setUp()
+        super(MigratorTest, self).setUp()
 
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
 
-        self.integration = ExampleIntegrationProvider()
-
-        self.migrator = PluginMigrator(self.integration, self.organization)
-
-    def test_all_repos_migrated(self):
-        integration = Integration.objects.create(
+        self.integration = Integration.objects.create(
             provider=ExampleIntegrationProvider.key,
         )
 
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            provider=self.integration.key,
-            integration_id=integration.id,
+        self.migrator = Migrator(
+            integration=self.integration,
+            organization=self.organization,
         )
 
-        assert self.migrator.all_repos_migrated(self.integration.key)
+    def test_all_repos_migrated(self):
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            provider=self.integration.provider,
+            integration_id=self.integration.id,
+        )
+
+        assert self.migrator.all_repos_migrated(self.integration.provider)
 
     def test_disable_for_all_projects(self):
         plugin = plugins.get('example')
@@ -55,3 +56,16 @@ class PluginMigratorTest(TestCase):
 
         self.migrator.call()
         assert plugin not in plugins.for_project(self.project)
+
+    def test_does_not_disable_any_plugin(self):
+        plugin = plugins.get('webhooks')
+        plugin.enable(self.project)
+
+        self.migrator.call()
+        assert plugin in plugins.for_project(self.project)
+
+    def test_logs(self):
+        Migrator.run(
+            integration=self.integration,
+            organization=self.organization,
+        )

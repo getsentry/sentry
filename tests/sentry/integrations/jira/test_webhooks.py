@@ -34,6 +34,25 @@ SAMPLE_EDIT_ISSUE_PAYLOAD_NO_ASSIGNEE = """
 }
 """
 
+SAMPLE_EDIT_ISSUE_PAYLOAD_MISSING_ASSIGNEE_FIELD = """
+{
+    "changelog": {
+        "items": [{
+            "field": "assignee",
+            "from": null,
+            "fromString": null,
+            "fieldtype": "jira",
+            "fieldId": "assignee"
+        }],
+        "id": "10172"
+    },
+    "issue": {
+        "fields": {},
+        "key": "APP-123"
+    }
+}
+"""
+
 SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE = """
 {
     "changelog": {
@@ -85,6 +104,8 @@ SAMPLE_EDIT_ISSUE_PAYLOAD_STATUS = """
 }
 """
 
+SAMPLE_MISSING_CHANGELOG = '{}'
+
 
 class JiraWebhooksTest(APITestCase):
     @patch('sentry.integrations.jira.webhooks.sync_group_assignee_inbound')
@@ -95,7 +116,7 @@ class JiraWebhooksTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = reverse('sentry-extensions-jira-issue-updated')
 
@@ -111,6 +132,29 @@ class JiraWebhooksTest(APITestCase):
             )
 
     @patch('sentry.integrations.jira.webhooks.sync_group_assignee_inbound')
+    def test_assign_missing_email(self, mock_sync_group_assignee_inbound):
+        org = self.organization
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org, self.user)
+
+        path = reverse('sentry-extensions-jira-issue-updated')
+
+        with patch('sentry.integrations.jira.webhooks.get_integration_from_jwt', return_value=integration):
+            data = json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_ASSIGNEE.strip())
+            data['issue']['fields']['assignee'].pop('emailAddress')
+            resp = self.client.post(
+                path,
+                data=data,
+                HTTP_AUTHORIZATION='JWT anexampletoken',
+            )
+            assert resp.status_code == 200
+            assert not mock_sync_group_assignee_inbound.called
+
+    @patch('sentry.integrations.jira.webhooks.sync_group_assignee_inbound')
     def test_simple_deassign(self, mock_sync_group_assignee_inbound):
         org = self.organization
 
@@ -118,7 +162,7 @@ class JiraWebhooksTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = reverse('sentry-extensions-jira-issue-updated')
 
@@ -126,6 +170,29 @@ class JiraWebhooksTest(APITestCase):
             resp = self.client.post(
                 path,
                 data=json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_NO_ASSIGNEE.strip()),
+                HTTP_AUTHORIZATION='JWT anexampletoken',
+            )
+            assert resp.status_code == 200
+            mock_sync_group_assignee_inbound.assert_called_with(
+                integration, None, 'APP-123', assign=False,
+            )
+
+    @patch('sentry.integrations.jira.webhooks.sync_group_assignee_inbound')
+    def test_simple_deassign_assignee_missing(self, mock_sync_group_assignee_inbound):
+        org = self.organization
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org, self.user)
+
+        path = reverse('sentry-extensions-jira-issue-updated')
+
+        with patch('sentry.integrations.jira.webhooks.get_integration_from_jwt', return_value=integration):
+            resp = self.client.post(
+                path,
+                data=json.loads(SAMPLE_EDIT_ISSUE_PAYLOAD_MISSING_ASSIGNEE_FIELD.strip()),
                 HTTP_AUTHORIZATION='JWT anexampletoken',
             )
             assert resp.status_code == 200
@@ -141,7 +208,7 @@ class JiraWebhooksTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = reverse('sentry-extensions-jira-issue-updated')
 
@@ -177,3 +244,22 @@ class JiraWebhooksTest(APITestCase):
                     }, u'key': u'APP-123',
                 },
             })
+
+    def test_missing_changelog(self):
+        org = self.organization
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org, self.user)
+
+        path = reverse('sentry-extensions-jira-issue-updated')
+
+        with patch('sentry.integrations.jira.webhooks.get_integration_from_jwt', return_value=integration):
+            resp = self.client.post(
+                path,
+                data=json.loads(SAMPLE_MISSING_CHANGELOG.strip()),
+                HTTP_AUTHORIZATION='JWT anexampletoken',
+            )
+            assert resp.status_code == 200

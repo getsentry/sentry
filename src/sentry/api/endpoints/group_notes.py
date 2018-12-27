@@ -5,7 +5,6 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
@@ -104,18 +103,18 @@ class GroupNotesEndpoint(GroupEndpoint):
         activity.send_notification()
 
         # sync Sentry comments to external issues
-        if features.has('organizations:internal-catchall', group.organization, actor=request.user):
-            external_issue_ids = GroupLink.objects.filter(
-                project_id=group.project_id,
-                group_id=group.id,
-                linked_type=GroupLink.LinkedType.issue,
-            ).values_list('linked_id', flat=True)
+        external_issue_ids = GroupLink.objects.filter(
+            project_id=group.project_id,
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.issue,
+        ).values_list('linked_id', flat=True)
 
-            for external_issue_id in external_issue_ids:
-                post_comment.apply_async(
-                    kwargs={
-                        'external_issue_id': external_issue_id,
-                        'data': data,
-                    }
-                )
+        for external_issue_id in external_issue_ids:
+            post_comment.apply_async(
+                kwargs={
+                    'external_issue_id': external_issue_id,
+                    'data': data,
+                    'user_id': request.user.id,
+                }
+            )
         return Response(serialize(activity, request.user), status=201)

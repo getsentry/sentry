@@ -84,19 +84,6 @@ class ProjectReleaseTracking extends AsyncView {
     );
   }
 
-  getReleaseClientConfigurationIntructions() {
-    return (
-      '// See SDK documentation for language specific usage.' +
-      '\n' +
-      "Raven.config('YOUR_DSN', {" +
-      '\n' +
-      '  ' +
-      "release: '0e4fdef81448dcfa0e16ecc4433ff3997aa53572'" +
-      '\n' +
-      '});'
-    );
-  }
-
   renderBody() {
     let {organization, project, plugins} = this.props;
     let hasWrite = organization.access.includes('project:write');
@@ -138,13 +125,18 @@ class ProjectReleaseTracking extends AsyncView {
           <PanelHeader>{t('Client Configuration')}</PanelHeader>
           <PanelBody disablePadding={false} flex>
             <p>
-              {tct('Start by binding the [release] attribute in your application', {
-                release: <code>release</code>,
-              })}
+              {tct(
+                'Start by binding the [release] attribute in your application, take a look at [link] to see how to configure this for the SDK you are using.',
+                {
+                  link: (
+                    <a href="https://docs.sentry.io/workflow/releases/?platform=javascript#tag-errors">
+                      our docs
+                    </a>
+                  ),
+                  release: <code>release</code>,
+                }
+              )}
             </p>
-            <AutoSelectText>
-              <pre>{this.getReleaseClientConfigurationIntructions()}</pre>
-            </AutoSelectText>
             <p>
               {t(
                 "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
@@ -244,8 +236,8 @@ class ProjectReleaseTracking extends AsyncView {
             </p>
 
             <p>
-              {tct('See the [link:Releases API documentation] for more information.', {
-                link: <a href="https://docs.sentry.io/hosted/api/releases/" />,
+              {tct('See the [link:Releases documentation] for more information.', {
+                link: <a href="https://docs.sentry.io/learn/releases" />,
               })}
             </p>
           </PanelBody>

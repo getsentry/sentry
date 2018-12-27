@@ -80,66 +80,7 @@ exports[`GroupReleaseStats renders 1`] = `
   >
     <h6>
       <span>
-        <DropdownLink
-          alwaysRenderMenu={true}
-          anchorRight={false}
-          caret={true}
-          disabled={false}
-          title="All Environments"
-        >
-          <DropdownMenu
-            alwaysRenderMenu={true}
-            keepMenuOpen={false}
-          >
-            <span
-              className="dropdown"
-            >
-              <a
-                className="dropdown-actor dropdown-toggle"
-                onClick={[Function]}
-                onMouseEnter={[Function]}
-                onMouseLeave={[Function]}
-              >
-                <div
-                  className="dropdown-actor-title"
-                >
-                  <span>
-                    All Environments
-                  </span>
-                  <i
-                    className="icon-arrow-down"
-                  />
-                </div>
-              </a>
-              <ul
-                className="dropdown-menu"
-                onClick={[Function]}
-                onMouseEnter={[Function]}
-                onMouseLeave={[Function]}
-              >
-                <MenuItem
-                  isActive={true}
-                  onClick={[Function]}
-                >
-                  <li
-                    className="active"
-                    href={null}
-                    onClick={[Function]}
-                    role="presentation"
-                    title={null}
-                  >
-                    <a
-                      onClick={[Function]}
-                      tabIndex="-1"
-                    >
-                      All Environments
-                    </a>
-                  </li>
-                </MenuItem>
-              </ul>
-            </span>
-          </DropdownMenu>
-        </DropdownLink>
+        All Environments
       </span>
     </h6>
     <div
@@ -227,9 +168,17 @@ exports[`GroupReleaseStats renders 1`] = `
                 ]
               }
               className="sparkline"
+              gap={0.75}
               height={40}
               label="events"
               markers={Array []}
+              minHeights={
+                Array [
+                  0,
+                  0,
+                  5,
+                ]
+              }
               points={
                 Array [
                   Object {
@@ -254,7 +203,7 @@ exports[`GroupReleaseStats renders 1`] = `
               tooltip={[Function]}
               width={null}
             >
-              <figure
+              <StyledFigure
                 className="sparkline barchart"
                 style={
                   Object {
@@ -263,147 +212,164 @@ exports[`GroupReleaseStats renders 1`] = `
                   }
                 }
               >
-                <span
-                  className="max-y"
-                >
-                  <count
-                    value={10}
-                  >
-                    <span>
-                      10
-                    </span>
-                  </count>
-                </span>
-                <span
-                  className="min-y"
-                >
-                  0
-                </span>
-                <span>
-                  <Tooltip
-                    key="1517281200"
-                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
-                    tooltipOptions={
-                      Object {
-                        "html": true,
-                        "placement": "bottom",
-                      }
+                <figure
+                  className="sparkline barchart css-lg2nde-StyledFigure e5t71581"
+                  style={
+                    Object {
+                      "height": 40,
+                      "width": null,
                     }
+                  }
+                >
+                  <span
+                    className="max-y"
                   >
-                    <a
-                      className="tip chart-column"
-                      style={
-                        Object {
-                          "height": "100%",
-                          "width": "50%",
-                        }
-                      }
-                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
+                    <count
+                      value={10}
                     >
-                      <span
-                        className="release"
-                        key="0"
-                        style={
-                          Object {
-                            "backgroundColor": null,
-                            "bottom": "0%",
-                            "height": "0%",
-                          }
-                        }
-                      >
-                        0
+                      <span>
+                        10
                       </span>
-                      <span
-                        className="environment"
-                        key="1"
-                        style={
-                          Object {
-                            "backgroundColor": null,
-                            "bottom": "0%",
-                            "height": "19.8%",
-                          }
-                        }
-                      >
-                        2
-                      </span>
-                      <span
-                        className="inactive"
-                        key="2"
-                        style={
-                          Object {
-                            "backgroundColor": null,
-                            "bottom": "19.8%",
-                            "height": "0%",
-                          }
-                        }
-                      >
-                        0
-                      </span>
-                    </a>
-                  </Tooltip>
-                  <Tooltip
-                    key="1517310000"
-                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
-                    tooltipOptions={
-                      Object {
-                        "html": true,
-                        "placement": "bottom",
-                      }
-                    }
+                    </count>
+                  </span>
+                  <span
+                    className="min-y"
                   >
-                    <a
-                      className="tip chart-column"
-                      style={
-                        Object {
-                          "height": "100%",
-                          "width": "50%",
-                        }
-                      }
-                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                    0
+                  </span>
+                  <SvgContainer>
+                    <div
+                      className="css-1jg1opr-SvgContainer e5t71582"
                     >
-                      <span
-                        className="release"
-                        key="0"
-                        style={
-                          Object {
-                            "backgroundColor": null,
-                            "bottom": "0%",
-                            "height": "0%",
-                          }
-                        }
+                      <StyledSvg
+                        overflow="visible"
+                        preserveAspectRatio="none"
+                        viewBox="0 0 100 400"
                       >
-                        0
-                      </span>
-                      <span
-                        className="environment"
-                        key="1"
-                        style={
-                          Object {
-                            "backgroundColor": null,
-                            "bottom": "0%",
-                            "height": "9.9%",
-                          }
-                        }
-                      >
-                        1
-                      </span>
-                      <span
-                        className="inactive"
-                        key="2"
-                        style={
-                          Object {
-                            "backgroundColor": null,
-                            "bottom": "9.9%",
-                            "height": "0%",
-                          }
-                        }
-                      >
-                        0
-                      </span>
-                    </a>
-                  </Tooltip>
-                </span>
-              </figure>
+                        <svg
+                          className="css-1vaz76z-StyledSvg e5t71580"
+                          overflow="visible"
+                          preserveAspectRatio="none"
+                          viewBox="0 0 100 400"
+                        >
+                          <Tooltip
+                            key="1517281200"
+                            title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
+                            tooltipOptions={
+                              Object {
+                                "container": "body",
+                                "html": true,
+                                "placement": "bottom",
+                              }
+                            }
+                          >
+                            <g
+                              className="tip"
+                              title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 29th, 7:00 pm &#8594 Jan 30th, 2:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>2 events</dd><dt class=\\"environment\\"><span></span></dt><dd>2 events<small>in All Environments</small></dd></dl></div>"
+                            >
+                              <rect
+                                height="100%"
+                                opacity="0"
+                                width="51.17%"
+                                x="-0.75%"
+                              />
+                              <rect
+                                className="release barchart-rect"
+                                data-test-id="chart-column"
+                                height="0%"
+                                key="0"
+                                width="49.67%"
+                                x="0%"
+                                y="100%"
+                              >
+                                0
+                              </rect>
+                              <rect
+                                className="environment barchart-rect"
+                                data-test-id="chart-column"
+                                height="19.8%"
+                                key="1"
+                                width="49.67%"
+                                x="0%"
+                                y="80.2%"
+                              >
+                                2
+                              </rect>
+                              <rect
+                                className="inactive barchart-rect"
+                                data-test-id="chart-column"
+                                height="5%"
+                                key="2"
+                                width="49.67%"
+                                x="0%"
+                                y="75.2%"
+                              >
+                                0
+                              </rect>
+                            </g>
+                          </Tooltip>
+                          <Tooltip
+                            key="1517310000"
+                            title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                            tooltipOptions={
+                              Object {
+                                "container": "body",
+                                "html": true,
+                                "placement": "bottom",
+                              }
+                            }
+                          >
+                            <g
+                              className="tip"
+                              title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 30th, 3:00 am &#8594 Jan 30th, 10:59 am</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                            >
+                              <rect
+                                height="100%"
+                                opacity="0"
+                                width="51.17%"
+                                x="49.67%"
+                              />
+                              <rect
+                                className="release barchart-rect"
+                                data-test-id="chart-column"
+                                height="0%"
+                                key="0"
+                                width="49.67%"
+                                x="50.42%"
+                                y="100%"
+                              >
+                                0
+                              </rect>
+                              <rect
+                                className="environment barchart-rect"
+                                data-test-id="chart-column"
+                                height="9.9%"
+                                key="1"
+                                width="49.67%"
+                                x="50.42%"
+                                y="90.1%"
+                              >
+                                1
+                              </rect>
+                              <rect
+                                className="inactive barchart-rect"
+                                data-test-id="chart-column"
+                                height="5%"
+                                key="2"
+                                width="49.67%"
+                                x="50.42%"
+                                y="85.1%"
+                              >
+                                0
+                              </rect>
+                            </g>
+                          </Tooltip>
+                        </svg>
+                      </StyledSvg>
+                    </div>
+                  </SvgContainer>
+                </figure>
+              </StyledFigure>
             </StackedBarChart>
           </div>
         </GroupReleaseChart>
@@ -489,9 +455,17 @@ exports[`GroupReleaseStats renders 1`] = `
                 ]
               }
               className="sparkline"
+              gap={0.75}
               height={40}
               label="events"
               markers={Array []}
+              minHeights={
+                Array [
+                  0,
+                  0,
+                  5,
+                ]
+              }
               points={
                 Array [
                   Object {
@@ -516,7 +490,7 @@ exports[`GroupReleaseStats renders 1`] = `
               tooltip={[Function]}
               width={null}
             >
-              <figure
+              <StyledFigure
                 className="sparkline barchart"
                 style={
                   Object {
@@ -525,147 +499,164 @@ exports[`GroupReleaseStats renders 1`] = `
                   }
                 }
               >
-                <span
-                  className="max-y"
-                >
-                  <count
-                    value={122}
-                  >
-                    <span>
-                      122
-                    </span>
-                  </count>
-                </span>
-                <span
-                  className="min-y"
-                >
-                  0
-                </span>
-                <span>
-                  <Tooltip
-                    key="1514764800"
-                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
-                    tooltipOptions={
-                      Object {
-                        "html": true,
-                        "placement": "bottom",
-                      }
+                <figure
+                  className="sparkline barchart css-lg2nde-StyledFigure e5t71581"
+                  style={
+                    Object {
+                      "height": 40,
+                      "width": null,
                     }
+                  }
+                >
+                  <span
+                    className="max-y"
                   >
-                    <a
-                      className="tip chart-column"
-                      style={
-                        Object {
-                          "height": "100%",
-                          "width": "50%",
-                        }
-                      }
-                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                    <count
+                      value={122}
                     >
-                      <span
-                        className="release"
-                        key="0"
-                        style={
-                          Object {
-                            "backgroundColor": null,
-                            "bottom": "0%",
-                            "height": "0%",
-                          }
-                        }
-                      >
-                        0
-                      </span>
-                      <span
-                        className="environment"
-                        key="1"
-                        style={
-                          Object {
-                            "backgroundColor": null,
-                            "bottom": "0%",
-                            "height": "0.81%",
-                          }
-                        }
-                      >
-                        1
-                      </span>
-                      <span
-                        className="inactive"
-                        key="2"
-                        style={
-                          Object {
-                            "backgroundColor": null,
-                            "bottom": "0.81%",
-                            "height": "0%",
-                          }
-                        }
-                      >
-                        0
-                      </span>
-                    </a>
-                  </Tooltip>
-                  <Tooltip
-                    key="1515024000"
-                    title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
-                    tooltipOptions={
-                      Object {
-                        "html": true,
-                        "placement": "bottom",
-                      }
-                    }
-                  >
-                    <a
-                      className="tip chart-column"
-                      style={
-                        Object {
-                          "height": "100%",
-                          "width": "50%",
-                        }
-                      }
-                      title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
-                    >
-                      <span
-                        className="release"
-                        key="0"
-                        style={
-                          Object {
-                            "backgroundColor": null,
-                            "bottom": "0%",
-                            "height": "0%",
-                          }
-                        }
-                      >
-                        0
-                      </span>
-                      <span
-                        className="environment"
-                        key="1"
-                        style={
-                          Object {
-                            "backgroundColor": null,
-                            "bottom": "0%",
-                            "height": "99%",
-                          }
-                        }
-                      >
+                      <span>
                         122
                       </span>
-                      <span
-                        className="inactive"
-                        key="2"
-                        style={
-                          Object {
-                            "backgroundColor": null,
-                            "bottom": "99%",
-                            "height": "0%",
-                          }
-                        }
+                    </count>
+                  </span>
+                  <span
+                    className="min-y"
+                  >
+                    0
+                  </span>
+                  <SvgContainer>
+                    <div
+                      className="css-1jg1opr-SvgContainer e5t71582"
+                    >
+                      <StyledSvg
+                        overflow="visible"
+                        preserveAspectRatio="none"
+                        viewBox="0 0 100 400"
                       >
-                        0
-                      </span>
-                    </a>
-                  </Tooltip>
-                </span>
-              </figure>
+                        <svg
+                          className="css-1vaz76z-StyledSvg e5t71580"
+                          overflow="visible"
+                          preserveAspectRatio="none"
+                          viewBox="0 0 100 400"
+                        >
+                          <Tooltip
+                            key="1514764800"
+                            title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                            tooltipOptions={
+                              Object {
+                                "container": "body",
+                                "html": true,
+                                "placement": "bottom",
+                              }
+                            }
+                          >
+                            <g
+                              className="tip"
+                              title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Dec 31st, 4:00 pm &#8594 Jan 3rd, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>1 event</dd><dt class=\\"environment\\"><span></span></dt><dd>1 event<small>in All Environments</small></dd></dl></div>"
+                            >
+                              <rect
+                                height="100%"
+                                opacity="0"
+                                width="51.17%"
+                                x="-0.75%"
+                              />
+                              <rect
+                                className="release barchart-rect"
+                                data-test-id="chart-column"
+                                height="0%"
+                                key="0"
+                                width="49.67%"
+                                x="0%"
+                                y="100%"
+                              >
+                                0
+                              </rect>
+                              <rect
+                                className="environment barchart-rect"
+                                data-test-id="chart-column"
+                                height="0.81%"
+                                key="1"
+                                width="49.67%"
+                                x="0%"
+                                y="99.19%"
+                              >
+                                1
+                              </rect>
+                              <rect
+                                className="inactive barchart-rect"
+                                data-test-id="chart-column"
+                                height="5%"
+                                key="2"
+                                width="49.67%"
+                                x="0%"
+                                y="94.19%"
+                              >
+                                0
+                              </rect>
+                            </g>
+                          </Tooltip>
+                          <Tooltip
+                            key="1515024000"
+                            title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
+                            tooltipOptions={
+                              Object {
+                                "container": "body",
+                                "html": true,
+                                "placement": "bottom",
+                              }
+                            }
+                          >
+                            <g
+                              className="tip"
+                              title="<div style=\\"width:150px\\"><div class=\\"time-label\\"><span>Jan 3rd, 4:00 pm &#8594 Jan 6th, 3:59 pm</span></div><dl class=\\"legend\\"><dt class=\\"inactive\\"><span></span></dt><dd>122 events</dd><dt class=\\"environment\\"><span></span></dt><dd>122 events<small>in All Environments</small></dd></dl></div>"
+                            >
+                              <rect
+                                height="100%"
+                                opacity="0"
+                                width="51.17%"
+                                x="49.67%"
+                              />
+                              <rect
+                                className="release barchart-rect"
+                                data-test-id="chart-column"
+                                height="0%"
+                                key="0"
+                                width="49.67%"
+                                x="50.42%"
+                                y="100%"
+                              >
+                                0
+                              </rect>
+                              <rect
+                                className="environment barchart-rect"
+                                data-test-id="chart-column"
+                                height="99%"
+                                key="1"
+                                width="49.67%"
+                                x="50.42%"
+                                y="1%"
+                              >
+                                122
+                              </rect>
+                              <rect
+                                className="inactive barchart-rect"
+                                data-test-id="chart-column"
+                                height="5%"
+                                key="2"
+                                width="49.67%"
+                                x="50.42%"
+                                y="-4%"
+                              >
+                                0
+                              </rect>
+                            </g>
+                          </Tooltip>
+                        </svg>
+                      </StyledSvg>
+                    </div>
+                  </SvgContainer>
+                </figure>
+              </StyledFigure>
             </StackedBarChart>
           </div>
         </GroupReleaseChart>

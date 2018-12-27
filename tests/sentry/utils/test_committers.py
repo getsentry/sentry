@@ -20,6 +20,7 @@ def test_tokenize_path():
     assert list(tokenize_path('foo/bar')) == ['bar', 'foo']
     assert list(tokenize_path('foo\\bar')) == ['bar', 'foo']
     assert list(tokenize_path('foo.bar')) == ['foo.bar']
+    assert list(tokenize_path('/foo/bar')) == ['bar', 'foo']
 
 
 class GetPreviousReleasesTestCase(TestCase):

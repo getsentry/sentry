@@ -9,6 +9,7 @@ import Hovercard from 'app/components/hovercard';
 const hoverCardContainer = css`
   display: flex;
   align-items: center;
+  min-width: 0; /* flex-box overflow workaround */
 `;
 
 const hoverCardStyles = css`
@@ -19,13 +20,12 @@ const hoverCardStyles = css`
 class IssueSyncElement extends React.Component {
   static propTypes = {
     externalIssueLink: PropTypes.string,
-    externalIssueId: PropTypes.number,
+    externalIssueId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     externalIssueKey: PropTypes.string,
     externalIssueDisplayName: PropTypes.string,
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
     integrationType: PropTypes.string,
-    integrationName: PropTypes.string,
     hoverCardHeader: PropTypes.node,
     hoverCardBody: PropTypes.node,
   };
@@ -40,11 +40,16 @@ class IssueSyncElement extends React.Component {
 
   getIcon() {
     switch (this.props.integrationType) {
+      case 'bitbucket':
+        return <IntegrationIcon src="icon-bitbucket" />;
+      case 'gitlab':
+        return <IntegrationIcon src="icon-gitlab" />;
       case 'github':
         return <IntegrationIcon src="icon-github" />;
       case 'github_enterprise':
         return <IntegrationIcon src="icon-github" />;
       case 'jira':
+      case 'jira_server':
         return <IntegrationIcon src="icon-jira" />;
       case 'vsts':
         return <IntegrationIcon src="icon-vsts" />;
@@ -56,12 +61,16 @@ class IssueSyncElement extends React.Component {
   getPrettyName() {
     const type = this.props.integrationType;
     switch (type) {
+      case 'gitlab':
+        return 'GitLab';
       case 'github':
         return 'GitHub';
       case 'github_enterprise':
         return 'GitHub Enterprise';
       case 'vsts':
-        return 'VSTS';
+        return 'Azure DevOps';
+      case 'jira_server':
+        return 'Jira Server';
       default:
         return capitalize(type);
     }
@@ -133,6 +142,7 @@ const IntegrationIcon = styled(InlineSvg)`
   width: ${space(3)};
   height: ${space(3)};
   cursor: pointer;
+  flex-shrink: 0;
 `;
 
 const IntegrationLink = styled('a')`
@@ -143,6 +153,9 @@ const IntegrationLink = styled('a')`
   border-bottom: 1px solid ${p => p.theme.gray4};
   cursor: pointer;
   line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &,
   &:hover {

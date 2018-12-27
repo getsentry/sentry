@@ -9,6 +9,7 @@ from rest_framework import serializers
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.api.validators import AllowedEmailField
 from sentry.models import User, UserEmail, UserOption
 
 logger = logging.getLogger('sentry.accounts')
@@ -23,7 +24,7 @@ class DuplicateEmailError(Exception):
 
 
 class EmailValidator(serializers.Serializer):
-    email = serializers.EmailField(required=True)
+    email = AllowedEmailField(required=True)
 
 
 def add_email(email, user):

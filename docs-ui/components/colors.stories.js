@@ -6,8 +6,8 @@ import {Flex} from 'grid-emotion';
 
 import theme from 'app/utils/theme';
 
-storiesOf('Colors', module).add(
-  'Default',
+storiesOf('Style|Colors', module).add(
+  'default',
   withInfo('Top level colors')(() => {
     const colorsToDisplay = Object.entries(theme).filter(([_name, val]) => {
       return typeof val === 'string' && val.match(/^\#[0-9a-fA-F]{6}$/);

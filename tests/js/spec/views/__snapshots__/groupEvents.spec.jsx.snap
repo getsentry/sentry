@@ -41,7 +41,6 @@ exports[`groupEvents renders 1`] = `
             },
           ]
         }
-        fixedDimensions={false}
         params={
           Object {
             "groupId": "1",
@@ -54,6 +53,7 @@ exports[`groupEvents renders 1`] = `
     </PanelBody>
   </Panel>
   <Pagination
+    className="stream-pagination"
     onCursor={[Function]}
   />
 </div>

@@ -2,6 +2,8 @@ import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
+import isPropValid from '@emotion/is-prop-valid';
 
 import {escape, percent} from 'app/utils';
 import {t} from 'app/locale';
@@ -24,6 +26,8 @@ const TagDistributionMeter = createReactClass({
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     environment: SentryTypes.Environment,
+    totalValues: PropTypes.number,
+    topValues: PropTypes.array,
   },
 
   mixins: [ApiMixin],
@@ -32,7 +36,6 @@ const TagDistributionMeter = createReactClass({
     return {
       loading: true,
       error: false,
-      data: null,
     };
   },
 
@@ -46,7 +49,9 @@ const TagDistributionMeter = createReactClass({
       this.state.error !== nextState.error ||
       this.props.tag !== nextProps.tag ||
       this.props.name !== nextProps.name ||
-      this.props.environment !== nextProps.environment
+      this.props.environment !== nextProps.environment ||
+      this.props.totalValues !== nextProps.totalValues ||
+      this.props.topValues !== nextProps.topValues
     );
   },
 
@@ -57,24 +62,14 @@ const TagDistributionMeter = createReactClass({
   },
 
   fetchData() {
-    const {group, tag, environment} = this.props;
-    const url = `/issues/${group.id}/tags/${encodeURIComponent(tag)}/`;
-    const query = environment ? {environment: environment.name} : {};
-
     this.setState({
       loading: true,
       error: false,
     });
 
-    Promise.all([
-      this.api.requestPromise(url, {
-        query,
-      }),
-      loadDeviceListModule(),
-    ])
-      .then(([data, iOSDeviceList]) => {
+    loadDeviceListModule()
+      .then(iOSDeviceList => {
         this.setState({
-          data,
           iOSDeviceList,
           error: false,
           loading: false,
@@ -99,22 +94,18 @@ const TagDistributionMeter = createReactClass({
    */
 
   renderSegments() {
-    let data = this.state.data;
-    let totalValues = data.totalValues;
+    let {orgId, projectId, group, totalValues, topValues, tag} = this.props;
 
-    let totalVisible = data.topValues.reduce((sum, value) => sum + value.count, 0);
-
+    let totalVisible = topValues.reduce((sum, value) => sum + value.count, 0);
     let hasOther = totalVisible < totalValues;
     let otherPct = percent(totalValues - totalVisible, totalValues);
     let otherPctLabel = Math.floor(otherPct);
 
-    let {orgId, projectId} = this.props;
     return (
-      <div className="segments">
-        {data.topValues.map((value, index) => {
+      <React.Fragment>
+        {topValues.map((value, index) => {
           const pct = percent(value.count, totalValues);
           const pctLabel = Math.floor(pct);
-          const className = 'segment segment-' + index;
 
           const tooltipHtml =
             '<div class="truncate">' +
@@ -124,61 +115,143 @@ const TagDistributionMeter = createReactClass({
             '%';
 
           return (
-            <Tooltip key={value.key} title={tooltipHtml} tooltipOptions={{html: true}}>
-              <Link
-                className={className}
+            <Tooltip key={value.value} title={tooltipHtml} tooltipOptions={{html: true}}>
+              <Segment
                 style={{width: pct + '%'}}
-                to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this
-                  .props.tag}/`}
+                to={`/${orgId}/${projectId}/issues/${group.id}/tags/${tag}/`}
+                index={index}
+                first={index == 0}
+                last={!hasOther && index == topValues.length - 1}
               >
-                <span className="tag-description">
-                  <span className="tag-percentage">{pctLabel}%</span>
-                  <span className="tag-label">
+                <Description first={index == 0}>
+                  <Percentage>{pctLabel}%</Percentage>
+                  <Label>
                     <DeviceName>{value.name}</DeviceName>
-                  </span>
-                </span>
-              </Link>
+                  </Label>
+                </Description>
+              </Segment>
             </Tooltip>
           );
         })}
         {hasOther && (
-          <Link
+          <Segment
             key="other"
-            className="segment segment-9"
-            style={{width: otherPct + '%'}}
+            index={9}
+            first={!topValues.length}
+            last={true}
+            css={{width: otherPct + '%'}}
             to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props
               .tag}/`}
             title={'Other<br/>' + otherPctLabel + '%'}
           >
-            <span className="tag-description">
-              <span className="tag-percentage">{otherPctLabel}%</span>
-              <span className="tag-label">{t('Other')}</span>
-            </span>
-          </Link>
+            <Description first={!topValues.length}>
+              <Percentage>{otherPctLabel}%</Percentage>
+              <Label>{t('Other')}</Label>
+            </Description>
+          </Segment>
         )}
-      </div>
+      </React.Fragment>
     );
   },
 
   renderBody() {
     if (this.state.loading || this.state.error) return null;
 
-    if (!this.state.data.totalValues) return <p>{t('No recent data.')}</p>;
+    if (!this.props.totalValues) return <p>{t('No recent data.')}</p>;
 
     return this.renderSegments();
   },
 
   render() {
     return (
-      <div className="distribution-graph">
-        <h6>
-          <span>{this.props.tag}</span>
-        </h6>
+      <DistributionGraph>
+        <Tag>{this.props.tag}</Tag>
         {this.renderBody()}
-      </div>
+      </DistributionGraph>
     );
   },
 });
+
+const DistributionGraph = styled('div')`
+  position: relative;
+  font-size: 13px;
+  margin-bottom: 10px;
+`;
+
+const Tag = styled('div')`
+  position: relative;
+  font-size: 13px;
+  margin: 10px 0 8px;
+  font-weight: bold;
+  z-index: 5;
+  line-height: 1;
+`;
+
+const Description = styled('span', {shouldForwardProp: isPropValid})`
+  background-color: #fff;
+  position: absolute;
+  text-align: right;
+  top: -1px;
+  right: 0;
+  line-height: 1;
+  z-index: 1;
+  width: 100%;
+  display: ${p => (p.first ? 'block' : 'none')};
+
+  &:hover {
+    display: block;
+    z-index: 2;
+  }
+`;
+
+const Percentage = styled('span')`
+  margin-right: 6px;
+  color: ${p => p.theme.gray2};
+  display: inline-block;
+  vertical-align: middle;
+`;
+
+const Label = styled('span')`
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45%;
+  vertical-align: middle;
+`;
+
+const getColor = p => {
+  return [
+    '#7c7484',
+    '#867f90',
+    '#918a9b',
+    '#9b96a7',
+    '#a6a1b3',
+    '#b0acbe',
+    '#bbb7ca',
+    '#c5c3d6',
+    '#d0cee1',
+    'dad9ed',
+  ][p.index];
+};
+
+const Segment = styled(Link, {shouldForwardProp: isPropValid})`
+  height: 16px;
+  display: inline-block;
+  color: inherit;
+
+  &:hover {
+    background: ${p => p.theme.purple};
+  }
+
+  border-top-left-radius: ${p => p.first && p.theme.borderRadius};
+  border-bottom-left-radius: ${p => p.first && p.theme.borderRadius};
+
+  border-top-right-radius: ${p => p.last && p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.last && p.theme.borderRadius};
+
+  background-color: ${getColor};
+`;
 
 export {TagDistributionMeter};
 export default withEnvironment(TagDistributionMeter);

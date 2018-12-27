@@ -1,5 +1,6 @@
-export default function Release(params) {
+export function Release(params) {
   return {
+    slug: 'release-slug',
     dateReleased: null,
     commitCount: null,
     url: null,

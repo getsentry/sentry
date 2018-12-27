@@ -75,6 +75,7 @@ class UserSerializer(Serializer):
             'lastLogin': obj.last_login,
             'has2fa': attrs['has2fa'],
             'lastActive': obj.last_active,
+            'isSuperuser': obj.is_superuser,
         }
 
         if obj == user:
@@ -91,7 +92,6 @@ class UserSerializer(Serializer):
                 'stacktraceOrder': stacktrace_order,
                 'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
                 'clock24Hours': options.get('clock_24_hours') or False,
-                'seenReleaseBroadcast': options.get('seen_release_broadcast'),
             }
 
             d['flags'] = {
@@ -169,7 +169,7 @@ class DetailedUserSerializer(UserSerializer):
             {
                 'id': six.text_type(a.id),
                 'type': a.interface.interface_id,
-                'name': a.interface.name,
+                'name': six.text_type(a.interface.name),
                 'dateCreated': a.created_at,
                 'dateUsed': a.last_used_at,
             } for a in attrs['authenticators']

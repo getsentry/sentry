@@ -18,6 +18,7 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr, \
     BaseManager
 from sentry.models.activity import Activity
 from sentry.signals import issue_assigned
+from sentry.utils import metrics
 
 
 def get_user_project_ids(users):
@@ -174,7 +175,11 @@ class GroupAssigneeManager(BaseManager):
             })
         else:
             affected = True
-            issue_assigned.send(project=group.project, group=group, sender=acting_user)
+            issue_assigned.send_robust(
+                project=group.project,
+                group=group,
+                user=acting_user,
+                sender=self.__class__)
 
         if affected:
             activity = Activity.objects.create(
@@ -189,9 +194,10 @@ class GroupAssigneeManager(BaseManager):
                 },
             )
             activity.send_notification()
+            metrics.incr('group.assignee.change', instance='assigned', skip_internal=True)
             # sync Sentry assignee to external issues
             if assignee_type == 'user' and features.has(
-                    'organizations:internal-catchall', group.organization, actor=acting_user):
+                    'organizations:integrations-issue-sync', group.organization, actor=acting_user):
                 sync_group_assignee_outbound(group, assigned_to.id, assign=True)
 
     def deassign(self, group, acting_user=None):
@@ -211,8 +217,9 @@ class GroupAssigneeManager(BaseManager):
                 user=acting_user,
             )
             activity.send_notification()
+            metrics.incr('group.assignee.change', instance='deassigned', skip_internal=True)
             # sync Sentry assignee to external issues
-            if features.has('organizations:internal-catchall',
+            if features.has('organizations:integrations-issue-sync',
                             group.organization, actor=acting_user):
                 sync_group_assignee_outbound(group, None, assign=False)
 

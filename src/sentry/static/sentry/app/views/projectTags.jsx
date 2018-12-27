@@ -3,11 +3,13 @@ import React from 'react';
 
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
+import Access from 'app/components/acl/access';
 import AsyncView from 'app/views/asyncView';
 import Button from 'app/components/button';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import ExternalLink from 'app/components/externalLink';
 import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import Tooltip from 'app/components/tooltip';
@@ -37,30 +39,19 @@ export default class ProjectTags extends AsyncView {
     });
   }
 
-  renderLink(key, canDelete, idx) {
-    return (
-      <LinkWithConfirmation
-        title={'Remove tag?'}
-        message={'Are you sure you want to remove this tag?'}
-        onConfirm={() => this.onDelete(key, idx)}
-        disabled={!canDelete}
-      >
-        <Button size="xsmall" icon="icon-trash" data-test-id="delete" />
-      </LinkWithConfirmation>
-    );
-  }
-
   renderBody() {
     let {tags} = this.state;
     let isEmpty = !tags || tags.length === 0;
 
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader title={t('Tags')} />
+        <PermissionAlert />
+
         <TextBlock>
           {tct(
             `Each event in Sentry may be annotated with various tags (key and value pairs).
-          Learn how to [link:add custom tags].`,
+                 Learn how to [link:add custom tags].`,
             {
               link: <ExternalLink href="https://docs.sentry.io/hosted/learn/context/" />,
             }
@@ -77,7 +68,7 @@ export default class ProjectTags extends AsyncView {
           <PanelBody>
             {isEmpty && (
               <EmptyMessage>
-                {tct('There are no tags, [link:learn to add tags]', {
+                {tct('There are no tags, [link:learn how to add tags]', {
                   link: (
                     <ExternalLink href="https://docs.sentry.io/hosted/learn/context/" />
                   ),
@@ -85,28 +76,49 @@ export default class ProjectTags extends AsyncView {
               </EmptyMessage>
             )}
 
-            {!isEmpty &&
-              tags.map(({key, canDelete}, idx) => {
-                return (
-                  <PanelItem p={0} align="center" key={key} className="ref-tag-row">
-                    <Box align="flex-end" flex="1" p={2}>
-                      <span>{key}</span>
-                    </Box>
-                    <Flex align="center" p={2}>
-                      {canDelete ? (
-                        this.renderLink(key, canDelete, idx)
-                      ) : (
-                        <Tooltip title={t('This tag cannot be deleted.')}>
-                          <span>{this.renderLink(key, canDelete, idx)}</span>
+            <Access access={['project:write']}>
+              {({hasAccess}) =>
+                !isEmpty &&
+                tags.map(({key, canDelete}, idx) => {
+                  const enabled = canDelete && hasAccess;
+                  return (
+                    <PanelItem p={0} align="center" key={key} className="ref-tag-row">
+                      <Box align="flex-end" flex="1" p={2}>
+                        <span>{key}</span>
+                      </Box>
+                      <Flex align="center" p={2}>
+                        <Tooltip
+                          disabled={enabled}
+                          title={
+                            hasAccess
+                              ? t('This tag cannot be deleted.')
+                              : t('You do not have permission to remove tags.')
+                          }
+                        >
+                          <span>
+                            <LinkWithConfirmation
+                              title={'Remove tag?'}
+                              message={'Are you sure you want to remove this tag?'}
+                              onConfirm={() => this.onDelete(key, idx)}
+                              disabled={!enabled}
+                            >
+                              <Button
+                                size="xsmall"
+                                icon="icon-trash"
+                                data-test-id="delete"
+                                disabled={!enabled}
+                              />
+                            </LinkWithConfirmation>
+                          </span>
                         </Tooltip>
-                      )}
-                    </Flex>
-                  </PanelItem>
-                );
-              })}
+                      </Flex>
+                    </PanelItem>
+                  );
+                })}
+            </Access>
           </PanelBody>
         </Panel>
-      </div>
+      </React.Fragment>
     );
   }
 }

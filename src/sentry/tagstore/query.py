@@ -4,6 +4,12 @@ from django.db.models import sql
 from django.db.models.query import QuerySet
 from sentry.db.models import BaseManager
 
+try:
+    # Django 1.7+
+    from django.db.models.sql.constants import CURSOR
+except ImportError:
+    CURSOR = None
+
 
 class NoTransactionUpdateQuerySet(QuerySet):
     def update(self, **kwargs):
@@ -22,7 +28,7 @@ class NoTransactionUpdateQuerySet(QuerySet):
         self._for_write = True
         query = self.query.clone(sql.UpdateQuery)
         query.add_update_values(kwargs)
-        rows = query.get_compiler(self.db).execute_sql(None)
+        rows = query.get_compiler(self.db).execute_sql(CURSOR)
         self._result_cache = None
         return rows
     update.alters_data = True

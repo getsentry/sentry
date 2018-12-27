@@ -1,6 +1,12 @@
 from __future__ import absolute_import
 
-__all__ = ['Integration', 'IntegrationFeatures', 'IntegrationProvider', 'IntegrationMetadata']
+__all__ = [
+    'IntegrationInstallation',
+    'IntegrationFeatures',
+    'IntegrationProvider',
+    'IntegrationMetadata',
+    'FeatureDescription',
+]
 
 import logging
 import six
@@ -19,8 +25,16 @@ from .exceptions import (
 from .constants import ERR_UNAUTHORIZED, ERR_INTERNAL, ERR_UNSUPPORTED_RESPONSE_TYPE
 from sentry.models import Identity, OrganizationIntegration
 
+
+FeatureDescription = namedtuple('FeatureDescription', [
+    'description',  # A markdown description of the feature
+    'featureGate',  # A IntegrationFeature that gates this feature
+])
+
+
 IntegrationMetadata = namedtuple('IntegrationMetadata', [
     'description',  # A markdown description of the integration
+    'features',     # A list of FeatureDescriptions
     'author',       # The integration author's name
     'noun',         # The noun used to identify the integration
     'issue_url',    # URL where issues should be opened
@@ -29,13 +43,44 @@ IntegrationMetadata = namedtuple('IntegrationMetadata', [
 ])
 
 
+class IntegrationMetadata(IntegrationMetadata):
+    @staticmethod
+    def feature_flag_name(f):
+        """
+        FeatureDescriptions are set using the IntegrationFeatures constants,
+        however we expose them here as mappings to organization feature flags, thus
+        we prefix them with `integration`.
+        """
+        if f is not None:
+            return u'integrations-{}'.format(f)
+
+    def _asdict(self):
+        metadata = super(IntegrationMetadata, self)._asdict()
+        metadata['features'] = [
+            {
+                'description': f.description.strip(),
+                'featureGate': self.feature_flag_name(f.featureGate.value)
+            }
+            for f in metadata['features']
+        ]
+        return metadata
+
+
 class IntegrationFeatures(Enum):
-    NOTIFICATION = 'notification'
-    ISSUE_BASIC = 'issue_basic'
-    ISSUE_SYNC = 'issue_sync'
+    """
+    IntegrationFeatures are used for marking supported features on an
+    integration. Features are marked on the IntegrationProvider itself, as well
+    as used within the FeatureDescription.
+
+    NOTE: Features in this list that are gated by an organization feature flag
+    *must* match the suffix of the organization feature flag name.
+    """
+    ACTION_NOTIFICATION = 'actionable-notification'
+    ISSUE_BASIC = 'issue-basic'
+    ISSUE_SYNC = 'issue-sync'
     COMMITS = 'commits'
-    CHAT_UNFURL = 'chat_unfurl'
-    ALERT_RULE = 'alert_rule'
+    CHAT_UNFURL = 'chat-unfurl'
+    ALERT_RULE = 'alert-rule'
 
 
 class IntegrationProvider(PipelineProvider):
@@ -68,10 +113,6 @@ class IntegrationProvider(PipelineProvider):
 
     # a human readable name (e.g. 'Slack')
     name = None
-
-    # Whether the Integration should show up in the list of Providers on the
-    # Organization Integration settings page
-    visible = True
 
     # an IntegrationMetadata object, used to provide extra details in the
     # configuration interface of the integration.
@@ -173,9 +214,9 @@ class IntegrationProvider(PipelineProvider):
         return feature in self.features
 
 
-class Integration(object):
+class IntegrationInstallation(object):
     """
-    An integration represents an installed integration and manages the
+    An IntegrationInstallation represents an installed integration and manages the
     core functionality of the integration.
     """
 
@@ -205,9 +246,6 @@ class Integration(object):
         """
         return []
 
-    def get_config_data(self):
-        return self.org_integration.config
-
     def update_organization_config(self, data):
         """
         Update the configuration field for an organization integration.
@@ -216,12 +254,8 @@ class Integration(object):
         config.update(data)
         self.org_integration.update(config=config)
 
-    def get_project_config(self):
-        """
-        Provides configuration for the integration on a per-project
-        level. See ``get_config_organization``.
-        """
-        return []
+    def get_config_data(self):
+        return self.org_integration.config
 
     def get_client(self):
         # Return the api client for a given provider

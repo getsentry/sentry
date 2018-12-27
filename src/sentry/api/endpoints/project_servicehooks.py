@@ -46,10 +46,14 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
 
         Return a list of service hooks bound to a project.
 
+        This endpoint requires the 'servicehooks' feature to
+        be enabled for your project.
+
         :pparam string organization_slug: the slug of the organization the
                                           client keys belong to.
         :pparam string project_slug: the slug of the project the client keys
                                      belong to.
+        :auth: required
         """
         if not self.has_feature(request, project):
             return self.respond({
@@ -92,12 +96,16 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         - event.alert: An alert is generated for an event (via rules).
         - event.created: A new event has been processed.
 
+        This endpoint requires the 'servicehooks' feature to
+        be enabled for your project.
+
         :pparam string organization_slug: the slug of the organization the
                                           client keys belong to.
         :pparam string project_slug: the slug of the project the client keys
                                      belong to.
         :param string url: the url for the webhook
         :param array[string] events: the events to subscribe to
+        :auth: required
         """
         if not request.user.is_authenticated():
             return self.respond(status=401)

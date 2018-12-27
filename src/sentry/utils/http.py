@@ -266,4 +266,6 @@ def heuristic_decode(data, possible_content_type=None):
 
 def percent_encode(val):
     # see https://en.wikipedia.org/wiki/Percent-encoding
-    return quote(val.encode('utf8', errors='replace')).replace('%7E', '~').replace('/', '%2F')
+    if isinstance(val, six.text_type):
+        val = val.encode('utf8', errors='replace')
+    return quote(val).replace('%7E', '~').replace('/', '%2F')

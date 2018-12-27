@@ -359,6 +359,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
       >
         <DropdownMenu
           alwaysRenderMenu={true}
+          closeOnEscape={true}
           keepMenuOpen={false}
         >
           <span
@@ -367,8 +368,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
             <a
               className="dropdown-actor btn btn-default btn-sm dropdown-toggle"
               onClick={[Function]}
+              onKeyDown={[Function]}
               onMouseEnter={[Function]}
               onMouseLeave={[Function]}
+              style={
+                Object {
+                  "outline": "none",
+                }
+              }
+              tabIndex={-1}
             >
               <div
                 className="dropdown-actor-title"
@@ -410,6 +418,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                 >
                   <DropdownMenu
                     alwaysRenderMenu={true}
+                    closeOnEscape={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -419,8 +428,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       <a
                         className="dropdown-actor dropdown-toggle"
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <div
                           className="dropdown-actor-title"
@@ -955,6 +971,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                 >
                   <DropdownMenu
                     alwaysRenderMenu={true}
+                    closeOnEscape={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -964,8 +981,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       <a
                         className="dropdown-actor dropdown-toggle"
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <div
                           className="dropdown-actor-title"
@@ -983,6 +1007,414 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       >
                         <li
                           className="dropdown-submenu"
+                          key="1"
+                        >
+                          <DropdownLink
+                            alwaysRenderMenu={true}
+                            anchorRight={false}
+                            caret={false}
+                            disabled={false}
+                            isNestedDropdown={true}
+                            title="one time"
+                          >
+                            <DropdownMenu
+                              alwaysRenderMenu={true}
+                              closeOnEscape={true}
+                              isNestedDropdown={true}
+                              keepMenuOpen={false}
+                            >
+                              <span
+                                className="dropdown"
+                              >
+                                <a
+                                  className="dropdown-actor dropdown-toggle"
+                                  onClick={[Function]}
+                                  onKeyDown={[Function]}
+                                  onMouseEnter={[Function]}
+                                  onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
+                                >
+                                  <div
+                                    className="dropdown-actor-title"
+                                  >
+                                    <span>
+                                      one time
+                                    </span>
+                                  </div>
+                                </a>
+                                <ul
+                                  className="dropdown-menu"
+                                  onClick={[Function]}
+                                  onMouseEnter={[Function]}
+                                  onMouseLeave={[Function]}
+                                >
+                                  <MenuItem
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        message="Yoooooo"
+                                        onAction={[Function]}
+                                        shouldConfirm={true}
+                                        title="Ignore"
+                                      >
+                                        <Confirm
+                                          cancelText="Cancel"
+                                          confirmText="Ignore"
+                                          disableConfirmButton={false}
+                                          message="Yoooooo"
+                                          onConfirm={[Function]}
+                                          priority="primary"
+                                        >
+                                          <a
+                                            onClick={[Function]}
+                                            title="Ignore"
+                                          >
+                                             
+                                            from now
+                                          </a>
+                                          <Modal
+                                            animation={false}
+                                            autoFocus={true}
+                                            backdrop={true}
+                                            bsClass="modal"
+                                            dialogComponentClass={[Function]}
+                                            enforceFocus={true}
+                                            keyboard={true}
+                                            manager={
+                                              ModalManager {
+                                                "add": [Function],
+                                                "containers": Array [],
+                                                "data": Array [],
+                                                "handleContainerOverflow": true,
+                                                "hideSiblingNodes": true,
+                                                "isTopModal": [Function],
+                                                "modals": Array [],
+                                                "remove": [Function],
+                                              }
+                                            }
+                                            onHide={[Function]}
+                                            renderBackdrop={[Function]}
+                                            restoreFocus={true}
+                                            show={false}
+                                          >
+                                            <Modal
+                                              autoFocus={true}
+                                              backdrop={true}
+                                              backdropClassName="modal-backdrop"
+                                              containerClassName="modal-open"
+                                              enforceFocus={true}
+                                              keyboard={true}
+                                              manager={
+                                                ModalManager {
+                                                  "add": [Function],
+                                                  "containers": Array [],
+                                                  "data": Array [],
+                                                  "handleContainerOverflow": true,
+                                                  "hideSiblingNodes": true,
+                                                  "isTopModal": [Function],
+                                                  "modals": Array [],
+                                                  "remove": [Function],
+                                                }
+                                              }
+                                              onEntering={[Function]}
+                                              onExited={[Function]}
+                                              onHide={[Function]}
+                                              renderBackdrop={[Function]}
+                                              restoreFocus={true}
+                                              show={false}
+                                            />
+                                          </Modal>
+                                        </Confirm>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                  <MenuItem
+                                    key="60"
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        message="Yoooooo"
+                                        onAction={[Function]}
+                                        shouldConfirm={true}
+                                        title="Ignore"
+                                      >
+                                        <Confirm
+                                          cancelText="Cancel"
+                                          confirmText="Ignore"
+                                          disableConfirmButton={false}
+                                          message="Yoooooo"
+                                          onConfirm={[Function]}
+                                          priority="primary"
+                                        >
+                                          <a
+                                            onClick={[Function]}
+                                            title="Ignore"
+                                          >
+                                             
+                                            per hour
+                                          </a>
+                                          <Modal
+                                            animation={false}
+                                            autoFocus={true}
+                                            backdrop={true}
+                                            bsClass="modal"
+                                            dialogComponentClass={[Function]}
+                                            enforceFocus={true}
+                                            keyboard={true}
+                                            manager={
+                                              ModalManager {
+                                                "add": [Function],
+                                                "containers": Array [],
+                                                "data": Array [],
+                                                "handleContainerOverflow": true,
+                                                "hideSiblingNodes": true,
+                                                "isTopModal": [Function],
+                                                "modals": Array [],
+                                                "remove": [Function],
+                                              }
+                                            }
+                                            onHide={[Function]}
+                                            renderBackdrop={[Function]}
+                                            restoreFocus={true}
+                                            show={false}
+                                          >
+                                            <Modal
+                                              autoFocus={true}
+                                              backdrop={true}
+                                              backdropClassName="modal-backdrop"
+                                              containerClassName="modal-open"
+                                              enforceFocus={true}
+                                              keyboard={true}
+                                              manager={
+                                                ModalManager {
+                                                  "add": [Function],
+                                                  "containers": Array [],
+                                                  "data": Array [],
+                                                  "handleContainerOverflow": true,
+                                                  "hideSiblingNodes": true,
+                                                  "isTopModal": [Function],
+                                                  "modals": Array [],
+                                                  "remove": [Function],
+                                                }
+                                              }
+                                              onEntering={[Function]}
+                                              onExited={[Function]}
+                                              onHide={[Function]}
+                                              renderBackdrop={[Function]}
+                                              restoreFocus={true}
+                                              show={false}
+                                            />
+                                          </Modal>
+                                        </Confirm>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                  <MenuItem
+                                    key="1440"
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        message="Yoooooo"
+                                        onAction={[Function]}
+                                        shouldConfirm={true}
+                                        title="Ignore"
+                                      >
+                                        <Confirm
+                                          cancelText="Cancel"
+                                          confirmText="Ignore"
+                                          disableConfirmButton={false}
+                                          message="Yoooooo"
+                                          onConfirm={[Function]}
+                                          priority="primary"
+                                        >
+                                          <a
+                                            onClick={[Function]}
+                                            title="Ignore"
+                                          >
+                                             
+                                            per day
+                                          </a>
+                                          <Modal
+                                            animation={false}
+                                            autoFocus={true}
+                                            backdrop={true}
+                                            bsClass="modal"
+                                            dialogComponentClass={[Function]}
+                                            enforceFocus={true}
+                                            keyboard={true}
+                                            manager={
+                                              ModalManager {
+                                                "add": [Function],
+                                                "containers": Array [],
+                                                "data": Array [],
+                                                "handleContainerOverflow": true,
+                                                "hideSiblingNodes": true,
+                                                "isTopModal": [Function],
+                                                "modals": Array [],
+                                                "remove": [Function],
+                                              }
+                                            }
+                                            onHide={[Function]}
+                                            renderBackdrop={[Function]}
+                                            restoreFocus={true}
+                                            show={false}
+                                          >
+                                            <Modal
+                                              autoFocus={true}
+                                              backdrop={true}
+                                              backdropClassName="modal-backdrop"
+                                              containerClassName="modal-open"
+                                              enforceFocus={true}
+                                              keyboard={true}
+                                              manager={
+                                                ModalManager {
+                                                  "add": [Function],
+                                                  "containers": Array [],
+                                                  "data": Array [],
+                                                  "handleContainerOverflow": true,
+                                                  "hideSiblingNodes": true,
+                                                  "isTopModal": [Function],
+                                                  "modals": Array [],
+                                                  "remove": [Function],
+                                                }
+                                              }
+                                              onEntering={[Function]}
+                                              onExited={[Function]}
+                                              onHide={[Function]}
+                                              renderBackdrop={[Function]}
+                                              restoreFocus={true}
+                                              show={false}
+                                            />
+                                          </Modal>
+                                        </Confirm>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                  <MenuItem
+                                    key="10080"
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        message="Yoooooo"
+                                        onAction={[Function]}
+                                        shouldConfirm={true}
+                                        title="Ignore"
+                                      >
+                                        <Confirm
+                                          cancelText="Cancel"
+                                          confirmText="Ignore"
+                                          disableConfirmButton={false}
+                                          message="Yoooooo"
+                                          onConfirm={[Function]}
+                                          priority="primary"
+                                        >
+                                          <a
+                                            onClick={[Function]}
+                                            title="Ignore"
+                                          >
+                                             
+                                            per week
+                                          </a>
+                                          <Modal
+                                            animation={false}
+                                            autoFocus={true}
+                                            backdrop={true}
+                                            bsClass="modal"
+                                            dialogComponentClass={[Function]}
+                                            enforceFocus={true}
+                                            keyboard={true}
+                                            manager={
+                                              ModalManager {
+                                                "add": [Function],
+                                                "containers": Array [],
+                                                "data": Array [],
+                                                "handleContainerOverflow": true,
+                                                "hideSiblingNodes": true,
+                                                "isTopModal": [Function],
+                                                "modals": Array [],
+                                                "remove": [Function],
+                                              }
+                                            }
+                                            onHide={[Function]}
+                                            renderBackdrop={[Function]}
+                                            restoreFocus={true}
+                                            show={false}
+                                          >
+                                            <Modal
+                                              autoFocus={true}
+                                              backdrop={true}
+                                              backdropClassName="modal-backdrop"
+                                              containerClassName="modal-open"
+                                              enforceFocus={true}
+                                              keyboard={true}
+                                              manager={
+                                                ModalManager {
+                                                  "add": [Function],
+                                                  "containers": Array [],
+                                                  "data": Array [],
+                                                  "handleContainerOverflow": true,
+                                                  "hideSiblingNodes": true,
+                                                  "isTopModal": [Function],
+                                                  "modals": Array [],
+                                                  "remove": [Function],
+                                                }
+                                              }
+                                              onEntering={[Function]}
+                                              onExited={[Function]}
+                                              onHide={[Function]}
+                                              renderBackdrop={[Function]}
+                                              restoreFocus={true}
+                                              show={false}
+                                            />
+                                          </Modal>
+                                        </Confirm>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                </ul>
+                              </span>
+                            </DropdownMenu>
+                          </DropdownLink>
+                        </li>
+                        <li
+                          className="dropdown-submenu"
                           key="10"
                         >
                           <DropdownLink
@@ -995,6 +1427,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -1004,8 +1437,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -1395,6 +1835,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -1404,8 +1845,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -1795,6 +2243,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -1804,8 +2253,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -2195,6 +2651,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -2204,8 +2661,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -2595,6 +3059,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -2604,8 +3069,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -3025,6 +3497,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                 >
                   <DropdownMenu
                     alwaysRenderMenu={true}
+                    closeOnEscape={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -3034,8 +3507,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       <a
                         className="dropdown-actor dropdown-toggle"
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <div
                           className="dropdown-actor-title"
@@ -3053,6 +3533,414 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       >
                         <li
                           className="dropdown-submenu"
+                          key="1"
+                        >
+                          <DropdownLink
+                            alwaysRenderMenu={true}
+                            anchorRight={false}
+                            caret={false}
+                            disabled={false}
+                            isNestedDropdown={true}
+                            title="one user"
+                          >
+                            <DropdownMenu
+                              alwaysRenderMenu={true}
+                              closeOnEscape={true}
+                              isNestedDropdown={true}
+                              keepMenuOpen={false}
+                            >
+                              <span
+                                className="dropdown"
+                              >
+                                <a
+                                  className="dropdown-actor dropdown-toggle"
+                                  onClick={[Function]}
+                                  onKeyDown={[Function]}
+                                  onMouseEnter={[Function]}
+                                  onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
+                                >
+                                  <div
+                                    className="dropdown-actor-title"
+                                  >
+                                    <span>
+                                      one user
+                                    </span>
+                                  </div>
+                                </a>
+                                <ul
+                                  className="dropdown-menu"
+                                  onClick={[Function]}
+                                  onMouseEnter={[Function]}
+                                  onMouseLeave={[Function]}
+                                >
+                                  <MenuItem
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        message="Yoooooo"
+                                        onAction={[Function]}
+                                        shouldConfirm={true}
+                                        title="Ignore"
+                                      >
+                                        <Confirm
+                                          cancelText="Cancel"
+                                          confirmText="Ignore"
+                                          disableConfirmButton={false}
+                                          message="Yoooooo"
+                                          onConfirm={[Function]}
+                                          priority="primary"
+                                        >
+                                          <a
+                                            onClick={[Function]}
+                                            title="Ignore"
+                                          >
+                                             
+                                            from now
+                                          </a>
+                                          <Modal
+                                            animation={false}
+                                            autoFocus={true}
+                                            backdrop={true}
+                                            bsClass="modal"
+                                            dialogComponentClass={[Function]}
+                                            enforceFocus={true}
+                                            keyboard={true}
+                                            manager={
+                                              ModalManager {
+                                                "add": [Function],
+                                                "containers": Array [],
+                                                "data": Array [],
+                                                "handleContainerOverflow": true,
+                                                "hideSiblingNodes": true,
+                                                "isTopModal": [Function],
+                                                "modals": Array [],
+                                                "remove": [Function],
+                                              }
+                                            }
+                                            onHide={[Function]}
+                                            renderBackdrop={[Function]}
+                                            restoreFocus={true}
+                                            show={false}
+                                          >
+                                            <Modal
+                                              autoFocus={true}
+                                              backdrop={true}
+                                              backdropClassName="modal-backdrop"
+                                              containerClassName="modal-open"
+                                              enforceFocus={true}
+                                              keyboard={true}
+                                              manager={
+                                                ModalManager {
+                                                  "add": [Function],
+                                                  "containers": Array [],
+                                                  "data": Array [],
+                                                  "handleContainerOverflow": true,
+                                                  "hideSiblingNodes": true,
+                                                  "isTopModal": [Function],
+                                                  "modals": Array [],
+                                                  "remove": [Function],
+                                                }
+                                              }
+                                              onEntering={[Function]}
+                                              onExited={[Function]}
+                                              onHide={[Function]}
+                                              renderBackdrop={[Function]}
+                                              restoreFocus={true}
+                                              show={false}
+                                            />
+                                          </Modal>
+                                        </Confirm>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                  <MenuItem
+                                    key="60"
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        message="Yoooooo"
+                                        onAction={[Function]}
+                                        shouldConfirm={true}
+                                        title="Ignore"
+                                      >
+                                        <Confirm
+                                          cancelText="Cancel"
+                                          confirmText="Ignore"
+                                          disableConfirmButton={false}
+                                          message="Yoooooo"
+                                          onConfirm={[Function]}
+                                          priority="primary"
+                                        >
+                                          <a
+                                            onClick={[Function]}
+                                            title="Ignore"
+                                          >
+                                             
+                                            per hour
+                                          </a>
+                                          <Modal
+                                            animation={false}
+                                            autoFocus={true}
+                                            backdrop={true}
+                                            bsClass="modal"
+                                            dialogComponentClass={[Function]}
+                                            enforceFocus={true}
+                                            keyboard={true}
+                                            manager={
+                                              ModalManager {
+                                                "add": [Function],
+                                                "containers": Array [],
+                                                "data": Array [],
+                                                "handleContainerOverflow": true,
+                                                "hideSiblingNodes": true,
+                                                "isTopModal": [Function],
+                                                "modals": Array [],
+                                                "remove": [Function],
+                                              }
+                                            }
+                                            onHide={[Function]}
+                                            renderBackdrop={[Function]}
+                                            restoreFocus={true}
+                                            show={false}
+                                          >
+                                            <Modal
+                                              autoFocus={true}
+                                              backdrop={true}
+                                              backdropClassName="modal-backdrop"
+                                              containerClassName="modal-open"
+                                              enforceFocus={true}
+                                              keyboard={true}
+                                              manager={
+                                                ModalManager {
+                                                  "add": [Function],
+                                                  "containers": Array [],
+                                                  "data": Array [],
+                                                  "handleContainerOverflow": true,
+                                                  "hideSiblingNodes": true,
+                                                  "isTopModal": [Function],
+                                                  "modals": Array [],
+                                                  "remove": [Function],
+                                                }
+                                              }
+                                              onEntering={[Function]}
+                                              onExited={[Function]}
+                                              onHide={[Function]}
+                                              renderBackdrop={[Function]}
+                                              restoreFocus={true}
+                                              show={false}
+                                            />
+                                          </Modal>
+                                        </Confirm>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                  <MenuItem
+                                    key="1440"
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        message="Yoooooo"
+                                        onAction={[Function]}
+                                        shouldConfirm={true}
+                                        title="Ignore"
+                                      >
+                                        <Confirm
+                                          cancelText="Cancel"
+                                          confirmText="Ignore"
+                                          disableConfirmButton={false}
+                                          message="Yoooooo"
+                                          onConfirm={[Function]}
+                                          priority="primary"
+                                        >
+                                          <a
+                                            onClick={[Function]}
+                                            title="Ignore"
+                                          >
+                                             
+                                            per day
+                                          </a>
+                                          <Modal
+                                            animation={false}
+                                            autoFocus={true}
+                                            backdrop={true}
+                                            bsClass="modal"
+                                            dialogComponentClass={[Function]}
+                                            enforceFocus={true}
+                                            keyboard={true}
+                                            manager={
+                                              ModalManager {
+                                                "add": [Function],
+                                                "containers": Array [],
+                                                "data": Array [],
+                                                "handleContainerOverflow": true,
+                                                "hideSiblingNodes": true,
+                                                "isTopModal": [Function],
+                                                "modals": Array [],
+                                                "remove": [Function],
+                                              }
+                                            }
+                                            onHide={[Function]}
+                                            renderBackdrop={[Function]}
+                                            restoreFocus={true}
+                                            show={false}
+                                          >
+                                            <Modal
+                                              autoFocus={true}
+                                              backdrop={true}
+                                              backdropClassName="modal-backdrop"
+                                              containerClassName="modal-open"
+                                              enforceFocus={true}
+                                              keyboard={true}
+                                              manager={
+                                                ModalManager {
+                                                  "add": [Function],
+                                                  "containers": Array [],
+                                                  "data": Array [],
+                                                  "handleContainerOverflow": true,
+                                                  "hideSiblingNodes": true,
+                                                  "isTopModal": [Function],
+                                                  "modals": Array [],
+                                                  "remove": [Function],
+                                                }
+                                              }
+                                              onEntering={[Function]}
+                                              onExited={[Function]}
+                                              onHide={[Function]}
+                                              renderBackdrop={[Function]}
+                                              restoreFocus={true}
+                                              show={false}
+                                            />
+                                          </Modal>
+                                        </Confirm>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                  <MenuItem
+                                    key="10080"
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        message="Yoooooo"
+                                        onAction={[Function]}
+                                        shouldConfirm={true}
+                                        title="Ignore"
+                                      >
+                                        <Confirm
+                                          cancelText="Cancel"
+                                          confirmText="Ignore"
+                                          disableConfirmButton={false}
+                                          message="Yoooooo"
+                                          onConfirm={[Function]}
+                                          priority="primary"
+                                        >
+                                          <a
+                                            onClick={[Function]}
+                                            title="Ignore"
+                                          >
+                                             
+                                            per week
+                                          </a>
+                                          <Modal
+                                            animation={false}
+                                            autoFocus={true}
+                                            backdrop={true}
+                                            bsClass="modal"
+                                            dialogComponentClass={[Function]}
+                                            enforceFocus={true}
+                                            keyboard={true}
+                                            manager={
+                                              ModalManager {
+                                                "add": [Function],
+                                                "containers": Array [],
+                                                "data": Array [],
+                                                "handleContainerOverflow": true,
+                                                "hideSiblingNodes": true,
+                                                "isTopModal": [Function],
+                                                "modals": Array [],
+                                                "remove": [Function],
+                                              }
+                                            }
+                                            onHide={[Function]}
+                                            renderBackdrop={[Function]}
+                                            restoreFocus={true}
+                                            show={false}
+                                          >
+                                            <Modal
+                                              autoFocus={true}
+                                              backdrop={true}
+                                              backdropClassName="modal-backdrop"
+                                              containerClassName="modal-open"
+                                              enforceFocus={true}
+                                              keyboard={true}
+                                              manager={
+                                                ModalManager {
+                                                  "add": [Function],
+                                                  "containers": Array [],
+                                                  "data": Array [],
+                                                  "handleContainerOverflow": true,
+                                                  "hideSiblingNodes": true,
+                                                  "isTopModal": [Function],
+                                                  "modals": Array [],
+                                                  "remove": [Function],
+                                                }
+                                              }
+                                              onEntering={[Function]}
+                                              onExited={[Function]}
+                                              onHide={[Function]}
+                                              renderBackdrop={[Function]}
+                                              restoreFocus={true}
+                                              show={false}
+                                            />
+                                          </Modal>
+                                        </Confirm>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                </ul>
+                              </span>
+                            </DropdownMenu>
+                          </DropdownLink>
+                        </li>
+                        <li
+                          className="dropdown-submenu"
                           key="10"
                         >
                           <DropdownLink
@@ -3065,6 +3953,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -3074,8 +3963,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -3465,6 +4361,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -3474,8 +4371,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -3865,6 +4769,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -3874,8 +4779,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -4265,6 +5177,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -4274,8 +5187,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -4665,6 +5585,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -4674,8 +5595,15 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -5385,6 +6313,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
       >
         <DropdownMenu
           alwaysRenderMenu={true}
+          closeOnEscape={true}
           keepMenuOpen={false}
         >
           <span
@@ -5393,8 +6322,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
             <a
               className="dropdown-actor btn btn-default btn-sm dropdown-toggle"
               onClick={[Function]}
+              onKeyDown={[Function]}
               onMouseEnter={[Function]}
               onMouseLeave={[Function]}
+              style={
+                Object {
+                  "outline": "none",
+                }
+              }
+              tabIndex={-1}
             >
               <div
                 className="dropdown-actor-title"
@@ -5436,6 +6372,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                 >
                   <DropdownMenu
                     alwaysRenderMenu={true}
+                    closeOnEscape={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -5445,8 +6382,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       <a
                         className="dropdown-actor dropdown-toggle"
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <div
                           className="dropdown-actor-title"
@@ -5671,6 +6615,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                 >
                   <DropdownMenu
                     alwaysRenderMenu={true}
+                    closeOnEscape={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -5680,8 +6625,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       <a
                         className="dropdown-actor dropdown-toggle"
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <div
                           className="dropdown-actor-title"
@@ -5699,6 +6651,166 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       >
                         <li
                           className="dropdown-submenu"
+                          key="1"
+                        >
+                          <DropdownLink
+                            alwaysRenderMenu={true}
+                            anchorRight={false}
+                            caret={false}
+                            disabled={false}
+                            isNestedDropdown={true}
+                            title="one time"
+                          >
+                            <DropdownMenu
+                              alwaysRenderMenu={true}
+                              closeOnEscape={true}
+                              isNestedDropdown={true}
+                              keepMenuOpen={false}
+                            >
+                              <span
+                                className="dropdown"
+                              >
+                                <a
+                                  className="dropdown-actor dropdown-toggle"
+                                  onClick={[Function]}
+                                  onKeyDown={[Function]}
+                                  onMouseEnter={[Function]}
+                                  onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
+                                >
+                                  <div
+                                    className="dropdown-actor-title"
+                                  >
+                                    <span>
+                                      one time
+                                    </span>
+                                  </div>
+                                </a>
+                                <ul
+                                  className="dropdown-menu"
+                                  onClick={[Function]}
+                                  onMouseEnter={[Function]}
+                                  onMouseLeave={[Function]}
+                                >
+                                  <MenuItem
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        onAction={[Function]}
+                                        shouldConfirm={false}
+                                        title="Ignore"
+                                      >
+                                        <a
+                                          className=""
+                                          disabled={false}
+                                          onClick={[Function]}
+                                        >
+                                          from now
+                                        </a>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                  <MenuItem
+                                    key="60"
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        onAction={[Function]}
+                                        shouldConfirm={false}
+                                        title="Ignore"
+                                      >
+                                        <a
+                                          className=""
+                                          disabled={false}
+                                          onClick={[Function]}
+                                        >
+                                          per hour
+                                        </a>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                  <MenuItem
+                                    key="1440"
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        onAction={[Function]}
+                                        shouldConfirm={false}
+                                        title="Ignore"
+                                      >
+                                        <a
+                                          className=""
+                                          disabled={false}
+                                          onClick={[Function]}
+                                        >
+                                          per day
+                                        </a>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                  <MenuItem
+                                    key="10080"
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        onAction={[Function]}
+                                        shouldConfirm={false}
+                                        title="Ignore"
+                                      >
+                                        <a
+                                          className=""
+                                          disabled={false}
+                                          onClick={[Function]}
+                                        >
+                                          per week
+                                        </a>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                </ul>
+                              </span>
+                            </DropdownMenu>
+                          </DropdownLink>
+                        </li>
+                        <li
+                          className="dropdown-submenu"
                           key="10"
                         >
                           <DropdownLink
@@ -5711,6 +6823,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -5720,8 +6833,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -5863,6 +6983,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -5872,8 +6993,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -6015,6 +7143,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6024,8 +7153,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -6167,6 +7303,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6176,8 +7313,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -6319,6 +7463,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6328,8 +7473,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -6501,6 +7653,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                 >
                   <DropdownMenu
                     alwaysRenderMenu={true}
+                    closeOnEscape={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -6510,8 +7663,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       <a
                         className="dropdown-actor dropdown-toggle"
                         onClick={[Function]}
+                        onKeyDown={[Function]}
                         onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
+                        style={
+                          Object {
+                            "outline": "none",
+                          }
+                        }
+                        tabIndex={-1}
                       >
                         <div
                           className="dropdown-actor-title"
@@ -6529,6 +7689,166 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       >
                         <li
                           className="dropdown-submenu"
+                          key="1"
+                        >
+                          <DropdownLink
+                            alwaysRenderMenu={true}
+                            anchorRight={false}
+                            caret={false}
+                            disabled={false}
+                            isNestedDropdown={true}
+                            title="one user"
+                          >
+                            <DropdownMenu
+                              alwaysRenderMenu={true}
+                              closeOnEscape={true}
+                              isNestedDropdown={true}
+                              keepMenuOpen={false}
+                            >
+                              <span
+                                className="dropdown"
+                              >
+                                <a
+                                  className="dropdown-actor dropdown-toggle"
+                                  onClick={[Function]}
+                                  onKeyDown={[Function]}
+                                  onMouseEnter={[Function]}
+                                  onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
+                                >
+                                  <div
+                                    className="dropdown-actor-title"
+                                  >
+                                    <span>
+                                      one user
+                                    </span>
+                                  </div>
+                                </a>
+                                <ul
+                                  className="dropdown-menu"
+                                  onClick={[Function]}
+                                  onMouseEnter={[Function]}
+                                  onMouseLeave={[Function]}
+                                >
+                                  <MenuItem
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        onAction={[Function]}
+                                        shouldConfirm={false}
+                                        title="Ignore"
+                                      >
+                                        <a
+                                          className=""
+                                          disabled={false}
+                                          onClick={[Function]}
+                                        >
+                                          from now
+                                        </a>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                  <MenuItem
+                                    key="60"
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        onAction={[Function]}
+                                        shouldConfirm={false}
+                                        title="Ignore"
+                                      >
+                                        <a
+                                          className=""
+                                          disabled={false}
+                                          onClick={[Function]}
+                                        >
+                                          per hour
+                                        </a>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                  <MenuItem
+                                    key="1440"
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        onAction={[Function]}
+                                        shouldConfirm={false}
+                                        title="Ignore"
+                                      >
+                                        <a
+                                          className=""
+                                          disabled={false}
+                                          onClick={[Function]}
+                                        >
+                                          per day
+                                        </a>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                  <MenuItem
+                                    key="10080"
+                                    noAnchor={true}
+                                  >
+                                    <li
+                                      className=""
+                                      href={null}
+                                      role="presentation"
+                                      title={null}
+                                    >
+                                      <ActionLink
+                                        confirmLabel="Ignore"
+                                        disabled={false}
+                                        onAction={[Function]}
+                                        shouldConfirm={false}
+                                        title="Ignore"
+                                      >
+                                        <a
+                                          className=""
+                                          disabled={false}
+                                          onClick={[Function]}
+                                        >
+                                          per week
+                                        </a>
+                                      </ActionLink>
+                                    </li>
+                                  </MenuItem>
+                                </ul>
+                              </span>
+                            </DropdownMenu>
+                          </DropdownLink>
+                        </li>
+                        <li
+                          className="dropdown-submenu"
                           key="10"
                         >
                           <DropdownLink
@@ -6541,6 +7861,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6550,8 +7871,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -6693,6 +8021,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6702,8 +8031,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -6845,6 +8181,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6854,8 +8191,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -6997,6 +8341,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -7006,8 +8351,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"
@@ -7149,6 +8501,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                           >
                             <DropdownMenu
                               alwaysRenderMenu={true}
+                              closeOnEscape={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -7158,8 +8511,15 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <a
                                   className="dropdown-actor dropdown-toggle"
                                   onClick={[Function]}
+                                  onKeyDown={[Function]}
                                   onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
+                                  style={
+                                    Object {
+                                      "outline": "none",
+                                    }
+                                  }
+                                  tabIndex={-1}
                                 >
                                   <div
                                     className="dropdown-actor-title"

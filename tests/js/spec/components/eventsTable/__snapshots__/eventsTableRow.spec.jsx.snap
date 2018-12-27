@@ -2,13 +2,10 @@
 
 exports[`EventsTableRow renders 1`] = `
 <tr
-  className="events-table-row"
   key="904"
 >
   <td>
-    <h5
-      className=""
-    >
+    <h5>
       <Link
         onlyActiveOnIndex={false}
         style={Object {}}

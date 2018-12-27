@@ -8,8 +8,9 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Integration, OrganizationIntegration, Repository
+from sentry.models import Integration, Repository
 from sentry.plugins import bindings
+from sentry.utils.sdk import capture_exception
 
 
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
@@ -54,23 +55,24 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         # TODO(mn): Remove once old Plugins are removed or everyone migrates to
         # the new Integrations. Hopefully someday?
         elif status == 'unmigratable':
+            integrations = Integration.objects.filter(
+                organizationintegration__organization=organization,
+                organizationintegration__status=ObjectStatus.ACTIVE,
+                provider__in=('bitbucket', 'github', 'vsts'),
+                status=ObjectStatus.ACTIVE,
+            )
+
             repos = []
 
-            org_integrations = OrganizationIntegration.objects.filter(
-                organization_id=organization.id,
-            )
-
-            integrations = Integration.objects.filter(
-                id__in=org_integrations.values('integration_id'),
-                provider__in=('bitbucket', 'github', 'vsts'),
-            )
-
-            repos = [
-                repo
-                for i in integrations
-                for repo in i.get_installation(organization.id)
-                             .get_unmigratable_repositories()
-            ]
+            for i in integrations:
+                try:
+                    repos.extend(i.get_installation(organization.id)
+                                  .get_unmigratable_repositories())
+                except Exception:
+                    capture_exception()
+                    # Don't rely on the Integration's API being available. If
+                    # it's not, the page should still render.
+                    continue
 
             return Response(serialize(repos, request.user))
 
@@ -96,26 +98,18 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             }, status=403)
 
         provider_id = request.DATA.get('provider')
-        has_ghe = provider_id == 'integrations:github_enterprise' and features.has(
-            'organizations:github-enterprise', organization, actor=request.user)
-        has_bb = provider_id == 'integrations:bitbucket' and features.has(
-            'organizations:bitbucket-integration', organization, actor=request.user)
-        has_vsts = provider_id == 'integrations:vsts' and features.has(
-            'organizations:vsts-integration', organization, actor=request.user)
 
-        if features.has('organizations:internal-catchall', organization,
-                        actor=request.user) or has_ghe or has_bb or has_vsts:
-            if provider_id is not None and provider_id.startswith('integrations:'):
-                try:
-                    provider_cls = bindings.get('integration-repository.provider').get(provider_id)
-                except KeyError:
-                    return Response(
-                        {
-                            'error_type': 'validation',
-                        }, status=400
-                    )
-                provider = provider_cls(id=provider_id)
-                return provider.dispatch(request, organization)
+        if provider_id is not None and provider_id.startswith('integrations:'):
+            try:
+                provider_cls = bindings.get('integration-repository.provider').get(provider_id)
+            except KeyError:
+                return Response(
+                    {
+                        'error_type': 'validation',
+                    }, status=400
+                )
+            provider = provider_cls(id=provider_id)
+            return provider.dispatch(request, organization)
 
         try:
             provider_cls = bindings.get('repository.provider').get(provider_id)

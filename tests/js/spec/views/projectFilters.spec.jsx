@@ -206,9 +206,11 @@ describe('ProjectFilters', function() {
     );
   });
 
-  it('does not have filter by release/error message because no hooks store', function() {
-    expect(wrapper.find('TextArea[id="filters:releases"]')).toHaveLength(0);
-    expect(wrapper.find('TextArea[id="filters:error_messages"]')).toHaveLength(0);
+  it('filter by release/error message are not enabled', function() {
+    expect(wrapper.find('TextArea[id="filters:releases"][disabled]')).toHaveLength(1);
+    expect(wrapper.find('TextArea[id="filters:error_messages"][disabled]')).toHaveLength(
+      1
+    );
   });
 
   it('has custom inbound filters with flag + can change', function() {
@@ -255,5 +257,18 @@ describe('ProjectFilters', function() {
     expect(mock.mock.calls[1][1].data.options['filters:error_messages']).toBe(
       'error\nerror2'
     );
+  });
+
+  it('disables configuration for non project:write users', function() {
+    wrapper = mount(
+      <ProjectFilters
+        params={{projectId: project.slug, orgId: org.slug}}
+        location={{}}
+      />,
+      TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
+    );
+
+    expect(wrapper.find('FormField[disabled=false]')).toHaveLength(0);
+    expect(wrapper.find('LegacyBrowserFilterRow[disabled=false]')).toHaveLength(0);
   });
 });

@@ -1,14 +1,18 @@
 import $ from 'jquery';
 import {isUndefined, isNil} from 'lodash';
 import idx from 'idx';
+import * as Sentry from '@sentry/browser';
 
 import {
   PROJECT_MOVED,
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'app/constants/apiErrorCodes';
+import {metric} from 'app/utils/analytics';
 import {openSudo, redirectToProject} from 'app/actionCreators/modal';
 import GroupActions from 'app/actions/groupActions';
+import {uniqueId} from 'app/utils/guid';
+import * as tracing from 'app/utils/tracing';
 
 export class Request {
   constructor(xhr) {
@@ -19,6 +23,7 @@ export class Request {
   cancel() {
     this.alive = false;
     this.xhr.abort();
+    metric('app.api.request-abort', 1);
   }
 }
 
@@ -47,15 +52,6 @@ export class Client {
     }
     this.baseUrl = options.baseUrl || '/api/0';
     this.activeRequests = {};
-  }
-
-  uniqueId() {
-    let s4 = () => {
-      return Math.floor((1 + Math.random()) * 0x10000)
-        .toString(16)
-        .substring(1);
-    };
-    return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
   }
 
   /**
@@ -142,10 +138,21 @@ export class Client {
   }
 
   request(path, options = {}) {
-    let query = $.param(options.query || '', true);
+    let query;
+    try {
+      query = $.param(options.query || '', true);
+    } catch (err) {
+      Sentry.withScope(scope => {
+        scope.setExtra('path', path);
+        scope.setExtra('query', options.query);
+        Sentry.captureException(err);
+      });
+      throw err;
+    }
     let method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
-    let id = this.uniqueId();
+    let id = uniqueId();
+    metric.mark(`api-request-start-${id}`);
 
     if (!isUndefined(data) && method !== 'GET') {
       data = JSON.stringify(data);
@@ -173,9 +180,31 @@ export class Client {
         contentType: 'application/json',
         headers: {
           Accept: 'application/json; charset=utf-8',
+          'X-Transaction-ID': tracing.getTransactionId(),
+          'X-Span-ID': tracing.getSpanId(),
         },
-        success: this.wrapCallback(id, options.success),
-        error: (...args) =>
+        success: (...args) => {
+          let [, , xhr] = args || [];
+          metric.measure({
+            name: 'app.api.request-success',
+            start: `api-request-start-${id}`,
+            data: {
+              status: xhr && xhr.status,
+            },
+          });
+          if (!isUndefined(options.success)) {
+            this.wrapCallback(id, options.success)(...args);
+          }
+        },
+        error: (...args) => {
+          let [, , xhr] = args || [];
+          metric.measure({
+            name: 'app.api.request-error',
+            start: `api-request-start-${id}`,
+            data: {
+              status: xhr && xhr.status,
+            },
+          });
           this.handleRequestError(
             {
               id,
@@ -183,7 +212,8 @@ export class Client {
               requestOptions: options,
             },
             ...args
-          ),
+          );
+        },
         complete: this.wrapCallback(id, options.complete, true),
       })
     );
@@ -191,13 +221,12 @@ export class Client {
     return this.activeRequests[id];
   }
 
-  requestPromise(path, options = {}) {
+  requestPromise(path, {includeAllArgs, ...options} = {}) {
     return new Promise((resolve, reject) => {
       this.request(path, {
         ...options,
         success: (data, ...args) => {
-          // This fails if we need jqXhr :(
-          resolve(data);
+          includeAllArgs ? resolve([data, ...args]) : resolve(data);
         },
         error: (error, ...args) => {
           reject(error);
@@ -230,7 +259,7 @@ export class Client {
   bulkDelete(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
     let query = paramsToQueryArgs(params);
-    let id = this.uniqueId();
+    let id = uniqueId();
 
     GroupActions.delete(id, params.itemIds);
 
@@ -253,7 +282,7 @@ export class Client {
   bulkUpdate(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
     let query = paramsToQueryArgs(params);
-    let id = this.uniqueId();
+    let id = uniqueId();
 
     GroupActions.update(id, params.itemIds, params.data);
 
@@ -277,7 +306,7 @@ export class Client {
   merge(params, options) {
     let path = '/projects/' + params.orgId + '/' + params.projectId + '/issues/';
     let query = paramsToQueryArgs(params);
-    let id = this.uniqueId();
+    let id = uniqueId();
 
     GroupActions.merge(id, params.itemIds);
 

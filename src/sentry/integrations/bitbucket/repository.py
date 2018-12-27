@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from uuid import uuid4
 import six
 from sentry.app import locks
 from sentry.models import OrganizationOption
@@ -8,27 +7,28 @@ from sentry.plugins import providers
 from sentry.models import Integration
 from sentry.utils.http import absolute_uri
 
-from sentry.integrations.exceptions import ApiError
+from sentry.integrations.exceptions import ApiError, IntegrationError
+from sentry.models.apitoken import generate_token
 
 from .webhook import parse_raw_user_email, parse_raw_user_name
 
 
 class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
-    name = 'Bitbucket v2'
+    name = 'Bitbucket'
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:
-            raise ValueError('Bitbucket version 2 requires an integration id.')
-
-        try:
-            integration_model = Integration.objects.get(id=integration_id)
-        except Integration.DoesNotExist as error:
-            self.handle_api_error(error)
+            raise IntegrationError('Bitbucket requires an integration id.')
+        integration_model = Integration.objects.get(
+            id=integration_id,
+            organizations=organization_id,
+            provider='bitbucket',
+        )
 
         return integration_model.get_installation(organization_id)
 
-    def validate_config(self, organization, config):
-        installation = self.get_installation(config['installation'], organization.id)
+    def get_repository_data(self, organization, config):
+        installation = self.get_installation(config.get('installation'), organization.id)
         client = installation.get_client()
         try:
             repo = client.get_repo(config['identifier'])
@@ -41,14 +41,14 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
 
     def get_webhook_secret(self, organization):
         # TODO(LB): Revisit whether Integrations V3 should be using OrganizationOption for storage
-        lock = locks.get('bitbucket:webhook-secret:{}'.format(organization.id), duration=60)
+        lock = locks.get(u'bitbucket:webhook-secret:{}'.format(organization.id), duration=60)
         with lock.acquire():
             secret = OrganizationOption.objects.get_value(
                 organization=organization,
                 key='bitbucket:webhook_secret',
             )
             if secret is None:
-                secret = uuid4().hex + uuid4().hex
+                secret = generate_token()
                 OrganizationOption.objects.set_value(
                     organization=organization,
                     key='bitbucket:webhook_secret',
@@ -56,18 +56,18 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 )
         return secret
 
-    def create_repository(self, organization, data):
-        installation = self.get_installation(data['installation'], organization.id)
+    def build_repository_config(self, organization, data):
+        installation = self.get_installation(data.get('installation'), organization.id)
         client = installation.get_client()
         try:
             resp = client.create_hook(
                 data['identifier'], {
                     'description': 'sentry-bitbucket-repo-hook',
                     'url': absolute_uri(
-                        '/extensions/bitbucket/organizations/{}/webhook/'.format(organization.id)
+                        u'/extensions/bitbucket/organizations/{}/webhook/'.format(organization.id)
                     ),
                     'active': True,
-                    'events': ['repo:push'],
+                    'events': ['repo:push', 'pullrequest:fulfilled'],
                 }
             )
         except Exception as e:
@@ -76,7 +76,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
             return {
                 'name': data['identifier'],
                 'external_id': data['external_id'],
-                'url': 'https://bitbucket.org/{}'.format(data['name']),
+                'url': u'https://bitbucket.org/{}'.format(data['name']),
                 'config': {
                     'name': data['name'],
                     'webhook_id': resp['uuid'],
@@ -84,7 +84,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'integration_id': data['installation'],
             }
 
-    def delete_repository(self, repo):
+    def on_delete_repository(self, repo):
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
 
@@ -103,6 +103,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'author_email': parse_raw_user_email(c['author']['raw']),
                 'author_name': parse_raw_user_name(c['author']['raw']),
                 'message': c['message'],
+                'timestamp': self.format_date(c['date']),
                 'patch_set': c.get('patch_set'),
             } for c in commit_list
         ]
@@ -126,3 +127,6 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
                 installation.raise_error(e)
             else:
                 return self._format_commits(repo, res)
+
+    def repository_external_slug(self, repo):
+        return repo.name

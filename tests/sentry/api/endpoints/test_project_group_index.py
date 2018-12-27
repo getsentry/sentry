@@ -7,13 +7,13 @@ from uuid import uuid4
 import six
 from django.utils import timezone
 from exam import fixture
-from mock import patch
+from mock import patch, Mock
 
 from sentry import tagstore
 from sentry.models import (
-    Activity, ApiToken, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupHashTombstone,
+    Activity, ApiToken, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupLink, GroupResolution, GroupSeen, GroupShare, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupTombstone, ExternalIssue, Integration, Release, UserOption, OrganizationIntegration
+    GroupTombstone, ExternalIssue, Integration, Release, OrganizationIntegration, UserOption
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase
@@ -32,7 +32,7 @@ class GroupListTest(APITestCase):
 
     @fixture
     def path(self):
-        return '/api/0/projects/{}/{}/issues/'.format(
+        return u'/api/0/projects/{}/{}/issues/'.format(
             self.project.organization.slug,
             self.project.slug,
         )
@@ -47,12 +47,27 @@ class GroupListTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group1.id)
+
+    def test_invalid_query(self):
+        now = timezone.now()
+        self.create_group(
+            checksum='a' * 32,
+            last_seen=now - timedelta(seconds=1),
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(
+            u'{}?sort_by=date&query=timesSeen:>1k'.format(self.path),
+            format='json',
+        )
+        assert response.status_code == 400
+        assert 'could not' in response.data['detail']
 
     def test_simple_pagination(self):
         now = timezone.now().replace(microsecond=0)
@@ -64,14 +79,10 @@ class GroupListTest(APITestCase):
             checksum='b' * 32,
             last_seen=now,
         )
-        # group3 = self.create_group(
-        #     checksum='c' * 32,
-        #     last_seen=now - timedelta(seconds=1),
-        # )
 
         self.login_as(user=self.user)
         response = self.client.get(
-            '{}?sort_by=date&limit=1'.format(self.path),
+            u'{}?sort_by=date&limit=1'.format(self.path),
             format='json',
         )
         assert response.status_code == 200
@@ -141,16 +152,16 @@ class GroupListTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?statsPeriod=24h'.format(self.path), format='json')
+        response = self.client.get(u'{}?statsPeriod=24h'.format(self.path), format='json')
         assert response.status_code == 200
 
-        response = self.client.get('{}?statsPeriod=14d'.format(self.path), format='json')
+        response = self.client.get(u'{}?statsPeriod=14d'.format(self.path), format='json')
         assert response.status_code == 200
 
-        response = self.client.get('{}?statsPeriod='.format(self.path), format='json')
+        response = self.client.get(u'{}?statsPeriod='.format(self.path), format='json')
         assert response.status_code == 200
 
-        response = self.client.get('{}?statsPeriod=48h'.format(self.path), format='json')
+        response = self.client.get(u'{}?statsPeriod=48h'.format(self.path), format='json')
         assert response.status_code == 400
 
     def test_environment(self):
@@ -198,7 +209,7 @@ class GroupListTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get('{}?query={}'.format(self.path, 'c' * 32), format='json')
+        response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group.id)
@@ -220,7 +231,7 @@ class GroupListTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.client.get(
-            '{}?query={}&environment=test'.format(
+            u'{}?query={}&environment=test'.format(
                 self.path, 'c' * 32), format='json')
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -241,7 +252,7 @@ class GroupListTest(APITestCase):
 
         self.login_as(user=self.user)
         response = self.client.get(
-            '{}?query=%20%20{}%20%20'.format(self.path, 'c' * 32), format='json'
+            u'{}?query=%20%20{}%20%20'.format(self.path, 'c' * 32), format='json'
         )
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -254,7 +265,7 @@ class GroupListTest(APITestCase):
         self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
-        response = self.client.get('{}?query={}'.format(self.path, 'c' * 32), format='json')
+        response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
         assert response.status_code == 200
         assert len(response.data) == 0
 
@@ -347,7 +358,7 @@ class GroupListTest(APITestCase):
 class GroupUpdateTest(APITestCase):
     @fixture
     def path(self):
-        return '/api/0/projects/{}/{}/issues/'.format(
+        return u'/api/0/projects/{}/{}/issues/'.format(
             self.project.organization.slug,
             self.project.slug,
         )
@@ -369,7 +380,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
         response = self.client.put(
-            '{}?status=unresolved'.format(self.path),
+            u'{}?status=unresolved'.format(self.path),
             data={
                 'status': 'resolved',
             },
@@ -428,14 +439,14 @@ class GroupUpdateTest(APITestCase):
             self.create_group(status=GroupStatus.UNRESOLVED)
 
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
 
         assert len(response.data) == 100
 
         response = self.client.put(
-            '{}?status=unresolved'.format(self.path),
+            u'{}?status=unresolved'.format(self.path),
             data={
                 'status': 'resolved',
             },
@@ -448,7 +459,7 @@ class GroupUpdateTest(APITestCase):
             'statusDetails': {},
         }
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
 
@@ -464,7 +475,7 @@ class GroupUpdateTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
         group = self.create_group(status=GroupStatus.UNRESOLVED, organization=org)
 
         OrganizationIntegration.objects.filter(
@@ -494,7 +505,7 @@ class GroupUpdateTest(APITestCase):
         )[0]
 
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
 
@@ -503,10 +514,9 @@ class GroupUpdateTest(APITestCase):
         with self.tasks():
             with self.feature({
                 'organizations:integrations-issue-sync': True,
-                'organizations:internal-catchall': True,
             }):
                 response = self.client.put(
-                    '{}?status=unresolved'.format(self.path),
+                    u'{}?status=unresolved'.format(self.path),
                     data={
                         'status': 'resolved',
                     },
@@ -526,7 +536,7 @@ class GroupUpdateTest(APITestCase):
                 )
 
         response = self.client.get(
-            '{}?sort_by=date&query=is:unresolved'.format(self.path),
+            u'{}?sort_by=date&query=is:unresolved'.format(self.path),
             format='json',
         )
         assert len(response.data) == 0
@@ -540,7 +550,7 @@ class GroupUpdateTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
         OrganizationIntegration.objects.filter(
             integration_id=integration.id,
             organization_id=group.organization.id,
@@ -573,7 +583,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -581,7 +591,6 @@ class GroupUpdateTest(APITestCase):
         with self.tasks():
             with self.feature({
                 'organizations:integrations-issue-sync': True,
-                'organizations:internal-catchall': True,
             }):
                 response = self.client.put(
                     url, data={
@@ -615,7 +624,7 @@ class GroupUpdateTest(APITestCase):
         uo1 = UserOption.objects.create(key='self_assign_issue', value='1', project=None, user=user)
 
         self.login_as(user=user)
-        url = '{url}?id={group.id}'.format(url=self.path, group=group)
+        url = u'{url}?id={group.id}'.format(url=self.path, group=group)
         response = self.client.put(
             url,
             data={
@@ -654,7 +663,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -701,7 +710,7 @@ class GroupUpdateTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -751,7 +760,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -806,7 +815,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -859,7 +868,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -912,7 +921,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -949,6 +958,166 @@ class GroupUpdateTest(APITestCase):
         )
         assert activity.data['version'] == ''
 
+    def test_set_resolved_in_explicit_commit_unreleased(self):
+        repo = self.create_repo(
+            project=self.project,
+            name=self.project.name,
+        )
+        commit = self.create_commit(
+            project=self.project,
+            repo=repo,
+        )
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = u'{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(
+            url,
+            data={
+                'status': 'resolved',
+                'statusDetails': {
+                    'inCommit': {
+                        'commit': commit.key,
+                        'repository': repo.name,
+                    },
+                },
+            },
+            format='json'
+        )
+        assert response.status_code == 200
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inCommit']['id'] == commit.key
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        link = GroupLink.objects.get(group_id=group.id)
+        assert link.linked_type == GroupLink.LinkedType.commit
+        assert link.relationship == GroupLink.Relationship.resolves
+        assert link.linked_id == commit.id
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_COMMIT,
+        )
+        assert activity.data['commit'] == commit.id
+
+    def test_set_resolved_in_explicit_commit_released(self):
+        release = self.create_release(
+            project=self.project,
+        )
+        repo = self.create_repo(
+            project=self.project,
+            name=self.project.name,
+        )
+        commit = self.create_commit(
+            project=self.project,
+            repo=repo,
+            release=release,
+        )
+
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = u'{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(
+            url,
+            data={
+                'status': 'resolved',
+                'statusDetails': {
+                    'inCommit': {
+                        'commit': commit.key,
+                        'repository': repo.name,
+                    },
+                },
+            },
+            format='json'
+        )
+        assert response.status_code == 200
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inCommit']['id'] == commit.key
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        link = GroupLink.objects.get(group_id=group.id)
+        assert link.project_id == self.project.id
+        assert link.linked_type == GroupLink.LinkedType.commit
+        assert link.relationship == GroupLink.Relationship.resolves
+        assert link.linked_id == commit.id
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_COMMIT,
+        )
+        assert activity.data['commit'] == commit.id
+
+        resolution = GroupResolution.objects.get(
+            group=group,
+        )
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+
+    def test_set_resolved_in_explicit_commit_missing(self):
+        repo = self.create_repo(
+            project=self.project,
+            name=self.project.name,
+        )
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = u'{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(
+            url,
+            data={
+                'status': 'resolved',
+                'statusDetails': {
+                    'inCommit': {
+                        'commit': 'a' * 40,
+                        'repository': repo.name,
+                    },
+                },
+            },
+            format='json'
+        )
+        assert response.status_code == 400
+        assert response.data['statusDetails'][0]['inCommit'][0]['commit']
+
     def test_set_unresolved(self):
         release = self.create_release(project=self.project, version='abc')
         group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
@@ -959,7 +1128,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -995,7 +1164,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1023,7 +1192,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1051,7 +1220,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1100,7 +1269,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1144,7 +1313,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1184,7 +1353,7 @@ class GroupUpdateTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1231,7 +1400,7 @@ class GroupUpdateTest(APITestCase):
         group4 = self.create_group(project=self.create_project(slug='foo'), checksum='b' * 32)
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1277,7 +1446,7 @@ class GroupUpdateTest(APITestCase):
         group2 = self.create_group(checksum='b' * 32)
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1310,7 +1479,7 @@ class GroupUpdateTest(APITestCase):
             assert bool(g.get_share_id())
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1342,7 +1511,7 @@ class GroupUpdateTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1371,8 +1540,12 @@ class GroupUpdateTest(APITestCase):
         assert not r4.exists()
 
     @patch('sentry.api.endpoints.project_group_index.uuid4')
-    @patch('sentry.api.endpoints.project_group_index.merge_group')
-    def test_merge(self, merge_group, mock_uuid4):
+    @patch('sentry.api.endpoints.project_group_index.merge_groups')
+    @patch('sentry.api.endpoints.project_group_index.eventstream')
+    def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
+        eventstream_state = object()
+        mock_eventstream.start_merge = Mock(return_value=eventstream_state)
+
         class uuid(object):
             hex = 'abc123'
 
@@ -1383,7 +1556,7 @@ class GroupUpdateTest(APITestCase):
         self.create_group(checksum='d' * 32)
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&id={group3.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&id={group3.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
@@ -1403,16 +1576,15 @@ class GroupUpdateTest(APITestCase):
             ]
         )
 
-        assert len(merge_group.mock_calls) == 2
-        merge_group.delay.assert_any_call(
-            from_object_id=group1.id,
+        mock_eventstream.start_merge.assert_called_once_with(
+            group1.project_id, [group3.id, group1.id], group2.id)
+
+        assert len(merge_groups.mock_calls) == 1
+        merge_groups.delay.assert_any_call(
+            from_object_ids=[group3.id, group1.id],
             to_object_id=group2.id,
             transaction_id='abc123',
-        )
-        merge_group.delay.assert_any_call(
-            from_object_id=group3.id,
-            to_object_id=group2.id,
-            transaction_id='abc123',
+            eventstream_state=eventstream_state,
         )
 
     def test_assign(self):
@@ -1421,7 +1593,7 @@ class GroupUpdateTest(APITestCase):
         user = self.user
 
         self.login_as(user=user)
-        url = '{url}?id={group1.id}'.format(
+        url = u'{url}?id={group1.id}'.format(
             url=self.path,
             group1=group1,
         )
@@ -1468,7 +1640,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=member)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1491,7 +1663,7 @@ class GroupUpdateTest(APITestCase):
 
         group.project.add_team(team)
 
-        url = '{url}?id={group.id}'.format(
+        url = u'{url}?id={group.id}'.format(
             url=self.path,
             group=group,
         )
@@ -1536,7 +1708,7 @@ class GroupUpdateTest(APITestCase):
         user = self.user
 
         self.login_as(user=user)
-        url = '{url}?id={group1.id}'.format(
+        url = u'{url}?id={group1.id}'.format(
             url=self.path,
             group1=group1,
         )
@@ -1570,12 +1742,17 @@ class GroupUpdateTest(APITestCase):
 class GroupDeleteTest(APITestCase):
     @fixture
     def path(self):
-        return '/api/0/projects/{}/{}/issues/'.format(
+        return u'/api/0/projects/{}/{}/issues/'.format(
             self.project.organization.slug,
             self.project.slug,
         )
 
-    def test_delete_by_id(self):
+    @patch('sentry.api.endpoints.project_group_index.eventstream')
+    @patch('sentry.eventstream')
+    def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
+        eventstream_state = object()
+        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
         group3 = self.create_group(checksum='c' * 32, status=GroupStatus.IGNORED)
@@ -1596,17 +1773,17 @@ class GroupDeleteTest(APITestCase):
             )
 
         self.login_as(user=self.user)
-        url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
+        url = u'{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
             group1=group1,
             group2=group2,
             group4=group4,
         )
 
-        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
-            set()
-
         response = self.client.delete(url, format='json')
+
+        mock_eventstream_api.start_delete_groups.assert_called_once_with(
+            group1.project_id, [group1.id, group2.id])
 
         assert response.status_code == 204
 
@@ -1622,13 +1799,12 @@ class GroupDeleteTest(APITestCase):
         assert Group.objects.get(id=group4.id).status != GroupStatus.PENDING_DELETION
         assert GroupHash.objects.filter(group_id=group4.id).exists()
 
-        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
-            set([hashes[0], hashes[1]])
-
         Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
 
         with self.tasks():
             response = self.client.delete(url, format='json')
+
+        mock_eventstream_task.end_delete_groups.assert_called_once_with(eventstream_state)
 
         assert response.status_code == 204
 
@@ -1643,9 +1819,6 @@ class GroupDeleteTest(APITestCase):
 
         assert Group.objects.filter(id=group4.id).exists()
         assert GroupHash.objects.filter(group_id=group4.id).exists()
-
-        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
-            set([hashes[0], hashes[1]])
 
     def test_bulk_delete(self):
         groups = []
@@ -1668,9 +1841,6 @@ class GroupDeleteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
-            set()
-
         # if query is '' it defaults to is:unresolved
         url = self.path + '?query='
         response = self.client.delete(url, format='json')
@@ -1680,9 +1850,6 @@ class GroupDeleteTest(APITestCase):
         for group in groups:
             assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
             assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
-            set(hashes)
 
         Group.objects.filter(
             id__in=[
@@ -1697,6 +1864,3 @@ class GroupDeleteTest(APITestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-        assert set(GroupHashTombstone.objects.filter(hash__in=hashes).values_list('hash', flat=True)) == \
-            set(hashes)

@@ -38,7 +38,6 @@ exports[`GuideDrawer gets dismissed 1`] = `
     >
       <div>
         <Button
-          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="success"
@@ -113,7 +112,6 @@ exports[`GuideDrawer renders next step 1`] = `
           Did you find this guide useful?
         </p>
         <Button
-          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="success"
@@ -125,7 +123,6 @@ exports[`GuideDrawer renders next step 1`] = `
           </span>
         </Button>
         <Button
-          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="success"
@@ -180,7 +177,6 @@ exports[`GuideDrawer renders tip 1`] = `
         }
       >
         <Button
-          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="success"
@@ -189,7 +185,6 @@ exports[`GuideDrawer renders tip 1`] = `
           cta_text
         </Button>
         <Button
-          alignLabel="left"
           disabled={false}
           onClick={[Function]}
           priority="success"

@@ -2,8 +2,8 @@ import {flatten, debounce} from 'lodash';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import {t} from 'app/locale';
 import {Client} from 'app/api';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
@@ -84,6 +84,34 @@ async function createMemberResults(membersPromise, orgId) {
     resultType: 'settings',
     to: `/settings/${orgId}/members/${member.id}/`,
   }));
+}
+
+async function createLegacyIntegrationResults(pluginsPromise, orgId) {
+  let plugins = (await pluginsPromise) || [];
+  return plugins.map(plugin => ({
+    title: `${plugin.name} (Legacy)`,
+    description: plugin.description,
+    model: plugin,
+    sourceType: 'plugin',
+    resultType: 'integration',
+    to: `/settings/${orgId}/:projectId/plugins/${plugin.id}/`,
+  }));
+}
+
+async function createIntegrationResults(integrationsPromise, orgId) {
+  let {providers} = (await integrationsPromise) || {};
+  return (
+    (providers &&
+      providers.map(provider => ({
+        title: provider.name,
+        description: provider.metadata.description,
+        model: provider,
+        sourceType: 'integration',
+        resultType: 'integration',
+        to: `/settings/${orgId}/integrations/`,
+      }))) ||
+    []
+  );
 }
 
 async function createShortIdLookupResult(shortIdLookupPromise) {
@@ -186,6 +214,8 @@ class ApiSource extends React.Component {
         `/organizations/${orgId}/projects/`,
         `/organizations/${orgId}/teams/`,
         `/organizations/${orgId}/members/`,
+        `/organizations/${orgId}/plugins/?plugins=_all`,
+        `/organizations/${orgId}/config/integrations/`,
       ];
 
       directUrls = [
@@ -228,16 +258,17 @@ class ApiSource extends React.Component {
   }, 150);
 
   handleRequestError = (err, {url, orgId}) => {
-    sdk.captureException(
-      new Error(
-        `API Source Failed: ${err && err.responseJSON && err.responseJSON.detail}`
-      ),
-      {
-        extra: {
-          url: url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/'),
-        },
-      }
-    );
+    Sentry.withScope(scope => {
+      scope.setExtra(
+        'url',
+        url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/')
+      );
+      Sentry.captureException(
+        new Error(
+          `API Source Failed: ${err && err.responseJSON && err.responseJSON.detail}`
+        )
+      );
+    });
   };
 
   // Handles a list of search request promises, and then updates state with response objects
@@ -249,11 +280,18 @@ class ApiSource extends React.Component {
     //
     // This isn't particularly helpful in its current form because we still wait for all requests to finish before
     // updating state, but you could potentially optimize rendering direct results before all requests are finished.
-    let [organizations, projects, teams, members] = searchRequests;
+    let [organizations, projects, teams, members, plugins, integrations] = searchRequests;
     let [shortIdLookup, eventIdLookup] = directRequests;
 
     let [searchResults, directResults] = await Promise.all([
-      this.getSearchableResults([organizations, projects, teams, members]),
+      this.getSearchableResults([
+        organizations,
+        projects,
+        teams,
+        members,
+        plugins,
+        integrations,
+      ]),
       this.getDirectResults([shortIdLookup, eventIdLookup]),
     ]);
 
@@ -274,13 +312,15 @@ class ApiSource extends React.Component {
   async getSearchableResults(requests) {
     let {params, organization} = this.props;
     let orgId = (params && params.orgId) || (organization && organization.slug);
-    let [organizations, projects, teams, members] = requests;
+    let [organizations, projects, teams, members, plugins, integrations] = requests;
     let searchResults = flatten(
       await Promise.all([
         createOrganizationResults(organizations),
         createProjectResults(projects, orgId),
         createTeamResults(teams, orgId),
         createMemberResults(members, orgId),
+        createLegacyIntegrationResults(plugins, orgId),
+        createIntegrationResults(integrations, orgId),
       ])
     );
 

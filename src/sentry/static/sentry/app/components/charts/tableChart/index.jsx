@@ -1,4 +1,4 @@
-import {Flex, Box} from 'grid-emotion';
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -380,7 +380,7 @@ export const TableChartRowBar = styled(({width, ...props}) => <div {...props} />
   z-index: 1;
 `;
 
-export const Cell = styled(Box)`
+export const Cell = styled('div')`
   z-index: 2;
   display: block;
   white-space: nowrap;

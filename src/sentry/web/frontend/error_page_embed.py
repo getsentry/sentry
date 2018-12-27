@@ -116,14 +116,17 @@ class ErrorPageEmbedView(View):
         try:
             event_id = request.GET['eventId']
         except KeyError:
-            return self._smart_response(request, {'eventId': 'Missing or invalid parameter.'}, status=400)
+            return self._smart_response(
+                request, {'eventId': 'Missing or invalid parameter.'}, status=400)
 
         if event_id and not is_event_id(event_id):
-            return self._smart_response(request, {'eventId': 'Missing or invalid parameter.'}, status=400)
+            return self._smart_response(
+                request, {'eventId': 'Missing or invalid parameter.'}, status=400)
 
         key = self._get_project_key(request)
         if not key:
-            return self._smart_response(request, {'dsn': 'Missing or invalid parameter.'}, status=404)
+            return self._smart_response(
+                request, {'dsn': 'Missing or invalid parameter.'}, status=404)
 
         origin = self._get_origin(request)
         if not is_valid_origin(origin, key.project):
@@ -154,7 +157,7 @@ class ErrorPageEmbedView(View):
 
             try:
                 event = Event.objects.filter(project_id=report.project.id,
-                                             event_id=report.event_id).select_related('group')[0]
+                                             event_id=report.event_id)[0]
             except IndexError:
                 try:
                     report.group = Group.objects.from_event_id(report.project, report.event_id)

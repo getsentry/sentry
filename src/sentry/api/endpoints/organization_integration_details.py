@@ -28,7 +28,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(serialize(integration, request.user))
 
     def delete(self, request, organization, integration_id):
-        # Removing the integration removes the organization and project
+        # Removing the integration removes the organization
         # integrations and all linked issues.
         try:
             org_integration = OrganizationIntegration.objects.get(

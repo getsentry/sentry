@@ -16,7 +16,7 @@ class OrganizationAuthProviderSendRemindersEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAdminPermission, )
 
     def post(self, request, organization):
-        if not features.has('organizations:sso', organization, actor=request.user):
+        if not features.has('organizations:sso-basic', organization, actor=request.user):
             return Response(ERR_NO_SSO, status=403)
 
         try:

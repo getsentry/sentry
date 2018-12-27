@@ -11,8 +11,8 @@ Sentry is a Server
 ------------------
 
 The Sentry package, at its core, is just a simple server and web UI. It will
-handle authentication clients (such as `Raven
-<https://github.com/getsentry/raven-python>`_)
+handle authentication clients (such as `the Python one
+<https://github.com/getsentry/sentry-python>`_)
 and all of the logic behind storage and aggregation.
 
 That said, Sentry is not limited to Python. The primary implementation is in
@@ -44,7 +44,7 @@ ROOT = os.path.realpath(os.path.join(os.path.dirname(
 sys.path.insert(0, os.path.join(ROOT, 'src'))
 
 from sentry.utils.distutils import (
-    BuildAssetsCommand, BuildIntegrationDocsCommand
+    BuildAssetsCommand, BuildIntegrationDocsCommand, BuildJsSdkRegistryCommand
 )
 
 # The version of sentry
@@ -66,7 +66,7 @@ IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
 
 def get_requirements(env):
-    with open('requirements-{}.txt'.format(env)) as fp:
+    with open(u'requirements-{}.txt'.format(env)) as fp:
         return [x.strip() for x in fp.read().split('\n') if not x.startswith('#')]
 
 
@@ -79,7 +79,7 @@ optional_requires = get_requirements('optional')
 DJANGO_VERSION = os.environ.get('DJANGO_VERSION')
 if DJANGO_VERSION:
     install_requires = [
-        'Django{}'.format(DJANGO_VERSION)
+        u'Django{}'.format(DJANGO_VERSION)
         if r.startswith('Django>=') else r
         for r in install_requires
     ]
@@ -90,7 +90,9 @@ class SentrySDistCommand(SDistCommand):
     # part of our source build pipeline.
     if not IS_LIGHT_BUILD:
         sub_commands = SDistCommand.sub_commands + \
-            [('build_integration_docs', None), ('build_assets', None)]
+            [('build_integration_docs', None),
+             ('build_assets', None),
+             ('build_js_sdk_registry', None)]
 
 
 class SentryBuildCommand(BuildCommand):
@@ -99,6 +101,7 @@ class SentryBuildCommand(BuildCommand):
         if not IS_LIGHT_BUILD:
             self.run_command('build_integration_docs')
             self.run_command('build_assets')
+            self.run_command('build_js_sdk_registry')
 
 
 class SentryDevelopCommand(DevelopCommand):
@@ -107,6 +110,7 @@ class SentryDevelopCommand(DevelopCommand):
         if not IS_LIGHT_BUILD:
             self.run_command('build_integration_docs')
             self.run_command('build_assets')
+            self.run_command('build_js_sdk_registry')
 
 
 cmdclass = {
@@ -115,6 +119,7 @@ cmdclass = {
     'build': SentryBuildCommand,
     'build_assets': BuildAssetsCommand,
     'build_integration_docs': BuildIntegrationDocsCommand,
+    'build_js_sdk_registry': BuildJsSdkRegistryCommand,
 }
 
 

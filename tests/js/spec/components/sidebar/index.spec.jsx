@@ -141,17 +141,40 @@ describe('Sidebar', function() {
       expect(wrapper.find('SwitchOrganizationMenu')).toMatchSnapshot();
       jest.useRealTimers();
     });
+
+    it('has can logout', function() {
+      let mock = MockApiClient.addMockResponse({
+        url: '/auth/',
+        method: 'DELETE',
+        status: 204,
+      });
+
+      let org = TestStubs.Organization();
+      org = {
+        ...org,
+        access: [...org.access, 'member:read'],
+      };
+
+      wrapper = createWrapper({
+        organization: org,
+        user: TestStubs.User(),
+      });
+      wrapper.find('SidebarDropdownActor').simulate('click');
+      wrapper.find('SidebarMenuItem[data-test-id="sidebarSignout"]').simulate('click');
+      expect(mock).toHaveBeenCalled();
+    });
   });
 
   describe('SidebarPanel', function() {
-    it('displays empty panel when there are no Broadcasts', function() {
+    it('displays empty panel when there are no Broadcasts', async function() {
       MockApiClient.addMockResponse({
         url: '/broadcasts/',
         body: [],
       });
       wrapper = createWrapper();
 
-      wrapper.find('Broadcasts SidebarItem').simulate('click');
+      await wrapper.find('Broadcasts SidebarItem').simulate('click');
+
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
@@ -159,12 +182,12 @@ describe('Sidebar', function() {
       expect(wrapper.find('SidebarPanelEmpty')).toHaveLength(1);
     });
 
-    it('can display Broadcasts panel and mark as seen', function() {
+    it('can display Broadcasts panel and mark as seen', async function() {
       jest.useFakeTimers();
       wrapper = createWrapper();
       expect(apiMocks.broadcasts).toHaveBeenCalled();
 
-      wrapper.find('Broadcasts SidebarItem').simulate('click');
+      await wrapper.find('Broadcasts SidebarItem').simulate('click');
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
@@ -203,13 +226,13 @@ describe('Sidebar', function() {
       expect(wrapper.find('SidebarPanel')).toHaveLength(0);
     });
 
-    it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', function() {
+    it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async function() {
       jest.useFakeTimers();
       wrapper = createWrapper();
       let broadcasts = wrapper.find('Broadcasts').instance();
 
       // This will start timer to mark as seen
-      wrapper.find('Broadcasts SidebarItem').simulate('click');
+      await wrapper.find('Broadcasts SidebarItem').simulate('click');
       wrapper.update();
 
       jest.advanceTimersByTime(500);

@@ -3,21 +3,19 @@ from __future__ import absolute_import
 import logging
 import six
 
-from six.moves.urllib.parse import quote_plus
-
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
 from sentry import features
 from sentry.integrations import (
-    Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+    IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata, FeatureDescription,
 )
 from sentry.integrations.exceptions import ApiUnauthorized, ApiError, IntegrationError, IntegrationFormError
 from sentry.integrations.issues import IssueSyncMixin
-from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration
+from sentry.models import IntegrationExternalProject, Organization, OrganizationIntegration, User
 from sentry.utils.http import absolute_uri
 
-from .client import JiraApiClient
+from .client import JiraApiClient, JiraCloud
 
 logger = logging.getLogger('sentry.integrations.jira')
 
@@ -25,16 +23,33 @@ DESCRIPTION = """
 Connect your Sentry organization into one or more of your Jira cloud instances.
 Get started streamlining your bug squashing workflow by unifying your Sentry and
 Jira instances together.
-
- * Create and link Sentry issue groups directly to a Jira ticket in any of your
-   projects, providing a quick way to jump from Sentry bug to tracked ticket!
- * Automatically synchronize assignees to and from Jira. Don't get confused
-   who's fixing what, let us handle ensuring your issues and tickets match up
-   to your Sentry and Jira assignees.
- * Synchronize Comments on Sentry Issues directly to the linked Jira ticket.
 """
 
-INSTALL_NOTICE_TEXt = """
+FEATURE_DESCRIPTIONS = [
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a Jira ticket in any of your
+        projects, providing a quick way to jump from a Sentry bug to tracked ticket!
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Automatically synchronize assignees to and from Jira. Don't get confused
+        who's fixing what, let us handle ensuring your issues and tickets match up
+        to your Sentry and Jira assignees.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Synchronize Comments on Sentry Issues directly to the linked Jira ticket.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+]
+
+INSTALL_NOTICE_TEXT = """
 Visit the Jira Marketplace to install this integration. After installing the
 Sentry add-on, access the settings panel in your Jira instance to enable the
 integration for this Organization.
@@ -43,11 +58,12 @@ integration for this Organization.
 external_install = {
     'url': 'https://marketplace.atlassian.com/apps/1219432/sentry-for-jira',
     'buttonText': _('Jira Marketplace'),
-    'noticeText': _(INSTALL_NOTICE_TEXt.strip()),
+    'noticeText': _(INSTALL_NOTICE_TEXT.strip()),
 }
 
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
+    features=FEATURE_DESCRIPTIONS,
     author='The Sentry Team',
     noun=_('Instance'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Jira%20Integration:%20&labels=Component%3A%20Integrations',
@@ -73,7 +89,7 @@ JIRA_CUSTOM_FIELD_TYPES = {
 }
 
 
-class JiraIntegration(Integration, IssueSyncMixin):
+class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     comment_key = 'sync_comments'
     outbound_status_key = 'sync_status_forward'
     inbound_status_key = 'sync_status_reverse'
@@ -235,11 +251,14 @@ class JiraIntegration(Integration, IssueSyncMixin):
     def get_issue_url(self, key, **kwargs):
         return '%s/browse/%s' % (self.model.metadata['base_url'], key)
 
+    def get_persisted_default_config_fields(self):
+        return ['project', 'issuetype', 'priority']
+
     def get_group_description(self, group, event, **kwargs):
         output = [
             u'Sentry Issue: [{}|{}]'.format(
                 group.qualified_short_id,
-                absolute_uri(group.get_absolute_url()),
+                absolute_uri(group.get_absolute_url(params={'referrer': 'jira_integration'})),
             )
         ]
         body = self.get_group_body(group, event)
@@ -255,7 +274,8 @@ class JiraIntegration(Integration, IssueSyncMixin):
     def get_client(self):
         return JiraApiClient(
             self.model.metadata['base_url'],
-            self.model.metadata['shared_secret'],
+            JiraCloud(self.model.metadata['shared_secret']),
+            verify_ssl=True
         )
 
     def get_issue(self, issue_id, **kwargs):
@@ -267,11 +287,18 @@ class JiraIntegration(Integration, IssueSyncMixin):
             'description': issue['fields']['description'],
         }
 
-    def create_comment(self, issue_id, comment):
-        return self.get_client().create_comment(issue_id, comment)
+    def create_comment(self, issue_id, user_id, comment):
+        # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
+        user = User.objects.get(id=user_id)
+        attribution = '%s wrote:\n\n' % user.name
+        quoted_comment = '%s{quote}%s{quote}' % (attribution, comment)
+        return self.get_client().create_comment(issue_id, quoted_comment)
 
     def search_issues(self, query):
-        return self.get_client().search_issues(query)
+        try:
+            return self.get_client().search_issues(query)
+        except ApiError as e:
+            self.raise_error(e)
 
     def make_choices(self, x):
         return [(y['id'], y['name'] if 'name' in y else y['value']) for y in x] if x else []
@@ -293,6 +320,14 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         return {key: [error] for key, error in data.get('errors').items()}
 
+    def search_url(self, org_slug):
+        """
+        Hook method that varies in Jira Server
+        """
+        return reverse(
+            'sentry-extensions-jira-search', args=[org_slug, self.model.id]
+        )
+
     def build_dynamic_field(self, group, field_meta):
         """
         Builds a field based on Jira's meta field information
@@ -313,12 +348,8 @@ class JiraIntegration(Integration, IssueSyncMixin):
         elif field_meta.get('autoCompleteUrl') and \
                 (schema.get('items') == 'user' or schema['type'] == 'user'):
             fieldtype = 'select'
-            sentry_url = reverse(
-                'sentry-extensions-jira-search', args=[group.organization.slug, self.model.id],
-            )
-            fkwargs['url'] = '%s?jira_url=%s' % (
-                sentry_url, quote_plus(field_meta['autoCompleteUrl']),
-            )
+            fkwargs['url'] = self.search_url(group.organization.slug)
+            fkwargs['choices'] = []
         elif schema['type'] in ['timetracking']:
             # TODO: Implement timetracking (currently unsupported alltogether)
             return None
@@ -331,7 +362,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 {
                     'multiple': True,
                     'choices': self.make_choices(field_meta.get('allowedValues')),
-                    'default': []
+                    'default': ''
                 }
             )
 
@@ -358,18 +389,33 @@ class JiraIntegration(Integration, IssueSyncMixin):
         return issue_type_meta
 
     def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'jira_integration'
         fields = super(JiraIntegration, self).get_create_issue_config(group, **kwargs)
         params = kwargs.get('params', {})
+        defaults = self.get_project_defaults(group.project_id)
 
-        # TODO(jess): update if we allow saving a default project key
-
+        default_project = params.get('project', defaults.get('project'))
         client = self.get_client()
+
         try:
-            resp = client.get_create_meta(params.get('project'))
+            resp = client.get_create_meta(default_project)
         except ApiUnauthorized:
             raise IntegrationError(
                 'Jira returned: Unauthorized. '
                 'Please check your configuration settings.'
+            )
+        except ApiError as exc:
+            logger.info(
+                'error-fetching-issue-config',
+                extra={
+                    'integration_id': self.model.id,
+                    'organization': group.organization.id,
+                    'error': exc.message,
+                }
+            )
+            raise IntegrationError(
+                'There was an error communicating with the Jira API. '
+                'Please try again or contact support.'
             )
 
         try:
@@ -380,9 +426,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
             )
 
         # check if the issuetype was passed as a parameter
-        issue_type = params.get('issuetype')
-
-        # TODO(jess): update if we allow specifying a default issuetype
+        issue_type = params.get('issuetype', defaults.get('issuetype'))
 
         issue_type_meta = self.get_issue_type_meta(issue_type, meta)
 
@@ -420,7 +464,8 @@ class JiraIntegration(Integration, IssueSyncMixin):
         # TODO(jess): are we going to allow ignored fields?
         # ignored_fields = (self.get_option('ignored_fields', group.project) or '').split(',')
         ignored_fields = set(
-            k for k, v in six.iteritems(issue_type_meta['fields']) if v['name'] in HIDDEN_ISSUE_FIELDS['names']
+            k for k, v in six.iteritems(issue_type_meta['fields'])
+            if v['name'] in HIDDEN_ISSUE_FIELDS['names']
         )
         ignored_fields.update(HIDDEN_ISSUE_FIELDS['keys'])
 
@@ -430,6 +475,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
 
         dynamic_fields = issue_type_meta['fields'].keys()
         dynamic_fields.sort(key=lambda f: anti_gravity.get(f) or 0)
+
         # build up some dynamic fields based on required shit.
         for field in dynamic_fields:
             if field in standard_fields or field in [x.strip() for x in ignored_fields]:
@@ -445,9 +491,7 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 # whenever priorities are available, put the available ones in the list.
                 # allowedValues for some reason doesn't pass enough info.
                 field['choices'] = self.make_choices(client.get_priorities())
-                # TODO(jess): fix if we are going to allow default priority
-                # field['default'] = self.get_option('default_priority', group.project) or ''
-                field['default'] = ''
+                field['default'] = defaults.get('priority', '')
             elif field['name'] == 'fixVersions':
                 field['choices'] = self.make_choices(client.get_versions(meta['key']))
 
@@ -480,6 +524,14 @@ class JiraIntegration(Integration, IssueSyncMixin):
                 continue
             elif field == 'summary':
                 cleaned_data['summary'] = data['title']
+                continue
+            elif field == 'labels' and 'labels' in data:
+                labels = [
+                    label.strip()
+                    for label in data['labels'].split(',')
+                    if label.strip()
+                ]
+                cleaned_data['labels'] = labels
                 continue
             if field in data.keys():
                 v = data.get(field)
@@ -664,7 +716,10 @@ class JiraIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = JiraIntegration
 
-    features = frozenset([IntegrationFeatures.ISSUE_SYNC])
+    features = frozenset([
+        IntegrationFeatures.ISSUE_BASIC,
+        IntegrationFeatures.ISSUE_SYNC
+    ])
 
     can_add = False
 

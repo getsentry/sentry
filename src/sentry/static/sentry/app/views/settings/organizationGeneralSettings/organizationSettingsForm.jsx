@@ -1,4 +1,3 @@
-import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
@@ -9,8 +8,9 @@ import ApiMixin from 'app/mixins/apiMixin';
 import AvatarChooser from 'app/components/avatarChooser';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
 import OrganizationState from 'app/mixins/organizationState';
+import PermissionAlert from 'app/views/settings/organization/permissionAlert';
+import organizationSettingsFields from 'app/data/forms/organizationGeneralSettings';
 
 const OrganizationSettingsForm = createReactClass({
   displayName: 'OrganizationSettingsForm',
@@ -42,30 +42,24 @@ const OrganizationSettingsForm = createReactClass({
             onSave(initialData, model.initialData);
           }
         }}
-        onSubmitError={error => {
-          if (error.responseJSON && 'require2FA' in error.responseJSON) {
-            return addErrorMessage(
-              'Unable to save change. Enable two-factor authentication on your account first.'
-            );
-          }
-          return addErrorMessage('Unable to save change');
-        }}
+        onSubmitError={err => addErrorMessage('Unable to save change')}
       >
-        <Box>
-          <JsonForm
-            features={this.getFeatures()}
-            access={access}
-            location={this.props.location}
-            forms={organizationSettingsFields}
-          />
-          <AvatarChooser
-            type="organization"
-            allowGravatar={false}
-            endpoint={`${endpoint}avatar/`}
-            model={initialData}
-            onSave={updateOrganization}
-          />
-        </Box>
+        <PermissionAlert />
+        <JsonForm
+          features={this.getFeatures()}
+          access={access}
+          location={this.props.location}
+          forms={organizationSettingsFields}
+          disabled={!access.has('org:write')}
+        />
+        <AvatarChooser
+          type="organization"
+          allowGravatar={false}
+          endpoint={`${endpoint}avatar/`}
+          model={initialData}
+          onSave={updateOrganization}
+          disabled={!access.has('org:write')}
+        />
       </Form>
     );
   },

@@ -8,8 +8,9 @@ from django.utils import timezone
 
 from sentry import tagstore
 from sentry.models import (
-    Activity, Environment, Group, GroupHash, GroupHashTombstone, GroupAssignee, GroupBookmark,
-    GroupResolution, GroupSeen, GroupSnooze, GroupSubscription, GroupStatus, GroupTombstone, Release
+    Activity, Environment, Group, GroupHash, GroupAssignee, GroupBookmark,
+    GroupResolution, GroupSeen, GroupSnooze, GroupSubscription, GroupStatus,
+    GroupTombstone, Release
 )
 from sentry.testutils import APITestCase
 
@@ -20,7 +21,7 @@ class GroupDetailsTest(APITestCase):
 
         group = self.create_group()
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
@@ -44,7 +45,7 @@ class GroupDetailsTest(APITestCase):
             value=release.version,
         )
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         response = self.client.get(url, format='json')
 
@@ -66,16 +67,16 @@ class GroupDetailsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/'.format(group1.id)
+        url = u'/api/0/issues/{}/'.format(group1.id)
 
         response = self.client.get(url, format='json')
         assert response.status_code == 404
 
-        url = '/api/0/issues/{}/'.format(group2.id)
+        url = u'/api/0/issues/{}/'.format(group2.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 404
 
-        url = '/api/0/issues/{}/'.format(group3.id)
+        url = u'/api/0/issues/{}/'.format(group3.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 404
 
@@ -85,7 +86,7 @@ class GroupDetailsTest(APITestCase):
 
         environment = Environment.get_or_create(group.project, 'production')
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         from sentry.api.endpoints.group_details import tsdb
 
@@ -96,7 +97,7 @@ class GroupDetailsTest(APITestCase):
             assert response.status_code == 200
             assert get_range.call_count == 2
             for args, kwargs in get_range.call_args_list:
-                assert kwargs['environment_id'] == environment.id
+                assert kwargs['environment_ids'] == [environment.id]
 
         with mock.patch(
                 'sentry.api.endpoints.group_details.tsdb.make_series',
@@ -112,7 +113,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(
             url, data={
@@ -145,7 +146,7 @@ class GroupUpdateTest(APITestCase):
             project=project,
         )
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(
             url, data={
@@ -169,7 +170,7 @@ class GroupUpdateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(
             url, data={
@@ -201,7 +202,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(
             url, data={
@@ -225,7 +226,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(
             url, data={
@@ -270,7 +271,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(
             url, data={
@@ -317,7 +318,7 @@ class GroupUpdateTest(APITestCase):
         team = self.create_team(organization=group.project.organization, members=[self.user])
         group.project.add_team(team)
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(
             url, data={
@@ -360,7 +361,7 @@ class GroupUpdateTest(APITestCase):
         group = self.create_group()
         team = self.create_team(organization=group.project.organization, members=[self.user])
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(
             url, data={
@@ -375,7 +376,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(
             url, data={
@@ -403,7 +404,7 @@ class GroupUpdateTest(APITestCase):
 
         group = self.create_group()
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(
             url, data={
@@ -419,7 +420,7 @@ class GroupUpdateTest(APITestCase):
         self.login_as(user=self.user)
         group = self.create_group()
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         resp = self.client.put(
             url, data={
@@ -455,7 +456,7 @@ class GroupUpdateTest(APITestCase):
             group=group,
         )
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         with self.tasks():
             with self.feature('projects:discard-groups'):
@@ -493,23 +494,19 @@ class GroupDeleteTest(APITestCase):
             group=group,
         )
 
-        url = '/api/0/issues/{}/'.format(group.id)
-
-        assert not GroupHashTombstone.objects.filter(hash=hash).exists()
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         response = self.client.delete(url, format='json')
-
         assert response.status_code == 202, response.content
 
         # Deletion was deferred, so it should still exist
         assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
         # BUT the hash should be gone
         assert not GroupHash.objects.filter(group_id=group.id).exists()
-        assert GroupHashTombstone.objects.filter(hash=hash).exists()
 
         Group.objects.filter(id=group.id).update(status=GroupStatus.UNRESOLVED)
 
-        url = '/api/0/issues/{}/'.format(group.id)
+        url = u'/api/0/issues/{}/'.format(group.id)
 
         with self.tasks():
             response = self.client.delete(url, format='json')
@@ -519,4 +516,3 @@ class GroupDeleteTest(APITestCase):
         # Now we killed everything with fire
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
-        assert GroupHashTombstone.objects.filter(hash=hash).exists()

@@ -31,7 +31,8 @@ class WebHooksPluginTest(TestCase):
         notification = Notification(event=event, rule=rule)
         self.project.update_option('webhooks:urls', 'http://example.com')
 
-        self.plugin.notify(notification)
+        with self.feature('organizations:legacy-event-id'):
+            self.plugin.notify(notification)
 
         assert len(responses.calls) == 1
 
@@ -40,6 +41,7 @@ class WebHooksPluginTest(TestCase):
         assert payload['message'] == 'Hello world'
         assert payload['event']['id'] == 24
         assert payload['event']['event_id'] == event.event_id
+        assert payload['triggering_rules'] == ['my rule']
 
     def test_webhook_validation(self):
         # Test that you can't sneak a bad domain into the list of webhooks

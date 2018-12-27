@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import re
+import logging
 from django.db import IntegrityError, transaction
 from six import BytesIO
 from rest_framework.response import Response
@@ -56,8 +57,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
     @attach_scenarios([list_files_scenario])
     def get(self, request, project, version):
         """
-        List a Release's Files
-        ``````````````````````
+        List a Project Release's Files
+        ``````````````````````````````
 
         Retrieve a list of files for a given release.
 
@@ -79,7 +80,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
 
         file_list = ReleaseFile.objects.filter(
             release=release,
-        ).select_related('file').order_by('name')
+        ).select_related('file', 'dist').order_by('name')
 
         return self.paginate(
             request=request,
@@ -92,8 +93,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
     @attach_scenarios([upload_file_scenario])
     def post(self, request, project, version):
         """
-        Upload a New File
-        `````````````````
+        Upload a New Project Release File
+        `````````````````````````````````
 
         Upload a new file for the given release.
 
@@ -127,6 +128,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+
+        logger = logging.getLogger('sentry.files')
+        logger.info('projectreleasefile.start')
 
         if 'file' not in request.FILES:
             return Response({'detail': 'Missing uploaded file'}, status=400)
@@ -174,7 +178,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             type='release.file',
             headers=headers,
         )
-        file.putfile(fileobj)
+        file.putfile(fileobj, logger=logger)
 
         try:
             with transaction.atomic():

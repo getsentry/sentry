@@ -64,13 +64,12 @@ exports[`AccountIdentities renders list 1`] = `
             flex="1"
             p={2}
           >
-            Github
+            GitHub
           </Box>
           <Box
             p={2}
           >
             <Button
-              alignLabel="left"
               disabled={false}
               onClick={[Function]}
               size="small"

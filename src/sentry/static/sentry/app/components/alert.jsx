@@ -1,14 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {cx} from 'emotion';
-import {Box} from 'grid-emotion';
+import {Flex} from 'grid-emotion';
 import styled from 'react-emotion';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import InlineSvg from 'app/components/inlineSvg';
 import space from 'app/styles/space';
 
 const StyledInlineSvg = styled(InlineSvg)`
-  margin-right: 12px;
+  margin-right: calc(${p => p.size} / 2);
 `;
 
 const getAlertColorStyles = ({backgroundLight, border, iconColor}, textColor) => `
@@ -47,12 +47,11 @@ const getSystemAlertColorStyles = ({background}) => `
   }
 `;
 
-const AlertWrapper = styled(Box)`
+const AlertWrapper = styled(Flex)`
   margin: 0 0 ${space(3)};
   padding: ${space(2)};
   font-size: 15px;
   box-shadow: ${p => p.theme.dropShadowLight};
-  display: flex;
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.whiteDark};
   border: 1px solid ${p => p.theme.borderDark};
@@ -70,7 +69,7 @@ const StyledTextBlock = styled(TextBlock)`
   align-self: center;
 `;
 
-const Alert = ({type, icon, children, className, ...props}) => {
+const Alert = ({type, icon, iconSize, children, className, ...props}) => {
   let refClass;
 
   if (type) {
@@ -79,7 +78,7 @@ const Alert = ({type, icon, children, className, ...props}) => {
 
   return (
     <AlertWrapper type={type} {...props} className={cx(refClass, className)}>
-      {icon && <StyledInlineSvg src={icon} size="24px" />}
+      {icon && <StyledInlineSvg src={icon} size={iconSize} />}
       <StyledTextBlock>{children}</StyledTextBlock>
     </AlertWrapper>
   );
@@ -88,6 +87,11 @@ const Alert = ({type, icon, children, className, ...props}) => {
 Alert.propTypes = {
   type: PropTypes.string,
   icon: PropTypes.string,
+  iconSize: PropTypes.string,
+};
+
+Alert.defaultProps = {
+  iconSize: '24px',
 };
 
 export default Alert;

@@ -8,7 +8,9 @@ exports[`ProjectSecurityHeaders renders 1`] = `
     <SettingsPageHeading
       title="Security Header Reports"
     />
-    <PreviewFeature />
+    <PreviewFeature
+      type="info"
+    />
     <ReportUri
       keyList={Array []}
       params={
@@ -135,7 +137,6 @@ exports[`ProjectSecurityHeaders renders 1`] = `
               </HeaderName>
             </Box>
             <Button
-              alignLabel="left"
               disabled={false}
               priority="primary"
               to="csp/"
@@ -162,7 +163,6 @@ exports[`ProjectSecurityHeaders renders 1`] = `
               </HeaderName>
             </Box>
             <Button
-              alignLabel="left"
               disabled={false}
               priority="primary"
               to="expect-ct/"
@@ -189,7 +189,6 @@ exports[`ProjectSecurityHeaders renders 1`] = `
               </HeaderName>
             </Box>
             <Button
-              alignLabel="left"
               disabled={false}
               priority="primary"
               to="hpkp/"

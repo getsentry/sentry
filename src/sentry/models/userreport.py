@@ -24,7 +24,7 @@ class UserReport(Model):
     name = models.CharField(max_length=128)
     email = models.EmailField(max_length=75)
     comments = models.TextField()
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = 'sentry'
@@ -37,7 +37,8 @@ class UserReport(Model):
     def notify(self):
         from django.contrib.auth.models import AnonymousUser
         from sentry.api.serializers import (
-            serialize, ProjectUserReportSerializer
+            serialize,
+            UserReportWithGroupSerializer,
         )
         from sentry.tasks.signals import signal
 
@@ -45,6 +46,6 @@ class UserReport(Model):
             name='user-reports.created',
             project_id=self.project_id,
             payload={
-                'report': serialize(self, AnonymousUser(), ProjectUserReportSerializer()),
+                'report': serialize(self, AnonymousUser(), UserReportWithGroupSerializer()),
             },
         )

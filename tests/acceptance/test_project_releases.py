@@ -17,7 +17,7 @@ class ProjectReleasesTest(AcceptanceTestCase):
             name='Bengal',
         )
         self.login_as(self.user)
-        self.path = '/{}/{}/releases/'.format(
+        self.path = u'/{}/{}/releases/'.format(
             self.org.slug, self.project.slug)
 
     def test_with_releases(self):
@@ -39,7 +39,6 @@ class ProjectReleasesTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
         self.browser.wait_until('.ref-project-releases')
-        self.browser.wait_until('.ref-empty-state')
         self.browser.snapshot('project releases without releases')
 
 
@@ -66,7 +65,7 @@ class ProjectReleaseDetailsTest(AcceptanceTestCase):
             message='Foo bar',
         )
         self.login_as(self.user)
-        self.path = '/{}/{}/releases/{}/'.format(
+        self.path = u'/{}/{}/releases/{}/'.format(
             self.org.slug, self.project.slug, self.release.version)
 
     def test_release_details_no_commits_no_deploys(self):

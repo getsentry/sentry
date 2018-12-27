@@ -2,11 +2,13 @@ from __future__ import absolute_import
 
 from django.http import HttpResponse
 from sentry.integrations import (
-    Integration, IntegrationFeatures, IntegrationMetadata, IntegrationProvider
+    IntegrationInstallation, IntegrationFeatures, IntegrationMetadata,
+    IntegrationProvider, FeatureDescription
 )
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
-from sentry.integrations.migrate import PluginMigrator
+from sentry.mediators.plugins import Migrator
+from sentry.models import User
 from sentry.pipeline import PipelineView
 
 
@@ -29,13 +31,19 @@ class ExampleSetupView(PipelineView):
 
 
 DESCRIPTION = """
-This is an example integration
-
- * Descriptions support _markdown rendering_.
+This is an example integration. Descriptions support _markdown rendering_.
 """
+
+FEATURES = [
+    FeatureDescription(
+        "This is a feature description. Also *supports markdown*",
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+]
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
+    features=FEATURES,
     author='The Sentry Team',
     noun='example',
     issue_url='https://github.com/getsentry/sentry/issues/new',
@@ -44,7 +52,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class ExampleIntegration(Integration, IssueSyncMixin):
+class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     comment_key = 'sync_comments'
     outbound_status_key = 'sync_status_outbound'
     inbound_status_key = 'sync_status_inbound'
@@ -52,10 +60,43 @@ class ExampleIntegration(Integration, IssueSyncMixin):
     inbound_assignee_key = 'sync_assignee_inbound'
 
     def get_issue_url(self, key):
-        return 'https://example/issues/{}'.format(key)
+        return u'https://example/issues/{}'.format(key)
 
-    def create_comment(self):
-        pass
+    def create_comment(self, issue_id, user_id, comment):
+        user = User.objects.get(id=user_id)
+        attribution = '%s wrote:\n\n' % user.name
+        quoted_comment = '%s<blockquote>%s</blockquote>' % (attribution, comment)
+        return quoted_comment
+
+    def get_persisted_default_config_fields(self):
+        return ['project']
+
+    def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'example_integration'
+        fields = super(ExampleIntegration, self).get_create_issue_config(group, **kwargs)
+        default = self.get_project_defaults(group.project_id)
+        example_project_field = self.generate_example_project_field(default)
+        return fields + [example_project_field]
+
+    def generate_example_project_field(self, default_fields):
+        project_field = {
+            'name': 'project',
+            'label': 'Project',
+            'choices': [('1', 'Project 1'), ('2', 'Project 2')],
+            'type': 'select',
+        }
+
+        default_project = default_fields.get('project')
+        if default_project is not None:
+            project_field['default'] = default_project
+
+        return project_field
+
+    def get_link_issue_config(self, group, **kwargs):
+        fields = super(ExampleIntegration, self).get_link_issue_config(group, **kwargs)
+        default = self.get_project_defaults(group.project_id)
+        example_project_field = self.generate_example_project_field(default)
+        return fields + [example_project_field]
 
     def create_issue(self, data, **kwargs):
         if 'assignee' not in data:
@@ -76,7 +117,7 @@ class ExampleIntegration(Integration, IssueSyncMixin):
     def get_repositories(self):
         return [{
             'name': 'repo',
-            'id': 'user/repo',
+            'identifier': 'user/repo',
         }]
 
     def get_unmigratable_repositories(self):
@@ -124,8 +165,10 @@ class ExampleIntegrationProvider(IntegrationProvider):
         }]
 
     def post_install(self, integration, organization):
-        installation = self.get_installation(integration, organization.id)
-        PluginMigrator(installation, organization).call()
+        Migrator.run(
+            integration=integration,
+            organization=organization
+        )
 
     def build_integration(self, state):
         return {

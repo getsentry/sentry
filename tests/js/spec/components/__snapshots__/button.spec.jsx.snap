@@ -10,7 +10,6 @@ exports[`Button renders 1`] = `
   size="large"
 >
   <ButtonLabel
-    justify="flex-start"
     priority="primary"
     size="large"
   >
@@ -27,9 +26,7 @@ exports[`Button renders disabled normal link 1`] = `
   onClick={[Function]}
   role="button"
 >
-  <ButtonLabel
-    justify="flex-start"
-  >
+  <ButtonLabel>
     Normal Link
   </ButtonLabel>
 </StyledButton>
@@ -43,9 +40,7 @@ exports[`Button renders normal link 1`] = `
   onClick={[Function]}
   role="button"
 >
-  <ButtonLabel
-    justify="flex-start"
-  >
+  <ButtonLabel>
     Normal Link
   </ButtonLabel>
 </StyledButton>
@@ -59,9 +54,7 @@ exports[`Button renders react-router link 1`] = `
   role="button"
   to="/some/route"
 >
-  <ButtonLabel
-    justify="flex-start"
-  >
+  <ButtonLabel>
     Router Link
   </ButtonLabel>
 </StyledButton>

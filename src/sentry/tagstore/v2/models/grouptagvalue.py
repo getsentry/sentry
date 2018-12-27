@@ -67,10 +67,15 @@ class GroupTagValue(Model):
         # fallback
         from sentry.tagstore.v2.models import TagKey
 
-        tk = TagKey.objects.filter(
-            project_id=self.project_id,
-            id=self._key_id,
-        ).values_list('key', flat=True).get()
+        try:
+            tk = TagKey.objects.filter(
+                project_id=self.project_id,
+                id=self._key_id,
+            ).values_list('key', flat=True).get()
+        except TagKey.DoesNotExist:
+            # Data got inconsistent, I must delete myself.
+            self.delete()
+            return None
 
         # cache for future calls
         self.key = tk
@@ -92,10 +97,15 @@ class GroupTagValue(Model):
         # fallback
         from sentry.tagstore.v2.models import TagValue
 
-        tv = TagValue.objects.filter(
-            project_id=self.project_id,
-            id=self._value_id,
-        ).values_list('value', flat=True).get()
+        try:
+            tv = TagValue.objects.filter(
+                project_id=self.project_id,
+                id=self._value_id,
+            ).values_list('value', flat=True).get()
+        except TagValue.DoesNotExist:
+            # Data got inconsistent, I must delete myself.
+            self.delete()
+            return ''
 
         # cache for future calls
         self.value = tv
@@ -114,7 +124,7 @@ class GroupTagValue(Model):
     def merge_counts(self, new_group):
         try:
             with transaction.atomic(using=router.db_for_write(GroupTagValue)):
-                new_obj = GroupTagValue.objects.get(
+                new_obj, _ = GroupTagValue.objects.get_or_create(
                     group_id=new_group.id,
                     project_id=new_group.project_id,
                     _key_id=self._key_id,

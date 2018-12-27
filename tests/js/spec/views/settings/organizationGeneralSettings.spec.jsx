@@ -3,7 +3,6 @@ import {mount} from 'enzyme';
 import React from 'react';
 
 import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralSettings';
-import recreateRoute from 'app/utils/recreateRoute';
 
 jest.mock('jquery');
 
@@ -102,22 +101,31 @@ describe('OrganizationGeneralSettings', function() {
     expect(browserHistory.replace).toHaveBeenCalledWith('/settings/new-slug/');
   });
 
-  it('redirects to teams page if user does not have write access', async function() {
+  it('disables the entire form if user does not have write access', async function() {
+    const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: TestStubs.Organization({access: ['org:read']}),
+      body: readOnlyOrg,
     });
-    recreateRoute.mockReturnValueOnce('teams');
     let wrapper = mount(
-      <OrganizationGeneralSettings routes={[]} params={{orgId: org.slug}} />,
-      TestStubs.routerContext()
+      <OrganizationGeneralSettings routes={[]} params={{orgId: readOnlyOrg.slug}} />,
+      TestStubs.routerContext([{organization: readOnlyOrg}])
     );
 
     wrapper.setState({loading: false});
     await tick();
     wrapper.update();
-    expect(browserHistory.replace).toHaveBeenCalledWith('teams');
+
+    expect(wrapper.find('Form FormField[disabled=false]')).toHaveLength(0);
+    expect(
+      wrapper
+        .find('PermissionAlert')
+        .first()
+        .text()
+    ).toEqual(
+      'These settings can only be edited by users with the owner or manager role.'
+    );
   });
 
   it('does not have remove organization button', async function() {

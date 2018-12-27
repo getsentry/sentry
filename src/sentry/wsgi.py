@@ -50,5 +50,4 @@ class FileWrapperWSGIHandler(WSGIHandler):
 
 
 # Run WSGI handler for the application
-from raven.contrib.django.middleware.wsgi import Sentry
-application = Sentry(FileWrapperWSGIHandler())
+application = FileWrapperWSGIHandler()

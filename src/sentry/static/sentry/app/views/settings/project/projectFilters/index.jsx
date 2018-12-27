@@ -3,6 +3,8 @@ import React from 'react';
 
 import {t} from 'app/locale';
 import GroupTombstones from 'app/views/settings/project/projectFilters/groupTombstones';
+import NavTabs from 'app/components/navTabs';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import ProjectFiltersChart from 'app/views/settings/project/projectFilters/projectFiltersChart';
 import ProjectFiltersSettings from 'app/views/settings/project/projectFilters/projectFiltersSettings';
 import SentryTypes from 'app/sentryTypes';
@@ -12,12 +14,11 @@ import recreateRoute from 'app/utils/recreateRoute';
 
 class ProjectFilters extends React.Component {
   static contextTypes = {
-    organization: SentryTypes.Organization,
     project: SentryTypes.Project,
   };
 
   render() {
-    let {organization, project} = this.context;
+    let {project} = this.context;
     let {orgId, projectId, filterType} = this.props.params;
     if (!project) return null;
 
@@ -26,6 +27,8 @@ class ProjectFilters extends React.Component {
     return (
       <div>
         <SettingsPageHeader title={t('Inbound Data Filters')} />
+        <PermissionAlert />
+
         <TextBlock>
           {t(
             'Filters allow you to prevent Sentry from storing events in certain situations. Filtered events are tracked separately from rate limits, and do not apply to any project quotas.'
@@ -36,10 +39,7 @@ class ProjectFilters extends React.Component {
           <ProjectFiltersChart params={this.props.params} />
 
           {features.has('discard-groups') && (
-            <ul
-              className="nav nav-tabs"
-              style={{borderBottom: '1px solid #ddd', paddingTop: '30px'}}
-            >
+            <NavTabs underlined style={{paddingTop: '30px'}}>
               <li className={filterType === 'data-filters' ? 'active' : ''}>
                 <Link to={recreateRoute('data-filters/', {...this.props, stepBack: -1})}>
                   {t('Data Filters')}
@@ -52,7 +52,7 @@ class ProjectFilters extends React.Component {
                   {t('Discarded Issues')}
                 </Link>
               </li>
-            </ul>
+            </NavTabs>
           )}
 
           {filterType == 'discarded-groups' ? (
@@ -60,7 +60,6 @@ class ProjectFilters extends React.Component {
           ) : (
             <ProjectFiltersSettings
               project={project}
-              organization={organization}
               params={this.props.params}
               features={features}
             />

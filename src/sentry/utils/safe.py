@@ -122,16 +122,84 @@ def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
     return value
 
 
-def get_path(data, path, default=None):
+def get_path(data, *path, **kwargs):
     """
-    Looks up a path of properties in a nested dictionary safely.
-    Returns the value at the final level, or the default value if
-    property lookup failed at any step in the path.
+    Safely resolves data from a recursive data structure. A value is only
+    returned if the full path exists, otherwise ``None`` is returned.
+
+    If the ``default`` argument is specified, it is returned instead of ``None``.
+
+    If the ``filter`` argument is specified and the value is a list, it is
+    filtered with the given callback. Alternatively, pass ``True`` as filter to
+    only filter ``None`` values.
     """
-    if not isinstance(path, (list, tuple)) or len(path) == 0:
-        raise ValueError
+    default = kwargs.pop('default', None)
+    f = kwargs.pop('filter', None)
+    for k in kwargs:
+        raise TypeError("set_path() got an undefined keyword argument '%s'" % k)
+
     for p in path:
-        if not isinstance(data, collections.Mapping) or p not in data:
+        if isinstance(data, collections.Mapping) and p in data:
+            data = data[p]
+        elif isinstance(data, (list, tuple)) and -len(data) <= p < len(data):
+            data = data[p]
+        else:
             return default
+
+    if f and data and isinstance(data, (list, tuple)):
+        data = list(filter((lambda x: x is not None) if f is True else f, data))
+
+    return data if data is not None else default
+
+
+def set_path(data, *path, **kwargs):
+    """
+    Recursively traverses or creates the specified path and sets the given value
+    argument. `None` is treated like a missing value. If a non-mapping item is
+    encountered while traversing, the value is not set.
+
+    This function is equivalent to a recursive dict.__setitem__. Returns True if
+    the value was set, otherwise False.
+
+    If the ``overwrite` kwarg is set to False, the value is only set if there is
+    no existing value or it is None. See ``setdefault_path``.
+    """
+
+    try:
+        value = kwargs.pop('value')
+    except KeyError:
+        raise TypeError("set_path() requires a 'value' keyword argument")
+
+    overwrite = kwargs.pop('overwrite', True)
+    for k in kwargs:
+        raise TypeError("set_path() got an undefined keyword argument '%s'" % k)
+
+    for p in path[:-1]:
+        if not isinstance(data, collections.Mapping):
+            return False
+        if data.get(p) is None:
+            data[p] = {}
         data = data[p]
-    return data
+
+    if not isinstance(data, collections.Mapping):
+        return False
+
+    p = path[-1]
+    if overwrite or data.get(p) is None:
+        data[p] = value
+        return True
+
+    return False
+
+
+def setdefault_path(data, *path, **kwargs):
+    """
+    Recursively traverses or creates the specified path and sets the given value
+    argument if it does not exist. `None` is treated like a missing value. If a
+    non-mapping item is encountered while traversing, the value is not set.
+
+    This function is equivalent to a recursive dict.setdefault, except for None
+    values. Returns True if the value was set, otherwise False.
+    """
+    kwargs['overwrite'] = False
+    return set_path(data, *path, **kwargs)

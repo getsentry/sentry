@@ -37,7 +37,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Http': {
+            'request': {
                 'url':
                 'http://example.com',
                 'headers': [
@@ -54,7 +54,6 @@ class JavascriptIntegrationTest(TestCase):
         self._postWithHeader(data)
         with self.assertWriteQueries({
             'nodestore_node': 2,
-            'sentry_environmentproject': 1,
             'sentry_eventtag': 1,
             'sentry_eventuser': 1,
             'sentry_filtervalue': 6,
@@ -83,7 +82,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Http': {
+            'request': {
                 'url':
                 'http://example.com',
                 'headers': [
@@ -121,7 +120,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Http': {
+            'request': {
                 'url':
                 'http://example.com',
                 'headers': [
@@ -152,7 +151,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -192,7 +191,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         event = Event.objects.get()
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -214,7 +213,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -251,7 +250,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         event = Event.objects.get()
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -265,10 +264,10 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Message': {
+            'logentry': {
                 'message': u'ReferenceError: Impossible de d\xe9finir une propri\xe9t\xe9 \xab foo \xbb : objet non extensible'
             },
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -287,10 +286,10 @@ class JavascriptIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        message = event.interfaces['sentry.interfaces.Message']
+        message = event.interfaces['logentry']
         assert message.message == 'ReferenceError: Cannot define property \'foo\': object is not extensible'
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         assert exception.values[0].value == 'Too many files'
         assert exception.values[1].value == 'foo: an unexpected failure occurred while trying to obtain metadata information'
 
@@ -325,7 +324,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -365,7 +364,7 @@ class JavascriptIntegrationTest(TestCase):
             }
         ]
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -407,7 +406,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -447,7 +446,7 @@ class JavascriptIntegrationTest(TestCase):
             }
         ]
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -475,7 +474,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_minified.putfile(open(get_fixture_path('nofiles.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='~/{}'.format(f_minified.name),
+            name=u'~/{}'.format(f_minified.name),
             release=release,
             organization_id=project.organization_id,
             file=f_minified,
@@ -488,7 +487,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_sourcemap.putfile(open(get_fixture_path('nofiles.js.map'), 'rb'))
         ReleaseFile.objects.create(
-            name='app:///{}'.format(f_sourcemap.name),
+            name=u'app:///{}'.format(f_sourcemap.name),
             release=release,
             organization_id=project.organization_id,
             file=f_sourcemap,
@@ -498,7 +497,7 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'release': 'abc',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -520,9 +519,9 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         assert len(frame_list) == 1
@@ -570,7 +569,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -599,9 +598,9 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -666,7 +665,7 @@ class JavascriptIntegrationTest(TestCase):
         # Intentionally omit hostname - use alternate artifact path lookup instead
         # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
-            name='~/{}?foo=bar'.format(f_minified.name),
+            name=u'~/{}?foo=bar'.format(f_minified.name),
             release=release,
             organization_id=project.organization_id,
             file=f_minified,
@@ -683,7 +682,7 @@ class JavascriptIntegrationTest(TestCase):
         f1.putfile(open(get_fixture_path('file1.js'), 'rb'))
 
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f1.name),
+            name=u'http://example.com/{}'.format(f1.name),
             release=release,
             organization_id=project.organization_id,
             file=f1,
@@ -699,7 +698,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2.putfile(open(get_fixture_path('file2.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f2.name),
+            name=u'http://example.com/{}'.format(f2.name),
             release=release,
             organization_id=project.organization_id,
             file=f2,
@@ -717,7 +716,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2_empty.putfile(open(get_fixture_path('empty.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
+            name=u'~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
             release=release,
             organization_id=project.organization_id,
             file=f2_empty,
@@ -733,7 +732,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_sourcemap.putfile(open(get_fixture_path('file.sourcemap.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f_sourcemap.name),
+            name=u'http://example.com/{}'.format(f_sourcemap.name),
             release=release,
             organization_id=project.organization_id,
             file=f_sourcemap,
@@ -743,7 +742,7 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'release': 'abc',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -771,9 +770,9 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -818,7 +817,7 @@ class JavascriptIntegrationTest(TestCase):
         # Intentionally omit hostname - use alternate artifact path lookup instead
         # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
-            name='~/{}?foo=bar'.format(f_minified.name),
+            name=u'~/{}?foo=bar'.format(f_minified.name),
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -836,7 +835,7 @@ class JavascriptIntegrationTest(TestCase):
         f1.putfile(open(get_fixture_path('file1.js'), 'rb'))
 
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f1.name),
+            name=u'http://example.com/{}'.format(f1.name),
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -853,7 +852,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2.putfile(open(get_fixture_path('file2.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f2.name),
+            name=u'http://example.com/{}'.format(f2.name),
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -872,7 +871,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2_empty.putfile(open(get_fixture_path('empty.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
+            name=u'~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -889,7 +888,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_sourcemap.putfile(open(get_fixture_path('file.sourcemap.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f_sourcemap.name),
+            name=u'http://example.com/{}'.format(f_sourcemap.name),
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -901,7 +900,7 @@ class JavascriptIntegrationTest(TestCase):
             'platform': 'javascript',
             'release': 'abc',
             'dist': 'foo',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -929,9 +928,9 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -976,7 +975,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1015,7 +1014,7 @@ class JavascriptIntegrationTest(TestCase):
             }
         ]
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -1052,7 +1051,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1086,7 +1085,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1126,7 +1125,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1153,7 +1152,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code == 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == []
+        assert 'errors' not in event.data
 
     @responses.activate
     def test_html_response_for_js(self):
@@ -1178,7 +1177,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1238,7 +1237,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_minified.putfile(open(get_fixture_path('dist.bundle.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='~/{}'.format(f_minified.name),
+            name=u'~/{}'.format(f_minified.name),
             release=release,
             organization_id=project.organization_id,
             file=f_minified,
@@ -1251,7 +1250,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_sourcemap.putfile(open(get_fixture_path('dist.bundle.js.map'), 'rb'))
         ReleaseFile.objects.create(
-            name='~/{}'.format(f_sourcemap.name),
+            name=u'~/{}'.format(f_sourcemap.name),
             release=release,
             organization_id=project.organization_id,
             file=f_sourcemap,
@@ -1261,7 +1260,7 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'node',
             'release': 'nodeabc123',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1315,7 +1314,7 @@ class JavascriptIntegrationTest(TestCase):
 
         event = Event.objects.get()
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         assert len(frame_list) == 6
@@ -1370,7 +1369,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'node',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1423,7 +1422,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         # This one should not process, so this one should be none.

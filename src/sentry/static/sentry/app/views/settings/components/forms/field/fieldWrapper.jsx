@@ -16,7 +16,19 @@ const inlineStyle = p =>
 const highlightedStyle = p =>
   p.highlighted
     ? css`
-        outline: 1px solid ${p.theme.purple};
+        position: relative;
+
+        &:after {
+          content: '';
+          display: block;
+          position: absolute;
+          top: -1px;
+          left: -1px;
+          right: -1px;
+          bottom: -1px;
+          border: 1px solid ${p.theme.purple};
+          pointer-events: none;
+        }
       `
     : '';
 
@@ -49,6 +61,14 @@ const FieldWrapper = styled(p => <Flex {...p} />, {
   ${borderStyle};
   ${inlineStyle};
   ${highlightedStyle};
+
+  /* Better padding with form inside of a modal */
+  ${p =>
+    !p.hasControlState
+      ? `.modal-content & {
+      padding-right: 0;
+    }`
+      : ''};
 
   &:last-child {
     border-bottom: none;

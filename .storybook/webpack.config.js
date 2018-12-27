@@ -19,6 +19,20 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.stories\.jsx?$/,
+        loaders: [
+          {
+            loader: require.resolve('@storybook/addon-storysource/loader'),
+            options: {
+              prettierConfig: {
+                parser: 'babylon',
+              },
+            },
+          },
+        ],
+        enforce: 'pre',
+      },
+      {
         test: /\.po$/,
         loader: 'po-catalog-loader',
         query: {

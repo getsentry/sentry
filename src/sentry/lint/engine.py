@@ -18,6 +18,7 @@ import json
 from subprocess import check_output, Popen
 
 os.environ['PYFLAKES_NODOCTEST'] = '1'
+os.environ['SENTRY_PRECOMMIT'] = '1'
 
 
 def get_project_root():
@@ -85,7 +86,6 @@ def get_less_files(file_list=None):
     if file_list is None:
         file_list = ['src/sentry/static/sentry/less', 'src/sentry/static/sentry/app']
     return [x for x in get_files_for_list(file_list) if x.endswith(('.less'))]
-    return file_list
 
 
 def get_python_files(file_list=None):
@@ -192,7 +192,7 @@ def is_prettier_valid(project_root, prettier_path):
         [prettier_path, '--version']).rstrip()
     if prettier_version != package_version:
         print(  # noqa: B314
-            '[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.'.format(
+            u'[sentry.lint] Prettier is out of date: {} (expected {}). Please run `yarn install`.'.format(
                 prettier_version,
                 package_version),
             file=sys.stderr)
@@ -207,27 +207,12 @@ def js_lint_format(file_list=None):
     of the lint engine. This uses eslint's `--fix` formatting feature.
     """
     eslint_path = get_node_modules_bin('eslint')
+    project_root = get_project_root()
+    prettier_path = get_prettier_path()
 
     if not os.path.exists(eslint_path):
         print('!! Skipping JavaScript linting and formatting because eslint is not installed.')  # noqa: B314
         return False
-
-    js_file_list = get_js_files(file_list)
-
-    # manually exclude some bad files
-    js_file_list = [x for x in js_file_list if '/javascript/example-project/' not in x]
-
-    return run_formatter([eslint_path, '--fix', ],
-                         js_file_list)
-
-
-def js_format(file_list=None):
-    """
-    We only format JavaScript code as part of this pre-commit hook. It is not part
-    of the lint engine.
-    """
-    project_root = get_project_root()
-    prettier_path = get_prettier_path()
 
     if not is_prettier_valid(project_root, prettier_path):
         return False
@@ -237,9 +222,7 @@ def js_format(file_list=None):
     # manually exclude some bad files
     js_file_list = [x for x in js_file_list if '/javascript/example-project/' not in x]
 
-    return run_formatter([prettier_path,
-                          '--write',
-                          ],
+    return run_formatter([eslint_path, '--fix', ],
                          js_file_list)
 
 
@@ -257,7 +240,7 @@ def js_test(file_list=None):
 
     has_errors = False
     if js_file_list:
-        status = Popen([jest_path, '--bail', '--findRelatedTests'] + js_file_list).wait()
+        status = Popen(['yarn', 'test-precommit'] + js_file_list).wait()
         has_errors = status != 0
 
     return has_errors
@@ -320,7 +303,7 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
         if prompt_on_changes:
             with open('/dev/tty') as fp:
                 print('\033[1m' + 'Stage this patch and continue? [Y/n] ' + '\033[0m')  # noqa: B314
-                if fp.readline().strip().lower() != 'y':
+                if fp.readline().strip() not in ('Y', 'y', ''):
                     print(  # noqa: B314
                         '[sentry.lint] Unstaged changes have not been staged.', file=sys.stderr)
                     if not os.environ.get('SENTRY_SKIP_FORCE_PATCH'):
@@ -359,7 +342,6 @@ def run(file_list=None, format=True, lint=True, js=True, py=True,
             if js:
                 # run eslint with --fix and skip these linters down below
                 results.append(js_lint_format(file_list))
-                results.append(js_format(file_list))
             if less:
                 results.append(less_format(file_list))
 

@@ -1,6 +1,7 @@
 import TeamActions from 'app/actions/teamActions';
 import {tct} from 'app/locale';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
+import {uniqueId} from 'app/utils/guid';
 
 const doCallback = (params = {}, name, ...args) => {
   if (typeof params[name] === 'function') {
@@ -62,7 +63,7 @@ export function updateTeam(api, params, options) {
 export function joinTeam(api, params, options) {
   let endpoint = `/organizations/${params.orgId}/members/${params.memberId ||
     'me'}/teams/${params.teamId}/`;
-  let id = api.uniqueId();
+  let id = uniqueId();
 
   TeamActions.update(id, params.teamId);
 
@@ -83,7 +84,7 @@ export function joinTeam(api, params, options) {
 export function leaveTeam(api, params, options) {
   let endpoint = `/organizations/${params.orgId}/members/${params.memberId ||
     'me'}/teams/${params.teamId}/`;
-  let id = api.uniqueId();
+  let id = uniqueId();
 
   TeamActions.update(id, params.teamId);
 

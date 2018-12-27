@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import ConfigStore from 'app/stores/configStore';
 import ExternalLink from 'app/components/externalLink';
 import {Panel} from 'app/components/panels';

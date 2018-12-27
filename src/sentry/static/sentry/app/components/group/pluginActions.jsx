@@ -5,6 +5,7 @@ import Modal from 'react-bootstrap/lib/Modal';
 import ApiMixin from 'app/mixins/apiMixin';
 import {addSuccessMessage, addErrorMessage} from 'app/actionCreators/indicator';
 import GroupState from 'app/mixins/groupState';
+import NavTabs from 'app/components/navTabs';
 import plugins from 'app/plugins';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
@@ -81,7 +82,10 @@ const PluginActions = createReactClass({
 
   closeModal(data) {
     this.setState({
-      issue: data.id && data.link ? {issue_id: data.id, url: data.link} : null,
+      issue:
+        data && data.id && data.link
+          ? {issue_id: data.id, url: data.link, label: data.label}
+          : null,
       showModal: false,
     });
   },
@@ -98,6 +102,7 @@ const PluginActions = createReactClass({
       <React.Fragment>
         <IssueSyncListElement
           onOpen={this.openModal}
+          externalIssueDisplayName={issue ? issue.label : null}
           externalIssueId={issue ? issue.issue_id : null}
           externalIssueLink={issue ? issue.url : null}
           onClose={this.deleteIssue}
@@ -107,23 +112,19 @@ const PluginActions = createReactClass({
           show={this.state.showModal}
           onHide={this.closeModal}
           animation={false}
-          backdrop="static"
           enforceFocus={false}
         >
           <Modal.Header closeButton>
             <Modal.Title>{`${plugin.name || plugin.title} Issue`}</Modal.Title>
           </Modal.Header>
-          <ul
-            className="nav nav-tabs"
-            style={{borderBottom: '1px solid rgb(221, 221, 221)'}}
-          >
+          <NavTabs underlined={true}>
             <li className={actionType == 'create' ? 'active' : ''}>
               <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
             </li>
             <li className={actionType == 'link' ? 'active' : ''}>
               <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
             </li>
-          </ul>
+          </NavTabs>
           {this.state.showModal &&
             actionType &&
             !this.state.pluginLoading && (

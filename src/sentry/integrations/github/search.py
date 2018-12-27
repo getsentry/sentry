@@ -2,19 +2,17 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.models import Integration
 
 
-class GitHubSearchEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationPermission, )
+class GitHubSearchEndpoint(IntegrationEndpoint):
 
     def get(self, request, organization, integration_id):
         try:
             integration = Integration.objects.get(
                 organizations=organization,
                 id=integration_id,
-                provider='github',
             )
         except Integration.DoesNotExist:
             return Response(status=404)

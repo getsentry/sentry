@@ -29,7 +29,7 @@ class ProviderMixin(object):
             provider=self.auth_provider,
             external_id=usa.uid,
         )[0]
-        integration.add_organization(organization.id, default_auth_id=usa.id)
+        integration.add_organization(organization, user, default_auth_id=usa.id)
 
     def get_available_auths(self, user, organization, integrations, social_auths, **kwargs):
         if self.auth_provider is None:

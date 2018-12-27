@@ -12,6 +12,7 @@ from django.core.cache import cache
 from six.moves.urllib.parse import parse_qsl
 
 from sentry import http
+from sentry.utils.safe import get_path
 from sentry.utils.strings import count_sprintf_parameters
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ class Processor(object):
         return data
 
     def try_process(self, exc):
-        if not exc['value']:
+        if not exc.get('value'):
             return False
         match = self.regex.search(exc['value'])
         if match is None:
@@ -97,7 +98,9 @@ def process_react_exception(exc, match, mapping):
     args = []
     for k, v in parse_qsl(qs, keep_blank_values=True):
         if k == 'args[]':
-            args.append(v.decode('utf-8', 'replace'))
+            if isinstance(v, six.binary_type):
+                v = v.decode('utf-8', 'replace')
+            args.append(v)
 
     # Due to truncated error messages we sometimes might not be able to
     # get all arguments.  In that case we fill up missing parameters for
@@ -113,12 +116,8 @@ def rewrite_exception(data):
     in place and returns `True` if a modification was performed or `False`
     otherwise.
     """
-    exc_data = data.get('sentry.interfaces.Exception')
-    if not exc_data:
-        return False
-
     rv = False
-    for exc in exc_data['values']:
+    for exc in get_path(data, 'exception', 'values', filter=True, default=()):
         for processor in six.itervalues(error_processors):
             try:
                 if processor.try_process(exc):

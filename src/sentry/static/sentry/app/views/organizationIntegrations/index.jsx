@@ -5,33 +5,46 @@ import styled from 'react-emotion';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {analytics} from 'app/utils/analytics';
 import {sortArray} from 'app/utils';
 import {t} from 'app/locale';
 import AsyncComponent from 'app/components/asyncComponent';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MigrationWarnings from 'app/views/organizationIntegrations/migrationWarnings';
+import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import ProviderRow from 'app/views/organizationIntegrations/providerRow';
-import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import SentryAppInstallations from 'app/views/organizationIntegrations/sentryAppInstallations';
+import withOrganization from 'app/utils/withOrganization';
 
-export default class OrganizationIntegrations extends AsyncComponent {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
+class OrganizationIntegrations extends AsyncComponent {
   // Some integrations require visiting a different website to add them. When
   // we come back to the tab we want to show our integrations as soon as we can.
+  shouldReload = true;
   reloadOnVisible = true;
   shouldReloadOnVisible = true;
 
+  componentDidMount() {
+    analytics('integrations.index_viewed', {
+      org_id: parseInt(this.props.organization.id, 10),
+    });
+  }
+
   getEndpoints() {
     let {orgId} = this.props.params;
-
-    return [
+    const query = {plugins: ['vsts', 'github', 'bitbucket']};
+    let endpoints = [
       ['config', `/organizations/${orgId}/config/integrations/`],
       ['integrations', `/organizations/${orgId}/integrations/`],
-      ['plugins', `/organizations/${orgId}/plugins/`],
-      ['unmigratableRepos', `/organizations/${orgId}/repos/?status=unmigratable`],
+      ['plugins', `/organizations/${orgId}/plugins/`, {query}],
+    ];
+    if (!this.props.organization.features.includes('internal-catchall')) {
+      return endpoints;
+    }
+    return [
+      ...endpoints,
+      ['applications', `/organizations/${orgId}/sentry-apps/`],
+      ['appInstalls', `/organizations/${orgId}/sentry-app-installations/`],
     ];
   }
 
@@ -120,26 +133,30 @@ export default class OrganizationIntegrations extends AsyncComponent {
   // Rendering
 
   renderBody() {
-    const providers = this.providers.map(provider => (
-      <ProviderRow
-        key={provider.key}
-        provider={provider}
-        orgId={this.props.params.orgId}
-        integrations={provider.integrations}
-        onInstall={this.onInstall}
-        onRemove={this.onRemove}
-        onDisable={this.onDisable}
-        onReinstall={this.onInstall}
-        enabledPlugins={this.enabledPlugins}
-      />
-    ));
+    const {reloading, applications, appInstalls} = this.state;
+    const providers = this.providers
+      .sort((a, b) => b.isInstalled - a.isInstalled)
+      .map(provider => (
+        <ProviderRow
+          key={provider.key}
+          provider={provider}
+          orgId={this.props.params.orgId}
+          integrations={provider.integrations}
+          onInstall={this.onInstall}
+          onRemove={this.onRemove}
+          onDisable={this.onDisable}
+          onReinstall={this.onInstall}
+          enabledPlugins={this.enabledPlugins}
+        />
+      ));
 
     return (
       <React.Fragment>
         {!this.props.hideHeader && <SettingsPageHeader title={t('Integrations')} />}
+        <PermissionAlert access={['org:integrations']} />
 
         <MigrationWarnings
-          unmigratableRepos={this.unmigratableReposByOrg}
+          orgId={this.props.params.orgId}
           providers={this.providers}
           onInstall={this.onInstall}
         />
@@ -149,9 +166,18 @@ export default class OrganizationIntegrations extends AsyncComponent {
             <Box px={2} flex="1">
               {t('Integrations')}
             </Box>
-            {this.state.reloading && <StyledLoadingIndicator mini />}
+            {reloading && <StyledLoadingIndicator mini />}
           </PanelHeader>
-          <PanelBody>{providers}</PanelBody>
+          <PanelBody>
+            {providers}
+            {applications && (
+              <SentryAppInstallations
+                orgId={this.props.params.orgId}
+                installs={appInstalls}
+                applications={applications}
+              />
+            )}
+          </PanelBody>
         </Panel>
       </React.Fragment>
     );
@@ -164,3 +190,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   top: 50%;
   transform: translateY(-16px);
 `;
+
+export default withOrganization(OrganizationIntegrations);
+export {OrganizationIntegrations};

@@ -67,6 +67,7 @@ class SnubaTSDBTest(TestCase):
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name='test')
         self.proj1env2 = self.create_environment(project=self.proj1, name='dev')
+        self.proj1env3 = self.create_environment(project=self.proj1, name='staging')
         self.proj1defaultenv = self.create_environment(project=self.proj1, name='')
 
         self.proj1group1 = self.create_group(self.proj1)
@@ -109,6 +110,7 @@ class SnubaTSDBTest(TestCase):
         data = json.dumps([{
             'event_id': (six.text_type(r) * 32)[:32],
             'primary_hash': [hash1, hash2][(r // 600) % 2],  # Switch every 10 mins
+            'group_id': [self.proj1group1.id, self.proj1group2.id][(r // 600) % 2],
             'project_id': self.proj1.id,
             'message': 'message 1',
             'platform': 'python',
@@ -119,19 +121,27 @@ class SnubaTSDBTest(TestCase):
                     'foo': 'bar',
                     'baz': 'quux',
                     # Switch every 2 hours
-                    'environment': [self.proj1env1.name, None][(r // 7200) % 2],
-                    'sentry:user': 'id:user{}'.format(r // 3300),
+                    'environment': [self.proj1env1.name, None][(r // 7200) % 3],
+                    'sentry:user': u'id:user{}'.format(r // 3300),
                     'sentry:release': six.text_type(r // 3600) * 10,  # 1 per hour
                 },
-                'sentry.interfaces.User': {
+                'user': {
                     # change every 55 min so some hours have 1 user, some have 2
-                    'id': "user{}".format(r // 3300),
-                    'email': "user{}@sentry.io".format(r)
+                    'id': u"user{}".format(r // 3300),
+                    'email': u"user{}@sentry.io".format(r)
                 }
             },
         } for r in range(0, 14400, 600)])  # Every 10 min for 4 hours
 
         assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
+
+        # snuba trims query windows based on first_seen/last_seen, so these need to be correct-ish
+        self.proj1group1.first_seen = self.now
+        self.proj1group1.last_seen = self.now + timedelta(seconds=14400)
+        self.proj1group1.save()
+        self.proj1group2.first_seen = self.now
+        self.proj1group2.last_seen = self.now + timedelta(seconds=14400)
+        self.proj1group2.save()
 
     def test_range_groups(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
@@ -169,6 +179,13 @@ class SnubaTSDBTest(TestCase):
                 (timestamp(dts[3]), 3),
             ],
         }
+
+        assert self.db.get_range(
+            TSDBModel.group,
+            [],
+            dts[0], dts[-1],
+            rollup=3600
+        ) == {}
 
     def test_range_releases(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
@@ -209,7 +226,7 @@ class SnubaTSDBTest(TestCase):
             [self.proj1.id],
             dts[0], dts[-1],
             rollup=3600,
-            environment_id=self.proj1env1.id
+            environment_ids=[self.proj1env1.id]
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 6),
@@ -225,7 +242,7 @@ class SnubaTSDBTest(TestCase):
             [self.proj1.id],
             dts[0], dts[-1],
             rollup=3600,
-            environment_id=self.proj1env2.id
+            environment_ids=[self.proj1env2.id],
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 0),
@@ -241,7 +258,7 @@ class SnubaTSDBTest(TestCase):
             [self.proj1.id],
             dts[0], dts[-1],
             rollup=3600,
-            environment_id=self.proj1defaultenv.id
+            environment_ids=[self.proj1defaultenv.id],
         ) == {
             self.proj1.id: [
                 (timestamp(dts[0]), 0),
@@ -311,6 +328,13 @@ class SnubaTSDBTest(TestCase):
             ],
         }
 
+        assert self.db.get_distinct_counts_series(
+            TSDBModel.users_affected_by_group,
+            [],
+            dts[0], dts[-1],
+            rollup=3600,
+        ) == {}
+
     def get_distinct_counts_totals_users(self):
         assert self.db.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
@@ -342,6 +366,14 @@ class SnubaTSDBTest(TestCase):
             self.proj1.id: 2,
         }
 
+        assert self.db.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_group,
+            [],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600
+        ) == {}
+
     def test_most_frequent(self):
         assert self.db.get_most_frequent(
             TSDBModel.frequent_issues_by_project,
@@ -355,6 +387,14 @@ class SnubaTSDBTest(TestCase):
                 (self.proj1group2.id, 1.0),
             ],
         }
+
+        assert self.db.get_most_frequent(
+            TSDBModel.frequent_issues_by_project,
+            [],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600,
+        ) == {}
 
     def test_frequency_series(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
@@ -400,6 +440,13 @@ class SnubaTSDBTest(TestCase):
                 }),
             ],
         }
+
+        assert self.db.get_frequency_series(
+            TSDBModel.frequent_releases_by_group,
+            {},
+            dts[0], dts[-1],
+            rollup=3600,
+        ) == {}
 
     def test_result_shape(self):
         """

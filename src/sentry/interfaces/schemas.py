@@ -1,6 +1,6 @@
 """
 sentry.interfaces.schemas
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2017 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -20,10 +20,13 @@ from sentry.constants import (
     MAX_TAG_KEY_LENGTH,
     MAX_TAG_VALUE_LENGTH,
     VALID_PLATFORMS,
+    ENVIRONMENT_NAME_MAX_LENGTH,
+    ENVIRONMENT_NAME_PATTERN,
 )
 from sentry.interfaces.base import InterfaceValidationError
 from sentry.models import EventError
 from sentry.tagstore.base import INTERNAL_TAG_KEYS
+from sentry.utils.meta import Meta
 
 
 def iverror(message="Invalid data"):
@@ -85,10 +88,7 @@ HTTP_INTERFACE_SCHEMA = {
 FRAME_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
-        'abs_path': {
-            'type': 'string',
-            'default': iverror,
-        },
+        'abs_path': {'type': 'string'},
         'colno': {'type': ['number', 'string']},
         'context_line': {'type': 'string'},
         'data': {
@@ -98,20 +98,15 @@ FRAME_INTERFACE_SCHEMA = {
             ]
         },
         'errors': {},
-        'filename': {
-            'type': 'string',
-            'default': iverror,
-        },
+        'filename': {'type': 'string'},
         'function': {'type': 'string'},
         'image_addr': {},
         'in_app': {'type': 'boolean', 'default': False},
         'instruction_addr': {},
         'instruction_offset': {},
+        'trust': {'type': 'string'},
         'lineno': {'type': ['number', 'string']},
-        'module': {
-            'type': 'string',
-            'default': iverror,
-        },
+        'module': {'type': 'string'},
         'package': {'type': 'string'},
         'platform': {
             'type': 'string',
@@ -140,8 +135,7 @@ STACKTRACE_INTERFACE_SCHEMA = {
         'frames': {
             'type': 'array',
             # To validate individual frames use FRAME_INTERFACE_SCHEMA
-            'items': {'type': 'object'},
-            'minItems': 1,
+            'items': {},
         },
         'frames_omitted': {
             'type': 'array',
@@ -151,7 +145,7 @@ STACKTRACE_INTERFACE_SCHEMA = {
         },
         'registers': {'type': 'object'},
     },
-    'required': ['frames'],
+    'required': [],
     # `additionalProperties: {'not': {}}` forces additional properties to
     # individually fail with errors that identify the key, so they can be deleted.
     'additionalProperties': {'not': {}},
@@ -233,9 +227,6 @@ EXCEPTION_INTERFACE_SCHEMA = {
             # To validate stacktraces use STACKTRACE_INTERFACE_SCHEMA
             'type': 'object',
             'properties': {
-                # The code allows for the possibility of an empty
-                # {"frames":[]} object, this sucks and should go.
-                # STACKTRACE_INTERFACE_SCHEMA enforces at least 1
                 'frames': {'type': 'array'},
             },
         },
@@ -247,10 +238,6 @@ EXCEPTION_INTERFACE_SCHEMA = {
             },
         },
     },
-    'anyOf': [  # Require at least one of these keys.
-        {'required': ['type']},
-        {'required': ['value']},
-    ],
     # TODO should be false but allowing extra garbage for now
     # for compatibility
     'additionalProperties': True,
@@ -266,27 +253,28 @@ GEO_INTERFACE_SCHEMA = {
     'additionalProperties': False,
 }
 
-DEVICE_INTERFACE_SCHEMA = {
+TEMPLATE_INTERFACE_SCHEMA = {
     'type': 'object',
     'properties': {
-        'name': {
-            'type': 'string',
-            'minLength': 1,
+        'abs_path': {'type': 'string'},
+        'filename': {'type': 'string'},
+        'context_line': {'type': 'string'},
+        'lineno': {
+            'type': 'number',
+            'minimum': 1,
         },
-        'version': {
-            'type': 'string',
-            'minLength': 1,
+        'pre_context': {
+            'type': 'array',
+            'items': {'type': 'string'}
         },
-        'build': {},
-        'data': {
-            'type': 'object',
-            'default': {},
+        'post_context': {
+            'type': 'array',
+            'items': {'type': 'string'}
         },
     },
-    'required': ['name', 'version'],
+    'required': ['lineno', 'context_line'],
+    'additionalProperties': False,
 }
-
-TEMPLATE_INTERFACE_SCHEMA = {'type': 'object'}  # TODO fill this out
 MESSAGE_INTERFACE_SCHEMA = {'type': 'object'}
 
 TAGS_DICT_SCHEMA = {
@@ -417,7 +405,8 @@ EVENT_SCHEMA = {
         },
         'environment': {
             'type': 'string',
-            'maxLength': 64,
+            'maxLength': ENVIRONMENT_NAME_MAX_LENGTH,
+            'pattern': ENVIRONMENT_NAME_PATTERN,
         },
         'modules': {'type': 'object'},
         'extra': {'type': 'object'},
@@ -458,6 +447,9 @@ EVENT_SCHEMA = {
         'checksum': {},
         'site': TAG_VALUE,
         'received': {},
+
+        # PII stripping meta data in the same schema as events.
+        '_meta': {'type': 'object'}
     },
     'required': ['platform', 'event_id'],
     'additionalProperties': True,
@@ -691,6 +683,7 @@ then be transformed into the requisite interface.
 """
 INPUT_SCHEMAS = {
     'sentry.interfaces.Csp': CSP_SCHEMA,
+    'csp': CSP_SCHEMA,
     'hpkp': HPKP_SCHEMA,
     'expectct': EXPECT_CT_SCHEMA,
     'expectstaple': EXPECT_STAPLE_SCHEMA,
@@ -716,11 +709,11 @@ INTERFACE_SCHEMAS = {
     'sentry.interfaces.Message': MESSAGE_INTERFACE_SCHEMA,
     'template': TEMPLATE_INTERFACE_SCHEMA,
     'sentry.interfaces.Template': TEMPLATE_INTERFACE_SCHEMA,
-    'device': DEVICE_INTERFACE_SCHEMA,
     'geo': GEO_INTERFACE_SCHEMA,
 
     # Security reports
     'sentry.interfaces.Csp': CSP_INTERFACE_SCHEMA,
+    'csp': CSP_INTERFACE_SCHEMA,
     'hpkp': HPKP_INTERFACE_SCHEMA,
     'expectct': EXPECT_CT_INTERFACE_SCHEMA,
     'expectstaple': EXPECT_STAPLE_INTERFACE_SCHEMA,
@@ -742,7 +735,7 @@ def validator_for_interface(name):
     )
 
 
-def validate_and_default_interface(data, interface, name=None,
+def validate_and_default_interface(data, interface, name=None, meta=None,
                                    strip_nones=True, raise_on_invalid=False):
     """
     Modify data to conform to named interface's schema.
@@ -755,6 +748,9 @@ def validate_and_default_interface(data, interface, name=None,
     Returns whether the resulting modified data is valid against the schema and
     a list of any validation errors encountered in processing.
     """
+    if meta is None:
+        meta = Meta()
+
     is_valid = True
     needs_revalidation = False
     errors = []
@@ -778,7 +774,7 @@ def validate_and_default_interface(data, interface, name=None,
                     default = schema['properties'][p]['default']
                     data[p] = default() if callable(default) else default
                 else:
-                    # TODO raise as shortcut?
+                    meta.add_error(EventError.MISSING_ATTRIBUTE, data={'name': p})
                     errors.append({'type': EventError.MISSING_ATTRIBUTE, 'name': p})
 
     validator_errors = list(validator.iter_errors(data))
@@ -790,7 +786,13 @@ def validate_and_default_interface(data, interface, name=None,
     for key, group in groupby(keyed_errors, lambda e: e.path[0]):
         ve = six.next(group)
         is_max = ve.validator.startswith('max')
-        error_type = EventError.VALUE_TOO_LONG if is_max else EventError.INVALID_DATA
+        if is_max:
+            error_type = EventError.VALUE_TOO_LONG
+        elif key == 'environment':
+            error_type = EventError.INVALID_ENVIRONMENT
+        else:
+            error_type = EventError.INVALID_DATA
+        meta.enter(key).add_error(error_type, data[key])
         errors.append({'type': error_type, 'name': name or key, 'value': data[key]})
 
         if 'default' in ve.schema:

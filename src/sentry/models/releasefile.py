@@ -37,12 +37,13 @@ class ReleaseFile(Model):
 
     class Meta:
         unique_together = (('release', 'ident'), )
+        index_together = (('release', 'name'), )
         app_label = 'sentry'
         db_table = 'sentry_releasefile'
 
     def save(self, *args, **kwargs):
         if not self.ident and self.name:
-            dist = self.dist and self.dist.name or None
+            dist = self.dist_id and self.dist.name or None
             self.ident = type(self).get_ident(self.name, dist)
         return super(ReleaseFile, self).save(*args, **kwargs)
 

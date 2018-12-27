@@ -16,30 +16,32 @@ import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup'
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import Form from 'app/views/settings/components/forms/form';
 import FormField from 'app/views/settings/components/forms/formField';
+import {Panel} from 'app/components/panels';
 import TextField from 'app/views/settings/components/forms/textField';
+import SelectField from 'app/views/settings/components/forms/selectField';
 import Switch from 'app/components/switch';
 
 class UndoButton extends React.Component {
-  static contextTypes = {
-    form: PropTypes.object,
-  };
-
-  handleClick = e => {
+  handleClick(e) {
     e.preventDefault();
     this.context.form.undo();
-  };
+  }
 
   render() {
     return (
-      <button type="button" onClick={this.handleClick}>
+      <button type="button" onClick={this.handleClick.bind(this)}>
         Undo
       </button>
     );
   }
 }
 
+UndoButton.contextTypes = {
+  form: PropTypes.object,
+};
+
 // eslint-disable-next-line
-storiesOf('Forms/Form', module)
+storiesOf('Forms|Form', module)
   .add('empty', withInfo('Empty form')(() => <LegacyForm onSubmit={action('submit')} />))
   .add(
     'with Cancel',
@@ -63,7 +65,7 @@ storiesOf('Forms/Form', module)
     ))
   );
 
-storiesOf('Forms/Fields/Old', module)
+storiesOf('Forms|Fields/Old', module)
   .add(
     'PasswordField',
     withInfo({
@@ -87,40 +89,61 @@ storiesOf('Forms/Fields/Old', module)
     ))
   );
 
-storiesOf('Forms/Fields/New', module)
+storiesOf('Forms|Fields', module)
   .add(
     'TextField',
     withInfo({
       text: 'Simple text input',
       propTablesExclude: [Form],
     })(() => (
-      <Form initialData={{context: {location: 'cat'}}}>
-        <TextField
-          name="simpletextfield"
-          label="Simple Text Field"
-          placeholder="Simple Text Field"
-        />
-        <TextField
-          name="textfieldwithreturnsubmit"
-          label="Text Field With Return Submit"
-          placeholder="Type here to show the return button"
-          showReturnButton
-        />
-        <TextField
-          name="textfieldflexiblecontrol"
-          label="Text Field With Flexible Control State Size"
-          placeholder="Type text and then delete it"
-          required
-          flexibleControlStateSize
-        />
-        <TextField
-          name="textfielddisabled"
-          label="Text field with disabled reason"
-          placeholder="I am disabled"
-          disabled
-          disabledReason="This is the reason this field is disabled"
-        />
-      </Form>
+      <Panel>
+        <Form initialData={{context: {location: 'cat'}}}>
+          <TextField
+            name="simpletextfieldvalue"
+            label="Simple Text Field with Value"
+            placeholder="Simple Text Field"
+            defaultValue="With a value present"
+          />
+          <TextField
+            name="simpletextfieldplaceholder"
+            label="Simple Text Field with Placeholder"
+            placeholder="This is placeholder text"
+          />
+          <TextField
+            name="simpletextfieldvaluedisabled"
+            label="Disabled - Simple Text Field with Value"
+            placeholder="Simple Text Field"
+            defaultValue="With a value present"
+            disabled
+          />
+          <TextField
+            name="simpletextfieldplaceholderdisabled"
+            label="Disabled - Simple Text Field with Placeholder"
+            placeholder="This is placeholder text in a disabled field"
+            disabled
+          />
+          <TextField
+            name="textfieldwithreturnsubmit"
+            label="Text Field With Return Submit"
+            placeholder="Type here to show the return button"
+            showReturnButton
+          />
+          <TextField
+            name="textfieldflexiblecontrol"
+            label="Text Field With Flexible Control State Size"
+            placeholder="Type text and then delete it"
+            required
+            flexibleControlStateSize
+          />
+          <TextField
+            name="textfielddisabled"
+            label="Text field with disabled reason"
+            placeholder="I am disabled"
+            disabled
+            disabledReason="This is the reason this field is disabled"
+          />
+        </Form>
+      </Panel>
     ))
   )
   .add(
@@ -144,6 +167,45 @@ storiesOf('Forms/Fields/New', module)
         <RadioField
           name="radio"
           label="Radio Field"
+          choices={[
+            ['choice_one', 'Choice One'],
+            ['choice_two', 'Choice Two'],
+            ['choice_three', 'Choice Three'],
+          ]}
+        />
+      </Form>
+    ))
+  )
+  .add(
+    'SelectField',
+    withInfo({
+      text: 'Select Field',
+      propTablesExclude: [Form],
+    })(() => (
+      <Form>
+        <SelectField
+          name="select"
+          label="Select Field"
+          choices={[
+            ['choice_one', 'Choice One'],
+            ['choice_two', 'Choice Two'],
+            ['choice_three', 'Choice Three'],
+          ]}
+        />
+      </Form>
+    ))
+  )
+  .add(
+    'SelectField multiple',
+    withInfo({
+      text: 'Select Control w/ multiple',
+      propTablesExclude: [Form],
+    })(() => (
+      <Form>
+        <SelectField
+          name="select"
+          label="Multi Select"
+          multiple={true}
           choices={[
             ['choice_one', 'Choice One'],
             ['choice_two', 'Choice Two'],

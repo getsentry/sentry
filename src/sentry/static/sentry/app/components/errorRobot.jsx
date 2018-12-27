@@ -1,12 +1,14 @@
-import React from 'react';
-import PropTypes from 'prop-types';
 import {Link, browserHistory} from 'react-router';
+import PropTypes from 'prop-types';
+import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
-import analytics from 'app/utils/analytics';
-import ApiMixin from 'app/mixins/apiMixin';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {analytics} from 'app/utils/analytics';
+import {sendSampleEvent} from 'app/actionCreators/projects';
 import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
 
 const ErrorRobot = createReactClass({
   displayName: 'ErrorRobot',
@@ -67,18 +69,18 @@ const ErrorRobot = createReactClass({
 
   createSampleEvent() {
     let {org, project} = this.props;
-    let url = `/projects/${org.slug}/${project.slug}/create-sample/`;
 
     analytics('sample_event.created', {
       org_id: parseInt(org.id, 10),
-      project_id: project.id,
+      project_id: parseInt(project.id, 10),
+      source: 'robot',
     });
-    this.api.request(url, {
-      method: 'POST',
-      success: data => {
+
+    sendSampleEvent(this.api, org.slug, project.slug)
+      .then(data => {
         browserHistory.push(`/${org.slug}/${project.slug}/issues/${data.groupID}/`);
-      },
-    });
+      })
+      .catch(() => addErrorMessage(t('Unable to create sample event')));
   },
 
   render() {

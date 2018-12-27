@@ -111,6 +111,7 @@ const theme = {
       border: '#E7C0BC',
       textLight: '#92635f',
     },
+    beta: {},
   },
 
   grid: 8,
@@ -118,6 +119,7 @@ const theme = {
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',
   fontSizeExtraLarge: '18px',
+  headerFontSize: '22px',
 
   settings: {
     // Max-width for settings breadcrumbs
@@ -157,7 +159,7 @@ const theme = {
 theme.textColor = theme.gray5;
 theme.success = theme.green;
 theme.error = theme.red;
-theme.disabled = '#ced3d6';
+theme.disabled = theme.gray1;
 
 theme.alert.info.iconColor = theme.blue;
 theme.alert.info.background = theme.blue;
@@ -170,6 +172,8 @@ theme.alert.success.background = theme.green;
 
 theme.alert.error.iconColor = theme.redDark;
 theme.alert.error.background = theme.red;
+
+theme.alert.beta.background = `linear-gradient(90deg, ${theme.pink}, ${theme.purple})`;
 
 //alias warn to warning
 theme.alert.warn = theme.alert.warning;
@@ -230,6 +234,20 @@ theme.charts = {
     CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
   previousPeriod: theme.gray1,
+  symbolSize: 6,
+};
+
+theme.diff = {
+  removedRow: '#fcefee',
+  addedRow: '#f5fbf8',
+  removed: '#f7ceca',
+  added: '#d8f0e4',
+};
+
+// Similarity spectrum used in "Similar Issues" in group details
+theme.similarity = {
+  empty: '#e2dee6',
+  colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
 };
 
 export default theme;

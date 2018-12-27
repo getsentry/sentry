@@ -29,6 +29,7 @@ class RuleBuilder extends React.Component {
     onAddRule: PropTypes.func,
     urls: PropTypes.arrayOf(PropTypes.string),
     paths: PropTypes.arrayOf(PropTypes.string),
+    disabled: PropTypes.bool,
   };
 
   constructor(props) {
@@ -85,7 +86,7 @@ class RuleBuilder extends React.Component {
   };
 
   render() {
-    let {urls, paths, project, organization} = this.props;
+    let {urls, paths, disabled, project, organization} = this.props;
     let {type, text, owners, isValid} = this.state;
 
     return (
@@ -125,11 +126,13 @@ class RuleBuilder extends React.Component {
             options={[{value: 'path', label: t('Path')}, {value: 'url', label: t('URL')}]}
             style={{width: 140}}
             clearable={false}
+            disabled={disabled}
           />
           <BuilderInput
             controlled
             value={text}
             onChange={this.handleChangeValue}
+            disabled={disabled}
             placeholder={
               type === 'path' ? 'src/example/*' : 'https://example.com/settings/*'
             }
@@ -141,6 +144,7 @@ class RuleBuilder extends React.Component {
               project={project}
               value={owners}
               onChange={this.handleChangeOwners}
+              disabled={disabled}
             />
           </Flex>
 

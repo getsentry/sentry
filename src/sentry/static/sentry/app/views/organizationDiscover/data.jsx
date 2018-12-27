@@ -1,75 +1,95 @@
-const PROMOTED_TAGS = [
-  {name: 'tags[level]', type: 'string'},
-  {name: 'tags[logger]', type: 'string'},
-  {name: 'tags[server_name]', type: 'string'},
-  {name: 'tags[transaction]', type: 'string'},
-  {name: 'tags[environment]', type: 'string'},
-  {name: 'tags[site]', type: 'string'},
-  {name: 'tags[url]', type: 'string'},
-  {name: 'tags[app_device]', type: 'string'},
-  {name: 'tags[device]', type: 'string'},
-  {name: 'tags[device_family]', type: 'string'},
-  {name: 'tags[runtime]', type: 'string'},
-  {name: 'tags[runtime_name]', type: 'string'},
-  {name: 'tags[browser]', type: 'string'},
-  {name: 'tags[browser_name]', type: 'string'},
-  {name: 'tags[os]', type: 'string'},
-  {name: 'tags[os_name]', type: 'string'},
-  {name: 'tags[os_rooted]', type: 'number'},
-  {name: 'tags[sentry:release]', type: 'string'},
+const TYPES = {
+  STRING: 'string',
+  NUMBER: 'number',
+  BOOLEAN: 'boolean',
+  DATETIME: 'datetime',
+};
+
+export const PROMOTED_TAGS = [
+  'level',
+  'logger',
+  'server.name',
+  'transaction',
+  'environment',
+  'site',
+  'url',
+  'app.device',
+  'device',
+  'device.family',
+  'runtime',
+  'runtime.name',
+  'browser',
+  'browser.name',
+  'os',
+  'os.name',
+  'os.rooted',
+  'sentry:release',
 ];
 
-const COLUMNS = [
-  {name: 'event_id', type: 'string'},
-  {name: 'project_id', type: 'string'},
-  {name: 'platform', type: 'string'},
-  {name: 'message', type: 'string'},
-  {name: 'primary_hash', type: 'string'},
-  {name: 'timestamp', type: 'string'}, // TODO: handling datetime as string for now
-  {name: 'received', type: 'string'}, // TODO: handling datetime as string for now
+// All tags are assumed to be strings, except the following
+export const SPECIAL_TAGS = {
+  os_rooted: TYPES.BOOLEAN,
+};
 
-  {name: 'user_id', type: 'string'},
-  {name: 'username', type: 'string'},
-  {name: 'email', type: 'string'},
-  {name: 'ip_address', type: 'string'},
+export const COLUMNS = [
+  {name: 'id', type: TYPES.STRING},
+  {name: 'issue.id', type: TYPES.STRING},
+  {name: 'project.id', type: TYPES.STRING},
+  {name: 'project.name', type: TYPES.STRING},
+  {name: 'platform', type: TYPES.STRING},
+  {name: 'message', type: TYPES.STRING},
+  {name: 'primary_hash', type: TYPES.STRING},
+  {name: 'timestamp', type: TYPES.DATETIME},
 
-  {name: 'sdk_name', type: 'string'},
-  {name: 'sdk_version', type: 'string'},
-  {name: 'tags_key', type: 'string'},
-  {name: 'tags_value', type: 'string'},
-  {name: 'contexts.key', type: 'string'},
-  {name: 'contexts.value', type: 'string'},
-  {name: 'http_method', type: 'string'},
-  {name: 'http_referer', type: 'string'},
-  {name: 'os_build', type: 'string'},
-  {name: 'os_kernel_version', type: 'string'},
-  {name: 'device_name', type: 'string'},
-  {name: 'device_brand', type: 'string'},
-  {name: 'device_locale', type: 'string'},
-  {name: 'device_uuid', type: 'string'},
-  {name: 'device_model_id', type: 'string'},
-  {name: 'device_arch', type: 'string'},
-  {name: 'device_battery_level', type: 'number'},
-  {name: 'device_orientation', type: 'string'},
-  {name: 'device_simulator', type: 'string'},
-  {name: 'device_online', type: 'string'},
-  {name: 'device_charging', type: 'string'},
-  {name: 'exception_stacks.type', type: 'string'},
-  {name: 'exception_stacks.value', type: 'string'},
-  {name: 'exception_stacks.mechanism_type', type: 'string'},
-  {name: 'exception_stacks.mechanism_handled', type: 'string'},
-  {name: 'exception_frames.abs_path', type: 'string'},
-  {name: 'exception_frames.filename', type: 'string'},
-  {name: 'exception_frames.package', type: 'string'},
-  {name: 'exception_frames.module', type: 'string'},
-  {name: 'exception_frames.function', type: 'string'},
-  {name: 'exception_frames.in_app', type: 'string'},
-  {name: 'exception_frames.colno', type: 'string'},
-  {name: 'exception_frames.lineno', type: 'string'},
-  {name: 'exception_frames.stack_level', type: 'string'},
+  {name: 'user.id', type: TYPES.STRING},
+  {name: 'user.username', type: TYPES.STRING},
+  {name: 'user.email', type: TYPES.STRING},
+  {name: 'user.ip', type: TYPES.STRING},
+
+  {name: 'sdk.name', type: TYPES.STRING},
+  {name: 'sdk.version', type: TYPES.STRING},
+  // {name: 'tags_key', type: TYPES.STRING},
+  // {name: 'tags_value', type: TYPES.STRING},
+  {name: 'contexts.key', type: TYPES.STRING},
+  {name: 'contexts.value', type: TYPES.STRING},
+  {name: 'http.method', type: TYPES.STRING},
+  {name: 'http.url', type: TYPES.STRING},
+  {name: 'os.build', type: TYPES.STRING},
+  {name: 'os.kernel_version', type: TYPES.STRING},
+  {name: 'device.name', type: TYPES.STRING},
+  {name: 'device.brand', type: TYPES.STRING},
+  {name: 'device.locale', type: TYPES.STRING},
+  {name: 'device.uuid', type: TYPES.STRING},
+  {name: 'device.model_id', type: TYPES.STRING},
+  {name: 'device.arch', type: TYPES.STRING},
+  {name: 'device.battery_level', type: TYPES.NUMBER},
+  {name: 'device.orientation', type: TYPES.STRING},
+  {name: 'device.simulator', type: TYPES.BOOLEAN},
+  {name: 'device.online', type: TYPES.BOOLEAN},
+  {name: 'device.charging', type: TYPES.BOOLEAN},
+  {name: 'geo.country_code', type: TYPES.STRING},
+  {name: 'geo.region', type: TYPES.STRING},
+  {name: 'geo.city', type: TYPES.STRING},
+  {name: 'error.type', type: TYPES.STRING},
+  {name: 'error.value', type: TYPES.STRING},
+  {name: 'error.mechanism', type: TYPES.STRING},
+  {name: 'error.handled', type: TYPES.STRING},
+  {name: 'stack.abs_path', type: TYPES.STRING},
+  {name: 'stack.filename', type: TYPES.STRING},
+  {name: 'stack.package', type: TYPES.STRING},
+  {name: 'stack.module', type: TYPES.STRING},
+  {name: 'stack.function', type: TYPES.STRING},
+  {name: 'stack.in_app', type: TYPES.BOOLEAN},
+  {name: 'stack.colno', type: TYPES.STRING},
+  {name: 'stack.lineno', type: TYPES.STRING},
+  {name: 'stack.stack_level', type: TYPES.STRING},
 ];
 
-const CONDITION_OPERATORS = [
+export const NON_SNUBA_FIELDS = ['issue.id', 'project.name'];
+
+export const NON_CONDITIONS_FIELDS = [...NON_SNUBA_FIELDS, 'project.id'];
+
+export const CONDITION_OPERATORS = [
   '>',
   '<',
   '>=',
@@ -83,6 +103,6 @@ const CONDITION_OPERATORS = [
   'NOT LIKE',
 ];
 
-const NUMBER_OF_SERIES_BY_DAY = 10;
+export const ARRAY_FIELD_PREFIXES = ['error', 'stack'];
 
-export {COLUMNS, PROMOTED_TAGS, CONDITION_OPERATORS, NUMBER_OF_SERIES_BY_DAY};
+export const NUMBER_OF_SERIES_BY_DAY = 10;

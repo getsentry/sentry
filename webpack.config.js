@@ -47,8 +47,6 @@ var appEntry = {
   app: ['app'],
   vendor: [
     'babel-polyfill',
-    // Yes this is included in prod builds, but has no effect on render and build size in prod
-    'react-hot-loader/patch',
     'bootstrap/js/dropdown',
     'bootstrap/js/tab',
     'bootstrap/js/tooltip',
@@ -59,7 +57,7 @@ var appEntry = {
     'marked',
     'moment',
     'moment-timezone',
-    'raven-js',
+    '@sentry/browser',
     'react',
     'react-dom',
     'react-dom/server',
@@ -149,6 +147,20 @@ var appConfig = {
         ],
       },
       {
+        test: /\.css/,
+        use: [
+          {
+            loader: 'style-loader',
+          },
+          {
+            loader: 'css-loader',
+            options: {
+              minimize: IS_PRODUCTION,
+            },
+          },
+        ],
+      },
+      {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
         exclude: /app\/icons\/.*\.svg$/,
         loader: 'file-loader?name=' + '[name].[ext]',
@@ -199,6 +211,8 @@ var appConfig = {
   resolve: {
     alias: {
       app: path.join(__dirname, 'src', 'sentry', 'static', 'sentry', 'app'),
+      'app-test': path.join(__dirname, 'tests', 'js'),
+      'app-test-helpers': path.join(__dirname, 'tests', 'js', 'helpers'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
       'integration-docs-platforms': IS_TEST
         ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')

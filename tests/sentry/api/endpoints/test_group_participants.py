@@ -19,7 +19,7 @@ class GroupParticipantsTest(APITestCase):
             is_active=True,
         )
 
-        url = '/api/0/issues/{}/participants/'.format(group.id)
+        url = u'/api/0/issues/{}/participants/'.format(group.id)
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content

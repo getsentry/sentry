@@ -1,8 +1,8 @@
+import {browserHistory} from 'react-router';
 import Reflux from 'reflux';
-import $ from 'jquery';
 import GuideActions from 'app/actions/guideActions';
 import OrganizationsActions from 'app/actions/organizationsActions';
-import analytics from 'app/utils/analytics';
+import {analytics} from 'app/utils/analytics';
 import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
@@ -25,15 +25,16 @@ const GuideStore = Reflux.createStore({
       org: null,
       // Current project.
       project: null,
-      // Total events received in the project in the last 30 days. id (int) -> int.
-      projectStats: {},
-      // Whether the project has customized alert rules. id (int) -> bool.
-      projectRules: {},
       // We force show a guide if the URL contains #assistant.
       forceShow: false,
       // The previously shown guide.
       prevGuide: null,
+      // Total events received in the project in the last 30 days. id (int) -> int.
+      projectStats: new Map(),
+      // Whether the project has customized alert rules. id (int) -> bool.
+      projectRules: new Map(),
     };
+
     this.api = new Client();
     this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
     this.listenTo(GuideActions.closeGuide, this.onCloseGuide);
@@ -44,8 +45,8 @@ const GuideStore = Reflux.createStore({
     this.listenTo(ProjectActions.setActive, this.onSetActiveProject);
     this.listenTo(OrganizationsActions.changeSlug, this.onChangeOrgSlug);
 
-    window.addEventListener('hashchange', this.onURLChange, false);
     window.addEventListener('load', this.onURLChange, false);
+    browserHistory.listen(() => this.onURLChange());
   },
 
   onURLChange() {
@@ -106,10 +107,14 @@ const GuideStore = Reflux.createStore({
   },
 
   recordCue(id, cue) {
-    analytics('assistant.guide_cued', {
+    let data = {
       guide: id,
       cue,
-    });
+    };
+    if (this.state.org) {
+      data.org_id = parseInt(this.state.org.id, 10);
+    }
+    analytics('assistant.guide_cued', data);
   },
 
   updatePrevGuide(bestGuide) {
@@ -134,58 +139,107 @@ const GuideStore = Reflux.createStore({
     );
   },
 
-  checkAlertTipData() {
-    // Check if we have the data needed to determine if the alert-reminder tip should be shown.
-    // If not, take the necessary actions to fetch the data.
-    let {org, project, projectStats, projectRules} = this.state;
+  async getProjectStats(projectId) {
+    let {org, project, projectStats} = this.state;
 
-    if (!org || !project) {
-      return false;
+    if (projectStats.has(projectId)) {
+      return Promise.resolve(projectStats.get(projectId));
     }
 
-    let projectId = parseInt(project.id, 10);
-    let ready = true;
-
-    if (projectStats[projectId] === undefined) {
-      ready = false;
-      let path = `/projects/${org.slug}/${project.slug}/stats/`;
-      this.api.request(path, {
+    let path = `/projects/${org.slug}/${project.slug}/stats/`;
+    return this.api
+      .requestPromise(path, {
         query: {
           // Last 30 days.
           since: new Date().getTime() / 1000 - 3600 * 24 * 30,
         },
-        success: data => {
-          let eventsReceived = data.reduce((sum, point) => sum + point[1], 0);
-          projectStats[projectId] = eventsReceived;
-          this.updateCurrentGuide();
-        },
+      })
+      .then(data => {
+        let eventsReceived = data.reduce((sum, point) => sum + point[1], 0);
+        projectStats.set(projectId, eventsReceived);
+        return eventsReceived;
       });
-    }
-
-    if (projectRules[projectId] === undefined) {
-      ready = false;
-      let path = `/projects/${org.slug}/${project.slug}/rules/`;
-      this.api.request(path, {
-        success: data => {
-          projectRules[projectId] = !this.isDefaultAlert(data);
-          this.updateCurrentGuide();
-        },
-      });
-    }
-
-    return ready;
   },
 
-  updateCurrentGuide() {
+  async getProjectRules(projectId) {
+    let {org, project, projectRules} = this.state;
+
+    if (projectRules.has(projectId)) {
+      return Promise.resolve(projectRules.get(projectId));
+    }
+
+    let path = `/projects/${org.slug}/${project.slug}/rules/`;
+    return this.api
+      .requestPromise(path, {
+        query: {
+          // Last 30 days.
+          since: new Date().getTime() / 1000 - 3600 * 24 * 30,
+        },
+      })
+      .then(data => {
+        let result = !this.isDefaultAlert(data);
+        projectRules.set(projectId, result);
+        return result;
+      });
+  },
+
+  async checkAlertTipData() {
+    // Check if we have the data needed to determine if the alert-reminder tip should be shown.
+    // If not, take the necessary actions to fetch the data.
+    let {org, project} = this.state;
+
+    if (!org || !project) {
+      return Promise.resolve([]);
+    }
+
+    let projectId = parseInt(project.id, 10);
+    return Promise.all([
+      this.getProjectStats(projectId),
+      this.getProjectRules(projectId),
+    ]);
+  },
+
+  async getBestGuideKey(guideKeys) {
+    // Pick the first guide that satisfies conditions.
+    let user = ConfigStore.get('user');
+
+    return new Promise(async (resolve, reject) => {
+      let projectData = [];
+
+      if (guideKeys.includes(ALERT_REMINDER_1)) {
+        projectData = await this.checkAlertTipData();
+      }
+
+      resolve(
+        guideKeys.find(key => {
+          // Pick the first guide that satisfies conditions.
+          if (key === ALERT_REMINDER_1) {
+            let [stats, rules] = projectData;
+            return !rules && stats > 1000;
+          } else if (
+            user.isSuperuser ||
+            new Date(user.dateJoined) > new Date(2018, 4, 10)
+          ) {
+            return true;
+          }
+
+          return false;
+        })
+      );
+    });
+  },
+
+  async updateCurrentGuide() {
     // Logic to determine if a guide is shown:
     // 1. If any required target is missing, don't show the guide.
-    // 2. If the URL ends with #assistant, show the guide.
-    // 3. If the user isn't in the A/B test, don't show the guide.
-    // 4. If the user has seen the guide, don't show it.
-    // 5. If the guide doesn't pass custom checks, don't show it.
+    // 2. If custom checks fail, don't show the guide.
+    // 3. If the URL ends with #assistant, show the guide.
+    // 4. If the user isn't in the A/B test, don't show the guide.
+    // 5. If the user has seen the guide, don't show it.
     // 6. Otherwise show the guide.
 
     let availableTargets = [...this.state.anchors].map(a => a.props.target);
+
     // sort() so that we pick a guide deterministically every time this function is called.
     let guideKeys = Object.keys(this.state.guides)
       .sort()
@@ -205,39 +259,20 @@ const GuideStore = Reflux.createStore({
     }
 
     // Pick the first guide that satisfies conditions.
-    let bestGuideKey = null;
-    let user = ConfigStore.get('user');
-    for (let key of guideKeys) {
-      if (key === ALERT_REMINDER_1) {
-        if (!this.checkAlertTipData()) {
-          // Wait for the required data.
-          break;
-        } else if (user.isSuperuser) {
-          // Only show this to superusers for now.
-          let projectId = parseInt(this.state.project.id, 10);
-          if (
-            this.state.projectStats[projectId] > 1000 &&
-            !this.state.projectRules[projectId]
-          ) {
-            bestGuideKey = key;
-            break;
-          }
-        }
-      } else if (user.isSuperuser || new Date(user.dateJoined) > new Date(2018, 4, 10)) {
-        bestGuideKey = key;
-        break;
-      }
-    }
+    let bestGuideKey = await this.getBestGuideKey(guideKeys);
 
     let bestGuide = null;
     if (bestGuideKey) {
-      bestGuide = $.extend(true, {}, this.state.guides[bestGuideKey]);
-      // Remove steps that don't have an anchor on the page.
-      bestGuide.steps = bestGuide.steps.filter(
-        step =>
-          step.target === null ||
-          (step.target && availableTargets.indexOf(step.target) >= 0)
-      );
+      bestGuide = {
+        ...this.state.guides[bestGuideKey],
+
+        // Remove steps that don't have an anchor on the page.
+        steps: this.state.guides[bestGuideKey].steps.filter(
+          step =>
+            step.target === null ||
+            (step.target && availableTargets.indexOf(step.target) >= 0)
+        ),
+      };
     }
 
     this.updatePrevGuide(bestGuide);

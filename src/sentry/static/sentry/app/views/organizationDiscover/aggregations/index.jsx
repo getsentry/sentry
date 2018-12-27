@@ -7,13 +7,14 @@ import InlineSvg from 'app/components/inlineSvg';
 import {t} from 'app/locale';
 
 import Aggregation from './aggregation';
-import {PlaceholderText, SelectListItem, AddText} from '../styles';
+import {PlaceholderText, SelectListItem, AddText, SidebarLabel} from '../styles';
 
 export default class Aggregations extends React.Component {
   static propTypes = {
     value: PropTypes.array.isRequired,
     onChange: PropTypes.func.isRequired,
     columns: PropTypes.array,
+    disabled: PropTypes.bool,
   };
 
   addRow() {
@@ -35,25 +36,28 @@ export default class Aggregations extends React.Component {
   }
 
   render() {
-    const {value, columns} = this.props;
+    const {value, columns, disabled} = this.props;
 
     return (
       <div>
         <div>
-          <strong>{t('Aggregation')}</strong>
-          <AddText>
-            (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
-          </AddText>
+          <SidebarLabel>{t('Aggregation')}</SidebarLabel>
+          {!disabled && (
+            <AddText>
+              (<Link onClick={() => this.addRow()}>{t('Add')}</Link>)
+            </AddText>
+          )}
         </div>
         {!value.length && (
           <PlaceholderText>{t('None, showing raw event data')}</PlaceholderText>
         )}
         {value.map((aggregation, idx) => (
-          <SelectListItem key={idx}>
+          <SelectListItem key={`${idx}_${aggregation[2]}`}>
             <Aggregation
               value={aggregation}
               onChange={val => this.handleChange(val, idx)}
               columns={columns}
+              disabled={disabled}
             />
             <Box ml={1}>
               <a onClick={() => this.removeRow(idx)}>

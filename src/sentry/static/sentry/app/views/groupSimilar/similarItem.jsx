@@ -98,6 +98,11 @@ const SimilarIssueItem = createReactClass({
     e.stopPropagation();
   },
 
+  handleCheckClick() {
+    // noop to appease React warnings
+    // This is controlled via row click instead of only Checkbox
+  },
+
   render() {
     let {aggregate, scoresByInterface, issue, orgId, projectId} = this.props;
 
@@ -111,11 +116,21 @@ const SimilarIssueItem = createReactClass({
     });
 
     return (
-      <SpreadLayout className={cx} responsive onClick={this.handleToggle}>
+      <SpreadLayout
+        data-test-id="similar-item-row"
+        className={cx}
+        responsive
+        onClick={this.handleToggle}
+      >
         <FlowLayout truncate>
           <FlowLayout truncate>
             <div className="action-column">
-              <Checkbox id={issue.id} value={issue.id} checked={this.state.checked} />
+              <Checkbox
+                id={issue.id}
+                value={issue.id}
+                checked={this.state.checked}
+                onChange={this.handleCheckClick}
+              />
             </div>
             <div className="event-details level-error" style={{flex: 1}}>
               <EventOrGroupHeader orgId={orgId} projectId={projectId} data={issue} />

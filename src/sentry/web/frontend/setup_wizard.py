@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.cache import default_cache
+from django.db.models import F
 
 from sentry import roles
+from sentry.cache import default_cache
 from sentry.models import ApiToken
 from sentry.api.serializers import serialize
 from sentry.web.frontend.base import BaseView
@@ -46,7 +47,7 @@ class SetupWizardView(BaseView):
                 enriched_project['organization'] = serialize(org)
                 keys = list(ProjectKey.objects.filter(
                     project=project,
-                    roles=ProjectKey.roles.store,
+                    roles=F('roles').bitor(ProjectKey.roles.store),
                     status=ProjectKeyStatus.ACTIVE,
                 ))
                 enriched_project['keys'] = serialize(keys)

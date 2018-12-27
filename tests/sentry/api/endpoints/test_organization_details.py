@@ -13,6 +13,7 @@ from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
+    AuthProvider,
     DeletedOrganization,
     Organization,
     OrganizationAvatar,
@@ -26,6 +27,11 @@ from sentry.testutils import APITestCase, TwoFactorAPITestCase
 class OrganizationDetailsTest(APITestCase):
     def test_simple(self):
         org = self.create_organization(owner=self.user)
+        self.create_team(
+            name='appy',
+            organization=org,
+            members=[self.user])
+
         self.login_as(user=self.user)
         url = reverse(
             'sentry-api-0-organization-details', kwargs={
@@ -36,6 +42,7 @@ class OrganizationDetailsTest(APITestCase):
         assert response.data['onboardingTasks'] == []
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(org.id)
+        assert len(response.data['teams']) == 1
 
         for i in range(5):
             self.create_project(organization=org)
@@ -47,7 +54,7 @@ class OrganizationDetailsTest(APITestCase):
         )
         # TODO(dcramer): we need to pare this down -- lots of duplicate queries
         # for membership data
-        with self.assertNumQueries(28, using='default'):
+        with self.assertNumQueries(33, using='default'):
             from django.db import connections
             response = self.client.get(url, format='json')
             pprint(connections['default'].queries)
@@ -172,10 +179,7 @@ class OrganizationUpdateTest(APITestCase):
     def test_various_options(self):
         org = self.create_organization(owner=self.user)
         initial = org.get_audit_log_data()
-
-        # clear logs
-        for log in AuditLogEntry.objects.filter(organization=org):
-            log.delete()
+        AuditLogEntry.objects.filter(organization=org).delete()
 
         self.login_as(user=self.user)
         url = reverse(
@@ -233,18 +237,61 @@ class OrganizationUpdateTest(APITestCase):
         log = AuditLogEntry.objects.get(organization=org)
         assert log.get_event_display() == 'org.edit'
         # org fields & flags
-        assert 'to {}'.format(data['defaultRole']) in log.data['default_role']
-        assert 'to {}'.format(data['openMembership']) in log.data['allow_joinleave']
-        assert 'to {}'.format(data['isEarlyAdopter']) in log.data['early_adopter']
-        assert 'to {}'.format(data['enhancedPrivacy']) in log.data['enhanced_privacy']
-        assert 'to {}'.format(not data['allowSharedIssues']) in log.data['disable_shared_issues']
-        assert 'to {}'.format(data['require2FA']) in log.data['require_2fa']
+        assert u'to {}'.format(data['defaultRole']) in log.data['default_role']
+        assert u'to {}'.format(data['openMembership']) in log.data['allow_joinleave']
+        assert u'to {}'.format(data['isEarlyAdopter']) in log.data['early_adopter']
+        assert u'to {}'.format(data['enhancedPrivacy']) in log.data['enhanced_privacy']
+        assert u'to {}'.format(not data['allowSharedIssues']) in log.data['disable_shared_issues']
+        assert u'to {}'.format(data['require2FA']) in log.data['require_2fa']
         # org options
-        assert 'to {}'.format(data['dataScrubber']) in log.data['dataScrubber']
-        assert 'to {}'.format(data['dataScrubberDefaults']) in log.data['dataScrubberDefaults']
-        assert 'to {}'.format(data['sensitiveFields']) in log.data['sensitiveFields']
-        assert 'to {}'.format(data['safeFields']) in log.data['safeFields']
-        assert 'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
+        assert u'to {}'.format(data['dataScrubber']) in log.data['dataScrubber']
+        assert u'to {}'.format(data['dataScrubberDefaults']) in log.data['dataScrubberDefaults']
+        assert u'to {}'.format(data['sensitiveFields']) in log.data['sensitiveFields']
+        assert u'to {}'.format(data['safeFields']) in log.data['safeFields']
+        assert u'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
+        assert u'to {}'.format(data['scrapeJavaScript']) in log.data['scrapeJavaScript']
+
+    def test_setting_trusted_relays_forbidden(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        data = {
+            'trustedRelays': [u'key1', u'key2']
+        }
+
+        response = self.client.put(url, data=data)
+        assert response.status_code == 400
+        assert 'feature' in response.content
+
+    def test_setting_trusted_relays(self):
+        org = self.create_organization(owner=self.user)
+        AuditLogEntry.objects.filter(organization=org).delete()
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        data = {'trustedRelays': [u'key1', u'key2']}
+
+        with self.feature("organizations:relay"):
+            response = self.client.put(url, data=data)
+            assert response.status_code == 200
+
+        option, = OrganizationOption.objects.filter(
+            organization=org,
+            key="sentry:trusted-relays"
+        )
+
+        assert option.value == data['trustedRelays']
+        log = AuditLogEntry.objects.get(organization=org)
+        assert 'to {}'.format(data['trustedRelays']) in log.data['trustedRelays']
 
     def test_setting_legacy_rate_limits(self):
         org = self.create_organization(owner=self.user)
@@ -566,6 +613,22 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         assert not Authenticator.objects.user_has_2fa(self.owner)
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400)
+
+    def test_cannot_enforce_2fa_with_saml_enabled(self):
+        self.auth_provider = AuthProvider.objects.create(
+            provider='saml2',
+            organization=self.org_2fa,
+        )
+        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400)
+
+    def test_can_enforce_2fa_with_non_saml_sso_enabled(self):
+        org = self.create_organization(owner=self.owner)
+        TotpInterface().enroll(self.owner)
+        self.auth_provider = AuthProvider.objects.create(
+            provider='github',
+            organization=org,
+        )
+        self.assert_can_enable_org_2fa(self.organization, self.owner)
 
     def test_owner_can_set_2fa_single_member(self):
         org = self.create_organization(owner=self.owner)

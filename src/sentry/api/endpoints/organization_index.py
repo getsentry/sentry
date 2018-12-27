@@ -132,6 +132,12 @@ class OrganizationIndexEndpoint(Endpoint):
                         ])
                     except KeyError:
                         queryset = queryset.none()
+                elif key == 'member_id':
+                    queryset = queryset.filter(
+                        id__in=OrganizationMember.objects.filter(
+                            id__in=value,
+                        ).values('organization'),
+                    )
                 else:
                     queryset = queryset.none()
 

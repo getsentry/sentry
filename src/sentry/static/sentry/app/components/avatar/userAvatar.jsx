@@ -41,6 +41,7 @@ class UserAvatar extends React.Component {
 
     return (
       <BaseAvatar
+        round
         {...props}
         type={type}
         uploadPath="avatar"
@@ -53,7 +54,6 @@ class UserAvatar extends React.Component {
             : userDisplayName(user)
         }
         title={user.name || user.email || user.username || ''}
-        round
       />
     );
   }

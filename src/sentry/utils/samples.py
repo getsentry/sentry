@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 import six
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
-from sentry.coreapi import ClientApiHelper
 from sentry.event_manager import EventManager
 from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
@@ -41,6 +40,14 @@ def random_ip():
             six.text_type(random.randrange(1, 256)), six.text_type(random.randrange(1, 256))
         )
     )
+
+
+def random_geo():
+    return random.choice([
+        {'country_code': 'US', 'region': 'CA', 'city': 'San Francisco'},
+        {'country_code': 'AU', 'region': 'VIC', 'city': 'Melbourne'},
+        {'country_code': 'GB', 'region': 'H9', 'city': 'London'},
+    ])
 
 
 def random_username():
@@ -81,7 +88,7 @@ def name_for_username(username):
 def generate_user(username=None, email=None, ip_address=None, id=None):
     if username is None and email is None:
         username = random_username()
-        email = '{}@example.com'.format(username)
+        email = u'{}@example.com'.format(username)
     return UserInterface.to_python(
         {
             'id': id,
@@ -89,11 +96,12 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
             'email': email,
             'ip_address': ip_address or random_ip(),
             'name': name_for_username(username),
+            'geo': random_geo(),
         }
     ).to_json()
 
 
-def load_data(platform, default=None, timestamp=None, sample_name=None):
+def load_data(platform, default=None, sample_name=None):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
     # has production consequences.
@@ -136,7 +144,7 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
 
     data['platform'] = platform
     data['message'] = 'This is an example %s exception' % (sample_name or platform, )
-    data['sentry.interfaces.User'] = generate_user(
+    data['user'] = generate_user(
         ip_address='127.0.0.1',
         username='sentry',
         id=1,
@@ -156,7 +164,7 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     data['modules'] = {
         'my.package': '1.0.0',
     }
-    data['sentry.interfaces.Http'] = {
+    data['request'] = {
         "cookies": 'foo=bar;biz=baz',
         "url": "http://example.com/foo",
         "headers": {
@@ -175,26 +183,6 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
         "method": "GET"
     }
 
-    start = datetime.utcnow()
-    if timestamp:
-        try:
-            start = datetime.utcfromtimestamp(timestamp)
-        except TypeError:
-            pass
-
-    # Make breadcrumb timestamps relative to right now so they make sense
-    breadcrumbs = data.get('sentry.interfaces.Breadcrumbs')
-    if breadcrumbs is not None:
-        duration = 1000
-        # At this point, breadcrumbs are not normalized. They can either be a
-        # direct list or a values object containing a list.
-        values = isinstance(breadcrumbs, list) and breadcrumbs or breadcrumbs['values']
-        for value in reversed(values):
-            value['timestamp'] = milliseconds_ago(start, duration)
-
-            # Every breadcrumb is 1s apart
-            duration += 1000
-
     return data
 
 
@@ -203,16 +191,13 @@ def create_sample_event(project, platform=None, default=None,
     if not platform and not default:
         return
 
-    timestamp = kwargs.get('timestamp')
-
-    data = load_data(platform, default, timestamp, sample_name)
+    data = load_data(platform, default, sample_name)
 
     if not data:
         return
 
     data.update(kwargs)
 
-    data = ClientApiHelper().validate_data(data)
     manager = EventManager(data)
     manager.normalize()
     return manager.save(project.id, raw=raw)

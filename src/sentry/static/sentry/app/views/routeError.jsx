@@ -2,8 +2,8 @@ import {withRouter} from 'react-router';
 import $ from 'jquery';
 import PropTypes from 'prop-types';
 import React from 'react';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 class RouteError extends React.Component {
@@ -35,17 +35,15 @@ class RouteError extends React.Component {
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // throw this in a timeout so if it errors we dont fall over
     this._timeout = window.setTimeout(() => {
-      sdk.captureException(error, {
-        extra: {
-          route,
-          orgFeatures: (organization && organization.features) || [],
-          orgAccess: (organization && organization.access) || [],
-          projectFeatures: (project && project.features) || [],
-        },
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['route-error', ...(route ? [route] : [])]);
+        scope.setExtra('route', route);
+        scope.setExtra('orgFeatures', (organization && organization.features) || []);
+        scope.setExtra('orgAccess', (organization && organization.access) || []);
+        scope.setExtra('projectFeatures', (project && project.features) || []);
+        Sentry.captureException(error);
       });
-      // TODO(dcramer): we do not have errorId until send() is called which
-      // has latency in production so this will literally never fire
-      sdk.showReportDialog();
+      Sentry.showReportDialog();
     });
   }
 

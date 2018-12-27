@@ -210,6 +210,21 @@ const formGroups = [
         ),
         visible: ({features}) => features.has('event-attachments'),
       },
+      {
+        name: 'trustedRelays',
+        type: 'string',
+        multiline: true,
+        autosize: true,
+        maxRows: 10,
+        placeholder: t('Paste the relay public keys here'),
+        label: t('Trusted Relays'),
+        help: t(
+          'The list of relay public keys that should be trusted. Any relay in this list will be permitted to access org and project configs. Separate multiple entries with a newline.'
+        ),
+        getValue: val => extractMultilineFields(val),
+        setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
+        visible: ({features}) => features.has('relay'),
+      },
     ],
   },
 ];

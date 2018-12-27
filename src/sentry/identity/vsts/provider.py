@@ -17,6 +17,8 @@ def get_user_info(access_token):
     )
     resp.raise_for_status()
     user = resp.json()
+    user['uuid'] = user['id']
+
     resp = session.get(
         'https://app.vssps.visualstudio.com/_apis/connectionData/',
         headers={

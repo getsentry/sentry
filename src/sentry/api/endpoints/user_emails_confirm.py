@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.validators import AllowedEmailField
 from sentry.models import UserEmail
 
 logger = logging.getLogger('sentry.accounts')
@@ -29,7 +30,7 @@ class DuplicateEmailError(Exception):
 
 
 class EmailSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
+    email = AllowedEmailField(required=True)
 
 
 class UserEmailsConfirmEndpoint(UserEndpoint):
@@ -45,7 +46,7 @@ class UserEmailsConfirmEndpoint(UserEndpoint):
         from sentry.app import ratelimiter
 
         if ratelimiter.is_limited(
-            'auth:confirm-email:{}'.format(user.id),
+            u'auth:confirm-email:{}'.format(user.id),
             limit=10,
             window=60,  # 10 per minute should be enough for anyone
         ):

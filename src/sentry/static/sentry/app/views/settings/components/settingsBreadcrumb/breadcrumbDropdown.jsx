@@ -96,6 +96,7 @@ class BreadcrumbDropdown extends React.Component {
         items={items}
         onSelect={onSelect}
         isStyled
+        virtualizedHeight={41}
       >
         {({getActorProps, actions, isOpen}) => {
           return (

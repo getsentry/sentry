@@ -24,6 +24,22 @@ _sprintf_placeholder_re = re.compile(
     r'%(?:\d+\$)?[+-]?(?:[ 0]|\'.{1})?-?\d*(?:\.\d+)?[bcdeEufFgGosxX]'
 )
 
+_lone_surrogate = re.compile(u"""(?x)
+    (
+        [\ud800-\udbff](?![\udc00-\udfff])
+    ) | (
+        (?<![\ud800-\udbff])
+        [\udc00-\udfff]
+    )
+""")
+
+
+def strip_lone_surrogates(string):
+    """Removes lone surrogates."""
+    if six.PY3:
+        return string.encode('utf-8', 'surrogatepass').decode('utf-8', 'ignore')
+    return _lone_surrogate.sub('', string)
+
 
 def truncatechars(value, arg, ellipsis='...'):
     # TODO (alex) could use unicode ellipsis: u'\u2026'
@@ -77,7 +93,7 @@ def soft_break(value, length, process=lambda chunk: chunk):
     zero-width spaces after common delimeters, as well as soft-hyphenating long
     identifiers.
     """
-    delimiters = re.compile(r'([{}]+)'.format(''.join(map(re.escape, ',.$:/+@!?()<>[]{}'))))
+    delimiters = re.compile(ur'([{}]+)'.format(''.join(map(re.escape, ',.$:/+@!?()<>[]{}'))))
 
     def soft_break_delimiter(match):
         results = []
@@ -92,7 +108,7 @@ def soft_break(value, length, process=lambda chunk: chunk):
 
         return u''.join(results).rstrip(u'\u200b')
 
-    return re.sub(r'\S{{{},}}'.format(length), soft_break_delimiter, value)
+    return re.sub(ur'\S{{{},}}'.format(length), soft_break_delimiter, value)
 
 
 def to_unicode(value):

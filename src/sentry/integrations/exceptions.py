@@ -50,7 +50,7 @@ class ApiHostError(ApiError):
     @classmethod
     def from_request(cls, request):
         host = urlparse(request.url).netloc
-        return cls('Unable to reach host: {}'.format(host))
+        return cls(u'Unable to reach host: {}'.format(host))
 
 
 class ApiUnauthorized(ApiError):

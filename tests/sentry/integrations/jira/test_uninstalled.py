@@ -16,7 +16,7 @@ class JiraUninstalledTest(APITestCase):
             name='Example Jira',
             status=ObjectStatus.VISIBLE,
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         path = '/extensions/jira/uninstalled/'
 

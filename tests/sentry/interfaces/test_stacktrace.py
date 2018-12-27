@@ -5,10 +5,10 @@ from __future__ import absolute_import
 import functools
 
 import mock
+from django.conf import settings
 from django.template.loader import render_to_string
 from exam import fixture
 
-from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.stacktrace import (Frame, Stacktrace, get_context, is_url, slim_frame_data)
 from sentry.models import Event
 from sentry.testutils import TestCase
@@ -48,18 +48,31 @@ class StacktraceTest(TestCase):
             )
         )
 
+    def test_null_values(self):
+        sink = {}
+
+        assert Stacktrace.to_python({}).to_json() == sink
+        assert Stacktrace.to_python({'frames': None}).to_json() == sink
+        assert Stacktrace.to_python({'frames': []}).to_json() == sink
+
+        # TODO(markus): Should eventually generate frames: [None]
+        assert Stacktrace.to_python({'frames': [None]}).to_json() == {}
+
+    def test_null_values_in_frames(self):
+        sink = {'frames': [{}]}
+
+        assert Stacktrace.to_python({'frames': [{}]}).to_json() == sink
+        assert Stacktrace.to_python({'frames': [{'abs_path': None}]}).to_json() == sink
+
     def test_legacy_interface(self):
         # Simple test to ensure legacy data works correctly with the ``Frame``
         # objects
         event = self.event
-        interface = Stacktrace.to_python(event.data['sentry.interfaces.Stacktrace'])
+        interface = Stacktrace.to_python(event.data['stacktrace'])
         assert len(interface.frames) == 2
-        assert interface == event.interfaces['sentry.interfaces.Stacktrace']
+        assert interface == event.interfaces['stacktrace']
 
-    def test_requires_filename(self):
-        with self.assertRaises(InterfaceValidationError):
-            Stacktrace.to_python(dict(frames=[{}]))
-
+    def test_filename(self):
         Stacktrace.to_python(dict(frames=[{
             'filename': 'foo.py',
         }]))
@@ -67,16 +80,6 @@ class StacktraceTest(TestCase):
             'lineno': 1,
             'filename': 'foo.py',
         }]))
-
-    def test_requires_frames(self):
-        with self.assertRaises(InterfaceValidationError):
-            Stacktrace.to_python({})
-
-        with self.assertRaises(InterfaceValidationError):
-            Stacktrace.to_python(dict(frames=[]))
-
-        with self.assertRaises(InterfaceValidationError):
-            Stacktrace.to_python(dict(frames=1))
 
     def test_allows_abs_path_without_filename(self):
         interface = Stacktrace.to_python(
@@ -564,6 +567,28 @@ class StacktraceTest(TestCase):
         result = interface.get_hash(platform='javascript')
         assert result == ['<module>']
 
+    def test_get_hash_ignores_singular_anonymous_frame(self):
+        interface = Stacktrace.to_python({
+            'frames': [
+                {"abs_path": "<anonymous>", "filename": "<anonymous>", "in_app": False},
+                {"function": "c",
+                 "abs_path": "file:///C:/Users/redacted/AppData/Local/redacted/resources/app.asar/dojo/dojo.js",
+                 "in_app": False,
+                 "lineno": 1188,
+                 "colno": 125,
+                 "filename": "/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js"},
+                {"function": "Object._createDocumentViewModel",
+                 "abs_path": "file:///C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js",
+                 "in_app": False,
+                 "lineno": 1184,
+                 "colno": 92,
+                 "filename": "/C:/Users/redacted/AppData/Local/redacted/app-2.4.1/resources/app.asar/dojo/dojo.js"}
+            ]
+        })
+        result = interface.get_hash(platform='javascript')
+
+        assert result == []
+
     def test_collapse_recursion(self):
         interface = Stacktrace.to_python(
             {
@@ -638,6 +663,26 @@ class StacktraceTest(TestCase):
             'io.sentry.example.Application', 'recurFunc',
             'io.sentry.example.Application', 'throwError'
         ])
+
+    def test_frame_hard_limit(self):
+        hard_limit = settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT
+        interface = Stacktrace.to_python(
+            {
+                'frames': [
+                    {
+                        'filename': 'Application.java',
+                        'function': 'main',
+                        'lineno': i,  # linenos from 1 to the hard limit + 1
+                    } for i in range(1, hard_limit + 2)
+                ]
+            }
+        )
+
+        assert len(interface.frames) == hard_limit
+        assert interface.frames[0].lineno == 1
+        assert interface.frames[-1].lineno == hard_limit + 1
+        # second to last frame (lineno:250) should be removed
+        assert interface.frames[-2].lineno == hard_limit - 1
 
     def test_get_hash_ignores_safari_native_code(self):
         interface = Frame.to_python(
@@ -759,17 +804,6 @@ class StacktraceTest(TestCase):
         self.assertEquals(result, get_stacktrace.return_value)
 
     @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
-    @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_stacktrace')
-    def test_get_traceback_response(self, get_stacktrace):
-        event = mock.Mock(spec=Event())
-        event.message = 'foo'
-        get_stacktrace.return_value = 'bar'
-        interface = Stacktrace.to_python(dict(frames=[{'lineno': 1, 'filename': 'foo.py'}]))
-        result = interface.get_traceback(event)
-        get_stacktrace.assert_called_once_with(event, newest_first=None)
-        self.assertEquals(result, 'foo\n\nbar')
-
-    @mock.patch('sentry.interfaces.stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_only_filename(self):
         event = mock.Mock(spec=Event())
         interface = Stacktrace.to_python(dict(frames=[{'filename': 'foo'}, {'filename': 'bar'}]))
@@ -837,31 +871,26 @@ class StacktraceTest(TestCase):
         )
 
     def test_bad_input(self):
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'filename': 1,
-            })
+        assert Frame.to_python({
+            'filename': 1,
+        }).filename is None
 
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'filename': 'foo',
-                'abs_path': 1,
-            })
+        assert Frame.to_python({
+            'filename': 'foo',
+            'abs_path': 1,
+        }).abs_path == 'foo'
 
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'function': 1,
-            })
+        assert Frame.to_python({
+            'function': 1,
+        }).function is None
 
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'module': 1,
-            })
+        assert Frame.to_python({
+            'module': 1,
+        }).module is None
 
-        with self.assertRaises(InterfaceValidationError):
-            Frame.to_python({
-                'function': '?',
-            })
+        assert Frame.to_python({
+            'function': '?',
+        }).function is None
 
     def test_context_with_nan(self):
         self.assertEquals(

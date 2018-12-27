@@ -5,8 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import LoadingError from 'app/components/loadingError';
 
-// eslint-disable-next-line
-storiesOf('LoadingError', module)
+storiesOf('UI|LoadingError', module)
   .add(
     'default',
     withInfo('Loading error with default message')(() => (

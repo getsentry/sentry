@@ -20,6 +20,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         self.vsts_account_id = 'c8a585ae-b61f-4ba6-833c-9e8d5d1674d8'
         self.vsts_account_name = 'MyVSTSAccount'
         self.vsts_account_uri = 'https://MyVSTSAccount.vssps.visualstudio.com:443/'
+        self.vsts_base_url = 'https://MyVSTSAccount.visualstudio.com/'
 
         self.vsts_user_id = 'd6245f20-2af8-44f4-9451-8107cb2767db'
         self.vsts_user_name = 'Foo Bar'
@@ -60,15 +61,25 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://app.vssps.visualstudio.com/_apis/accounts',
-            json=[{
-                'AccountId': self.vsts_account_id,
-                'AccountUri': self.vsts_account_uri,
-                'AccountName': self.vsts_account_name,
-                'Properties': {},
-            }],
+            'https://app.vssps.visualstudio.com/_apis/accounts?ownerId=%s&api-version=4.1' % self.vsts_user_id,
+            json={
+                'count': 1,
+                'value': [{
+                    'accountId': self.vsts_account_id,
+                    'accountUri': self.vsts_account_uri,
+                    'accountName': self.vsts_account_name,
+                    'properties': {},
+                }]
+            },
         )
 
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1' % self.vsts_account_id,
+            json={
+                'locationUrl': self.vsts_base_url,
+            }
+        )
         responses.add(
             responses.GET,
             'https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=1.0',
@@ -91,7 +102,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://{}.visualstudio.com/DefaultCollection/_apis/projects'.format(
+            u'https://{}.visualstudio.com/_apis/projects'.format(
                 self.vsts_account_name.lower(),
             ),
             json={
@@ -104,7 +115,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            'https://{}.visualstudio.com/_apis/hooks/subscriptions'.format(
+            u'https://{}.visualstudio.com/_apis/hooks/subscriptions'.format(
                 self.vsts_account_name.lower(),
             ),
             json=CREATE_SUBSCRIPTION,
@@ -112,7 +123,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://{}.visualstudio.com/_apis/git/repositories'.format(
+            u'https://{}.visualstudio.com/_apis/git/repositories'.format(
                 self.vsts_account_name.lower(),
             ),
             json={
@@ -128,7 +139,23 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            'https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states'.format(
+            u'https://{}.visualstudio.com/ProjectA/_apis/git/repositories/ProjectA'.format(
+                self.vsts_account_name.lower(),
+            ),
+            json={
+                'repository': {
+                    'id': self.repo_id,
+                    'name': self.repo_name,
+                    'project': {
+                        'name': self.project_a['name'],
+                    },
+                },
+            },
+        )
+
+        responses.add(
+            responses.GET,
+            u'https://{}.visualstudio.com/{}/_apis/wit/workitemtypes/{}/states'.format(
                 self.vsts_account_name.lower(),
                 self.project_a['name'],
                 'Bug',
@@ -150,7 +177,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         )
 
     def make_oauth_redirect_request(self, state):
-        return self.client.get('{}?{}'.format(
+        return self.client.get(u'{}?{}'.format(
             self.setup_path,
             urlencode({
                 'code': 'oauth-code',
@@ -166,7 +193,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
     def assert_account_selection(self, response, account_id=None):
         account_id = account_id or self.vsts_account_id
         assert response.status_code == 200
-        assert '<option value="{}"'.format(account_id) in response.content
+        assert u'<option value="{}"'.format(account_id) in response.content
 
     def assert_installation(self):
         # Initial request to the installation URL for VSTS
@@ -210,6 +237,7 @@ COMPARE_COMMITS_EXAMPLE = b"""
         "date": "2018-04-24T00:03:18Z"
       },
       "comment": "Updated README.md",
+      "commentTruncated": true,
       "changeCounts": {"Add": 0, "Edit": 1, "Delete": 0},
       "url":
         "https://mbittker.visualstudio.com/_apis/git/repositories/b1e25999-c080-4ea1-8c61-597c4ec41f06/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff",
@@ -217,6 +245,62 @@ COMPARE_COMMITS_EXAMPLE = b"""
         "https://mbittker.visualstudio.com/_git/MyFirstProject/commit/6c36052c58bde5e57040ebe6bdb9f6a52c906fff"
     }
   ]
+}
+"""
+
+COMMIT_DETAILS_EXAMPLE = r"""
+{
+    "_links": {
+        "changes": {
+            "href": "https://mbittker.visualstudio.com/_apis/git/repositories/666ffcce-8ffa-46ec-bccf-b93b55bb2320/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff/changes"
+        },
+        "repository": {
+            "href": "https://mbittker.visualstudio.com/_apis/git/repositories/666ffcce-8ffa-46ec-bccf-b93b55bb2320"
+        },
+        "self": {
+            "href": "https://mbittker.visualstudio.com/_apis/git/repositories/666ffcce-8ffa-46ec-bccf-b93b55bb2320/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff"
+        },
+        "web": {
+            "href": "https://mbittker.visualstudio.com/_git/MyFirstProject/commit/6c36052c58bde5e57040ebe6bdb9f6a52c906fff"
+        }
+    },
+    "author": {
+        "date": "2018-11-23T15:59:19Z",
+        "email": "max@sentry.io",
+        "imageUrl": "https://www.gravatar.com/avatar/1cee8d752bcad4c172d60e56bb398c11?r=g&d=mm",
+        "name": "max bitker"
+    },
+    "comment": "Updated README.md\n\nSecond line\n\nFixes SENTRY-1",
+    "commitId": "6c36052c58bde5e57040ebe6bdb9f6a52c906fff",
+    "committer": {
+        "date": "2018-11-23T15:59:19Z",
+        "email": "max@sentry.io",
+        "imageUrl": "https://www.gravatar.com/avatar/1cee8d752bcad4c172d60e56bb398c11?r=g&d=mm",
+        "name": "max bittker"
+    },
+    "parents": [
+        "641e82ce0ed14f3cf3670b0bf5f669d7fbd40a68"
+    ],
+    "push": {
+        "date": "2018-11-23T16:01:10.7246278Z",
+        "pushId": 2,
+        "pushedBy": {
+            "_links": {
+                "avatar": {
+                    "href": "https://mbittker.visualstudio.com/_apis/GraphProfile/MemberAvatars/msa.NjI0ZGRhOWMtODgyZC03ZmRhLTk3OWItZTdhMjI5MWMzMzBk"
+                }
+            },
+            "descriptor": "msa.NjI0ZGRhOWMtODgyZC03ZmRhLTk3OWItZTdhMjI5MWMzMzBk",
+            "displayName": "Mark Story",
+            "id": "624dda9c-882d-6fda-979b-e7a2291c330d",
+            "imageUrl": "https://mbittker.visualstudio.com/_api/_common/identityImage?id=624dda9c-882d-6fda-979b-e7a2291c330d",
+            "uniqueName": "mark@mark-story.com",
+            "url": "https://mbittker.visualstudio.com/Aa365971d-9897-47eb-becf-c5142d33db08/_apis/Identities/624dda9c-882d-6fda-979b-e7a2291c330d"
+        }
+    },
+    "remoteUrl": "https://mbittker.visualstudio.com/MyFirstProject/_git/box-of-things/commit/6c36052c58bde5e57040ebe6bdb9f6a52c906fff",
+    "treeId": "026257a5e53eb923497c0217ef76e567f3a60088",
+    "url": "https://mbittker.visualstudio.com/_apis/git/repositories/666ffcce-8ffa-46ec-bccf-b93b55bb2320/commits/6c36052c58bde5e57040ebe6bdb9f6a52c906fff"
 }
 """
 
@@ -240,6 +324,7 @@ FILE_CHANGES_EXAMPLE = b"""
   ]
 }
 """
+
 WORK_ITEM_RESPONSE = """{
   "id": 309,
   "rev": 1,
@@ -374,6 +459,7 @@ GET_USERS_RESPONSE = b"""{
   ]
 }
 """
+
 CREATE_SUBSCRIPTION = {
     'id': 'fd672255-8b6b-4769-9260-beea83d752ce',
     'url': 'https://fabrikam.visualstudio.com/_apis/hooks/subscriptions/fd672255-8b6b-4769-9260-beea83d752ce',

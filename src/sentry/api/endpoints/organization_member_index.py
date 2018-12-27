@@ -14,6 +14,7 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
+from sentry.api.validators import AllowedEmailField
 from sentry.models import AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
@@ -31,7 +32,7 @@ class MemberPermission(OrganizationPermission):
 
 
 class OrganizationMemberSerializer(serializers.Serializer):
-    email = serializers.EmailField(max_length=75, required=True)
+    email = AllowedEmailField(max_length=75, required=True)
     role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
     teams = ListField(required=False, allow_null=False)
 
@@ -150,14 +151,14 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         except IntegrityError:
             return Response({'email': 'The user %s is already a member' % result['email']}, 409)
 
-        lock = locks.get('org:member:{}'.format(om.id), duration=5)
+        lock = locks.get(u'org:member:{}'.format(om.id), duration=5)
         with TimedRetryPolicy(10)(lock.acquire):
             self.save_team_assignments(om, teams)
 
         if settings.SENTRY_ENABLE_INVITES:
             om.send_invite_email()
-            member_invited.send(member=om, user=request.user, sender=self,
-                                referrer=request.DATA.get('referrer'))
+            member_invited.send_robust(member=om, user=request.user, sender=self,
+                                       referrer=request.DATA.get('referrer'))
 
         self.create_audit_entry(
             request=request,

@@ -2,15 +2,15 @@
 
 exports[`ProjectEnvironments render active renders empty message 1`] = `
 <ProjectEnvironments
+  location={
+    Object {
+      "pathname": "environments/",
+    }
+  }
   params={
     Object {
       "orgId": "org-slug",
       "projectId": "project-slug",
-    }
-  }
-  route={
-    Object {
-      "path": "environments/",
     }
   }
   routes={Array []}
@@ -18,13 +18,8 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -42,19 +37,14 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -72,7 +62,7 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
@@ -105,88 +95,156 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className="active"
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className=""
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
     </SettingsPageHeading>
+    <PermissionAlert
+      access={
+        Array [
+          "project:write",
+        ]
+      }
+    >
+      <AccessContainer
+        access={
+          Array [
+            "project:write",
+          ]
+        }
+      >
+        <Access
+          access={
+            Array [
+              "project:write",
+            ]
+          }
+          configUser={
+            Object {
+              "email": "foo@example.com",
+              "flags": Object {
+                "newsletter_consent_prompt": false,
+              },
+              "hasPasswordAuth": true,
+              "id": "1",
+              "isAuthenticated": true,
+              "name": "Foo Bar",
+              "options": Object {
+                "timezone": "UTC",
+              },
+              "permissions": Set {},
+              "username": "foo@example.com",
+            }
+          }
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+          renderNoAccessMessage={false}
+          requireAll={true}
+        />
+      </AccessContainer>
+    </PermissionAlert>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
-              className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+              className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
             >
               <Flex
                 align="center"
-                className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+                className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                 justify="space-between"
               >
                 <Base
                   align="center"
-                  className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                  className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                   justify="space-between"
                 >
                   <div
-                    className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                    className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                     is={null}
                   >
                     Active Environments
@@ -206,13 +264,22 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="css-1ykemxy-Wrapper eh488yo0"
+                    className="css-ev9qm0-Wrapper eh488yo0"
                   >
-                    <div
-                      className="ref-message"
+                    <Description
+                      noMargin={true}
                     >
-                      You don't have any environments yet.
-                    </div>
+                      <Component
+                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        noMargin={true}
+                      >
+                        <div
+                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        >
+                          You don't have any environments yet.
+                        </div>
+                      </Component>
+                    </Description>
                   </div>
                 </Wrapper>
               </EmptyMessage>
@@ -227,15 +294,15 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
 
 exports[`ProjectEnvironments render active renders environment list and sets staging as default env 1`] = `
 <ProjectEnvironments
+  location={
+    Object {
+      "pathname": "environments/",
+    }
+  }
   params={
     Object {
       "orgId": "org-slug",
       "projectId": "project-slug",
-    }
-  }
-  route={
-    Object {
-      "path": "environments/",
     }
   }
   routes={Array []}
@@ -243,13 +310,8 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -267,19 +329,14 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -297,7 +354,7 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
@@ -330,88 +387,156 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className="active"
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className=""
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
     </SettingsPageHeading>
+    <PermissionAlert
+      access={
+        Array [
+          "project:write",
+        ]
+      }
+    >
+      <AccessContainer
+        access={
+          Array [
+            "project:write",
+          ]
+        }
+      >
+        <Access
+          access={
+            Array [
+              "project:write",
+            ]
+          }
+          configUser={
+            Object {
+              "email": "foo@example.com",
+              "flags": Object {
+                "newsletter_consent_prompt": false,
+              },
+              "hasPasswordAuth": true,
+              "id": "1",
+              "isAuthenticated": true,
+              "name": "Foo Bar",
+              "options": Object {
+                "timezone": "UTC",
+              },
+              "permissions": Set {},
+              "username": "foo@example.com",
+            }
+          }
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+          renderNoAccessMessage={false}
+          requireAll={true}
+        />
+      </AccessContainer>
+    </PermissionAlert>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
-              className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+              className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
             >
               <Flex
                 align="center"
-                className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+                className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                 justify="space-between"
               >
                 <Base
                   align="center"
-                  className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                  className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                   justify="space-between"
                 >
                   <div
-                    className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                    className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                     is={null}
                   >
                     Active Environments
@@ -472,77 +597,124 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                           </div>
                         </Base>
                       </Flex>
-                      <div>
-                        <EnvironmentButton
-                          onClick={[Function]}
-                          size="xsmall"
+                      <AccessContainer
+                        access={
+                          Array [
+                            "project:write",
+                          ]
+                        }
+                      >
+                        <Access
+                          access={
+                            Array [
+                              "project:write",
+                            ]
+                          }
+                          configUser={
+                            Object {
+                              "email": "foo@example.com",
+                              "flags": Object {
+                                "newsletter_consent_prompt": false,
+                              },
+                              "hasPasswordAuth": true,
+                              "id": "1",
+                              "isAuthenticated": true,
+                              "name": "Foo Bar",
+                              "options": Object {
+                                "timezone": "UTC",
+                              },
+                              "permissions": Set {},
+                              "username": "foo@example.com",
+                            }
+                          }
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
+                          renderNoAccessMessage={false}
+                          requireAll={true}
                         >
-                          <Button
-                            alignLabel="left"
-                            className="css-10adnmx-EnvironmentButton ezuela50"
-                            disabled={false}
-                            onClick={[Function]}
-                            size="xsmall"
-                          >
-                            <StyledButton
-                              aria-label="Set as default"
-                              className="css-10adnmx-EnvironmentButton ezuela50"
+                          <div>
+                            <EnvironmentButton
                               disabled={false}
                               onClick={[Function]}
-                              role="button"
                               size="xsmall"
                             >
-                              <Component
-                                aria-label="Set as default"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                              <Button
+                                className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
-                                role="button"
                                 size="xsmall"
                               >
-                                <button
+                                <StyledButton
                                   aria-label="Set as default"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  className="css-10adnmx-EnvironmentButton ezuela50"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="xsmall"
                                 >
-                                  <ButtonLabel
-                                    justify="flex-start"
+                                  <Component
+                                    aria-label="Set as default"
+                                    className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
                                     size="xsmall"
                                   >
-                                    <Component
-                                      className="css-6q5v1w-ButtonLabel eqrebog1"
-                                      justify="flex-start"
+                                    <button
+                                      aria-label="Set as default"
+                                      className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
                                       size="xsmall"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-6q5v1w-ButtonLabel eqrebog1"
-                                        justify="flex-start"
+                                      <ButtonLabel
+                                        size="xsmall"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="eqrebog1 css-v6dd0e-ButtonLabel"
-                                          justify="flex-start"
+                                        <Component
+                                          className="css-uthd1f-ButtonLabel eqrebog1"
+                                          size="xsmall"
                                         >
-                                          <div
-                                            className="eqrebog1 css-v6dd0e-ButtonLabel"
-                                            is={null}
+                                          <span
+                                            className="css-uthd1f-ButtonLabel eqrebog1"
                                           >
                                             Set as default
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </Component>
-                                  </ButtonLabel>
-                                </button>
-                              </Component>
-                            </StyledButton>
-                          </Button>
-                        </EnvironmentButton>
-                      </div>
+                                          </span>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </button>
+                                  </Component>
+                                </StyledButton>
+                              </Button>
+                            </EnvironmentButton>
+                          </div>
+                        </Access>
+                      </AccessContainer>
                     </div>
                   </Base>
                 </PanelItem>
@@ -596,146 +768,178 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                           </div>
                         </Base>
                       </Flex>
-                      <div>
-                        <EnvironmentButton
-                          onClick={[Function]}
-                          size="xsmall"
+                      <AccessContainer
+                        access={
+                          Array [
+                            "project:write",
+                          ]
+                        }
+                      >
+                        <Access
+                          access={
+                            Array [
+                              "project:write",
+                            ]
+                          }
+                          configUser={
+                            Object {
+                              "email": "foo@example.com",
+                              "flags": Object {
+                                "newsletter_consent_prompt": false,
+                              },
+                              "hasPasswordAuth": true,
+                              "id": "1",
+                              "isAuthenticated": true,
+                              "name": "Foo Bar",
+                              "options": Object {
+                                "timezone": "UTC",
+                              },
+                              "permissions": Set {},
+                              "username": "foo@example.com",
+                            }
+                          }
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
+                          renderNoAccessMessage={false}
+                          requireAll={true}
                         >
-                          <Button
-                            alignLabel="left"
-                            className="css-10adnmx-EnvironmentButton ezuela50"
-                            disabled={false}
-                            onClick={[Function]}
-                            size="xsmall"
-                          >
-                            <StyledButton
-                              aria-label="Set as default"
-                              className="css-10adnmx-EnvironmentButton ezuela50"
+                          <div>
+                            <EnvironmentButton
                               disabled={false}
                               onClick={[Function]}
-                              role="button"
                               size="xsmall"
                             >
-                              <Component
-                                aria-label="Set as default"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                              <Button
+                                className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
-                                role="button"
                                 size="xsmall"
                               >
-                                <button
+                                <StyledButton
                                   aria-label="Set as default"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  className="css-10adnmx-EnvironmentButton ezuela50"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="xsmall"
                                 >
-                                  <ButtonLabel
-                                    justify="flex-start"
+                                  <Component
+                                    aria-label="Set as default"
+                                    className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
                                     size="xsmall"
                                   >
-                                    <Component
-                                      className="css-6q5v1w-ButtonLabel eqrebog1"
-                                      justify="flex-start"
+                                    <button
+                                      aria-label="Set as default"
+                                      className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
                                       size="xsmall"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-6q5v1w-ButtonLabel eqrebog1"
-                                        justify="flex-start"
+                                      <ButtonLabel
+                                        size="xsmall"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="eqrebog1 css-v6dd0e-ButtonLabel"
-                                          justify="flex-start"
+                                        <Component
+                                          className="css-uthd1f-ButtonLabel eqrebog1"
+                                          size="xsmall"
                                         >
-                                          <div
-                                            className="eqrebog1 css-v6dd0e-ButtonLabel"
-                                            is={null}
+                                          <span
+                                            className="css-uthd1f-ButtonLabel eqrebog1"
                                           >
                                             Set as default
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </Component>
-                                  </ButtonLabel>
-                                </button>
-                              </Component>
-                            </StyledButton>
-                          </Button>
-                        </EnvironmentButton>
-                        <EnvironmentButton
-                          onClick={[Function]}
-                          size="xsmall"
-                        >
-                          <Button
-                            alignLabel="left"
-                            className="css-10adnmx-EnvironmentButton ezuela50"
-                            disabled={false}
-                            onClick={[Function]}
-                            size="xsmall"
-                          >
-                            <StyledButton
-                              aria-label="Hide"
-                              className="css-10adnmx-EnvironmentButton ezuela50"
+                                          </span>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </button>
+                                  </Component>
+                                </StyledButton>
+                              </Button>
+                            </EnvironmentButton>
+                            <EnvironmentButton
                               disabled={false}
                               onClick={[Function]}
-                              role="button"
                               size="xsmall"
                             >
-                              <Component
-                                aria-label="Hide"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                              <Button
+                                className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
-                                role="button"
                                 size="xsmall"
                               >
-                                <button
+                                <StyledButton
                                   aria-label="Hide"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  className="css-10adnmx-EnvironmentButton ezuela50"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="xsmall"
                                 >
-                                  <ButtonLabel
-                                    justify="flex-start"
+                                  <Component
+                                    aria-label="Hide"
+                                    className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
                                     size="xsmall"
                                   >
-                                    <Component
-                                      className="css-6q5v1w-ButtonLabel eqrebog1"
-                                      justify="flex-start"
+                                    <button
+                                      aria-label="Hide"
+                                      className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
                                       size="xsmall"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-6q5v1w-ButtonLabel eqrebog1"
-                                        justify="flex-start"
+                                      <ButtonLabel
+                                        size="xsmall"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="eqrebog1 css-v6dd0e-ButtonLabel"
-                                          justify="flex-start"
+                                        <Component
+                                          className="css-uthd1f-ButtonLabel eqrebog1"
+                                          size="xsmall"
                                         >
-                                          <div
-                                            className="eqrebog1 css-v6dd0e-ButtonLabel"
-                                            is={null}
+                                          <span
+                                            className="css-uthd1f-ButtonLabel eqrebog1"
                                           >
                                             Hide
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </Component>
-                                  </ButtonLabel>
-                                </button>
-                              </Component>
-                            </StyledButton>
-                          </Button>
-                        </EnvironmentButton>
-                      </div>
+                                          </span>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </button>
+                                  </Component>
+                                </StyledButton>
+                              </Button>
+                            </EnvironmentButton>
+                          </div>
+                        </Access>
+                      </AccessContainer>
                     </div>
                   </Base>
                 </PanelItem>
@@ -795,20 +999,20 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                                 priority="success"
                               >
                                 <Component
-                                  className="css-ftrjq0-TagTextStyled e6q9yfr0"
+                                  className="css-d9oizi-TagTextStyled e6q9yfr0"
                                   ml={1}
                                   priority="success"
                                 >
                                   <Box
-                                    className="css-ftrjq0-TagTextStyled e6q9yfr0"
+                                    className="css-d9oizi-TagTextStyled e6q9yfr0"
                                     ml={1}
                                   >
                                     <Base
-                                      className="e6q9yfr0 css-hqgxmh-TagTextStyled"
+                                      className="e6q9yfr0 css-3cvk4g-TagTextStyled"
                                       ml={1}
                                     >
                                       <div
-                                        className="e6q9yfr0 css-hqgxmh-TagTextStyled"
+                                        className="e6q9yfr0 css-3cvk4g-TagTextStyled"
                                         is={null}
                                       >
                                         Default
@@ -821,77 +1025,124 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
                           </div>
                         </Base>
                       </Flex>
-                      <div>
-                        <EnvironmentButton
-                          onClick={[Function]}
-                          size="xsmall"
+                      <AccessContainer
+                        access={
+                          Array [
+                            "project:write",
+                          ]
+                        }
+                      >
+                        <Access
+                          access={
+                            Array [
+                              "project:write",
+                            ]
+                          }
+                          configUser={
+                            Object {
+                              "email": "foo@example.com",
+                              "flags": Object {
+                                "newsletter_consent_prompt": false,
+                              },
+                              "hasPasswordAuth": true,
+                              "id": "1",
+                              "isAuthenticated": true,
+                              "name": "Foo Bar",
+                              "options": Object {
+                                "timezone": "UTC",
+                              },
+                              "permissions": Set {},
+                              "username": "foo@example.com",
+                            }
+                          }
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
+                          renderNoAccessMessage={false}
+                          requireAll={true}
                         >
-                          <Button
-                            alignLabel="left"
-                            className="css-10adnmx-EnvironmentButton ezuela50"
-                            disabled={false}
-                            onClick={[Function]}
-                            size="xsmall"
-                          >
-                            <StyledButton
-                              aria-label="Hide"
-                              className="css-10adnmx-EnvironmentButton ezuela50"
+                          <div>
+                            <EnvironmentButton
                               disabled={false}
                               onClick={[Function]}
-                              role="button"
                               size="xsmall"
                             >
-                              <Component
-                                aria-label="Hide"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                              <Button
+                                className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
-                                role="button"
                                 size="xsmall"
                               >
-                                <button
+                                <StyledButton
                                   aria-label="Hide"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  className="css-10adnmx-EnvironmentButton ezuela50"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="xsmall"
                                 >
-                                  <ButtonLabel
-                                    justify="flex-start"
+                                  <Component
+                                    aria-label="Hide"
+                                    className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
                                     size="xsmall"
                                   >
-                                    <Component
-                                      className="css-6q5v1w-ButtonLabel eqrebog1"
-                                      justify="flex-start"
+                                    <button
+                                      aria-label="Hide"
+                                      className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
                                       size="xsmall"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-6q5v1w-ButtonLabel eqrebog1"
-                                        justify="flex-start"
+                                      <ButtonLabel
+                                        size="xsmall"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="eqrebog1 css-v6dd0e-ButtonLabel"
-                                          justify="flex-start"
+                                        <Component
+                                          className="css-uthd1f-ButtonLabel eqrebog1"
+                                          size="xsmall"
                                         >
-                                          <div
-                                            className="eqrebog1 css-v6dd0e-ButtonLabel"
-                                            is={null}
+                                          <span
+                                            className="css-uthd1f-ButtonLabel eqrebog1"
                                           >
                                             Hide
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </Component>
-                                  </ButtonLabel>
-                                </button>
-                              </Component>
-                            </StyledButton>
-                          </Button>
-                        </EnvironmentButton>
-                      </div>
+                                          </span>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </button>
+                                  </Component>
+                                </StyledButton>
+                              </Button>
+                            </EnvironmentButton>
+                          </div>
+                        </Access>
+                      </AccessContainer>
                     </div>
                   </Base>
                 </PanelItem>
@@ -907,15 +1158,15 @@ exports[`ProjectEnvironments render active renders environment list and sets sta
 
 exports[`ProjectEnvironments render hidden renders empty message 1`] = `
 <ProjectEnvironments
+  location={
+    Object {
+      "pathname": "environments/hidden/",
+    }
+  }
   params={
     Object {
       "orgId": "org-slug",
       "projectId": "project-slug",
-    }
-  }
-  route={
-    Object {
-      "path": "environments/hidden/",
     }
   }
   routes={Array []}
@@ -923,13 +1174,8 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -947,19 +1193,14 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -977,7 +1218,7 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
@@ -1010,88 +1251,156 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className=""
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className="active"
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
     </SettingsPageHeading>
+    <PermissionAlert
+      access={
+        Array [
+          "project:write",
+        ]
+      }
+    >
+      <AccessContainer
+        access={
+          Array [
+            "project:write",
+          ]
+        }
+      >
+        <Access
+          access={
+            Array [
+              "project:write",
+            ]
+          }
+          configUser={
+            Object {
+              "email": "foo@example.com",
+              "flags": Object {
+                "newsletter_consent_prompt": false,
+              },
+              "hasPasswordAuth": true,
+              "id": "1",
+              "isAuthenticated": true,
+              "name": "Foo Bar",
+              "options": Object {
+                "timezone": "UTC",
+              },
+              "permissions": Set {},
+              "username": "foo@example.com",
+            }
+          }
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+          renderNoAccessMessage={false}
+          requireAll={true}
+        />
+      </AccessContainer>
+    </PermissionAlert>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
-              className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+              className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
             >
               <Flex
                 align="center"
-                className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+                className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                 justify="space-between"
               >
                 <Base
                   align="center"
-                  className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                  className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                   justify="space-between"
                 >
                   <div
-                    className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                    className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                     is={null}
                   >
                     Hidden
@@ -1111,13 +1420,22 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="css-1ykemxy-Wrapper eh488yo0"
+                    className="css-ev9qm0-Wrapper eh488yo0"
                   >
-                    <div
-                      className="ref-message"
+                    <Description
+                      noMargin={true}
                     >
-                      You don't have any hidden environments.
-                    </div>
+                      <Component
+                        className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        noMargin={true}
+                      >
+                        <div
+                          className="css-pwn5v-TextBlock-Description-MarginStyles eh488yo1"
+                        >
+                          You don't have any hidden environments.
+                        </div>
+                      </Component>
+                    </Description>
                   </div>
                 </Wrapper>
               </EmptyMessage>
@@ -1132,15 +1450,15 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
 
 exports[`ProjectEnvironments render hidden renders environment list 1`] = `
 <ProjectEnvironments
+  location={
+    Object {
+      "pathname": "environments/hidden/",
+    }
+  }
   params={
     Object {
       "orgId": "org-slug",
       "projectId": "project-slug",
-    }
-  }
-  route={
-    Object {
-      "path": "environments/hidden/",
     }
   }
   routes={Array []}
@@ -1148,13 +1466,8 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -1172,19 +1485,14 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -1202,7 +1510,7 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
@@ -1235,88 +1543,156 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className=""
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className="active"
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
     </SettingsPageHeading>
+    <PermissionAlert
+      access={
+        Array [
+          "project:write",
+        ]
+      }
+    >
+      <AccessContainer
+        access={
+          Array [
+            "project:write",
+          ]
+        }
+      >
+        <Access
+          access={
+            Array [
+              "project:write",
+            ]
+          }
+          configUser={
+            Object {
+              "email": "foo@example.com",
+              "flags": Object {
+                "newsletter_consent_prompt": false,
+              },
+              "hasPasswordAuth": true,
+              "id": "1",
+              "isAuthenticated": true,
+              "name": "Foo Bar",
+              "options": Object {
+                "timezone": "UTC",
+              },
+              "permissions": Set {},
+              "username": "foo@example.com",
+            }
+          }
+          organization={
+            Object {
+              "access": Array [
+                "org:read",
+                "org:write",
+                "org:admin",
+                "project:read",
+                "project:write",
+                "project:admin",
+                "team:read",
+                "team:write",
+                "team:admin",
+              ],
+              "features": Array [],
+              "id": "3",
+              "name": "Organization Name",
+              "onboardingTasks": Array [],
+              "projects": Array [],
+              "scrapeJavaScript": true,
+              "slug": "org-slug",
+              "status": Object {
+                "id": "active",
+                "name": "active",
+              },
+              "teams": Array [],
+            }
+          }
+          renderNoAccessMessage={false}
+          requireAll={true}
+        />
+      </AccessContainer>
+    </PermissionAlert>
     <Panel>
       <Component
-        className="css-10qfvek-Panel e1laxa7d0"
+        className="css-yahxlu-Panel e1laxa7d0"
       >
         <div
-          className="css-10qfvek-Panel e1laxa7d0"
+          className="css-yahxlu-Panel e1laxa7d0"
         >
           <PanelHeader>
             <Component
-              className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+              className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
             >
               <Flex
                 align="center"
-                className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+                className="css-xhx6pj-PanelHeader-getPadding e1p8v8nv0"
                 justify="space-between"
               >
                 <Base
                   align="center"
-                  className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                  className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                   justify="space-between"
                 >
                   <div
-                    className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                    className="e1p8v8nv0 css-b7ices-PanelHeader-getPadding"
                     is={null}
                   >
                     Hidden
@@ -1382,77 +1758,124 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
                           </div>
                         </Base>
                       </Flex>
-                      <div>
-                        <EnvironmentButton
-                          onClick={[Function]}
-                          size="xsmall"
+                      <AccessContainer
+                        access={
+                          Array [
+                            "project:write",
+                          ]
+                        }
+                      >
+                        <Access
+                          access={
+                            Array [
+                              "project:write",
+                            ]
+                          }
+                          configUser={
+                            Object {
+                              "email": "foo@example.com",
+                              "flags": Object {
+                                "newsletter_consent_prompt": false,
+                              },
+                              "hasPasswordAuth": true,
+                              "id": "1",
+                              "isAuthenticated": true,
+                              "name": "Foo Bar",
+                              "options": Object {
+                                "timezone": "UTC",
+                              },
+                              "permissions": Set {},
+                              "username": "foo@example.com",
+                            }
+                          }
+                          organization={
+                            Object {
+                              "access": Array [
+                                "org:read",
+                                "org:write",
+                                "org:admin",
+                                "project:read",
+                                "project:write",
+                                "project:admin",
+                                "team:read",
+                                "team:write",
+                                "team:admin",
+                              ],
+                              "features": Array [],
+                              "id": "3",
+                              "name": "Organization Name",
+                              "onboardingTasks": Array [],
+                              "projects": Array [],
+                              "scrapeJavaScript": true,
+                              "slug": "org-slug",
+                              "status": Object {
+                                "id": "active",
+                                "name": "active",
+                              },
+                              "teams": Array [],
+                            }
+                          }
+                          renderNoAccessMessage={false}
+                          requireAll={true}
                         >
-                          <Button
-                            alignLabel="left"
-                            className="css-10adnmx-EnvironmentButton ezuela50"
-                            disabled={false}
-                            onClick={[Function]}
-                            size="xsmall"
-                          >
-                            <StyledButton
-                              aria-label="Show"
-                              className="css-10adnmx-EnvironmentButton ezuela50"
+                          <div>
+                            <EnvironmentButton
                               disabled={false}
                               onClick={[Function]}
-                              role="button"
                               size="xsmall"
                             >
-                              <Component
-                                aria-label="Show"
-                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                              <Button
+                                className="css-10adnmx-EnvironmentButton ezuela50"
                                 disabled={false}
                                 onClick={[Function]}
-                                role="button"
                                 size="xsmall"
                               >
-                                <button
+                                <StyledButton
                                   aria-label="Show"
-                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  className="css-10adnmx-EnvironmentButton ezuela50"
                                   disabled={false}
                                   onClick={[Function]}
                                   role="button"
                                   size="xsmall"
                                 >
-                                  <ButtonLabel
-                                    justify="flex-start"
+                                  <Component
+                                    aria-label="Show"
+                                    className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                    disabled={false}
+                                    onClick={[Function]}
+                                    role="button"
                                     size="xsmall"
                                   >
-                                    <Component
-                                      className="css-6q5v1w-ButtonLabel eqrebog1"
-                                      justify="flex-start"
+                                    <button
+                                      aria-label="Show"
+                                      className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                      disabled={false}
+                                      onClick={[Function]}
+                                      role="button"
                                       size="xsmall"
                                     >
-                                      <Flex
-                                        align="center"
-                                        className="css-6q5v1w-ButtonLabel eqrebog1"
-                                        justify="flex-start"
+                                      <ButtonLabel
+                                        size="xsmall"
                                       >
-                                        <Base
-                                          align="center"
-                                          className="eqrebog1 css-v6dd0e-ButtonLabel"
-                                          justify="flex-start"
+                                        <Component
+                                          className="css-uthd1f-ButtonLabel eqrebog1"
+                                          size="xsmall"
                                         >
-                                          <div
-                                            className="eqrebog1 css-v6dd0e-ButtonLabel"
-                                            is={null}
+                                          <span
+                                            className="css-uthd1f-ButtonLabel eqrebog1"
                                           >
                                             Show
-                                          </div>
-                                        </Base>
-                                      </Flex>
-                                    </Component>
-                                  </ButtonLabel>
-                                </button>
-                              </Component>
-                            </StyledButton>
-                          </Button>
-                        </EnvironmentButton>
-                      </div>
+                                          </span>
+                                        </Component>
+                                      </ButtonLabel>
+                                    </button>
+                                  </Component>
+                                </StyledButton>
+                              </Button>
+                            </EnvironmentButton>
+                          </div>
+                        </Access>
+                      </AccessContainer>
                     </div>
                   </Base>
                 </PanelItem>

@@ -1,10 +1,13 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
 
+import {Panel} from 'app/components/panels';
 import {addLoadingMessage, removeIndicator} from 'app/actionCreators/indicator';
 import {t, tn} from 'app/locale';
-import formGroups from 'app/data/forms/processingIssues';
+import Access from 'app/components/acl/access';
 import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/button';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import LoadingError from 'app/components/loadingError';
@@ -13,8 +16,7 @@ import OrganizationState from 'app/mixins/organizationState';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TimeSince from 'app/components/timeSince';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
-import {Panel} from 'app/components/panels';
+import formGroups from 'app/data/forms/processingIssues';
 
 const MESSAGES = {
   native_no_crashed_thread: t('No crashed thread found in crash report'),
@@ -25,7 +27,9 @@ const MESSAGES = {
   ),
   native_missing_dsym: t('A required debug information file was missing.'),
   native_missing_system_dsym: t('A system debug information file was missing.'),
-  native_missing_symbol: t('Could not resolve one or more frames in debug information file.'),
+  native_missing_symbol: t(
+    'Could not resolve one or more frames in debug information file.'
+  ),
   native_simulator_frame: t('Encountered an unprocessable simulator frame.'),
   native_unknown_image: t('A binary image is referenced that is unknown.'),
   proguard_missing_mapping: t('A proguard mapping file was missing.'),
@@ -226,7 +230,7 @@ const ProjectProcessingIssues = createReactClass({
   },
 
   getImageName(path) {
-    let pathSegments = path.split(/^[a-z]:\\/i.test(path) ? '\\' : '/');
+    let pathSegments = path.split(/^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/');
     return pathSegments[pathSegments.length - 1];
   },
 
@@ -280,8 +284,8 @@ const ProjectProcessingIssues = createReactClass({
       return null;
     }
     let fixButton = tn(
-      'Click here to trigger processing for %d pending event',
-      'Click here to trigger processing for %d pending events',
+      'Click here to trigger processing for %s pending event',
+      'Click here to trigger processing for %s pending events',
       issues.resolveableIssues
     );
     return (
@@ -332,8 +336,8 @@ const ProjectProcessingIssues = createReactClass({
                 style={{display: 'inline', marginRight: 12}}
               />
               {tn(
-                'Reprocessing %d event …',
-                'Reprocessing %d events …',
+                'Reprocessing %s event …',
+                'Reprocessing %s events …',
                 this.state.processingIssues.issuesProcessing
               )}
             </div>
@@ -347,14 +351,18 @@ const ProjectProcessingIssues = createReactClass({
         {fixLinkBlock}
         <h3>
           {t('Pending Issues')}
-          <a
-            className="btn btn-default btn-sm pull-right"
-            onClick={() => {
-              this.discardEvents();
-            }}
-          >
-            {t('Discard all')}
-          </a>
+          <Access access={['project:write']}>
+            {({hasAccess}) => (
+              <Button
+                size="small"
+                className="pull-right"
+                disabled={!hasAccess}
+                onClick={() => this.discardEvents()}
+              >
+                {t('Discard all')}
+              </Button>
+            )}
+          </Access>
         </h3>
         <div className="panel panel-default">
           <div className="panel-heading panel-heading-bold hidden-xs">

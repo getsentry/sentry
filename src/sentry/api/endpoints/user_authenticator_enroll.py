@@ -3,21 +3,35 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
+import logging
 import petname
 
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.models import Authenticator
+from sentry.models import Authenticator, OrganizationMember
 from sentry.security import capture_security_activity
+from sentry.web.frontend.accept_organization_invite import ApiInviteHelper
 
+logger = logging.getLogger(__name__)
 
 ALREADY_ENROLLED_ERR = {'details': 'Already enrolled'}
 INVALID_OTP_ERR = {'details': 'Invalid OTP'},
 SEND_SMS_ERR = {'details': 'Error sending SMS'}
 
 
-class TotpRestSerializer(serializers.Serializer):
+class BaseRestSerializer(serializers.Serializer):
+    # Fields needed to accept an org invite
+    # pending 2FA enrollment
+    memberId = serializers.CharField(
+        required=False
+    )
+    token = serializers.CharField(
+        required=False,
+    )
+
+
+class TotpRestSerializer(BaseRestSerializer):
     otp = serializers.CharField(
         label='Authenticator code',
         help_text='Code from authenticator',
@@ -26,7 +40,7 @@ class TotpRestSerializer(serializers.Serializer):
     )
 
 
-class SmsRestSerializer(serializers.Serializer):
+class SmsRestSerializer(BaseRestSerializer):
     phone = serializers.CharField(
         label="Phone number",
         help_text="Phone number to send SMS code",
@@ -41,7 +55,7 @@ class SmsRestSerializer(serializers.Serializer):
     )
 
 
-class U2fRestSerializer(serializers.Serializer):
+class U2fRestSerializer(BaseRestSerializer):
     deviceName = serializers.CharField(
         label='Device name',
         required=False,
@@ -56,6 +70,8 @@ class U2fRestSerializer(serializers.Serializer):
     )
 
 
+hidden_fields = ['memberId', 'token']
+
 serializer_map = {
     'totp': TotpRestSerializer,
     'sms': SmsRestSerializer,
@@ -67,7 +83,7 @@ def get_serializer_field_metadata(serializer, fields=None):
     """Returns field metadata for serializer"""
     meta = []
     for field in serializer.base_fields:
-        if fields is None or field in fields:
+        if (fields is None or field in fields) and field not in hidden_fields:
             serialized_field = dict(serializer.base_fields[field].metadata())
             serialized_field['name'] = field
             serialized_field['defaultValue'] = serializer.base_fields[field].get_default_value()
@@ -207,5 +223,28 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             request.user.refresh_session_nonce(self.request)
             request.user.save()
             Authenticator.objects.auto_add_recovery_codes(request.user)
+
+            # Try to accept an org invite pending 2FA enrollment
+            member_id = serializer.data.get('memberId')
+            token = serializer.data.get('token')
+
+            if member_id and token:
+                try:
+                    helper = ApiInviteHelper(
+                        instance=self,
+                        request=request,
+                        member_id=member_id,
+                        token=token,
+                        logger=logger,
+                    )
+                except OrganizationMember.DoesNotExist:
+                    logger.error('Failed to accept pending org invite', exc_info=True)
+                else:
+                    if helper.valid_request():
+                        helper.accept_invite()
+
+                        response = Response(status=status.HTTP_204_NO_CONTENT)
+                        helper.remove_invite_cookie(response)
+                        return response
 
             return Response(status=status.HTTP_204_NO_CONTENT)

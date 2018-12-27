@@ -33,10 +33,10 @@ class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
 
         integration = self.provider.build_integration({
             'vsts': {
-                'AccountId': '123',
-                'AccountName': 'test',
+                'accountId': '123',
+                'accountName': 'test',
             },
-            'instance': 'test.visualstudio.com',
+            'instance': 'https://test.visualstudio.com/',
             'identity': {
                 'data': {
                     'access_token': '123',

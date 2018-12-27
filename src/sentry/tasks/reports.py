@@ -166,11 +166,13 @@ def prepare_project_series(start__stop, project, rollup=60 * 60 * 24):
                 clean,
                 tsdb.get_range(
                     tsdb.models.group,
-                    project.group_set.filter(
-                        status=GroupStatus.RESOLVED,
-                        resolved_at__gte=start,
-                        resolved_at__lt=stop,
-                    ).values_list('id', flat=True),
+                    list(
+                        project.group_set.filter(
+                            status=GroupStatus.RESOLVED,
+                            resolved_at__gte=start,
+                            resolved_at__lt=stop,
+                        ).values_list('id', flat=True),
+                    ),
                     start,
                     stop,
                     rollup=rollup,
@@ -457,7 +459,7 @@ class RedisReportBackend(ReportBackend):
         self.namespace = namespace
 
     def __make_key(self, timestamp, duration, organization):
-        return '{}:{}:{}:{}:{}'.format(
+        return u'{}:{}:{}:{}:{}'.format(
             self.namespace,
             self.version,
             organization.id,

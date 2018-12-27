@@ -8,12 +8,12 @@ from sentry.utils.http import absolute_uri
 
 class GitHubIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
-        return '{}#{}'.format(data['repo'], data['key'])
+        return u'{}#{}'.format(data['repo'], data['key'])
 
     def get_issue_url(self, key):
         domain_name, user = self.model.metadata['domain_name'].split('/')
         repo, issue_id = key.split('#')
-        return "https://{}/{}/issues/{}".format(domain_name, repo, issue_id)
+        return u"https://{}/{}/issues/{}".format(domain_name, repo, issue_id)
 
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs['data']
@@ -39,18 +39,18 @@ class GitHubIssueBasic(IssueBasicMixin):
             except ApiError as e:
                 raise IntegrationError(self.message_from_error(e))
 
-    def get_create_issue_config(self, group, **kwargs):
-        fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
-        try:
-            repos = self.get_repositories()
-        except ApiError:
-            repo_choices = [(' ', ' ')]
-        else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
+    def get_persisted_default_config_fields(self):
+        return ['repo']
 
-        params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
-        assignees = self.get_allowed_assignees(default_repo)
+    def create_default_repo_choice(self, default_repo):
+        return (default_repo, default_repo.split('/')[1])
+
+    def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'github_integration'
+        fields = super(GitHubIssueBasic, self).get_create_issue_config(group, **kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
+
+        assignees = self.get_allowed_assignees(default_repo) if default_repo else []
 
         org = group.organization
         autocomplete_url = reverse(
@@ -63,7 +63,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'label': 'GitHub Repository',
                 'type': 'select',
                 'default': default_repo,
-                'defaultLabel': default_repo.split('/')[1],
+                'choices': repo_choices,
                 'url': autocomplete_url,
                 'updatesForm': True,
                 'required': True,
@@ -107,15 +107,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         }
 
     def get_link_issue_config(self, group, **kwargs):
-        try:
-            repos = self.get_repositories()
-        except ApiError:
-            repo_choices = [(' ', ' ')]
-        else:
-            repo_choices = [(repo['identifier'], repo['name']) for repo in repos]
-
-        params = kwargs.get('params', {})
-        default_repo = params.get('repo', repo_choices[0][0])
+        default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -128,7 +120,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'label': 'GitHub Repository',
                 'type': 'select',
                 'default': default_repo,
-                'defaultLabel': default_repo.split('/')[1],
+                'choices': repo_choices,
                 'url': autocomplete_url,
                 'required': True,
                 'updatesForm': True,
@@ -137,6 +129,7 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'name': 'externalIssue',
                 'label': 'Issue',
                 'default': '',
+                'choices': [],
                 'type': 'select',
                 'url': autocomplete_url,
                 'required': True,
@@ -145,7 +138,10 @@ class GitHubIssueBasic(IssueBasicMixin):
                 'name': 'comment',
                 'label': 'Comment',
                 'default': u'Sentry issue: [{issue_id}]({url})'.format(
-                    url=absolute_uri(group.get_absolute_url()),
+                    url=absolute_uri(
+                        group.get_absolute_url(
+                            params={
+                                'referrer': 'github_integration'})),
                     issue_id=group.qualified_short_id,
                 ),
                 'type': 'textarea',
@@ -198,6 +194,6 @@ class GitHubIssueBasic(IssueBasicMixin):
         except Exception as e:
             self.raise_error(e)
 
-        issues = tuple((i['number'], '#{} {}'.format(i['number'], i['title'])) for i in response)
+        issues = tuple((i['number'], u'#{} {}'.format(i['number'], i['title'])) for i in response)
 
         return issues

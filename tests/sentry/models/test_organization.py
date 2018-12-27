@@ -4,7 +4,7 @@ import copy
 import mock
 
 from sentry.models import (
-    ApiKey, AuditLogEntry, AuditLogEntryEvent, Commit, File, OrganizationMember,
+    ApiKey, AuditLogEntry, AuditLogEntryEvent, Commit, File, Integration, OrganizationAvatar, OrganizationMember, OrganizationIntegration,
     OrganizationMemberTeam, OrganizationOption, Project, Release, ReleaseCommit,
     ReleaseEnvironment, ReleaseFile, Team, TotpInterface, User,
 )
@@ -47,6 +47,20 @@ class OrganizationTest(TestCase):
             organization_id=from_org.id,
             environment_id=1
         )
+        from_avatar = OrganizationAvatar.objects.create(
+            organization=from_org,
+        )
+        integration = Integration.objects.create(
+            provider='slack',
+            external_id='some_slack',
+            name='Test Slack',
+            metadata={
+                'domain_name': 'slack-test.slack.com',
+            },
+        )
+
+        integration.add_organization(from_org, from_owner)
+
         from_user = self.create_user('baz@example.com')
         other_user = self.create_user('bizbaz@example.com')
         self.create_member(organization=from_org, user=from_user)
@@ -128,6 +142,10 @@ class OrganizationTest(TestCase):
         assert ReleaseEnvironment.objects.get(
             id=from_release_environment.id
         ).release_id == to_release.id
+
+        assert OrganizationAvatar.objects.filter(id=from_avatar.id, organization=to_org).exists()
+        assert OrganizationIntegration.objects.filter(
+            integration=integration, organization=to_org).exists()
 
     def test_get_default_owner(self):
         user = self.create_user('foo@example.com')
@@ -246,11 +264,17 @@ class Require2fa(TestCase):
         assert not member.email
         assert member.user == user
 
-    def is_pending_organization_member(self, user_id, member_id):
+    def is_pending_organization_member(self, user_id, member_id, was_booted=True):
         member = OrganizationMember.objects.get(id=member_id)
         assert User.objects.filter(id=user_id).exists()
         assert member.is_pending
         assert member.email
+        if was_booted:
+            assert member.token
+            assert member.token_expires_at
+        else:
+            assert member.token is None
+            assert member.token_expires_at is None
 
     @mock.patch('sentry.utils.email.logger')
     def test_handle_2fa_required__compliant_and_non_compliant_members(self, email_log):
@@ -325,7 +349,7 @@ class Require2fa(TestCase):
 
         with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
             self.org.handle_2fa_required(self.request)
-        self.is_pending_organization_member(user.id, member.id)
+        self.is_pending_organization_member(user.id, member.id, was_booted=False)
 
         assert len(mail.outbox) == email_log.info.call_count == 0
         assert not AuditLogEntry.objects.filter(
@@ -425,3 +449,8 @@ class Require2fa(TestCase):
             actor_key=None,
             ip_address=None,
         ).count() == 1
+
+    def test_get_audit_log_data(self):
+        org = self.create_organization()
+        result = org.get_audit_log_data()
+        assert result['flags'] == int(org.flags)

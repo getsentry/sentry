@@ -4,26 +4,28 @@ import six
 
 from sentry.plugins import providers
 from sentry.models import Integration
+from sentry.integrations.exceptions import IntegrationError
 
 MAX_COMMIT_DATA_REQUESTS = 90
 
 
 class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
-    name = 'Visual Studio Team Services v2'
+    name = 'Azure DevOps'
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:
-            raise ValueError('%s requires an integration_id' % self.name)
+            raise IntegrationError('%s requires an integration id.' % self.name)
 
-        try:
-            integration_model = Integration.objects.get(id=integration_id)
-        except Integration.DoesNotExist as error:
-            self.handle_api_error(error)
+        integration_model = Integration.objects.get(
+            id=integration_id,
+            organizations=organization_id,
+            provider='vsts',
+        )
 
         return integration_model.get_installation(organization_id)
 
-    def validate_config(self, organization, config):
-        installation = self.get_installation(config['installation'], organization.id)
+    def get_repository_data(self, organization, config):
+        installation = self.get_installation(config.get('installation'), organization.id)
         client = installation.get_client()
         instance = installation.instance
 
@@ -42,7 +44,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         })
         return config
 
-    def create_repository(self, organization, data):
+    def build_repository_config(self, organization, data):
         return {
             'name': data['name'],
             'external_id': data['external_id'],
@@ -79,12 +81,24 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
         client = installation.get_client()
         n = 0
         for commit in commit_list:
-            commit.update(
-                {'patch_set': self.transform_changes(
-                    client.get_commit_filechanges(
-                        repo.config['instance'], repo.external_id, commit['commitId'])
-                )})
+            # Azure will truncate commit comments to only the first line.
+            # We need to make an additional API call to get the full commit message.
+            # This is important because issue refs could be anywhere in the commit
+            # message.
+            if commit.get('commentTruncated', False):
+                full_commit = client.get_commit(
+                    repo.config['instance'],
+                    repo.external_id,
+                    commit['commitId'])
+                commit['comment'] = full_commit['comment']
 
+            commit['patch_set'] = self.transform_changes(
+                client.get_commit_filechanges(
+                    repo.config['instance'],
+                    repo.external_id,
+                    commit['commitId'])
+            )
+            # We only fetch patch data for 90 commits.
             n += 1
             if n > MAX_COMMIT_DATA_REQUESTS:
                 break
@@ -116,5 +130,9 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'author_name': c['author']['name'],
                 'message': c['comment'],
                 'patch_set': c.get('patch_set'),
+                'timestamp': self.format_date(c['author']['date']),
             } for c in commit_list
         ]
+
+    def repository_external_slug(self, repo):
+        return repo.external_id

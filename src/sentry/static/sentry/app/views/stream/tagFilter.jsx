@@ -1,9 +1,10 @@
+import {debounce} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import {debounce} from 'lodash';
 
-import {t} from 'app/locale';
 import {Client} from 'app/api';
+import {addErrorMessage} from 'app/actionCreators/indicator';
+import {t, tct} from 'app/locale';
 import SelectControl from 'app/components/forms/selectControl';
 
 // TODO(billy): Update to use SelectAutocomplete when it is ported to use react-select
@@ -61,6 +62,7 @@ class StreamTagFilter extends React.Component {
 
   handleLoadOptions = () => {
     let {tag} = this.props;
+    let {textValue} = this.state;
     if (tag.isInput || tag.predefined) return;
     if (!this.api) return;
 
@@ -71,7 +73,7 @@ class StreamTagFilter extends React.Component {
     this.api
       .requestPromise(this.getTagValuesAPIEndpoint(), {
         query: {
-          query: this.state.textValue,
+          query: textValue,
         },
       })
       .then(resp => {
@@ -79,6 +81,16 @@ class StreamTagFilter extends React.Component {
           isLoading: false,
           options: Object.values(resp).map(StreamTagFilter.tagValueToSelectFormat),
         });
+      })
+      .catch(err => {
+        // TODO(billy): This endpoint seems to timeout a lot,
+        // should we log these errors into datadog?
+
+        addErrorMessage(
+          tct('Unable to retrieve values for tag [tagName]', {
+            tagName: textValue,
+          })
+        );
       });
   };
 

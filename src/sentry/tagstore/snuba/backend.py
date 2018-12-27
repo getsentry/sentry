@@ -16,7 +16,7 @@ from django.utils import timezone
 import six
 
 from sentry.tagstore import TagKeyStatus
-from sentry.tagstore.base import TagStorage
+from sentry.tagstore.base import TagStorage, TOP_VALUES_DEFAULT_LIMIT
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
@@ -30,6 +30,9 @@ from sentry.utils.dates import to_timestamp
 
 SEEN_COLUMN = 'timestamp'
 
+# columns we want to exclude from methods that return
+# all values for a given tag/column
+BLACKLISTED_COLUMNS = frozenset(['project_id'])
 
 tag_value_data_transformers = {
     'first_seen': parse_datetime,
@@ -49,19 +52,20 @@ class SnubaTagStorage(TagStorage):
     def get_time_range(self, days=90):
         """
         Returns the default (start, end) time range for querrying snuba.
+        The snuba util may further reduce this range based on the project
+        retention, and first/last seen dates of the groups being queried.
         """
-        # TODO this should use the per-project retention figure to limit
-        # the query to looking at only the retention window for the project.
         end = timezone.now()
         return (end - timedelta(days=days), end)
 
     def __get_tag_key(self, project_id, group_id, environment_id, key):
         start, end = self.get_time_range()
-        tag = 'tags[{}]'.format(key)
+        tag = u'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
-            'environment': [environment_id],
         }
+        if environment_id:
+            filters['environment'] = [environment_id]
         if group_id is not None:
             filters['issue'] = [group_id]
         conditions = [[tag, '!=', '']]
@@ -88,11 +92,12 @@ class SnubaTagStorage(TagStorage):
     def __get_tag_key_and_top_values(self, project_id, group_id, environment_id,
                                      key, limit=3, raise_on_empty=True):
         start, end = self.get_time_range()
-        tag = 'tags[{}]'.format(key)
+        tag = u'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
-            'environment': [environment_id],
         }
+        if environment_id:
+            filters['environment'] = [environment_id]
         if group_id is not None:
             filters['issue'] = [group_id]
         conditions = [[tag, '!=', '']]
@@ -108,7 +113,8 @@ class SnubaTagStorage(TagStorage):
             orderby='-count', limit=limit, totals=True,
             referrer='tagstore.__get_tag_key_and_top_values'
         )
-        if raise_on_empty and (result is None or totals['count'] == 0):
+
+        if raise_on_empty and (not result or totals.get('count', 0) == 0):
             raise TagKeyNotFound if group_id is None else GroupTagKeyNotFound
         else:
             if group_id is None:
@@ -130,19 +136,34 @@ class SnubaTagStorage(TagStorage):
 
             return key_ctor(
                 key=key,
-                values_seen=totals['values_seen'],
-                count=totals['count'],
+                values_seen=totals.get('values_seen', 0),
+                count=totals.get('count', 0),
                 top_values=top_values
             )
 
-    def __get_tag_keys(self, project_id, group_id, environment_id, limit=1000):
+    def __get_tag_keys(self, project_id, group_id, environment_id, limit=1000, keys=None):
         start, end = self.get_time_range()
+        return self.__get_tag_keys_for_projects(
+            [project_id],
+            group_id,
+            [environment_id] if environment_id else None,
+            start,
+            end,
+            limit,
+            keys,
+        )
+
+    def __get_tag_keys_for_projects(self, projects, group_id,
+                                    environments, start, end, limit=1000, keys=None):
         filters = {
-            'project_id': [project_id],
-            'environment': [environment_id],
+            'project_id': projects,
         }
+        if environments:
+            filters['environment'] = environments
         if group_id is not None:
             filters['issue'] = [group_id]
+        if keys is not None:
+            filters['tags_key'] = keys
         aggregations = [
             ['uniq', 'tags_value', 'values_seen'],
             ['count()', '', 'count']
@@ -169,11 +190,12 @@ class SnubaTagStorage(TagStorage):
 
     def __get_tag_value(self, project_id, group_id, environment_id, key, value):
         start, end = self.get_time_range()
-        tag = 'tags[{}]'.format(key)
+        tag = u'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
-            'environment': [environment_id],
         }
+        if environment_id:
+            filters['environment'] = [environment_id]
         if group_id is not None:
             filters['issue'] = [group_id]
         conditions = [[tag, '=', value]]
@@ -205,6 +227,10 @@ class SnubaTagStorage(TagStorage):
         assert status is TagKeyStatus.VISIBLE
         return self.__get_tag_keys(project_id, None, environment_id)
 
+    def get_tag_keys_for_projects(self, projects, environments, start,
+                                  end, status=TagKeyStatus.VISIBLE):
+        return self.__get_tag_keys_for_projects(projects, None, environments, start, end)
+
     def get_tag_value(self, project_id, environment_id, key, value):
         return self.__get_tag_value(project_id, None, environment_id, key, value)
 
@@ -214,27 +240,31 @@ class SnubaTagStorage(TagStorage):
         return set(key.top_values)
 
     def get_group_tag_key(self, project_id, group_id, environment_id, key):
-        return self.__get_tag_key_and_top_values(project_id, group_id, environment_id, key, limit=9)
+        return self.__get_tag_key_and_top_values(
+            project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT)
 
-    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None):
-        return self.__get_tag_keys(project_id, group_id, environment_id, limit=limit)
+    def get_group_tag_keys(self, project_id, group_id, environment_id, limit=None, keys=None):
+        return self.__get_tag_keys(project_id, group_id, environment_id, limit=limit, keys=keys)
 
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
         return self.__get_tag_value(project_id, group_id, environment_id, key, value)
 
     def get_group_tag_values(self, project_id, group_id, environment_id, key):
+        # NB this uses a 'top' values function, but the limit is None so it should
+        # return all values for this key.
         key = self.__get_tag_key_and_top_values(project_id, group_id, environment_id, key,
                                                 limit=None, raise_on_empty=False)
         return set(key.top_values)
 
-    def get_group_list_tag_value(self, project_id, group_id_list, environment_id, key, value):
+    def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
         start, end = self.get_time_range()
-        tag = 'tags[{}]'.format(key)
+        tag = u'tags[{}]'.format(key)
         filters = {
-            'project_id': [project_id],
-            'environment': [environment_id],
+            'project_id': project_ids,
             'issue': group_id_list,
         }
+        if environment_ids:
+            filters['environment'] = environment_ids
         conditions = [
             [tag, '=', value]
         ]
@@ -256,23 +286,108 @@ class SnubaTagStorage(TagStorage):
             ) for issue, data in six.iteritems(result)
         }
 
+    def get_group_seen_values_for_environments(self, project_ids, group_id_list, environment_ids):
+        # Get the total times seen, first seen, and last seen across multiple environments
+
+        # TODO(jess): this is mostly copy paste from above
+        # also, this is temporary and will probably need to be updated to
+        # filter correctly based on date filters -- waiting on some product decisions
+        start, end = self.get_time_range()
+        filters = {
+            'project_id': project_ids,
+            'issue': group_id_list,
+        }
+        conditions = None
+        if environment_ids:
+            filters['environment'] = environment_ids
+
+        aggregations = [
+            ['count()', '', 'times_seen'],
+            ['min', SEEN_COLUMN, 'first_seen'],
+            ['max', SEEN_COLUMN, 'last_seen'],
+        ]
+
+        result = snuba.query(start, end, ['issue'], conditions, filters, aggregations,
+                             referrer='tagstore.get_group_seen_values_for_environments')
+
+        return {
+            issue: fix_tag_value_data(data) for issue, data in six.iteritems(result)
+        }
+
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         start, end = self.get_time_range()
-        tag = 'tags[{}]'.format(key)
+        tag = u'tags[{}]'.format(key)
         filters = {
             'project_id': [project_id],
-            'environment': [environment_id],
             'issue': [group_id],
         }
+        if environment_id:
+            filters['environment'] = [environment_id]
         conditions = [[tag, '!=', '']]
         aggregations = [['count()', '', 'count']]
 
         return snuba.query(start, end, [], conditions, filters, aggregations,
                            referrer='tagstore.get_group_tag_value_count')
 
-    def get_top_group_tag_values(self, project_id, group_id, environment_id, key, limit=3):
+    def get_top_group_tag_values(self, project_id, group_id,
+                                 environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
         tag = self.__get_tag_key_and_top_values(project_id, group_id, environment_id, key, limit)
         return tag.top_values
+
+    def get_group_tag_keys_and_top_values(
+            self, project_id, group_id, environment_id, user=None, keys=None, value_limit=TOP_VALUES_DEFAULT_LIMIT):
+        # Similar to __get_tag_key_and_top_values except we get the top values
+        # for all the keys provided. value_limit in this case means the number
+        # of top values for each key, so the total rows returned should be
+        # num_keys * limit.
+        start, end = self.get_time_range()
+
+        # First get totals and unique counts by key.
+        keys_with_counts = self.get_group_tag_keys(project_id, group_id, environment_id, keys=keys)
+
+        # Then get the top values with first_seen/last_seen/count for each
+        filters = {
+            'project_id': [project_id],
+        }
+        if environment_id:
+            filters['environment'] = [environment_id]
+        if keys is not None:
+            filters['tags_key'] = keys
+        if group_id is not None:
+            filters['issue'] = [group_id]
+
+        aggregations = [
+            ['count()', '', 'count'],
+            ['min', SEEN_COLUMN, 'first_seen'],
+            ['max', SEEN_COLUMN, 'last_seen'],
+        ]
+
+        values_by_key = snuba.query(
+            start, end, ['tags_key', 'tags_value'], None, filters, aggregations,
+            orderby='-count', limitby=[value_limit, 'tags_key'],
+            referrer='tagstore.__get_tag_keys_and_top_values'
+        )
+
+        # Then supplement the key objects with the top values for each.
+        if group_id is None:
+            value_ctor = TagValue
+        else:
+            value_ctor = functools.partial(GroupTagValue, group_id=group_id)
+
+        for keyobj in keys_with_counts:
+            key = keyobj.key
+            values = values_by_key.get(key, [])
+            keyobj.top_values = [
+                value_ctor(
+                    key=keyobj.key,
+                    value=value,
+                    times_seen=data['count'],
+                    first_seen=parse_datetime(data['first_seen']),
+                    last_seen=parse_datetime(data['last_seen']),
+                ) for value, data in six.iteritems(values)
+            ]
+
+        return keys_with_counts
 
     def __get_release(self, project_id, group_id, first=True):
         start, end = self.get_time_range()
@@ -303,13 +418,14 @@ class SnubaTagStorage(TagStorage):
         start, end = self.get_time_range()
         filters = {
             'project_id': project_ids,
-            'environment': [environment_id],
         }
+        if environment_id:
+            filters['environment'] = [environment_id]
         # NB we add release as a condition rather than a filter because
         # this method is already dealing with version strings rather than
         # release ids which would need to be translated by the snuba util.
         tag = 'sentry:release'
-        col = 'tags[{}]'.format(tag)
+        col = u'tags[{}]'.format(tag)
         conditions = [[col, 'IN', versions]]
         aggregations = [
             ['count()', '', 'times_seen'],
@@ -380,13 +496,14 @@ class SnubaTagStorage(TagStorage):
                 )
         return values
 
-    def get_groups_user_counts(self, project_id, group_ids, environment_id):
+    def get_groups_user_counts(self, project_ids, group_ids, environment_ids):
         start, end = self.get_time_range()
         filters = {
-            'project_id': [project_id],
-            'environment': [environment_id],
+            'project_id': project_ids,
             'issue': group_ids,
         }
+        if environment_ids:
+            filters['environment'] = environment_ids
         aggregations = [['uniq', 'tags[sentry:user]', 'count']]
 
         result = snuba.query(start, end, ['issue'], None, filters, aggregations,
@@ -395,25 +512,47 @@ class SnubaTagStorage(TagStorage):
 
     def get_tag_value_paginator(self, project_id, environment_id, key, query=None,
                                 order_by='-last_seen'):
+        start, end = self.get_time_range()
+        return self.get_tag_value_paginator_for_projects(
+            [project_id],
+            [environment_id] if environment_id else None,
+            key,
+            start,
+            end,
+            query=query,
+            order_by=order_by,
+        )
+
+    def get_tag_value_paginator_for_projects(self, projects, environments, key, start, end,
+                                             query=None, order_by='-last_seen'):
         from sentry.api.paginator import SequencePaginator
 
         if not order_by == '-last_seen':
             raise ValueError("Unsupported order_by: %s" % order_by)
 
-        conditions = []
-        if query:
-            conditions.append(['tags_value', 'LIKE', '%{}%'.format(query)])
+        snuba_key = snuba.get_snuba_column_name(key)
 
-        start, end = self.get_time_range()
+        conditions = []
+
+        if snuba_key in BLACKLISTED_COLUMNS:
+            snuba_key = 'tags[%s]' % (key,)
+
+        if query:
+            conditions.append([snuba_key, 'LIKE', u'%{}%'.format(query)])
+        else:
+            conditions.append([snuba_key, '!=', ''])
+
+        filters = {
+            'project_id': projects,
+        }
+        if environments:
+            filters['environment'] = environments
+
         results = snuba.query(
             start=start,
             end=end,
-            groupby=['tags_value'],
-            filter_keys={
-                'project_id': [project_id],
-                'environment': [environment_id],
-                'tags_key': [key],
-            },
+            groupby=[snuba_key],
+            filter_keys=filters,
             aggregations=[
                 ['count()', '', 'times_seen'],
                 ['min', 'timestamp', 'first_seen'],
@@ -423,7 +562,8 @@ class SnubaTagStorage(TagStorage):
             orderby=order_by,
             # TODO: This means they can't actually paginate all TagValues.
             limit=1000,
-            referrer='tagstore.get_tag_value_paginator',
+            arrayjoin=snuba.get_arrayjoin(snuba_key),
+            referrer='tagstore.get_tag_value_paginator_for_projects',
         )
 
         tag_values = [
@@ -443,16 +583,18 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_tag_value_iter(self, project_id, group_id, environment_id, key, callbacks=()):
         start, end = self.get_time_range()
+        filters = {
+            'project_id': [project_id],
+            'tags_key': [key],
+            'issue': [group_id],
+        }
+        if environment_id:
+            filters['environment'] = [environment_id]
         results = snuba.query(
             start=start,
             end=end,
             groupby=['tags_value'],
-            filter_keys={
-                'project_id': [project_id],
-                'environment': [environment_id],
-                'tags_key': [key],
-                'issue': [group_id],
-            },
+            filter_keys=filters,
             aggregations=[
                 ['count()', '', 'times_seen'],
                 ['min', 'timestamp', 'first_seen'],
@@ -516,11 +658,12 @@ class SnubaTagStorage(TagStorage):
         start, end = self.get_time_range()
         filters = {
             'project_id': [project_id],
-            'environment': [environment_id],
             'issue': [group_id],
         }
+        if environment_id:
+            filters['environment'] = [environment_id]
 
-        conditions = [[['tags[{}]'.format(k), '=', v] for (k, v) in tags.items()]]
+        conditions = [[u'tags[{}]'.format(k), '=', v] for (k, v) in tags.items()]
 
         result = snuba.raw_query(start, end, selected_columns=['event_id'],
                                  conditions=conditions, orderby='-timestamp', filter_keys=filters,

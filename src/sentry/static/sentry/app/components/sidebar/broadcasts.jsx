@@ -10,9 +10,10 @@ import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
+import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
 
 const MARK_SEEN_DELAY = 1000;
-const POLLER_DELAY = 60000;
+const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
 
 const Broadcasts = createReactClass({
   displayName: 'Broadcasts',
@@ -36,8 +37,10 @@ const Broadcasts = createReactClass({
     };
   },
 
-  componentWillMount() {
+  componentDidMount() {
     this.fetchData();
+
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
   },
 
   componentWillUnmount() {
@@ -45,10 +48,11 @@ const Broadcasts = createReactClass({
       window.clearTimeout(this.timer);
       this.timer = null;
     }
+
     if (this.poller) {
-      window.clearTimeout(this.poller);
-      this.poller = null;
+      this.stopPoll();
     }
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   },
 
   remountComponent() {
@@ -57,25 +61,45 @@ const Broadcasts = createReactClass({
 
   fetchData() {
     if (this.poller) {
-      window.clearTimeout(this.poller);
+      this.stopPoll();
     }
-    this.api.request('/broadcasts/', {
-      method: 'GET',
-      success: data => {
+
+    return getAllBroadcasts(this.api)
+      .then(data => {
         this.setState({
           broadcasts: data || [],
           loading: false,
         });
-        this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
-      },
-      error: () => {
+        this.startPoll();
+      })
+      .catch(() => {
         this.setState({
           loading: false,
           error: true,
         });
-        this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
-      },
-    });
+        this.startPoll();
+      });
+  },
+
+  startPoll() {
+    this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
+  },
+
+  stopPoll() {
+    window.clearTimeout(this.poller);
+    this.poller = null;
+  },
+
+  /**
+   * If tab/window loses visiblity (note: this is different than focus), stop polling for broadcasts data, otherwise,
+   * if it gains visibility, start polling again.
+   */
+  handleVisibilityChange() {
+    if (document.hidden) {
+      this.stopPoll();
+    } else {
+      this.startPoll();
+    }
   },
 
   handleShowPanel() {
@@ -99,20 +123,13 @@ const Broadcasts = createReactClass({
     let unseenBroadcastIds = this.getUnseenIds();
     if (unseenBroadcastIds.length === 0) return;
 
-    this.api.request('/broadcasts/', {
-      method: 'PUT',
-      query: {id: unseenBroadcastIds},
-      data: {
-        hasSeen: '1',
-      },
-      success: () => {
-        this.setState({
-          broadcasts: this.state.broadcasts.map(item => {
-            item.hasSeen = true;
-            return item;
-          }),
-        });
-      },
+    markBroadcastsAsSeen(this.api, unseenBroadcastIds).then(data => {
+      this.setState(state => ({
+        broadcasts: state.broadcasts.map(item => {
+          item.hasSeen = true;
+          return item;
+        }),
+      }));
     });
   },
 

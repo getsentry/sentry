@@ -291,7 +291,7 @@ class CreateOrganizationMemberTeamTest(APITestCase):
 
         assert not OrganizationMemberTeam.objects.filter(
             team=team,
-            organizationmember=owner,
+            organizationmember__user=owner,
         ).exists()
 
 

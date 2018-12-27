@@ -8,8 +8,9 @@ from sentry.testutils import TestCase
 class TestCreator(TestCase):
     def setUp(self):
         self.user = self.create_user()
+        self.org = self.create_organization(owner=self.user)
         self.creator = Creator(name='nulldb',
-                               user=self.user,
+                               organization=self.org,
                                scopes=('project:read',),
                                webhook_url='http://example.com')
 
@@ -36,9 +37,17 @@ class TestCreator(TestCase):
         sentry_app = SentryApp.objects.get(
             name='nulldb',
             application=app,
-            owner=self.user,
+            owner=self.org,
             proxy_user=proxy,
         )
 
         assert sentry_app
         assert sentry_app.scope_list == ['project:read']
+
+    def test_expands_rolled_up_events(self):
+        self.creator.events = ['issue']
+        app = self.creator.call()
+
+        sentry_app = SentryApp.objects.get(id=app.id)
+
+        assert 'issue.created' in sentry_app.events

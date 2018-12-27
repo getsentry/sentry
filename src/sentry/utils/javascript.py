@@ -8,18 +8,16 @@ sentry.utils.javascript
 from __future__ import absolute_import
 
 
+from sentry.utils.safe import get_path
+
+
 def has_sourcemap(event):
     if event.platform not in ('javascript', 'node'):
         return False
-    data = event.data
 
-    if 'sentry.interfaces.Exception' not in data:
-        return False
-    exception = data['sentry.interfaces.Exception']
-    for value in exception['values']:
-        stacktrace = value.get('stacktrace', {})
-        for frame in stacktrace.get('frames', []):
-            if 'sourcemap' in frame.get('data', {}):
+    for exception in get_path(event.data, 'exception', 'values', filter=True, default=()):
+        for frame in get_path(exception, 'stacktrace', 'frames', filter=True, default=()):
+            if 'sourcemap' in (frame.get('data') or ()):
                 return True
 
     return False

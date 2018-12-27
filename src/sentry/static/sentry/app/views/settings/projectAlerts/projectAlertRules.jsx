@@ -1,3 +1,4 @@
+import {Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -21,6 +22,8 @@ import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ListLink from 'app/components/listLink';
+import NavTabs from 'app/components/navTabs';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
@@ -99,16 +102,12 @@ const RuleRow = createReactClass({
 
     return (
       <Panel>
-        <PanelHeader
-          css={{paddingTop: 5, paddingBottom: 5}}
-          align="center"
-          justify="space-between"
-        >
+        <PanelHeader align="center" justify="space-between" hasButtons>
           <TextColorLink to={editLink}>
             {data.name} - {environmentName}
           </TextColorLink>
 
-          <div>
+          <Flex>
             <Tooltip
               disabled={canEdit}
               title={t('You do not have permission to edit alert rules.')}
@@ -117,7 +116,7 @@ const RuleRow = createReactClass({
                 data-test-id="edit-rule"
                 style={{marginRight: 5}}
                 disabled={!canEdit}
-                size="small"
+                size="xsmall"
                 to={editLink}
               >
                 {t('Edit Rule')}
@@ -133,10 +132,10 @@ const RuleRow = createReactClass({
                 onConfirm={this.onDelete}
                 disabled={!canEdit}
               >
-                <Button size="small" icon="icon-trash" />
+                <Button size="xsmall" icon="icon-trash" />
               </Confirm>
             </Tooltip>
-          </div>
+          </Flex>
         </PanelHeader>
 
         <PanelBody>
@@ -284,14 +283,15 @@ class ProjectAlertRules extends AsyncView {
             </Tooltip>
           }
           tabs={
-            <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
+            <NavTabs underlined={true}>
               <ListLink to={recreateRoute('alerts', {...this.props, stepBack: -4})}>
                 {t('Settings')}
               </ListLink>
               <ListLink to={recreateRoute('', this.props)}>{t('Rules')}</ListLink>
-            </ul>
+            </NavTabs>
           }
         />
+        <PermissionAlert />
         {!!ruleList.length && this.renderResults()}
         {!ruleList.length && this.renderEmpty()}
       </React.Fragment>

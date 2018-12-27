@@ -8,7 +8,10 @@ import {Flex, Box} from 'grid-emotion';
 import ProjectState from 'app/mixins/projectState';
 import TimeSince from 'app/components/timeSince';
 import ShortId from 'app/components/shortId';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {t, tct} from 'app/locale';
+import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
 
 const EventOrGroupExtraDetails = createReactClass({
   displayName: 'EventOrGroupExtraDetails',
@@ -49,45 +52,44 @@ const EventOrGroupExtraDetails = createReactClass({
       showAssignee,
       shortId,
     } = this.props;
-    let styles = {};
-    if (subscriptionDetails && subscriptionDetails.reason === 'mentioned') {
-      styles = {color: '#57be8c'};
-    }
 
     return (
       <GroupExtra align="center">
-        {shortId && (
-          <Box mr={2}>
-            <GroupShortId shortId={shortId} />
-          </Box>
-        )}
-        <Flex align="center" mr={2}>
-          {lastSeen && (
-            <React.Fragment>
-              <GroupExtraIcon className="icon icon-clock" />
-              <TimeSince date={lastSeen} suffix={t('ago')} />
-            </React.Fragment>
-          )}
-          {firstSeen &&
-            lastSeen && <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>}
-          {firstSeen && (
-            <TimeSince
-              date={firstSeen}
-              suffix={t('old')}
-              className="hidden-xs hidden-sm"
-            />
-          )}
-        </Flex>
+        {shortId && <GroupShortId shortId={shortId} />}
+        <Times>
+          <div css={overflowEllipsis}>
+            {lastSeen && (
+              <React.Fragment>
+                <GroupTimeIcon src="icon-clock-sm" />
+                <TimeSince date={lastSeen} suffix={t('ago')} />
+              </React.Fragment>
+            )}
+            {firstSeen &&
+              lastSeen && <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>}
+            {firstSeen && (
+              <TimeSince
+                date={firstSeen}
+                suffix={t('old')}
+                className="hidden-xs hidden-sm"
+              />
+            )}
+          </div>
+        </Times>
         <GroupExtraCommentsAndLogger>
           {numComments > 0 && (
             <Box mr={2}>
-              <Link
+              <CommentsLink
                 to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}
                 className="comments"
               >
-                <GroupExtraIcon className="icon icon-comments" style={styles} />
-                <GroupExtraIcon className="tag-count">{numComments}</GroupExtraIcon>
-              </Link>
+                <GroupExtraIcon
+                  src="icon-comment-sm"
+                  mentioned={
+                    subscriptionDetails && subscriptionDetails.reason === 'mentioned'
+                  }
+                />
+                <span>{numComments}</span>
+              </CommentsLink>
             </Box>
           )}
           {logger && (
@@ -108,7 +110,7 @@ const EventOrGroupExtraDetails = createReactClass({
         {annotations &&
           annotations.map((annotation, key) => {
             return (
-              <Box
+              <div
                 className="event-annotation"
                 dangerouslySetInnerHTML={{
                   __html: annotation,
@@ -119,7 +121,7 @@ const EventOrGroupExtraDetails = createReactClass({
           })}
 
         {showAssignee &&
-          assignedTo && <Box>{tct('Assigned to [name]', {name: assignedTo.name})}</Box>}
+          assignedTo && <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>}
       </GroupExtra>
     );
   },
@@ -128,6 +130,8 @@ const EventOrGroupExtraDetails = createReactClass({
 const GroupExtra = styled(Flex)`
   color: ${p => p.theme.gray3};
   font-size: 12px;
+  position: relative;
+
   a {
     color: inherit;
   }
@@ -137,14 +141,35 @@ const GroupExtraCommentsAndLogger = styled(Flex)`
   color: ${p => p.theme.gray4};
 `;
 
+const CommentsLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+`;
+
+const Times = styled('div')`
+  margin-right: ${space(2)};
+  flex-shrink: 1;
+  min-width: 0; /* flex-hack for overflow-ellipsised children */
+`;
+
 const GroupShortId = styled(ShortId)`
+  margin-right: ${space(2)};
+  flex-shrink: 0;
   font-size: 12px;
   color: ${p => p.theme.gray3};
 `;
 
-const GroupExtraIcon = styled.span`
+const GroupExtraIcon = styled(InlineSvg)`
+  color: ${p => (p.isMentioned ? p.theme.green : null)};
   font-size: 11px;
   margin-right: 4px;
+`;
+
+const GroupTimeIcon = styled(GroupExtraIcon)`
+  /* this is solely for optics, since TimeSince always begins
+  with a number, and numbers do not have descenders */
+  transform: translateY(-1px);
 `;
 
 export default EventOrGroupExtraDetails;

@@ -8,8 +8,31 @@ from concurrent.futures import Future
 from concurrent.futures._base import RUNNING, FINISHED
 from time import time
 
+from six.moves import xrange
+
 
 logger = logging.getLogger(__name__)
+
+
+def execute(function, daemon=True):
+    future = Future()
+
+    def run():
+        if not future.set_running_or_notify_cancel():
+            return
+
+        try:
+            result = function()
+        except Exception:
+            future.set_exception_info(*sys.exc_info()[1:])
+        else:
+            future.set_result(result)
+
+    t = threading.Thread(target=run)
+    t.daemon = daemon
+    t.start()
+
+    return future
 
 
 class TimedFuture(Future):

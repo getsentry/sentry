@@ -28,7 +28,13 @@ const ProjectStatsGraph = createReactClass({
       <div>
         {chartData && (
           <LazyLoad height={25} debounce={50}>
-            <BarChart height={25} points={chartData} label="events" />
+            <BarChart
+              height={25}
+              minHeights={[3]}
+              gap={1}
+              points={chartData}
+              label="events"
+            />
           </LazyLoad>
         )}
       </div>

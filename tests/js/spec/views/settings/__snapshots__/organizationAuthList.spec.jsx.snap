@@ -7,6 +7,13 @@ exports[`OrganizationAuthList renders 1`] = `
   <SettingsPageHeading
     title="Authentication"
   />
+  <PermissionAlert
+    access={
+      Array [
+        "org:write",
+      ]
+    }
+  />
   <Panel>
     <PanelHeader>
       Choose a provider
@@ -17,8 +24,6 @@ exports[`OrganizationAuthList renders 1`] = `
       flex={false}
     >
       <PanelAlert
-        m={0}
-        mb={0}
         type="info"
       >
         <span
@@ -27,8 +32,7 @@ exports[`OrganizationAuthList renders 1`] = `
           <span
             key="0"
           >
-            Get started with Single Sign-on for your organization by
-                selecting a provider. Read more in our 
+            Get started with Single Sign-on for your organization by selecting a provider. Read more in our 
           </span>
           <ExternalLink
             href="https://docs.sentry.io/learn/sso/"
@@ -56,7 +60,7 @@ exports[`OrganizationAuthList renders 1`] = `
         <input
           name="csrfmiddlewaretoken"
           type="hidden"
-          value={null}
+          value=""
         />
         <input
           name="init"
@@ -66,8 +70,26 @@ exports[`OrganizationAuthList renders 1`] = `
         <ProviderItem
           key="dummy"
           onConfigure={[Function]}
-          providerKey="dummy"
-          providerName="Dummy"
+          provider={
+            Object {
+              "disables2FA": false,
+              "key": "dummy",
+              "name": "Dummy",
+              "requiredFeature": "organizations:sso-basic",
+            }
+          }
+        />
+        <ProviderItem
+          key="dummy2"
+          onConfigure={[Function]}
+          provider={
+            Object {
+              "disables2FA": true,
+              "key": "dummy2",
+              "name": "Dummy SAML",
+              "requiredFeature": "organizations:sso-saml2",
+            }
+          }
         />
       </form>
     </PanelBody>
@@ -82,6 +104,13 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
   <SettingsPageHeading
     title="Authentication"
   />
+  <PermissionAlert
+    access={
+      Array [
+        "org:write",
+      ]
+    }
+  />
   <Panel>
     <PanelHeader>
       Choose a provider
@@ -92,8 +121,6 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
       flex={false}
     >
       <PanelAlert
-        m={0}
-        mb={0}
         type="info"
       >
         <span
@@ -102,8 +129,7 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
           <span
             key="0"
           >
-            Get started with Single Sign-on for your organization by
-                selecting a provider. Read more in our 
+            Get started with Single Sign-on for your organization by selecting a provider. Read more in our 
           </span>
           <ExternalLink
             href="https://docs.sentry.io/learn/sso/"
@@ -131,24 +157,17 @@ exports[`OrganizationAuthList renders with no providers 1`] = `
         <input
           name="csrfmiddlewaretoken"
           type="hidden"
-          value={null}
+          value=""
         />
         <input
           name="init"
           type="hidden"
           value="1"
         />
+        <EmptyMessage>
+          No authentication providers are available.
+        </EmptyMessage>
       </form>
-      <EmptyMessage
-        style={
-          Object {
-            "padding": 50,
-            "textAlign": "center",
-          }
-        }
-      >
-        No authentication providers are available.
-      </EmptyMessage>
     </PanelBody>
   </Panel>
 </div>

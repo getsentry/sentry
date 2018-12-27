@@ -13,38 +13,67 @@ from django.utils.translation import ugettext as _
 
 
 class VstsIssueSync(IssueSyncMixin):
-    description = 'Integrate Visual Studio Team Services work items by linking a project.'
+    description = 'Integrate Azure DevOps work items by linking a project.'
     slug = 'vsts'
     conf_key = slug
 
     issue_fields = frozenset(['id', 'title', 'url'])
     done_categories = frozenset(['Resolved', 'Completed'])
 
-    def get_create_issue_config(self, group, **kwargs):
-        fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
+    def get_persisted_default_config_fields(self):
+        return ['project']
+
+    def create_default_repo_choice(self, default_repo):
+        # default_repo should be the project_id
+        project = self.get_client().get_project(self.instance, default_repo)
+        return (project['id'], project['name'])
+
+    def get_project_choices(self, group, **kwargs):
         client = self.get_client()
         try:
             projects = client.get_projects(self.instance)['value']
-        except Exception as e:
+        except (ApiError, ApiUnauthorized, KeyError) as e:
             self.raise_error(e)
 
-        project_choices = []
-        initial_project = ('', '')
-        for project in projects:
-            project_id_and_name = '%s#%s' % (project['id'], project['name'])
-            project_choices.append((project_id_and_name, project['name']))
-            # TODO(lb): Properly handle default project after it has been implemented.
-            if project_id_and_name == self.default_project:
-                initial_project = project['name']
+        project_choices = [(project['id'], project['name']) for project in projects]
+
+        params = kwargs.get('params', {})
+        defaults = self.get_project_defaults(group.project_id)
+        try:
+            default_project = params.get(
+                'project', defaults.get('project') or project_choices[0][0])
+        except IndexError:
+            return None, project_choices
+
+        # If a project has been selected outside of the default list of
+        # projects, stick it onto the front of the list so that it can be
+        # selected.
+        try:
+            next(True for r in project_choices if r[0] == default_project)
+        except StopIteration:
+            try:
+                project_choices.insert(0, self.create_default_repo_choice(default_project))
+            except (ApiError, ApiUnauthorized):
+                return None, project_choices
+
+        return default_project, project_choices
+
+    def get_create_issue_config(self, group, **kwargs):
+        kwargs['link_referrer'] = 'vsts_integration'
+        fields = super(VstsIssueSync, self).get_create_issue_config(group, **kwargs)
+        # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
+        # Workitems (issues) are associated with the project not the repository.
+        default_project, project_choices = self.get_project_choices(group, **kwargs)
+
         return [
             {
                 'name': 'project',
                 'required': True,
                 'type': 'choice',
                 'choices': project_choices,
-                'defaultValue': initial_project,
+                'defaultValue': default_project,
                 'label': _('Project'),
-                'placeholder': initial_project or _('MyProject'),
+                'placeholder': default_project or _('MyProject'),
             }
         ] + fields
 
@@ -61,16 +90,16 @@ class VstsIssueSync(IssueSyncMixin):
         return fields
 
     def get_issue_url(self, key, **kwargs):
-        return 'https://%s/_workitems/edit/%s' % (self.instance, six.text_type(key))
+        return '%s_workitems/edit/%s' % (self.instance, six.text_type(key))
 
     def create_issue(self, data, **kwargs):
         """
         Creates the issue on the remote service and returns an issue ID.
         """
-        project = data.get('project') or self.default_project
-        if project is None:
-            raise ValueError('VSTS expects project')
-        project_id, project_name = project.split('#')
+        project_id = data.get('project')
+        if project_id is None:
+            raise ValueError('Azure DevOps expects project')
+
         client = self.get_client()
 
         title = data['title']
@@ -88,6 +117,7 @@ class VstsIssueSync(IssueSyncMixin):
         except Exception as e:
             self.raise_error(e)
 
+        project_name = created_item['fields']['System.AreaPath']
         return {
             'key': six.text_type(created_item['id']),
             'title': title,
@@ -114,13 +144,18 @@ class VstsIssueSync(IssueSyncMixin):
         assignee = None
 
         if assign is True:
-            vsts_users = client.get_users(self.model.name)
             sentry_emails = [email.email.lower() for email in user.get_verified_emails()]
+            continuation_token = None
+            while True:
+                vsts_users = client.get_users(self.model.name, continuation_token)
+                continuation_token = vsts_users.headers.get('X-MS-ContinuationToken')
+                for vsts_user in vsts_users['value']:
+                    vsts_email = vsts_user.get(u'mailAddress')
+                    if vsts_email and vsts_email.lower() in sentry_emails:
+                        assignee = vsts_user['mailAddress']
+                        break
 
-            for vsts_user in vsts_users['value']:
-                vsts_email = vsts_user.get(u'mailAddress')
-                if vsts_email and vsts_email.lower() in sentry_emails:
-                    assignee = vsts_user['mailAddress']
+                if not continuation_token:
                     break
 
             if assignee is None:
@@ -203,7 +238,7 @@ class VstsIssueSync(IssueSyncMixin):
 
     def should_unresolve(self, data):
         done_states = self.get_done_states(data['project'])
-        return data['old_state'] in done_states and not data['new_state'] in done_states
+        return data['old_state'] in done_states or data['old_state'] is None and not data['new_state'] in done_states
 
     def should_resolve(self, data):
         done_states = self.get_done_states(data['project'])
@@ -218,4 +253,6 @@ class VstsIssueSync(IssueSyncMixin):
         return done_states
 
     def get_issue_display_name(self, external_issue):
+        if external_issue.metadata is None:
+            return ''
         return external_issue.metadata['display_name']

@@ -11,10 +11,12 @@ import IssueSyncListElement from 'app/components/issueSyncListElement';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Form from 'app/views/settings/components/forms/form';
+import NavTabs from 'app/components/navTabs';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {debounce} from 'lodash';
 
 const MESSAGES_BY_ACTION = {
   link: t('Successfully linked issue.'),
@@ -33,6 +35,8 @@ class ExternalIssueForm extends AsyncComponent {
     action: PropTypes.oneOf(['link', 'create']),
     onSubmitSuccess: PropTypes.func.isRequired,
   };
+
+  shouldRenderBadRequests = true;
 
   getEndpoints() {
     let {action, group, integration} = this.props;
@@ -104,33 +108,38 @@ class ExternalIssueForm extends AsyncComponent {
   };
 
   getOptions = (field, input) => {
-    if (!input && field.default && field.defaultLabel) {
-      return Promise.resolve({
-        options: [{value: field.default, label: field.defaultLabel}],
-      });
-    }
     if (!input) {
-      return Promise.resolve([]);
+      const options = (field.choices || []).map(([value, label]) => ({value, label}));
+      return Promise.resolve({options});
     }
-
-    let query = queryString.stringify({
-      ...this.state.dynamicFieldValues,
-      field: field.name,
-      query: input,
+    return new Promise(resolve => {
+      this.debouncedOptionLoad(field, input, resolve);
     });
-
-    let url = field.url;
-    let separator = url.includes('?') ? '&' : '?';
-
-    let request = {
-      url: [url, separator, query].join(''),
-      method: 'GET',
-    };
-
-    // We can't use the API client here since the URL is not scapped under the
-    // API endpoints (which the client prefixes)
-    return $.ajax(request).then(data => ({options: data}));
   };
+
+  debouncedOptionLoad = debounce(
+    (field, input, resolve) => {
+      let query = queryString.stringify({
+        ...this.state.dynamicFieldValues,
+        field: field.name,
+        query: input,
+      });
+
+      let url = field.url;
+      let separator = url.includes('?') ? '&' : '?';
+
+      let request = {
+        url: [url, separator, query].join(''),
+        method: 'GET',
+      };
+
+      // We can't use the API client here since the URL is not scoped under the
+      // API endpoints (which the client prefixes)
+      $.ajax(request).then(data => resolve({options: data}));
+    },
+    200,
+    {trailing: true}
+  );
 
   getFieldProps = field =>
     field.url
@@ -170,7 +179,7 @@ class ExternalIssueForm extends AsyncComponent {
       >
         {config.map(field => (
           <FieldFromConfig
-            key={field.name}
+            key={`${field.name}-${field.default}`}
             field={field}
             inline={false}
             stacked
@@ -283,21 +292,19 @@ class ExternalIssueActions extends AsyncComponent {
             onHide={this.closeModal}
             animation={false}
             enforceFocus={false}
+            backdrop="static"
           >
             <Modal.Header closeButton>
               <Modal.Title>{`${selectedIntegration.provider.name} Issue`}</Modal.Title>
             </Modal.Header>
-            <ul
-              className="nav nav-tabs"
-              style={{borderBottom: '1px solid rgb(221, 221, 221)'}}
-            >
+            <NavTabs underlined={true}>
               <li className={action === 'create' ? 'active' : ''}>
                 <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
               </li>
               <li className={action === 'link' ? 'active' : ''}>
                 <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
               </li>
-            </ul>
+            </NavTabs>
             <Modal.Body>
               {action && (
                 <ExternalIssueForm

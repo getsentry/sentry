@@ -770,96 +770,6 @@ table.integrations {
 }
 
 /**
-* Switch
-* ============================================================================
-*/
-
-@switch-sm-height: 16px;
-@switch-lg-height: 24px;
-
-.switch {
-  display: inline-block;
-  border: 1px solid @trim;
-  position: relative;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
-  cursor: pointer;
-  .transition(border 0.15s ease);
-
-  &:hover {
-    border-color: darken(@trim, 10);
-  }
-
-  .switch-toggle {
-    display: block;
-    position: absolute;
-    border-radius: 50%;
-    background: @gray-lighter;
-    .transition(all 0.25s ease);
-  }
-
-  &.switch-on {
-    border-color: darken(@trim, 10);
-    .switch-toggle {
-      background: @green;
-    }
-  }
-
-  &.switch-changing {
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
-  &.switch-disabled {
-    cursor: not-allowed;
-    pointer-events: none;
-
-    .switch-toggle {
-      opacity: 0.4;
-    }
-  }
-}
-
-// To replace checkboxes
-
-.switch-sm {
-  height: @switch-sm-height;
-  width: @switch-sm-height * 2;
-  border-radius: @switch-sm-height;
-
-  .switch-toggle {
-    top: 2px;
-    transform: translateX(2px);
-    .square(@switch-sm-height - 6); // (3*2) Room for border and padding on top and bottom
-  }
-
-  &.switch-on {
-    .switch-toggle {
-      transform: translateX(@switch-sm-height + 2);
-    }
-  }
-}
-
-// When you need to go slightly bigger
-
-.switch-lg {
-  height: @switch-lg-height;
-  width: @switch-lg-height * 2;
-  border-radius: @switch-lg-height;
-
-  .switch-toggle {
-    top: 4px;
-    transform: translateX(4px);
-    .square(@switch-lg-height - 10); // (10*2) Room for border and padding on top and bottom
-  }
-
-  &.switch-on {
-    .switch-toggle {
-      transform: translateX(@switch-lg-height + 4);
-    }
-  }
-}
-
-/**
 * Avatar Grid
 * ============================================================================
 */
@@ -882,16 +792,19 @@ table.integrations {
 * ============================================================================
 */
 .inbound-filters-stats {
-  .bar-chart figure a {
+  .bar-chart figure a,
+  .bar-chart figure g {
     height: 50px;
 
-    span {
+    span,
+    .barchart-rect {
       &.filtered {
         background: @gray-lightest;
       }
     }
 
-    &:hover span {
+    &:hover span,
+    &:hover .barchart-rect {
       &.filtered {
         background: @gray-light;
       }
@@ -1147,45 +1060,54 @@ table.integrations {
     margin-bottom: 20px;
     position: relative;
 
-    a {
+    a,
+    g {
       height: 90px;
       position: relative;
       cursor: default;
 
-      span {
+      span,
+      rect {
         display: block;
         min-height: 2px;
 
         &.accepted {
           background: @gray-lightest;
+          fill: @gray-lightest;
         }
 
         &.rate-limited,
         &.dropped {
           background: @red;
+          fill: @red;
           min-height: 0;
         }
 
         &.black-listed,
         &.filtered {
           background: @orange-light;
+          fill: @orange-light;
           min-height: 0;
         }
       }
 
-      &:hover span {
+      &:hover span,
+      &:hover rect {
         &.accepted {
           background: @gray-light;
+          fill: @gray-light;
         }
 
         &.rate-limited,
         &.dropped {
           background: @red-dark;
+          fill: @red-dark;
         }
 
         &.black-listed,
         &.filtered {
           background: @orange-dark;
+          fill: @orange-dark;
         }
       }
     }
@@ -1229,121 +1151,6 @@ table.integrations {
   width: ((@gridColumnWidth) * @columnSpan) + (@gridGutterWidth * (@columnSpan - 1)) - 10;
 }
 
-// Distribution graph
-
-.distribution-graph {
-  position: relative;
-  font-size: 13px;
-  margin-bottom: 10px;
-
-  h6 {
-    position: relative;
-    font-size: 13px !important;
-    margin-bottom: 8px !important;
-    z-index: 5;
-
-    &:before {
-      display: none !important;
-    }
-  }
-
-  .segment {
-    height: 16px;
-    display: inline-block;
-    color: inherit;
-
-    &:hover {
-      background: @purple !important;
-
-      .tag-description {
-        display: block;
-        z-index: 2;
-      }
-    }
-
-    .tag-description {
-      background-color: @white;
-      position: absolute;
-      text-align: right;
-      top: -1px;
-      right: 0;
-      line-height: 1;
-      display: none;
-      z-index: 1;
-      width: 100%;
-    }
-
-    .tag-percentage {
-      margin-right: 6px;
-      color: @gray-light;
-      display: inline-block;
-      vertical-align: middle;
-    }
-
-    .tag-label {
-      display: inline-block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 45%;
-      vertical-align: middle;
-    }
-
-    &:first-child {
-      border-top-left-radius: 3px;
-      border-bottom-left-radius: 3px;
-
-      .tag-description {
-        display: block !important;
-      }
-    }
-
-    &:last-child {
-      border-top-right-radius: 3px;
-      border-bottom-right-radius: 3px;
-    }
-
-    &.segment-9 {
-      background-color: #dad9ed;
-    }
-
-    &.segment-8 {
-      background-color: #d0cee1;
-    }
-
-    &.segment-7 {
-      background-color: #c5c3d6;
-    }
-
-    &.segment-6 {
-      background-color: #bbb7ca;
-    }
-
-    &.segment-5 {
-      background-color: #b0acbe;
-    }
-
-    &.segment-4 {
-      background-color: #a6a1b3;
-    }
-
-    &.segment-3 {
-      background-color: #9b96a7;
-    }
-
-    &.segment-2 {
-      background-color: #918a9b;
-    }
-
-    &.segment-1 {
-      background-color: #867f90;
-    }
-
-    &.segment-0 {
-      background-color: #7c7484;
-    }
-  }
-}
 
 /**
 * Faces
@@ -1798,11 +1605,11 @@ header + .alert {
   }
 
   a {
-    font-weight: 600;
     color: inherit;
+    text-decoration: underline;
 
     &:hover {
-      color: inherit;
+      text-decoration: underline;
     }
   }
 
@@ -2191,7 +1998,7 @@ header + .alert {
   }
 
   &.border-bottom {
-    border-bottom: 1px solid lighten(@trim, 2);
+    border-bottom: 1px solid @trim;
   }
 
   &.anchor-right {
@@ -2223,16 +2030,6 @@ header + .alert {
   top: -1px;
   margin-left: 4px;
   .transition(0.1s background linear);
-
-  &.badge-square {
-    height: auto;
-    line-height: 1;
-    border-radius: 3px;
-    padding: 7px;
-    font-size: 12px;
-    vertical-align: bottom;
-    top: 0;
-  }
 
   &.new {
     background: @red;
@@ -2297,28 +2094,6 @@ header + .alert {
 }
 
 /**
-* Circle indicators
-* ============================================================================
-*/
-
-.circle-indicator {
-  display: inline-block;
-  .square(14px);
-  border-radius: 14px;
-  margin-right: 8px;
-  position: relative;
-  top: 1px;
-
-  &.enabled {
-    background: @green;
-  }
-
-  &.disabled {
-    background: @red;
-  }
-}
-
-/**
 * Project nav
 * ============================================================================
 */
@@ -2357,11 +2132,6 @@ ul.radio-inputs {
 * Modal
 * ============================================================================
 */
-
-.modal-open .app > * {
-  -webkit-filter: ~'blur(3px) grayscale(25%)';
-}
-
 .modal-backdrop {
   background-color: @gray-dark;
 }
@@ -2511,102 +2281,18 @@ ul.radio-inputs {
   }
 }
 
-// Broadcast Modal
-
-.modal-broadcast {
-  .modal-dialog {
-    position: absolute;
-    right: 10px;
-    bottom: 10px;
-    .release-buttons {
-      display: flex;
-      justify-content: flex-end;
-      .btn {
-        margin-left: 10px;
-      }
-    }
-    .close-icon {
-      color: @50;
-      cursor: pointer;
-
-      &:hover {
-        color: @80;
-      }
-    }
-    .modal {
-      z-index: 2000;
-      .transition(transform 0.2s ease);
-
-      &.a-nth {
-        transform: scale(1, 1) translate(0, 0px);
-        z-index: 2000;
-        opacity: 1;
-      }
-
-      &.b-nth {
-        transform: scale(0.95, 0.95) translate(0, -50px);
-        z-index: 1999;
-        // opacity: .8;
-      }
-
-      &.c-nth {
-        transform: scale(0.9, 0.9) translate(0, -100px);
-        z-index: 1998;
-        // opacity: .6;
-      }
-
-      &.d-nth {
-        transform: scale(0.85, 0.85) translate(0, -150px);
-        z-index: 1997;
-        // opacity: .4;
-      }
-    }
-  }
-}
-
 /**
 * Well
 * ============================================================================
 */
-
-.well {
-  border: 1px solid @trim;
-  box-shadow: none;
-  background: @white-dark;
-  padding: 15px 20px;
-  margin-bottom: 20px;
-  border-radius: 3px;
-
-  p {
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  &.important {
-    background: @yellow;
-    border: 0;
-    a,
-    a:active {
-      color: @gray-dark;
-    }
-  }
-
-  &.image-well {
-    padding: 80px 30px;
-  }
-}
-
 .blankslate {
   text-align: center;
   padding: 50px 0;
-
   .icon {
     font-size: 72px;
     color: @40;
     margin-bottom: 10px;
   }
-
   h5 {
     margin-bottom: 10px;
   }
@@ -2710,6 +2396,9 @@ ul.tag-list {
     &.python-celery .platformicon:before {
       content: '\e602';
     }
+    &.python-awslambda .platformicon:before {
+      content: '\e602';
+    }
     &.python-pyramid .platformicon:before {
       content: '\e602';
     }
@@ -2717,6 +2406,9 @@ ul.tag-list {
       content: '\e602';
     }
     &.python-rq .platformicon:before {
+      content: '\e602';
+    }
+    &.python-sanic .platformicon:before {
       content: '\e602';
     }
 
@@ -2835,25 +2527,6 @@ ul.tag-list {
     .platformicon {
       color: black !important;
       background: white !important;
-    }
-  }
-}
-
-/**
-* QR Code
-* ============================================================================
-*/
-div.qrcode {
-  table {
-    border-spacing: 0;
-    margin: 40px auto;
-    td {
-      width: 5px;
-      height: 5px;
-
-      &.black {
-        background: black;
-      }
     }
   }
 }

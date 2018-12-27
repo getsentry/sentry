@@ -7,12 +7,11 @@ import Reflux from 'reflux';
 import {fetchTeamDetails} from 'app/actionCreators/teams';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
-import DropdownLink from 'app/components/dropdownLink';
 import IdBadge from 'app/components/idBadge';
 import ListLink from 'app/components/listLink';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import MenuItem from 'app/components/menuItem';
+import NavTabs from 'app/components/navTabs';
 import OrganizationState from 'app/mixins/organizationState';
 import TeamStore from 'app/stores/teamStore';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -90,36 +89,18 @@ const TeamDetails = createReactClass({
     else if (!team || this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
-    let access = this.getAccess();
 
-    //TODO(maxbittker) remove hack to not show this page on old settings
-    let onNewSettings = routePrefix.startsWith('/settings/');
-
-    const features = new Set(this.context.organization.features);
     return (
       <div>
         <h3>
           <IdBadge hideAvatar team={team} avatarSize={36} />
         </h3>
 
-        {!features.has('new-settings') &&
-          access.has('team:admin') && (
-            <DropdownLink anchorRight title={t('More')}>
-              <MenuItem
-                href={`/organizations/${params.orgId}/teams/${params.teamId}/remove/`}
-              >
-                {t('Remove Team')}
-              </MenuItem>
-            </DropdownLink>
-          )}
-
-        <ul className="nav nav-tabs border-bottom">
+        <NavTabs underlined={true}>
           <ListLink to={`${routePrefix}members/`}>{t('Members')}</ListLink>
-          {onNewSettings ? (
-            <ListLink to={`${routePrefix}projects/`}>{t('Projects')}</ListLink>
-          ) : null}
+          <ListLink to={`${routePrefix}projects/`}>{t('Projects')}</ListLink>
           <ListLink to={`${routePrefix}settings/`}>{t('Settings')}</ListLink>
-        </ul>
+        </NavTabs>
 
         {children &&
           React.cloneElement(children, {

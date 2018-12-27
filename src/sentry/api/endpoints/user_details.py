@@ -50,7 +50,6 @@ class UserOptionsSerializer(serializers.Serializer):
     ), required=False)
     timezone = serializers.ChoiceField(choices=TIMEZONE_CHOICES, required=False)
     clock24Hours = serializers.BooleanField(required=False)
-    seenReleaseBroadcast = serializers.BooleanField(required=False)
 
 
 class BaseUserSerializer(serializers.ModelSerializer):
@@ -150,7 +149,6 @@ class UserDetailsEndpoint(UserEndpoint):
             'timezone': 'timezone',
             'stacktraceOrder': 'stacktrace_order',
             'clock24Hours': 'clock_24_hours',
-            'seenReleaseBroadcast': 'seen_release_broadcast',
         }
 
         options_result = serializer_options.object
@@ -214,7 +212,7 @@ class UserDetailsEndpoint(UserEndpoint):
 
         for org_slug in orgs_to_remove:
             client.delete(
-                path='/organizations/{}/'.format(org_slug),
+                path=u'/organizations/{}/'.format(org_slug),
                 request=request,
                 is_sudo=True)
 

@@ -46,6 +46,7 @@ exports[`TeamMembers renders 1`] = `
       member={
         Object {
           "email": "sentry1@test.com",
+          "expired": false,
           "flags": Object {
             "sso:linked": false,
           },
@@ -74,7 +75,6 @@ exports[`TeamMembers renders 1`] = `
       useLink={true}
     />
     <Button
-      alignLabel="left"
       disabled={false}
       onClick={[Function]}
       size="small"
@@ -120,7 +120,6 @@ exports[`TeamMembers renders 1`] = `
       useLink={true}
     />
     <Button
-      alignLabel="left"
       disabled={false}
       onClick={[Function]}
       size="small"
@@ -166,7 +165,6 @@ exports[`TeamMembers renders 1`] = `
       useLink={true}
     />
     <Button
-      alignLabel="left"
       disabled={false}
       onClick={[Function]}
       size="small"
@@ -212,7 +210,6 @@ exports[`TeamMembers renders 1`] = `
       useLink={true}
     />
     <Button
-      alignLabel="left"
       disabled={false}
       onClick={[Function]}
       size="small"

@@ -7,6 +7,7 @@ import AccountSecurityWrapper from 'app/views/settings/account/accountSecurity/a
 
 const ENDPOINT = '/users/me/authenticators/';
 const ORG_ENDPOINT = '/organizations/';
+const AUTH_ENDPOINT = '/auth/';
 
 describe('AccountSecurity', function() {
   beforeEach(function() {
@@ -340,5 +341,29 @@ describe('AccountSecurity', function() {
     expect(mock).not.toHaveBeenCalled();
     // user is not 2fa enrolled
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
+  });
+
+  it('can expire all sessions', function() {
+    Client.addMockResponse({
+      url: ENDPOINT,
+      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+    });
+    let mock = Client.addMockResponse({
+      url: AUTH_ENDPOINT,
+      body: {all: true},
+      method: 'DELETE',
+      status: 204,
+    });
+
+    let wrapper = mount(
+      <AccountSecurityWrapper>
+        <AccountSecurity />
+      </AccountSecurityWrapper>,
+      TestStubs.routerContext()
+    );
+
+    wrapper.find('Button[data-test-id="signoutAll"]').simulate('click');
+
+    expect(mock).toHaveBeenCalled();
   });
 });

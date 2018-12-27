@@ -43,8 +43,25 @@ class ExceptionTest(TestCase):
             )
         )
 
+    def test_null_values(self):
+        sink = {}
+        assert Exception.to_python({}).to_json() == sink
+        assert Exception.to_python({'exc_omitted': None}).to_json() == sink
+        assert Exception.to_python({'values': None}).to_json() == sink
+        assert Exception.to_python({'values': []}).to_json() == sink
+        assert Exception.to_python({'values': [None]}).to_json() == {"values": [None]}
+
+    def test_does_not_wrap_if_exception_omitted_present(self):
+        input = {
+            "exc_omitted": None,
+            "mechanism": {
+                "handled": True, "type": "generic"
+            }
+        }
+        assert Exception.to_python(input).to_json() == {}
+
     def test_path(self):
-        assert self.interface.get_path() == 'sentry.interfaces.Exception'
+        assert self.interface.get_path() == 'exception'
 
     def test_args_as_keyword_args(self):
         inst = Exception.to_python(
@@ -54,7 +71,7 @@ class ExceptionTest(TestCase):
                 'module': 'foo.bar',
             }])
         )
-        assert type(inst.values[0]) is SingleException
+        assert isinstance(inst.values[0], SingleException)
         assert inst.values[0].type == 'ValueError'
         assert inst.values[0].value == 'hello world'
         assert inst.values[0].module == 'foo.bar'
@@ -67,7 +84,7 @@ class ExceptionTest(TestCase):
                 'module': 'foo.bar',
             }
         )
-        assert type(inst.values[0]) is SingleException
+        assert isinstance(inst.values[0], SingleException)
         assert inst.values[0].type == 'ValueError'
         assert inst.values[0].value == 'hello world'
         assert inst.values[0].module == 'foo.bar'
@@ -130,7 +147,7 @@ ValueError: hello world
         )
 
         self.create_event(data={
-            'sentry.interfaces.Exception': inst.to_json(),
+            'exception': inst.to_json(),
         })
         context = inst.get_api_context()
         assert context['hasSystemFrames']
@@ -160,7 +177,7 @@ ValueError: hello world
         )
 
         self.create_event(data={
-            'sentry.interfaces.Exception': inst.to_json(),
+            'exception': inst.to_json(),
         })
         context = inst.get_api_context()
         assert context['values'][0]['stacktrace']['frames'][0]['symbol'] == 'Class.myfunc'
@@ -197,7 +214,7 @@ ValueError: hello world
         )
 
         self.create_event(data={
-            'sentry.interfaces.Exception': inst.to_json(),
+            'exception': inst.to_json(),
         })
         context = inst.get_api_context()
         assert not context['hasSystemFrames']
@@ -229,11 +246,11 @@ ValueError: hello world
             }
         ]
         exc = dict(values=values)
-        normalize_in_app({'sentry.interfaces.Exception': exc})
+        normalize_in_app({'exception': exc})
         inst = Exception.to_python(exc)
 
         self.create_event(data={
-            'sentry.interfaces.Exception': inst.to_json(),
+            'exception': inst.to_json(),
         })
         context = inst.get_api_context()
         assert not context['hasSystemFrames']
@@ -272,7 +289,7 @@ ValueError: hello world
         )
 
         self.create_event(data={
-            'sentry.interfaces.Exception': inst.to_json(),
+            'exception': inst.to_json(),
         })
         context = inst.get_api_context()
         assert context['values'][0]['stacktrace']['frames'][0]['function'] == 'main'
@@ -302,10 +319,20 @@ ValueError: hello world
         )
 
         self.create_event(data={
-            'sentry.interfaces.Exception': inst.to_json(),
+            'exception': inst.to_json(),
         })
         context = inst.get_api_context()
         assert context['values'][0]['mechanism']['type'] == 'generic'
+
+    def test_iteration(self):
+        inst = Exception.to_python({
+            'values': [None, {'type': 'ValueError'}, None]
+        })
+
+        assert len(inst) == 1
+        assert inst[0].type == 'ValueError'
+        for exc in inst:
+            assert exc.type == 'ValueError'
 
 
 class SingleExceptionTest(TestCase):

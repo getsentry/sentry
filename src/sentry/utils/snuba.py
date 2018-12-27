@@ -4,36 +4,170 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_datetime
-from itertools import chain
-from operator import or_
+import os
 import pytz
+import re
 import six
 import time
 import urllib3
 
 from django.conf import settings
-from django.db.models import Q
 
 from sentry import quotas
-from sentry.event_manager import HASH_RE
 from sentry.models import (
-    Environment, Group, GroupHash, GroupHashTombstone, GroupRelease,
+    Environment, Group, GroupRelease,
     Organization, Project, Release, ReleaseProject
 )
+from sentry.net.http import connection_from_url
 from sentry.utils import metrics, json
 from sentry.utils.dates import to_timestamp
-from functools import reduce
 
 # TODO remove this when Snuba accepts more than 500 issues
 MAX_ISSUES = 500
 MAX_HASHES = 5000
+
+# Global Snuba request option override dictionary. Only intended
+# to be used with the `options_override` contextmanager below.
+# NOT THREAD SAFE!
+OVERRIDE_OPTIONS = {
+    'consistent': os.environ.get('SENTRY_SNUBA_CONSISTENT', 'false').lower() in ('true', '1')
+}
+
+SENTRY_SNUBA_MAP = {
+    # general
+    'id': 'event_id',
+    'project.id': 'project_id',
+    'platform': 'platform',
+    'message': 'message',
+    'issue.id': 'issue',
+    'timestamp': 'timestamp',
+    'time': 'time',
+    'type': 'type',
+    'version': 'version',
+    # user
+    'user.id': 'user_id',
+    'user.email': 'email',
+    'user.username': 'username',
+    'user.ip': 'ip_address',
+    # sdk
+    'sdk.name': 'sdk_name',
+    'sdk.version': 'sdk_version',
+    # http
+    'http.method': 'http_method',
+    'http.url': 'http_referer',
+    # os
+    'os.build': 'os_build',
+    'os.kernel_version': 'os_kernel_version',
+    # device
+    'device.name': 'device_name',
+    'device.brand': 'device_brand',
+    'device.locale': 'device_locale',
+    'device.uuid': 'device_uuid',
+    'device.model_id': 'device_model_id',
+    'device.arch': 'device_arch',
+    'device.battery_level': 'device_battery_level',
+    'device.orientation': 'device_orientation',
+    'device.simulator': 'device_orientation',
+    'device.online': 'device_online',
+    'device.charging': 'device_charging',
+    # geo
+    'geo.country_code': 'geo_country_code',
+    'geo.region': 'geo_region',
+    'geo.city': 'geo_city',
+    # error, stack
+    'error.type': 'exception_stacks.type',
+    'error.value': 'exception_stacks.value',
+    'error.mechanism': 'exception_stacks.mechanism_type',
+    'error.handled': 'exception_stacks.mechanism_handled',
+    'stack.abs_path': 'exception_frames.abs_path',
+    'stack.filename': 'exception_frames.filename',
+    'stack.package': 'exception_frames.package',
+    'stack.module': 'exception_frames.module',
+    'stack.function': 'exception_frames.function',
+    'stack.in_app': 'exception_frames.in_app',
+    'stack.colno': 'exception_frames.colno',
+    'stack.lineno': 'exception_frames.lineno',
+    'stack.stack_level': 'exception_frames.stack_level',
+    # tags, contexts
+    'tags.key': 'tags.key',
+    'tags.value': 'tags.value',
+    'tags_key': 'tags_key',
+    'tags_value': 'tags_value',
+    'contexts.key': 'contexts.key',
+    'contexts.value': 'contexts.value',
+    # misc
+    'release': 'tags[sentry:release]',
+}
 
 
 class SnubaError(Exception):
     pass
 
 
-class EntireQueryOutsideRetentionError(Exception):
+class UnqualifiedQueryError(SnubaError):
+    """
+    Exception raised when no project_id qualifications were provided in the
+    query or could be derived from other filter criteria.
+    """
+
+
+class UnexpectedResponseError(SnubaError):
+    """
+    Exception raised when the Snuba API server returns an unexpected response
+    type (e.g. not JSON.)
+    """
+
+
+class QueryExecutionError(SnubaError):
+    """
+    Exception raised when a query failed to execute.
+    """
+
+
+class RateLimitExceeded(SnubaError):
+    """
+    Exception raised when a query cannot be executed due to rate limits.
+    """
+
+
+class SchemaValidationError(QueryExecutionError):
+    """
+    Exception raised when a query is not valid.
+    """
+
+
+class QueryMemoryLimitExceeded(QueryExecutionError):
+    """
+    Exception raised when a query would exceed the memory limit.
+    """
+
+
+class QueryIllegalTypeOfArgument(QueryExecutionError):
+    """
+    Exception raised when a function in the query is provided an invalid
+    argument type.
+    """
+
+
+class QueryTooManySimultaneous(QueryExecutionError):
+    """
+    Exception raised when a query is rejected due to too many simultaneous
+    queries being performed on the database.
+    """
+
+
+clickhouse_error_codes_map = {
+    43: QueryIllegalTypeOfArgument,
+    241: QueryMemoryLimitExceeded,
+    202: QueryTooManySimultaneous,
+}
+
+
+class QueryOutsideRetentionError(Exception):
+    pass
+
+
+class QueryOutsideGroupActivityError(Exception):
     pass
 
 
@@ -43,21 +177,143 @@ def timer(name, prefix='snuba.client'):
     try:
         yield
     finally:
-        metrics.timing('{}.{}'.format(prefix, name), time.time() - t)
+        metrics.timing(u'{}.{}'.format(prefix, name), time.time() - t)
 
 
-_snuba_pool = urllib3.connectionpool.connection_from_url(
+@contextmanager
+def options_override(overrides):
+    """\
+    NOT THREAD SAFE!
+
+    Adds to OVERRIDE_OPTIONS, restoring previous values and removing
+    keys that didn't previously exist on exit, so that calls to this
+    can be nested.
+    """
+    previous = {}
+    delete = []
+
+    for k, v in overrides.items():
+        try:
+            previous[k] = OVERRIDE_OPTIONS[k]
+        except KeyError:
+            delete.append(k)
+        OVERRIDE_OPTIONS[k] = v
+
+    try:
+        yield
+    finally:
+        for k, v in previous.items():
+            OVERRIDE_OPTIONS[k] = v
+        for k in delete:
+            OVERRIDE_OPTIONS.pop(k)
+
+
+_snuba_pool = connection_from_url(
     settings.SENTRY_SNUBA,
-    retries=False,
+    retries=5,
     timeout=30,
     maxsize=10,
 )
 
 
+def get_snuba_column_name(name):
+    """
+    Get corresponding Snuba column name from Sentry snuba map, if not found
+    the column is assumed to be a tag. If name is falsy, leave unchanged.
+    """
+    if not name:
+        return name
+    return SENTRY_SNUBA_MAP.get(name, u'tags[{}]'.format(name))
+
+
+def get_arrayjoin(column):
+    match = re.match(r'^(exception_stacks|exception_frames|contexts)\..+$', column)
+    if match:
+        return match.groups()[0]
+
+
+def transform_aliases_and_query(**kwargs):
+    """
+    Convert aliases in selected_columns, groupby, aggregation, conditions,
+    orderby and arrayjoin fields to their internal Snuba format and post the
+    query to Snuba. Convert back translated aliases before returning snuba
+    results.
+    """
+
+    arrayjoin_map = {
+        'error': 'exception_stacks',
+        'stack': 'exception_frames',
+    }
+
+    translated_columns = {}
+    derived_columns = set()
+
+    selected_columns = kwargs['selected_columns']
+    groupby = kwargs['groupby']
+    aggregations = kwargs['aggregations']
+    conditions = kwargs['conditions'] or []
+    filter_keys = kwargs['filter_keys']
+
+    for (idx, col) in enumerate(selected_columns):
+        name = get_snuba_column_name(col)
+        selected_columns[idx] = name
+        translated_columns[name] = col
+
+    for (idx, col) in enumerate(groupby):
+        name = get_snuba_column_name(col)
+        groupby[idx] = name
+        translated_columns[name] = col
+
+    for aggregation in aggregations or []:
+        derived_columns.add(aggregation[2])
+        aggregation[1] = get_snuba_column_name(aggregation[1])
+
+    for (col, _value) in six.iteritems(filter_keys):
+        name = get_snuba_column_name(col)
+        filter_keys[name] = filter_keys.pop(col)
+
+    def handle_condition(cond):
+        if isinstance(cond, (list, tuple)) and len(cond):
+            if (isinstance(cond[0], (list, tuple))):
+                cond[0] = handle_condition(cond[0])
+            elif len(cond) == 3:
+                # map column name
+                cond[0] = get_snuba_column_name(cond[0])
+            elif len(cond) == 2 and cond[0] == "has":
+                # first function argument is the column if function is "has"
+                cond[1][0] = get_snuba_column_name(cond[1][0])
+        return cond
+
+    kwargs['conditions'] = [handle_condition(condition) for condition in conditions]
+
+    order_by_column = kwargs['orderby'].lstrip('-')
+    kwargs['orderby'] = u'{}{}'.format(
+        '-' if kwargs['orderby'].startswith('-') else '',
+        order_by_column if order_by_column in derived_columns else get_snuba_column_name(
+            order_by_column)
+    ) or None
+
+    kwargs['arrayjoin'] = arrayjoin_map.get(kwargs['arrayjoin'], kwargs['arrayjoin'])
+
+    result = raw_query(**kwargs)
+
+    # Translate back columns that were converted to snuba format
+    for col in result['meta']:
+        col['name'] = translated_columns.get(col['name'], col['name'])
+
+    def get_row(row):
+        return {translated_columns.get(key, key): value for key, value in row.items()}
+
+    if len(translated_columns):
+        result['data'] = [get_row(row) for row in result['data']]
+
+    return result
+
+
 def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
-              aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
-              having=None, referrer=None, is_grouprelease=False, selected_columns=None,
-              totals=None):
+              aggregations=None, rollup=None, arrayjoin=None, limit=None, offset=None,
+              orderby=None, having=None, referrer=None, is_grouprelease=False,
+              selected_columns=None, totals=None, limitby=None, turbo=False):
     """
     Sends a query to snuba.
 
@@ -79,8 +335,8 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
-    start = start if not start.tzinfo else start.astimezone(pytz.utc).replace(tzinfo=None)
-    end = end if not end.tzinfo else end.astimezone(pytz.utc).replace(tzinfo=None)
+    start = naiveify_datetime(start)
+    end = naiveify_datetime(end)
 
     groupby = groupby or []
     conditions = conditions or []
@@ -94,7 +350,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
     if 'project_id' in filter_keys:
         # If we are given a set of project ids, use those directly.
-        project_ids = filter_keys['project_id']
+        project_ids = list(set(filter_keys['project_id']))
     elif filter_keys:
         # Otherwise infer the project_ids from any related models
         with timer('get_related_project_ids'):
@@ -105,13 +361,14 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
     for col, keys in six.iteritems(forward(filter_keys.copy())):
         if keys:
-            if len(keys) == 1 and keys[0] is None:
+            if len(keys) == 1 and None in keys:
                 conditions.append((col, 'IS NULL', None))
             else:
                 conditions.append((col, 'IN', keys))
 
     if not project_ids:
-        raise SnubaError("No project_id filter, or none could be inferred from other filters.")
+        raise UnqualifiedQueryError(
+            "No project_id filter, or none could be inferred from other filters.")
 
     # any project will do, as they should all be from the same organization
     project = Project.objects.get(pk=project_ids[0])
@@ -121,17 +378,15 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     if retention:
         start = max(start, datetime.utcnow() - timedelta(days=retention))
         if start > end:
-            raise EntireQueryOutsideRetentionError
+            raise QueryOutsideRetentionError
 
-    # If the grouping, aggregation, or any of the conditions reference `issue`
-    # we need to fetch the issue definitions (issue -> fingerprint hashes)
-    aggregate_cols = [a[1] for a in aggregations]
-    condition_cols = [c[0] for c in flat_conditions(conditions)]
-    all_cols = groupby + aggregate_cols + condition_cols + selected_columns
-    get_issues = 'issue' in all_cols
+    start = shrink_time_window(filter_keys.get('issue'), start)
 
-    with timer('get_project_issues'):
-        issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
+    # if `shrink_time_window` pushed `start` after `end` it means the user queried
+    # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
+    # wouldn't return any results anyway
+    if start > end:
+        raise QueryOutsideGroupActivityError
 
     request = {k: v for k, v in six.iteritems({
         'from_date': start.isoformat(),
@@ -143,12 +398,16 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'project': project_ids,
         'aggregations': aggregations,
         'granularity': rollup,
-        'issues': issues,
         'arrayjoin': arrayjoin,
         'limit': limit,
+        'offset': offset,
+        'limitby': limitby,
         'orderby': orderby,
         'selected_columns': selected_columns,
+        'turbo': turbo
     }) if v is not None}
+
+    request.update(OVERRIDE_OPTIONS)
 
     headers = {}
     if referrer:
@@ -164,13 +423,24 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     try:
         body = json.loads(response.data)
     except ValueError:
-        raise SnubaError("Could not decode JSON response: {}".format(response.data))
+        raise UnexpectedResponseError(u"Could not decode JSON response: {}".format(response.data))
 
     if response.status != 200:
         if body.get('error'):
-            raise SnubaError(body['error'])
+            error = body['error']
+            if response.status == 429:
+                raise RateLimitExceeded(error['message'])
+            elif error['type'] == 'schema':
+                raise SchemaValidationError(error['message'])
+            elif error['type'] == 'clickhouse':
+                raise clickhouse_error_codes_map.get(
+                    error['code'],
+                    QueryExecutionError,
+                )(error['message'])
+            else:
+                raise SnubaError(error['message'])
         else:
-            raise SnubaError('HTTP {}'.format(response.status))
+            raise SnubaError(u'HTTP {}'.format(response.status))
 
     # Forward and reverse translation maps from model ids to snuba keys, per column
     body['data'] = [reverse(d) for d in body['data']]
@@ -178,9 +448,9 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
-          aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
-          having=None, referrer=None, is_grouprelease=False, selected_columns=None,
-          totals=None):
+          aggregations=None, rollup=None, arrayjoin=None, limit=None, offset=None,
+          orderby=None, having=None, referrer=None, is_grouprelease=False,
+          selected_columns=None, totals=None, limitby=None):
 
     aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
@@ -190,12 +460,14 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         body = raw_query(
             start, end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
             selected_columns=selected_columns, aggregations=aggregations, rollup=rollup,
-            arrayjoin=arrayjoin, limit=limit, orderby=orderby, having=having,
-            referrer=referrer, is_grouprelease=is_grouprelease, totals=totals
+            arrayjoin=arrayjoin, limit=limit, offset=offset, orderby=orderby, having=having,
+            referrer=referrer, is_grouprelease=is_grouprelease, totals=totals, limitby=limitby
         )
-    except EntireQueryOutsideRetentionError:
-        # this exception could also bubble up to the caller instead
-        return OrderedDict()
+    except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
+        if totals:
+            return OrderedDict(), {}
+        else:
+            return OrderedDict()
 
     # Validate and scrub response, and translate snuba keys back to IDs
     aggregate_cols = [a[2] for a in aggregations]
@@ -231,14 +503,6 @@ def nest_groups(data, groups, aggregate_cols):
         return OrderedDict(
             (k, nest_groups(v, rest, aggregate_cols)) for k, v in six.iteritems(inter)
         )
-
-
-def is_condition(cond_or_list):
-    return len(cond_or_list) == 3 and isinstance(cond_or_list[0], six.string_types)
-
-
-def flat_conditions(conditions):
-    return list(chain(*[[c] if is_condition(c) else c for c in conditions]))
 
 
 # The following are functions for resolving information from sentry models
@@ -348,61 +612,11 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     return (forward, reverse)
 
 
-def get_project_issues(project_ids, issue_ids=None):
-    """
-    Get a list of issues and associated fingerprint hashes for a list of
-    project ids. If issue_ids is set, then return only those issues.
-
-    Returns a list: [(issue_id: [hash1, hash2, ...]), ...]
-    """
-    if issue_ids:
-        issue_ids = issue_ids[:MAX_ISSUES]
-        hashes = GroupHash.objects.filter(
-            group_id__in=issue_ids
-        )[:MAX_HASHES]
-    else:
-        hashes = GroupHash.objects.filter(
-            project__in=project_ids,
-            group_id__isnull=False,
-        )[:MAX_HASHES]
-
-    hashes = [h for h in hashes if HASH_RE.match(h.hash)]
-    if not hashes:
-        return []
-
-    hashes_by_project = {}
-    for h in hashes:
-        hashes_by_project.setdefault(h.project_id, []).append(h.hash)
-
-    tombstones = GroupHashTombstone.objects.filter(
-        reduce(or_, (Q(project_id=pid, hash__in=hshes)
-                     for pid, hshes in six.iteritems(hashes_by_project)))
-    )
-
-    tombstones_by_project = {}
-    for tombstone in tombstones:
-        tombstones_by_project.setdefault(
-            tombstone.project_id, {}
-        )[tombstone.hash] = tombstone.deleted_at
-
-    # return [(gid, pid, [(hash, tombstone_date), (hash, tombstone_date), ...]), ...]
-    result = {}
-    for h in hashes:
-        tombstone_date = tombstones_by_project.get(h.project_id, {}).get(h.hash, None)
-        pair = (
-            h.hash,
-            tombstone_date.strftime("%Y-%m-%d %H:%M:%S") if tombstone_date else None
-        )
-        result.setdefault((h.group_id, h.project_id), []).append(pair)
-    return [k + (v,) for k, v in result.items()][:MAX_ISSUES]
-
-
 def get_related_project_ids(column, ids):
     """
     Get the project_ids from a model that has a foreign key to project.
     """
     mappings = {
-        'environment': (Environment, 'id', 'project_id'),
         'issue': (Group, 'id', 'project_id'),
         'tags[sentry:release]': (ReleaseProject, 'release_id', 'project_id'),
     }
@@ -422,9 +636,32 @@ def insert_raw(data):
     data = json.dumps(data)
     try:
         with timer('snuba_insert_raw'):
-            return _snuba_pool.urlopen(
+            resp = _snuba_pool.urlopen(
                 'POST', '/tests/insert',
                 body=data,
             )
+            if resp.status != 200:
+                raise SnubaError("Non-200 response from Snuba insert!")
+            return resp
     except urllib3.exceptions.HTTPError as err:
         raise SnubaError(err)
+
+
+def shrink_time_window(issues, start):
+    """\
+    If a single issue is passed in, shrink the `start` parameter to be briefly before
+    the `first_seen` in order to hopefully eliminate a large percentage of rows scanned.
+
+    Note that we don't shrink `end` based on `last_seen` because that value is updated
+    asynchronously by buffers, and will cause queries to skip recently seen data on
+    stale groups.
+    """
+    if issues and len(issues) == 1:
+        group = Group.objects.get(pk=list(issues)[0])
+        start = max(start, naiveify_datetime(group.first_seen) - timedelta(minutes=5))
+
+    return start
+
+
+def naiveify_datetime(dt):
+    return dt if not dt.tzinfo else dt.astimezone(pytz.utc).replace(tzinfo=None)

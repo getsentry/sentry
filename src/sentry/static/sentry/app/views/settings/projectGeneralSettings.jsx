@@ -4,6 +4,7 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 
+import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
 import {
   changeProjectSlug,
   removeProject,
@@ -18,12 +19,13 @@ import Confirm from 'app/components/confirm';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
-import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
+import ProjectActions from 'app/actions/projectActions';
 import ProjectsStore from 'app/stores/projectsStore';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import TextField from 'app/views/settings/components/forms/textField';
+import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 import recreateRoute from 'app/utils/recreateRoute';
 
 class ProjectGeneralSettings extends AsyncView {
@@ -221,15 +223,18 @@ class ProjectGeneralSettings extends AsyncView {
     let project = this.state.data;
     let {orgId, projectId} = this.props.params;
     let endpoint = `/projects/${orgId}/${projectId}/`;
+    let access = new Set(organization.access);
     let jsonFormProps = {
       additionalFieldProps: {organization},
       features: new Set(organization.features),
-      access: new Set(organization.access),
+      access,
+      disabled: !access.has('project:write'),
     };
 
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
+        <PermissionAlert />
 
         <Form
           saveOnBlur
@@ -246,12 +251,14 @@ class ProjectGeneralSettings extends AsyncView {
               // Container will redirect after stores get updated with new slug
               this.props.onChangeSlug(resp.slug);
             }
+            // This will update our project context
+            ProjectActions.updateSuccess(resp);
           }}
         >
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            fields={[fields.slug, fields.name]}
+            fields={[fields.slug, fields.name, fields.platform]}
           />
 
           <JsonForm
@@ -276,6 +283,7 @@ class ProjectGeneralSettings extends AsyncView {
               fields.sensitiveFields,
               fields.safeFields,
               fields.storeCrashReports,
+              fields.relayPiiConfig,
             ]}
           />
 
@@ -295,7 +303,11 @@ class ProjectGeneralSettings extends AsyncView {
                   {tct(
                     'Configure origin URLs which Sentry should accept events from. This is used for communication with clients like [link].',
                     {
-                      link: <a href="https://github.com/getsentry/raven-js">raven-js</a>,
+                      link: (
+                        <a href="https://github.com/getsentry/sentry-javascript">
+                          sentry-javascript
+                        </a>
+                      ),
                     }
                   )}{' '}
                   {tct(

@@ -1,3 +1,4 @@
+import {AutoSizer, List} from 'react-virtualized';
 import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -34,6 +35,17 @@ class DropdownAutoCompleteMenu extends React.Component {
       ),
     ]),
 
+    /**
+     * If this is undefined, autocomplete filter will use this value instead of the
+     * current value in the filter input element.
+     *
+     * This is useful if you need to strip characters out of the search
+     */
+    filterValue: PropTypes.string,
+
+    /**
+     * Used to control dropdown state (optional)
+     */
     isOpen: PropTypes.bool,
 
     /**
@@ -41,6 +53,15 @@ class DropdownAutoCompleteMenu extends React.Component {
      */
     busy: PropTypes.bool,
 
+    /**
+     * Hide's the input when there are no items. Avoid using this when querying
+     * results in an async fashion.
+     */
+    emptyHidesInput: PropTypes.bool,
+
+    /**
+     * When an item is selected (via clicking dropdown, or keyboard navigation)
+     */
     onSelect: PropTypes.func,
     /**
      * When AutoComplete input changes
@@ -51,6 +72,11 @@ class DropdownAutoCompleteMenu extends React.Component {
      * Callback for when dropdown menu opens
      */
     onOpen: PropTypes.func,
+
+    /**
+     * Callback for when dropdown menu closes
+     */
+    onClose: PropTypes.func,
 
     /**
      * Message to display when there are no items initially
@@ -77,9 +103,22 @@ class DropdownAutoCompleteMenu extends React.Component {
     blendCorner: PropTypes.bool,
 
     /**
+     * Hides the default filter input
+     */
+    hideInput: PropTypes.bool,
+
+    /**
      * Max height of dropdown menu. Units are assumed as `px` if number, otherwise will assume string has units
      */
     maxHeight: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+
+    /**
+     * Supplying this height will force the dropdown menu to be a virtualized list.
+     * This is very useful (and probably required) if you have a large list. e.g. Project selector with many projects.
+     *
+     * Currently, our implementation of the virtualized list requires a fixed height.
+     */
+    virtualizedHeight: PropTypes.number,
 
     /**
      * Search input's placeholder text
@@ -96,13 +135,18 @@ class DropdownAutoCompleteMenu extends React.Component {
      */
     menuWithArrow: PropTypes.bool,
 
-    menuFooter: PropTypes.node,
+    menuFooter: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
     menuHeader: PropTypes.node,
 
     /**
      * Props to pass to menu component
      */
     menuProps: PropTypes.object,
+
+    /**
+     * for passing simple styles to the root container
+     */
+    rootClassName: PropTypes.string,
 
     /**
      * Props to pass to input/filter component
@@ -148,14 +192,87 @@ class DropdownAutoCompleteMenu extends React.Component {
     if (items[0] && items[0].items) {
       //if the first item has children, we assume it is a group
       return _.flatMap(this.filterGroupedItems(items, inputValue), item => {
-        return [
-          {...item, groupLabel: true},
-          ...item.items.map(groupedItem => ({...groupedItem, index: itemCount++})),
-        ];
+        const groupItems = item.items.map(groupedItem => ({
+          ...groupedItem,
+          index: itemCount++,
+        }));
+
+        // Make sure we don't add the group label to list of items
+        // if we try to hide it, otherwise it will render if the list
+        // is using virtualized rows (because of fixed row heights)
+        if (item.hideGroupLabel) {
+          return groupItems;
+        }
+
+        return [{...item, groupLabel: true}, ...groupItems];
       });
     }
 
     return this.filterItems(items, inputValue).map((item, index) => ({...item, index}));
+  };
+
+  renderList = ({items, ...otherProps}) => {
+    const {maxHeight, virtualizedHeight} = this.props;
+
+    // If `virtualizedHeight` is defined, use a virtualized list
+    if (typeof virtualizedHeight !== 'undefined') {
+      return (
+        <AutoSizer disableHeight>
+          {({width}) => (
+            <List
+              width={width}
+              height={Math.min(items.length * virtualizedHeight, maxHeight)}
+              rowCount={items.length}
+              rowHeight={virtualizedHeight}
+              rowRenderer={({key, index, style}) => {
+                const item = items[index];
+                return this.renderRow({
+                  item,
+                  style,
+                  key,
+                  ...otherProps,
+                });
+              }}
+            />
+          )}
+        </AutoSizer>
+      );
+    }
+
+    return items.map(item => {
+      const {index} = item;
+      const key = `${item.value}-${index}`;
+
+      return this.renderRow({item, key, ...otherProps});
+    });
+  };
+
+  renderRow = ({
+    item,
+    style,
+    itemSize,
+    key,
+    highlightedIndex,
+    inputValue,
+    getItemProps,
+  }) => {
+    const {index} = item;
+
+    return item.groupLabel ? (
+      <LabelWithBorder style={style} key={item.label || item.id}>
+        {item.label && <GroupLabel>{item.label}</GroupLabel>}
+      </LabelWithBorder>
+    ) : (
+      <AutoCompleteItem
+        size={itemSize}
+        key={key}
+        index={index}
+        highlightedIndex={highlightedIndex}
+        {...getItemProps({item, index, style})}
+      >
+        {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
+      </AutoCompleteItem>
+    );
   };
 
   render() {
@@ -163,6 +280,7 @@ class DropdownAutoCompleteMenu extends React.Component {
       onSelect,
       onChange,
       onOpen,
+      onClose,
       children,
       items,
       menuProps,
@@ -173,12 +291,17 @@ class DropdownAutoCompleteMenu extends React.Component {
       emptyMessage,
       noResultsMessage,
       style,
+      rootClassName,
+      className,
       menuHeader,
       menuFooter,
       menuWithArrow,
       searchPlaceholder,
       itemSize,
       busy,
+      hideInput,
+      filterValue,
+      emptyHidesInput,
       ...props
     } = this.props;
 
@@ -189,6 +312,7 @@ class DropdownAutoCompleteMenu extends React.Component {
         onSelect={onSelect}
         inputIsActor={false}
         onOpen={onOpen}
+        onClose={onClose}
         {...props}
       >
         {({
@@ -203,23 +327,38 @@ class DropdownAutoCompleteMenu extends React.Component {
           isOpen,
           actions,
         }) => {
+          // This is the value to use to filter (default to value in filter input)
+          let filterValueOrInput =
+            typeof filterValue !== 'undefined' ? filterValue : inputValue;
           // Only filter results if menu is open and there are items
           let autoCompleteResults =
-            (isOpen && items && this.autoCompleteFilter(items, inputValue)) || [];
+            (isOpen &&
+              items &&
+              this.autoCompleteFilter(items, filterValueOrInput || '')) ||
+            [];
 
           // Can't search if there are no items
           let hasItems = items && !!items.length;
-
           // Items are loading if null
           let itemsLoading = items === null;
+          // Has filtered results
           let hasResults = !!autoCompleteResults.length;
-          let showNoItems = !busy && !inputValue && !hasItems;
-          // Results mean there was a search (i.e. inputValue)
-          let showNoResultsMessage = !busy && inputValue && !hasResults;
+          // No items to display
+          let showNoItems = !busy && !filterValueOrInput && !hasItems;
+          // Results mean there was an attempt to search
+          let showNoResultsMessage = !busy && filterValueOrInput && !hasResults;
+
+          // Hide the input when we have no items to filter, only if
+          // emptyHidesInput is set to true.
+          let showInput = !hideInput && (hasItems || !emptyHidesInput);
+
+          let renderedFooter =
+            typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
 
           return (
-            <AutoCompleteRoot {...getRootProps()}>
+            <AutoCompleteRoot {...getRootProps()} className={rootClassName}>
               {children({
+                getInputProps,
                 getActorProps,
                 actions,
                 isOpen,
@@ -228,6 +367,7 @@ class DropdownAutoCompleteMenu extends React.Component {
 
               {isOpen && (
                 <StyledMenu
+                  className={className}
                   {...getMenuProps({
                     ...menuProps,
                     style,
@@ -239,7 +379,7 @@ class DropdownAutoCompleteMenu extends React.Component {
                   })}
                 >
                   {itemsLoading && <LoadingIndicator mini />}
-                  {hasItems && (
+                  {showInput && (
                     <Flex>
                       <StyledInput
                         autoFocus
@@ -267,31 +407,18 @@ class DropdownAutoCompleteMenu extends React.Component {
                         </Flex>
                       )}
                       {!busy &&
-                        autoCompleteResults.map(
-                          ({index, ...item}) =>
-                            item.groupLabel ? (
-                              !item.hideGroupLabel && (
-                                <LabelWithBorder key={item.label || item.id}>
-                                  {item.label && <GroupLabel>{item.label}</GroupLabel>}
-                                </LabelWithBorder>
-                              )
-                            ) : (
-                              <AutoCompleteItem
-                                size={itemSize}
-                                key={`${item.value}-${index}`}
-                                index={index}
-                                highlightedIndex={highlightedIndex}
-                                {...getItemProps({item, index})}
-                              >
-                                {typeof item.label === 'function'
-                                  ? item.label({inputValue})
-                                  : item.label}
-                              </AutoCompleteItem>
-                            )
-                        )}
+                        this.renderList({
+                          items: autoCompleteResults,
+                          itemSize,
+                          highlightedIndex,
+                          inputValue,
+                          getItemProps,
+                        })}
                     </StyledItemList>
 
-                    {menuFooter && <LabelWithPadding>{menuFooter}</LabelWithPadding>}
+                    {renderedFooter && (
+                      <LabelWithPadding>{renderedFooter}</LabelWithPadding>
+                    )}
                   </div>
                 </StyledMenu>
               )}
@@ -404,12 +531,18 @@ const getItemPaddingForSize = size => {
 };
 
 const AutoCompleteItem = styled('div')`
+  /* needed for virtualized lists that do not fill parent height */
+  /* e.g. breadcrumbs (org height > project, but want same fixed height for both) */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
   font-size: 0.9em;
   background-color: ${p =>
     p.index == p.highlightedIndex ? p.theme.offWhite : 'transparent'};
   padding: ${p => getItemPaddingForSize(p.size)};
   cursor: pointer;
-  border-bottom: 1px solid ${p => p.theme.borderLighter};
+  border-bottom: 1px solid ${p => p.theme.borderLight};
 
   &:last-child {
     border-bottom: none;
@@ -443,7 +576,7 @@ const GroupLabel = styled('div')`
 
 const StyledMenu = styled('div')`
   background: #fff;
-  border: 1px solid ${p => p.theme.borderLight};
+  border: 1px solid ${p => p.theme.borderDark};
   position: absolute;
   top: calc(100% - 1px);
   min-width: 250px;
@@ -474,4 +607,4 @@ const EmptyMessage = styled('div')`
 
 export default DropdownAutoCompleteMenu;
 
-export {StyledMenu};
+export {StyledMenu, AutoCompleteRoot};

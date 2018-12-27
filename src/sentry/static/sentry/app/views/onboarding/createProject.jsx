@@ -3,14 +3,15 @@ import React from 'react';
 import Reflux from 'reflux';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
+import * as Sentry from '@sentry/browser';
 
-import sdk from 'app/utils/sdk';
 import {Panel} from 'app/components/panels';
 import {getPlatformName} from 'app/views/onboarding/utils';
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
 import ApiMixin from 'app/mixins/apiMixin';
 import Button from 'app/components/button';
+import HookStore from 'app/stores/hookStore';
 import OnboardingProject from 'app/views/onboarding/project';
 import OrganizationState from 'app/mixins/organizationState';
 import PanelAlert from 'app/components/panels/panelAlert';
@@ -63,12 +64,24 @@ const CreateProject = createReactClass({
 
   onTeamCreated() {
     let {router} = this.context;
-
     // After team gets created we need to force OrganizationContext to basically remount
     router.replace({
       pathname: router.location.pathname,
       state: 'refresh',
     });
+  },
+
+  navigateNextUrl(data) {
+    let organization = this.getOrganization();
+
+    let url =
+      HookStore.get('utils:onboarding-survey-url').length &&
+      organization.projects.length === 0
+        ? HookStore.get('utils:onboarding-survey-url')[0](data, organization)
+        : data.docsUrl;
+
+    this.setState({inFlight: false});
+    data.router.push(url);
   },
 
   createProject() {
@@ -81,8 +94,10 @@ const CreateProject = createReactClass({
     this.setState({inFlight: true});
 
     if (!projectName) {
-      sdk.captureMessage('Onboarding no project name ', {
-        extra: {props: this.props, state: this.state},
+      Sentry.withScope(scope => {
+        scope.setExtra('props', this.props);
+        scope.setExtra('state', this.state);
+        Sentry.captureMessage('Onboarding no project name');
       });
     }
 
@@ -96,9 +111,8 @@ const CreateProject = createReactClass({
         ProjectActions.createSuccess(data);
 
         // navigate to new url _now_
-        const url = this.props.getDocsUrl({slug, projectSlug: data.slug, platform});
-        this.setState({inFlight: false});
-        router.push(url);
+        const docsUrl = this.props.getDocsUrl({slug, projectSlug: data.slug, platform});
+        this.navigateNextUrl({router, slug, projectSlug: data.slug, platform, docsUrl});
       },
       error: err => {
         this.setState({
@@ -110,12 +124,11 @@ const CreateProject = createReactClass({
         // * The user not having access to create a project, or,
         // * A project with that slug already exists
         if (err.status !== 403 && err.status !== 409) {
-          sdk.captureMessage('Onboarding project creation failed', {
-            extra: {
-              err,
-              props: this.props,
-              state: this.state,
-            },
+          Sentry.withScope(scope => {
+            scope.setExtra('err', err);
+            scope.setExtra('props', this.props);
+            scope.setExtra('state', this.state);
+            Sentry.captureMessage('Onboarding project creation failed');
           });
         }
       },

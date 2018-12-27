@@ -4,7 +4,7 @@ import React from 'react';
 import {Client} from 'app/api';
 import {mount} from 'enzyme';
 import {openIntegrationDetails} from 'app/actionCreators/modal';
-import OrganizationIntegrations from 'app/views/organizationIntegrations';
+import {OrganizationIntegrations} from 'app/views/organizationIntegrations';
 
 jest.mock('app/actionCreators/modal', () => ({
   openIntegrationDetails: jest.fn(),
@@ -55,8 +55,58 @@ describe('OrganizationIntegrations', function() {
         url: `/organizations/${org.slug}/repos/?status=unmigratable`,
         body: [],
       });
+      const sentryAppsRequest = Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-apps/`,
+        body: [],
+      });
+      const sentryInstallsRequest = Client.addMockResponse({
+        url: `/organizations/${org.slug}/sentry-app-installations/`,
+        body: [],
+      });
 
-      const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
+      const wrapper = mount(
+        <OrganizationIntegrations organization={org} params={params} />,
+        routerContext
+      );
+
+      it('renders with internal-catchall', function() {
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/integrations/`,
+          body: [],
+        });
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/config/integrations/`,
+          body: {providers: [githubProvider, jiraProvider]},
+        });
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/plugins/`,
+          body: [],
+        });
+        Client.addMockResponse({
+          url: `/organizations/${org.slug}/repos/?status=unmigratable`,
+          body: [],
+        });
+        const appsRequest = Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-apps/`,
+          body: [],
+        });
+        const installsRequest = Client.addMockResponse({
+          url: `/organizations/${org.slug}/sentry-app-installations/`,
+          body: [],
+        });
+        const organization = {...org, features: ['internal-catchall']};
+        mount(
+          <OrganizationIntegrations organization={organization} params={params} />,
+          TestStubs.routerContext([{organization}])
+        );
+        expect(appsRequest).toHaveBeenCalled();
+        expect(installsRequest).toHaveBeenCalled();
+      });
+
+      it('Does`t hit sentry apps endpoints when internal-catchall isn`t present', function() {
+        expect(sentryAppsRequest).not.toHaveBeenCalled();
+        expect(sentryInstallsRequest).not.toHaveBeenCalled();
+      });
 
       it('Displays integration providers', function() {
         expect(wrapper).toMatchSnapshot();
@@ -66,6 +116,7 @@ describe('OrganizationIntegrations', function() {
         const options = {
           provider: githubProvider,
           onAddIntegration: wrapper.instance().onInstall,
+          organization: routerContext.context.organization,
         };
 
         wrapper
@@ -73,7 +124,7 @@ describe('OrganizationIntegrations', function() {
           .first()
           .simulate('click');
 
-        expect(openIntegrationDetails).toBeCalledWith(options);
+        expect(openIntegrationDetails).toHaveBeenCalledWith(options);
       });
     });
 
@@ -95,7 +146,10 @@ describe('OrganizationIntegrations', function() {
         body: [],
       });
 
-      const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
+      const wrapper = mount(
+        <OrganizationIntegrations organization={org} params={params} />,
+        routerContext
+      );
 
       const updatedIntegration = Object.assign({}, githubIntegration, {
         domain_name: 'updated-integration.github.com',
@@ -167,14 +221,12 @@ describe('OrganizationIntegrations', function() {
         ],
       });
 
-      const wrapper = mount(<OrganizationIntegrations params={params} />, routerContext);
+      const wrapper = mount(
+        <OrganizationIntegrations organization={org} params={params} />,
+        routerContext
+      );
 
-      it('fetches unmigratable repositories', function() {
-        expect(wrapper.instance().state.unmigratableRepos).toHaveLength(1);
-        expect(wrapper.instance().state.unmigratableRepos[0].name).toBe('Test-Org/foo');
-      });
-
-      it('displays an Upgrade when the Plugin is enabled but a new Integration is not', function() {
+      it('displays an Update when the Plugin is enabled but a new Integration is not', function() {
         expect(
           wrapper
             .find('ProviderRow')
@@ -182,7 +234,7 @@ describe('OrganizationIntegrations', function() {
             .find('Button')
             .first()
             .text()
-        ).toBe('Upgrade');
+        ).toBe('Update');
       });
 
       it('displays Add Another button when both Integration and Plugin are enabled', () => {
@@ -205,30 +257,6 @@ describe('OrganizationIntegrations', function() {
             .first()
             .text()
         ).toBe('Install');
-      });
-
-      it('displays a warning for each Org with unmigratable repos', () => {
-        // Use a regex because React/Enzyme/Jest/Whatever turns single quotes into
-        // apostrophes, so you can't match it explicitly.
-        expect(
-          wrapper
-            .find('AlertLink')
-            .first()
-            .text()
-        ).toMatch(/Your Test-Org repositories can.t send commit data to Sentry/);
-      });
-
-      it('opens the new Integration dialog when the warning is clicked', () => {
-        wrapper
-          .find('AlertLink')
-          .first()
-          .simulate('click');
-
-        expect(open.mock.calls).toHaveLength(1);
-        expect(focus.mock.calls).toHaveLength(1);
-        expect(open.mock.calls[0][2]).toBe(
-          'scrollbars=yes,width=100,height=100,top=334,left=462'
-        );
       });
     });
   });

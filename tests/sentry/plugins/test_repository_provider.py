@@ -31,7 +31,7 @@ class RepositoryProviderTest(TestCase):
             provider='dummy',
             external_id='123456',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, user)
 
         assert provider.needs_auth(user, organization=org) is False
 
@@ -63,6 +63,6 @@ class RepositoryProviderTest(TestCase):
             provider='dummy',
             external_id='123456',
         )
-        integration.add_organization(org.id, default_auth_id=usa.id)
+        integration.add_organization(org, user, default_auth_id=usa.id)
 
         assert provider.get_auth(user, organization=org) == usa

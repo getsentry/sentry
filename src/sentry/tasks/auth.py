@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import logging
 
 from django.db import IntegrityError
+from django.db.models import F
 
 from sentry import options
 from sentry.models import (
@@ -29,7 +30,7 @@ def email_missing_links(org_id, actor_id, provider_key, **kwargs):
 
     member_list = OrganizationMember.objects.filter(
         organization=org,
-        flags=~getattr(OrganizationMember.flags, 'sso:linked'),
+        flags=F('flags').bitand(~OrganizationMember.flags['sso:linked']),
     )
     for member in member_list:
         member.send_sso_link_email(actor, provider)
@@ -88,8 +89,7 @@ def _remove_2fa_non_compliant_member(member, org, actor=None, actor_key=None, ip
     }
 
     try:
-        member.email = member.get_email()
-        member.user = None
+        member.remove_user()
         member.save()
     except (AssertionError, IntegrityError):
         logger.warning(
@@ -117,7 +117,7 @@ def _remove_2fa_non_compliant_member(member, org, actor=None, actor_key=None, ip
             'url': member.get_invite_link(),
             'organization': org
         }
-        subject = '{} {} Mandatory: Enable Two-Factor Authentication'.format(
+        subject = u'{} {} Mandatory: Enable Two-Factor Authentication'.format(
             options.get('mail.subject-prefix'),
             org.name.capitalize(),
         )

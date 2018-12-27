@@ -2,8 +2,11 @@ from __future__ import absolute_import
 
 import json
 import mock
+import responses
+import six
 
 from django.core.urlresolvers import reverse
+from exam import fixture
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import (
@@ -44,6 +47,16 @@ SAMPLE_CREATE_META_RESPONSE = """
               "operations": [
                 "set"
               ]
+            },
+            "labels": {
+              "required": false,
+              "schema": {
+                "type": "array",
+                "items": "string",
+                "system": "labels"
+              },
+              "name": "Labels",
+              "key": "labels"
             }
           }
         }
@@ -339,7 +352,10 @@ SAMPLE_TRANSITION_RESPONSE = """
 
 class MockJiraApiClient(object):
     def get_create_meta(self, project=None):
-        return json.loads(SAMPLE_CREATE_META_RESPONSE)
+        resp = json.loads(SAMPLE_CREATE_META_RESPONSE)
+        if project == '10001':
+            resp['projects'][0]['id'] = '10001'
+        return resp
 
     def get_create_meta_for_project(self, project):
         return self.get_create_meta()['projects'][0]
@@ -349,6 +365,9 @@ class MockJiraApiClient(object):
 
     def get_issue(self, issue_key):
         return json.loads(SAMPLE_GET_ISSUE_RESPONSE.strip())
+
+    def create_comment(self, issue_id, comment):
+        return comment
 
     def create_issue(self, data):
         return {'key': 'APP-123'}
@@ -361,19 +380,30 @@ class MockJiraApiClient(object):
 
 
 class JiraIntegrationTest(APITestCase):
+    @fixture
+    def integration(self):
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Jira Cloud',
+            metadata={
+                'oauth_client_id': 'oauth-client-id',
+                'shared_secret': 'a-super-secret-key-from-atlassian',
+                'base_url': 'https://example.atlassian.net',
+                'domain_name': 'example.atlassian.net',
+            }
+        )
+        integration.add_organization(
+            self.organization,
+            self.user)
+        return integration
+
     def test_get_create_issue_config(self):
         org = self.organization
         self.login_as(self.user)
         group = self.create_group()
         self.create_event(group=group)
 
-        integration = Integration.objects.create(
-            provider='jira',
-            name='Example Jira',
-        )
-        integration.add_organization(org.id)
-
-        installation = integration.get_installation(org.id)
+        installation = self.integration.get_installation(org.id)
 
         def get_client():
             return MockJiraApiClient()
@@ -399,7 +429,10 @@ class JiraIntegrationTest(APITestCase):
                             'string_max_length=self.string_max_length)\n\nmessage\n{code}'
                             ) % (
                                 group.qualified_short_id,
-                                absolute_uri(group.get_absolute_url()),
+                                absolute_uri(
+                                    group.get_absolute_url(
+                                        params={
+                                            'referrer': 'jira_integration'})),
                 ),
                 'type': 'textarea',
                 'name': 'description',
@@ -413,20 +446,79 @@ class JiraIntegrationTest(APITestCase):
                 'name': 'issuetype',
                 'label': 'Issue Type',
                 'updatesForm': True,
+            }, {
+                'required': False,
+                'type': 'text',
+                'name': 'labels',
+                'label': 'Labels',
             }]
+
+    def test_get_create_issue_config_with_default_and_param(self):
+        org = self.organization
+        self.login_as(self.user)
+        group = self.create_group()
+        self.create_event(group=group)
+
+        installation = self.integration.get_installation(org.id)
+        installation.org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'project': '10001'}
+            }
+        }
+        installation.org_integration.save()
+
+        def get_client():
+            return MockJiraApiClient()
+
+        with mock.patch.object(installation, 'get_client', get_client):
+            fields = installation.get_create_issue_config(group, params={'project': '10000'})
+            project_field = [field for field in fields if field['name'] == 'project'][0]
+
+            assert project_field == {
+                'default': '10000',
+                'choices': [('10000', 'EX'), ('10001', 'ABC')],
+                'type': 'select',
+                'name': 'project',
+                'label': 'Jira Project',
+                'updatesForm': True,
+            }
+
+    def test_get_create_issue_config_with_default(self):
+        org = self.organization
+        self.login_as(self.user)
+        group = self.create_group()
+        self.create_event(group=group)
+
+        installation = self.integration.get_installation(org.id)
+        installation.org_integration.config = {
+            'project_issue_defaults': {
+                six.text_type(group.project_id): {'project': '10001'}
+            }
+        }
+        installation.org_integration.save()
+
+        def get_client():
+            return MockJiraApiClient()
+
+        with mock.patch.object(installation, 'get_client', get_client):
+            fields = installation.get_create_issue_config(group)
+            project_field = [field for field in fields if field['name'] == 'project'][0]
+
+            assert project_field == {
+                'default': '10001',
+                'choices': [('10000', 'EX'), ('10001', 'ABC')],
+                'type': 'select',
+                'name': 'project',
+                'label': 'Jira Project',
+                'updatesForm': True,
+            }
 
     def test_get_link_issue_config(self):
         org = self.organization
         self.login_as(self.user)
         group = self.create_group()
 
-        integration = Integration.objects.create(
-            provider='jira',
-            name='Example Jira',
-        )
-        integration.add_organization(org.id)
-
-        installation = integration.get_installation(org.id)
+        installation = self.integration.get_installation(org.id)
 
         assert installation.get_link_issue_config(group) == [
             {
@@ -435,7 +527,8 @@ class JiraIntegrationTest(APITestCase):
                 'default': '',
                 'type': 'select',
                 'url': reverse(
-                    'sentry-extensions-jira-search', args=[org.slug, integration.id],
+                    'sentry-extensions-jira-search',
+                    args=[org.slug, self.integration.id],
                 )
             }
         ]
@@ -444,13 +537,7 @@ class JiraIntegrationTest(APITestCase):
         org = self.organization
         self.login_as(self.user)
 
-        integration = Integration.objects.create(
-            provider='jira',
-            name='Example Jira',
-        )
-        integration.add_organization(org.id)
-
-        installation = integration.get_installation(org.id)
+        installation = self.integration.get_installation(org.id)
 
         def get_client():
             return MockJiraApiClient()
@@ -467,6 +554,49 @@ class JiraIntegrationTest(APITestCase):
                 'key': 'APP-123'
             }
 
+    @responses.activate
+    def test_create_issue_labels(self):
+        org = self.organization
+        self.login_as(self.user)
+
+        installation = self.integration.get_installation(org.id)
+
+        responses.add(
+            responses.GET,
+            'https://example.atlassian.net/rest/api/2/issue/createmeta',
+            body=SAMPLE_CREATE_META_RESPONSE,
+            content_type='json',
+            match_querystring=False,
+        )
+        responses.add(
+            responses.GET,
+            'https://example.atlassian.net/rest/api/2/issue/APP-123',
+            body=SAMPLE_GET_ISSUE_RESPONSE,
+            content_type='json',
+            match_querystring=False,
+        )
+
+        def responder(request):
+            body = json.loads(request.body)
+            assert body['fields']['labels'] == ['fuzzy', 'bunnies']
+            return (200, {'content-type': 'application/json'}, '{"key":"APP-123"}')
+
+        responses.add_callback(
+            responses.POST,
+            'https://example.atlassian.net/rest/api/2/issue',
+            callback=responder,
+            match_querystring=False,
+        )
+
+        result = installation.create_issue({
+            'title': 'example summary',
+            'description': 'example bug report',
+            'issuetype': '1',
+            'project': '10000',
+            'labels': 'fuzzy , ,  bunnies'
+        })
+        assert result['key'] == 'APP-123'
+
     def test_outbound_issue_sync(self):
         org = self.organization
         project = self.project
@@ -476,7 +606,7 @@ class JiraIntegrationTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         external_issue = ExternalIssue.objects.create(
             organization_id=org.id,
@@ -517,7 +647,7 @@ class JiraIntegrationTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         installation = integration.get_installation(org.id)
 
@@ -647,7 +777,7 @@ class JiraIntegrationTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         org_integration = OrganizationIntegration.objects.get(
             organization_id=org.id,
@@ -684,3 +814,27 @@ class JiraIntegrationTest(APITestCase):
                 },
             },
         }
+
+    def test_create_comment(self):
+        org = self.organization
+
+        self.user.name = 'Sentry Admin'
+        self.user.save()
+        self.login_as(self.user)
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org, self.user)
+        installation = integration.get_installation(org.id)
+
+        comment = 'hello world\nThis is a comment.\n\n\n    Glad it\'s quoted'
+        with mock.patch.object(MockJiraApiClient, 'create_comment') as mock_create_comment:
+            def get_client():
+                return MockJiraApiClient()
+
+            with mock.patch.object(installation, 'get_client', get_client):
+                installation.create_comment(1, self.user.id, comment)
+                assert mock_create_comment.call_args[0][1] == \
+                    'Sentry Admin wrote:\n\n{quote}%s{quote}' % comment

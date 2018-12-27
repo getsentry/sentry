@@ -55,8 +55,9 @@ class IssueTrackingPlugin(Plugin):
         return '\n\n'.join(result)
 
     def _get_group_description(self, request, group, event):
+        referrer = self.get_conf_key() + '_plugin'
         output = [
-            absolute_uri(group.get_absolute_url()),
+            absolute_uri(group.get_absolute_url(params={'referrer': referrer})),
         ]
         body = self._get_group_body(request, group, event)
         if body:
@@ -261,7 +262,7 @@ class IssueTrackingPlugin(Plugin):
                     data=issue_information,
                 )
 
-                issue_tracker_used.send(
+                issue_tracker_used.send_robust(
                     plugin=self,
                     project=group.project,
                     user=request.user,

@@ -18,11 +18,18 @@ from sentry.db.models import (
     FlexibleForeignKey,
     sane_repr,
 )
+from sentry.models import SentryApp
 
 SERVICE_HOOK_EVENTS = [
     'event.alert',
     'event.created',
+    # 'issue.created', This is only allowed for Sentry Apps, but listing it
+    #                  here for discoverability purposes.
 ]
+
+
+def generate_secret():
+    return uuid4().hex + uuid4().hex
 
 
 class ServiceHook(Model):
@@ -34,7 +41,7 @@ class ServiceHook(Model):
     actor_id = BoundedPositiveIntegerField(db_index=True)
     project_id = BoundedPositiveIntegerField(db_index=True)
     url = models.URLField(max_length=512)
-    secret = EncryptedTextField(default=lambda: ServiceHook.generate_secret())
+    secret = EncryptedTextField(default=generate_secret)
     events = ArrayField(of=models.TextField)
     status = BoundedPositiveIntegerField(
         default=0,
@@ -54,6 +61,13 @@ class ServiceHook(Model):
 
     __repr__ = sane_repr('guid', 'project_id')
 
+    @property
+    def created_by_sentry_app(self):
+        return self.application_id and \
+            SentryApp.objects.filter(
+                application_id=self.application_id,
+            ).exists()
+
     def __init__(self, *args, **kwargs):
         super(ServiceHook, self).__init__(*args, **kwargs)
         if self.guid is None:
@@ -61,10 +75,6 @@ class ServiceHook(Model):
 
     def __unicode__(self):
         return six.text_type(self.guid)
-
-    @classmethod
-    def generate_secret(cls):
-        return uuid4().hex + uuid4().hex
 
     def build_signature(self, body):
         return hmac.new(

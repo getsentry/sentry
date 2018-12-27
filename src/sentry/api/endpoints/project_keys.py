@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db.models import F
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -8,6 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.loader.browsersdkversion import get_highest_browser_sdk_version
 
 
 @scenario('ListClientKeys')
@@ -50,7 +52,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         """
         queryset = ProjectKey.objects.filter(
             project=project,
-            roles=ProjectKey.roles.store,
+            roles=F('roles').bitor(ProjectKey.roles.store),
         )
         status = request.GET.get('status')
         if status == 'active':
@@ -96,6 +98,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
                 label=result.get('name'),
                 public_key=result.get('public'),
                 secret_key=result.get('secret'),
+                data={'browserSdkVersion': get_highest_browser_sdk_version()}
             )
 
             self.create_audit_entry(

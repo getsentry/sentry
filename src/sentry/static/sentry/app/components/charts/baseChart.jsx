@@ -5,10 +5,16 @@ import React from 'react';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 import echarts from 'echarts/lib/echarts';
 
+import {DEFAULT_USE_UTC} from 'app/constants';
+import SentryTypes from 'app/sentryTypes';
 import theme from 'app/utils/theme';
 
 import Grid from './components/grid';
+import Legend from './components/legend';
+import LineSeries from './series/lineSeries';
 import Tooltip from './components/tooltip';
+import XAxis from './components/xAxis';
+import YAxis from './components/yAxis';
 
 // If dimension is a number conver it to pixels, otherwise use dimension without transform
 const getDimensionValue = dimension => {
@@ -23,11 +29,36 @@ class BaseChart extends React.Component {
   static propTypes = {
     // TODO: Pull out props from generic `options` object
     // so that we can better document them in prop types
-    // e.g:
-    // series: SentryTypes.Series,
-
     // see: https://ecomfe.github.io/echarts-doc/public/en/option.html
     options: PropTypes.object,
+
+    // Chart Series
+    // This is different than the interface to higher level charts, these need to be
+    // an array of ECharts "Series" components.
+    series: SentryTypes.EChartsSeries,
+
+    // Array of color codes to use in charts
+    colors: PropTypes.arrayOf(PropTypes.string),
+
+    // Must be explicitly `null` to disable xAxis
+    xAxis: SentryTypes.EChartsXAxis,
+
+    // Must be explicitly `null` to disable yAxis
+    yAxis: SentryTypes.EChartsYAxis,
+
+    // Tooltip options
+    tooltip: SentryTypes.EChartsTooltip,
+
+    // DataZoom (allows for zooming of chart)
+    dataZoom: SentryTypes.EChartsDataZoom,
+
+    toolBox: SentryTypes.EChartsToolBox,
+
+    // ECharts Grid options
+    grid: SentryTypes.EChartsGrid,
+
+    // Chart legend
+    legend: SentryTypes.EChartsLegend,
 
     // Chart height
     height: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
@@ -48,9 +79,6 @@ class BaseChart extends React.Component {
     // example theme: https://github.com/apache/incubator-echarts/blob/master/theme/dark.js
     theme: PropTypes.string,
 
-    // Default array of color codes to use in charts
-    colors: PropTypes.arrayOf(PropTypes.string),
-
     // states whether or not to merge with previous `option`
     notMerge: PropTypes.bool,
 
@@ -68,6 +96,22 @@ class BaseChart extends React.Component {
 
     // Forwarded Ref
     forwardedRef: PropTypes.object,
+
+    // Custom chart props that are implemented by us (and not a feature of eCharts)
+    /**
+     * Display previous period as a LineSeries
+     */
+    previousPeriod: SentryTypes.SeriesUnit,
+
+    // If data is grouped by date, then apply default date formatting to
+    // x-axis and tooltips.
+    isGroupedByDate: PropTypes.bool,
+
+    // How is data grouped (affects formatting of axis labels and tooltips)
+    interval: PropTypes.oneOf(['hour', 'day']),
+
+    // Formats dates as UTC?
+    utc: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -76,8 +120,15 @@ class BaseChart extends React.Component {
     renderer: 'svg',
     notMerge: true,
     lazyUpdate: false,
-    options: {},
     onChartReady: () => {},
+    options: {},
+
+    series: [],
+    xAxis: {},
+    yAxis: {},
+    isGroupedByDate: false,
+    interval: 'day',
+    utc: DEFAULT_USE_UTC,
   };
 
   handleChartReady = (...args) => {
@@ -86,7 +137,7 @@ class BaseChart extends React.Component {
   };
 
   getColorPalette = () => {
-    let {series} = this.props.options;
+    let {series} = this.props;
 
     return series && series.length
       ? theme.charts.getColorPalette(series.length)
@@ -95,12 +146,26 @@ class BaseChart extends React.Component {
 
   render() {
     let {
+      options,
       colors,
+      grid,
+      tooltip,
+      legend,
+      series,
+      yAxis,
+      xAxis,
+      dataZoom,
+      toolBox,
+
+      isGroupedByDate,
+      interval,
+      previousPeriod,
+      utc,
+
       devicePixelRatio,
       height,
       width,
       renderer,
-      options,
       notMerge,
       lazyUpdate,
       silent,
@@ -113,12 +178,6 @@ class BaseChart extends React.Component {
       <ReactEchartsCore
         ref={forwardedRef}
         echarts={echarts}
-        option={{
-          color: colors || this.getColorPalette(),
-          grid: Grid(),
-          tooltip: Tooltip(),
-          ...options,
-        }}
         notMerge={notMerge}
         lazyUpdate={lazyUpdate}
         silent={silent}
@@ -135,6 +194,41 @@ class BaseChart extends React.Component {
           height: getDimensionValue(height),
           width: getDimensionValue(width),
           ...style,
+        }}
+        option={{
+          ...options,
+          color: colors || this.getColorPalette(),
+          grid: Grid(grid),
+          tooltip:
+            tooltip !== null
+              ? Tooltip({interval, isGroupedByDate, utc, ...tooltip})
+              : null,
+          legend: legend ? Legend({...legend}) : null,
+          yAxis: yAxis !== null ? YAxis(yAxis) : null,
+          xAxis:
+            xAxis !== null
+              ? XAxis({
+                  ...xAxis,
+                  interval,
+                  isGroupedByDate,
+                  utc,
+                })
+              : null,
+          series: !previousPeriod
+            ? series
+            : [
+                ...series,
+                LineSeries({
+                  name: previousPeriod.seriesName,
+                  data: previousPeriod.data.map(({name, value}) => [name, value]),
+                  lineStyle: {
+                    color: theme.gray1,
+                    type: 'dotted',
+                  },
+                }),
+              ],
+          dataZoom,
+          toolbox: toolBox,
         }}
       />
     );

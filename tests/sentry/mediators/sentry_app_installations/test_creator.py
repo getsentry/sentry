@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
-from sentry.mediators.sentry_apps import Creator as SentryAppCreator
+from mock import patch
+
 from sentry.mediators.sentry_app_installations import Creator
-from sentry.models import ApiAuthorization
+from sentry.models import ApiAuthorization, ApiGrant, ServiceHook
 from sentry.testutils import TestCase
 
 
@@ -11,34 +12,63 @@ class TestCreator(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        self.sentry_app = SentryAppCreator.run(
+        self.project1 = self.create_project(organization=self.org)
+        self.project2 = self.create_project(organization=self.org)
+
+        self.sentry_app = self.create_sentry_app(
             name='nulldb',
-            user=self.user,
+            organization=self.org,
             scopes=('project:read',),
-            webhook_url='http://example.com',
+            events=('issue.created', ),
         )
 
-        self.creator = Creator(organization=self.org, slug='nulldb')
+        self.creator = Creator(
+            organization=self.org,
+            slug='nulldb',
+            user=self.user,
+        )
 
     def test_creates_api_authorization(self):
-        install, grant = self.creator.call()
+        self.creator.call()
 
-        assert ApiAuthorization.objects.get(
+        assert ApiAuthorization.objects.filter(
             application=self.sentry_app.application,
             user=self.sentry_app.proxy_user,
             scopes=self.sentry_app.scopes,
-        )
+        ).exists()
 
     def test_creates_installation(self):
-        install, grant = self.creator.call()
+        install = self.creator.call()
         assert install.pk
 
     def test_creates_api_grant(self):
-        install, grant = self.creator.call()
-        assert grant.pk
+        install = self.creator.call()
+        assert ApiGrant.objects.filter(id=install.api_grant_id).exists()
+
+    def test_creates_service_hooks(self):
+        install = self.creator.call()
+
+        hook = ServiceHook.objects.get(project_id=self.project1.id)
+
+        assert hook.application_id == self.sentry_app.application.id
+        assert hook.actor_id == install.id
+        assert hook.project_id == self.project1.id
+        assert hook.events == self.sentry_app.events
+        assert hook.url == self.sentry_app.webhook_url
+
+    def test_creates_service_hooks_for_all_projects(self):
+        self.creator.call()
+
+        assert ServiceHook.objects.get(project_id=self.project1.id).events == self.sentry_app.events
+        assert ServiceHook.objects.get(project_id=self.project2.id).events == self.sentry_app.events
+
+    @patch('sentry.tasks.app_platform.installation_webhook.delay')
+    def test_notifies_service(self, installation_webhook):
+        install = self.creator.call()
+        installation_webhook.assert_called_once_with(install.id, self.user.id)
 
     def test_associations(self):
-        install, grant = self.creator.call()
+        install = self.creator.call()
 
-        assert install.api_grant == grant
+        assert install.api_grant is not None
         assert install.authorization is not None

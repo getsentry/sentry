@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.testutils import APITestCase
 
 
@@ -16,9 +16,16 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        self.integration.add_organization(self.org.id, config={'setting': 'value'})
+        self.integration.add_organization(self.org, self.user)
 
-        self.path = '/api/0/organizations/{}/integrations/{}/'.format(
+        self.repo = Repository.objects.create(
+            provider='example',
+            name='getsentry/sentry',
+            organization_id=self.org.id,
+            integration_id=self.integration.id,
+        )
+
+        self.path = u'/api/0/organizations/{}/integrations/{}/'.format(
             self.org.slug, self.integration.id)
 
     def test_simple(self):
@@ -26,7 +33,6 @@ class OrganizationIntegrationDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(self.integration.id)
-        assert response.data['configData'] == {'setting': 'value'}
 
     def test_removal(self):
         with self.tasks():
@@ -40,6 +46,9 @@ class OrganizationIntegrationDetailsTest(APITestCase):
                 integration=self.integration,
                 organization=self.org,
             ).exists()
+
+            # make sure repo is dissociated from integration
+            assert Repository.objects.get(id=self.repo.id).integration_id is None
 
     def test_update_config(self):
         config = {

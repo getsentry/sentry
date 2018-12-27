@@ -18,6 +18,15 @@ export const growDown = height => keyframes`
   }
 `;
 
+export const fadeIn = keyframes`
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+`;
+
 export const fadeOut = keyframes`
   0% {
     opacity: 1;
@@ -54,6 +63,18 @@ export const expandOut = keyframes`
 export const slideInRight = keyframes`
   0% {
     transform: translateX(20px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+`;
+
+export const slideInLeft = keyframes`
+  0% {
+    transform: translateX(-20px);
     opacity: 0;
   }
 
