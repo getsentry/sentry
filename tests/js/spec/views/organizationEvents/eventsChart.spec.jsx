@@ -1,8 +1,8 @@
 import {mount} from 'enzyme';
 import React from 'react';
 
-import {chart, doZoom, mockZoomRange} from 'app-test-helpers/charts';
-import {initializeOrg} from 'app-test-helpers/initializeOrg';
+import {chart, doZoom, mockZoomRange} from 'app-test/helpers/charts';
+import {initializeOrg} from 'app-test/helpers/initializeOrg';
 
 import {EventsChart} from 'app/views/organizationEvents/eventsChart';
 import {getLocalDateObject} from 'app/utils/dates';

@@ -212,7 +212,6 @@ var appConfig = {
     alias: {
       app: path.join(__dirname, 'src', 'sentry', 'static', 'sentry', 'app'),
       'app-test': path.join(__dirname, 'tests', 'js'),
-      'app-test-helpers': path.join(__dirname, 'tests', 'js', 'helpers'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
       'integration-docs-platforms': IS_TEST
         ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')
