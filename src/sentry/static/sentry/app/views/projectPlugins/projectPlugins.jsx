@@ -1,14 +1,20 @@
-import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
-import React, {Fragment, Component} from 'react';
+import React, {Component} from 'react';
 
-import {t} from '../../locale';
-import LoadingIndicator from '../../components/loadingIndicator';
-import Panel from '../settings/components/panel';
-import PanelItem from '../settings/components/panelItem';
-import ProjectPluginRow from './projectPluginRow';
-import RouteError from '../routeError';
-import SentryTypes from '../../proptypes';
+import {
+  Panel,
+  PanelAlert,
+  PanelBody,
+  PanelHeader,
+  PanelItem,
+} from 'app/components/panels';
+import {t, tct} from 'app/locale';
+import Feature from 'app/components/feature';
+import Link from 'app/components/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import ProjectPluginRow from 'app/views/projectPlugins/projectPluginRow';
+import RouteError from 'app/views/routeError';
+import SentryTypes from 'app/sentryTypes';
 
 class ProjectPlugins extends Component {
   static propTypes = {
@@ -22,6 +28,7 @@ class ProjectPlugins extends Component {
 
   render() {
     let {plugins, loading, error, onError, onChange, routes, params} = this.props;
+    let {orgId} = this.props.params;
     let hasError = error;
     let isLoading = !hasError && loading;
 
@@ -34,28 +41,41 @@ class ProjectPlugins extends Component {
     }
 
     return (
-      <Panel
-        title={
-          <Flex justify="space-between">
-            <div>{t('Legacy Integration')}</div>
-            <div>{t('Enabled')}</div>
-          </Flex>
-        }
-        body={
-          <Fragment>
-            {plugins.map(plugin => (
-              <PanelItem key={plugin.id}>
-                <ProjectPluginRow
-                  params={params}
-                  routes={routes}
-                  {...plugin}
-                  onChange={onChange}
-                />
-              </PanelItem>
-            ))}
-          </Fragment>
-        }
-      />
+      <Panel>
+        <PanelHeader>
+          <div>{t('Legacy Integration')}</div>
+          <div>{t('Enabled')}</div>
+        </PanelHeader>
+        <PanelBody>
+          <PanelAlert type="warning">
+            <Feature access={['org:integrations']}>
+              {({hasAccess}) => {
+                return hasAccess
+                  ? tct(
+                      "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the [link:organization integrations] settings to manage them.",
+                      {
+                        link: <Link to={`/settings/${orgId}/integrations`} />,
+                      }
+                    )
+                  : t(
+                      "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available."
+                    );
+              }}
+            </Feature>
+          </PanelAlert>
+
+          {plugins.map(plugin => (
+            <PanelItem key={plugin.id}>
+              <ProjectPluginRow
+                params={params}
+                routes={routes}
+                {...plugin}
+                onChange={onChange}
+              />
+            </PanelItem>
+          ))}
+        </PanelBody>
+      </Panel>
     );
   }
 }

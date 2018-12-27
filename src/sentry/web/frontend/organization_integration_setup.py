@@ -2,7 +2,8 @@ from __future__ import absolute_import, print_function
 
 import logging
 
-from sentry import features
+from django.http import Http404
+
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.web.frontend.base import OrganizationView
 
@@ -14,21 +15,16 @@ class OrganizationIntegrationSetupView(OrganizationView):
 
     csrf_protect = False
 
-    def has_feature(self, request, organization):
-        return features.has(
-            'organizations:integrations-v3',
-            organization=organization,
-            actor=request.user,
-        )
-
     def handle(self, request, organization, provider_id):
-        if not self.has_feature(request, organization):
-            return self.redirect('/')
         pipeline = IntegrationPipeline(
             request=request,
             organization=organization,
             provider_key=provider_id,
         )
+
+        if not pipeline.provider.can_add:
+            raise Http404
+
         pipeline.initialize()
 
         return pipeline.current_step()

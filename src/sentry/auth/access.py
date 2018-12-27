@@ -114,9 +114,61 @@ class Access(BaseAccess):
         self.requires_sso = requires_sso
 
 
-def from_request(request, organization, scopes=None):
+class OrganizationGlobalAccess(BaseAccess):
+    requires_sso = False
+    sso_is_valid = True
+    is_active = True
+    memberships = ()
+    permissions = frozenset()
+
+    def __init__(self, organization, scopes=None):
+        if scopes:
+            self.scopes = scopes
+        self.organization = organization
+
+    @cached_property
+    def scopes(self):
+        return settings.SENTRY_SCOPES
+
+    @cached_property
+    def teams(self):
+        from sentry.models import Team
+        return list(Team.objects.filter(organization=self.organization))
+
+    def has_team_access(self, team):
+        return team.organization_id == self.organization.id
+
+    def has_team_membership(self, team):
+        return team.organization_id == self.organization.id
+
+    def has_team_scope(self, team, scope):
+        return team.organization_id == self.organization.id
+
+    def has_scope(self, scope):
+        return True
+
+
+class OrganizationlessAccess(BaseAccess):
+    is_active = True
+
+    def __init__(self, permissions=None):
+        if permissions is not None:
+            self.permissions = permissions
+
+
+class NoAccess(BaseAccess):
+    requires_sso = False
+    sso_is_valid = True
+    is_active = False
+    teams = ()
+    memberships = ()
+    scopes = frozenset()
+    permissions = frozenset()
+
+
+def from_request(request, organization=None, scopes=None):
     if not organization:
-        return DEFAULT
+        return from_user(request.user, organization=organization, scopes=scopes)
 
     if is_active_superuser(request):
         # we special case superuser so that if they're a member of the org
@@ -148,12 +200,14 @@ def from_request(request, organization, scopes=None):
     return from_user(request.user, organization, scopes=scopes)
 
 
-def from_user(user, organization, scopes=None):
-    if not organization:
+def from_user(user, organization=None, scopes=None):
+    if not user or user.is_anonymous() or not user.is_active:
         return DEFAULT
 
-    if user.is_anonymous():
-        return DEFAULT
+    if not organization:
+        return OrganizationlessAccess(
+            permissions=UserPermission.for_user(user.id),
+        )
 
     try:
         om = OrganizationMember.objects.get(
@@ -161,7 +215,9 @@ def from_user(user, organization, scopes=None):
             organization=organization,
         )
     except OrganizationMember.DoesNotExist:
-        return DEFAULT
+        return OrganizationlessAccess(
+            permissions=UserPermission.for_user(user.id),
+        )
 
     # ensure cached relation
     om.organization = organization
@@ -198,50 +254,6 @@ def from_member(member, scopes=None):
 
 def from_auth(auth, scopes=None):
     return OrganizationGlobalAccess(auth.organization, scopes=scopes)
-
-
-class OrganizationGlobalAccess(BaseAccess):
-    requires_sso = False
-    sso_is_valid = True
-    is_active = True
-    memberships = ()
-    permissions = frozenset()
-
-    def __init__(self, organization, scopes=None):
-        if scopes:
-            self.scopes = scopes
-        self.organization = organization
-
-    @cached_property
-    def scopes(self):
-        return settings.SENTRY_SCOPES
-
-    @cached_property
-    def teams(self):
-        from sentry.models import Team
-        return list(Team.objects.filter(organization=self.organization))
-
-    def has_team_access(self, team):
-        return team.organization_id == self.organization.id
-
-    def has_team_membership(self, team):
-        return team.organization_id == self.organization.id
-
-    def has_team_scope(self, team, scope):
-        return team.organization_id == self.organization.id
-
-    def has_scope(self, scope):
-        return True
-
-
-class NoAccess(BaseAccess):
-    requires_sso = False
-    sso_is_valid = True
-    is_active = False
-    teams = ()
-    memberships = ()
-    scopes = frozenset()
-    permissions = frozenset()
 
 
 DEFAULT = NoAccess()

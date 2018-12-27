@@ -4,11 +4,12 @@ import {Link as RouterLink} from 'react-router';
 
 /**
  * A context-aware version of Link (from react-router) that falls
- * back to <a> if there is no router present.
+ * back to <a> if there is no router present OR if you use `href`.
  */
 class Link extends React.Component {
   static propTypes = {
-    to: PropTypes.string.isRequired,
+    to: PropTypes.string,
+    href: PropTypes.string,
   };
 
   static contextTypes = {
@@ -16,15 +17,12 @@ class Link extends React.Component {
   };
 
   render() {
-    if (this.context.location) {
-      return <RouterLink {...this.props}>{this.props.children}</RouterLink>;
+    let {to, href, ...props} = this.props;
+
+    if (this.context.location && to) {
+      return <RouterLink {...this.props} />;
     } else {
-      let {to, ...props} = this.props;
-      return (
-        <a {...props} href={to}>
-          {this.props.children}
-        </a>
-      );
+      return <a {...props} href={to || href} />;
     }
   }
 }

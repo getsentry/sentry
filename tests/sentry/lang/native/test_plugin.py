@@ -1,22 +1,28 @@
 from __future__ import absolute_import
 
 import os
+import pytest
 import zipfile
 from mock import patch
 from six import BytesIO
 
-from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
 
-from sentry.models import Event
 from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
+from sentry.models import Event, EventAttachment, File, ProjectDSymFile
 
 from symbolic import parse_addr, Object, SymbolicError
 
 
 class BasicResolvingIntegrationTest(TestCase):
 
+    @pytest.mark.skipif(
+        settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
+        reason='Queries are completly different when using tagstore'
+    )
     @patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame')
     def test_frame_resolution(self, symbolize_frame):
         object_name = (
@@ -97,18 +103,20 @@ class BasicResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -161,10 +169,24 @@ class BasicResolvingIntegrationTest(TestCase):
             }
         }
 
-        resp = self._postWithHeader(event_data)
+        # We do a preflight post, because there are many queries polluting the array
+        # before the actual "processing" happens (like, auth_user)
+        self._postWithHeader(event_data)
+        with self.assertWriteQueries({
+            'nodestore_node': 2,
+            'sentry_eventtag': 1,
+            'sentry_eventuser': 1,
+            'sentry_filtervalue': 8,
+            'sentry_groupedmessage': 1,
+            'sentry_message': 1,
+            'sentry_messagefiltervalue': 8,
+            'sentry_userreport': 1
+        }):
+            resp = self._postWithHeader(event_data)
+
         assert resp.status_code == 200
 
-        event = Event.objects.get()
+        event = Event.objects.first()
 
         bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
         frames = bt.frames
@@ -248,12 +270,6 @@ class BasicResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
-            "contexts": {
-                "os": {
-                    "name": "iOS",
-                    "version": "9.3.0"
-                }
-            },
             "sentry.interfaces.Exception": {
                 "values": [
                     {
@@ -291,18 +307,20 @@ class BasicResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -455,18 +473,20 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -606,12 +626,6 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
-            "contexts": {
-                "os": {
-                    "name": "iOS",
-                    "version": "9.3.0"
-                }
-            },
             "sentry.interfaces.Exception": {
                 "values": [
                     {
@@ -649,18 +663,20 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -759,12 +775,6 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                     }
                 ]
             },
-            "contexts": {
-                "os": {
-                    "name": "iOS",
-                    "version": "9.3.0"
-                }
-            },
             "sentry.interfaces.Exception": {
                 "values": [
                     {
@@ -837,18 +847,20 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -972,18 +984,20 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         },
                         "type": "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -1207,3 +1221,400 @@ class RealResolvingIntegrationTest(TestCase):
                 event.delete()
         finally:
             Object.make_symcache = original_make_symcache
+
+    def test_debug_id_resolving(self):
+        file = File.objects.create(
+            name='crash.pdb',
+            type='default',
+            headers={'Content-Type': 'text/x-breakpad'},
+        )
+
+        path = os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.sym')
+        with open(path) as f:
+            file.putfile(f)
+
+        ProjectDSymFile.objects.create(
+            file=file,
+            object_name='crash.pdb',
+            cpu_name='x86',
+            project=self.project,
+            debug_id='3249d99d-0c40-4931-8610-f4e4fb0b6936-1',
+        )
+
+        self.login_as(user=self.user)
+
+        event_data = {
+            'contexts': {
+                'device': {
+                    'arch': 'x86'
+                },
+                'os': {
+                    'build': u'',
+                    'name': 'Windows',
+                    'type': 'os',
+                    'version': u'10.0.14393'
+                }
+            },
+            'debug_meta': {
+                'images': [
+                    {
+                        'id': u'3249d99d-0c40-4931-8610-f4e4fb0b6936-1',
+                        'image_addr': '0x2a0000',
+                        'image_size': 36864,
+                        'name': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe',
+                        'type': 'symbolic'
+                    }
+                ]
+            },
+            'exception': {
+                'stacktrace': {
+                    'frames': [
+                        {
+                            'function': '<unknown>',
+                            'instruction_addr': '0x2a2a3d',
+                            'package': u'C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe'
+                        }
+                    ]
+                },
+                'thread_id': 1636,
+                'type': u'EXCEPTION_ACCESS_VIOLATION_WRITE',
+                'value': u'Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE'
+            },
+            'platform': 'native'
+        }
+
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        frames = bt.frames
+
+        assert frames[0].function == 'main'
+        # NOTE: Breakpad symbols only contain entire paths
+        assert frames[0].filename == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
+        assert frames[0].abs_path == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
+        assert frames[0].lineno == 35
+
+
+class ExceptionMechanismIntegrationTest(TestCase):
+
+    def test_full_mechanism(self):
+        event_data = {
+            "sentry.interfaces.User": {
+                "ip_address": "31.172.207.97"
+            },
+            "extra": {},
+            "project": self.project.id,
+            "platform": "cocoa",
+            "debug_meta": {
+                "sdk_info": {
+                    "dsym_type": "macho",
+                    "sdk_name": "iOS",
+                    "version_major": 9,
+                    "version_minor": 3,
+                    "version_patchlevel": 0
+                }
+            },
+            "sentry.interfaces.Exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": []
+                        },
+                        "type": "NSRangeException",
+                        "mechanism": {
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT"
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
+                            }
+                        },
+                        "value": (
+                            "*** -[__NSArray0 objectAtIndex:]: index 3 "
+                            "beyond bounds for empty NSArray"
+                        )
+                    }
+                ]
+            }
+        }
+
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
+
+        assert mechanism.type == 'mach'
+        assert mechanism.meta['signal']['number'] == 6
+        assert mechanism.meta['signal']['code'] == 0
+        assert mechanism.meta['signal']['name'] == 'SIGABRT'
+        assert mechanism.meta['mach_exception']['exception'] == 10
+        assert mechanism.meta['mach_exception']['code'] == 0
+        assert mechanism.meta['mach_exception']['subcode'] == 0
+        assert mechanism.meta['mach_exception']['name'] == 'EXC_CRASH'
+
+    def test_mechanism_name_expansion(self):
+        event_data = {
+            "sentry.interfaces.User": {
+                "ip_address": "31.172.207.97"
+            },
+            "extra": {},
+            "project": self.project.id,
+            "platform": "cocoa",
+            "debug_meta": {
+                "sdk_info": {
+                    "dsym_type": "macho",
+                    "sdk_name": "iOS",
+                    "version_major": 9,
+                    "version_minor": 3,
+                    "version_patchlevel": 0
+                }
+            },
+            "sentry.interfaces.Exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": []
+                        },
+                        "type": "NSRangeException",
+                        "mechanism": {
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 10,
+                                    "code": 0
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10
+                                }
+                            }
+                        },
+                        "value": (
+                            "*** -[__NSArray0 objectAtIndex:]: index 3 "
+                            "beyond bounds for empty NSArray"
+                        )
+                    }
+                ]
+            }
+        }
+
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
+
+        assert mechanism.type == 'mach'
+        assert mechanism.meta['signal']['number'] == 10
+        assert mechanism.meta['signal']['code'] == 0
+        assert mechanism.meta['signal']['name'] == 'SIGBUS'
+        assert mechanism.meta['signal']['code_name'] == 'BUS_NOOP'
+        assert mechanism.meta['mach_exception']['exception'] == 10
+        assert mechanism.meta['mach_exception']['code'] == 0
+        assert mechanism.meta['mach_exception']['subcode'] == 0
+        assert mechanism.meta['mach_exception']['name'] == 'EXC_CRASH'
+
+    def test_legacy_mechanism(self):
+        event_data = {
+            "sentry.interfaces.User": {
+                "ip_address": "31.172.207.97"
+            },
+            "extra": {},
+            "project": self.project.id,
+            "platform": "cocoa",
+            "debug_meta": {
+                "sdk_info": {
+                    "dsym_type": "macho",
+                    "sdk_name": "iOS",
+                    "version_major": 9,
+                    "version_minor": 3,
+                    "version_patchlevel": 0
+                }
+            },
+            "sentry.interfaces.Exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": []
+                        },
+                        "type": "NSRangeException",
+                        "mechanism": {
+                            "posix_signal": {
+                                "signal": 6,
+                                "code": 0,
+                                "name": "SIGABRT"
+                            },
+                            "mach_exception": {
+                                "subcode": 0,
+                                "code": 0,
+                                "exception": 10,
+                                "exception_name": "EXC_CRASH"
+                            }
+                        },
+                        "value": (
+                            "*** -[__NSArray0 objectAtIndex:]: index 3 "
+                            "beyond bounds for empty NSArray"
+                        )
+                    }
+                ]
+            }
+        }
+
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        mechanism = event.interfaces['sentry.interfaces.Exception'].values[0].mechanism
+
+        # NOTE: legacy mechanisms are always classified "generic"
+        assert mechanism.type == 'generic'
+        assert mechanism.meta['signal']['number'] == 6
+        assert mechanism.meta['signal']['code'] == 0
+        assert mechanism.meta['signal']['name'] == 'SIGABRT'
+        assert mechanism.meta['mach_exception']['exception'] == 10
+        assert mechanism.meta['mach_exception']['code'] == 0
+        assert mechanism.meta['mach_exception']['subcode'] == 0
+        assert mechanism.meta['mach_exception']['name'] == 'EXC_CRASH'
+
+
+class MinidumpIntegrationTest(TestCase):
+
+    def upload_symbols(self):
+        url = reverse(
+            'sentry-api-0-dsym-files',
+            kwargs={
+                'organization_slug': self.project.organization.slug,
+                'project_slug': self.project.slug,
+            }
+        )
+
+        self.login_as(user=self.user)
+
+        out = BytesIO()
+        f = zipfile.ZipFile(out, 'w')
+        f.write(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.sym'),
+                'crash.sym')
+        f.close()
+
+        response = self.client.post(
+            url, {
+                'file':
+                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+            },
+            format='multipart'
+        )
+        assert response.status_code == 201, response.content
+        assert len(response.data) == 1
+
+    def test_full_minidump(self):
+        self.project.update_option('sentry:store_crash_reports', True)
+        self.upload_symbols()
+
+        with self.feature('organizations:event-attachments'):
+            attachment = BytesIO(b'Hello World!')
+            attachment.name = 'hello.txt'
+            with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
+                resp = self._postMinidumpWithHeader(f, {
+                    'sentry[logger]': 'test-logger',
+                    'some_file': attachment,
+                })
+                assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        frames = bt.frames
+        main = frames[-1]
+        assert main.function == 'main'
+        assert main.abs_path == 'c:\\projects\\breakpad-tools\\windows\\crash\\main.cpp'
+        assert main.errors is None
+        assert main.instruction_addr == '0x2a2a3d'
+
+        attachments = sorted(
+            EventAttachment.objects.filter(
+                event_id=event.event_id),
+            key=lambda x: x.name)
+        hello, minidump = attachments
+
+        assert hello.name == 'hello.txt'
+        assert hello.file.type == 'event.attachment'
+        assert hello.file.checksum == '2ef7bde608ce5404e97d5f042f95f89f1c232871'
+
+        assert minidump.name == 'windows.dmp'
+        assert minidump.file.type == 'event.minidump'
+        assert minidump.file.checksum == '74bb01c850e8d65d3ffbc5bad5cabc4668fce247'
+
+    def test_attachments_only_minidumps(self):
+        self.project.update_option('sentry:store_crash_reports', False)
+        self.upload_symbols()
+
+        with self.feature('organizations:event-attachments'):
+            attachment = BytesIO(b'Hello World!')
+            attachment.name = 'hello.txt'
+            with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
+                resp = self._postMinidumpWithHeader(f, {
+                    'sentry[logger]': 'test-logger',
+                    'some_file': attachment,
+                })
+                assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        attachments = list(EventAttachment.objects.filter(event_id=event.event_id))
+        assert len(attachments) == 1
+        hello = attachments[0]
+
+        assert hello.name == 'hello.txt'
+        assert hello.file.type == 'event.attachment'
+        assert hello.file.checksum == '2ef7bde608ce5404e97d5f042f95f89f1c232871'
+
+    def test_disabled_attachments(self):
+        self.upload_symbols()
+
+        attachment = BytesIO(b'Hello World!')
+        attachment.name = 'hello.txt'
+        with open(os.path.join(os.path.dirname(__file__), 'fixtures', 'windows.dmp'), 'rb') as f:
+            resp = self._postMinidumpWithHeader(f, {
+                'sentry[logger]': 'test-logger',
+                'some_file': attachment,
+            })
+            assert resp.status_code == 200
+
+        event = Event.objects.get()
+        attachments = list(EventAttachment.objects.filter(event_id=event.event_id))
+        assert attachments == []
+
+    def test_attachment_deletion(self):
+        event = self.create_event(
+            event_id='a' * 32,
+            message='Minidump test event',
+        )
+
+        attachment = self.create_event_attachment(event=event, name='log.txt')
+        file = attachment.file
+
+        self.login_as(self.user)
+        with self.tasks():
+            url = u'/api/0/issues/{}/'.format(event.group_id)
+            response = self.client.delete(url)
+
+        assert response.status_code == 202
+        assert not Event.objects.filter(event_id=event.event_id).exists()
+        assert not EventAttachment.objects.filter(event_id=event.event_id).exists()
+        assert not File.objects.filter(id=file.id).exists()

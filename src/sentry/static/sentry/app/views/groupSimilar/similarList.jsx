@@ -1,14 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Group} from '../../proptypes';
-import {t} from '../../locale';
-import Pagination from '../../components/pagination';
-import QueryCount from '../../components/queryCount';
-import SimilarItem from './similarItem';
-import SimilarSpectrum from '../../components/similarSpectrum';
-import SimilarToolbar from './similarToolbar';
-import SpreadLayout from '../../components/spreadLayout';
+import {Group} from 'app/sentryTypes';
+import {t} from 'app/locale';
+import Pagination from 'app/components/pagination';
+import QueryCount from 'app/components/queryCount';
+import SimilarItem from 'app/views/groupSimilar/similarItem';
+import SimilarSpectrum from 'app/components/similarSpectrum';
+import SimilarToolbar from 'app/views/groupSimilar/similarToolbar';
+import SpreadLayout from 'app/components/spreadLayout';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel} from 'app/components/panels';
 
 const SimilarItemPropType = PropTypes.shape({
   issue: Group,
@@ -41,10 +43,11 @@ class SimilarList extends React.Component {
 
   renderEmpty = () => {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{t('There are no similar issues.')}</p>
-      </div>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('There are no similar issues.')}</p>
+        </EmptyStateWarning>
+      </Panel>
     );
   };
 
@@ -69,7 +72,7 @@ class SimilarList extends React.Component {
     );
 
     if (!hasResults) {
-      return <div className="similar-list-container">{this.renderEmpty()}</div>;
+      return this.renderEmpty();
     }
 
     return (

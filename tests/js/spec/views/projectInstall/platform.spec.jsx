@@ -33,6 +33,16 @@ describe('ProjectInstallPlatform', function() {
             ],
           },
           {
+            id: 'javascript',
+            name: 'JavaScript',
+            integrations: [
+              {
+                id: 'javascript-react',
+                type: 'framework',
+              },
+            ],
+          },
+          {
             id: 'node',
             name: 'Node.js',
             integrations: [

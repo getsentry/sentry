@@ -21,6 +21,7 @@ from sentry import nodestore
 from sentry.utils.cache import memoize
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
+from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 
 from .gzippeddict import GzippedDictField
 
@@ -47,6 +48,25 @@ class NodeData(collections.MutableMapping):
         #  in the case of something changing on the data model)
         self.ref_version = None
         self._node_data = data
+
+    def __getstate__(self):
+        data = dict(self.__dict__)
+        # downgrade this into a normal dict in case it's a shim dict.
+        # This is needed as older workers might not know about newer
+        # collection types.  For isntance we have events where this is a
+        # CanonicalKeyDict
+        data.pop('data', None)
+        data['_node_data_CANONICAL'] = isinstance(data['_node_data'], CANONICAL_TYPES)
+        data['_node_data'] = dict(data['_node_data'].items())
+        return data
+
+    def __setstate__(self, state):
+        # If there is a legacy pickled version that used to have data as a
+        # duplicate, reject it.
+        state.pop('data', None)
+        if state.pop('_node_data_CANONICAL', False):
+            state['_node_data'] = CanonicalKeyDict(state['_node_data'])
+        self.__dict__ = state
 
     def __getitem__(self, key):
         return self.data[key]
@@ -91,7 +111,10 @@ class NodeData(collections.MutableMapping):
             self.bind_data(nodestore.get(self.id) or {})
             return self._node_data
 
-        return {}
+        rv = {}
+        if self.field.wrapper is not None:
+            rv = self.field.wrapper(rv)
+        return rv
 
     def bind_data(self, data, ref=None):
         self.ref = data.pop('_ref', ref)
@@ -100,6 +123,8 @@ class NodeData(collections.MutableMapping):
             raise NodeIntegrityFailure(
                 'Node reference for %s is invalid: %s != %s' % (self.id, ref, self.ref, )
             )
+        if self.field.wrapper is not None:
+            data = self.field.wrapper(data)
         self._node_data = data
 
     def bind_ref(self, instance):
@@ -118,6 +143,7 @@ class NodeField(GzippedDictField):
     def __init__(self, *args, **kwargs):
         self.ref_func = kwargs.pop('ref_func', None)
         self.ref_version = kwargs.pop('ref_version', None)
+        self.wrapper = kwargs.pop('wrapper', None)
         super(NodeField, self).__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
@@ -148,6 +174,9 @@ class NodeField(GzippedDictField):
             node_id = None
             data = value
 
+        if self.wrapper is not None and data is not None:
+            data = self.wrapper(data)
+
         return NodeData(self, node_id, data)
 
     def get_prep_value(self, value):
@@ -155,12 +184,18 @@ class NodeField(GzippedDictField):
             # save ourselves some storage
             return None
 
+        # We can't put our wrappers into the nodestore, so we need to
+        # ensure that the data is converted into a plain old dict
+        data = value.data
+        if isinstance(data, CANONICAL_TYPES):
+            data = dict(data.items())
+
         # TODO(dcramer): we should probably do this more intelligently
         # and manually
         if not value.id:
-            value.id = nodestore.create(value.data)
+            value.id = nodestore.create(data)
         else:
-            nodestore.set(value.id, value.data)
+            nodestore.set(value.id, data)
 
         return compress(pickle.dumps({'node_id': value.id}))
 

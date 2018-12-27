@@ -23,7 +23,7 @@ class OrganizationTeamsListTest(APITestCase):
             teams=[team1],
         )
 
-        path = '/api/0/organizations/{}/teams/'.format(org.slug)
+        path = u'/api/0/organizations/{}/teams/'.format(org.slug)
 
         self.login_as(user=user)
 
@@ -50,14 +50,14 @@ class OrganizationTeamsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        path = '/api/0/organizations/{}/teams/?query=bar'.format(org.slug)
+        path = u'/api/0/organizations/{}/teams/?query=bar'.format(org.slug)
         response = self.client.get(path)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(team.id)
 
-        path = '/api/0/organizations/{}/teams/?query=baz'.format(org.slug)
+        path = u'/api/0/organizations/{}/teams/?query=baz'.format(org.slug)
         response = self.client.get(path)
 
         assert response.status_code == 200, response.content
@@ -152,3 +152,15 @@ class OrganizationTeamsCreateTest(APITestCase):
         )
 
         assert resp.status_code == 409, resp.content
+
+    def test_name_too_long(self):
+        self.login_as(user=self.user)
+
+        resp = self.client.post(
+            self.path, data={
+                'name': 'x' * 65,
+                'slug': 'xxxxxxx',
+            }
+        )
+
+        assert resp.status_code == 400, resp.content

@@ -3,9 +3,9 @@ import {storiesOf} from '@storybook/react';
 // import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import Badge from 'sentry-ui/badge';
+import Badge from 'app/components/badge';
 
-storiesOf('Badge', module).add(
+storiesOf('UI|Badge', module).add(
   'default',
   withInfo('Used to display numbers in a "badge"')(() => (
     <div>

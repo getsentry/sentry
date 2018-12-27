@@ -3,10 +3,10 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import HookStore from '../../../stores/hookStore';
-import OrganizationState from '../../../mixins/organizationState';
-import SettingsNavigation from '../components/settingsNavigation';
-import navigationConfiguration from './navigationConfiguration';
+import HookStore from 'app/stores/hookStore';
+import OrganizationState from 'app/mixins/organizationState';
+import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
+import navigationConfiguration from 'app/views/settings/organization/navigationConfiguration';
 
 const OrganizationSettingsNavigation = createReactClass({
   displayName: 'OrganizationSettingsNavigation',
@@ -28,7 +28,7 @@ const OrganizationSettingsNavigation = createReactClass({
     let org = this.getOrganization();
     if (name !== 'settings:organization-navigation-config') return;
     this.setState(state => ({
-      hookConfigs: [...state.hookConfigs, ...hooks.map(cb => cb(org))],
+      hookConfigs: hooks.map(cb => cb(org)),
     }));
   },
 

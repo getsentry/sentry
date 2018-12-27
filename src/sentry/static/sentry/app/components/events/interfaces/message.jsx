@@ -1,16 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import EventDataSection from '../eventDataSection';
-import SentryTypes from '../../../proptypes';
-import utils from '../../../utils';
-import {t} from '../../../locale';
+import EventDataSection from 'app/components/events/eventDataSection';
+import SentryTypes from 'app/sentryTypes';
+import utils from 'app/utils';
+import {t} from 'app/locale';
 
 class MessageInterface extends React.Component {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-    type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
   };
 
@@ -26,9 +25,7 @@ class MessageInterface extends React.Component {
         <pre
           className="plain"
           dangerouslySetInnerHTML={{
-            __html: utils.nl2br(
-              utils.urlize(utils.escape(data.formatted || data.message))
-            ),
+            __html: utils.nl2br(utils.escape(data.formatted || data.message)),
           }}
         />
         {data.params &&

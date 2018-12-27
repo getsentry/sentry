@@ -2,14 +2,13 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
-import {Sparklines, SparklinesLine} from 'react-sparklines';
 
-import LoadingIndicator from '../components/loadingIndicator';
-import LoadingError from '../components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingError from 'app/components/loadingError';
 
-import ApiMixin from '../mixins/apiMixin';
+import ApiMixin from 'app/mixins/apiMixin';
 
-import {t, tn} from '../locale';
+import {t, tn} from 'app/locale';
 
 const ReleaseProjectStatSparkline = createReactClass({
   displayName: 'ReleaseProjectStatSparkline',
@@ -32,10 +31,32 @@ const ReleaseProjectStatSparkline = createReactClass({
   },
 
   componentDidMount() {
+    Promise.all([
+      this.getStatReceived(),
+      this.getNewIssuesCount(),
+      import(/*webpackChunkName "ReactSparkLines" */ 'react-sparklines'),
+    ]).then(
+      ([stats, newIssues, reactSparkLines]) => {
+        this.setState({
+          loading: false,
+          stats,
+          newIssueCount: newIssues && newIssues.newGroups,
+          Sparklines: reactSparkLines.Sparklines,
+          SparklinesLine: reactSparkLines.SparklinesLine,
+          error: false,
+        });
+      },
+      () => {
+        this.setState({error: true});
+      }
+    );
+  },
+
+  getStatReceived() {
     let {orgId} = this.props;
     let projectId = this.props.project.slug;
     let path = `/projects/${orgId}/${projectId}/stats/`;
-    this.api.request(path, {
+    return this.api.requestPromise(path, {
       method: 'GET',
       data: 'stat=received',
       success: (data, _, jqXHR) => {
@@ -58,7 +79,7 @@ const ReleaseProjectStatSparkline = createReactClass({
     let issuesPath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
       version
     )}/`;
-    this.api.request(issuesPath, {
+    return this.api.requestPromise(issuesPath, {
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
@@ -76,11 +97,13 @@ const ReleaseProjectStatSparkline = createReactClass({
 
   render() {
     let {orgId, project, version} = this.props;
-    let newIssueCount = this.state.newIssueCount;
-    let values = this.state.stats.map(tuple => tuple[1]);
-    if (this.state.loading) return <LoadingIndicator />;
 
+    if (this.state.loading) return <LoadingIndicator />;
     if (this.state.error) return <LoadingError />;
+
+    let {Sparklines, SparklinesLine, newIssueCount, stats} = this.state;
+    let values = stats.map(tuple => tuple[1]);
+
     return (
       <li>
         <div className="sparkline pull-right" style={{width: 96}}>

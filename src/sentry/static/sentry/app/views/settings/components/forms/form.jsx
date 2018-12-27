@@ -2,9 +2,9 @@ import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from '../../../../locale';
-import Button from '../../../../components/buttons/button';
-import FormModel from './model';
+import {t} from 'app/locale';
+import Button from 'app/components/button';
+import FormModel from 'app/views/settings/components/forms/model';
 
 export default class Form extends React.Component {
   static propTypes = {
@@ -16,23 +16,32 @@ export default class Form extends React.Component {
     onFieldChange: PropTypes.func,
     submitDisabled: PropTypes.bool,
     submitLabel: PropTypes.string,
+    submitPriority: PropTypes.string,
     footerClass: PropTypes.string,
     footerStyle: PropTypes.object,
     extraButton: PropTypes.element,
     initialData: PropTypes.object,
+    // Require changes before able to submit form
     requireChanges: PropTypes.bool,
+    // Reset form when there are errors, after submit
+    resetOnError: PropTypes.bool,
+    // Hide Footer
     hideFooter: PropTypes.bool,
-    model: PropTypes.object,
+    // Allow undo
     allowUndo: PropTypes.bool,
+    // Save field on control blur
     saveOnBlur: PropTypes.bool,
+    model: PropTypes.object,
     apiMethod: PropTypes.string,
     apiEndpoint: PropTypes.string,
+    'data-test-id': PropTypes.string,
   };
 
   static defaultProps = {
     cancelLabel: t('Cancel'),
     submitLabel: t('Save Changes'),
     submitDisabled: false,
+    submitPriority: 'primary',
     footerClass: 'form-actions align-right',
     className: 'form-stacked',
     requireChanges: false,
@@ -53,6 +62,7 @@ export default class Form extends React.Component {
       saveOnBlur,
       apiEndpoint,
       apiMethod,
+      resetOnError,
       onSubmitSuccess,
       onSubmitError,
       onFieldChange,
@@ -64,6 +74,7 @@ export default class Form extends React.Component {
     this.model = model || new FormModel();
     this.model.setInitialData(initialData);
     this.model.setFormOptions({
+      resetOnError,
       allowUndo,
       onFieldChange,
       onSubmitSuccess,
@@ -115,7 +126,6 @@ export default class Form extends React.Component {
   };
 
   render() {
-    let {isSaving} = this.model;
     let {
       className,
       children,
@@ -123,6 +133,7 @@ export default class Form extends React.Component {
       footerStyle,
       submitDisabled,
       submitLabel,
+      submitPriority,
       cancelLabel,
       onCancel,
       extraButton,
@@ -133,18 +144,23 @@ export default class Form extends React.Component {
     let shouldShowFooter = typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
 
     return (
-      <form onSubmit={this.onSubmit} className={className}>
-        {children}
+      <form
+        onSubmit={this.onSubmit}
+        className={className}
+        data-test-id={this.props['data-test-id']}
+      >
+        <div>{children}</div>
 
         {shouldShowFooter && (
           <div className={footerClass} style={{marginTop: 25, ...footerStyle}}>
             <Observer>
               {() => (
                 <Button
-                  priority="primary"
+                  data-test-id="form-submit"
+                  priority={submitPriority}
                   disabled={
                     this.model.isError ||
-                    isSaving ||
+                    this.model.isSaving ||
                     submitDisabled ||
                     (requireChanges ? !this.model.formChanged : false)
                   }
@@ -156,9 +172,17 @@ export default class Form extends React.Component {
             </Observer>
 
             {onCancel && (
-              <Button disabled={isSaving} onClick={onCancel} style={{marginLeft: 5}}>
-                {cancelLabel}
-              </Button>
+              <Observer>
+                {() => (
+                  <Button
+                    disabled={this.model.isSaving}
+                    onClick={onCancel}
+                    style={{marginLeft: 5}}
+                  >
+                    {cancelLabel}
+                  </Button>
+                )}
+              </Observer>
             )}
             {extraButton}
           </div>

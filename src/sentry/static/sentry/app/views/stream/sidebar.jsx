@@ -2,10 +2,10 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import _ from 'lodash';
-import StreamTagFilter from './tagFilter';
-import LoadingIndicator from '../../components/loadingIndicator';
-import {queryToObj, objToQuery} from '../../utils/stream';
-import {t} from '../../locale';
+import StreamTagFilter from 'app/views/stream/tagFilter';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {queryToObj, objToQuery} from 'app/utils/stream';
+import {t} from 'app/locale';
 
 let TEXT_FILTER_DEBOUNCE_IN_MS = 300;
 
@@ -19,7 +19,6 @@ const StreamSidebar = createReactClass({
     tags: PropTypes.object.isRequired,
     query: PropTypes.string,
     onQueryChange: PropTypes.func.isRequired,
-    defaultQuery: PropTypes.string,
     loading: PropTypes.bool,
   },
 
@@ -110,9 +109,10 @@ const StreamSidebar = createReactClass({
   },
 
   render() {
+    let {loading, orgId, projectId, tags} = this.props;
     return (
       <div className="stream-sidebar">
-        {this.props.loading ? (
+        {loading ? (
           <LoadingIndicator />
         ) : (
           <div>
@@ -134,15 +134,15 @@ const StreamSidebar = createReactClass({
               <hr />
             </div>
 
-            {_.map(this.props.tags, tag => {
+            {_.map(tags, tag => {
               return (
                 <StreamTagFilter
                   value={this.state.queryObj[tag.key]}
                   key={tag.key}
                   tag={tag}
                   onSelect={this.onSelectTag}
-                  orgId={this.props.orgId}
-                  projectId={this.props.projectId}
+                  orgId={orgId}
+                  projectId={projectId}
                 />
               );
             })}

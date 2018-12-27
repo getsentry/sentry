@@ -28,7 +28,7 @@ class GroupTagKeyValuesTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/tags/{}/values/'.format(group.id, key)
+        url = u'/api/0/issues/{}/tags/{}/values/'.format(group.id, key)
 
         response = self.client.get(url)
 
@@ -68,7 +68,7 @@ class GroupTagKeyValuesTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/tags/user/values/'.format(group.id)
+        url = u'/api/0/issues/{}/tags/user/values/'.format(group.id)
 
         response = self.client.get(url)
 

@@ -13,8 +13,9 @@ from django.db import router, transaction, DataError, connections
 
 from sentry.api.serializers import Serializer, register
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, BoundedBigIntegerField, BaseManager, FlexibleForeignKey, sane_repr
+    Model, BoundedPositiveIntegerField, BoundedBigIntegerField, FlexibleForeignKey, sane_repr
 )
+from sentry.tagstore.query import TagStoreManager
 
 
 class GroupTagKey(Model):
@@ -30,15 +31,15 @@ class GroupTagKey(Model):
     _key = FlexibleForeignKey('tagstore.TagKey', db_column='key_id')
     values_seen = BoundedPositiveIntegerField(default=0)
 
-    objects = BaseManager()
+    objects = TagStoreManager()
 
     class Meta:
         app_label = 'tagstore'
         unique_together = (('project_id', 'group_id', '_key'), )
 
-    __repr__ = sane_repr('project_id', 'group_id', '_key')
+    __repr__ = sane_repr('project_id', 'group_id', '_key_id')
 
-    def delete_for_merge(self):
+    def delete(self):
         using = router.db_for_read(GroupTagKey)
         cursor = connections[using].cursor()
         cursor.execute(

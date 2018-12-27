@@ -1,10 +1,11 @@
 import React from 'react';
 
-import SentryTypes from '../../proptypes';
-import {objectToArray} from '../../utils';
-import EventDataSection from './eventDataSection';
-import KeyValueList from './interfaces/keyValueList';
-import {t} from '../../locale';
+import {objectToArray} from 'app/utils';
+import {t} from 'app/locale';
+import ErrorBoundary from 'app/components/errorBoundary';
+import EventDataSection from 'app/components/events/eventDataSection';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import SentryTypes from 'app/sentryTypes';
 
 class EventExtraData extends React.Component {
   static propTypes = {
@@ -41,7 +42,13 @@ class EventExtraData extends React.Component {
           toggleRaw={this.toggleRaw}
           raw={this.state.raw}
         >
-          <KeyValueList data={extraDataArray} isContextData={true} raw={this.state.raw} />
+          <ErrorBoundary mini>
+            <KeyValueList
+              data={extraDataArray}
+              isContextData={true}
+              raw={this.state.raw}
+            />
+          </ErrorBoundary>
         </EventDataSection>
       </div>
     );

@@ -1,12 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Event} from '../../proptypes';
-import {t} from '../../locale';
-import MergedItem from './mergedItem';
-import MergedToolbar from './mergedToolbar';
-import Pagination from '../../components/pagination';
-import QueryCount from '../../components/queryCount';
+import {Event} from 'app/sentryTypes';
+import {t} from 'app/locale';
+import MergedItem from 'app/views/groupMerged/mergedItem';
+import MergedToolbar from 'app/views/groupMerged/mergedToolbar';
+import Pagination from 'app/components/pagination';
+import QueryCount from 'app/components/queryCount';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel} from 'app/components/panels';
 
 class MergedList extends React.Component {
   static propTypes = {
@@ -18,10 +20,9 @@ class MergedList extends React.Component {
 
   renderEmpty = () => {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t("There don't seem to be any hashes for this issue.")}</p>
-      </div>
+      </EmptyStateWarning>
     );
   };
 
@@ -31,7 +32,7 @@ class MergedList extends React.Component {
     let hasResults = itemsWithLatestEvent.length > 0;
 
     if (!hasResults) {
-      return <div className="merged-list-container">{this.renderEmpty()}</div>;
+      return <Panel>{this.renderEmpty()}</Panel>;
     }
 
     return (

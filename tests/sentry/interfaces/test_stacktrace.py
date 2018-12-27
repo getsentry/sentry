@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import functools
 
 import mock
+from django.conf import settings
 from django.template.loader import render_to_string
 from exam import fixture
 
@@ -287,7 +288,7 @@ class StacktraceTest(TestCase):
                 'function': 'invoke'
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(result, [
             'sentry_clojure_example.core$_main$fn__<auto>',
             'invoke',
@@ -300,7 +301,7 @@ class StacktraceTest(TestCase):
                 'function': 'invoke'
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(
             result, [
                 'sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>',
@@ -318,7 +319,7 @@ class StacktraceTest(TestCase):
                 'jipJipManagementApplication'
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(
             result, [
                 'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
@@ -339,13 +340,53 @@ class StacktraceTest(TestCase):
                 'jipJipManagementApplication'
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(
             result, [
                 'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
                 '$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>'
                 '$$FastClassBySpringCGLIB$$<auto>',
                 'jipJipManagementApplication',
+            ]
+        )
+
+    def test_get_hash_ignores_javassist(self):
+        interface = Frame.to_python(
+            {
+                'module': 'com.example.api.entry.EntriesResource_$$_javassist_seam_74',
+                'function': 'fn',
+            }
+        )
+        result = interface.get_hash(platform='java')
+        self.assertEquals(
+            result, [
+                'com.example.api.entry.EntriesResource_$$_javassist<auto>', 'fn'
+            ]
+        )
+
+        interface = Frame.to_python(
+            {
+                'module': 'com.example.api.entry.EntriesResource_$$_javassist_74',
+                'function': 'fn',
+            }
+        )
+        result = interface.get_hash(platform='java')
+        self.assertEquals(
+            result, [
+                'com.example.api.entry.EntriesResource_$$_javassist<auto>', 'fn'
+            ]
+        )
+
+        interface = Frame.to_python(
+            {
+                'filename': 'EntriesResource_$$_javassist_seam_74.java',
+                'function': 'fn',
+            }
+        )
+        result = interface.get_hash(platform='java')
+        self.assertEquals(
+            result, [
+                'EntriesResource_$$_javassist<auto>.java', 'fn'
             ]
         )
 
@@ -356,7 +397,7 @@ class StacktraceTest(TestCase):
                 'function': 'invoke',
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(result, [
             'sun.reflect.GeneratedMethodAccessor',
             'invoke',
@@ -598,6 +639,26 @@ class StacktraceTest(TestCase):
             'io.sentry.example.Application', 'recurFunc',
             'io.sentry.example.Application', 'throwError'
         ])
+
+    def test_frame_hard_limit(self):
+        hard_limit = settings.SENTRY_STACKTRACE_FRAMES_HARD_LIMIT
+        interface = Stacktrace.to_python(
+            {
+                'frames': [
+                    {
+                        'filename': 'Application.java',
+                        'function': 'main',
+                        'lineno': i,  # linenos from 1 to the hard limit + 1
+                    } for i in range(1, hard_limit + 2)
+                ]
+            }
+        )
+
+        assert len(interface.frames) == hard_limit
+        assert interface.frames[0].lineno == 1
+        assert interface.frames[-1].lineno == hard_limit + 1
+        # second to last frame (lineno:250) should be removed
+        assert interface.frames[-2].lineno == hard_limit - 1
 
     def test_get_hash_ignores_safari_native_code(self):
         interface = Frame.to_python(

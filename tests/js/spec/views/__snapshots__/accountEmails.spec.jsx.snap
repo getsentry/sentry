@@ -57,6 +57,7 @@ exports[`AccountEmails renders with emails 1`] = `
       saveOnBlur={true}
       submitDisabled={false}
       submitLabel="Save Changes"
+      submitPriority="primary"
     >
       <JsonForm
         additionalFieldProps={Object {}}
@@ -81,6 +82,7 @@ exports[`AccountEmails renders with emails 1`] = `
     </Form>
     <AlertLink
       icon="icon-stack"
+      priority="warning"
       to="/settings/account/notifications"
     >
       Want to change how many emails you get? Use the notifications panel.

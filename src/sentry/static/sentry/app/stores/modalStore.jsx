@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-import ModalActions from '../actions/modalActions';
+import ModalActions from 'app/actions/modalActions';
 
 const ModalStore = Reflux.createStore({
   init() {

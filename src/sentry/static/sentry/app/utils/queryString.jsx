@@ -9,9 +9,9 @@ export function formatQueryString(qs) {
 // to match the way tag searches are being done
 export function getQueryEnvironment(qs) {
   // A match with quotes will lazily match any characters within quotation marks
-  const matchWithQuotes = qs.match(/environment:"(.*?)"/);
+  const matchWithQuotes = qs.match(/(?:^|\s)environment:"(.*?)"/);
   // A match without quotes will match any non space character
-  const matchWithoutQuotes = qs.match(/environment:([^\s]*)/);
+  const matchWithoutQuotes = qs.match(/(?:^|\s)environment:([^\s]*)/);
 
   if (matchWithQuotes) {
     return matchWithQuotes[1];
@@ -23,14 +23,14 @@ export function getQueryEnvironment(qs) {
 }
 
 export function getQueryStringWithEnvironment(qs, env) {
-  const qsWithoutEnv = qs.replace(/environment:[^\s]*/g, '');
+  const qsWithoutEnv = qs.replace(/(?:^|\s)environment:[^\s]*/g, '');
   return formatQueryString(
     env === null ? qsWithoutEnv : `${qsWithoutEnv} environment:${env}`
   );
 }
 
 export function getQueryStringWithoutEnvironment(qs) {
-  return formatQueryString(qs.replace(/environment:[^\s]*/g, ''));
+  return formatQueryString(qs.replace(/(?:^|\s)environment:[^\s]*/g, ''));
 }
 
 export default {

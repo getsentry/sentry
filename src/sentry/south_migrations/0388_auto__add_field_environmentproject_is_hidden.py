@@ -17,11 +17,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.NullBooleanField')(null=True, blank=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'EnvironmentProject.is_hidden'
         db.delete_column('sentry_environmentproject', 'is_hidden')
-
 
     models = {
         'sentry.activity': {

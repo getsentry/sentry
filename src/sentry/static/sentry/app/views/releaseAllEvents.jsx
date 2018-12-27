@@ -1,10 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
-import GroupList from '../components/groupList';
-import {t} from '../locale';
+
+import SentryTypes from 'app/sentryTypes';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+import GroupList from 'app/components/groupList';
+import {t} from 'app/locale';
 
 class ReleaseAllEvents extends React.Component {
+  static propTypes = {
+    environment: SentryTypes.Environment,
+  };
+
   static contextTypes = {
     release: PropTypes.object,
   };
@@ -29,11 +36,11 @@ class ReleaseAllEvents extends React.Component {
           projectId={projectId}
           query={'release:"' + this.context.release.version + '"'}
           canSelectGroups={false}
-          bulkActions={false}
+          environment={this.props.environment}
         />
       </div>
     );
   }
 }
 
-export default ReleaseAllEvents;
+export default withEnvironmentInQueryString(ReleaseAllEvents);

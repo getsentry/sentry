@@ -3,11 +3,11 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import EmptyMessage from '../views/settings/components/emptyMessage';
-import IndicatorStore from '../stores/indicatorStore';
-import {joinTeam} from '../actionCreators/teams';
-import ApiMixin from '../mixins/apiMixin';
-import {t} from '../locale';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {joinTeam} from 'app/actionCreators/teams';
+import ApiMixin from 'app/mixins/apiMixin';
+import {t} from 'app/locale';
 
 const MissingProjectMembership = createReactClass({
   displayName: 'MissingProjectMembership',
@@ -63,6 +63,9 @@ const MissingProjectMembership = createReactClass({
   },
 
   renderJoinTeam(team, features) {
+    if (!team) {
+      return null;
+    }
     if (this.state.loading) {
       return <a className="btn btn-default btn-loading btn-disabled">...</a>;
     } else if (team.isPending) {
@@ -82,26 +85,13 @@ const MissingProjectMembership = createReactClass({
   },
 
   renderExplanation(features) {
-    if (features.has('new-teams')) {
-      if (features.has('open-membership')) {
-        return t('To view this data you must one of the following teams.');
-      } else {
-        return t(
-          'To view this data you must first request access to one of the following teams:'
-        );
-      }
-    }
-
-    let {project} = this.state;
-    let {team} = project;
     if (features.has('open-membership')) {
-      return t('To view this data you must first join the %s team.', team.name);
+      return t('To view this data you must one of the following teams.');
+    } else {
+      return t(
+        'To view this data you must first request access to one of the following teams:'
+      );
     }
-
-    return t(
-      'To view this data you must first request access to the %s team.',
-      team.name
-    );
   },
 
   renderJoinTeams(features) {
@@ -127,7 +117,6 @@ const MissingProjectMembership = createReactClass({
 
   render() {
     let {organization} = this.props;
-    let {team} = this.state.project;
     let features = new Set(organization.features);
 
     return (
@@ -136,11 +125,7 @@ const MissingProjectMembership = createReactClass({
           <span className="icon icon-exclamation" />
           <p>{t("You're not a member of this project.")}</p>
           <p>{this.renderExplanation(features)}</p>
-          {features.has('new-teams') ? (
-            this.renderJoinTeams(features)
-          ) : (
-            <p>{this.renderJoinTeam(team, features)}</p>
-          )}
+          {this.renderJoinTeams(features)}
         </div>
       </div>
     );

@@ -18,8 +18,8 @@ class Migration(SchemaMigration):
             ('user', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(
                 to=orm['sentry.User'])),
             ('ip_address', self.gf('django.db.models.fields.GenericIPAddressField')(max_length=39)),
-            ('first_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-            ('last_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('first_seen', self.gf('django.db.models.fields.DateTimeField')()),
+            ('last_seen', self.gf('django.db.models.fields.DateTimeField')()),
         ))
         db.send_create_signal('sentry', ['UserIP'])
 

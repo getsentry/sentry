@@ -245,6 +245,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
         <Confirm
           cancelText="Cancel"
           confirmText="Ignore"
+          disableConfirmButton={false}
           message="Yoooooo"
           onConfirm={[Function]}
           priority="primary"
@@ -256,13 +257,42 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
           >
              
             <span
-              className="icon-ban"
+              className="icon-ban hidden-xs"
               style={
                 Object {
                   "marginRight": 5,
                 }
               }
             />
+            <GuideAnchor
+              target="ignore_delete_discard"
+              type="text"
+            >
+              <GuideAnchorContainer
+                innerRef={[Function]}
+                type="text"
+              >
+                <div
+                  className="css-9u5for-GuideAnchorContainer e130o4350"
+                  type="text"
+                >
+                  <StyledGuideAnchor
+                    active={false}
+                    className="guide-anchor-ping ignore_delete_discard"
+                  >
+                    <div
+                      className="guide-anchor-ping ignore_delete_discard css-1yndvnf-StyledGuideAnchor e130o4351"
+                    >
+                      <StyledGuideAnchorRipples>
+                        <div
+                          className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
+                        />
+                      </StyledGuideAnchorRipples>
+                    </div>
+                  </StyledGuideAnchor>
+                </div>
+              </GuideAnchorContainer>
+            </GuideAnchor>
             Ignore
           </a>
           <Modal
@@ -328,6 +358,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
         title=""
       >
         <DropdownMenu
+          alwaysRenderMenu={true}
           keepMenuOpen={false}
         >
           <span
@@ -351,6 +382,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
             <ul
               className="dropdown-menu"
               onClick={[Function]}
+              onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >
               <MenuItem
@@ -377,6 +409,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   title="For…"
                 >
                   <DropdownMenu
+                    alwaysRenderMenu={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -400,6 +433,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       <ul
                         className="dropdown-menu"
                         onClick={[Function]}
+                        onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
                         <MenuItem
@@ -423,6 +457,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Ignore"
+                                disableConfirmButton={false}
                                 message="Yoooooo"
                                 onConfirm={[Function]}
                                 priority="primary"
@@ -517,6 +552,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Ignore"
+                                disableConfirmButton={false}
                                 message="Yoooooo"
                                 onConfirm={[Function]}
                                 priority="primary"
@@ -611,6 +647,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Ignore"
+                                disableConfirmButton={false}
                                 message="Yoooooo"
                                 onConfirm={[Function]}
                                 priority="primary"
@@ -705,6 +742,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Ignore"
+                                disableConfirmButton={false}
                                 message="Yoooooo"
                                 onConfirm={[Function]}
                                 priority="primary"
@@ -799,6 +837,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                               <Confirm
                                 cancelText="Cancel"
                                 confirmText="Ignore"
+                                disableConfirmButton={false}
                                 message="Yoooooo"
                                 onConfirm={[Function]}
                                 priority="primary"
@@ -915,6 +954,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   title="Until this occurs again…"
                 >
                   <DropdownMenu
+                    alwaysRenderMenu={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -938,6 +978,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       <ul
                         className="dropdown-menu"
                         onClick={[Function]}
+                        onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
                         <li
@@ -953,6 +994,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="10 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -976,6 +1018,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -998,6 +1041,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1086,6 +1130,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1174,6 +1219,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1262,6 +1308,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1347,6 +1394,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="100 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -1370,6 +1418,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -1392,6 +1441,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1480,6 +1530,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1568,6 +1619,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1656,6 +1708,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1741,6 +1794,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="1,000 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -1764,6 +1818,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -1786,6 +1841,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1874,6 +1930,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -1962,6 +2019,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2050,6 +2108,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2135,6 +2194,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="10,000 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -2158,6 +2218,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -2180,6 +2241,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2268,6 +2330,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2356,6 +2419,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2444,6 +2508,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2529,6 +2594,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="100,000 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -2552,6 +2618,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -2574,6 +2641,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2662,6 +2730,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2750,6 +2819,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2838,6 +2908,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -2953,6 +3024,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                   title="Until this affects an additional…"
                 >
                   <DropdownMenu
+                    alwaysRenderMenu={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -2976,6 +3048,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                       <ul
                         className="dropdown-menu"
                         onClick={[Function]}
+                        onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
                         <li
@@ -2991,6 +3064,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="10 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -3014,6 +3088,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -3036,6 +3111,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3124,6 +3200,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3212,6 +3289,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3300,6 +3378,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3385,6 +3464,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="100 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -3408,6 +3488,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -3430,6 +3511,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3518,6 +3600,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3606,6 +3689,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3694,6 +3778,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3779,6 +3864,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="1,000 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -3802,6 +3888,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -3824,6 +3911,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -3912,6 +4000,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4000,6 +4089,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4088,6 +4178,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4173,6 +4264,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="10,000 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -4196,6 +4288,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -4218,6 +4311,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4306,6 +4400,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4394,6 +4489,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4482,6 +4578,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4567,6 +4664,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                             title="100,000 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -4590,6 +4688,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -4612,6 +4711,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4700,6 +4800,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4788,6 +4889,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -4876,6 +4978,7 @@ exports[`IgnoreActions with confirmation step renders 1`] = `
                                         <Confirm
                                           cancelText="Cancel"
                                           confirmText="Ignore"
+                                          disableConfirmButton={false}
                                           message="Yoooooo"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -5233,13 +5336,42 @@ exports[`IgnoreActions without confirmation renders 1`] = `
           onClick={[Function]}
         >
           <span
-            className="icon-ban"
+            className="icon-ban hidden-xs"
             style={
               Object {
                 "marginRight": 5,
               }
             }
           />
+          <GuideAnchor
+            target="ignore_delete_discard"
+            type="text"
+          >
+            <GuideAnchorContainer
+              innerRef={[Function]}
+              type="text"
+            >
+              <div
+                className="css-9u5for-GuideAnchorContainer e130o4350"
+                type="text"
+              >
+                <StyledGuideAnchor
+                  active={false}
+                  className="guide-anchor-ping ignore_delete_discard"
+                >
+                  <div
+                    className="guide-anchor-ping ignore_delete_discard css-1yndvnf-StyledGuideAnchor e130o4351"
+                  >
+                    <StyledGuideAnchorRipples>
+                      <div
+                        className="css-3zj3g7-StyledGuideAnchorRipples e130o4352"
+                      />
+                    </StyledGuideAnchorRipples>
+                  </div>
+                </StyledGuideAnchor>
+              </div>
+            </GuideAnchorContainer>
+          </GuideAnchor>
           Ignore
         </a>
       </ActionLink>
@@ -5252,6 +5384,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
         title=""
       >
         <DropdownMenu
+          alwaysRenderMenu={true}
           keepMenuOpen={false}
         >
           <span
@@ -5275,6 +5408,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
             <ul
               className="dropdown-menu"
               onClick={[Function]}
+              onMouseEnter={[Function]}
               onMouseLeave={[Function]}
             >
               <MenuItem
@@ -5301,6 +5435,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   title="For…"
                 >
                   <DropdownMenu
+                    alwaysRenderMenu={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -5324,6 +5459,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       <ul
                         className="dropdown-menu"
                         onClick={[Function]}
+                        onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
                         <MenuItem
@@ -5534,6 +5670,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   title="Until this occurs again…"
                 >
                   <DropdownMenu
+                    alwaysRenderMenu={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -5557,6 +5694,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       <ul
                         className="dropdown-menu"
                         onClick={[Function]}
+                        onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
                         <li
@@ -5572,6 +5710,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="10 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -5595,6 +5734,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -5722,6 +5862,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="100 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -5745,6 +5886,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -5872,6 +6014,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="1,000 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -5895,6 +6038,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6022,6 +6166,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="10,000 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6045,6 +6190,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6172,6 +6318,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="100,000 times"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6195,6 +6342,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6352,6 +6500,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                   title="Until this affects an additional…"
                 >
                   <DropdownMenu
+                    alwaysRenderMenu={true}
                     isNestedDropdown={true}
                     keepMenuOpen={false}
                   >
@@ -6375,6 +6524,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                       <ul
                         className="dropdown-menu"
                         onClick={[Function]}
+                        onMouseEnter={[Function]}
                         onMouseLeave={[Function]}
                       >
                         <li
@@ -6390,6 +6540,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="10 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6413,6 +6564,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6540,6 +6692,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="100 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6563,6 +6716,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6690,6 +6844,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="1,000 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6713,6 +6868,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6840,6 +6996,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="10,000 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -6863,6 +7020,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem
@@ -6990,6 +7148,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                             title="100,000 users"
                           >
                             <DropdownMenu
+                              alwaysRenderMenu={true}
                               isNestedDropdown={true}
                               keepMenuOpen={false}
                             >
@@ -7013,6 +7172,7 @@ exports[`IgnoreActions without confirmation renders 1`] = `
                                 <ul
                                   className="dropdown-menu"
                                   onClick={[Function]}
+                                  onMouseEnter={[Function]}
                                   onMouseLeave={[Function]}
                                 >
                                   <MenuItem

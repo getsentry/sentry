@@ -4,10 +4,9 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/groupID/events/id/",
@@ -15,12 +14,6 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
         }
       }
     >
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
       <EventOrGroupTitle
         data={
           Object {
@@ -43,9 +36,14 @@ exports[`EventOrGroupHeader Event hides level tag 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
-  </h3>
+  </Title>
 </div>
 `;
 
@@ -53,10 +51,9 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/groupID/events/id/",
@@ -64,12 +61,6 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
         }
       }
     >
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
       <EventOrGroupTitle
         data={
           Object {
@@ -91,18 +82,17 @@ exports[`EventOrGroupHeader Event renders with \`type = csp\` 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
-  </h3>
-  <div
-    className="event-message truncate"
-  >
-    <span
-      className="message"
-    >
-      metadata message
-    </span>
-  </div>
+  </Title>
+  <Message>
+    metadata message
+  </Message>
 </div>
 `;
 
@@ -110,10 +100,9 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/groupID/events/id/",
@@ -121,12 +110,6 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
         }
       }
     >
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
       <EventOrGroupTitle
         data={
           Object {
@@ -148,9 +131,14 @@ exports[`EventOrGroupHeader Event renders with \`type = default\` 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
-  </h3>
+  </Title>
 </div>
 `;
 
@@ -158,10 +146,9 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/groupID/events/id/",
@@ -169,12 +156,6 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
         }
       }
     >
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
       <EventOrGroupTitle
         data={
           Object {
@@ -196,18 +177,17 @@ exports[`EventOrGroupHeader Event renders with \`type = error\` 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
-  </h3>
-  <div
-    className="event-message truncate"
-  >
-    <span
-      className="message"
-    >
-      metadata value
-    </span>
-  </div>
+  </Title>
+  <Message>
+    metadata value
+  </Message>
 </div>
 `;
 
@@ -215,10 +195,9 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/id/",
@@ -226,17 +205,13 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
         }
       }
     >
-      <span
-        className="error-level truncate"
+      <Tooltip
+        title="Error level: Error"
       >
-        error
-      </span>
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
+        <GroupLevel
+          level="error"
+        />
+      </Tooltip>
       <EventOrGroupTitle
         data={
           Object {
@@ -257,18 +232,17 @@ exports[`EventOrGroupHeader Group renders with \`type = csp\` 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
-  </h3>
-  <div
-    className="event-message truncate"
-  >
-    <span
-      className="message"
-    >
-      metadata message
-    </span>
-  </div>
+  </Title>
+  <Message>
+    metadata message
+  </Message>
 </div>
 `;
 
@@ -276,10 +250,9 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/id/",
@@ -287,17 +260,13 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
         }
       }
     >
-      <span
-        className="error-level truncate"
+      <Tooltip
+        title="Error level: Error"
       >
-        error
-      </span>
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
+        <GroupLevel
+          level="error"
+        />
+      </Tooltip>
       <EventOrGroupTitle
         data={
           Object {
@@ -318,18 +287,17 @@ exports[`EventOrGroupHeader Group renders with \`type = default\` 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
-  </h3>
-  <div
-    className="event-message truncate"
-  >
-    <span
-      className="message"
-    >
-      culprit
-    </span>
-  </div>
+  </Title>
+  <Message>
+    culprit
+  </Message>
 </div>
 `;
 
@@ -337,10 +305,9 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
 <div
   className="event-issue-header"
 >
-  <h3
-    className="truncate"
-  >
+  <Title>
     <ProjectLink
+      style={null}
       to={
         Object {
           "pathname": "/orgId/projectId/issues/id/",
@@ -348,17 +315,13 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
         }
       }
     >
-      <span
-        className="error-level truncate"
+      <Tooltip
+        title="Error level: Error"
       >
-        error
-      </span>
-      <span
-        className="icon icon-soundoff"
-      />
-      <span
-        className="icon icon-star-solid"
-      />
+        <GroupLevel
+          level="error"
+        />
+      </Tooltip>
       <EventOrGroupTitle
         data={
           Object {
@@ -379,17 +342,16 @@ exports[`EventOrGroupHeader Group renders with \`type = error\` 1`] = `
         includeLink={true}
         orgId="orgId"
         projectId="projectId"
+        style={
+          Object {
+            "fontWeight": 600,
+          }
+        }
       />
     </ProjectLink>
-  </h3>
-  <div
-    className="event-message truncate"
-  >
-    <span
-      className="message"
-    >
-      metadata value
-    </span>
-  </div>
+  </Title>
+  <Message>
+    metadata value
+  </Message>
 </div>
 `;

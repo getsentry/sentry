@@ -92,8 +92,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
     @attach_scenarios([upload_file_scenario])
     def post(self, request, project, version):
         """
-        Upload a New File
-        `````````````````
+        Upload a New Project Release File
+        `````````````````````````````````
 
         Upload a new file for the given release.
 
@@ -134,7 +134,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         fileobj = request.FILES['file']
 
         full_name = request.DATA.get('name', fileobj.name)
-        if not full_name:
+        if not full_name or full_name == 'file':
             return Response({'detail': 'File name must be specified'}, status=400)
 
         name = full_name.rsplit('/', 1)[-1]

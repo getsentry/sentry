@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ProjectLink from '../components/projectLink';
-import {getShortVersion} from '../utils';
+import ProjectLink from 'app/components/projectLink';
+import {getShortVersion} from 'app/utils';
 
 class Version extends React.Component {
   static propTypes = {
@@ -10,15 +10,17 @@ class Version extends React.Component {
     version: PropTypes.string.isRequired,
     orgId: PropTypes.string,
     projectId: PropTypes.string,
+    showShortVersion: PropTypes.bool,
   };
 
   static defaultProps = {
     anchor: true,
+    showShortVersion: true,
   };
 
   render() {
-    let {orgId, projectId, version} = this.props;
-    let shortVersion = getShortVersion(version);
+    let {orgId, projectId, showShortVersion, version} = this.props;
+    let versionTitle = showShortVersion ? getShortVersion(version) : version;
 
     if (this.props.anchor) {
       return (
@@ -27,11 +29,11 @@ class Version extends React.Component {
         <ProjectLink
           to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}
         >
-          <span title={version}>{shortVersion}</span>
+          <span title={version}>{versionTitle}</span>
         </ProjectLink>
       );
     }
-    return <span title={version}>{shortVersion}</span>;
+    return <span title={version}>{versionTitle}</span>;
   }
 }
 

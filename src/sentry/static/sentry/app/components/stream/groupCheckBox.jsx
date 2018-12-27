@@ -3,8 +3,8 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import SelectedGroupStore from '../../stores/selectedGroupStore';
-import Checkbox from '../checkbox';
+import SelectedGroupStore from 'app/stores/selectedGroupStore';
+import Checkbox from 'app/components/checkbox';
 
 const GroupCheckBox = createReactClass({
   displayName: 'GroupCheckBox',

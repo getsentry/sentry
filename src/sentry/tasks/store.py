@@ -10,26 +10,32 @@ from __future__ import absolute_import
 
 import logging
 from datetime import datetime
+import six
 
 from raven.contrib.django.models import client as Raven
 from time import time
 from django.utils import timezone
 
-from sentry import reprocessing
+from sentry import features, reprocessing
+from sentry.attachments import attachment_cache
 from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.stacktraces import process_stacktraces, \
     should_process_for_stacktraces
+from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
-from sentry.models import ProjectOption, Activity, Project
+from sentry.models import EventAttachment, File, ProjectOption, Activity, Project
 
 error_logger = logging.getLogger('sentry.errors.events')
 info_logger = logging.getLogger('sentry.store')
 
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
+
+# Attachment file types that are considered a crash report (PII relevant)
+CRASH_REPORT_TYPES = ('event.minidump', )
 
 
 class RetryProcessing(Exception):
@@ -62,6 +68,7 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
         error_logger.error('preprocess.failed.empty', extra={'cache_key': cache_key})
         return
 
+    data = CanonicalKeyDict(data)
     project = data['project']
     Raven.tags_context({
         'project': project,
@@ -115,6 +122,7 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
         error_logger.error('process.failed.empty', extra={'cache_key': cache_key})
         return
 
+    data = CanonicalKeyDict(data)
     project = data['project']
     Raven.tags_context({
         'project': project,
@@ -161,6 +169,10 @@ def _do_process_event(cache_key, start_time, event_id, process_task):
                                event_id=event_id)
             return
 
+        # We cannot persist canonical types in the cache, so we need to
+        # downgrade this.
+        if isinstance(data, CANONICAL_TYPES):
+            data = dict(data.items())
         default_cache.set(cache_key, data, 3600)
 
     save_event.delay(
@@ -259,11 +271,16 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
     # modifications to take place.
     delete_raw_event(project_id, event_id)
     data = default_cache.get(cache_key)
-    if data is None:
+
+    # This used to be an if `data` is None check but there have been cases
+    # where empty data (an empty dictionary) has been inserted into the
+    # raw event.
+    if not data:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'raw'})
         error_logger.error('process.failed_raw.empty', extra={'cache_key': cache_key})
         return True
 
+    data = CanonicalKeyDict(data)
     from sentry.models import RawEvent, ProcessingIssue
     raw_event = RawEvent.objects.create(
         project_id=project_id,
@@ -286,6 +303,35 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
     return True
 
 
+def save_attachment(event, attachment):
+    """
+    Saves an event attachment to blob storage.
+    """
+
+    # If the attachment is a crash report (e.g. minidump), we need to honor the
+    # store_crash_reports setting. Otherwise, we assume that the client has
+    # already verified PII and just store the attachment.
+    if attachment.type in CRASH_REPORT_TYPES:
+        if not event.project.get_option('sentry:store_crash_reports') and \
+                not event.project.organization.get_option('sentry:store_crash_reports'):
+            return
+
+    file = File.objects.create(
+        name=attachment.name,
+        type=attachment.type,
+        headers={'Content-Type': attachment.content_type},
+    )
+    file.putfile(six.BytesIO(attachment.data))
+
+    EventAttachment.objects.create(
+        event_id=event.event_id,
+        group_id=event.group_id,
+        project_id=event.project_id,
+        name=attachment.name,
+        file=file,
+    )
+
+
 @instrumented_task(name='sentry.tasks.store.save_event', queue='events.save_event')
 def save_event(cache_key=None, data=None, start_time=None, event_id=None,
                project_id=None, **kwargs):
@@ -298,6 +344,9 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
 
     if cache_key:
         data = default_cache.get(cache_key)
+
+    if data is not None:
+        data = CanonicalKeyDict(data)
 
     if event_id is None and data is not None:
         event_id = data['event_id']
@@ -329,7 +378,15 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
 
     try:
         manager = EventManager(data)
-        manager.save(project_id)
+        event = manager.save(project_id)
+
+        # Always load attachments from the cache so we can later prune them.
+        # Only save them if the event-attachments feature is active, though.
+        if features.has('organizations:event-attachments', event.project.organization, actor=None):
+            attachments = attachment_cache.get(cache_key) or []
+            for attachment in attachments:
+                save_attachment(event, attachment)
+
     except HashDiscarded:
         increment_list = [
             (tsdb.models.project_total_received_discarded, project_id),
@@ -368,6 +425,8 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None,
     finally:
         if cache_key:
             default_cache.delete(cache_key)
+            attachment_cache.delete(cache_key)
+
         if start_time:
             metrics.timing(
                 'events.time-to-process',

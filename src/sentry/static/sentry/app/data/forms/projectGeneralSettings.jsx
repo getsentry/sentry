@@ -1,10 +1,12 @@
 import React from 'react';
-import {extractMultilineFields} from '../../utils';
-import {t, tct, tn} from '../../locale';
-import getDynamicText from '../../utils/getDynamicText';
+
+import {extractMultilineFields} from 'app/utils';
+import {t, tct, tn} from 'app/locale';
+import getDynamicText from 'app/utils/getDynamicText';
+import slugify from 'app/utils/slugify';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/organization/:orgId/project/:projectId/settings/';
+export const route = '/settings/:orgId/:projectId/';
 
 const getResolveAgeAllowedValues = () => {
   let i = 0;
@@ -58,34 +60,21 @@ export const fields = {
     label: t('Name'),
     placeholder: t('my-service-name'),
     help: t('A unique ID used to identify this project'),
-  },
-  team: {
-    name: 'team',
-    type: 'array',
-    label: t('Team'),
-    visible: ({organization}) => {
-      let features = new Set(organization.features);
-      return !features.has('new-teams') && organization.teams.length > 1;
-    },
-    choices: ({organization}) =>
-      organization.teams.filter(o => o.isMember).map(o => [o.slug, o.slug]),
-    help: t('Update the team that owns this project'),
+    transformInput: slugify,
+
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: t('You will be redirected to the new project slug after saving'),
   },
 
-  subjectTemplate: {
-    name: 'subjectTemplate',
+  subjectPrefix: {
+    name: 'subjectPrefix',
     type: 'string',
     label: t('Subject Prefix'),
+    placeholder: t('e.g. [my-org]'),
     help: t('Choose a custom prefix for emails from this project'),
   },
 
-  defaultEnvironment: {
-    name: 'defaultEnvironment',
-    type: 'string',
-    label: t('Default Environment'),
-    placeholder: t('production'),
-    help: t('The default selected environment when viewing issues'),
-  },
   resolveAge: {
     name: 'resolveAge',
     type: 'range',
@@ -105,6 +94,15 @@ export const fields = {
       }
       return tn('%d hour', '%d hours', val);
     },
+    saveOnBlur: false,
+    saveMessage: tct(
+      '[Caution]: Enabling auto resolve will immediately resolve anything that has ' +
+        'not been seen within this period of time. There is no undo!',
+      {
+        Caution: <strong>Caution</strong>,
+      }
+    ),
+    saveMessageAlertType: 'warning',
   },
 
   dataScrubber: {
@@ -117,6 +115,9 @@ export const fields = {
     // `props` are the props given to FormField
     setValue: (val, props) =>
       (props.organization && props.organization[props.name]) || val,
+    confirm: {
+      false: t('Are you sure you want to disable server-side data scrubbing?'),
+    },
   },
   dataScrubberDefaults: {
     name: 'dataScrubberDefaults',
@@ -130,6 +131,9 @@ export const fields = {
     // `props` are the props given to FormField
     setValue: (val, props) =>
       (props.organization && props.organization[props.name]) || val,
+    confirm: {
+      false: t('Are you sure you want to disable using default scrubbers?'),
+    },
   },
   scrubIPAddresses: {
     name: 'scrubIPAddresses',
@@ -141,11 +145,16 @@ export const fields = {
       (props.organization && props.organization[props.name]) || val,
     label: t('Prevent Storing of IP Addresses'),
     help: t('Preventing IP addresses from being stored for new events'),
+    confirm: {
+      false: t('Are you sure you want to disable scrubbing IP addresses?'),
+    },
   },
   sensitiveFields: {
     name: 'sensitiveFields',
     type: 'string',
     multiline: true,
+    autosize: true,
+    maxRows: 10,
     placeholder: t('email'),
     label: t('Additional Sensitive Fields'),
     help: t(
@@ -158,6 +167,8 @@ export const fields = {
     name: 'safeFields',
     type: 'string',
     multiline: true,
+    autosize: true,
+    maxRows: 10,
     placeholder: t('business-email'),
     label: t('Safe Fields'),
     help: t(
@@ -166,11 +177,48 @@ export const fields = {
     getValue: val => extractMultilineFields(val),
     setValue: val => (val && typeof val.join === 'function' && val.join('\n')) || '',
   },
+  storeCrashReports: {
+    name: 'storeCrashReports',
+    type: 'boolean',
+    label: t('Store Native Crash Reports'),
+    help: t(
+      'Store native crash reports such as Minidumps for improved processing and download in issue details'
+    ),
+    visible: ({features}) => features.has('event-attachments'),
+  },
+  relayPiiConfig: {
+    name: 'relayPiiConfig',
+    type: 'string',
+    label: t('Custom Relay PII Config'),
+    placeholder: t(
+      'Paste a relay JSON PII config here. Leave empty to generate a default based on the above settings.'
+    ),
+    multiline: true,
+    autosize: true,
+    maxRows: 10,
+    help: tct(
+      'If you put a custom JSON relay PII config here it overrides the default generated config.  This is pushed to all trusted relays.  [learn_more:Learn more]',
+      {
+        learn_more: <a href="https://docs.sentry.io/relay/pii-config/" />,
+      }
+    ),
+    visible: ({features}) => features.has('relay'),
+    validate: ({id, form}) => {
+      try {
+        JSON.parse(form[id]);
+      } catch (e) {
+        return [[id, e.toString().replace(/^SyntaxError: JSON.parse: /, '')]];
+      }
+      return [];
+    },
+  },
 
   allowedDomains: {
     name: 'allowedDomains',
     type: 'string',
     multiline: true,
+    autosize: true,
+    maxRows: 10,
     placeholder: t('https://example.com or example.com'),
     label: t('Allowed Domains'),
     help: t('Separate multiple entries with a newline'),
@@ -180,6 +228,11 @@ export const fields = {
   scrapeJavaScript: {
     name: 'scrapeJavaScript',
     type: 'boolean',
+    // if this is off for the organization, it cannot be enabled for the project
+    disabled: ({organization, name}) => !organization[name],
+    disabledReason: ORG_DISABLED_REASON,
+    // `props` are the props given to FormField
+    setValue: (val, props) => props.organization && props.organization[props.name] && val,
     label: t('Enable JavaScript source fetching'),
     help: t('Allow Sentry to scrape missing JavaScript source context when possible'),
   },
@@ -198,13 +251,13 @@ export const fields = {
     placeholder: t('X-Sentry-Token'),
     label: t('Security Token Header'),
     help: t(
-      'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'
+      'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
     ),
   },
   verifySSL: {
     name: 'verifySSL',
     type: 'boolean',
     label: t('Verify TLS/SSL'),
-    help: t('Outbound requests will verify TLS (sometimes known as SSL) connections.'),
+    help: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
   },
 };

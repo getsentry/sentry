@@ -2,20 +2,36 @@ import {Box} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import SettingsNavigationGroup from '../components/settingsNavigationGroup';
-import SentryTypes from '../../../proptypes';
+import SettingsNavigationGroup from 'app/views/settings/components/settingsNavigationGroup';
+import SentryTypes from 'app/sentryTypes';
+import logExperiment from 'app/utils/logExperiment';
 
 class SettingsNavigation extends React.Component {
   static propTypes = {
     hooks: PropTypes.array,
     hookConfigs: PropTypes.array,
     navigationObjects: PropTypes.arrayOf(SentryTypes.NavigationObject).isRequired,
+    organization: SentryTypes.Organization,
   };
 
   static defaultProps = {
     hooks: [],
     hookConfigs: [],
   };
+
+  componentDidMount() {
+    let {organization} = this.props;
+    if (!organization || !organization.experiments) return;
+
+    // Experiment exposure is already assigned - this logs the exposure i.e. when the user gets to the settings page
+    logExperiment(
+      organization.experiments,
+      'SSOPaywallExperiment',
+      'org_id',
+      organization.id,
+      'exposed'
+    );
+  }
 
   render() {
     let {navigationObjects, hooks, hookConfigs, ...otherProps} = this.props;

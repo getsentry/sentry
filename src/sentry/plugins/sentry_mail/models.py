@@ -21,7 +21,7 @@ from django.utils.safestring import mark_safe
 from sentry import features, options
 from sentry.models import ProjectOwnership, User
 
-from sentry.digests.utilities import get_digest_metadata
+from sentry.digests.utilities import get_digest_metadata, get_personalized_digests
 from sentry.plugins import register
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -33,6 +33,8 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
 
 from .activity import emails
+
+from six.moves.urllib.parse import urlencode
 
 NOTSET = object()
 
@@ -102,7 +104,7 @@ class MailPlugin(NotificationPlugin):
         return absolute_uri(reverse('sentry-account-settings-notifications'))
 
     def get_project_url(self, project):
-        return absolute_uri('/{}/{}/'.format(project.organization.slug, project.slug))
+        return absolute_uri(u'/{}/{}/'.format(project.organization.slug, project.slug))
 
     def is_configured(self, project, **kwargs):
         # Nothing to configure here
@@ -195,6 +197,8 @@ class MailPlugin(NotificationPlugin):
 
         event = notification.event
 
+        environment = event.get_tag('environment')
+
         group = event.group
         project = group.project
         org = group.organization
@@ -202,6 +206,9 @@ class MailPlugin(NotificationPlugin):
         subject = event.get_email_subject()
 
         link = group.get_absolute_url()
+
+        if environment:
+            link = link + '?' + urlencode({'environment': environment})
 
         template = 'sentry/emails/error.txt'
         html_template = 'sentry/emails/error.html'
@@ -241,6 +248,7 @@ class MailPlugin(NotificationPlugin):
             'rules': rules,
             'enhanced_privacy': enhanced_privacy,
             'commits': sorted(commits.values(), key=lambda x: x['score'], reverse=True),
+            'environment': environment
         }
 
         # if the organization has enabled enhanced privacy controls we dont send
@@ -289,39 +297,40 @@ class MailPlugin(NotificationPlugin):
         )
 
     def notify_digest(self, project, digest):
-        start, end, counts = get_digest_metadata(digest)
+        user_ids = self.get_send_to(project)
+        for user_id, digest in get_personalized_digests(project.id, digest, user_ids):
+            start, end, counts = get_digest_metadata(digest)
 
-        # If there is only one group in this digest (regardless of how many
-        # rules it appears in), we should just render this using the single
-        # notification template. If there is more than one record for a group,
-        # just choose the most recent one.
-        if len(counts) == 1:
+            # If there is only one group in this digest (regardless of how many
+            # rules it appears in), we should just render this using the single
+            # notification template. If there is more than one record for a group,
+            # just choose the most recent one.
+            if len(counts) == 1:
+                group = six.next(iter(counts))
+                record = max(
+                    itertools.chain.from_iterable(
+                        groups.get(group, []) for groups in six.itervalues(digest)
+                    ),
+                    key=lambda record: record.timestamp,
+                )
+                notification = Notification(record.value.event, rules=record.value.rules)
+                return self.notify(notification)
+
+            context = {
+                'start': start,
+                'end': end,
+                'project': project,
+                'digest': digest,
+                'counts': counts,
+            }
+
+            headers = {
+                'X-Sentry-Project': project.slug,
+            }
+
             group = six.next(iter(counts))
-            record = max(
-                itertools.chain.from_iterable(
-                    groups.get(group, []) for groups in six.itervalues(digest)
-                ),
-                key=lambda record: record.timestamp,
-            )
-            notification = Notification(record.value.event, rules=record.value.rules)
-            return self.notify(notification)
+            subject = self.get_digest_subject(group, counts, start)
 
-        context = {
-            'start': start,
-            'end': end,
-            'project': project,
-            'digest': digest,
-            'counts': counts,
-        }
-
-        headers = {
-            'X-Sentry-Project': project.slug,
-        }
-
-        group = six.next(iter(counts))
-        subject = self.get_digest_subject(group, counts, start)
-
-        for user_id in self.get_send_to(project):
             self.add_unsubscribe_link(context, user_id, project)
             self._send_mail(
                 subject=subject,
@@ -339,7 +348,7 @@ class MailPlugin(NotificationPlugin):
         email_cls = emails.get(activity.type)
         if not email_cls:
             logger.debug(
-                'No email associated with activity type `{}`'.format(
+                u'No email associated with activity type `{}`'.format(
                     activity.get_type_display(),
                 )
             )
@@ -360,17 +369,17 @@ class MailPlugin(NotificationPlugin):
 
         context = {
             'project': project,
-            'project_link': absolute_uri('/{}/{}/'.format(
+            'project_link': absolute_uri(u'/{}/{}/'.format(
                 project.organization.slug,
                 project.slug,
             )),
-            'issue_link': absolute_uri('/{}/{}/issues/{}/'.format(
+            'issue_link': absolute_uri(u'/{}/{}/issues/{}/'.format(
                 project.organization.slug,
                 project.slug,
                 payload['report']['issue']['id'],
             )),
             # TODO(dcramer): we dont have permalinks to feedback yet
-            'link': absolute_uri('/{}/{}/issues/{}/feedback/'.format(
+            'link': absolute_uri(u'/{}/{}/issues/{}/feedback/'.format(
                 project.organization.slug,
                 project.slug,
                 payload['report']['issue']['id'],

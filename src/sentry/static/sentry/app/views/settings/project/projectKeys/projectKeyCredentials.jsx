@@ -1,22 +1,21 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t, tct} from '../../../../locale';
-import ExternalLink from '../../../../components/externalLink';
-import Field from '../../components/forms/field';
-import TextCopyInput from '../../components/forms/textCopyInput';
-import SentryTypes from '../../../../proptypes';
-import getDynamicText from '../../../../utils/getDynamicText';
+import {t, tct} from 'app/locale';
+import ExternalLink from 'app/components/externalLink';
+import Field from 'app/views/settings/components/forms/field';
+import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import SentryTypes from 'app/sentryTypes';
+import getDynamicText from 'app/utils/getDynamicText';
 
 class ProjectKeyCredentials extends React.Component {
   static propTypes = {
     projectId: PropTypes.string.isRequired,
     data: SentryTypes.ProjectKey,
-    features: PropTypes.object,
 
     showDsn: PropTypes.bool,
     showDsnPublic: PropTypes.bool,
-    showCspEndpoint: PropTypes.bool,
+    showSecurityEndpoint: PropTypes.bool,
     showMinidump: PropTypes.bool,
     showPublicKey: PropTypes.bool,
     showSecretKey: PropTypes.bool,
@@ -26,7 +25,7 @@ class ProjectKeyCredentials extends React.Component {
   static defaultProps = {
     showDsn: true,
     showDsnPublic: true,
-    showCspEndpoint: true,
+    showSecurityEndpoint: true,
     showMinidump: true,
     showPublicKey: false,
     showSecretKey: false,
@@ -35,12 +34,11 @@ class ProjectKeyCredentials extends React.Component {
 
   render() {
     let {
-      features,
       projectId,
       data,
       showDsn,
       showDsnPublic,
-      showCspEndpoint,
+      showSecurityEndpoint,
       showMinidump,
       showPublicKey,
       showSecretKey,
@@ -49,100 +47,80 @@ class ProjectKeyCredentials extends React.Component {
 
     return (
       <React.Fragment>
-        {showDsn && (
-          <Field label={t('DSN')} inline={false} hideControlState>
+        {showDsnPublic && (
+          <Field label={t('DSN')} inline={false} flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
-                value: data.dsn.secret,
-                fixed: data.dsn.secret.replace(
-                  new RegExp(`\/${projectId}$`),
-                  '/<<projectId>>'
-                ),
+                value: data.dsn.public,
+                fixed: '__DSN__',
               })}
             </TextCopyInput>
           </Field>
         )}
 
-        {showDsnPublic && (
+        {showDsn && (
           <Field
-            label={t('DSN (Public)')}
+            label={t('DSN (Deprecated)')}
+            help={t(
+              "This DSN includes the secret which is no longer required by Sentry' newer versions of SDKs. If you are unsure which to use, follow installation instructions for your language."
+            )}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput>
+              {getDynamicText({
+                value: data.dsn.secret,
+                fixed: '__DSN_DEPRECATED__',
+              })}
+            </TextCopyInput>
+          </Field>
+        )}
+
+        {showSecurityEndpoint && (
+          <Field
+            label={t('Security Header Endpoint')}
+            help={t(
+              'Use your security header endpoint for features like CSP and Expect-CT reports.'
+            )}
+            inline={false}
+            flexibleControlStateSize
+          >
+            <TextCopyInput>
+              {getDynamicText({
+                value: data.dsn.security,
+                fixed: '__SECURITY_HEADER_ENDPOINT__',
+              })}
+            </TextCopyInput>
+          </Field>
+        )}
+
+        {showMinidump && (
+          <Field
+            label={t('Minidump Endpoint')}
             help={tct(
-              'Use your public DSN with browser-based SDKs such as [link:raven-js].',
+              'Use this endpoint to upload [link], for example with Electron, Crashpad or Breakpad.',
               {
                 link: (
-                  <ExternalLink href="https://github.com/getsentry/raven-js">
-                    raven-js
+                  <ExternalLink href="https://docs.sentry.io/clients/minidump/">
+                    minidump crash reports
                   </ExternalLink>
                 ),
               }
             )}
             inline={false}
-            hideControlState
+            flexibleControlStateSize
           >
             <TextCopyInput>
               {getDynamicText({
-                value: data.dsn.public,
-                fixed: data.dsn.public.replace(
-                  new RegExp(`\/${projectId}$`),
-                  '/<<projectId>>'
-                ),
+                value: data.dsn.minidump,
+                fixed: '__MINIDUMP_ENDPOINT__',
               })}
             </TextCopyInput>
           </Field>
         )}
-
-        {showCspEndpoint && (
-          <Field
-            label={t('CSP Endpoint')}
-            help={tct(
-              'Use your CSP endpoint in the [directive] directive in your [header] header.',
-              {
-                directive: <code>report-uri</code>,
-                header: <code>Content-Security-Policy</code>,
-              }
-            )}
-            inline={false}
-            hideControlState
-          >
-            <TextCopyInput>
-              {getDynamicText({
-                value: data.dsn.csp,
-                fixed: data.dsn.csp.replace(
-                  new RegExp(`\/${projectId}$`),
-                  '/<<projectId>>'
-                ),
-              })}
-            </TextCopyInput>
-          </Field>
-        )}
-
-        {showMinidump &&
-          features.has('minidump') && (
-            <Field
-              label={t('Minidump Endpoint')}
-              help={tct(
-                'Use this endpoint to upload minidump crash reports, for example with Electron, Crashpad or Breakpad.',
-                {
-                  /* TODO: add a link to minidump docs */
-                }
-              )}
-              inline={false}
-              hideControlState
-            >
-              <TextCopyInput>
-                {getDynamicText({
-                  value: data.dsn.minidump,
-                  fixed: data.dsn.minidump.replace(
-                    new RegExp(`\/${projectId}$`),
-                    '/<<projectId>>'
-                  ),
-                })}
-              </TextCopyInput>
-            </Field>
-          )}
 
         {showPublicKey && (
-          <Field label={t('Public Key')} inline={true} hideControlState>
+          <Field label={t('Public Key')} inline={true} flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
                 value: data.public,
@@ -153,7 +131,7 @@ class ProjectKeyCredentials extends React.Component {
         )}
 
         {showSecretKey && (
-          <Field label={t('Secret Key')} inline={true} hideControlState>
+          <Field label={t('Secret Key')} inline={true} flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
                 value: data.secret,
@@ -164,7 +142,7 @@ class ProjectKeyCredentials extends React.Component {
         )}
 
         {showProjectId && (
-          <Field label={t('Project ID')} inline={true} hideControlState>
+          <Field label={t('Project ID')} inline={true} flexibleControlStateSize>
             <TextCopyInput>
               {getDynamicText({
                 value: projectId,

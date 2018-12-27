@@ -25,6 +25,10 @@ SERVICE_HOOK_EVENTS = [
 ]
 
 
+def generate_secret():
+    return uuid4().hex + uuid4().hex
+
+
 class ServiceHook(Model):
     __core__ = True
 
@@ -34,7 +38,7 @@ class ServiceHook(Model):
     actor_id = BoundedPositiveIntegerField(db_index=True)
     project_id = BoundedPositiveIntegerField(db_index=True)
     url = models.URLField(max_length=512)
-    secret = EncryptedTextField(default=lambda: ServiceHook.generate_secret())
+    secret = EncryptedTextField(default=generate_secret)
     events = ArrayField(of=models.TextField)
     status = BoundedPositiveIntegerField(
         default=0,
@@ -61,10 +65,6 @@ class ServiceHook(Model):
 
     def __unicode__(self):
         return six.text_type(self.guid)
-
-    @classmethod
-    def generate_secret(cls):
-        return uuid4().hex + uuid4().hex
 
     def build_signature(self, body):
         return hmac.new(

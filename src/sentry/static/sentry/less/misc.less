@@ -24,34 +24,8 @@ img {
   word-break: break-word;
 }
 
-.bordered-column {
-  border-right: 1px solid @trim;
-  margin: -20px -1px 0 -10px;
-  padding: 20px 20px 0;
-
-  & + .bordered-column {
-    border: 0;
-    border-left: 1px solid @trim;
-    margin: -20px 0 0 0;
-    padding: 20px 0 0 20px;
-  }
-}
-
 .no-border {
   border: 0 !important;
-}
-
-table .bar-cell {
-  position: relative;
-}
-
-table .bar-cell span.bar {
-  position: absolute;
-  left: 0;
-  top: 0;
-  display: block;
-  height: 3px;
-  background: @blue;
 }
 
 /* translation debug */
@@ -59,10 +33,6 @@ span.translation-wrapper {
   background: #ff953d;
   border: 3px solid #ff4d3d;
   border-radius: 3px;
-}
-
-.horizontal-scroll {
-  overflow-x: auto;
 }
 
 // Animated ellipsis...

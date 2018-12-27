@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import SentryTypes from '../../../proptypes';
+import SentryTypes from 'app/sentryTypes';
 
-import GroupEventDataSection from '../eventDataSection';
-import CSPContent from './cspContent';
-import CSPHelp from './cspHelp';
-import {t} from '../../../locale';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import CSPContent from 'app/components/events/interfaces/cspContent';
+import CSPHelp from 'app/components/events/interfaces/cspHelp';
+import {t} from 'app/locale';
 
 function getView(view, data) {
   switch (view) {
@@ -20,11 +20,10 @@ function getView(view, data) {
   }
 }
 
-class CSPInterface extends React.Component {
+export default class CspInterface extends React.Component {
   static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-    type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
   };
 
@@ -91,5 +90,3 @@ class CSPInterface extends React.Component {
     );
   }
 }
-
-export default CSPInterface;

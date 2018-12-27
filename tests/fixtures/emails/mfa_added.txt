@@ -1,0 +1,21 @@
+Security Notice
+---------------
+
+An authenticator has been added to your Sentry account.
+
+
+Details
+-------
+
+Account: foo@example.com
+IP: 127.0.0.1
+When: Jan. 20, 2017, 9:39 p.m. UTC
+
+Authenticator: U2F (Universal 2nd Factor)
+Device: Home computer
+
+
+Don't recognize this activity?
+------------------------------
+
+If you didn't trigger this action, we recommend you immediately review your account security, including changing your password. If you determine that this activity is malicious please contact .

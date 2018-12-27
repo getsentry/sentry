@@ -2,10 +2,10 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import HookStore from '../../../stores/hookStore';
-import ProjectState from '../../../mixins/projectState';
-import SettingsNavigation from '../components/settingsNavigation';
-import getConfiguration from './navigationConfiguration';
+import HookStore from 'app/stores/hookStore';
+import ProjectState from 'app/mixins/projectState';
+import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
+import getConfiguration from 'app/views/settings/project/navigationConfiguration';
 
 const ProjectSettingsNavigation = createReactClass({
   displayName: 'ProjectSettingsNavigation',
@@ -32,7 +32,7 @@ const ProjectSettingsNavigation = createReactClass({
 
     return (
       <SettingsNavigation
-        navigationObjects={getConfiguration(project)}
+        navigationObjects={getConfiguration({project})}
         access={access}
         features={features}
         organization={org}

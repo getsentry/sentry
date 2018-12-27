@@ -2,15 +2,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 
-import {t} from '../../locale';
-import ApiMixin from '../../mixins/apiMixin';
-import Badge from '../../components/badge';
-import ListLink from '../../components/listLink';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import OrganizationState from '../../mixins/organizationState';
-import PluginNavigation from './pluginNavigation';
-import ExternalLink from '../../components/externalLink';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Badge from 'app/components/badge';
+import ListLink from 'app/components/listLink';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import OrganizationState from 'app/mixins/organizationState';
+import PluginNavigation from 'app/views/projectSettings/pluginNavigation';
+import ExternalLink from 'app/components/externalLink';
 
 const ProjectSettings = createReactClass({
   displayName: 'ProjectSettings',
@@ -83,12 +83,8 @@ const ProjectSettings = createReactClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let access = this.getAccess();
-    let features = this.getFeatures();
     let {orgId, projectId} = this.props.params;
-    let hasNewSettings = features.has('new-settings');
-    let pathPrefix = hasNewSettings
-      ? `/settings/organization/${orgId}/project/${projectId}`
-      : `/${orgId}/${projectId}/settings`;
+    let pathPrefix = `/settings/${orgId}/${projectId}`;
     let settingsUrlRoot = pathPrefix;
     let project = this.state.project;
     let rootInstallPath = `${pathPrefix}/install/`;
@@ -116,9 +112,6 @@ const ProjectSettings = createReactClass({
               {t('Environments')}
             </ListLink>
             <ListLink to={`${pathPrefix}/tags/`}>{t('Tags')}</ListLink>
-            <ListLink to={`${pathPrefix}/issue-tracking/`}>
-              {t('Issue Tracking')}
-            </ListLink>
             {access.has('project:write') && (
               <ListLink
                 to={`${pathPrefix}/release-tracking/`}
@@ -157,14 +150,16 @@ const ProjectSettings = createReactClass({
             >
               {t('Error Tracking')}
             </ListLink>
-            <ListLink to={`${pathPrefix}/csp/`}>{t('CSP Reports')}</ListLink>
+            <ListLink to={`${pathPrefix}/security-headers/`}>
+              {t('Security Headers')}
+            </ListLink>
             <ListLink to={`${pathPrefix}/user-feedback/`}>{t('User Feedback')}</ListLink>
             <ListLink to={`${pathPrefix}/filters/`}>{t('Inbound Filters')}</ListLink>
             <ListLink to={`${pathPrefix}/keys/`}>{t('Client Keys')} (DSN)</ListLink>
           </ul>
-          <h6 className="nav-header">{t('Integrations')}</h6>
+          <h6 className="nav-header">{t('Legacy Integrations')}</h6>
           <ul className="nav nav-stacked">
-            <ListLink to={`${pathPrefix}/plugins/`}>{t('All Integrations')}</ListLink>
+            <ListLink to={`${pathPrefix}/plugins/`}>{t('Legacy Integrations')}</ListLink>
             <PluginNavigation urlRoot={settingsUrlRoot} />
           </ul>
         </div>

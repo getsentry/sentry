@@ -15,15 +15,27 @@
     {
       "integrations": [
         {
-          "link": "https://docs.getsentry.com/hosted/clients/cordova/", 
-          "type": "language", 
-          "id": "cordova", 
+          "link": "https://docs.getsentry.com/hosted/clients/cordova/",
+          "type": "language",
+          "id": "cordova",
           "name": "Cordova"
         }
-      ], 
-      "id": "cordova", 
+      ],
+      "id": "cordova",
       "name": "Cordova"
-    }, 
+    },
+    {
+      "integrations": [
+        {
+          "link": "https://docs.getsentry.com/hosted/clients/electron/",
+          "type": "language",
+          "id": "electron",
+          "name": "Electron"
+        }
+      ],
+      "id": "electron",
+      "name": "Electron"
+    },
     {
       "integrations": [
         {
@@ -149,6 +161,18 @@
       ],
       "id": "javascript",
       "name": "JavaScript"
+    },
+    {
+      "integrations": [
+        {
+          "link": "https://docs.getsentry.com/hosted/clients/minidump/",
+          "type": "language",
+          "id": "minidump",
+          "name": "Minidump"
+        }
+      ],
+      "id": "minidump",
+      "name": "Minidump"
     },
     {
       "integrations": [
@@ -321,6 +345,18 @@
     {
       "integrations": [
         {
+          "link": "https://docs.getsentry.com/hosted/clients/rust/",
+          "type": "language",
+          "id": "rust",
+          "name": "Rust"
+        }
+      ],
+      "id": "rust",
+      "name": "Rust"
+    },
+    {
+      "integrations": [
+        {
           "link": "https://docs.getsentry.com/hosted/clients/cocoa/",
           "type": "language",
           "id": "swift",
@@ -329,7 +365,8 @@
       ],
       "id": "swift",
       "name": "Swift"
-    }, {
+    },
+    {
       "integrations": [
         {
           "link": "",

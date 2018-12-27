@@ -4,6 +4,7 @@ import six
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -16,6 +17,7 @@ from sentry.models import (
     AuditLogEntryEvent, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 )
 from sentry.search.utils import tokenize_query
+from sentry.signals import team_created
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 CONFLICTING_SLUG_ERROR = 'A team with this slug already exists.'
@@ -45,8 +47,16 @@ class OrganizationTeamsPermission(OrganizationPermission):
 
 
 class TeamSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=200, required=False)
-    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50, required=False)
+    name = serializers.CharField(max_length=64, required=False)
+    slug = serializers.RegexField(
+        r'^[a-z0-9_\-]+$',
+        max_length=50,
+        required=False,
+        error_messages={
+            'invalid': _('Enter a valid slug consisting of lowercase letters, '
+                         'numbers, underscores or hyphens.'),
+        },
+    )
 
     def validate(self, attrs):
         if not (attrs.get('name') or attrs.get('slug')):
@@ -109,8 +119,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           team should be created for.
-        :param string name: the name of the organization.
-        :param string slug: the optional slug for this organization.  If
+        :param string name: the optional name of the team.
+        :param string slug: the optional slug for this team.  If
                             not provided it will be auto generated from the
                             name.
         :auth: required
@@ -134,6 +144,13 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                         'detail': CONFLICTING_SLUG_ERROR,
                     },
                     status=409,
+                )
+            else:
+                team_created.send_robust(
+                    organization=organization,
+                    user=request.user,
+                    team=team,
+                    sender=self.__class__,
                 )
 
             if request.user.is_authenticated():

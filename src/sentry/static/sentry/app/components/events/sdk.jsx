@@ -1,8 +1,8 @@
 import React from 'react';
-import SentryTypes from '../../proptypes';
+import SentryTypes from 'app/sentryTypes';
 
-import GroupEventDataSection from './eventDataSection';
-import {t} from '../../locale';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import {t} from 'app/locale';
 
 class EventSdk extends React.Component {
   static propTypes = {
@@ -36,14 +36,6 @@ class EventSdk extends React.Component {
                 <pre>{data.version}</pre>
               </td>
             </tr>
-            {data.clientIP && (
-              <tr key="clientIP">
-                <td className="key">{t('Client IP')}</td>
-                <td className="value">
-                  <pre>{data.clientIP}</pre>
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </GroupEventDataSection>

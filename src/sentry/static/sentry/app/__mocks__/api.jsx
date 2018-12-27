@@ -62,7 +62,10 @@ class Client {
   }
 
   wrapCallback(id, error) {
-    return (...args) => respond(Client.mockAsync, error, ...args);
+    return (...args) => {
+      if (this.hasProjectBeenRenamed(...args)) return;
+      respond(Client.mockAsync, error, ...args);
+    };
   }
 
   requestPromise(url, options) {
@@ -79,29 +82,25 @@ class Client {
     let [response, mock] = Client.findMockResponse(url, options) || [];
 
     if (!response) {
-      // eslint-disable-next-line no-console
-      console.error(
-        'No mocked response found for request.',
-        url,
-        options.method || 'GET'
+      // Endpoints need to be mocked
+      throw new Error(
+        `No mocked response found for request:\n\t${options.method || 'GET'} ${url}`
       );
-      let resp = {
-        status: 404,
-        responseText: 'HTTP 404',
-        responseJSON: null,
-      };
-      respond(Client.mockAsync, options.error, resp);
     } else {
       // has mocked response
 
       // mock gets returned when we add a mock response, will represent calls to api.request
       mock(url, options);
+
+      const body =
+        typeof response.body === 'function' ? response.body(url, options) : response.body;
+
       if (response.statusCode !== 200) {
         response.callCount++;
         let resp = {
           status: response.statusCode,
-          responseText: JSON.stringify(response.body),
-          responseJSON: response.body,
+          responseText: JSON.stringify(body),
+          responseJSON: body,
         };
         this.handleRequestError(
           {
@@ -115,7 +114,7 @@ class Client {
         respond(
           Client.mockAsync,
           options.success,
-          response.body,
+          body,
           {},
           {
             getResponseHeader: key => response.headers[key],
@@ -130,5 +129,10 @@ class Client {
 
 Client.prototype.handleRequestError = RealClient.Client.prototype.handleRequestError;
 Client.prototype.uniqueId = RealClient.Client.prototype.uniqueId;
+Client.prototype.bulkUpdate = RealClient.Client.prototype.bulkUpdate;
+Client.prototype._chain = RealClient.Client.prototype._chain;
+Client.prototype._wrapRequest = RealClient.Client.prototype._wrapRequest;
+Client.prototype.hasProjectBeenRenamed =
+  RealClient.Client.prototype.hasProjectBeenRenamed;
 
 export {Client};

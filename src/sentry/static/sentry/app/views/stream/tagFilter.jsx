@@ -1,8 +1,12 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import ReactDOM from 'react-dom';
-import _ from 'lodash';
+import {debounce} from 'lodash';
 
+import {t} from 'app/locale';
+import {Client} from 'app/api';
+import SelectControl from 'app/components/forms/selectControl';
+
+// TODO(billy): Update to use SelectAutocomplete when it is ported to use react-select
 class StreamTagFilter extends React.Component {
   static propTypes = {
     tag: PropTypes.object.isRequired,
@@ -12,10 +16,10 @@ class StreamTagFilter extends React.Component {
     onSelect: PropTypes.func,
   };
 
-  static tagValueToSelect2Format = key => {
+  static tagValueToSelectFormat = ({value}) => {
     return {
-      id: key,
-      text: key,
+      value,
+      label: value,
     };
   };
 
@@ -28,103 +32,142 @@ class StreamTagFilter extends React.Component {
     super(...args);
     this.state = {
       query: '',
-      loading: false,
+      isLoading: false,
       value: this.props.value,
+      textValue: this.props.value,
     };
-  }
-
-  componentDidMount() {
-    let select = this.refs.select;
-
-    let selectOpts = {
-      placeholder: '--',
-      allowClear: true,
-    };
-
-    if (!this.props.tag.predefined) {
-      Object.assign(selectOpts, {
-        initSelection: (element, callback) => {
-          callback(StreamTagFilter.tagValueToSelect2Format(this.props.value));
-        },
-        ajax: {
-          url: this.getTagValuesAPIEndpoint(),
-          dataType: 'json',
-          delay: 250,
-          data: (term, page) => {
-            return {
-              query: term,
-            };
-          },
-          results: (data, page) => {
-            // parse the results into the format expected by Select2
-            return {
-              results: _.map(data, val =>
-                StreamTagFilter.tagValueToSelect2Format(val.value)
-              ),
-            };
-          },
-          cache: true,
-        },
-      });
-    }
-
-    $(select)
-      .select2(selectOpts)
-      .select2('val', this.state.value)
-      .on('change', this.onSelectValue);
+    this.api = new Client();
   }
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.value !== this.state.value) {
-      this.setState(
-        {
-          value: nextProps.value,
-        },
-        () => {
-          let select = this.refs.select;
-          $(select).select2('val', this.state.value);
-        }
-      );
+      this.setState({
+        value: nextProps.value,
+        textValue: nextProps.value,
+      });
     }
   }
 
   componentWillUnmount() {
-    let select = ReactDOM.findDOMNode(this.refs.select);
-    $(select).select2('destroy');
+    if (!this.api) return;
+    this.api.clear();
   }
 
   getTagValuesAPIEndpoint = () => {
-    return `/api/0/projects/${this.props.orgId}/${this.props.projectId}/tags/${this.props
-      .tag.key}/values/`;
+    let {orgId, projectId, tag} = this.props;
+
+    return `/api/0/projects/${orgId}/${projectId}/tags/${tag.key}/values/`;
   };
 
-  onSelectValue = evt => {
-    let val = evt.target.value;
+  handleLoadOptions = () => {
+    let {tag} = this.props;
+    if (tag.isInput || tag.predefined) return;
+    if (!this.api) return;
+
     this.setState({
-      value: val,
+      isLoading: true,
     });
 
-    this.props.onSelect && this.props.onSelect(this.props.tag, val);
+    this.api
+      .requestPromise(this.getTagValuesAPIEndpoint(), {
+        query: {
+          query: this.state.textValue,
+        },
+      })
+      .then(resp => {
+        this.setState({
+          isLoading: false,
+          options: Object.values(resp).map(StreamTagFilter.tagValueToSelectFormat),
+        });
+      });
+  };
+
+  handleChangeInput = e => {
+    let value = e.target.value;
+    this.setState({
+      textValue: value,
+    });
+    this.debouncedTextChange(value);
+  };
+
+  debouncedTextChange = debounce(function(text) {
+    this.handleChange(text);
+  }, 150);
+
+  handleOpenMenu = () => {
+    if (this.props.tag.predefined) return;
+
+    this.setState(
+      {
+        isLoading: true,
+      },
+      this.handleLoadOptions
+    );
+  };
+
+  handleChangeSelect = valueObj => {
+    let value = valueObj ? valueObj.value : null;
+    this.handleChange(value);
+  };
+
+  handleChangeSelectInput = value => {
+    this.setState(
+      {
+        textValue: value,
+      },
+      this.handleLoadOptions
+    );
+  };
+
+  handleChange = value => {
+    let {onSelect, tag} = this.props;
+
+    this.setState(
+      {
+        value,
+      },
+      () => {
+        onSelect && onSelect(tag, value);
+      }
+    );
   };
 
   render() {
-    // NOTE: need to specify empty onChange handler on <select> - even though this
-    //       will get overridden by select2 - because React will complain with
-    //       a warning
-    let tag = this.props.tag;
+    let {tag} = this.props;
     return (
       <div className="stream-tag-filter">
-        <h6 className="nav-header">{tag.name}</h6>
+        <h6 className="nav-header">{tag.key}</h6>
 
-        {this.props.tag.predefined ? (
-          <select ref="select" onChange={function() {}}>
-            <option key="empty" />
-            {this.props.tag.values.map(val => {
-              return <option key={val}>{val}</option>;
-            })}
-          </select>
-        ) : (
-          <input type="hidden" ref="select" value={this.props.value} />
+        {!!tag.isInput && (
+          <input
+            className="form-control"
+            type="text"
+            value={this.state.textValue}
+            onChange={this.handleChangeInput}
+          />
+        )}
+
+        {!tag.isInput && (
+          <SelectControl
+            filterOptions={(options, filter, currentValues) => options}
+            placeholder="--"
+            value={this.state.value}
+            onChange={this.handleChangeSelect}
+            isLoading={this.state.isLoading}
+            onInputChange={this.handleChangeSelectInput}
+            onOpen={this.handleOpenMenu}
+            autoload={false}
+            noResultsText={this.state.isLoading ? t('Loading...') : t('No results found')}
+            options={
+              tag.predefined
+                ? tag.values &&
+                  tag.values.map(value => ({
+                    value,
+                    label: value,
+                  }))
+                : this.state.options
+            }
+          />
         )}
       </div>
     );

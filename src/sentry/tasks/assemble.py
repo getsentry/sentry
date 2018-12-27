@@ -46,9 +46,9 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                                     % len(result))
                 return
 
-            dsym_type, cpu, file_uuid, filename = result[0]
-            dsym, created = dsymfile.create_dsym_from_uuid(
-                project, dsym_type, cpu, file_uuid,
+            dsym_type, cpu, file_id, filename = result[0]
+            dsym, created = dsymfile.create_dsym_from_id(
+                project, dsym_type, cpu, file_id,
                 os.path.basename(name),
                 file=file)
             delete_file = False
@@ -67,6 +67,7 @@ def assemble_dif(project_id, name, checksum, chunks, **kwargs):
                     set_assemble_status(project, checksum, ChunkFileState.ERROR,
                                         detail=error)
                     indicate_success = False
+                    dsym.delete()
 
             if indicate_success:
                 set_assemble_status(project, checksum, ChunkFileState.OK)

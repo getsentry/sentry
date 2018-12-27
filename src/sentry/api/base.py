@@ -19,6 +19,7 @@ from rest_framework.views import APIView
 
 from sentry import tsdb
 from sentry.app import raven
+from sentry.auth import access
 from sentry.models import Environment
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -67,7 +68,7 @@ class Endpoint(APIView):
         )
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = '{0}?{1}'.format(base_url, querystring)
+            base_url = u'{0}?{1}'.format(base_url, querystring)
         else:
             base_url = base_url + '?'
 
@@ -83,7 +84,7 @@ class Endpoint(APIView):
 
     def handle_exception(self, request, exc):
         try:
-            return super(Endpoint, self).handle_exception(exc)
+            response = super(Endpoint, self).handle_exception(exc)
         except Exception as exc:
             import sys
             import traceback
@@ -93,7 +94,9 @@ class Endpoint(APIView):
                 'detail': 'Internal Error',
                 'errorId': event_id,
             }
-            return Response(context, status=500)
+            response = Response(context, status=500)
+            response.exception = True
+        return response
 
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
@@ -160,6 +163,10 @@ class Endpoint(APIView):
             else:
                 handler = self.http_method_not_allowed
 
+            if getattr(request, 'access', None) is None:
+                # setup default access
+                request.access = access.from_request(request)
+
             response = handler(request, *args, **kwargs)
 
         except Exception as exc:
@@ -195,8 +202,11 @@ class Endpoint(APIView):
         return Response(context, **kwargs)
 
     def paginate(
-        self, request, on_results=None, paginator_cls=Paginator, default_per_page=100, **kwargs
+        self, request, on_results=None, paginator=None,
+        paginator_cls=Paginator, default_per_page=100, **paginator_kwargs
     ):
+        assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
+
         per_page = int(request.GET.get('per_page', default_per_page))
         input_cursor = request.GET.get('cursor')
         if input_cursor:
@@ -206,7 +216,9 @@ class Endpoint(APIView):
 
         assert per_page <= max(100, default_per_page)
 
-        paginator = paginator_cls(**kwargs)
+        if not paginator:
+            paginator = paginator_cls(**paginator_kwargs)
+
         cursor_result = paginator.get_result(
             limit=per_page,
             cursor=input_cursor,

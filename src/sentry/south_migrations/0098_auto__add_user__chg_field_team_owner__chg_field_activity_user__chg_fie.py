@@ -22,23 +22,23 @@ class Migration(SchemaMigration):
                     )
                 ), ('password', self.gf('django.db.models.fields.CharField')(max_length=128)), (
                     'last_login',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), ('is_superuser',
                     self.gf('django.db.models.fields.BooleanField')(default=False)), (
                         'username',
                         self.gf('django.db.models.fields.CharField')(unique=True, max_length=30)
-                    ), (
+                ), (
                         'first_name',
                         self.gf('django.db.models.fields.CharField')(max_length=30, blank=True)
-                    ), (
+                ), (
                         'last_name',
                         self.gf('django.db.models.fields.CharField')(max_length=30, blank=True)
-                    ),
+                ),
                 ('email', self.gf('django.db.models.fields.EmailField')(max_length=75, blank=True)),
                 ('is_staff', self.gf('django.db.models.fields.BooleanField')(default=False)),
                 ('is_active', self.gf('django.db.models.fields.BooleanField')(default=True)), (
                     'date_joined',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

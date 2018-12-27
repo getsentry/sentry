@@ -3,21 +3,27 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import LoadingIndicator from '../../components/loadingIndicator';
-import LoadingError from '../../components/loadingError';
-import IconOpen from '../../icons/icon-open';
-import LastCommit from '../../components/lastCommit';
-import IssueList from '../../components/issueList';
-import CommitAuthorStats from '../../components/commitAuthorStats';
-import ReleaseProjectStatSparkline from '../../components/releaseProjectStatSparkline';
-import RepositoryFileSummary from '../../components/repositoryFileSummary';
-import TimeSince from '../../components/timeSince';
+import {Box} from 'grid-emotion';
+import Button from 'app/components/button';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import LoadingError from 'app/components/loadingError';
+import IconOpen from 'app/icons/icon-open';
+import HeroIcon from 'app/components/heroIcon';
+import LastCommit from 'app/components/lastCommit';
+import IssueList from 'app/components/issueList';
+import CommitAuthorStats from 'app/components/commitAuthorStats';
+import ReleaseProjectStatSparkline from 'app/components/releaseProjectStatSparkline';
+import RepositoryFileSummary from 'app/components/repositoryFileSummary';
+import TimeSince from 'app/components/timeSince';
 
-import ApiMixin from '../../mixins/apiMixin';
+import ApiMixin from 'app/mixins/apiMixin';
 
-import {t} from '../../locale';
-import SentryTypes from '../../proptypes';
-import OrganizationState from '../../mixins/organizationState';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import OrganizationState from 'app/mixins/organizationState';
+import {Panel, PanelBody, PanelItem} from 'app/components/panels';
+import Well from 'app/components/well';
 
 const ReleaseOverview = createReactClass({
   displayName: 'ReleaseOverview',
@@ -61,6 +67,8 @@ const ReleaseOverview = createReactClass({
 
     if (this.props.environment) {
       query.environment = this.props.environment.name;
+    } else {
+      delete query.environment;
     }
 
     let path = `/organizations/${orgId}/releases/${encodeURIComponent(
@@ -185,6 +193,9 @@ const ReleaseOverview = createReactClass({
     }, {});
 
     let deploys = this.state.deploys;
+
+    let query = this.props.environment ? {environment: this.props.environment.name} : {};
+
     return (
       <div>
         <div className="row" style={{paddingTop: 10}}>
@@ -194,11 +205,16 @@ const ReleaseOverview = createReactClass({
               endpoint={`/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
                 version
               )}/resolved/`}
+              query={query}
               pagination={false}
               renderEmpty={() => (
-                <div className="box empty m-b-2" key="none">
-                  {t('No issues resolved')}
-                </div>
+                <Panel>
+                  <PanelBody>
+                    <PanelItem key="none" justify="center">
+                      {t('No issues resolved')}
+                    </PanelItem>
+                  </PanelBody>
+                </Panel>
               )}
               ref="issueList"
               showActions={false}
@@ -209,15 +225,18 @@ const ReleaseOverview = createReactClass({
             <IssueList
               endpoint={`/projects/${orgId}/${projectId}/issues/`}
               query={{
+                ...query,
                 query: 'first-release:"' + version + '"',
                 limit: 5,
               }}
               statsPeriod="0"
               pagination={false}
               renderEmpty={() => (
-                <div className="box empty m-b-2" key="none">
-                  {t('No new issues')}
-                </div>
+                <Panel>
+                  <PanelBody>
+                    <PanelItem justify="center">{t('No new issues')}</PanelItem>
+                  </PanelBody>
+                </Panel>
               )}
               ref="issueList"
               showActions={false}
@@ -249,7 +268,7 @@ const ReleaseOverview = createReactClass({
                   projectId={projectId}
                   version={version}
                 />
-                <h6 className="nav-header m-b-1">Other Projects Affected</h6>
+                <h6 className="nav-header m-b-1">{t('Other Projects Affected')}</h6>
                 <ul className="nav nav-stacked">
                   {projects.length === 1
                     ? this.renderEmpty()
@@ -269,17 +288,19 @@ const ReleaseOverview = createReactClass({
                 </ul>
               </div>
             ) : (
-              <div className="well blankslate m-t-2 m-b-2 p-x-2 p-t-1 p-b-2 align-center">
-                <span className="icon icon-git-commit" />
+              <Well centered className="m-t-2">
+                <HeroIcon src="icon-commit" />
                 <h5>Releases are better with commit data!</h5>
                 <p>
                   Connect a repository to see commit info, files changed, and authors
                   involved in future releases.
                 </p>
-                <a className="btn btn-primary" href={`/organizations/${orgId}/repos/`}>
-                  Connect a repository
-                </a>
-              </div>
+                <Box mb={1}>
+                  <Button priority="primary" href={`/organizations/${orgId}/repos/`}>
+                    Connect a repository
+                  </Button>
+                </Box>
+              </Well>
             )}
             <h6 className="nav-header m-b-1">{t('Deploys')}</h6>
             <ul className="nav nav-stacked">
@@ -289,15 +310,6 @@ const ReleaseOverview = createReactClass({
                     let href = `/${orgId}/${projectId}/?query=release:${version}&environment=${encodeURIComponent(
                       deploy.environment
                     )}`;
-
-                    // TODO(lyn): Remove when environment feature switched on
-                    if (!this.getFeatures().has('environments')) {
-                      let query = encodeURIComponent(
-                        `environment:${deploy.environment} release:${version}`
-                      );
-                      href = `/${orgId}/${projectId}/?query=${query}`;
-                    }
-                    // End remove block
 
                     return (
                       <li key={deploy.id}>
@@ -334,4 +346,4 @@ const ReleaseOverview = createReactClass({
   },
 });
 
-export default ReleaseOverview;
+export default withEnvironmentInQueryString(ReleaseOverview);

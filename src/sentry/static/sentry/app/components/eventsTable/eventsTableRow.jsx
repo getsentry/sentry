@@ -3,12 +3,12 @@ import React from 'react';
 import {Link} from 'react-router';
 import classNames from 'classnames';
 
-import CustomPropTypes from '../../proptypes';
-import Avatar from '../../components/avatar';
-import DateTime from '../../components/dateTime';
-import deviceNameMapper from '../../utils/deviceNameMapper';
+import CustomPropTypes from 'app/sentryTypes';
+import Avatar from 'app/components/avatar';
+import DateTime from 'app/components/dateTime';
+import DeviceName from 'app/components/deviceName';
 
-import '../../../less/components/eventsTableRow.less';
+import 'app/../less/components/eventsTableRow.less';
 
 class EventsTableRow extends React.Component {
   static propTypes = {
@@ -70,7 +70,7 @@ class EventsTableRow extends React.Component {
           <td className="event-user table-user-info">
             {event.user ? (
               <div>
-                <Avatar user={event.user} size={64} className="avatar" gravatar={false} />
+                <Avatar user={event.user} size={24} className="avatar" gravatar={false} />
                 {event.user.email}
               </div>
             ) : (
@@ -83,9 +83,11 @@ class EventsTableRow extends React.Component {
           return (
             <td key={tag.key}>
               <div className={truncate ? 'truncate' : ''}>
-                {tag.key === 'device'
-                  ? deviceNameMapper(tagMap[tag.key])
-                  : tagMap[tag.key]}
+                {tag.key === 'device' ? (
+                  <DeviceName>{tagMap[tag.key]}</DeviceName>
+                ) : (
+                  tagMap[tag.key]
+                )}
               </div>
             </td>
           );

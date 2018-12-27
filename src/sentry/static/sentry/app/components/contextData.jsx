@@ -3,7 +3,7 @@ import React from 'react';
 import jQuery from 'jquery';
 import _ from 'lodash';
 
-import {isUrl} from '../utils';
+import {isUrl} from 'app/utils';
 
 function looksLikeObjectRepr(value) {
   let a = value[0];

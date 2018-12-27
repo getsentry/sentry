@@ -38,7 +38,7 @@ class BaseEventTest(APITestCase):
 
         self.idp = IdentityProvider.objects.create(
             type='slack',
-            organization=self.org,
+            external_id='TXXXXXXX1',
             config={},
         )
         self.identity = Identity.objects.create(
@@ -108,7 +108,13 @@ class StatusActionTest(BaseEventTest):
             'domain': 'example',
         })
 
-        associate_url = build_linking_url(self.integration, self.org, 'invalid-id', 'C065W1189')
+        associate_url = build_linking_url(
+            self.integration,
+            self.org,
+            'invalid-id',
+            'C065W1189',
+            self.response_url
+        )
 
         assert resp.status_code == 200, resp.content
         assert resp.data['response_type'] == 'ephemeral'
@@ -245,6 +251,50 @@ class StatusActionTest(BaseEventTest):
         assert 'attachments' in resp.data
         assert resp.data['attachments'][0]['title'] == self.group1.title
 
+    def test_assign_user_with_multiple_identities(self):
+        org2 = self.create_organization(owner=None)
+
+        integration2 = Integration.objects.create(
+            provider='slack',
+            external_id='TXXXXXXX2',
+            metadata={
+                'access_token': 'xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx',
+            }
+        )
+        OrganizationIntegration.objects.create(
+            organization=org2,
+            integration=integration2,
+        )
+
+        idp2 = IdentityProvider.objects.create(
+            type='slack',
+            external_id='TXXXXXXX2',
+            config={},
+        )
+        Identity.objects.create(
+            external_id='slack_id2',
+            idp=idp2,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+
+        status_action = {
+            'name': 'assign',
+            'selected_options': [{'value': u'user:{}'.format(self.user.id)}],
+        }
+
+        resp = self.post_webhook(action_data=[status_action])
+
+        assert resp.status_code == 200, resp.content
+        assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+
+        expect_status = u'*Issue assigned to <@{assignee}> by <@{assignee}>*'.format(
+            assignee=self.identity.external_id,
+        )
+
+        assert resp.data['text'].endswith(expect_status), resp.data['text']
+
     @responses.activate
     def test_resolve_issue(self):
         status_action = {
@@ -329,7 +379,7 @@ class StatusActionTest(BaseEventTest):
 
         assert resp.data['response_type'] == 'ephemeral'
         assert not resp.data['replace_original']
-        assert resp.data['text'] == 'Action failed: You do not have permission to perform this action.'
+        assert resp.data['text'] == "Sentry can't perform that action right now on your behalf!"
 
     def test_invalid_token(self):
         resp = self.post_webhook(token='invalid')

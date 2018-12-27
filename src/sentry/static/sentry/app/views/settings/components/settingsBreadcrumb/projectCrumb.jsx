@@ -3,24 +3,19 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import BreadcrumbDropdown from './breadcrumbDropdown';
-import LoadingIndicator from '../../../../components/loadingIndicator';
-import SentryTypes from '../../../../proptypes';
-import TextLink from '../../../../components/textLink';
-import recreateRoute from '../../../../utils/recreateRoute';
-import replaceRouterParams from '../../../../utils/replaceRouterParams';
-import withLatestContext from '../../../../utils/withLatestContext';
-import withProjects from '../../../../utils/withProjects';
+import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import IdBadge from 'app/components/idBadge';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
+import SentryTypes from 'app/sentryTypes';
+import TextLink from 'app/components/textLink';
+import recreateRoute from 'app/utils/recreateRoute';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
+import withLatestContext from 'app/utils/withLatestContext';
+import withProjects from 'app/utils/withProjects';
+import space from 'app/styles/space';
 
-const ProjectName = styled.div`
-  display: flex;
-
-  .loading {
-    width: 26px;
-    height: 24px;
-    margin: 0;
-  }
-`;
+const ROUTE_PATH_EXCEPTIONS = new Set([':ruleId/', ':keyId/', ':hookId/', ':pluginId/']);
 
 class ProjectCrumb extends React.Component {
   static propTypes = {
@@ -31,13 +26,27 @@ class ProjectCrumb extends React.Component {
     route: PropTypes.object,
   };
 
+  handleSelect = item => {
+    let {routes, params} = this.props;
+
+    let lastRoute = routes[routes.length - 1];
+    // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
+    // Since these models are project specific, we need to traverse up a route when switching projects
+    let stepBack = ROUTE_PATH_EXCEPTIONS.has(lastRoute.path) ? -1 : undefined;
+    browserHistory.push(
+      recreateRoute('', {
+        routes,
+        params: {...params, projectId: item.value},
+        stepBack,
+      })
+    );
+  };
+
   render() {
     let {
       organization: latestOrganization,
       project: latestProject,
       projects,
-      params,
-      routes,
       route,
       ...props
     } = this.props;
@@ -56,33 +65,29 @@ class ProjectCrumb extends React.Component {
             {!latestProject ? (
               <LoadingIndicator mini />
             ) : (
-              <div>
-                <TextLink
-                  to={replaceRouterParams(
-                    '/settings/organization/:orgId/project/:projectId/',
-                    {
-                      orgId: latestOrganization.slug,
-                      projectId: latestProject.slug,
-                    }
-                  )}
-                >
-                  {latestProject.slug}
-                </TextLink>
-              </div>
+              <TextLink
+                to={replaceRouterParams('/settings/:orgId/:projectId/', {
+                  orgId: latestOrganization.slug,
+                  projectId: latestProject.slug,
+                })}
+              >
+                <IdBadge project={latestProject} avatarSize={18} />
+              </TextLink>
             )}
           </ProjectName>
         }
-        onSelect={item => {
-          browserHistory.push(
-            recreateRoute(route, {
-              routes,
-              params: {...params, projectId: item.value},
-            })
-          );
-        }}
+        onSelect={this.handleSelect}
         items={projects.map(project => ({
           value: project.slug,
-          label: project.slug,
+          label: (
+            <MenuItem>
+              <IdBadge
+                project={project}
+                avatarProps={{consistentWidth: true}}
+                avatarSize={18}
+              />
+            </MenuItem>
+          ),
         }))}
         {...props}
       />
@@ -92,3 +97,16 @@ class ProjectCrumb extends React.Component {
 
 export {ProjectCrumb};
 export default withProjects(withLatestContext(ProjectCrumb));
+
+// Set height of crumb because of spinner
+const SPINNER_SIZE = '24px';
+
+const ProjectName = styled.div`
+  display: flex;
+
+  .loading {
+    width: ${SPINNER_SIZE};
+    height: ${SPINNER_SIZE};
+    margin: 0 ${space(0.25)} 0 0;
+  }
+`;

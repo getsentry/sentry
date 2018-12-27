@@ -28,16 +28,19 @@ describe('AccountSecurityEnroll', function() {
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: authenticator,
       });
-      wrapper = mount(<AccountSecurityEnroll />, {
-        context: {
-          router: {
-            ...TestStubs.router(),
-            params: {
-              authId: authenticator.authId,
+      wrapper = mount(
+        <AccountSecurityEnroll />,
+        TestStubs.routerContext([
+          {
+            router: {
+              ...TestStubs.router(),
+              params: {
+                authId: authenticator.authId,
+              },
             },
           },
-        },
-      });
+        ])
+      );
     });
 
     it('does not have enrolled circle indicator', function() {
@@ -66,49 +69,6 @@ describe('AccountSecurityEnroll', function() {
           }),
         })
       );
-    });
-  });
-
-  describe.skip('Recovery', function() {
-    beforeEach(function() {
-      Client.clearMockResponses();
-      Client.addMockResponse({
-        url: `${ENDPOINT}16/`,
-        body: TestStubs.Authenticators().Recovery(),
-      });
-      wrapper = mount(<AccountSecurityEnroll />, {
-        context: {
-          router: {
-            ...TestStubs.router(),
-            params: {
-              authId: 16,
-            },
-          },
-        },
-      });
-    });
-
-    it('has enrolled circle indicator', function() {
-      expect(wrapper.find('CircleIndicator').prop('enabled')).toBe(true);
-    });
-
-    it('has created and last used dates', function() {
-      expect(wrapper.find('AuthenticatorDate')).toHaveLength(2);
-    });
-
-    it('does not have remove button', function() {
-      expect(wrapper.find('RemoveConfirm')).toHaveLength(0);
-    });
-
-    it('regenerates codes', function() {
-      let deleteMock = Client.addMockResponse({
-        url: `${ENDPOINT}16/`,
-        method: 'PUT',
-      });
-
-      wrapper.find('RecoveryCodes').prop('onRegenerateBackupCodes')();
-
-      expect(deleteMock).toHaveBeenCalled();
     });
   });
 });

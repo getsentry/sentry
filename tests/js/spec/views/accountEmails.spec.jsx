@@ -1,9 +1,7 @@
 import React from 'react';
-import {shallow, mount} from 'enzyme';
+import {mount, shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import {ThemeProvider} from 'emotion-theming';
-import theme from 'app/utils/theme';
 import AccountEmails from 'app/views/settings/account/accountEmails';
 
 jest.mock('scroll-to-element', () => {});
@@ -32,18 +30,13 @@ describe('AccountEmails', function() {
       statusCode: 200,
     });
 
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <AccountEmails />
-      </ThemeProvider>,
-      TestStubs.routerContext()
-    );
+    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
     // The first Button should be delete button for first secondary email (NOT primary)
     wrapper
-      .find('RemoveButton')
+      .find('[data-test-id="remove"]')
       .at(1)
       .simulate('click');
 
@@ -65,12 +58,7 @@ describe('AccountEmails', function() {
       statusCode: 200,
     });
 
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <AccountEmails />
-      </ThemeProvider>,
-      TestStubs.routerContext()
-    );
+    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -98,12 +86,7 @@ describe('AccountEmails', function() {
       statusCode: 200,
     });
 
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <AccountEmails />
-      </ThemeProvider>,
-      TestStubs.routerContext()
-    );
+    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -126,12 +109,7 @@ describe('AccountEmails', function() {
       method: 'POST',
       statusCode: 200,
     });
-    let wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <AccountEmails />
-      </ThemeProvider>,
-      TestStubs.routerContext()
-    );
+    let wrapper = mount(<AccountEmails />, TestStubs.routerContext());
 
     expect(mock).not.toHaveBeenCalled();
 

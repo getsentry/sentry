@@ -1,20 +1,75 @@
+import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import DocumentTitle from 'react-document-title';
+import {browserHistory} from 'react-router';
 
-import ApiMixin from '../mixins/apiMixin';
-import Count from '../components/count';
-import ListLink from '../components/listLink';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import ReleaseStats from '../components/releaseStats';
-import ProjectState from '../mixins/projectState';
-import TimeSince from '../components/timeSince';
-import Version from '../components/version';
-import {t} from '../locale';
-import SentryTypes from '../proptypes';
-import withEnvironmentInQueryString from '../utils/withEnvironmentInQueryString';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
+import Count from 'app/components/count';
+import ExternalLink from 'app/components/externalLink';
+import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
+import ListLink from 'app/components/listLink';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import NavTabs from 'app/components/navTabs';
+import ProjectState from 'app/mixins/projectState';
+import ReleaseStats from 'app/components/releaseStats';
+import SentryTypes from 'app/sentryTypes';
+import TextOverflow from 'app/components/textOverflow';
+import TimeSince from 'app/components/timeSince';
+import Version from 'app/components/version';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+
+class ReleaseDetailsActions extends React.Component {
+  static propTypes = {
+    api: PropTypes.object.isRequired,
+    orgId: PropTypes.string.isRequired,
+    projectId: PropTypes.string.isRequired,
+    release: SentryTypes.Release,
+  };
+
+  handleDelete = () => {
+    let {orgId, projectId, release, api} = this.props;
+    let version = encodeURIComponent(release.version);
+    let path = `/organizations/${orgId}/releases/${version}/`;
+    let redirectPath = `/${orgId}/${projectId}/releases/`;
+    addLoadingMessage(t('Deleting Release...'));
+
+    api.request(path, {
+      method: 'DELETE',
+      success: () => {
+        browserHistory.push(redirectPath);
+      },
+      error: () => {
+        addErrorMessage(
+          t('This release is referenced by active issues and cannot be removed.')
+        );
+      },
+    });
+  };
+
+  render() {
+    return (
+      <div className="m-b-1">
+        <div className="btn-group">
+          <Confirm
+            onConfirm={this.handleDelete}
+            message={t(
+              'Deleting this release is permanent. Are you sure you wish to continue?'
+            )}
+          >
+            <Button size="small" icon="icon-trash">
+              {t('Delete')}
+            </Button>
+          </Confirm>
+        </div>
+      </div>
+    );
+  }
+}
 
 const ReleaseDetails = createReactClass({
   displayName: 'ReleaseDetails',
@@ -95,17 +150,9 @@ const ReleaseDetails = createReactClass({
     let params = this.props.params;
     let orgId = params.orgId;
     let projectId = params.projectId;
-    let version = params.version;
+    let version = encodeURIComponent(params.version);
 
-    return (
-      '/projects/' +
-      orgId +
-      '/' +
-      projectId +
-      '/releases/' +
-      encodeURIComponent(version) +
-      '/'
-    );
+    return `/projects/${orgId}/${projectId}/releases/${version}/`;
   },
 
   render() {
@@ -114,9 +161,13 @@ const ReleaseDetails = createReactClass({
 
     let release = this.state.release;
     let {orgId, projectId} = this.props.params;
+    let releasePath = `/${orgId}/${projectId}/releases/${encodeURIComponent(
+      release.version
+    )}`;
+
     return (
       <DocumentTitle title={this.getTitle()}>
-        <div>
+        <div className="ref-release-details">
           <div className="release-details">
             <div className="row">
               <div className="col-sm-4 col-xs-12">
@@ -131,6 +182,13 @@ const ReleaseDetails = createReactClass({
                     />
                   </strong>
                 </h3>
+                {!!release.url && (
+                  <div>
+                    <ExternalLink href={release.url}>
+                      <TextOverflow>{release.url}</TextOverflow>
+                    </ExternalLink>
+                  </div>
+                )}
                 <div className="release-meta">
                   <span className="icon icon-clock" />{' '}
                   <TimeSince date={release.dateCreated} />
@@ -172,11 +230,15 @@ const ReleaseDetails = createReactClass({
                 </div>
               </div>
             </div>
-            <ul className="nav nav-tabs">
+            <ReleaseDetailsActions
+              api={this.api}
+              orgId={orgId}
+              projectId={projectId}
+              release={release}
+            />
+            <NavTabs>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
-                  release.version
-                )}/`}
+                to={`${releasePath}/`}
                 isActive={loc => {
                   // react-router isActive will return true for any route that is part of the active route
                   // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
@@ -185,35 +247,11 @@ const ReleaseDetails = createReactClass({
               >
                 {t('Overview')}
               </ListLink>
-              <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
-                  release.version
-                )}/new-events/`}
-              >
-                {t('New Issues')}
-              </ListLink>
-              <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
-                  release.version
-                )}/all-events/`}
-              >
-                {t('All Issues')}
-              </ListLink>
-              <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
-                  release.version
-                )}/artifacts/`}
-              >
-                {t('Artifacts')}
-              </ListLink>
-              <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(
-                  release.version
-                )}/commits/`}
-              >
-                {t('Commits')}
-              </ListLink>
-            </ul>
+              <ListLink to={`${releasePath}/new-events/`}>{t('New Issues')}</ListLink>
+              <ListLink to={`${releasePath}/all-events/`}>{t('All Issues')}</ListLink>
+              <ListLink to={`${releasePath}/artifacts/`}>{t('Artifacts')}</ListLink>
+              <ListLink to={`${releasePath}/commits/`}>{t('Commits')}</ListLink>
+            </NavTabs>
           </div>
           {React.cloneElement(this.props.children, {
             release,

@@ -6,6 +6,7 @@ import _ from 'lodash';
 import {Client} from 'app/api';
 import CursorPoller from 'app/utils/cursorPoller';
 import LoadingError from 'app/components/loadingError';
+import ErrorRobot from 'app/components/errorRobot';
 import Stream from 'app/views/stream/stream';
 import EnvironmentStore from 'app/stores/environmentStore';
 import {setActiveEnvironment} from 'app/actionCreators/environments';
@@ -29,6 +30,8 @@ describe('Stream', function() {
   let project;
   let savedSearch;
 
+  let groupListRequest;
+
   beforeEach(function() {
     sandbox = sinon.sandbox.create();
 
@@ -47,7 +50,7 @@ describe('Stream', function() {
     });
     savedSearch = {id: '789', query: 'is:unresolved', name: 'test'};
 
-    MockApiClient.addMockResponse({
+    groupListRequest = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/issues/',
       body: [TestStubs.Group()],
       headers: {
@@ -87,13 +90,11 @@ describe('Stream', function() {
   });
 
   describe('fetchData()', function() {
-    beforeEach(function() {
-      wrapper = shallow(<Stream {...props} />, {
-        context,
-      });
-    });
     describe('complete handler', function() {
       beforeEach(function() {
+        wrapper = shallow(<Stream {...props} />, {
+          context,
+        });
         sandbox.stub(CursorPoller.prototype, 'setEndpoint');
       });
 
@@ -149,6 +150,23 @@ describe('Stream', function() {
         expect(CursorPoller.prototype.setEndpoint.notCalled).toBeTruthy();
       });
     }); // complete handler
+
+    it('calls fetchData once on mount for a saved search', function() {
+      props.location = {query: {}};
+      props.params.searchId = '1';
+      wrapper = shallow(<Stream {...props} />, {
+        context,
+      });
+
+      expect(groupListRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls fetchData once on mount if there is a query', function() {
+      wrapper = shallow(<Stream {...props} />, {
+        context,
+      });
+      expect(groupListRequest).toHaveBeenCalledTimes(1);
+    });
 
     it('should cancel any previous, unfinished fetches', function() {
       let requestCancel = sandbox.stub();
@@ -288,7 +306,7 @@ describe('Stream', function() {
         dataLoading: false,
       });
       expect(wrapper).toMatchSnapshot();
-      expect(wrapper.find('.group-list').length).toBeTruthy();
+      expect(wrapper.find('.ref-group-list').length).toBeTruthy();
     });
 
     it('displays empty with no ids', function() {
@@ -311,7 +329,7 @@ describe('Stream', function() {
         dataLoading: false,
       });
 
-      expect(wrapper.find('.awaiting-events').length).toEqual(1);
+      expect(wrapper.find(ErrorRobot)).toHaveLength(1);
 
       context.project.firstEvent = true; // Reset for other tests
     });

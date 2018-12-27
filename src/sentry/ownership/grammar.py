@@ -179,7 +179,12 @@ class OwnershipVisitor(NodeVisitor):
 
     def visit_owner(self, node, children):
         _, is_team, pattern = children
-        return Owner('team' if is_team else 'user', pattern)
+        type = 'team' if is_team else 'user'
+        # User emails are case insensitive, so coerce them
+        # to lowercase, so they can be de-duped, etc.
+        if type == 'user':
+            pattern = pattern.lower()
+        return Owner(type, pattern)
 
     def visit_team_prefix(self, node, children):
         return bool(children)

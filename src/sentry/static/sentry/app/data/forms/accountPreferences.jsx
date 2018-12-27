@@ -1,5 +1,5 @@
-import timezones from '../timezones';
-import languages from '../languages';
+import timezones from 'app/data/timezones';
+import languages from 'app/data/languages';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/details/';

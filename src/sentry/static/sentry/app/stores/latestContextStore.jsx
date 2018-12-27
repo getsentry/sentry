@@ -1,8 +1,9 @@
 import Reflux from 'reflux';
 
-import ProjectActions from '../actions/projectActions';
-import OrganizationsActions from '../actions/organizationsActions';
-import EnvironmentActions from '../actions/environmentActions';
+import ProjectActions from 'app/actions/projectActions';
+import OrganizationsActions from 'app/actions/organizationsActions';
+import EnvironmentActions from 'app/actions/environmentActions';
+import NavigationActions from 'app/actions/navigationActions';
 
 // Keeps track of last usable project/org
 // this currently won't track when users navigate out of a org/project completely,
@@ -23,15 +24,27 @@ const LatestContextStore = Reflux.createStore({
     this.listenTo(OrganizationsActions.update, this.onUpdateOrganization);
     this.listenTo(EnvironmentActions.setActive, this.onSetActiveEnvironment);
     this.listenTo(EnvironmentActions.clearActive, this.onClearActiveEnvironment);
+    this.listenTo(NavigationActions.setLastRoute, this.onSetLastRoute);
   },
 
   reset() {
     this.state = {
       project: null,
+      lastProject: null,
       organization: null,
       environment: null,
+      lastRoute: null,
     };
     return this.state;
+  },
+
+  onSetLastRoute(route) {
+    this.state = {
+      ...this.state,
+      lastRoute: route,
+    };
+
+    this.trigger(this.state);
   },
 
   onUpdateOrganization(org) {
@@ -71,12 +84,14 @@ const LatestContextStore = Reflux.createStore({
     if (!project) {
       this.state = {
         ...this.state,
+        lastProject: this.state.project,
         project: null,
       };
     } else if (!this.state.project || this.state.project.slug !== project.slug) {
       // Update only if different
       this.state = {
         ...this.state,
+        lastProject: this.state.project,
         project,
       };
     }

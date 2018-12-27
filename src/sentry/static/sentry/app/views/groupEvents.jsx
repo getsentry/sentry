@@ -1,20 +1,23 @@
+import {browserHistory} from 'react-router';
 import React from 'react';
 import createReactClass from 'create-react-class';
-import {browserHistory} from 'react-router';
 
-import SentryTypes from '../proptypes';
-import ApiMixin from '../mixins/apiMixin';
-import GroupState from '../mixins/groupState';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import Pagination from '../components/pagination';
-import SearchBar from '../components/searchBar';
-import EventsTable from '../components/eventsTable/eventsTable';
-import {t, tct} from '../locale';
-import withEnvironment from '../utils/withEnvironment';
-import {getQueryEnvironment, getQueryStringWithEnvironment} from '../utils/queryString';
-import EnvironmentStore from '../stores/environmentStore';
-import {setActiveEnvironment} from '../actionCreators/environments';
+import {Panel, PanelBody} from 'app/components/panels';
+import {getQueryEnvironment, getQueryStringWithEnvironment} from 'app/utils/queryString';
+import {setActiveEnvironment} from 'app/actionCreators/environments';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import EnvironmentStore from 'app/stores/environmentStore';
+import EventsTable from 'app/components/eventsTable/eventsTable';
+import GroupState from 'app/mixins/groupState';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import SearchBar from 'app/components/searchBar';
+import SentryTypes from 'app/sentryTypes';
+import parseApiError from 'app/utils/parseApiError';
+import withEnvironment from 'app/utils/withEnvironment';
 
 const GroupEvents = createReactClass({
   displayName: 'GroupEvents',
@@ -120,10 +123,8 @@ const GroupEvents = createReactClass({
         });
       },
       error: err => {
-        let error = err.responseJSON || true;
-        error = error.detail || true;
         this.setState({
-          error,
+          error: parseApiError(err),
           loading: false,
         });
       },
@@ -139,10 +140,9 @@ const GroupEvents = createReactClass({
       : t('Sorry, no events match your search query.');
 
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{message}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 
@@ -154,10 +154,9 @@ const GroupEvents = createReactClass({
         })
       : t("There don't seem to be any events yet.");
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t(message)}</p>
-      </div>
+      </EmptyStateWarning>
     );
   },
 
@@ -166,16 +165,11 @@ const GroupEvents = createReactClass({
     let tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
-      <div>
-        <div className="event-list">
-          <EventsTable
-            tagList={tagList}
-            events={this.state.eventList}
-            params={this.props.params}
-          />
-        </div>
-        <Pagination pageLinks={this.state.pageLinks} />
-      </div>
+      <EventsTable
+        tagList={tagList}
+        events={this.state.eventList}
+        params={this.props.params}
+      />
     );
   },
 
@@ -204,7 +198,10 @@ const GroupEvents = createReactClass({
             onSearch={this.handleSearch}
           />
         </div>
-        {this.renderBody()}
+        <Panel className="event-list">
+          <PanelBody>{this.renderBody()}</PanelBody>
+        </Panel>
+        <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
   },

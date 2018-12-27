@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import TimeSince from '../../components/timeSince';
-import ConfigStore from '../../stores/configStore';
-import LinkWithConfirmation from '../../components/linkWithConfirmation';
-import {t} from '../../locale';
-import marked from '../../utils/marked';
+import TimeSince from 'app/components/timeSince';
+import ConfigStore from 'app/stores/configStore';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import {t} from 'app/locale';
+import marked from 'app/utils/marked';
 
 class Note extends React.Component {
   static propTypes = {

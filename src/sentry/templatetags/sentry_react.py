@@ -11,6 +11,7 @@ from pkg_resources import parse_version
 
 from sentry import features, options
 from sentry.api.serializers.base import serialize
+from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.models import ProjectKey
 from sentry.utils import auth, json
 from sentry.utils.email import is_smtp_enabled
@@ -94,6 +95,7 @@ def get_react_config(context):
 
     if user:
         user = extract_lazy_object(user)
+        is_superuser = user.is_superuser
 
     enabled_features = []
     if features.has('organizations:create', actor=user):
@@ -133,7 +135,7 @@ def get_react_config(context):
     if user and user.is_authenticated():
         context.update({
             'isAuthenticated': True,
-            'user': serialize(user, user),
+            'user': serialize(user, user, DetailedUserSerializer()),
         })
         context['user']['isSuperuser'] = is_superuser
     else:

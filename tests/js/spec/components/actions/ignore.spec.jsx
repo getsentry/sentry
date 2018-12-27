@@ -4,12 +4,13 @@ import $ from 'jquery';
 import IgnoreActions from 'app/components/actions/ignore';
 
 describe('IgnoreActions', function() {
+  let routerContext = TestStubs.routerContext();
   describe('disabled', function() {
     let component, button;
     let spy = sinon.stub();
 
     beforeEach(function() {
-      component = mount(<IgnoreActions onUpdate={spy} disabled={true} />);
+      component = mount(<IgnoreActions onUpdate={spy} disabled={true} />, routerContext);
       button = component.find('a.btn.btn-default').first();
     });
 
@@ -27,18 +28,18 @@ describe('IgnoreActions', function() {
     let component;
     let spy = sinon.spy();
     beforeEach(function() {
-      component = mount(<IgnoreActions onUpdate={spy} isIgnored={true} />);
+      component = mount(<IgnoreActions onUpdate={spy} isIgnored={true} />, routerContext);
     });
 
     it('displays ignored view', function() {
       let button = component.find('a.btn.active');
-      expect(button.length).toBe(1);
+      expect(button).toHaveLength(1);
       expect(button.text()).toBe('');
     });
 
     it('calls onUpdate with unresolved status when clicked', function() {
       component.find('a.btn.active').simulate('click');
-      expect(spy.calledWith({status: 'unresolved'}));
+      expect(spy.calledWith({status: 'unresolved'})).toBeTruthy();
     });
   });
 
@@ -47,7 +48,7 @@ describe('IgnoreActions', function() {
     let spy = sinon.stub();
 
     beforeEach(function() {
-      component = mount(<IgnoreActions onUpdate={spy} />);
+      component = mount(<IgnoreActions onUpdate={spy} />, routerContext);
     });
 
     it('renders', function() {
@@ -68,7 +69,8 @@ describe('IgnoreActions', function() {
 
     beforeEach(function() {
       component = mount(
-        <IgnoreActions onUpdate={spy} shouldConfirm={true} confirmMessage={'Yoooooo'} />
+        <IgnoreActions onUpdate={spy} shouldConfirm={true} confirmMessage={'Yoooooo'} />,
+        routerContext
       );
       button = component.find('a.btn.btn-default').first();
     });

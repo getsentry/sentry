@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import classNames from 'classnames';
 
-import Confirm from '../confirm';
+import Confirm from 'app/components/confirm';
 
 export default class ActionLink extends React.Component {
   static propTypes = {

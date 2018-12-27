@@ -2,11 +2,11 @@ import React from 'react';
 
 import createReactClass from 'create-react-class';
 
-import Count from '../../components/count';
-import EventOrGroupExtraDetails from '../../components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from '../../components/eventOrGroupHeader';
-import ProjectState from '../../mixins/projectState';
-import SentryTypes from '../../proptypes';
+import Count from 'app/components/count';
+import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
+import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import ProjectState from 'app/mixins/projectState';
+import SentryTypes from 'app/sentryTypes';
 
 const EventNode = createReactClass({
   displayName: 'EventNode',
@@ -33,8 +33,8 @@ const EventNode = createReactClass({
             orgId={orgId}
             projectId={projectId}
             data={group}
-            hideLevel
             hideIcons
+            hideLevel
           />
           <EventOrGroupExtraDetails
             orgId={orgId}

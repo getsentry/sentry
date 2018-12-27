@@ -77,10 +77,10 @@ class Release(Model):
     owner = FlexibleForeignKey('sentry.User', null=True, blank=True)
 
     # materialized stats
-    commit_count = BoundedPositiveIntegerField(null=True)
+    commit_count = BoundedPositiveIntegerField(null=True, default=0)
     last_commit_id = BoundedPositiveIntegerField(null=True)
     authors = ArrayField(null=True)
-    total_deploys = BoundedPositiveIntegerField(null=True)
+    total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
 
     class Meta:
@@ -88,7 +88,7 @@ class Release(Model):
         db_table = 'sentry_release'
         unique_together = (('organization', 'version'), )
 
-    __repr__ = sane_repr('organization', 'version')
+    __repr__ = sane_repr('organization_id', 'version')
 
     @staticmethod
     def is_valid_version(value):
@@ -101,7 +101,7 @@ class Release(Model):
 
     @classmethod
     def get_lock_key(cls, organization_id, release_id):
-        return 'releasecommits:{}:{}'.format(organization_id, release_id)
+        return u'releasecommits:{}:{}'.format(organization_id, release_id)
 
     @classmethod
     def get(cls, project, version):
@@ -325,22 +325,24 @@ class Release(Model):
         """
         Bind a list of commits to this release.
 
-        These should be ordered from newest to oldest.
-
         This will clear any existing commit log and replace it with the given
         commits.
         """
+
+        # Sort commit list in reverse order
+        commit_list.sort(key=lambda commit: commit.get('timestamp'), reverse=True)
+
+        # TODO(dcramer): this function could use some cleanup/refactoring as its a bit unwieldly
         from sentry.models import (
             Commit, CommitAuthor, Group, GroupLink, GroupResolution, GroupStatus,
-            ReleaseCommit, Repository, PullRequest
+            ReleaseCommit, ReleaseHeadCommit, Repository, PullRequest
         )
         from sentry.plugins.providers.repository import RepositoryProvider
-
+        # todo(meredith): implement for IntegrationRepositoryProvider
         commit_list = [
             c for c in commit_list
             if not RepositoryProvider.should_ignore_commit(c.get('message', ''))
         ]
-
         lock_key = type(self).get_lock_key(self.organization_id, self.id)
         lock = locks.get(lock_key, duration=10)
         with TimedRetryPolicy(10)(lock.acquire):
@@ -354,10 +356,11 @@ class Release(Model):
                 authors = {}
                 repos = {}
                 commit_author_by_commit = {}
+                head_commit_by_repo = {}
                 latest_commit = None
                 for idx, data in enumerate(commit_list):
                     repo_name = data.get('repository'
-                                         ) or 'organization-{}'.format(self.organization_id)
+                                         ) or u'organization-{}'.format(self.organization_id)
                     if repo_name not in repos:
                         repos[repo_name] = repo = Repository.objects.get_or_create(
                             organization_id=self.organization_id,
@@ -420,6 +423,8 @@ class Release(Model):
                             update_kwargs['message'] = defaults['message']
                         if commit.author_id is None and defaults['author'] is not None:
                             update_kwargs['author'] = defaults['author']
+                        if defaults.get('date_added') is not None:
+                            update_kwargs['date_added'] = defaults['date_added']
                         if update_kwargs:
                             commit.update(**update_kwargs)
 
@@ -432,6 +437,8 @@ class Release(Model):
                     if latest_commit is None:
                         latest_commit = commit
 
+                    head_commit_by_repo.setdefault(repo.id, commit.id)
+
                 self.update(
                     commit_count=len(commit_list),
                     authors=[
@@ -443,6 +450,19 @@ class Release(Model):
                     ],
                     last_commit_id=latest_commit.id if latest_commit else None,
                 )
+
+        # fill any missing ReleaseHeadCommit entries
+        for repo_id, commit_id in six.iteritems(head_commit_by_repo):
+            try:
+                with transaction.atomic():
+                    ReleaseHeadCommit.objects.create(
+                        organization_id=self.organization_id,
+                        release_id=self.id,
+                        repository_id=repo_id,
+                        commit_id=commit_id,
+                    )
+            except IntegrityError:
+                pass
 
         release_commits = list(ReleaseCommit.objects.filter(release=self)
                                .select_related('commit').values('commit_id', 'commit__key'))
@@ -460,6 +480,7 @@ class Release(Model):
 
         pr_ids_by_merge_commit = list(PullRequest.objects.filter(
             merge_commit_sha__in=[rc['commit__key'] for rc in release_commits],
+            organization_id=self.organization_id,
         ).values_list('id', flat=True))
 
         pull_request_resolutions = list(

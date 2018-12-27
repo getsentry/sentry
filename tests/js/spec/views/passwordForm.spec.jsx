@@ -9,6 +9,16 @@ const ENDPOINT = '/users/me/password/';
 describe('PasswordForm', function() {
   let wrapper;
   let putMock;
+  let routerContext = TestStubs.routerContext([
+    {
+      router: {
+        ...TestStubs.router(),
+        params: {
+          authId: 15,
+        },
+      },
+    },
+  ]);
 
   beforeEach(function() {
     Client.clearMockResponses();
@@ -16,16 +26,7 @@ describe('PasswordForm', function() {
       url: ENDPOINT,
       method: 'PUT',
     });
-    wrapper = mount(<PasswordForm />, {
-      context: {
-        router: {
-          ...TestStubs.router(),
-          params: {
-            authId: 15,
-          },
-        },
-      },
-    });
+    wrapper = mount(<PasswordForm />, routerContext);
   });
 
   it('has 3 text inputs', function() {
@@ -88,5 +89,28 @@ describe('PasswordForm', function() {
       expect(wrapper.find('input[name="password"]').prop('value')).toBe('');
       done();
     }, 1);
+  });
+
+  it('validates mismatched passwords and remvoes validation on match', function() {
+    wrapper.find('input[name="password"]').simulate('change', {target: {value: 'test'}});
+    wrapper
+      .find('input[name="passwordNew"]')
+      .simulate('change', {target: {value: 'nottest'}});
+    wrapper
+      .find('input[name="passwordVerify"]')
+      .simulate('change', {target: {value: 'nottest-mismatch'}});
+
+    const error = wrapper.find('Field[id="passwordVerify"] FormFieldErrorReason');
+
+    expect(error.exists()).toBe(true);
+    expect(error.text()).toBe('Passwords do not match');
+
+    wrapper
+      .find('input[name="passwordVerify"]')
+      .simulate('change', {target: {value: 'nottest'}});
+
+    expect(wrapper.find('Field[id="passwordVerify"] FormFieldErrorReason').exists()).toBe(
+      false
+    );
   });
 });

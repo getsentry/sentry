@@ -10,7 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectSummarySerializer
-from sentry.models import Project, Team
+from sentry.models import Project, ProjectStatus, Team
 from sentry.search.utils import tokenize_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -59,7 +59,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, 'project'):
                 team_list = list(request.auth.project.teams.all())
-                queryset = queryset = Project.objects.filter(
+                queryset = Project.objects.filter(
                     id=request.auth.project.id,
                 ).prefetch_related('teams')
             elif request.auth.organization is not None:
@@ -78,9 +78,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     }, status=400
                 )
         else:
-            team_list = list(request.access.teams)
             queryset = Project.objects.filter(
-                teams__in=team_list,
+                organization=organization,
             ).prefetch_related('teams')
 
         query = request.GET.get('query')
@@ -90,9 +89,12 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 if key == 'query':
                     value = ' '.join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
+                elif key == 'id':
+                    queryset = queryset.filter(id__in=value)
                 else:
                     queryset = queryset.none()
-        queryset = queryset.distinct()
+
+        queryset = queryset.filter(status=ProjectStatus.VISIBLE).distinct()
 
         return self.paginate(
             request=request,

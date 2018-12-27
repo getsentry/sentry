@@ -58,8 +58,8 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
 
     def post(self, request, organization, version):
         """
-        Upload a New File
-        `````````````````
+        Upload a New Organization Release File
+        ``````````````````````````````````````
 
         Upload a new file for the given release.
 
@@ -100,7 +100,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
         fileobj = request.FILES['file']
 
         full_name = request.DATA.get('name', fileobj.name)
-        if not full_name:
+        if not full_name or full_name == 'file':
             return Response({'detail': 'File name must be specified'}, status=400)
 
         name = full_name.rsplit('/', 1)[-1]

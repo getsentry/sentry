@@ -1,4 +1,4 @@
-import {Box} from 'grid-emotion';
+import {Box, Flex} from 'grid-emotion';
 import {Link} from 'react-router';
 import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
@@ -11,25 +11,23 @@ import {
   addLoadingMessage,
   addSuccessMessage,
   removeIndicator,
-} from '../../../../actionCreators/indicator';
-import {getOrganizationState} from '../../../../mixins/organizationState';
-import {t, tct} from '../../../../locale';
-import ApiMixin from '../../../../mixins/apiMixin';
-import AsyncView from '../../../asyncView';
-import Button from '../../../../components/buttons/button';
-import ClippedBox from '../../../../components/clippedBox';
-import Confirm from '../../../../components/confirm';
-import EmptyMessage from '../../components/emptyMessage';
-import ExternalLink from '../../../../components/externalLink';
-import Pagination from '../../../../components/pagination';
-import Panel from '../../components/panel';
-import PanelBody from '../../components/panelBody';
-import PanelHeader from '../../components/panelHeader';
-import ProjectKeyCredentials from './projectKeyCredentials';
-import SentryTypes from '../../../../proptypes';
-import SettingsPageHeader from '../../components/settingsPageHeader';
-import TextBlock from '../../components/text/textBlock';
-import recreateRoute from '../../../../utils/recreateRoute';
+} from 'app/actionCreators/indicator';
+import {getOrganizationState} from 'app/mixins/organizationState';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import AsyncView from 'app/views/asyncView';
+import Button from 'app/components/button';
+import ClippedBox from 'app/components/clippedBox';
+import Confirm from 'app/components/confirm';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import ExternalLink from 'app/components/externalLink';
+import Pagination from 'app/components/pagination';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import ProjectKeyCredentials from 'app/views/settings/project/projectKeys/projectKeyCredentials';
+import SentryTypes from 'app/sentryTypes';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import recreateRoute from 'app/utils/recreateRoute';
 
 const KeyRow = createReactClass({
   displayName: 'KeyRow',
@@ -39,7 +37,6 @@ const KeyRow = createReactClass({
     projectId: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
     access: PropTypes.object.isRequired,
-    features: PropTypes.object.isRequired,
     onToggle: PropTypes.func.isRequired,
     onRemove: PropTypes.func.isRequired,
   },
@@ -116,7 +113,7 @@ const KeyRow = createReactClass({
   },
 
   render() {
-    let {access, features, data} = this.props;
+    let {access, data} = this.props;
     let editUrl = recreateRoute(`${data.id}/`, this.props);
     let controls = [
       <Button key="edit" to={editUrl} size="small">
@@ -146,16 +143,14 @@ const KeyRow = createReactClass({
             'Are you sure you want to remove this key? This action is irreversible.'
           )}
         >
-          <Button size="small" disabled={this.state.loading}>
-            <span className="icon icon-trash" />
-          </Button>
+          <Button size="small" disabled={this.state.loading} icon="icon-trash" />
         </Confirm>
       );
     }
 
     return (
       <ClientKeyItemPanel disabled={!data.isActive}>
-        <PanelHeader isFlex hasButtons align="center">
+        <PanelHeader hasButtons>
           <Box flex="1">
             <PanelHeaderLink to={editUrl}>{data.label}</PanelHeaderLink>
             {!data.isActive && (
@@ -165,21 +160,19 @@ const KeyRow = createReactClass({
               </small>
             )}
           </Box>
-          <div>{controls.map((c, n) => <span key={n}> {c}</span>)}</div>
+          <Flex align="center">
+            {controls.map((c, n) => <KeyControl key={n}> {c}</KeyControl>)}
+          </Flex>
         </PanelHeader>
 
         <ClippedBox
-          clipHeight={150}
+          clipHeight={300}
           defaultClipped={true}
           btnClassName="btn btn-default btn-sm"
           btnText={t('Expand')}
         >
           <PanelBody>
-            <ProjectKeyCredentials
-              projectId={`${data.projectId}`}
-              data={data}
-              features={features}
-            />
+            <ProjectKeyCredentials projectId={`${data.projectId}`} data={data} />
           </PanelBody>
         </ClippedBox>
       </ClientKeyItemPanel>
@@ -262,7 +255,6 @@ export default class ProjectKeys extends AsyncView {
     let {routes, params} = this.props;
     let {orgId, projectId} = params;
     let access = getOrganizationState(this.context.organization).getAccess();
-    let features = new Set(this.context.project.features);
 
     return (
       <div>
@@ -270,7 +262,6 @@ export default class ProjectKeys extends AsyncView {
           {this.state.keyList.map(key => {
             return (
               <KeyRow
-                features={features}
                 api={this.api}
                 routes={routes}
                 params={params}
@@ -347,4 +338,8 @@ const ClientKeyItemPanel = styled(({disabled, ...props}) => <Panel {...props} />
 
 const PanelHeaderLink = styled(Link)`
   color: ${p => p.theme.gray3};
+`;
+
+const KeyControl = styled.span`
+  margin-left: 6px;
 `;

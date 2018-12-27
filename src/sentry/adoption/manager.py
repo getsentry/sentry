@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from collections import defaultdict, namedtuple
 
-FEATURE_LOCATION = {'language', 'integration', 'code', 'web', 'admin'}
+FEATURE_LOCATION = {'language', 'integration', 'code', 'web', 'admin', 'api'}
 
 Feature = namedtuple('Feature', ['id', 'slug', 'name', 'location', 'prerequisite'])
 

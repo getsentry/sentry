@@ -1,10 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import u2f from 'u2f-api';
-import Raven from 'raven-js';
-import ConfigStore from '../stores/configStore';
-
-import {t, tct} from '../locale';
+import ConfigStore from 'app/stores/configStore';
+import sdk from 'app/utils/sdk';
+import {t, tct} from 'app/locale';
 
 class U2fInterface extends React.Component {
   static propTypes = {
@@ -111,7 +110,7 @@ class U2fInterface extends React.Component {
         // we want to know what is happening here.  There are some indicators
         // that users are getting errors that should not happen through the
         // regular u2f flow.
-        Raven.captureException(err);
+        sdk.captureException(err);
         this.setState({
           deviceFailure: failure,
           hasBeenTapped: false,

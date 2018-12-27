@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+from datetime import datetime, timedelta
+from functools import partial
 import six
 import mock
 import pytest
@@ -125,6 +127,40 @@ class ProjectIdFromAuthTest(BaseAPITest):
 
 
 class ValidateDataTest(BaseAPITest):
+    def test_timestamp(self):
+        from sentry.event_manager import process_timestamp
+        patched = partial(process_timestamp, current_datetime=datetime(2018, 4, 10, 14, 33, 18))
+        with mock.patch('sentry.event_manager.process_timestamp', patched):
+            data = self.validate_and_normalize({
+                'timestamp': '2018-04-10T14:33:18Z',
+            })
+            assert len(data['errors']) == 0
+
+        data = self.validate_and_normalize({
+            'timestamp': 'not-a-timestamp',
+        })
+        assert len(data['errors']) == 1
+
+        now = datetime.utcnow()
+        data = self.validate_and_normalize({
+            'timestamp': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        assert len(data['errors']) == 0
+
+        future = now + timedelta(minutes=2)
+        data = self.validate_and_normalize({
+            'timestamp': future.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'future_timestamp'
+
+        past = now - timedelta(days=31)
+        data = self.validate_and_normalize({
+            'timestamp': past.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        })
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'past_timestamp'
+
     @mock.patch('uuid.uuid4', return_value=UUID('031667ea1758441f92c7995a428d2d14'))
     def test_empty_event_id(self, uuid4):
         data = self.validate_and_normalize({
@@ -453,9 +489,21 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'fingerprint'
 
         data = self.validate_and_normalize({
-            'fingerprint': ['{{default}}', 1, 'bar', 4.5],
+            'fingerprint': ['{{default}}', 1, 'bar', 4.5, -2.7, True],
         })
-        assert data.get('fingerprint') == ['{{default}}', '1', 'bar', '4.5']
+        assert data.get('fingerprint') == ['{{default}}', '1', 'bar', '4', '-2', 'True']
+        assert len(data['errors']) == 0
+
+        data = self.validate_and_normalize({
+            'fingerprint': ['{{default}}', 1e100, -1e100, 1e10],
+        })
+        assert data.get('fingerprint') == ['{{default}}', '10000000000']
+        assert len(data['errors']) == 0
+
+        data = self.validate_and_normalize({
+            'fingerprint': [],
+        })
+        assert data.get('fingerprint') == []
         assert len(data['errors']) == 0
 
     def test_messages(self):
@@ -547,7 +595,7 @@ class DecodeDataTest(BaseAPITest):
     def test_valid_data(self):
         data = self.helper.decode_data('foo')
         assert data == u'foo'
-        assert type(data) == six.text_type
+        assert isinstance(data, six.text_type)
 
     def test_invalid_data(self):
         with self.assertRaises(APIError):
@@ -577,8 +625,7 @@ class EnsureHasIpTest(BaseAPITest):
                 },
             },
         }
-        out = inp.copy()
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.Http']['env']['REMOTE_ADDR'] == '192.168.0.1'
 
     def test_with_user_ip(self):
@@ -587,29 +634,28 @@ class EnsureHasIpTest(BaseAPITest):
                 'ip_address': '192.168.0.1',
             },
         }
-        out = inp.copy()
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.User']['ip_address'] == '192.168.0.1'
 
     def test_with_user_auto_ip(self):
-        out = {
+        inp = {
             'sentry.interfaces.User': {
                 'ip_address': '{{auto}}',
             },
         }
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
-        out = {
+        inp = {
             'user': {
                 'ip_address': '{{auto}}',
             },
         }
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
     def test_without_ip_values(self):
-        out = {
+        inp = {
             'platform': 'javascript',
             'sentry.interfaces.User': {},
             'sentry.interfaces.Http': {
@@ -617,18 +663,18 @@ class EnsureHasIpTest(BaseAPITest):
                 'env': {},
             },
         }
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
     def test_without_any_values(self):
-        out = {
+        inp = {
             'platform': 'javascript',
         }
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
     def test_with_http_auto_ip(self):
-        out = {
+        inp = {
             'sentry.interfaces.Http': {
                 'url': 'http://example.com/',
                 'env': {
@@ -636,11 +682,11 @@ class EnsureHasIpTest(BaseAPITest):
                 },
             },
         }
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.Http']['env']['REMOTE_ADDR'] == '127.0.0.1'
 
     def test_with_all_auto_ip(self):
-        out = {
+        inp = {
             'sentry.interfaces.User': {
                 'ip_address': '{{auto}}',
             },
@@ -651,7 +697,7 @@ class EnsureHasIpTest(BaseAPITest):
                 },
             },
         }
-        self.validate_and_normalize(out, {'client_ip': '127.0.0.1'})
+        out = self.validate_and_normalize(inp, {'client_ip': '127.0.0.1'})
         assert out['sentry.interfaces.Http']['env']['REMOTE_ADDR'] == '127.0.0.1'
         assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
 
@@ -750,3 +796,45 @@ class SecurityApiHelperTest(BaseAPITest):
             ('blocked-uri', 'http://google.com'),
         ]
         assert len(result['errors']) == 0
+
+    def test_hpkp_validate_basic(self):
+        report = {
+            "release": "abc123",
+            "interface": 'hpkp',
+            "report": {
+                "date-time": "2014-04-06T13:00:50Z",
+                "hostname": "www.example.com",
+                "port": 443,
+                "effective-expiration-date": "2014-05-01T12:40:50Z",
+                "include-subdomains": False,
+                "served-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+                "validated-certificate-chain": ["-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----"],
+                "known-pins": ["pin-sha256=\"E9CZ9INDbd+2eRQozYqqbQ2yXLVKB9+xcprMF+44U1g=\""],
+            }
+        }
+        result = self.validate_and_normalize(report)
+        assert result['release'] == 'abc123'
+        assert result['errors'] == []
+        assert 'sentry.interfaces.Message' in result
+        assert 'culprit' in result
+        assert sorted(result['tags']) == [
+            ('hostname', 'www.example.com'),
+            ('include-subdomains', 'false'),
+            ('port', '443'),
+        ]
+        assert result['sentry.interfaces.User'] == {'ip_address': '198.51.100.0'}
+        assert result['sentry.interfaces.Http'] == {
+            'url': 'www.example.com',
+            'headers': [
+                ('User-Agent', 'Awesome Browser'),
+            ]
+        }
+
+    def test_hpkp_validate_failure(self):
+        report = {
+            "release": "abc123",
+            "interface": 'hpkp',
+            "report": {}
+        }
+        with self.assertRaises(APIError):
+            self.validate_and_normalize(report)

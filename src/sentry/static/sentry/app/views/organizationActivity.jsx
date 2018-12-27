@@ -1,10 +1,10 @@
 import React from 'react';
 
-import AsyncView from '../views/asyncView';
-import ActivityFeed from '../components/activity/feed';
-import OrganizationHomeContainer from '../components/organizations/homeContainer';
+import AsyncView from 'app/views/asyncView';
+import ActivityFeed from 'app/components/activity/feed';
+import OrganizationHomeContainer from 'app/components/organizations/homeContainer';
 
-import {t} from '../locale';
+import {t} from 'app/locale';
 
 export default class OrganizationActivity extends AsyncView {
   getEndpoint() {

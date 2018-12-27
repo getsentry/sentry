@@ -6,7 +6,7 @@ from mock import patch
 from sentry import tagstore
 from sentry.tagstore.models import GroupTagValue
 from sentry.tasks.merge import merge_group, rehash_group_events
-from sentry.models import Event, Group, GroupMeta, GroupRedirect, UserReport
+from sentry.models import Event, Group, GroupEnvironment, GroupMeta, GroupRedirect, UserReport
 from sentry.similarity import _make_index_backend
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -17,6 +17,36 @@ index = _make_index_backend(redis.clusters.get('default').get_local_client(0))
 
 @patch('sentry.similarity.features.index', new=index)
 class MergeGroupTest(TestCase):
+    def test_merge_group_environments(self):
+        group1 = self.create_group(self.project)
+
+        GroupEnvironment.objects.create(
+            group_id=group1.id,
+            environment_id=1,
+        )
+
+        group2 = self.create_group(self.project)
+
+        GroupEnvironment.objects.create(
+            group_id=group2.id,
+            environment_id=1,
+        )
+
+        GroupEnvironment.objects.create(
+            group_id=group2.id,
+            environment_id=2,
+        )
+
+        with self.tasks():
+            merge_group(group1.id, group2.id)
+
+        assert list(GroupEnvironment.objects.filter(
+            group_id=group2.id,
+        ).order_by('environment_id').values_list(
+            'environment_id',
+            flat=True,
+        )) == [1, 2]
+
     def test_merge_with_event_integrity(self):
         project1 = self.create_project()
         group1 = self.create_group(project1)

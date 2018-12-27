@@ -16,7 +16,7 @@ class ProviderManager(object):
 
     def add(self, item, id):
         if self.type and not issubclass(item, self.type):
-            raise ValueError('Invalid type for provider: {}'.format(
+            raise ValueError(u'Invalid type for provider: {}'.format(
                 type(item),
             ))
 
@@ -33,9 +33,14 @@ class RepositoryProviderManager(ProviderManager):
     type = providers.RepositoryProvider
 
 
+class IntegrationRepositoryProviderManager(ProviderManager):
+    type = providers.IntegrationRepositoryProvider
+
+
 class BindingManager(object):
     BINDINGS = {
         'repository.provider': RepositoryProviderManager,
+        'integration-repository.provider': IntegrationRepositoryProviderManager
     }
 
     def __init__(self):

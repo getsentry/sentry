@@ -2,12 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import styled from 'react-emotion';
 
-const getBackgroundColor = p => `
-  background: ${p.enabled ? p.theme.success : p.theme.error};
-`;
+const getBackgroundColor = p => {
+  if (p.color) return `background: ${p.color};`;
+
+  return `background: ${p.enabled ? p.theme.success : p.theme.error};`;
+};
 
 const getSize = p => `
-  border-radius: ${p.size}px;
   height: ${p.size}px;
   width: ${p.size}px;
 `;
@@ -15,13 +16,16 @@ const getSize = p => `
 const Circle = styled.div`
   display: inline-block;
   position: relative;
-  ${getSize} ${getBackgroundColor};
+  border-radius: 50%;
+  ${getSize};
+  ${getBackgroundColor};
 `;
 
 class CircleIndicator extends React.Component {
   static propTypes = {
     enabled: PropTypes.bool.isRequired,
     size: PropTypes.number.isRequired,
+    color: PropTypes.string,
   };
 
   static defaultProps = {

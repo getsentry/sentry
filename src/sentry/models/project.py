@@ -12,6 +12,8 @@ import warnings
 from collections import defaultdict
 
 import six
+from pytz import utc
+from datetime import datetime
 from bitfield import BitField
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -20,7 +22,7 @@ from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
 from sentry.app import locks
-from sentry.constants import ObjectStatus
+from sentry.constants import ObjectStatus, RESERVED_PROJECT_SLUGS
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
@@ -36,10 +38,6 @@ ProjectStatus = ObjectStatus
 class ProjectTeam(Model):
     __core__ = True
 
-    # TODO(jess): this unique index is temporary and should be
-    # removed when the UI is updated to handle multiple teams
-    # per project. This is just to prevent wonky behavior in
-    # the mean time.
     project = FlexibleForeignKey('sentry.Project')
     team = FlexibleForeignKey('sentry.Team')
 
@@ -138,13 +136,18 @@ class Project(Model):
         if not self.slug:
             lock = locks.get('slug:project', duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(self, self.name, organization=self.organization)
+                slugify_instance(
+                    self,
+                    self.name,
+                    organization=self.organization,
+                    reserved=RESERVED_PROJECT_SLUGS)
             super(Project, self).save(*args, **kwargs)
         else:
             super(Project, self).save(*args, **kwargs)
+        self.update_rev_for_option()
 
     def get_absolute_url(self):
-        return absolute_uri('/{}/{}/'.format(self.organization.slug, self.slug))
+        return absolute_uri(u'/{}/{}/'.format(self.organization.slug, self.slug))
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
@@ -157,22 +160,32 @@ class Project(Model):
     # TODO: Make these a mixin
     def update_option(self, *args, **kwargs):
         from sentry.models import ProjectOption
-
+        self.update_rev_for_option()
         return ProjectOption.objects.set_value(self, *args, **kwargs)
 
     def get_option(self, *args, **kwargs):
         from sentry.models import ProjectOption
-
         return ProjectOption.objects.get_value(self, *args, **kwargs)
 
     def delete_option(self, *args, **kwargs):
         from sentry.models import ProjectOption
-
+        self.update_rev_for_option()
         return ProjectOption.objects.unset_value(self, *args, **kwargs)
+
+    def update_rev_for_option(self):
+        from sentry.models import ProjectOption
+        ProjectOption.objects.set_value(self, 'sentry:relay-rev', uuid1().hex)
+        ProjectOption.objects.set_value(
+            self,
+            'sentry:relay-rev-lastchange',
+            datetime.utcnow().replace(
+                tzinfo=utc))
 
     @property
     def callsign(self):
-        warnings.warn('Project.callsign is deprecated. Use Group.get_short_id() instead.', DeprecationWarning)
+        warnings.warn(
+            'Project.callsign is deprecated. Use Group.get_short_id() instead.',
+            DeprecationWarning)
         return self.slug.upper()
 
     @property
@@ -227,10 +240,7 @@ class Project(Model):
         }
 
     def get_full_name(self):
-        team_name = self.teams.values_list('name', flat=True).first()
-        if team_name is not None and team_name not in self.name:
-            return '%s %s' % (team_name, self.name)
-        return self.name
+        return self.slug
 
     def get_notification_recipients(self, user_option):
         from sentry.models import UserOption
@@ -282,7 +292,7 @@ class Project(Model):
             is_enabled = bool(is_enabled)
         return is_enabled
 
-    def transfer_to(self, team):
+    def transfer_to(self, team=None, organization=None):
         # NOTE: this will only work properly if the new team is in a different
         # org than the existing one, which is currently the only use case in
         # production
@@ -296,7 +306,8 @@ class Project(Model):
             Rule,
         )
 
-        organization = team.organization
+        if organization is None:
+            organization = team.organization
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id
@@ -356,7 +367,8 @@ class Project(Model):
             )
 
         # ensure this actually exists in case from team was null
-        self.add_team(team)
+        if team is not None:
+            self.add_team(team)
 
     def add_team(self, team):
         try:

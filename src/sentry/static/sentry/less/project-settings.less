@@ -127,15 +127,6 @@
 
 .rules-list,
 .rule-detail {
-  .node-match-selector {
-    .select2-container {
-      margin: 0 5px;
-      display: inline-block;
-      width: 100px;
-      max-width: none;
-    }
-  }
-
   h6 {
     font-weight: 600;
 
@@ -177,26 +168,6 @@
       }
     }
   }
-
-  .actions {
-    padding: 20px;
-    border-top: 1px solid lighten(@trim, 4);
-    margin: 0 -20px -20px;
-  }
-}
-
-.rule-action-list,
-.rule-condition-list {
-  .select2-container {
-    max-width: 40%;
-  }
-
-  .node-selector .select2-container {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  margin-bottom: 20px;
 }
 
 /**
@@ -221,6 +192,8 @@
 }
 
 .install-language-nav {
+  background-color: @white;
+
   .list-group {
     font-size: 14px;
     border-radius: 3px;

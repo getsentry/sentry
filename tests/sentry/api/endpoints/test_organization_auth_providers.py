@@ -44,4 +44,4 @@ class OrganizationAuthProviders(APITestCase):
 
         assert resp.status_code == 200
 
-        assert 'dummy' in [k for k, v in resp.data]
+        assert 'dummy' in [k for k, v, s in resp.data]

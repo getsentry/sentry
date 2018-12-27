@@ -17,11 +17,11 @@ class EncryptionManager(object):
         for key, value in schemes:
             if not isinstance(key, six.string_types):
                 raise ValueError(
-                    'Encryption scheme type must be a string. Value was: {!r}'.format(value)
+                    u'Encryption scheme type must be a string. Value was: {!r}'.format(value)
                 )
             if not hasattr(value, 'encrypt') or not hasattr(value, 'decrypt'):
                 raise ValueError(
-                    'Encryption scheme value must have \'encrypt\' and \'decrypt\' callables. Value was: {!r}'.
+                    u'Encryption scheme value must have \'encrypt\' and \'decrypt\' callables. Value was: {!r}'.
                     format(value)
                 )
         self.schemes = OrderedDict(schemes)
@@ -58,7 +58,7 @@ class EncryptionManager(object):
         try:
             scheme = self.schemes[enc_method]
         except KeyError:
-            raise ValueError('Unknown encryption scheme: {!r}'.format(enc_method))
+            raise ValueError(u'Unknown encryption scheme: {!r}'.format(enc_method))
         return scheme.decrypt(enc_data)
 
 

@@ -2,7 +2,13 @@ from __future__ import absolute_import
 
 import six
 
-from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason
+import mock
+
+from sentry.integrations.example.integration import ExampleIntegration
+from sentry.models import (
+    Activity, GroupLink, GroupSubscription, GroupSubscriptionReason,
+    ExternalIssue, Integration, OrganizationIntegration
+)
 from sentry.testutils import APITestCase
 
 
@@ -20,7 +26,7 @@ class GroupNoteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -33,7 +39,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
 
         response = self.client.post(url, format='json')
         assert response.status_code == 400
@@ -84,7 +90,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
 
         # mentioning a member that does not exist returns 400
         response = self.client.post(
@@ -142,7 +148,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/comments/'.format(group.id)
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
 
         # mentioning a team that does not exist returns 400
         response = self.client.post(
@@ -167,3 +173,62 @@ class GroupNoteCreateTest(APITestCase):
             GroupSubscription.objects.filter(
                 group=group,
                 reason=GroupSubscriptionReason.team_mentioned)) == 1
+
+    @mock.patch.object(ExampleIntegration, 'create_comment')
+    def test_with_group_link(self, mock_create_comment):
+        group = self.group
+
+        integration = Integration.objects.create(
+            provider='example',
+            external_id='123456',
+        )
+        integration.add_organization(group.organization, self.user)
+
+        OrganizationIntegration.objects.filter(
+            integration_id=integration.id,
+            organization_id=group.organization.id,
+        ).update(
+            config={
+                'sync_comments': True,
+                'sync_status_outbound': True,
+                'sync_status_inbound': True,
+                'sync_assignee_outbound': True,
+                'sync_assignee_inbound': True,
+            }
+        )
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=group.organization.id,
+            integration_id=integration.id,
+            key='APP-123',
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        self.login_as(user=self.user)
+
+        url = u'/api/0/issues/{}/comments/'.format(group.id)
+
+        with self.feature({
+            'organizations:integrations-issue-sync': True,
+            'organizations:internal-catchall': True,
+        }):
+            with self.tasks():
+                response = self.client.post(
+                    url, format='json', data={
+                        'text': 'hello world',
+                    }
+                )
+                assert response.status_code == 201, response.content
+
+                activity = Activity.objects.get(id=response.data['id'])
+                assert activity.user == self.user
+                assert activity.group == group
+                assert activity.data == {'text': 'hello world'}
+                mock_create_comment.assert_called_with('APP-123', 'hello world')

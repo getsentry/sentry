@@ -2,14 +2,16 @@ import {isEqual} from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Client} from '../api';
-import {t} from '../locale';
-import LoadingError from './loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import PermissionDenied from '../views/permissionDenied';
-import RouteError from './../views/routeError';
+import sdk from 'app/utils/sdk';
+import {Client} from 'app/api';
+import {t} from 'app/locale';
+import AsyncComponentSearchInput from 'app/components/asyncComponentSearchInput';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import PermissionDenied from 'app/views/permissionDenied';
+import RouteError from 'app/views/routeError';
 
-class AsyncComponent extends React.Component {
+export default class AsyncComponent extends React.Component {
   static propTypes = {
     location: PropTypes.object,
   };
@@ -17,6 +19,36 @@ class AsyncComponent extends React.Component {
   static contextTypes = {
     router: PropTypes.object,
   };
+
+  static errorHandler(component, fn) {
+    return (...args) => {
+      try {
+        return fn(...args);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error);
+        setTimeout(() => {
+          throw error;
+        });
+        component.setState({error});
+        return null;
+      }
+    };
+  }
+
+  // Override this flag to have the component reload it's state when the window
+  // becomes visible again. This will set the loading and reloading state, but
+  // will not render a loading state during reloading.
+  //
+  // eslint-disable-next-line react/sort-comp
+  reloadOnVisible = false;
+
+  // When enabling reloadOnVisible, this flag may be used to turn on and off
+  // the reloading. This is useful if your component only needs to reload when
+  // becoming visible during certain states.
+  //
+  // eslint-disable-next-line react/sort-comp
+  shouldReloadOnVisible = false;
 
   constructor(props, context) {
     super(props, context);
@@ -30,6 +62,10 @@ class AsyncComponent extends React.Component {
   componentWillMount() {
     this.api = new Client();
     this.fetchData();
+
+    if (this.reloadOnVisible) {
+      document.addEventListener('visibilitychange', this.visibilityReloader);
+    }
   }
 
   componentWillReceiveProps(nextProps, nextContext) {
@@ -46,7 +82,8 @@ class AsyncComponent extends React.Component {
     // re-fetch data when router params change
     if (
       !isEqual(this.props.params, nextProps.params) ||
-      currentLocation.search !== nextLocation.search
+      currentLocation.search !== nextLocation.search ||
+      currentLocation.state !== nextLocation.state
     ) {
       this.remountComponent();
     }
@@ -54,6 +91,7 @@ class AsyncComponent extends React.Component {
 
   componentWillUnmount() {
     this.api.clear();
+    document.removeEventListener('visibilitychange', this.visibilityReloader);
   }
 
   // XXX: cant call this getInitialState as React whines
@@ -62,6 +100,8 @@ class AsyncComponent extends React.Component {
     let state = {
       // has all data finished requesting?
       loading: true,
+      // is the component reload
+      reloading: false,
       // is there an error loading ANY data?
       error: false,
       errors: {},
@@ -76,14 +116,19 @@ class AsyncComponent extends React.Component {
     this.setState(this.getDefaultState(), this.fetchData);
   };
 
-  fetchData = () => {
+  visibilityReloader = () =>
+    this.shouldReloadOnVisible &&
+    !this.state.loading &&
+    !document.hidden &&
+    this.reloadData();
+
+  reloadData = () => this.fetchData({reloading: true});
+
+  fetchData = extraState => {
     let endpoints = this.getEndpoints();
 
     if (!endpoints.length) {
-      this.setState({
-        loading: false,
-        error: false,
-      });
+      this.setState({loading: false, error: false});
       return;
     }
 
@@ -92,6 +137,7 @@ class AsyncComponent extends React.Component {
       loading: true,
       error: false,
       remainingRequests: endpoints.length,
+      ...extraState,
     });
 
     endpoints.forEach(([stateKey, endpoint, params, options]) => {
@@ -100,7 +146,7 @@ class AsyncComponent extends React.Component {
       let query = (params && params.query) || {};
       // If paginate option then pass entire `query` object to API call
       // It should only be expecting `query.cursor` for pagination
-      if (options.paginate) {
+      if (options.paginate || locationQuery.cursor) {
         query = {...locationQuery, ...query};
       }
 
@@ -109,15 +155,7 @@ class AsyncComponent extends React.Component {
         ...params,
         query,
         success: (data, _, jqXHR) => {
-          this.setState(prevState => {
-            return {
-              [stateKey]: data,
-              // TODO(billy): This currently fails if this request is retried by SudoModal
-              [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
-              remainingRequests: prevState.remainingRequests - 1,
-              loading: prevState.remainingRequests > 1,
-            };
-          });
+          this.handleRequestSuccess({stateKey, data, jqXHR}, true);
         },
         error: error => {
           // Allow endpoints to fail
@@ -125,22 +163,60 @@ class AsyncComponent extends React.Component {
             error = null;
           }
 
-          this.setState(prevState => {
-            return {
-              [stateKey]: null,
-              errors: {
-                ...prevState.errors,
-                [stateKey]: error,
-              },
-              remainingRequests: prevState.remainingRequests - 1,
-              loading: prevState.remainingRequests > 1,
-              error: prevState.error || !!error,
-            };
-          });
+          this.handleError(error, [stateKey, endpoint, params, options]);
         },
       });
     });
   };
+
+  onRequestSuccess({stateKey, data, jqXHR}) {
+    // Allow children to implement this
+  }
+
+  handleRequestSuccess = ({stateKey, data, jqXHR}, initialRequest) => {
+    this.setState(prevState => {
+      let state = {
+        [stateKey]: data,
+        // TODO(billy): This currently fails if this request is retried by SudoModal
+        [`${stateKey}PageLinks`]: jqXHR && jqXHR.getResponseHeader('Link'),
+      };
+
+      if (initialRequest) {
+        state.remainingRequests = prevState.remainingRequests - 1;
+        state.loading = prevState.remainingRequests > 1;
+        state.reloading = prevState.reloading && state.loading;
+      }
+
+      return state;
+    });
+    this.onRequestSuccess({stateKey, data, jqXHR});
+  };
+
+  handleError(error, [stateKey]) {
+    if (error && error.responseText) {
+      sdk.captureBreadcrumb({
+        message: error.responseText,
+        category: 'xhr',
+        level: 'error',
+      });
+    }
+    this.setState(prevState => {
+      let state = {
+        [stateKey]: null,
+        errors: {
+          ...prevState.errors,
+          [stateKey]: error,
+        },
+        error: prevState.error || !!error,
+      };
+
+      state.remainingRequests = prevState.remainingRequests - 1;
+      state.loading = prevState.remainingRequests > 1;
+      state.reloading = prevState.reloading && state.loading;
+
+      return state;
+    });
+  }
 
   // DEPRECATED: use getEndpoints()
   getEndpointParams() {
@@ -169,22 +245,43 @@ class AsyncComponent extends React.Component {
     return [['data', endpoint, this.getEndpointParams()]];
   }
 
+  renderSearchInput({onSearchSubmit, stateKey, ...other}) {
+    return (
+      <AsyncComponentSearchInput
+        onSearchSubmit={onSearchSubmit}
+        stateKey={stateKey}
+        api={this.api}
+        onSuccess={(data, jqXHR) => {
+          this.handleRequestSuccess({stateKey, data, jqXHR});
+        }}
+        onError={() => {
+          this.renderError(new Error('Error with AsyncComponentSearchInput'));
+        }}
+        {...other}
+      />
+    );
+  }
+
   renderLoading() {
     return <LoadingIndicator />;
   }
 
-  renderError(error) {
-    let unauthorizedErrors = Object.keys(this.state.errors).find(endpointName => {
-      let result = this.state.errors[endpointName];
-      // 401s are captured by SudaModal, but may be passed back to AsyncComponent if they close the modal without identifying
-      return result && result.status === 401;
-    });
+  renderError(error, disableLog = false) {
+    // 401s are captured by SudaModal, but may be passed back to AsyncComponent if they close the modal without identifying
+    let unauthorizedErrors = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 401
+    );
 
     // Look through endpoint results to see if we had any 403s, means their role can not access resource
-    let permissionErrors = Object.keys(this.state.errors).find(endpointName => {
-      let result = this.state.errors[endpointName];
-      return result && result.status === 403;
-    });
+    let permissionErrors = Object.values(this.state.errors).find(
+      resp => resp && resp.status === 403
+    );
+
+    // If all error responses have status code === 0, then show erorr message but don't
+    // log it to sentry
+    let shouldLogSentry =
+      !!Object.values(this.state.errors).find(resp => resp && resp.status !== 0) ||
+      disableLog;
 
     if (unauthorizedErrors) {
       return (
@@ -196,11 +293,18 @@ class AsyncComponent extends React.Component {
       return <PermissionDenied />;
     }
 
-    return <RouteError error={error} component={this} onRetry={this.remountComponent} />;
+    return (
+      <RouteError
+        error={error}
+        component={this}
+        disableLogSentry={!shouldLogSentry}
+        onRetry={this.remountComponent}
+      />
+    );
   }
 
   renderComponent() {
-    return this.state.loading
+    return this.state.loading && !this.state.reloading
       ? this.renderLoading()
       : this.state.error
         ? this.renderError(new Error('Unable to load all required endpoints'))
@@ -211,23 +315,3 @@ class AsyncComponent extends React.Component {
     return this.renderComponent();
   }
 }
-
-AsyncComponent.errorHandler = (component, fn) => {
-  return function(...args) {
-    try {
-      return fn(...args);
-    } catch (err) {
-      /*eslint no-console:0*/
-      console.error(err);
-      setTimeout(() => {
-        throw err;
-      });
-      component.setState({
-        error: err,
-      });
-      return null;
-    }
-  };
-};
-
-export default AsyncComponent;

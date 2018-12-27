@@ -12,7 +12,7 @@ from sentry.models import Event, EventError
 @register(Event)
 class EventSerializer(Serializer):
     _reserved_keys = frozenset(
-        ['sentry.interfaces.User', 'sdk', 'device', 'contexts'])
+        ['user', 'sdk', 'device', 'contexts'])
 
     def _get_entries(self, event, user, is_public=False):
         # XXX(dcramer): These are called entries for future-proofing
@@ -58,11 +58,6 @@ class EventSerializer(Serializer):
             sdk_interface = item.interfaces.get('sdk')
             if sdk_interface:
                 sdk_data = sdk_interface.get_api_context()
-                # we restrict SDK information to superusers due to the nature of
-                # privacy laws and IP sensitivity
-                # TODO(dcramer): make this respect 'enhanced privacy' org flag
-                if not user.is_superuser:
-                    sdk_data.pop('clientIP', None)
             else:
                 sdk_data = None
 
@@ -105,7 +100,7 @@ class EventSerializer(Serializer):
                 received = None
 
         from sentry.event_manager import (
-            get_hashes_for_event,
+            get_hashes_from_fingerprint,
             md5_from_hash,
         )
 
@@ -132,7 +127,10 @@ class EventSerializer(Serializer):
             'dateCreated': obj.datetime,
             'dateReceived': received,
             'errors': errors,
-            'fingerprints': [md5_from_hash(h) for h in get_hashes_for_event(obj)],
+            'fingerprints': [
+                md5_from_hash(h)
+                for h in get_hashes_from_fingerprint(obj, obj.data.get('fingerprint', ['{{ default }}']))
+            ],
         }
         return d
 

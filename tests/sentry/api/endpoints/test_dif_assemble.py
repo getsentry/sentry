@@ -38,7 +38,7 @@ class DifAssembleEndpoint(APITestCase):
             data={
                 'lol': 'test'
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 400, response.content
 
@@ -48,7 +48,7 @@ class DifAssembleEndpoint(APITestCase):
             data={
                 checksum: 'test'
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 400, response.content
 
@@ -58,7 +58,7 @@ class DifAssembleEndpoint(APITestCase):
                 checksum: {
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 400, response.content
 
@@ -70,7 +70,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': [],
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 200, response.content
         assert response.data[checksum]['state'] == ChunkFileState.NOT_FOUND
@@ -101,7 +101,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': checksums,
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content
@@ -125,7 +125,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': checksums,
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content
@@ -138,7 +138,7 @@ class DifAssembleEndpoint(APITestCase):
             object_name='baz.dSYM',
             cpu_name='x86_64',
             project=self.project,
-            uuid='df449af8-0dcd-4320-9943-ec192134d593',
+            debug_id='df449af8-0dcd-4320-9943-ec192134d593',
         )
 
         # Request now tells us that everything is alright
@@ -150,7 +150,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': checksums,
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content
@@ -167,7 +167,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': [not_found_checksum],
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content
@@ -214,7 +214,7 @@ class DifAssembleEndpoint(APITestCase):
                     ]
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]['state'] == ChunkFileState.NOT_FOUND
@@ -237,7 +237,7 @@ class DifAssembleEndpoint(APITestCase):
                     ],
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]['state'] == ChunkFileState.CREATED
@@ -260,7 +260,7 @@ class DifAssembleEndpoint(APITestCase):
         file_blob_index = FileBlobIndex.objects.all()
         assert len(file_blob_index) == 3
 
-    def test_dif_reponse(self):
+    def test_dif_response(self):
         sym_file = self.load_fixture('crash.sym')
         blob1 = FileBlob.from_file(ContentFile(sym_file))
         total_checksum = sha1(sym_file).hexdigest()
@@ -281,7 +281,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': chunks,
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content
@@ -289,7 +289,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.data[total_checksum]['dif']['cpuName'] == 'x86_64'
         assert response.data[total_checksum]['dif']['uuid'] == '67e9247c-814e-392b-a027-dbde6748fcbf'
 
-    def test_dif_error_reponse(self):
+    def test_dif_error_response(self):
         sym_file = 'fail'
         blob1 = FileBlob.from_file(ContentFile(sym_file))
         total_checksum = sha1(sym_file).hexdigest()
@@ -310,7 +310,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': [],
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content

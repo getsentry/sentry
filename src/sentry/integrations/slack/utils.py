@@ -4,6 +4,7 @@ import logging
 
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
+from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
@@ -11,6 +12,7 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from sentry.models import (
     GroupStatus, GroupAssignee, OrganizationMember, User, Identity, Team,
+    Release
 )
 
 logger = logging.getLogger('sentry.integrations.slack')
@@ -90,7 +92,7 @@ def build_attachment_text(group, event=None):
         return None
 
 
-def build_assigned_text(identity, assignee):
+def build_assigned_text(group, identity, assignee):
     actor = Actor.from_actor_id(assignee)
 
     try:
@@ -102,7 +104,11 @@ def build_assigned_text(identity, assignee):
         assignee_text = assigned_actor.slug
     elif actor.type == User:
         try:
-            assignee_ident = Identity.objects.get(user=assigned_actor)
+            assignee_ident = Identity.objects.get(
+                user=assigned_actor,
+                idp__type='slack',
+                idp__external_id=identity.idp.external_id,
+            )
             assignee_text = u'<@{}>'.format(assignee_ident.external_id)
         except Identity.DoesNotExist:
             assignee_text = assigned_actor.get_display_name()
@@ -115,9 +121,9 @@ def build_assigned_text(identity, assignee):
     )
 
 
-def build_action_text(identity, action):
+def build_action_text(group, identity, action):
     if action['name'] == 'assign':
-        return build_assigned_text(identity, action['selected_options'][0]['value'])
+        return build_assigned_text(group, identity, action['selected_options'][0]['value'])
 
     statuses = {
         'resolved': 'resolved',
@@ -169,6 +175,18 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
         'text': 'Ignore',
     }
 
+    has_releases = Release.objects.filter(
+        projects=group.project,
+        organization_id=group.project.organization_id
+    ).exists()
+
+    if not has_releases:
+        resolve_button.update({
+            'name': 'status',
+            'text': 'Resolve',
+            'value': 'resolved',
+        })
+
     if status == GroupStatus.RESOLVED:
         resolve_button.update({
             'name': 'status',
@@ -213,18 +231,22 @@ def build_attachment(group, event=None, tags=None, identity=None, actions=None, 
     if tags:
         event_tags = event.tags if event else group.get_latest_event().tags
 
-        for tag_key, tag_value in event_tags:
-            if tag_key in tags:
-                fields.append(
-                    {
-                        'title': tag_key.encode('utf-8'),
-                        'value': tag_value.encode('utf-8'),
-                        'short': True,
-                    }
-                )
+        for key, value in event_tags:
+            std_key = tagstore.get_standardized_key(key)
+            if std_key not in tags:
+                continue
+
+            labeled_value = tagstore.get_tag_value_label(key, value)
+            fields.append(
+                {
+                    'title': std_key.encode('utf-8'),
+                    'value': labeled_value.encode('utf-8'),
+                    'short': True,
+                }
+            )
 
     if actions:
-        action_texts = filter(None, [build_action_text(identity, a) for a in actions])
+        action_texts = filter(None, [build_action_text(group, identity, a) for a in actions])
         text += '\n' + '\n'.join(action_texts)
 
         color = ACTIONED_ISSUE_COLOR

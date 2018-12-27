@@ -1,82 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectEnvironments render active renders empty message 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-19 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-13 {
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-7 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-17 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  padding: NaNpx;
-  font-size: 1.5em;
-  font-weight: bold;
-}
-
 <ProjectEnvironments
   params={
     Object {
@@ -94,13 +18,8 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -118,19 +37,14 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -148,124 +62,127 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
-          className="glamor-4 glamor-5"
+          className="css-1pnrn3o-Wrapper e1kblvez1"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
-                  <div
-                    className="glamor-0 glamor-1"
+                  <Base
+                    className="css-1mqcea-Title e1kblvez0"
                   >
-                    Manage Environments
-                  </div>
+                    <div
+                      className="css-1mqcea-Title e1kblvez0"
+                      is={null}
+                    >
+                      Manage Environments
+                    </div>
+                  </Base>
                 </Title>
               </div>
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className="active"
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className=""
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
-      <StyledPanel>
+      <Component
+        className="css-10qfvek-Panel e1laxa7d0"
+      >
         <div
-          className="glamor-19 glamor-20"
+          className="css-10qfvek-Panel e1laxa7d0"
         >
           <PanelHeader>
-            <StyledPanelHeader>
-              <Component
-                className="glamor-13 glamor-14"
+            <Component
+              className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+            >
+              <Flex
+                align="center"
+                className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+                justify="space-between"
               >
-                <div
-                  className="glamor-13 glamor-14"
+                <Base
+                  align="center"
+                  className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                  justify="space-between"
                 >
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-9 glamor-6"
-                    >
-                      <PanelHeading
-                        className="glamor-9 glamor-6"
-                      >
-                        <div
-                          className="glamor-6 glamor-7 glamor-8"
-                        >
-                          Active Environments
-                        </div>
-                      </PanelHeading>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
-              </Component>
-            </StyledPanelHeader>
+                  <div
+                    className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                    is={null}
+                  >
+                    Active Environments
+                  </div>
+                </Base>
+              </Flex>
+            </Component>
           </PanelHeader>
           <PanelBody
             direction="column"
@@ -273,12 +190,12 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             flex={false}
           >
             <div
-              className=""
+              className="css-9vq8an-textStyles"
             >
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="glamor-17 glamor-18"
+                    className="css-1ykemxy-Wrapper eh488yo0"
                   >
                     <div
                       className="ref-message"
@@ -291,94 +208,13 @@ exports[`ProjectEnvironments render active renders empty message 1`] = `
             </div>
           </PanelBody>
         </div>
-      </StyledPanel>
+      </Component>
     </Panel>
   </div>
 </ProjectEnvironments>
 `;
 
-exports[`ProjectEnvironments render active renders environment list 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-29 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-13 {
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-7 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-19 {
-  box-sizing: border-box;
-  padding: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  border-bottom: 1px solid;
-}
-
-.glamor-19:last-child {
-  border: 0;
-}
-
+exports[`ProjectEnvironments render active renders environment list and sets staging as default env 1`] = `
 <ProjectEnvironments
   params={
     Object {
@@ -396,13 +232,8 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -420,19 +251,14 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -450,124 +276,127 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
-          className="glamor-4 glamor-5"
+          className="css-1pnrn3o-Wrapper e1kblvez1"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
-                  <div
-                    className="glamor-0 glamor-1"
+                  <Base
+                    className="css-1mqcea-Title e1kblvez0"
                   >
-                    Manage Environments
-                  </div>
+                    <div
+                      className="css-1mqcea-Title e1kblvez0"
+                      is={null}
+                    >
+                      Manage Environments
+                    </div>
+                  </Base>
                 </Title>
               </div>
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className="active"
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className=""
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
-      <StyledPanel>
+      <Component
+        className="css-10qfvek-Panel e1laxa7d0"
+      >
         <div
-          className="glamor-29 glamor-30"
+          className="css-10qfvek-Panel e1laxa7d0"
         >
           <PanelHeader>
-            <StyledPanelHeader>
-              <Component
-                className="glamor-13 glamor-14"
+            <Component
+              className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+            >
+              <Flex
+                align="center"
+                className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+                justify="space-between"
               >
-                <div
-                  className="glamor-13 glamor-14"
+                <Base
+                  align="center"
+                  className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                  justify="space-between"
                 >
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-9 glamor-6"
-                    >
-                      <PanelHeading
-                        className="glamor-9 glamor-6"
-                      >
-                        <div
-                          className="glamor-6 glamor-7 glamor-8"
-                        >
-                          Active Environments
-                        </div>
-                      </PanelHeading>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
-              </Component>
-            </StyledPanelHeader>
+                  <div
+                    className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                    is={null}
+                  >
+                    Active Environments
+                  </div>
+                </Base>
+              </Flex>
+            </Component>
           </PanelHeader>
           <PanelBody
             direction="column"
@@ -575,216 +404,422 @@ exports[`ProjectEnvironments render active renders environment list 1`] = `
             flex={false}
           >
             <div
-              className=""
+              className="css-9vq8an-textStyles"
             >
-              <PanelItem
-                align="center"
-                justify="space-between"
+              <EnvironmentRow
+                environment={
+                  Object {
+                    "displayName": "All Environments",
+                    "id": "__all_environments__",
+                    "name": "__all_environments__",
+                  }
+                }
+                isDefault={false}
+                isSystemRow={true}
+                name="__all_environments__"
+                onSetAsDefault={[Function]}
+                shouldShowSetDefault={true}
+              >
+                <PanelItem
+                  align="center"
+                  justify="space-between"
+                  p={2}
+                >
+                  <Base
+                    align="center"
+                    className="css-1uaastv-PanelItem eo8n7lk0"
+                    justify="space-between"
+                    p={2}
+                  >
+                    <div
+                      className="css-1uaastv-PanelItem eo8n7lk0"
+                      is={null}
+                    >
+                      <Flex
+                        align="center"
+                      >
+                        <Base
+                          align="center"
+                          className="css-5ipae5"
+                        >
+                          <div
+                            className="css-5ipae5"
+                            is={null}
+                          >
+                            All Environments
+                          </div>
+                        </Base>
+                      </Flex>
+                      <div>
+                        <EnvironmentButton
+                          onClick={[Function]}
+                          size="xsmall"
+                        >
+                          <Button
+                            className="css-10adnmx-EnvironmentButton ezuela50"
+                            disabled={false}
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <StyledButton
+                              aria-label="Set as default"
+                              className="css-10adnmx-EnvironmentButton ezuela50"
+                              disabled={false}
+                              onClick={[Function]}
+                              role="button"
+                              size="xsmall"
+                            >
+                              <Component
+                                aria-label="Set as default"
+                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                                size="xsmall"
+                              >
+                                <button
+                                  aria-label="Set as default"
+                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="xsmall"
+                                >
+                                  <ButtonLabel
+                                    size="xsmall"
+                                  >
+                                    <Component
+                                      className="css-uthd1f-ButtonLabel eqrebog1"
+                                      size="xsmall"
+                                    >
+                                      <span
+                                        className="css-uthd1f-ButtonLabel eqrebog1"
+                                      >
+                                        Set as default
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </button>
+                              </Component>
+                            </StyledButton>
+                          </Button>
+                        </EnvironmentButton>
+                      </div>
+                    </div>
+                  </Base>
+                </PanelItem>
+              </EnvironmentRow>
+              <EnvironmentRow
+                actionText="Hide"
+                environment={
+                  Object {
+                    "displayName": "Production",
+                    "id": "1",
+                    "name": "production",
+                    "urlRoutingName": "production",
+                  }
+                }
+                isDefault={false}
+                isHidden={false}
                 key="1"
-                p={2}
+                name="production"
+                onHide={[Function]}
+                onSetAsDefault={[Function]}
+                shouldShowAction={true}
+                shouldShowSetDefault={true}
               >
-                <StyledPanelItem
+                <PanelItem
                   align="center"
                   justify="space-between"
                   p={2}
                 >
                   <Base
                     align="center"
-                    className="glamor-19 glamor-20"
+                    className="css-1uaastv-PanelItem eo8n7lk0"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="glamor-19 glamor-20"
+                      className="css-1uaastv-PanelItem eo8n7lk0"
                       is={null}
                     >
-                      <span>
-                        Production
-                         
-                        <code>
-                          production
-                        </code>
-                      </span>
-                      <Button
-                        disabled={false}
-                        onClick={[Function]}
-                        size="xsmall"
+                      <Flex
+                        align="center"
                       >
-                        <button
-                          className="button button-default button-xs"
-                          disabled={false}
-                          onClick={[Function]}
-                          role="button"
+                        <Base
+                          align="center"
+                          className="css-5ipae5"
                         >
-                          <Flex
-                            align="center"
-                            className="button-label"
+                          <div
+                            className="css-5ipae5"
+                            is={null}
                           >
-                            <Base
-                              align="center"
-                              className="button-label glamor-2"
+                            production
+                          </div>
+                        </Base>
+                      </Flex>
+                      <div>
+                        <EnvironmentButton
+                          onClick={[Function]}
+                          size="xsmall"
+                        >
+                          <Button
+                            className="css-10adnmx-EnvironmentButton ezuela50"
+                            disabled={false}
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <StyledButton
+                              aria-label="Set as default"
+                              className="css-10adnmx-EnvironmentButton ezuela50"
+                              disabled={false}
+                              onClick={[Function]}
+                              role="button"
+                              size="xsmall"
                             >
-                              <div
-                                className="button-label glamor-2"
-                                is={null}
+                              <Component
+                                aria-label="Set as default"
+                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                                size="xsmall"
                               >
-                                Hide
-                              </div>
-                            </Base>
-                          </Flex>
-                        </button>
-                      </Button>
+                                <button
+                                  aria-label="Set as default"
+                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="xsmall"
+                                >
+                                  <ButtonLabel
+                                    size="xsmall"
+                                  >
+                                    <Component
+                                      className="css-uthd1f-ButtonLabel eqrebog1"
+                                      size="xsmall"
+                                    >
+                                      <span
+                                        className="css-uthd1f-ButtonLabel eqrebog1"
+                                      >
+                                        Set as default
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </button>
+                              </Component>
+                            </StyledButton>
+                          </Button>
+                        </EnvironmentButton>
+                        <EnvironmentButton
+                          onClick={[Function]}
+                          size="xsmall"
+                        >
+                          <Button
+                            className="css-10adnmx-EnvironmentButton ezuela50"
+                            disabled={false}
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <StyledButton
+                              aria-label="Hide"
+                              className="css-10adnmx-EnvironmentButton ezuela50"
+                              disabled={false}
+                              onClick={[Function]}
+                              role="button"
+                              size="xsmall"
+                            >
+                              <Component
+                                aria-label="Hide"
+                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                                size="xsmall"
+                              >
+                                <button
+                                  aria-label="Hide"
+                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="xsmall"
+                                >
+                                  <ButtonLabel
+                                    size="xsmall"
+                                  >
+                                    <Component
+                                      className="css-uthd1f-ButtonLabel eqrebog1"
+                                      size="xsmall"
+                                    >
+                                      <span
+                                        className="css-uthd1f-ButtonLabel eqrebog1"
+                                      >
+                                        Hide
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </button>
+                              </Component>
+                            </StyledButton>
+                          </Button>
+                        </EnvironmentButton>
+                      </div>
                     </div>
                   </Base>
-                </StyledPanelItem>
-              </PanelItem>
-              <PanelItem
-                align="center"
-                justify="space-between"
+                </PanelItem>
+              </EnvironmentRow>
+              <EnvironmentRow
+                actionText="Hide"
+                environment={
+                  Object {
+                    "displayName": "Staging",
+                    "id": "2",
+                    "name": "staging",
+                    "urlRoutingName": "staging",
+                  }
+                }
+                isDefault={true}
+                isHidden={false}
                 key="2"
-                p={2}
+                name="staging"
+                onHide={[Function]}
+                onSetAsDefault={[Function]}
+                shouldShowAction={true}
+                shouldShowSetDefault={false}
               >
-                <StyledPanelItem
+                <PanelItem
                   align="center"
                   justify="space-between"
                   p={2}
                 >
                   <Base
                     align="center"
-                    className="glamor-19 glamor-20"
+                    className="css-1uaastv-PanelItem eo8n7lk0"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="glamor-19 glamor-20"
+                      className="css-1uaastv-PanelItem eo8n7lk0"
                       is={null}
                     >
-                      <span>
-                        Staging
-                         
-                        <code>
-                          staging
-                        </code>
-                      </span>
-                      <Button
-                        disabled={false}
-                        onClick={[Function]}
-                        size="xsmall"
+                      <Flex
+                        align="center"
                       >
-                        <button
-                          className="button button-default button-xs"
-                          disabled={false}
-                          onClick={[Function]}
-                          role="button"
+                        <Base
+                          align="center"
+                          className="css-5ipae5"
                         >
-                          <Flex
-                            align="center"
-                            className="button-label"
+                          <div
+                            className="css-5ipae5"
+                            is={null}
                           >
-                            <Base
-                              align="center"
-                              className="button-label glamor-2"
+                            staging
+                            <Tag
+                              ml={1}
+                              priority="success"
                             >
-                              <div
-                                className="button-label glamor-2"
-                                is={null}
+                              <TagTextStyled
+                                ml={1}
+                                priority="success"
                               >
-                                Hide
-                              </div>
-                            </Base>
-                          </Flex>
-                        </button>
-                      </Button>
+                                <Component
+                                  className="css-ftrjq0-TagTextStyled e6q9yfr0"
+                                  ml={1}
+                                  priority="success"
+                                >
+                                  <Box
+                                    className="css-ftrjq0-TagTextStyled e6q9yfr0"
+                                    ml={1}
+                                  >
+                                    <Base
+                                      className="e6q9yfr0 css-hqgxmh-TagTextStyled"
+                                      ml={1}
+                                    >
+                                      <div
+                                        className="e6q9yfr0 css-hqgxmh-TagTextStyled"
+                                        is={null}
+                                      >
+                                        Default
+                                      </div>
+                                    </Base>
+                                  </Box>
+                                </Component>
+                              </TagTextStyled>
+                            </Tag>
+                          </div>
+                        </Base>
+                      </Flex>
+                      <div>
+                        <EnvironmentButton
+                          onClick={[Function]}
+                          size="xsmall"
+                        >
+                          <Button
+                            className="css-10adnmx-EnvironmentButton ezuela50"
+                            disabled={false}
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <StyledButton
+                              aria-label="Hide"
+                              className="css-10adnmx-EnvironmentButton ezuela50"
+                              disabled={false}
+                              onClick={[Function]}
+                              role="button"
+                              size="xsmall"
+                            >
+                              <Component
+                                aria-label="Hide"
+                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                                size="xsmall"
+                              >
+                                <button
+                                  aria-label="Hide"
+                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="xsmall"
+                                >
+                                  <ButtonLabel
+                                    size="xsmall"
+                                  >
+                                    <Component
+                                      className="css-uthd1f-ButtonLabel eqrebog1"
+                                      size="xsmall"
+                                    >
+                                      <span
+                                        className="css-uthd1f-ButtonLabel eqrebog1"
+                                      >
+                                        Hide
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </button>
+                              </Component>
+                            </StyledButton>
+                          </Button>
+                        </EnvironmentButton>
+                      </div>
                     </div>
                   </Base>
-                </StyledPanelItem>
-              </PanelItem>
+                </PanelItem>
+              </EnvironmentRow>
             </div>
           </PanelBody>
         </div>
-      </StyledPanel>
+      </Component>
     </Panel>
   </div>
 </ProjectEnvironments>
 `;
 
 exports[`ProjectEnvironments render hidden renders empty message 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-19 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-13 {
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-7 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-17 {
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-flex-direction: column;
-  -ms-flex-direction: column;
-  flex-direction: column;
-  padding: NaNpx;
-  font-size: 1.5em;
-  font-weight: bold;
-}
-
 <ProjectEnvironments
   params={
     Object {
@@ -802,13 +837,8 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -826,19 +856,14 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -856,124 +881,127 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
-          className="glamor-4 glamor-5"
+          className="css-1pnrn3o-Wrapper e1kblvez1"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
-                  <div
-                    className="glamor-0 glamor-1"
+                  <Base
+                    className="css-1mqcea-Title e1kblvez0"
                   >
-                    Manage Environments
-                  </div>
+                    <div
+                      className="css-1mqcea-Title e1kblvez0"
+                      is={null}
+                    >
+                      Manage Environments
+                    </div>
+                  </Base>
                 </Title>
               </div>
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className=""
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className="active"
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
-      <StyledPanel>
+      <Component
+        className="css-10qfvek-Panel e1laxa7d0"
+      >
         <div
-          className="glamor-19 glamor-20"
+          className="css-10qfvek-Panel e1laxa7d0"
         >
           <PanelHeader>
-            <StyledPanelHeader>
-              <Component
-                className="glamor-13 glamor-14"
+            <Component
+              className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+            >
+              <Flex
+                align="center"
+                className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+                justify="space-between"
               >
-                <div
-                  className="glamor-13 glamor-14"
+                <Base
+                  align="center"
+                  className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                  justify="space-between"
                 >
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-9 glamor-6"
-                    >
-                      <PanelHeading
-                        className="glamor-9 glamor-6"
-                      >
-                        <div
-                          className="glamor-6 glamor-7 glamor-8"
-                        >
-                          Hidden
-                        </div>
-                      </PanelHeading>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
-              </Component>
-            </StyledPanelHeader>
+                  <div
+                    className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                    is={null}
+                  >
+                    Hidden
+                  </div>
+                </Base>
+              </Flex>
+            </Component>
           </PanelHeader>
           <PanelBody
             direction="column"
@@ -981,12 +1009,12 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             flex={false}
           >
             <div
-              className=""
+              className="css-9vq8an-textStyles"
             >
               <EmptyMessage>
                 <Wrapper>
                   <div
-                    className="glamor-17 glamor-18"
+                    className="css-1ykemxy-Wrapper eh488yo0"
                   >
                     <div
                       className="ref-message"
@@ -999,94 +1027,13 @@ exports[`ProjectEnvironments render hidden renders empty message 1`] = `
             </div>
           </PanelBody>
         </div>
-      </StyledPanel>
+      </Component>
     </Panel>
   </div>
 </ProjectEnvironments>
 `;
 
 exports[`ProjectEnvironments render hidden renders environment list 1`] = `
-.glamor-4 {
-  font-size: 14px;
-  box-shadow: inset 0 -1px 0;
-  margin: -20px 0 30px;
-}
-
-.glamor-2 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
-.glamor-0 {
-  font-size: 20px;
-  font-weight: bold;
-  margin: 20px 0;
-  -webkit-flex: 1;
-  -ms-flex: 1;
-  flex: 1;
-}
-
-.glamor-23 {
-  background: #fff;
-  border: 1px solid;
-  margin-bottom: NaNpx;
-  position: relative;
-}
-
-.glamor-13 {
-  border-bottom: 1px solid;
-  border-radius: 0 0;
-  text-transform: uppercase;
-  font-size: 13px;
-  line-height: 1;
-  padding: 15px 20px;
-}
-
-.glamor-9 {
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-7 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  font-size: inherit;
-  text-transform: inherit;
-  margin: 0;
-}
-
-.glamor-19 {
-  box-sizing: border-box;
-  padding: 16px;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-  -webkit-box-pack: justify;
-  -webkit-justify-content: space-between;
-  -ms-flex-pack: justify;
-  justify-content: space-between;
-  border-bottom: 1px solid;
-}
-
-.glamor-19:last-child {
-  border: 0;
-}
-
 <ProjectEnvironments
   params={
     Object {
@@ -1104,13 +1051,8 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
   <div>
     <SettingsPageHeading
       tabs={
-        <ul
-          className="nav nav-tabs"
-          style={
-            Object {
-              "borderBottom": "1px solid #ddd",
-            }
-          }
+        <NavTabs
+          underlined={true}
         >
           <ListLink
             activeClassName="active"
@@ -1128,19 +1070,14 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
           >
             Hidden
           </ListLink>
-        </ul>
+        </NavTabs>
       }
       title="Manage Environments"
     >
       <Wrapper
         tabs={
-          <ul
-            className="nav nav-tabs"
-            style={
-              Object {
-                "borderBottom": "1px solid #ddd",
-              }
-            }
+          <NavTabs
+            underlined={true}
           >
             <ListLink
               activeClassName="active"
@@ -1158,124 +1095,127 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             >
               Hidden
             </ListLink>
-          </ul>
+          </NavTabs>
         }
       >
         <div
-          className="glamor-4 glamor-5"
+          className="css-1pnrn3o-Wrapper e1kblvez1"
         >
           <Flex
             align="center"
           >
             <Base
               align="center"
-              className="glamor-2"
+              className="css-5ipae5"
             >
               <div
-                className="glamor-2"
+                className="css-5ipae5"
                 is={null}
               >
                 <Title>
-                  <div
-                    className="glamor-0 glamor-1"
+                  <Base
+                    className="css-1mqcea-Title e1kblvez0"
                   >
-                    Manage Environments
-                  </div>
+                    <div
+                      className="css-1mqcea-Title e1kblvez0"
+                      is={null}
+                    >
+                      Manage Environments
+                    </div>
+                  </Base>
                 </Title>
               </div>
             </Base>
           </Flex>
           <div>
-            <ul
-              className="nav nav-tabs"
-              style={
-                Object {
-                  "borderBottom": "1px solid #ddd",
-                }
-              }
+            <NavTabs
+              underlined={true}
             >
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/"
+              <ul
+                className="nav nav-tabs border-bottom"
               >
-                <li
-                  className=""
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/"
+                  <li
+                    className=""
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/"
                     >
-                      Environments
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-              <ListLink
-                activeClassName="active"
-                index={true}
-                isActive={[Function]}
-                to="/org-slug/project-slug/settings/environments/hidden/"
-              >
-                <li
-                  className="active"
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Environments
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+                <ListLink
+                  activeClassName="active"
+                  index={true}
+                  isActive={[Function]}
+                  to="/org-slug/project-slug/settings/environments/hidden/"
                 >
-                  <Link
-                    onlyActiveOnIndex={true}
-                    style={Object {}}
-                    to="/org-slug/project-slug/settings/environments/hidden/"
+                  <li
+                    className="active"
                   >
-                    <a
-                      onClick={[Function]}
+                    <Link
+                      onlyActiveOnIndex={true}
                       style={Object {}}
+                      to="/org-slug/project-slug/settings/environments/hidden/"
                     >
-                      Hidden
-                    </a>
-                  </Link>
-                </li>
-              </ListLink>
-            </ul>
+                      <a
+                        onClick={[Function]}
+                        style={Object {}}
+                      >
+                        Hidden
+                      </a>
+                    </Link>
+                  </li>
+                </ListLink>
+              </ul>
+            </NavTabs>
           </div>
         </div>
       </Wrapper>
     </SettingsPageHeading>
     <Panel>
-      <StyledPanel>
+      <Component
+        className="css-10qfvek-Panel e1laxa7d0"
+      >
         <div
-          className="glamor-23 glamor-24"
+          className="css-10qfvek-Panel e1laxa7d0"
         >
           <PanelHeader>
-            <StyledPanelHeader>
-              <Component
-                className="glamor-13 glamor-14"
+            <Component
+              className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+            >
+              <Flex
+                align="center"
+                className="css-gxu3mm-PanelHeader-getPadding e1p8v8nv0"
+                justify="space-between"
               >
-                <div
-                  className="glamor-13 glamor-14"
+                <Base
+                  align="center"
+                  className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                  justify="space-between"
                 >
-                  <StyledPanelHeading>
-                    <Component
-                      className="glamor-9 glamor-6"
-                    >
-                      <PanelHeading
-                        className="glamor-9 glamor-6"
-                      >
-                        <div
-                          className="glamor-6 glamor-7 glamor-8"
-                        >
-                          Hidden
-                        </div>
-                      </PanelHeading>
-                    </Component>
-                  </StyledPanelHeading>
-                </div>
-              </Component>
-            </StyledPanelHeader>
+                  <div
+                    className="e1p8v8nv0 css-18dn1ya-PanelHeader-getPadding"
+                    is={null}
+                  >
+                    Hidden
+                  </div>
+                </Base>
+              </Flex>
+            </Component>
           </PanelHeader>
           <PanelBody
             direction="column"
@@ -1283,73 +1223,120 @@ exports[`ProjectEnvironments render hidden renders environment list 1`] = `
             flex={false}
           >
             <div
-              className=""
+              className="css-9vq8an-textStyles"
             >
-              <PanelItem
-                align="center"
-                justify="space-between"
+              <EnvironmentRow
+                actionText="Show"
+                environment={
+                  Object {
+                    "displayName": "Zzz",
+                    "id": "1",
+                    "name": "zzz",
+                    "urlRoutingName": "zzz",
+                  }
+                }
+                isDefault={false}
+                isHidden={true}
                 key="1"
-                p={2}
+                name="zzz"
+                onHide={[Function]}
+                onSetAsDefault={[Function]}
+                shouldShowAction={true}
+                shouldShowSetDefault={false}
               >
-                <StyledPanelItem
+                <PanelItem
                   align="center"
                   justify="space-between"
                   p={2}
                 >
                   <Base
                     align="center"
-                    className="glamor-19 glamor-20"
+                    className="css-1uaastv-PanelItem eo8n7lk0"
                     justify="space-between"
                     p={2}
                   >
                     <div
-                      className="glamor-19 glamor-20"
+                      className="css-1uaastv-PanelItem eo8n7lk0"
                       is={null}
                     >
-                      <span>
-                        Zzz
-                         
-                        <code>
-                          zzz
-                        </code>
-                      </span>
-                      <Button
-                        disabled={false}
-                        onClick={[Function]}
-                        size="xsmall"
+                      <Flex
+                        align="center"
                       >
-                        <button
-                          className="button button-default button-xs"
-                          disabled={false}
-                          onClick={[Function]}
-                          role="button"
+                        <Base
+                          align="center"
+                          className="css-5ipae5"
                         >
-                          <Flex
-                            align="center"
-                            className="button-label"
+                          <div
+                            className="css-5ipae5"
+                            is={null}
                           >
-                            <Base
-                              align="center"
-                              className="button-label glamor-2"
+                            zzz
+                          </div>
+                        </Base>
+                      </Flex>
+                      <div>
+                        <EnvironmentButton
+                          onClick={[Function]}
+                          size="xsmall"
+                        >
+                          <Button
+                            className="css-10adnmx-EnvironmentButton ezuela50"
+                            disabled={false}
+                            onClick={[Function]}
+                            size="xsmall"
+                          >
+                            <StyledButton
+                              aria-label="Show"
+                              className="css-10adnmx-EnvironmentButton ezuela50"
+                              disabled={false}
+                              onClick={[Function]}
+                              role="button"
+                              size="xsmall"
                             >
-                              <div
-                                className="button-label glamor-2"
-                                is={null}
+                              <Component
+                                aria-label="Show"
+                                className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                disabled={false}
+                                onClick={[Function]}
+                                role="button"
+                                size="xsmall"
                               >
-                                Show
-                              </div>
-                            </Base>
-                          </Flex>
-                        </button>
-                      </Button>
+                                <button
+                                  aria-label="Show"
+                                  className="ezuela50 css-fp1reu-StyledButton-getColors-EnvironmentButton eqrebog0"
+                                  disabled={false}
+                                  onClick={[Function]}
+                                  role="button"
+                                  size="xsmall"
+                                >
+                                  <ButtonLabel
+                                    size="xsmall"
+                                  >
+                                    <Component
+                                      className="css-uthd1f-ButtonLabel eqrebog1"
+                                      size="xsmall"
+                                    >
+                                      <span
+                                        className="css-uthd1f-ButtonLabel eqrebog1"
+                                      >
+                                        Show
+                                      </span>
+                                    </Component>
+                                  </ButtonLabel>
+                                </button>
+                              </Component>
+                            </StyledButton>
+                          </Button>
+                        </EnvironmentButton>
+                      </div>
                     </div>
                   </Base>
-                </StyledPanelItem>
-              </PanelItem>
+                </PanelItem>
+              </EnvironmentRow>
             </div>
           </PanelBody>
         </div>
-      </StyledPanel>
+      </Component>
     </Panel>
   </div>
 </ProjectEnvironments>

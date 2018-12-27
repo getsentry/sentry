@@ -52,6 +52,7 @@ exports[`GroupActions render() renders correctly 1`] = `
         "name": "Organization Name",
         "onboardingTasks": Array [],
         "projects": Array [],
+        "scrapeJavaScript": true,
         "slug": "org",
         "status": Object {
           "id": "active",
@@ -90,22 +91,13 @@ exports[`GroupActions render() renders correctly 1`] = `
           "ssn",
         ],
         "slug": "project",
+        "storeCrashReports": false,
+        "subjectPrefix": "[my-org]",
         "subjectTemplate": "[$project] \${tag:level}: $title",
         "teams": Array [],
         "verifySSL": true,
       }
     }
   />
-  <GuideAnchor
-    target="issue_tracking"
-    type="text"
-  >
-    <a
-      className="btn btn-default btn-sm btn-config-issue-tracking"
-      href="/org/project/settings/issue-tracking/"
-    >
-      Link Issue Tracker
-    </a>
-  </GuideAnchor>
 </div>
 `;

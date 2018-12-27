@@ -1,8 +1,8 @@
 import React from 'react';
 import classNames from 'classnames';
 
-import {t} from '../locale';
-import '../../less/components/similarSpectrum.less';
+import {t} from 'app/locale';
+import 'app/../less/components/similarSpectrum.less';
 
 class SimilarSpectrum extends React.Component {
   static propTypes = {};

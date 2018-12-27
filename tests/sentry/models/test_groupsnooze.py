@@ -6,10 +6,9 @@ import pytest
 
 from datetime import datetime, timedelta
 from django.utils import timezone
-from sentry import tagstore
+from sentry import tagstore, tsdb
 from sentry.testutils import TestCase
 from sentry.models import GroupSnooze
-from sentry.tsdb import backend as tsdb
 from six.moves import xrange
 
 

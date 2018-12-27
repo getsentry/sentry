@@ -73,3 +73,19 @@ class BrowserExtensionsFilterTest(TestCase):
         data = self.get_mock_data()
         data['sentry.interfaces.Exception'] = None
         assert not self.apply_filter(data)
+
+    def test_filters_facebook_source(self):
+        data = self.get_mock_data(exc_source='https://graph.facebook.com/')
+        assert self.apply_filter(data)
+
+        data = self.get_mock_data(exc_source='https://connect.facebook.net/en_US/sdk.js')
+        assert self.apply_filter(data)
+
+    def test_filters_woopra_source(self):
+        data = self.get_mock_data(exc_source='https://static.woopra.com/js/woopra.js')
+        assert self.apply_filter(data)
+
+    def test_filters_itunes_source(self):
+        data = self.get_mock_data(
+            exc_source='http://metrics.itunes.apple.com.edgesuite.net/itunespreview/itunes/browser:firefo')
+        assert self.apply_filter(data)

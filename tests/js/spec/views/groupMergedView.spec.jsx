@@ -49,7 +49,8 @@ describe('Issues -> Merged View', function() {
       <GroupMergedView
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{query: {}}}
-      />
+      />,
+      TestStubs.routerContext()
     );
 
     expect(component).toMatchSnapshot();
@@ -61,12 +62,14 @@ describe('Issues -> Merged View', function() {
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{query: {}}}
       />,
-      {
-        context,
-        childContextTypes: {
+      TestStubs.routerContext([
+        {
+          group: context,
+        },
+        {
           group: PropTypes.object,
         },
-      }
+      ])
     );
 
     wrapper.instance().componentDidUpdate = jest.fn(() => {

@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from io import BytesIO
+from gzip import GzipFile
 from itertools import izip
 from rest_framework import status
 from six.moves.urllib.parse import urljoin
@@ -19,6 +21,14 @@ MAX_CHUNKS_PER_REQUEST = 64
 MAX_REQUEST_SIZE = 32 * 1024 * 1024
 MAX_CONCURRENCY = settings.DEBUG and 1 or 4
 HASH_ALGORITHM = 'sha1'
+
+
+class GzipChunk(BytesIO):
+    def __init__(self, file):
+        data = GzipFile(fileobj=file, mode='rb').read()
+        self.size = len(data)
+        self.name = file.name
+        super(GzipChunk, self).__init__(data)
 
 
 class ChunkUploadEndpoint(OrganizationEndpoint):
@@ -46,6 +56,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 'maxRequestSize': MAX_REQUEST_SIZE,
                 'concurrency': MAX_CONCURRENCY,
                 'hashAlgorithm': HASH_ALGORITHM,
+                'compression': ['gzip'],
             }
         )
 
@@ -60,6 +71,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         :auth: required
         """
         files = request.FILES.getlist('file')
+        files += [GzipChunk(chunk) for chunk in request.FILES.getlist('file_gzip')]
         if len(files) == 0:
             # No files uploaded is ok
             return Response(status=status.HTTP_200_OK)
@@ -68,11 +80,11 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         checksums = []
         size = 0
         for chunk in files:
-            size += chunk._size
-            if chunk._size > DEFAULT_BLOB_SIZE:
+            size += chunk.size
+            if chunk.size > DEFAULT_BLOB_SIZE:
                 return Response({'error': 'Chunk size too large'},
                                 status=status.HTTP_400_BAD_REQUEST)
-            checksums.append(chunk._name)
+            checksums.append(chunk.name)
 
         if size > MAX_REQUEST_SIZE:
             return Response({'error': 'Request too large'},

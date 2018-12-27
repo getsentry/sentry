@@ -24,7 +24,7 @@
     "sinon": false,
     "MockApiClient": true,
     "TestStubs": true,
-    "Raven": true,
+    "tick": true,
     "jest": true
   },
   "plugins": [

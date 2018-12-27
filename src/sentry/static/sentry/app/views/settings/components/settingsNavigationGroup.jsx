@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
 
-import SentryTypes from '../../../proptypes';
-import SettingsNavItem from './settingsNavItem';
-import replaceRouterParams from '../../../utils/replaceRouterParams';
+import SentryTypes from 'app/sentryTypes';
+import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 const NavSection = styled.div`
   margin-bottom: 20px;
@@ -34,12 +34,11 @@ export default class NavigationGroup extends React.Component {
 
   render() {
     let {organization, project, name, items} = this.props;
-    let {router} = this.context;
 
     return (
-      <NavSection>
+      <NavSection data-test-id={name}>
         <SettingsHeading>{name}</SettingsHeading>
-        {items.map(({path, title, show, badge}) => {
+        {items.map(({path, title, index, show, badge}) => {
           if (typeof show === 'function' && !show(this.props)) return null;
           if (typeof show !== 'undefined' && !show) return null;
           let badgeResult = typeof badge === 'function' ? badge(this.props) : null;
@@ -50,10 +49,10 @@ export default class NavigationGroup extends React.Component {
 
           return (
             <SettingsNavItem
-              active={router.isActive(to)}
               key={title}
               to={to}
               label={title}
+              index={index}
               badge={badgeResult}
             />
           );

@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from '../../../locale';
-import SentryTypes from '../../../proptypes';
-import SettingsNavItem from './settingsNavItem';
-import NavSection from './navSection.styled';
-import SettingsHeading from './settingsHeading.styled';
-import replaceRouterParams from '../../../utils/replaceRouterParams';
-import PluginNavigation from '../../projectSettings/pluginNavigation';
+import {t} from 'app/locale';
+import SentryTypes from 'app/sentryTypes';
+import SettingsNavItem from 'app/views/settings/components/settingsNavItem';
+import NavSection from 'app/views/settings/components/navSection.styled';
+import SettingsHeading from 'app/views/settings/components/settingsHeading.styled';
+import replaceRouterParams from 'app/utils/replaceRouterParams';
+import PluginNavigation from 'app/views/projectSettings/pluginNavigation';
 
 /**
  * Navigation menu for integrations.
@@ -35,7 +35,7 @@ class SettingsPluginsNavigation extends React.Component {
     let {organization, project} = this.props;
     let {router} = this.context;
 
-    const pathPrefix = '/settings/organization/:orgId/project/:projectId';
+    const pathPrefix = '/settings/:orgId/:projectId';
     let allIntegrationsPath = replaceRouterParams(`${pathPrefix}/plugins/`, {
       orgId: organization && organization.slug,
       projectId: project && project.slug,
@@ -43,12 +43,12 @@ class SettingsPluginsNavigation extends React.Component {
 
     return (
       <NavSection>
-        <SettingsHeading>{t('Integrations')}</SettingsHeading>
+        <SettingsHeading>{t('Legacy Integrations')}</SettingsHeading>
 
         <SettingsNavItem
           active={router.isActive(allIntegrationsPath)}
           to={allIntegrationsPath}
-          label={t('All Integrations')}
+          label={t('Legacy Integrations')}
         />
 
         <PluginNavigation>

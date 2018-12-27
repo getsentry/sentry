@@ -1,9 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Crumb from './crumb';
-import DropdownAutoCompleteMenu from '../../../../components/dropdownAutoCompleteMenu';
-import Divider from './divider';
+import Crumb from 'app/views/settings/components/settingsBreadcrumb/crumb';
+import DropdownAutoCompleteMenu from 'app/components/dropdownAutoCompleteMenu';
+import Divider from 'app/views/settings/components/settingsBreadcrumb/divider';
 
 const EXIT_DELAY = 0;
 
@@ -84,6 +84,7 @@ class BreadcrumbDropdown extends React.Component {
     let {hasMenu, route, isLast, name, items, onSelect} = this.props;
     return (
       <DropdownAutoCompleteMenu
+        blendCorner={false}
         alignMenu="left"
         onOpen={this.handleMouseEnter}
         onClose={this.close}
@@ -95,14 +96,18 @@ class BreadcrumbDropdown extends React.Component {
         items={items}
         onSelect={onSelect}
         isStyled
+        virtualizedHeight={41}
       >
-        {({actions, isOpen}) => {
+        {({getActorProps, actions, isOpen}) => {
           return (
             <Crumb
-              hasMenu={hasMenu}
-              onClick={this.handleClickActor.bind(this, actions)}
-              onMouseEnter={this.handleMouseEnterActor.bind(this, actions)}
-              onMouseLeave={this.handleMouseLeave.bind(this, actions)}
+              {...getActorProps({
+                isStyled: true,
+                hasMenu,
+                onClick: this.handleClickActor.bind(this, actions),
+                onMouseEnter: this.handleMouseEnterActor.bind(this, actions),
+                onMouseLeave: this.handleMouseLeave.bind(this, actions),
+              })}
             >
               <span>{name || route.name} </span>
               <Divider isHover={hasMenu && isOpen} isLast={isLast} />

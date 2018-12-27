@@ -39,6 +39,10 @@ USER_AGENTS = {
     'Mozilla/5.0 (Windows; U; Windows NT 6.1; zh-HK) AppleWebKit/533.18.1 (KHTML, like Gecko) Version/5.0.2 Safari/533.18.5',
     'safari_7':
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.75.14 (KHTML, like Gecko) Version/7.0.3 Safari/7046A194A',
+    'opera_mini_8':
+    'Opera/9.80 (J2ME/MIDP; Opera Mini/8.0.35158/36.2534; U; en) Presto/2.12.423 Version/12.16',
+    'opera_mini_7':
+    'Opera/9.80 (J2ME/MIDP; Opera Mini/7.0.32796/59.323; U; fr) Presto/2.12.423 Version/12.16',
 }
 
 
@@ -104,6 +108,24 @@ class SetLegacyBrowserFilterTest(APITestCase):
 
         options = ProjectOption.objects.get_value(project=project, key='filters:legacy-browsers')
         assert options == {'opera_pre_15'}
+
+    def test_set_opera_mini(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        url = reverse(
+            'sentry-api-0-project-filters',
+            kwargs={
+                'organization_slug': project.organization.slug,
+                'project_slug': project.slug,
+                'filter_id': "legacy-browsers"
+            }
+        )
+        response = self.client.put(url, data={'subfilters': ["opera_mini_pre_8"]})
+        assert response.status_code == 201, response.content
+
+        options = ProjectOption.objects.get_value(project=project, key='filters:legacy-browsers')
+        assert options == {'opera_mini_pre_8'}
 
     def test_set_ie9(self):
         self.login_as(user=self.user)
@@ -259,6 +281,15 @@ class LegacyBrowsersFilterTest(TestCase):
         data = self.get_mock_data(USER_AGENTS['opera_12'])
         assert self.apply_filter(data) is True
 
+    def test_filters_opera_mini_7_by_default(self):
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key='filters:legacy-browsers',
+            value='1',
+        )
+        data = self.get_mock_data(USER_AGENTS['opera_mini_7'])
+        assert self.apply_filter(data) is True
+
     def test_does_not_filter_chrome_by_default(self):
         ProjectOption.objects.set_value(
             project=self.project,
@@ -297,6 +328,27 @@ class LegacyBrowsersFilterTest(TestCase):
         ua = Parse(ua_data)
         browser = ua['user_agent']
         assert self.filter_cls(self.project).filter_opera_pre_15(browser) is False
+
+    def test_filter_opera_mini(self):
+        ProjectOption.objects.set_value(
+            project=self.project, key='filters:legacy-browsers', value={'opera_mini_pre_8'}
+        )
+        data = self.get_mock_data(USER_AGENTS['opera_mini_7'])
+        assert self.apply_filter(data) is True
+
+    def test_filter_opera_mini_method(self):
+        data = self.get_mock_data(USER_AGENTS['opera_mini_7'])
+        ua_data = self.filter_cls(self.project).get_user_agent(data)
+        ua = Parse(ua_data)
+        browser = ua['user_agent']
+        assert self.filter_cls(self.project).filter_opera_mini_pre_8(browser) is True
+
+    def test_dont_filter_opera_mini_8(self):
+        data = self.get_mock_data(USER_AGENTS['opera_mini_8'])
+        ua_data = self.filter_cls(self.project).get_user_agent(data)
+        ua = Parse(ua_data)
+        browser = ua['user_agent']
+        assert self.filter_cls(self.project).filter_opera_mini_pre_8(browser) is False
 
     def test_filters_ie8(self):
         ProjectOption.objects.set_value(

@@ -4,8 +4,8 @@ import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
 import PropTypes from 'prop-types';
 
-import withPlugins from '../../utils/withPlugins';
-import SentryTypes from '../../proptypes';
+import withPlugins from 'app/utils/withPlugins';
+import SentryTypes from 'app/sentryTypes';
 
 const PluginNavigation = createReactClass({
   displayName: 'PluginNavigation',

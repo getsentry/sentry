@@ -1,11 +1,8 @@
-import {ThemeProvider} from 'emotion-theming';
-
+import {mount} from 'enzyme';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {mount} from 'enzyme';
 import ProjectKeyDetails from 'app/views/settings/project/projectKeys/projectKeyDetails';
-import theme from 'app/utils/theme';
 
 jest.mock('react-router', () => ({
   withRouter: i => i,
@@ -80,16 +77,14 @@ describe('ProjectKeyDetails', function() {
     let routerContext = TestStubs.routerContext();
 
     wrapper = mount(
-      <ThemeProvider theme={theme}>
-        <ProjectKeyDetails
-          routes={[]}
-          params={{
-            keyId: projectKeys[0].id,
-            orgId: org.slug,
-            projectId: project.slug,
-          }}
-        />
-      </ThemeProvider>,
+      <ProjectKeyDetails
+        routes={[]}
+        params={{
+          keyId: projectKeys[0].id,
+          orgId: org.slug,
+          projectId: project.slug,
+        }}
+      />,
       {
         ...routerContext,
         context: {

@@ -46,55 +46,11 @@ exports[`OrganizationDetails render() deletion in progress should render a delet
         </div>
       </div>
     </div>
-    <footer>
-      <div
-        class="container"
-      >
-        <div
-          class="pull-right"
-        >
-          <a
-            class="hidden-xs"
-            href="/api/"
-          >
-            API
-          </a>
-          <a
-            href="/docs/"
-          >
-            Docs
-          </a>
-          <a
-            class="hidden-xs"
-            href="https://github.com/getsentry/sentry"
-            rel="noreferrer"
-          >
-            Contribute
-          </a>
-        </div>
-        <a
-          class="icon-sentry-logo"
-          href="/"
-        />
-      </div>
-    </footer>
   </div>
 </div>
 `;
 
 exports[`OrganizationDetails render() pending deletion should render a restoration prompt 1`] = `
-.glamor-0 {
-  box-sizing: border-box;
-  display: -webkit-box;
-  display: -webkit-flex;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
-  align-items: center;
-}
-
 <div
   class="app"
 >
@@ -146,14 +102,16 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
             </p>
             <p>
               <button
-                class="button button-primary"
+                aria-label="Restore Organization"
+                class="css-1msljz8-StyledButton-getColors eqrebog0"
+                priority="primary"
                 role="button"
               >
-                <div
-                  class="button-label glamor-0"
+                <span
+                  class="css-ga4b18-ButtonLabel eqrebog1"
                 >
                   Restore Organization
-                </div>
+                </span>
               </button>
             </p>
           </div>
@@ -165,38 +123,6 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         </div>
       </div>
     </div>
-    <footer>
-      <div
-        class="container"
-      >
-        <div
-          class="pull-right"
-        >
-          <a
-            class="hidden-xs"
-            href="/api/"
-          >
-            API
-          </a>
-          <a
-            href="/docs/"
-          >
-            Docs
-          </a>
-          <a
-            class="hidden-xs"
-            href="https://github.com/getsentry/sentry"
-            rel="noreferrer"
-          >
-            Contribute
-          </a>
-        </div>
-        <a
-          class="icon-sentry-logo"
-          href="/"
-        />
-      </div>
-    </footer>
   </div>
 </div>
 `;
@@ -258,38 +184,6 @@ exports[`OrganizationDetails render() pending deletion should render a restorati
         </div>
       </div>
     </div>
-    <footer>
-      <div
-        class="container"
-      >
-        <div
-          class="pull-right"
-        >
-          <a
-            class="hidden-xs"
-            href="/api/"
-          >
-            API
-          </a>
-          <a
-            href="/docs/"
-          >
-            Docs
-          </a>
-          <a
-            class="hidden-xs"
-            href="https://github.com/getsentry/sentry"
-            rel="noreferrer"
-          >
-            Contribute
-          </a>
-        </div>
-        <a
-          class="icon-sentry-logo"
-          href="/"
-        />
-      </div>
-    </footer>
   </div>
 </div>
 `;

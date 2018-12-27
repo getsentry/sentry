@@ -52,7 +52,13 @@
       <input type="hidden" name="init" value="1" />
 
       <div class="align-center">
-        <p>Sign in with your {{ provider_name }} account to continue.</p>
+        <p>
+          {% if authenticated %}
+          <b>{{ organization.name }}</b> requires signing in with {{ provider_name }}.
+          {% else %}
+          Sign in with your {{ provider_name }} account to continue.
+          {% endif %}
+        </p>
 
         <p><button type="submit" class="btn btn-default btn-login-{{ provider_key }}">
           <span class="provider-logo {{ provider_name | lower}}"></span> Login with {{ provider_name }}
@@ -84,9 +90,29 @@
             {{ field|as_crispy_field }}
           {% endfor %}
 
-          <fieldset class="form-actions">
-            <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 9px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+          <fieldset class="form-actions" style="text-align: center">
+            <button type="submit" class="btn btn-primary" style="width: 50%">{% trans "Login" %}</button>
           </fieldset>
+
+          {% if github_login_link %}
+            <p style="text-align: center">
+              <a class="btn btn-default btn-login-github" href="{{ github_login_link }}" style="width: 50%">
+                <span class="provider-logo github"></span> Sign in with GitHub
+              </a>
+            </p>
+          {% endif %}
+
+          {% if vsts_login_link %}
+            <p style="text-align: center">
+              <a class="btn btn-default btn-login-vsts" href="{{ vsts_login_link }}" style="width: 50%">
+                <span class="provider-logo vsts"></span> Sign in with Azure DevOps
+              </a>
+            </p>
+          {% endif %}
+
+          <p style="text-align: center">
+            <a style="margin-top: 9px; width: 50%; color: gray" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+          </p>
         </form>
       </div>
       <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">

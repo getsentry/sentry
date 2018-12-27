@@ -42,8 +42,8 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.path1 = '/{}/{}/settings/alerts/'.format(self.org.slug, self.project.slug)
-        self.path2 = '/{}/{}/settings/alerts/rules/'.format(self.org.slug, self.project.slug)
+        self.path1 = u'/{}/{}/settings/alerts/'.format(self.org.slug, self.project.slug)
+        self.path2 = u'/{}/{}/settings/alerts/rules/'.format(self.org.slug, self.project.slug)
 
     def test_settings_load(self):
         self.browser.get(self.path1)
@@ -58,5 +58,4 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
     def test_rules_load(self):
         self.browser.get(self.path2)
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until('.rules-list')
         self.browser.snapshot('project alert rules')

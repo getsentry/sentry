@@ -1,9 +1,10 @@
 import React from 'react';
 
-import {t, tct} from '../../locale';
+import {t, tct} from 'app/locale';
+import slugify from 'app/utils/slugify';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/organization/:orgId/teams/:teamId/settings/';
+export const route = '/settings/:orgId/teams/:teamId/settings/';
 
 const formGroups = [
   {
@@ -17,6 +18,12 @@ const formGroups = [
         label: t('Name'),
         placeholder: 'e.g. api-team',
         help: t('A unique ID used to identify the team'),
+        disabled: ({access}) => !access.has('team:write'),
+        transformInput: slugify,
+
+        saveOnBlur: false,
+        saveMessageAlertType: 'info',
+        saveMessage: t('You will be redirected to the new team slug after saving'),
       },
       {
         name: 'name',
@@ -24,6 +31,7 @@ const formGroups = [
         required: true,
         label: t('Legacy Name'),
         placeholder: 'e.g. API Team',
+        disabled: ({access}) => !access.has('team:write'),
         help: tct(
           '[Deprecated] In the future, only [Name] will be used to identify your team',
           {

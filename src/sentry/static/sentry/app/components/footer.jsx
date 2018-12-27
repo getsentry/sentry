@@ -1,8 +1,8 @@
 import React from 'react';
-import ConfigStore from '../stores/configStore';
-import HookStore from '../stores/hookStore';
-import {t} from '../locale';
-import DynamicWrapper from './dynamicWrapper';
+import ConfigStore from 'app/stores/configStore';
+import HookStore from 'app/stores/hookStore';
+import {t} from 'app/locale';
+import DynamicWrapper from 'app/components/dynamicWrapper';
 
 class Footer extends React.Component {
   constructor(props) {

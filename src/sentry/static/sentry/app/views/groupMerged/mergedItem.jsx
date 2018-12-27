@@ -4,14 +4,14 @@ import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 import classNames from 'classnames';
 
-import Checkbox from '../../components/checkbox';
-import EventOrGroupHeader from '../../components/eventOrGroupHeader';
-import FlowLayout from '../../components/flowLayout';
-import GroupingActions from '../../actions/groupingActions';
-import GroupingStore from '../../stores/groupingStore';
-import SpreadLayout from '../../components/spreadLayout';
+import Checkbox from 'app/components/checkbox';
+import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import FlowLayout from 'app/components/flowLayout';
+import GroupingActions from 'app/actions/groupingActions';
+import GroupingStore from 'app/stores/groupingStore';
+import SpreadLayout from 'app/components/spreadLayout';
 
-import '../../../less/components/mergedItem.less';
+import 'app/../less/components/mergedItem.less';
 
 const MergedItem = createReactClass({
   displayName: 'MergedItem',
@@ -19,7 +19,6 @@ const MergedItem = createReactClass({
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
-    groupId: PropTypes.string.isRequired,
     fingerprint: PropTypes.string.isRequired,
     disabled: PropTypes.bool,
     event: PropTypes.shape({

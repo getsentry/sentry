@@ -2,14 +2,11 @@ import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 
-import Button from 'sentry-ui/buttons/button';
-import Panel from 'application-root/views/settings/components/panel';
-import PanelHeader from 'application-root/views/settings/components/panelHeader';
-import PanelBody from 'application-root/views/settings/components/panelBody';
-import PanelItem from 'application-root/views/settings/components/panelItem';
-import Field from 'application-root/views/settings/components/forms/field';
+import Button from 'app/components/button';
+import {Panel, PanelHeader, PanelBody, PanelItem} from 'app/components/panels';
+import Field from 'app/views/settings/components/forms/field';
 
-storiesOf('New Settings/Panel', module)
+storiesOf('UI|Panels', module)
   .add(
     'Basic Panel',
     withInfo({
@@ -28,7 +25,7 @@ storiesOf('New Settings/Panel', module)
     ))
   )
   .add(
-    'Field',
+    'With Fields',
     withInfo({
       text: 'Non-connected form field item',
       propTablesExclude: [Panel, PanelBody, PanelItem],

@@ -1,21 +1,23 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
+import styled from 'react-emotion';
 
-import SentryTypes from '../../proptypes';
-import ProjectLink from '../../components/projectLink';
-import ProjectSelector from './projectSelector';
-import BookmarkToggle from '../projects/bookmarkToggle';
-import DropdownLink from '../dropdownLink';
-import MenuItem from '../menuItem';
-import Button from '../buttons/button';
+import SentryTypes from 'app/sentryTypes';
+import ProjectLink from 'app/components/projectLink';
+import ProjectSelector from 'app/components/projectHeader/projectSelector';
+import BookmarkToggle from 'app/components/projects/bookmarkToggle';
+import DropdownLink from 'app/components/dropdownLink';
+import MenuItem from 'app/components/menuItem';
+import Button from 'app/components/button';
+import NavTabs from 'app/components/navTabs';
 
-import {t} from '../../locale';
+import {t} from 'app/locale';
 
 import {
   setActiveEnvironment,
   clearActiveEnvironment,
-} from '../../actionCreators/environments';
+} from 'app/actionCreators/environments';
 
 class ProjectHeader extends React.Component {
   static propTypes = {
@@ -36,11 +38,8 @@ class ProjectHeader extends React.Component {
     let org = this.props.organization;
     let features = new Set(project.features);
     let access = new Set(org.access);
-    let orgFeatures = new Set(org.features);
     let allEnvironmentsLabel = t('All environments');
 
-    // TODO: remove when feature is released
-    let hasEnvironmentsFeature = orgFeatures.has('environments');
     let pagesWithEnvironments = new Set([
       'stream',
       'releases',
@@ -48,8 +47,7 @@ class ProjectHeader extends React.Component {
       'events',
       'user-feedback',
     ]);
-    let pageHasEnvironments = pagesWithEnvironments.has(navSection);
-    let showEnvironmentsToggle = hasEnvironmentsFeature && pageHasEnvironments;
+    let showEnvironmentsToggle = pagesWithEnvironments.has(navSection);
 
     let activeEnvironmentTitle = activeEnvironment
       ? activeEnvironment.displayName
@@ -57,14 +55,14 @@ class ProjectHeader extends React.Component {
 
     return (
       <div className="sub-header flex flex-container flex-vertically-centered">
-        <div className="project-header p-t-1">
+        <div className="project-header">
           <div className="project-header-main">
             <div className="project-select-wrapper">
               <ProjectSelector organization={org} projectId={project.slug} />
               <BookmarkToggle />
             </div>
 
-            <ul className="nav nav-tabs">
+            <NavTabs>
               <li className={navSection == 'stream' ? 'active' : ''}>
                 <ProjectLink to={`/${org.slug}/${project.slug}/`}>
                   {t('Issues')}
@@ -94,56 +92,65 @@ class ProjectHeader extends React.Component {
               </li>
               {access.has('project:write') && (
                 <li className={navSection == 'settings' ? 'active' : ''}>
-                  <Link
-                    to={
-                      orgFeatures.has('new-settings')
-                        ? `/settings/organization/${org.slug}/project/${project.slug}/`
-                        : `/${org.slug}/${project.slug}/settings/`
-                    }
-                  >
+                  <Link to={`/settings/${org.slug}/${project.slug}/`}>
                     {t('Settings')}
                   </Link>
                 </li>
               )}
-            </ul>
+            </NavTabs>
           </div>
           {showEnvironmentsToggle && (
-            <div className="project-header-toggle">
-              <label>{t('Environment')}</label>
-              <DropdownLink
-                anchorRight={true}
-                title={activeEnvironmentTitle}
-                className="environment-selector-toggle"
-              >
-                <MenuItem onClick={clearActiveEnvironment}>
-                  {allEnvironmentsLabel}
-                </MenuItem>
-                {environments.map(env => (
-                  <MenuItem key={env.id} onClick={() => setActiveEnvironment(env)}>
-                    {env.displayName}
-                  </MenuItem>
-                ))}
-                <MenuItem divider={true} />
-                <div style={{textAlign: 'center', padding: '5px 0px'}}>
-                  <Button
-                    to={
-                      orgFeatures.has('new-settings')
-                        ? `/settings/organization/${org.slug}/project/${project.slug}/environments/`
-                        : `/${org.slug}/${project.slug}/settings/`
-                    }
-                    priority="primary"
-                    size="small"
+            <EnvironmentsToggle>
+              <div className="project-header-toggle">
+                <label>{t('Environment')}</label>
+                <DropdownLink
+                  anchorRight={true}
+                  title={activeEnvironmentTitle}
+                  className="environment-selector-toggle"
+                >
+                  <MenuItem
+                    onClick={clearActiveEnvironment}
+                    className={activeEnvironment === null && 'active'}
+                    linkClassName="truncate"
                   >
-                    {t('Manage environments')}
-                  </Button>
-                </div>
-              </DropdownLink>
-            </div>
+                    {allEnvironmentsLabel}
+                  </MenuItem>
+                  {environments.map(env => (
+                    <MenuItem
+                      key={env.id}
+                      onClick={() => setActiveEnvironment(env)}
+                      className={
+                        activeEnvironment &&
+                        activeEnvironment.name === env.name &&
+                        'active'
+                      }
+                      linkClassName="truncate"
+                    >
+                      {env.displayName}
+                    </MenuItem>
+                  ))}
+                  <MenuItem divider={true} />
+                  <div style={{textAlign: 'center', padding: '5px 0px'}}>
+                    <Button
+                      to={`/settings/${org.slug}/${project.slug}/environments/`}
+                      size="small"
+                    >
+                      {t('Manage environments')}
+                    </Button>
+                  </div>
+                </DropdownLink>
+              </div>
+            </EnvironmentsToggle>
           )}
         </div>
       </div>
     );
   }
 }
+
+const EnvironmentsToggle = styled('div')`
+  display: flex;
+  position: relative;
+`;
 
 export default ProjectHeader;

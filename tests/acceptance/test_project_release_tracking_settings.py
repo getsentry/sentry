@@ -28,7 +28,7 @@ class ProjectReleaseTrackingSettingsTest(AcceptanceTestCase):
         tagstore.create_tag_key(project_id=self.project.id, environment_id=None, key="Foo")
 
         self.login_as(self.user)
-        self.path1 = '/{}/{}/settings/release-tracking/'.format(self.org.slug, self.project.slug)
+        self.path1 = u'/{}/{}/settings/release-tracking/'.format(self.org.slug, self.project.slug)
 
     def test_tags_list(self):
         self.browser.get(self.path1)

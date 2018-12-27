@@ -68,7 +68,7 @@ describe('OnboardingWizard', function() {
 
       expect(wrapper).toMatchSnapshot();
       let node = wrapper.find('PlatformCard').first();
-      node.props().onClick();
+      node.simulate('click');
       expect(wrapper).toMatchSnapshot();
     });
   });

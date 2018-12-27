@@ -4,16 +4,14 @@ import React from 'react';
 import _ from 'lodash';
 import createReactClass from 'create-react-class';
 
-import {t} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import Button from './buttons/button';
-import IndicatorStore from '../stores/indicatorStore';
-import LoadingIndicator from '../components/loadingIndicator';
-import Panel from '../views/settings/components/panel';
-import PanelBody from '../views/settings/components/panelBody';
-import PanelHeader from '../views/settings/components/panelHeader';
-import PluginIcon from '../plugins/components/pluginIcon';
-import plugins from '../plugins';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import Button from 'app/components/button';
+import IndicatorStore from 'app/stores/indicatorStore';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import PluginIcon from 'app/plugins/components/pluginIcon';
+import plugins from 'app/plugins';
 
 const PluginConfig = createReactClass({
   displayName: 'PluginConfig',
@@ -111,31 +109,29 @@ const PluginConfig = createReactClass({
     return (
       <Panel className={`plugin-config ref-plugin-config-${data.id}`}>
         <PanelHeader hasButtons>
-          <Flex>
-            <Flex align="center" flex="1">
-              <Flex align="center" mr={1}>
-                <PluginIcon pluginId={data.id} />
-              </Flex>
-              <span>{data.name}</span>
+          <Flex align="center" flex="1">
+            <Flex align="center" mr={1}>
+              <PluginIcon pluginId={data.id} />
             </Flex>
-            {data.canDisable &&
-              enabled && (
-                <Flex align="center">
-                  <Box mr={1}>
-                    {data.isTestable && (
-                      <Button onClick={this.testPlugin} size="small">
-                        {t('Test Plugin')}
-                      </Button>
-                    )}
-                  </Box>
-                  <Box>
-                    <Button size="small" onClick={this.disablePlugin}>
-                      {t('Disable')}
-                    </Button>
-                  </Box>
-                </Flex>
-              )}
+            <span>{data.name}</span>
           </Flex>
+          {data.canDisable &&
+            enabled && (
+              <Flex align="center">
+                <Box mr={1}>
+                  {data.isTestable && (
+                    <Button onClick={this.testPlugin} size="small">
+                      {t('Test Plugin')}
+                    </Button>
+                  )}
+                </Box>
+                <Box>
+                  <Button size="small" onClick={this.disablePlugin}>
+                    {t('Disable')}
+                  </Button>
+                </Box>
+              </Flex>
+            )}
         </PanelHeader>
         <PanelBody px={2} pt={2} flex wrap="wrap">
           {data.status === 'beta' ? (

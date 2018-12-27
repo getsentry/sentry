@@ -17,18 +17,10 @@ strip_channel_chars = ''.join([MEMBER_PREFIX, CHANNEL_PREFIX])
 
 class SlackNotifyServiceForm(forms.Form):
     workspace = forms.ChoiceField(choices=(), widget=forms.Select(
-        attrs={'style': 'width:150px'},
     ))
-    channel = forms.CharField(widget=forms.TextInput(
-        attrs={'placeholder': 'i.e #critical'},
-    ))
+    channel = forms.CharField(widget=forms.TextInput())
     channel_id = forms.HiddenInput()
-    tags = forms.CharField(required=False, widget=forms.TextInput(
-        attrs={
-            'placeholder': 'i.e environment,user,my_tag',
-            'style': 'width:200px',
-        },
-    ))
+    tags = forms.CharField(required=False, widget=forms.TextInput())
 
     def __init__(self, *args, **kwargs):
         # NOTE: Workspace maps directly to the integration ID
@@ -58,7 +50,7 @@ class SlackNotifyServiceForm(forms.Form):
             }
 
             raise forms.ValidationError(
-                _('The "%(channel)s" channel or user does not exist in the %(workspace)s Slack workspace.'),
+                _('The slack resource "%(channel)s" does not exist or has not been granted access in the %(workspace)s Slack workspace.'),
                 code='invalid',
                 params=params,
             )
@@ -72,12 +64,32 @@ class SlackNotifyServiceForm(forms.Form):
 
 class SlackNotifyServiceAction(EventAction):
     form_cls = SlackNotifyServiceForm
-    label = u'Send a notification to the {workspace} Slack workspace to {channel} and include tags {tags}'
+    label = u'Send a notification to the {workspace} Slack workspace to {channel} and show tags {tags} in notification'
+
+    def __init__(self, *args, **kwargs):
+        super(SlackNotifyServiceAction, self).__init__(*args, **kwargs)
+        self.form_fields = {
+            'workspace': {
+                'type': 'choice',
+                'choices': [(i.id, i.name) for i in self.get_integrations()]
+            },
+            'channel': {
+                'type': 'string',
+                'placeholder': 'i.e #critical'
+            },
+            'tags': {
+                'type': 'string',
+                'placeholder': 'i.e environment,user,my_tag'
+            }
+        }
 
     def is_enabled(self):
         return self.get_integrations().exists()
 
     def after(self, event, state):
+        if event.group.is_ignored():
+            return
+
         integration_id = self.get_option('workspace')
         channel = self.get_option('channel_id')
         tags = set(self.get_tags_list())
@@ -141,6 +153,13 @@ class SlackNotifyServiceAction(EventAction):
             organizations=self.project.organization,
         )
 
+    def get_form_instance(self):
+        return self.form_cls(
+            self.data,
+            integrations=self.get_integrations(),
+            channel_transformer=self.get_channel_id,
+        )
+
     def get_channel_id(self, integration_id, name):
         try:
             integration = Integration.objects.get(
@@ -151,15 +170,19 @@ class SlackNotifyServiceAction(EventAction):
         except Integration.DoesNotExist:
             return None
 
-        # Look for channel ID
-        payload = {
+        session = http.build_session()
+
+        token_payload = {
             'token': integration.metadata['access_token'],
-            'exclude_archived': False,
-            'exclude_members': True,
         }
 
-        session = http.build_session()
-        resp = session.get('https://slack.com/api/channels.list', params=payload)
+        # Look for channel ID
+        channels_payload = dict(token_payload, **{
+            'exclude_archived': False,
+            'exclude_members': True,
+        })
+
+        resp = session.get('https://slack.com/api/channels.list', params=channels_payload)
         resp = resp.json()
         if not resp.get('ok'):
             self.logger.info('rule.slack.channel_list_failed', extra={'error': resp.get('error')})
@@ -170,12 +193,20 @@ class SlackNotifyServiceAction(EventAction):
         if channel_id:
             return (CHANNEL_PREFIX, channel_id)
 
-        # Look for user ID
-        payload = {
-            'token': integration.metadata['access_token'],
-        }
+        # Channel may be private
+        resp = session.get('https://slack.com/api/groups.list', params=channels_payload)
+        resp = resp.json()
+        if not resp.get('ok'):
+            self.logger.info('rule.slack.group_list_failed', extra={'error': resp.get('error')})
+            return None
 
-        resp = session.get('https://slack.com/api/users.list', params=payload)
+        group_id = {c['name']: c['id'] for c in resp['groups']}.get(name)
+
+        if group_id:
+            return (CHANNEL_PREFIX, group_id)
+
+        # Channel may actually be a user
+        resp = session.get('https://slack.com/api/users.list', params=token_payload)
         resp = resp.json()
         if not resp.get('ok'):
             self.logger.info('rule.slack.user_list_failed', extra={'error': resp.get('error')})
@@ -187,10 +218,3 @@ class SlackNotifyServiceAction(EventAction):
             return (MEMBER_PREFIX, member_id)
 
         return None
-
-    def get_form_instance(self):
-        return self.form_cls(
-            self.data,
-            integrations=self.get_integrations(),
-            channel_transformer=self.get_channel_id,
-        )

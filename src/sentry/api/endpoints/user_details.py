@@ -100,7 +100,7 @@ class AdminUserSerializer(BaseUserSerializer):
 
 
 class OrganizationsSerializer(serializers.Serializer):
-    organizations = ListField(child=serializers.CharField(), required=True)
+    organizations = ListField(child=serializers.CharField(required=False), required=True)
 
 
 class UserDetailsEndpoint(UserEndpoint):
@@ -214,7 +214,7 @@ class UserDetailsEndpoint(UserEndpoint):
 
         for org_slug in orgs_to_remove:
             client.delete(
-                path='/organizations/{}/'.format(org_slug),
+                path=u'/organizations/{}/'.format(org_slug),
                 request=request,
                 is_sudo=True)
 

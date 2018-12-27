@@ -1,7 +1,7 @@
-import {t} from '../locale';
-import PluginActions from '../actions/pluginActions';
-import IndicatorStore from '../stores/indicatorStore';
-import {Client} from '../api';
+import {t} from 'app/locale';
+import PluginActions from 'app/actions/pluginActions';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {Client} from 'app/api';
 
 const activeFetch = {};
 // PluginsStore always exists, so api client should be independent of component lifecycle
@@ -21,7 +21,11 @@ function doUpdate({orgId, projectId, pluginId, update, ...params}) {
     .then(() => {
       PluginActions.updateSuccess(pluginId, update);
     })
-    .catch(err => {
+    .catch(resp => {
+      let err =
+        resp && resp.responseJSON && typeof resp.responseJSON.detail === 'string'
+          ? new Error(resp.responseJSON.detail)
+          : new Error('Unable to update plugin');
       PluginActions.updateError(pluginId, update, err);
     });
 
@@ -62,7 +66,7 @@ export function fetchPlugins({orgId, projectId}, options) {
     })
     .catch(err => {
       PluginActions.fetchAllError(err);
-      throw err;
+      throw new Error('Unable to fetch plugins');
     })
     .then(() => (activeFetch[path] = null));
 

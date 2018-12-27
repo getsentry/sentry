@@ -3,10 +3,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import classNames from 'classnames';
-import {t, tct} from '../../locale';
 
-import OrganizationState from '../../mixins/organizationState';
-import Confirmation from './confirmation';
+import {t, tct} from 'app/locale';
+import sdk from 'app/utils/sdk';
+import analytics from 'app/utils/analytics';
+import OrganizationState from 'app/mixins/organizationState';
+import Confirmation from 'app/components/onboardingWizard/confirmation';
 
 const TodoItem = createReactClass({
   displayName: 'TodoItem',
@@ -18,7 +20,7 @@ const TodoItem = createReactClass({
 
   mixins: [OrganizationState],
 
-  getInitialState: function() {
+  getInitialState() {
     return {
       showConfirmation: false,
       isExpanded: false,
@@ -29,78 +31,99 @@ const TodoItem = createReactClass({
     this.setState({isExpanded: !this.state.isExpanded});
   },
 
-  toggleConfirmation: function() {
+  toggleConfirmation() {
     this.setState({showConfirmation: !this.state.showConfirmation});
   },
 
-  formatDescription: function() {
+  formatDescription() {
+    let {task} = this.props;
+    let {isExpanded} = this.state;
+
     return (
       <p>
-        {this.props.task.description}{' '}
-        {this.state.isExpanded && '. ' + this.props.task.detailedDescription}
+        {task.description} {isExpanded && '. ' + task.detailedDescription}
       </p>
     );
   },
 
-  learnMoreUrlCreator: function() {
+  learnMoreUrlCreator() {
     let org = this.getOrganization();
+    let {task} = this.props;
     let learnMoreUrl;
-    if (this.props.task.featureLocation === 'project') {
-      learnMoreUrl = `/organizations/${org.slug}/projects/choose/?onboarding=1&task=${this
-        .props.task.task}`;
-    } else if (this.props.task.featureLocation === 'organization') {
-      learnMoreUrl = `/organizations/${org.slug}/${this.props.task.location}`;
-    } else if (this.props.task.featureLocation === 'absolute') {
-      learnMoreUrl = this.props.task.location;
+    if (task.featureLocation === 'project') {
+      learnMoreUrl = `/organizations/${org.slug}/projects/choose/?onboarding=1&task=${task.task}`;
+    } else if (task.featureLocation === 'organization') {
+      learnMoreUrl = `/organizations/${org.slug}/${task.location}`;
+    } else if (task.featureLocation === 'absolute') {
+      learnMoreUrl = task.location;
     } else {
-      Raven.captureMessage('No learnMoreUrl created for this featureLocation ', {
+      sdk.captureMessage('No learnMoreUrl created for this featureLocation ', {
         extra: {props: this.props, state: this.state},
       });
     }
     return learnMoreUrl;
   },
 
-  skip: function(task) {
+  recordAnalytics(action) {
+    let org = this.getOrganization();
+    let {task} = this.props;
+    analytics('onboarding.wizard_clicked', {
+      org_id: parseInt(org.id, 10),
+      todo_id: parseInt(task.task, 10),
+      todo_title: task.title,
+      action,
+    });
+  },
+
+  onSkip(task) {
+    this.recordAnalytics('skipped');
     this.props.onSkip(task);
     this.setState({showConfirmation: false});
   },
 
-  render: function() {
+  handleClick(e) {
+    this.recordAnalytics('clickthrough');
+    e.stopPropagation();
+  },
+
+  render() {
+    let {task, className} = this.props;
+    let {showConfirmation} = this.state;
     let learnMoreUrl = this.learnMoreUrlCreator();
     let description;
 
-    switch (this.props.task.status) {
+    switch (task.status) {
       case 'complete':
         description = tct('[user] completed [dateCompleted]', {
-          user: this.props.task.user,
-          dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
+          user: task.user,
+          dateCompleted: moment(task.dateCompleted).fromNow(),
         });
         break;
       case 'pending':
         description = tct('[user] kicked off [dateCompleted]', {
-          user: this.props.task.user,
-          dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
+          user: task.user,
+          dateCompleted: moment(task.dateCompleted).fromNow(),
         });
         break;
       case 'skipped':
         description = tct('[user] skipped [dateCompleted]', {
-          user: this.props.task.user,
-          dateCompleted: moment(this.props.task.dateCompleted).fromNow(),
+          user: task.user,
+          dateCompleted: moment(task.dateCompleted).fromNow(),
         });
         break;
       default:
         description = this.formatDescription();
     }
 
-    let classes = classNames(this.props.className, this.props.task.status, {
-      blur: this.state.showConfirmation,
+    let classes = classNames(className, task.status, {
+      blur: showConfirmation,
     });
 
     let showSkipButton =
-      this.props.task.skippable &&
-      this.props.task.status != 'skipped' &&
-      this.props.task.status != 'complete' &&
-      !this.state.showConfirmation;
+      task.skippable &&
+      task.status !== 'skipped' &&
+      task.status !== 'complete' &&
+      !showConfirmation;
 
     return (
       <li
@@ -108,28 +131,27 @@ const TodoItem = createReactClass({
         onMouseOver={this.toggleDescription}
         onMouseOut={this.toggleDescription}
       >
-        {this.props.task.status == 'pending' && <div className="pending-bar" />}
+        {task.status === 'pending' && <div className="pending-bar" />}
         <div className="todo-content">
           <div className="ob-checkbox">
-            {this.props.task.status == 'complete' && <span className="icon-checkmark" />}
-            {this.props.task.status == 'skipped' && <span className="icon-x" />}
-            {this.props.task.status == 'pending' && <span className="icon-ellipsis" />}
+            {task.status === 'complete' && <span className="icon-checkmark" />}
+            {task.status === 'skipped' && <span className="icon-x" />}
+            {task.status === 'pending' && <span className="icon-ellipsis" />}
           </div>
-          <a href={learnMoreUrl}>
-            <h4>{this.props.task.title}</h4>
+          <a href={learnMoreUrl} onClick={this.handleClick}>
+            <h4>{task.title}</h4>
           </a>
           <div>{description}</div>
-
           {showSkipButton && (
             <a className="skip-btn btn btn-default" onClick={this.toggleConfirmation}>
               {t('Skip')}
             </a>
           )}
         </div>
-        {this.state.showConfirmation && (
+        {showConfirmation && (
           <Confirmation
-            task={this.props.task.task}
-            onSkip={() => this.skip(this.props.task.task)}
+            task={task.task}
+            onSkip={() => this.onSkip(task.task)}
             dismiss={this.toggleConfirmation}
           />
         )}

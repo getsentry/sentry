@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {addErrorMessage, addSuccessMessage} from '../../../actionCreators/indicator';
-import {t} from '../../../locale';
-import Form from '../components/forms/form';
-import Button from '../../../components/buttons/button';
-import ConfigStore from '../../../stores/configStore';
-import JsonForm from '../components/forms/jsonForm';
-import PanelItem from '../components/panelItem';
-import accountPasswordFields from '../../../data/forms/accountPassword';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {t} from 'app/locale';
+import Form from 'app/views/settings/components/forms/form';
+import Button from 'app/components/button';
+import ConfigStore from 'app/stores/configStore';
+import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import {PanelAlert, PanelItem} from 'app/components/panels';
+import accountPasswordFields from 'app/data/forms/accountPassword';
 
 const ENDPOINT = '/users/me/password/';
 
@@ -43,6 +43,11 @@ class PasswordForm extends React.Component {
                 {t('Change password')}
               </Button>
             </PanelItem>
+          )}
+          renderHeader={() => (
+            <PanelAlert type="info">
+              {t('Changing your password will invalidate all logged in sessions.')}
+            </PanelAlert>
           )}
         />
       </Form>

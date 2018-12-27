@@ -8,10 +8,12 @@ import inspect
 import requests
 import mimetypes
 
+from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import transaction
+from docutils.core import publish_doctree
 from pytz import utc
 from random import randint
 from six import StringIO
@@ -24,6 +26,8 @@ non_named_group_matcher = re.compile(r'\([^\)]+\)')
 # [foo|bar|baz]
 either_option_matcher = re.compile(r'\[([^\]]+)\|([^\]]+)\]')
 camel_re = re.compile(r'([A-Z]+)([a-z])')
+rst_indent_re = re.compile(r'^\s{2,}')
+rst_block_re = re.compile(r'^\.\.\s[a-z]+::$')
 
 API_PREFIX = '/api/0/'
 
@@ -79,32 +83,134 @@ def get_endpoint_path(internal_endpoint):
     return '%s.%s' % (internal_endpoint.__module__, internal_endpoint.__name__, )
 
 
-def extract_title_and_text(doc):
+def parse_doc_string(doc):
+    """
+    Parse a docstring into a tuple.
+
+    The tuple contains:
+
+    (title, lines, warning, params)
+
+    `lines` is a list for backwards compatibility with
+    the JSON formatter.
+    """
     title = None
+    current_param = ''
+    in_warning = False
+    param_lines = []
+    lines = []
+    warning = []
     iterable = iter((doc or u'').splitlines())
-    clean_end = False
 
     for line in iterable:
-        line = line.strip()
+        stripped = line.strip()
         if title is None:
             if not line:
                 continue
-            title = line
-        elif line[0] * len(line) == line:
-            clean_end = True
-            break
+            title = line.strip()
+        elif stripped and stripped[0] * len(stripped) == stripped:
+            # is an RST underline
+            continue
+        elif rst_block_re.match(stripped):
+            # Presently the only RST block we use is `caution` which
+            # displays as a 'warning'
+            in_warning = True
+        elif line and stripped.startswith(':'):
+            # Is a new parameter or other annotation
+            if current_param:
+                param_lines.append(current_param)
+            current_param = stripped
+        elif current_param:
+            # Adding to an existing parameter annotation
+            current_param = current_param + ' ' + stripped
         else:
-            break
+            if in_warning:
+                # If we're indented at least 2 spaces assume
+                # we're in the RST block
+                if rst_indent_re.match(line) or not line:
+                    warning.append(stripped)
+                    continue
+                # An un-indented non-empty line means we
+                # have other content.
+                elif line:
+                    in_warning = False
+            # Normal text. We want empty lines here so we can
+            # preserve paragraph breaks.
+            lines.append(stripped)
 
-    lines = []
-    if clean_end:
-        for line in iterable:
-            if line.strip():
-                lines.append(line)
-                break
-    lines.extend(iterable)
+    if current_param:
+        param_lines.append(current_param)
 
-    return title, lines
+    if warning:
+        warning = '\n'.join(warning).strip()
+    if not warning:
+        warning = None
+
+    return title, lines, warning, parse_params(param_lines)
+
+
+def get_node_text(nodes):
+    """Recursively read text from a node tree."""
+    text = []
+    format_tags = {
+        'literal': '`',
+        'strong': '**',
+        'emphasis': '*',
+    }
+    for node in nodes:
+        # Handle inline formatting elements.
+        if (node.nodeType == node.ELEMENT_NODE and
+                node.tagName in format_tags):
+            wrap = format_tags[node.tagName]
+            text.append(wrap + get_node_text(node.childNodes) + wrap)
+            continue
+        if node.nodeType == node.TEXT_NODE:
+            text.append(node.data)
+        if node.nodeType == node.ELEMENT_NODE:
+            text.append(get_node_text(node.childNodes))
+    return ''.join(text)
+
+
+def parse_params(params):
+    """
+    Parse parameter annotations.
+
+    docutils doesn't give us much to work with, but
+    we can get a DomDocument and traverse that for path parameters
+    and query parameters, and layer on some text munging to get
+    enough data to make the output we need.
+    """
+    parsed = defaultdict(list)
+    param_tree = publish_doctree('\n'.join(params)).asdom()
+    field_names = param_tree.getElementsByTagName('field_name')
+    field_values = param_tree.getElementsByTagName('field_body')
+
+    for i, field in enumerate(field_names):
+        name = get_node_text(field.childNodes)
+        value = ''
+        field_value = field_values.item(i)
+        if field_value:
+            value = get_node_text(field_value.childNodes)
+        if name.startswith('pparam'):
+            field_type = 'path'
+            name = name[7:]
+        elif name.startswith('qparam'):
+            field_type = 'query'
+            name = name[7:]
+        elif name.startswith('auth'):
+            field_type = 'auth'
+            name = ''
+        else:
+            field_type = 'param'
+            _, name = name.split(' ', 1)
+
+        # Split out the parameter type
+        param_type = ''
+        if ' ' in name:
+            param_type, name = name.split(' ', 1)
+        parsed[field_type].append(dict(name=name, type=param_type,
+                                       description=value))
+    return parsed
 
 
 def camelcase_to_dashes(string):
@@ -138,12 +244,14 @@ def extract_endpoint_info(pattern, internal_endpoint):
         if endpoint_name.endswith('Endpoint'):
             endpoint_name = endpoint_name[:-8]
         endpoint_name = camelcase_to_dashes(endpoint_name)
-        title, text = extract_title_and_text(doc)
+        title, text, warning, params = parse_doc_string(doc)
         yield dict(
             path=API_PREFIX + path.lstrip('/'),
             method=method_name,
             title=title,
             text=text,
+            warning=warning,
+            params=params,
             scenarios=getattr(method, 'api_scenarios', None) or [],
             section=section.name.lower(),
             internal_path='%s:%s' % (get_endpoint_path(internal_endpoint), method.__name__),
@@ -445,8 +553,8 @@ class Runner(object):
 
         req_headers = dict(headers)
         req_headers['Host'] = 'sentry.io'
-        req_headers['Authorization'
-                    ] = 'Basic %s' % base64.b64encode('%s:' % (api_key.key.encode('utf-8')))
+        req_headers['Authorization'] = \
+            'Basic %s' % base64.b64encode('%s:' % (api_key.key.encode('utf-8')))
 
         url = 'http://127.0.0.1:%s%s' % (settings.SENTRY_APIDOCS_WEB_PORT, path, )
 
@@ -492,11 +600,15 @@ class Runner(object):
         return rv
 
     def to_json(self):
+        """Convert the current scenario into a dict
+        """
         doc = extract_documentation(self.func)
-        title, text = extract_title_and_text(doc)
+        title, text, warning, params = parse_doc_string(doc)
         return {
             'ident': self.ident,
             'requests': self.requests,
             'title': title,
             'text': text,
+            'params': params,
+            'warning': warning,
         }

@@ -32,7 +32,14 @@ socket.setdefaulttimeout(5)
 
 
 def env(key, default='', type=None):
-    "Extract an environment variable for use in configuration"
+    """
+    Extract an environment variable for use in configuration
+
+    :param key: The environment variable to be extracted.
+    :param default: The value to be returned if `key` is not found.
+    :param type: The type of the returned object (defaults to the type of `default`).
+    :return: The environment variable if it exists, else `default`.
+    """
 
     # First check an internal cache, so we can `pop` multiple times
     # without actually losing the value.
@@ -204,6 +211,7 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = (
     'sentry.middleware.proxy.ChunkedMiddleware',
+    'sentry.middleware.proxy.DecompressBodyMiddleware',
     'sentry.middleware.proxy.ContentLengthHeaderMiddleware',
     'sentry.middleware.security.SecurityHeadersMiddleware',
     'sentry.middleware.maintenance.ServicesUnavailableMiddleware',
@@ -224,6 +232,8 @@ MIDDLEWARE_CLASSES = (
     # TODO(dcramer): kill this once we verify its safe
     # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    # XXX: This will exhaust the request body stream and cache it
+    'raven.contrib.django.middleware.DjangoRestFrameworkCompatMiddleware',
     'sentry.debug.middleware.DebugMiddleware',
 )
 
@@ -255,10 +265,11 @@ INSTALLED_APPS = (
     'sentry.lang.javascript', 'sentry.lang.native', 'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail', 'sentry.plugins.sentry_urls', 'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks', 'social_auth', 'sudo', 'sentry.tagstore',
+    'sentry.eventstream',
 )
 
 import django
-if django.VERSION < (1, 7):
+if django.VERSION < (1, 9):
     INSTALLED_APPS += ('south', )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
@@ -266,7 +277,10 @@ STATIC_URL = '/_static/{version}/'
 
 # various middleware will use this to identify resources which should not access
 # cookies
-ANONYMOUS_STATIC_PREFIXES = ('/_static/', '/avatar/')
+ANONYMOUS_STATIC_PREFIXES = (
+    '/_static/', '/avatar/', '/organization-avatar/', '/team-avatar/', '/project-avatar/',
+    '/js-sdk-loader/'
+)
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -434,19 +448,22 @@ CELERY_IMPORTS = (
     'sentry.tasks.process_buffer', 'sentry.tasks.reports', 'sentry.tasks.reprocessing',
     'sentry.tasks.scheduler', 'sentry.tasks.signals', 'sentry.tasks.store', 'sentry.tasks.unmerge',
     'sentry.tasks.symcache_update', 'sentry.tasks.servicehooks',
-    'sentry.tagstore.tasks', 'sentry.tasks.assemble'
+    'sentry.tagstore.tasks', 'sentry.tasks.assemble', 'sentry.tasks.integrations',
+    'sentry.tasks.files',
 )
 CELERY_QUEUES = [
     Queue('activity.notify', routing_key='activity.notify'),
     Queue('alerts', routing_key='alerts'),
     Queue('auth', routing_key='auth'),
     Queue('assemble', routing_key='assemble'),
+    Queue('buffers.process_pending', routing_key='buffers.process_pending'),
     Queue('commits', routing_key='commits'),
     Queue('cleanup', routing_key='cleanup'),
     Queue('default', routing_key='default'),
     Queue('digests.delivery', routing_key='digests.delivery'),
     Queue('digests.scheduling', routing_key='digests.scheduling'),
     Queue('email', routing_key='email'),
+    Queue('events.index_event_tags', routing_key='events.index_event_tags'),
     Queue('events.preprocess_event', routing_key='events.preprocess_event'),
     Queue(
         'events.reprocessing.preprocess_event', routing_key='events.reprocessing.preprocess_event'
@@ -455,6 +472,8 @@ CELERY_QUEUES = [
     Queue('events.reprocessing.process_event', routing_key='events.reprocessing.process_event'),
     Queue('events.reprocess_events', routing_key='events.reprocess_events'),
     Queue('events.save_event', routing_key='events.save_event'),
+    Queue('files.delete', routing_key='files.delete'),
+    Queue('integrations', routing_key='integrations'),
     Queue('merge', routing_key='merge'),
     Queue('options', routing_key='options'),
     Queue('reports.deliver', routing_key='reports.deliver'),
@@ -475,7 +494,7 @@ def create_partitioned_queues(name):
     exchange = Exchange(name, type='direct')
     for num in range(1):
         CELERY_QUEUES.append(Queue(
-            '{0}-{1}'.format(name, num),
+            u'{0}-{1}'.format(name, num),
             exchange=exchange,
         ))
 
@@ -521,7 +540,7 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(seconds=10),
         'options': {
             'expires': 10,
-            'queue': 'counters-0',
+            'queue': 'buffers.process_pending',
         }
     },
     'sync-options': {
@@ -742,19 +761,30 @@ SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:api-keys': False,
     'organizations:create': True,
+    'organizations:event-attachments': False,
     'organizations:repos': True,
     'organizations:sso': True,
-    'organizations:sso-saml2': False,
+    'organizations:sso-saml2': True,
     'organizations:sso-rippling': False,
     'organizations:group-unmerge': False,
-    'organizations:integrations-v3': False,
+    'organizations:github-apps': True,
     'organizations:invite-members': True,
-    'organizations:new-settings': False,
     'organizations:require-2fa': False,
-    'organizations:environments': False,
     'organizations:internal-catchall': False,
-    'organizations:new-teams': False,
-    'organizations:code-owners': False,
+    'organizations:new-issue-ui': True,
+    'organizations:github-enterprise': True,
+    'organizations:bitbucket-integration': True,
+    'organizations:jira-integration': True,
+    'organizations:vsts-integration': True,
+    'organizations:integrations-issue-basic': False,
+    'organizations:integrations-issue-sync': False,
+    'organizations:new-teams': True,
+    'organizations:unreleased-changes': False,
+    'organizations:suggested-commits': True,
+    'organizations:relay': False,
+    'organizations:js-loader': False,
+    'organizations:health': False,
+    'organizations:discover': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
@@ -763,7 +793,8 @@ SENTRY_FEATURES = {
     'projects:rate-limits': True,
     'projects:discard-groups': False,
     'projects:custom-inbound-filters': False,
-    'projects:minidump': False,
+    'projects:minidump': True,
+    'projects:servicehooks': False,
 }
 
 # Default time zone for localization in the UI.
@@ -823,6 +854,7 @@ SENTRY_SMTP_PORT = 1025
 
 SENTRY_INTERFACES = {
     'csp': 'sentry.interfaces.security.Csp',
+    'hpkp': 'sentry.interfaces.security.Hpkp',
     'expectct': 'sentry.interfaces.security.ExpectCT',
     'expectstaple': 'sentry.interfaces.security.ExpectStaple',
     'device': 'sentry.interfaces.device.Device',
@@ -840,20 +872,8 @@ SENTRY_INTERFACES = {
     'contexts': 'sentry.interfaces.contexts.Contexts',
     'threads': 'sentry.interfaces.threads.Threads',
     'debug_meta': 'sentry.interfaces.debug_meta.DebugMeta',
-    'sentry.interfaces.Exception': 'sentry.interfaces.exception.Exception',
-    'sentry.interfaces.Message': 'sentry.interfaces.message.Message',
-    'sentry.interfaces.Stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
-    'sentry.interfaces.Template': 'sentry.interfaces.template.Template',
-    'sentry.interfaces.Query': 'sentry.interfaces.query.Query',
-    'sentry.interfaces.Http': 'sentry.interfaces.http.Http',
-    'sentry.interfaces.User': 'sentry.interfaces.user.User',
-    'sentry.interfaces.Csp': 'sentry.interfaces.security.Csp',
-    'sentry.interfaces.AppleCrashReport': 'sentry.interfaces.applecrash.AppleCrashReport',
-    'sentry.interfaces.Breadcrumbs': 'sentry.interfaces.breadcrumbs.Breadcrumbs',
-    'sentry.interfaces.Contexts': 'sentry.interfaces.contexts.Contexts',
-    'sentry.interfaces.Threads': 'sentry.interfaces.threads.Threads',
-    'sentry.interfaces.DebugMeta': 'sentry.interfaces.debug_meta.DebugMeta',
 }
+PREFER_CANONICAL_LEGACY_KEYS = False
 
 SENTRY_EMAIL_BACKEND_ALIASES = {
     'smtp': 'django.core.mail.backends.smtp.EmailBackend',
@@ -864,6 +884,7 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
 SENTRY_FILESTORE_ALIASES = {
     'filesystem': 'django.core.files.storage.FileSystemStorage',
     's3': 'sentry.filestore.s3.S3Boto3Storage',
+    'gcs': 'sentry.filestore.gcs.GoogleCloudStorage',
 }
 
 SENTRY_ANALYTICS_ALIASES = {
@@ -907,6 +928,10 @@ SENTRY_BUFFER_OPTIONS = {}
 SENTRY_CACHE = None
 SENTRY_CACHE_OPTIONS = {}
 
+# Attachment blob cache backend
+SENTRY_ATTACHMENTS = 'sentry.attachments.default.DefaultAttachmentCache'
+SENTRY_ATTACHMENTS_OPTIONS = {}
+
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
 CACHES = {
@@ -935,6 +960,9 @@ SENTRY_RATELIMITER_OPTIONS = {}
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
 
+# Snuba configuration
+SENTRY_SNUBA = os.environ.get('SNUBA', 'http://localhost:1218')
+
 # Node storage backend
 SENTRY_NODESTORE = 'sentry.nodestore.django.DjangoNodeStorage'
 SENTRY_NODESTORE_OPTIONS = {}
@@ -954,7 +982,7 @@ SENTRY_TAGSTORE_OPTIONS = (
 )
 
 # Search backend
-SENTRY_SEARCH = 'sentry.search.django.DjangoSearchBackend'
+SENTRY_SEARCH = os.environ.get('SENTRY_SEARCH', 'sentry.search.django.DjangoSearchBackend')
 SENTRY_SEARCH_OPTIONS = {}
 # SENTRY_SEARCH_OPTIONS = {
 #     'urls': ['http://localhost:9200/'],
@@ -967,6 +995,9 @@ SENTRY_TSDB_OPTIONS = {}
 
 SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
 SENTRY_NEWSLETTER_OPTIONS = {}
+
+SENTRY_EVENTSTREAM = 'sentry.eventstream.base.EventStream'
+SENTRY_EVENTSTREAM_OPTIONS = {}
 
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
@@ -1004,7 +1035,10 @@ SENTRY_MAX_HTTP_BODY_SIZE = 4096 * 4  # 16kb
 SENTRY_MAX_DICTIONARY_ITEMS = 50
 
 SENTRY_MAX_MESSAGE_LENGTH = 1024 * 8
+# how many frames are fat
 SENTRY_MAX_STACKTRACE_FRAMES = 50
+# how many frames there can be at all
+SENTRY_STACKTRACE_FRAMES_HARD_LIMIT = 250
 SENTRY_MAX_EXCEPTIONS = 25
 
 # Gravatar service base url
@@ -1117,6 +1151,7 @@ SENTRY_ROLES = (
                 'team:read',
                 'team:write',
                 'team:admin',
+                'org:integrations',
             ]
         ),
     }, {
@@ -1200,7 +1235,7 @@ SENTRY_WATCHERS = (
     (
         'webpack', [
             os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch',
-            "--config={}".format(
+            u"--config={}".format(
                 os.path.
                 normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))
             )
@@ -1225,7 +1260,24 @@ SENTRY_ONPREMISE = True
 SENTRY_USE_X_FORWARDED_FOR = True
 
 SENTRY_DEFAULT_INTEGRATIONS = (
-    'sentry.integrations.slack.SlackIntegration',
+    'sentry.integrations.bitbucket.BitbucketIntegrationProvider',
+    'sentry.integrations.slack.SlackIntegrationProvider',
+    'sentry.integrations.github.GitHubIntegrationProvider',
+    'sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider',
+    'sentry.integrations.gitlab.GitlabIntegrationProvider',
+    'sentry.integrations.jira.JiraIntegrationProvider',
+    'sentry.integrations.vsts.VstsIntegrationProvider',
+    'sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider',
+)
+
+SENTRY_INTERNAL_INTEGRATIONS = (
+    'bitbucket',
+    'github',
+    'github_enterprise',
+    'gitlab',
+    'jira',
+    'vsts',
+    'vsts-extension',
 )
 
 
@@ -1303,3 +1355,27 @@ SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'
 
 TERMS_URL = None
 PRIVACY_URL = None
+
+# Toggles whether minidumps should be cached
+SENTRY_MINIDUMP_CACHE = False
+# The location for cached minidumps
+SENTRY_MINIDUMP_PATH = '/tmp/minidump'
+
+# Relay
+# List of PKs whitelisted by Sentry.  All relays here are always
+# registered as internal relays.
+SENTRY_RELAY_WHITELIST_PK = []
+
+# When open registration is not permitted then only relays in the
+# whitelist can register.
+SENTRY_RELAY_OPEN_REGISTRATION = False
+
+# CDN
+# If this is an absolute url like e.g.: https://js.sentry-cdn.com/
+# the full url will look like this: https://js.sentry-cdn.com/<public_key>.min.js
+# otherwise django reverse url lookup will be used.
+JS_SDK_LOADER_CDN_URL = ''
+# Version of the SDK - Used in header Surrogate-Key sdk/JS_SDK_LOADER_SDK_VERSION
+JS_SDK_LOADER_SDK_VERSION = ''
+# This should be the url pointing to the JS SDK
+JS_SDK_LOADER_DEFAULT_SDK_URL = ''
