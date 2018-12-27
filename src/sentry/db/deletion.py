@@ -55,13 +55,13 @@ class BulkDeleteQuery(object):
 
         query = u"""
             delete from {table}
-            where id = any(array(
+            where id in (
                 select id
                 from {table}
                 {where}
                 {order}
                 limit {chunk_size}
-            ));
+            );
         """.format(
             table=self.model._meta.db_table,
             chunk_size=chunk_size,
