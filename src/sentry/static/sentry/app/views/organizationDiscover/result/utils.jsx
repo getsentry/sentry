@@ -48,6 +48,7 @@ export function getChartData(data, query, options = {}) {
  * @param {Object} query Query state corresponding to data
  * @param {Object} [options] Options object
  * @param {Boolean} [options.useTimestamps] (default: false) Return raw timestamps instead of formatting dates
+ * @param {Boolean} [options.assumeNullAsZero] (default: false) Assume null values as 0
  * @returns {Array}
  */
 export function getChartDataByDay(rawData, query, options = {}) {
@@ -66,7 +67,7 @@ export function getChartDataByDay(rawData, query, options = {}) {
   ].reverse();
 
   // Temporarily store series as object with series names as keys
-  const seriesHash = getEmptySeriesHash(top10Series, dates);
+  const seriesHash = getEmptySeriesHash(top10Series, dates, options);
 
   // Insert data into series if it's in a top 10 series
   data.forEach(row => {
@@ -75,7 +76,8 @@ export function getChartDataByDay(rawData, query, options = {}) {
     const dateIdx = dates.indexOf(formatDate(row.time, !options.useTimestamps));
 
     if (top10Series.has(key)) {
-      seriesHash[key][dateIdx].value = row[aggregate];
+      seriesHash[key][dateIdx].value =
+        options.assumeNullAsZero && row[aggregate] === null ? 0 : row[aggregate];
     }
   });
 
@@ -108,20 +110,20 @@ export function getRowsPageRange(baseQuery) {
 
 // Return placeholder empty series object with all series and dates listed and
 // all values set to null
-function getEmptySeriesHash(seriesSet, dates) {
+function getEmptySeriesHash(seriesSet, dates, options = {}) {
   const output = {};
 
   [...seriesSet].forEach(series => {
-    output[series] = getEmptySeries(dates);
+    output[series] = getEmptySeries(dates, options);
   });
 
   return output;
 }
 
-function getEmptySeries(dates) {
+function getEmptySeries(dates, options) {
   return dates.map(date => {
     return {
-      value: null,
+      value: options.assumeNullAsZero ? 0 : null,
       name: date,
     };
   });
