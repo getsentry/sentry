@@ -1,17 +1,27 @@
 /*eslint react/jsx-key:0*/
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
-import jQuery from 'jquery';
-import ApiMixin from '../mixins/apiMixin';
-import Avatar from '../components/avatar';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import Pagination from '../components/pagination';
-import TimeSince from '../components/timeSince';
-import {isUrl, percent, deviceNameMapper} from '../utils';
-import {t} from '../locale';
+import {sortBy, property} from 'lodash';
 
-const GroupTagValues = React.createClass({
+import SentryTypes from 'app/sentryTypes';
+import ApiMixin from 'app/mixins/apiMixin';
+import Avatar from 'app/components/avatar';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import TimeSince from 'app/components/timeSince';
+import DeviceName from 'app/components/deviceName';
+import {isUrl, percent} from 'app/utils';
+import {t} from 'app/locale';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+
+const GroupTagValues = createReactClass({
+  displayName: 'GroupTagValues',
+
+  propTypes: {
+    environment: SentryTypes.Environment,
+  },
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -20,7 +30,7 @@ const GroupTagValues = React.createClass({
       tagValueList: null,
       loading: true,
       error: false,
-      pageLinks: ''
+      pageLinks: '',
     };
   },
 
@@ -39,47 +49,50 @@ const GroupTagValues = React.createClass({
 
   fetchData() {
     let params = this.props.params;
-    let queryParams = this.props.location.query;
-    let querystring = jQuery.param(queryParams);
 
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
+    const query = {};
+
+    if (this.props.environment) {
+      query.environment = this.props.environment.name;
+    }
+
     this.api.request(`/issues/${params.groupId}/tags/${params.tagKey}/`, {
+      query,
       success: data => {
         this.setState({
           tagKey: data,
-          loading: this.state.tagValueList === null
+          loading: this.state.tagValueList === null,
         });
       },
       error: error => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
 
-    this.api.request(
-      `/issues/${params.groupId}/tags/${params.tagKey}/values/?${querystring}`,
-      {
-        success: (data, _, jqXHR) => {
-          this.setState({
-            tagValueList: data,
-            loading: this.state.tagKey === null,
-            pageLinks: jqXHR.getResponseHeader('Link')
-          });
-        },
-        error: error => {
-          this.setState({
-            error: true,
-            loading: false
-          });
-        }
-      }
-    );
+    this.api.request(`/issues/${params.groupId}/tags/${params.tagKey}/values/`, {
+      query,
+      success: (data, _, jqXHR) => {
+        this.setState({
+          tagValueList: data,
+          loading: this.state.tagKey === null,
+          pageLinks: jqXHR.getResponseHeader('Link'),
+        });
+      },
+      error: error => {
+        this.setState({
+          error: true,
+          loading: false,
+        });
+      },
+    });
   },
 
   getUserDisplayName(item) {
@@ -95,7 +108,10 @@ const GroupTagValues = React.createClass({
 
     let {orgId, projectId} = this.props.params;
     let tagKey = this.state.tagKey;
-    let children = this.state.tagValueList.map((tagValue, tagValueIdx) => {
+
+    let sortedTagValueList = sortBy(this.state.tagValueList, property('count')).reverse();
+
+    let children = sortedTagValueList.map((tagValue, tagValueIdx) => {
       let pct = percent(tagValue.count, tagKey.totalValues).toFixed(2);
       return (
         <tr key={tagValueIdx}>
@@ -107,28 +123,34 @@ const GroupTagValues = React.createClass({
             <Link
               to={{
                 pathname: `/${orgId}/${projectId}/`,
-                query: {query: `${tagKey.key}:"${tagValue.value}"`}
-              }}>
-              {tagKey.key === 'user'
-                ? [
-                    <Avatar user={tagValue} size={20} className="avatar" />,
-                    <span style={{marginLeft: 10}}>
-                      {this.getUserDisplayName(tagValue)}
-                    </span>
-                  ]
-                : deviceNameMapper(tagValue.name)}
+                query: {query: `${tagKey.key}:"${tagValue.value}"`},
+              }}
+            >
+              {tagKey.key === 'user' ? (
+                [
+                  <Avatar user={tagValue} size={20} className="avatar" />,
+                  <span style={{marginLeft: 10}}>
+                    {this.getUserDisplayName(tagValue)}
+                  </span>,
+                ]
+              ) : (
+                <DeviceName>{tagValue.name}</DeviceName>
+              )}
             </Link>
-            {tagValue.email &&
+            {tagValue.email && (
               <a
                 href={`mailto:${tagValue.email}`}
                 target="_blank"
-                className="external-icon">
+                className="external-icon"
+              >
                 <em className="icon-envelope" />
-              </a>}
-            {isUrl(tagValue.value) &&
+              </a>
+            )}
+            {isUrl(tagValue.value) && (
               <a href={tagValue.value} className="external-icon">
                 <em className="icon-open" />
-              </a>}
+              </a>
+            )}
           </td>
           <td>
             <TimeSince date={tagValue.lastSeen} />
@@ -153,9 +175,7 @@ const GroupTagValues = React.createClass({
               <th style={{width: 200}}>{t('Last Seen')}</th>
             </tr>
           </thead>
-          <tbody>
-            {children}
-          </tbody>
+          <tbody>{children}</tbody>
         </table>
         <Pagination pageLinks={this.state.pageLinks} />
         <p>
@@ -165,7 +185,7 @@ const GroupTagValues = React.createClass({
         </p>
       </div>
     );
-  }
+  },
 });
 
-export default GroupTagValues;
+export default withEnvironmentInQueryString(GroupTagValues);

@@ -1,16 +1,21 @@
 import React from 'react';
-import ApiMixin from '../mixins/apiMixin';
-import EventEntries from '../components/events/eventEntries';
-import GroupEventToolbar from './groupDetails/eventToolbar';
-import GroupSidebar from '../components/group/sidebar';
-import GroupState from '../mixins/groupState';
-import MutedBox from '../components/mutedBox';
-import GroupEventDetailsLoadingError
-  from '../components/errors/groupEventDetailsLoadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import ResolutionBox from '../components/resolutionBox';
+import createReactClass from 'create-react-class';
 
-const GroupEventDetails = React.createClass({
+import {withMeta} from 'app/components/events/meta/metaProxy';
+import ApiMixin from 'app/mixins/apiMixin';
+import EventEntries from 'app/components/events/eventEntries';
+import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
+import GroupEventToolbar from 'app/views/groupDetails/eventToolbar';
+import GroupSidebar from 'app/components/group/sidebar';
+import GroupState from 'app/mixins/groupState';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MutedBox from 'app/components/mutedBox';
+import ResolutionBox from 'app/components/resolutionBox';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+
+const GroupEventDetails = createReactClass({
+  displayName: 'GroupEventDetails',
+
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
@@ -18,7 +23,7 @@ const GroupEventDetails = React.createClass({
       loading: true,
       error: false,
       event: null,
-      eventNavLinks: ''
+      eventNavLinks: '',
     };
   },
 
@@ -33,15 +38,19 @@ const GroupEventDetails = React.createClass({
   },
 
   fetchData() {
-    let eventId = this.props.params.eventId || 'latest';
+    const eventId = this.props.params.eventId || 'latest';
+    const groupId = this.getGroup().id;
+    const orgSlug = this.getOrganization().slug;
+    const projSlug = this.getProject().slug;
 
-    let url = eventId === 'latest' || eventId === 'oldest'
-      ? '/issues/' + this.getGroup().id + '/events/' + eventId + '/'
-      : '/events/' + eventId + '/';
+    let url =
+      eventId === 'latest' || eventId === 'oldest'
+        ? `/issues/${groupId}/events/${eventId}/`
+        : `/projects/${orgSlug}/${projSlug}/events/${eventId}/`;
 
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
     this.api.request(url, {
@@ -49,59 +58,65 @@ const GroupEventDetails = React.createClass({
         this.setState({
           event: data,
           error: false,
-          loading: false
+          loading: false,
         });
 
         this.api.bulkUpdate({
-          orgId: this.getOrganization().slug,
-          projectId: this.getProject().slug,
-          itemIds: [this.getGroup().id],
+          orgId: orgSlug,
+          projectId: projSlug,
+          itemIds: [groupId],
           failSilently: true,
-          data: {hasSeen: true}
+          data: {hasSeen: true},
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
   render() {
     let group = this.getGroup();
-    let evt = this.state.event;
+    let evt = withMeta(this.state.event);
     let params = this.props.params;
 
     return (
       <div>
         <div className="event-details-container">
           <div className="primary">
-            {evt &&
+            {evt && (
               <GroupEventToolbar
                 group={group}
                 event={evt}
                 orgId={params.orgId}
                 projectId={params.projectId}
-              />}
-            {group.status != 'unresolved' &&
+              />
+            )}
+            {group.status != 'unresolved' && (
               <div className="issue-status">
-                {group.status === 'ignored' &&
-                  <MutedBox statusDetails={group.statusDetails} />}
-                {group.status === 'resolved' &&
-                  <ResolutionBox statusDetails={group.statusDetails} params={params} />}
-              </div>}
-            {this.state.loading
-              ? <LoadingIndicator />
-              : this.state.error
-                  ? <GroupEventDetailsLoadingError onRetry={this.fetchData} />
-                  : <EventEntries
-                      group={group}
-                      event={evt}
-                      orgId={params.orgId}
-                      project={this.getProject()}
-                    />}
+                {group.status === 'ignored' && (
+                  <MutedBox statusDetails={group.statusDetails} />
+                )}
+                {group.status === 'resolved' && (
+                  <ResolutionBox statusDetails={group.statusDetails} params={params} />
+                )}
+              </div>
+            )}
+            {this.state.loading ? (
+              <LoadingIndicator />
+            ) : this.state.error ? (
+              <GroupEventDetailsLoadingError onRetry={this.fetchData} />
+            ) : (
+              <EventEntries
+                group={group}
+                event={evt}
+                orgId={params.orgId}
+                project={this.getProject()}
+              />
+            )}
           </div>
           <div className="secondary">
             <GroupSidebar group={group} event={evt} />
@@ -109,7 +124,7 @@ const GroupEventDetails = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
-export default GroupEventDetails;
+export default withEnvironmentInQueryString(GroupEventDetails);

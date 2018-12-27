@@ -5,24 +5,26 @@ import GroupSeenBy from 'app/views/groupDetails/seenBy';
 import ConfigStore from 'app/stores/configStore';
 
 describe('GroupSeenBy', function() {
-  beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+  let sandbox;
 
-    this.sandbox.stub(ConfigStore, 'get').returns([]);
+  beforeEach(function() {
+    sandbox = sinon.sandbox.create();
+
+    sandbox.stub(ConfigStore, 'get').returns([]);
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   describe('render()', function() {
     it('should return null if seenBy is falsy', function() {
       let wrapper = shallow(<GroupSeenBy />, {
         context: {
-          group: {id: '1337'},
-          project: {id: '2448'},
-          team: {id: '3559'}
-        }
+          group: TestStubs.Group({seenBy: undefined}),
+          project: TestStubs.Project(),
+          team: TestStubs.Team(),
+        },
       });
       expect(wrapper.children()).toHaveLength(0);
     });
@@ -30,19 +32,20 @@ describe('GroupSeenBy', function() {
     it('should return a list of each user that saw', function() {
       let wrapper = shallow(<GroupSeenBy />, {
         context: {
-          group: {
-            id: '1337',
+          group: TestStubs.Group({
             seenBy: [
-              {id: 1, email: 'jane@example.com'},
-              {id: 2, email: 'john@example.com'}
-            ]
-          },
-          project: {id: '2448'},
-          team: {id: '3559'}
-        }
+              {id: '1', email: 'jane@example.com'},
+              {id: '2', email: 'john@example.com'},
+            ],
+          }),
+          project: TestStubs.Project(),
+          team: TestStubs.Team(),
+        },
       });
 
-      expect(wrapper.find('li')).toHaveLength(3); // +1 for "icon-eye"
+      expect(wrapper.find('EyeIcon')).toHaveLength(1);
+      expect(wrapper.find('AvatarList')).toHaveLength(1);
+      expect(wrapper.find('AvatarList').prop('users')).toHaveLength(2);
     });
   });
 });

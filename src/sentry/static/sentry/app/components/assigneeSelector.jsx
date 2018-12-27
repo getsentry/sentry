@@ -1,51 +1,49 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import classNames from 'classnames';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import {t} from '../locale';
-import {userDisplayName} from '../utils/formatters';
-import {valueIsEqual} from '../utils';
-import ApiMixin from '../mixins/apiMixin';
-import Avatar from '../components/avatar';
-import ConfigStore from '../stores/configStore';
-import DropdownLink from './dropdownLink';
-import FlowLayout from './flowLayout';
-import GroupStore from '../stores/groupStore';
-import LoadingIndicator from '../components/loadingIndicator';
-import MemberListStore from '../stores/memberListStore';
-import MenuItem from './menuItem';
-import TooltipMixin from '../mixins/tooltip';
+import {StyledMenu} from 'app/components/dropdownAutoCompleteMenu';
+import {assignToUser, assignToActor, clearAssignment} from 'app/actionCreators/group';
+import {t} from 'app/locale';
+import {valueIsEqual, buildUserId, buildTeamId} from 'app/utils';
+import ActorAvatar from 'app/components/actorAvatar';
+import Avatar from 'app/components/avatar';
+import ConfigStore from 'app/stores/configStore';
+import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import GroupStore from 'app/stores/groupStore';
+import Highlight from 'app/components/highlight';
+import InlineSvg from 'app/components/inlineSvg';
+import Link from 'app/components/link';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MemberListStore from 'app/stores/memberListStore';
+import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/sentryTypes';
+import TextOverflow from 'app/components/textOverflow';
+import space from 'app/styles/space';
 
-const AssigneeSelector = React.createClass({
+const AssigneeSelectorComponent = createReactClass({
+  displayName: 'AssigneeSelector',
+
   propTypes: {
-    id: PropTypes.string.isRequired
+    id: PropTypes.string.isRequired,
+    size: PropTypes.number,
   },
 
+  contextTypes: {
+    organization: SentryTypes.Organization,
+  },
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.connect(MemberListStore, 'memberList'),
-    TooltipMixin({
-      selector: '.tip'
-    }),
-    ApiMixin
   ],
 
   statics: {
-    filterMembers(memberList, filter) {
-      if (!memberList) return [];
-      if (!filter) return memberList;
-
-      filter = filter.toLowerCase();
-      return memberList.filter(item => {
-        let fullName = [item.name, item.email].join(' ').toLowerCase();
-
-        return fullName.indexOf(filter) !== -1;
-      });
-    },
-
     putSessionUserFirst(members) {
       // If session user is in the filtered list of members, put them at the top
+      if (!members) return [];
+
       let sessionUser = ConfigStore.get('user');
       let sessionUserIndex = members.findIndex(
         member => sessionUser && member.id === sessionUser.id
@@ -56,35 +54,39 @@ const AssigneeSelector = React.createClass({
       return [members[sessionUserIndex]]
         .concat(members.slice(0, sessionUserIndex))
         .concat(members.slice(sessionUserIndex + 1));
-    }
+    },
+  },
+
+  getDefaultProps() {
+    return {
+      size: 20,
+    };
   },
 
   getInitialState() {
     let group = GroupStore.get(this.props.id);
+    let memberList = MemberListStore.loaded ? MemberListStore.getAll() : null;
+    let loading = GroupStore.hasStatus(this.props.id, 'assignTo');
 
     return {
-      assignedTo: group.assignedTo,
-      memberList: MemberListStore.loaded ? MemberListStore.getAll() : null,
-      filter: '',
-      loading: false
+      assignedTo: group && group.assignedTo,
+      memberList,
+      loading,
     };
   },
 
   componentWillReceiveProps(nextProps) {
     let loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
-    if (nextProps.id != this.props.id || loading != this.state.loading) {
+    if (nextProps.id !== this.props.id || loading !== this.state.loading) {
       let group = GroupStore.get(this.props.id);
       this.setState({
-        assignedTo: group.assignedTo,
-        loading
+        loading,
+        assignedTo: group && group.assignedTo,
       });
     }
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    if (nextState.filter !== this.state.filter) {
-      return true;
-    }
     if (nextState.loading !== this.state.loading) {
       return true;
     }
@@ -101,21 +103,19 @@ const AssigneeSelector = React.createClass({
     return !valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
   },
 
-  componentDidUpdate(prevProps, prevState) {
-    // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
-    if (!this.containerRef) {
-      let node = jQuery(this.containerRef);
-      node.hide().show(0);
-    }
+  assignableTeams() {
+    let group = GroupStore.get(this.props.id);
 
-    let oldAssignee = prevState.assignedTo && prevState.assignedTo.id;
-    let newAssignee = this.state.assignedTo && this.state.assignedTo.id;
-    if (oldAssignee !== newAssignee) {
-      this.removeTooltips();
-      if (newAssignee) {
-        this.attachTooltips();
-      }
-    }
+    return (ProjectsStore.getBySlug(group.project.slug) || {
+      teams: [],
+    }).teams
+      .sort((a, b) => a.slug.localeCompare(b.slug))
+      .map(team => ({
+        id: buildTeamId(team.id),
+        display: `#${team.slug}`,
+        email: team.id,
+        team,
+      }));
   },
 
   onGroupChange(itemIds) {
@@ -125,151 +125,254 @@ const AssigneeSelector = React.createClass({
     let group = GroupStore.get(this.props.id);
     this.setState({
       assignedTo: group && group.assignedTo,
-      loading: GroupStore.hasStatus(this.props.id, 'assignTo')
+      loading: GroupStore.hasStatus(this.props.id, 'assignTo'),
     });
   },
 
-  assignTo(member) {
-    this.api.assignTo({id: this.props.id, member});
-    this.setState({filter: '', loading: true});
+  assignToUser(user) {
+    assignToUser({id: this.props.id, user});
+    this.setState({loading: true});
   },
 
-  clearAssignTo() {
-    this.api.assignTo({id: this.props.id});
-    this.setState({filter: '', loading: true});
+  assignToTeam(team) {
+    assignToActor({actor: {id: team.id, type: 'team'}, id: this.props.id});
+    this.setState({loading: true});
   },
 
-  onFilterKeyUp(evt) {
-    if (evt.key === 'Escape') {
-      if (!this.dropdownRef) return;
-      this.dropdownRef.close();
-    } else {
-      this.setState({
-        filter: evt.target.value
-      });
+  handleAssign({value: {type, assignee}}, state, e) {
+    if (type === 'member') {
+      this.assignToUser(assignee);
     }
-  },
 
-  onFilterKeyDown(evt) {
-    if (evt.key === 'Enter' && this.state.filter) {
-      let members = AssigneeSelector.filterMembers(
-        this.state.memberList,
-        this.state.filter
-      );
-      if (members.length > 0) {
-        this.assignTo(members[0]);
-      }
+    if (type === 'team') {
+      this.assignToTeam(assignee);
     }
+
+    e.stopPropagation();
   },
 
-  onDropdownOpen() {
-    if (this.filterRef) {
-      this.filterRef.focus();
-    }
+  clearAssignTo(e) {
+    // clears assignment
+    clearAssignment(this.props.id);
+    this.setState({loading: true});
+    e.stopPropagation();
   },
 
-  onDropdownClose() {
-    this.setState({
-      filter: ''
+  renderNewMemberNodes() {
+    let {memberList} = this.state;
+    let {size} = this.props;
+    let members = AssigneeSelectorComponent.putSessionUserFirst(memberList);
+
+    return members.map(member => {
+      return {
+        value: {type: 'member', assignee: member},
+        searchKey: `${member.email} ${member.name} ${member.slug}`,
+        label: ({inputValue}) => (
+          <MenuItemWrapper
+            key={buildUserId(member.id)}
+            onSelect={this.assignToUser.bind(this, member)}
+          >
+            <IconContainer>
+              <Avatar user={member} size={size} />
+            </IconContainer>
+            <Label>
+              <Highlight text={inputValue}>{member.name || member.email}</Highlight>
+            </Label>
+          </MenuItemWrapper>
+        ),
+      };
     });
   },
 
-  highlight(text, highlightText) {
-    if (!highlightText) {
-      return text;
-    }
-    highlightText = highlightText.toLowerCase();
-    let idx = text.toLowerCase().indexOf(highlightText);
-    if (idx === -1) {
-      return text;
-    }
-    return (
-      <span>
-        {text.substr(0, idx)}
-        <strong className="highlight">
-          {text.substr(idx, highlightText.length)}
-        </strong>
-        {text.substr(idx + highlightText.length)}
-      </span>
-    );
+  renderNewTeamNodes() {
+    let {size} = this.props;
+
+    return this.assignableTeams().map(({id, display, team}) => {
+      return {
+        value: {type: 'team', assignee: team},
+        searchKey: team.slug,
+        label: ({inputValue}) => (
+          <MenuItemWrapper key={id} onSelect={this.assignToTeam.bind(this, team)}>
+            <IconContainer>
+              <Avatar team={team} size={size} />
+            </IconContainer>
+            <Label>
+              <Highlight text={inputValue}>{display}</Highlight>
+            </Label>
+          </MenuItemWrapper>
+        ),
+      };
+    });
+  },
+
+  renderNewDropdownItems() {
+    let teams = this.renderNewTeamNodes();
+    let members = this.renderNewMemberNodes();
+
+    return [
+      {id: 'team-header', hideGroupLabel: true, items: teams},
+      {id: 'members-header', items: members},
+    ];
   },
 
   render() {
-    let {loading, assignedTo, filter, memberList} = this.state;
-    let memberListLoading = this.state.memberList === null;
-
-    let className = classNames('assignee-selector anchor-right', {
-      unassigned: !assignedTo
-    });
-
-    let members = AssigneeSelector.filterMembers(memberList, filter);
-    members = AssigneeSelector.putSessionUserFirst(members);
-
-    let memberNodes = members && members.length
-      ? members.map(item => {
-          return (
-            <MenuItem
-              key={item.id}
-              disabled={loading}
-              onSelect={this.assignTo.bind(this, item)}>
-              <Avatar user={item} className="avatar" size={48} />
-              {this.highlight(item.name || item.email, filter)}
-            </MenuItem>
-          );
-        })
-      : <li className="not-found">
-          <span>{t('No matching users found.')}</span>
-        </li>;
-
-    let tooltipTitle = assignedTo ? userDisplayName(assignedTo) : null;
+    let {className} = this.props;
+    let {organization} = this.context;
+    let {loading, assignedTo, memberList} = this.state;
+    let canInvite = ConfigStore.get('invitesEnabled');
+    let hasOrgWrite = organization.access.includes('org:write');
 
     return (
-      <div ref={ref => (this.containerRef = ref)}>
-        <div className={classNames(className, 'tip')} title={tooltipTitle}>
-          {loading
-            ? <LoadingIndicator mini />
-            : <DropdownLink
-                ref={ref => (this.dropdownRef = ref)}
-                className="assignee-selector-toggle"
-                onOpen={this.onDropdownOpen}
-                onClose={this.onDropdownClose}
-                title={
-                  assignedTo
-                    ? <Avatar user={assignedTo} className="avatar" size={48} />
-                    : <span className="icon-user" />
-                }>
-                {!memberListLoading &&
-                  <MenuItem noAnchor>
-                    <input
-                      type="text"
-                      className="form-control input-sm"
-                      placeholder={t('Filter people')}
-                      ref={ref => (this.filterRef = ref)}
-                      onKeyDown={this.onFilterKeyDown}
-                      onKeyUp={this.onFilterKeyUp}
-                    />
-                  </MenuItem>}
-                {!memberListLoading &&
-                  assignedTo &&
-                  <MenuItem
-                    className="clear-assignee"
-                    disabled={!loading}
-                    onSelect={this.clearAssignTo}>
-                    <span className="icon-circle-cross" /> {t('Clear Assignee')}
-                  </MenuItem>}
-                {!memberListLoading && memberNodes}
-
-                {memberListLoading &&
-                  <li>
-                    <FlowLayout center className="list-loading-container">
-                      <LoadingIndicator mini />
-                    </FlowLayout>
-                  </li>}
-              </DropdownLink>}
-        </div>
+      <div className={className}>
+        {loading && (
+          <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
+        )}
+        {!loading && (
+          <DropdownAutoComplete
+            maxHeight={400}
+            zIndex={2}
+            onOpen={e => {
+              // This can be called multiple times and does not always have `event`
+              if (!e) return;
+              e.stopPropagation();
+            }}
+            busy={memberList === null}
+            items={memberList !== null ? this.renderNewDropdownItems() : null}
+            alignMenu="right"
+            onSelect={this.handleAssign}
+            itemSize="small"
+            searchPlaceholder={t('Filter teams and people')}
+            menuWithArrow
+            emptyHidesInput
+            menuHeader={
+              assignedTo && (
+                <MenuItemWrapper
+                  data-test-id="clear-assignee"
+                  disabled={!loading}
+                  onClick={this.clearAssignTo}
+                  py={0}
+                >
+                  <IconContainer>
+                    <ClearAssigneeIcon />
+                  </IconContainer>
+                  <Label>{t('Clear Assignee')}</Label>
+                </MenuItemWrapper>
+              )
+            }
+            menuFooter={
+              canInvite &&
+              hasOrgWrite && (
+                <InviteMemberLink
+                  data-test-id="invite-member"
+                  disabled={loading}
+                  to={`/settings/${this.context.organization
+                    .slug}/members/new/?referrer=assignee_selector`}
+                >
+                  <MenuItemWrapper>
+                    <IconContainer>
+                      <InviteMemberIcon />
+                    </IconContainer>
+                    <Label>{t('Invite Member')}</Label>
+                  </MenuItemWrapper>
+                </InviteMemberLink>
+              )
+            }
+          >
+            {({getActorProps}) => {
+              return (
+                <DropdownButton {...getActorProps({})}>
+                  {assignedTo ? (
+                    <ActorAvatar actor={assignedTo} className="avatar" size={24} />
+                  ) : (
+                    <IconUser src="icon-user" />
+                  )}
+                  <StyledChevron src="icon-chevron-down" />
+                </DropdownButton>
+              );
+            }}
+          </DropdownAutoComplete>
+        )}
       </div>
     );
-  }
+  },
 });
 
+const AssigneeSelector = styled(AssigneeSelectorComponent)`
+  display: flex;
+  justify-content: flex-end;
+
+  /* manually align menu underneath dropdown caret */
+  /* stylelint-disable-next-line no-duplicate-selectors */
+  ${StyledMenu} {
+    right: -14px;
+  }
+`;
+
 export default AssigneeSelector;
+export {AssigneeSelectorComponent};
+
+const getSvgStyle = () => `
+  font-size: 16px;
+  opacity: 0.3;
+`;
+
+const IconUser = styled(InlineSvg)`
+  color: ${p => p.theme.gray3};
+  height: 20px;
+  width: 20px;
+
+  /* We need this to center with Avatar */
+  margin-right: 2px;
+`;
+
+const IconContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+`;
+
+const MenuItemWrapper = styled(({py, ...props}) => <div {...props} />)`
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  ${props =>
+    typeof props.py !== 'undefined' &&
+    `
+      padding-top: ${props.py};
+      padding-bottom: ${props.py};
+    `};
+`;
+
+const InviteMemberLink = styled(Link)`
+  color: ${p => p.theme.textColor};
+`;
+
+const Label = styled(TextOverflow)`
+  margin-left: 6px;
+`;
+
+const ClearAssigneeIcon = styled(props => (
+  <InlineSvg {...props} src="icon-circle-close" />
+))`
+  ${getSvgStyle};
+`;
+
+const InviteMemberIcon = styled(props => <InlineSvg {...props} src="icon-circle-add" />)`
+  ${getSvgStyle};
+`;
+
+const StyledChevron = styled(InlineSvg)`
+  margin-left: ${space(1)};
+  width: 12px;
+  height: 12px;
+`;
+
+const DropdownButton = styled('div')`
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+`;

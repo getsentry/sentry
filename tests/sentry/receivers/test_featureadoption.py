@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import json
 from django.utils import timezone
 
-from sentry.models import FeatureAdoption, Rule
+from sentry.models import FeatureAdoption, GroupTombstone, Rule
 from sentry.plugins import IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     alert_rule_created,
@@ -32,7 +32,7 @@ class FeatureAdoptionTest(TestCase):
         self.owner = self.create_user()
         self.organization = self.create_organization(owner=self.owner)
         self.team = self.create_team(organization=self.organization)
-        self.project = self.create_project(team=self.team)
+        self.project = self.create_project(teams=[self.team])
 
     def test_bad_feature_slug(self):
         FeatureAdoption.objects.record(self.organization.id, "xxx")
@@ -343,7 +343,7 @@ class FeatureAdoptionTest(TestCase):
                 "extra": {
                     "session:duration": 40364
                 },
-                "sentry.interfaces.Exception": {
+                "exception": {
                     "exc_omitted": null,
                     "values": [{
                         "stacktrace": {
@@ -374,18 +374,18 @@ class FeatureAdoptionTest(TestCase):
                         "module": null
                     }]
                 },
-                "sentry.interfaces.Http": {
+                "request": {
                     "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
                     "headers": [
                         ["Referer", "https://sentry.io/welcome/"],
                         ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
                     ]
                 },
-                "sentry.interfaces.User": {
+                "user": {
                     "ip_address": "0.0.0.0"
                 },
                 "version": "7",
-                "sentry.interfaces.Breadcrumbs": {
+                "breadcrumbs": {
                     "values": [
                         {
                             "category": "xhr",
@@ -443,7 +443,7 @@ class FeatureAdoptionTest(TestCase):
                 "extra": {
                     "session:duration": 40364
                 },
-                "sentry.interfaces.Exception": {
+                "exception": {
                     "exc_omitted": null,
                     "values": [{
                         "stacktrace": {
@@ -474,18 +474,18 @@ class FeatureAdoptionTest(TestCase):
                         "module": null
                     }]
                 },
-                "sentry.interfaces.Http": {
+                "request": {
                     "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
                     "headers": [
                         ["Referer", "https://sentry.io/welcome/"],
                         ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
                     ]
                 },
-                "sentry.interfaces.User": {
+                "user": {
                     "ip_address": "0.0.0.0"
                 },
                 "version": "7",
-                "sentry.interfaces.Breadcrumbs": {
+                "breadcrumbs": {
                     "values": [
                         {
                             "category": "xhr",
@@ -627,21 +627,31 @@ class FeatureAdoptionTest(TestCase):
         member = self.create_member(
             organization=self.organization, teams=[self.team], user=self.create_user()
         )
-        member_joined.send(member=member, sender=type(self.project))
+        member_joined.send(member=member, organization=self.organization, sender=type(self.project))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="invite_team"
         )
         assert feature_complete
 
     def test_assignment(self):
-        issue_assigned.send(project=self.project, group=self.group, sender=type(self.project))
+        issue_assigned.send(
+            project=self.project,
+            group=self.group,
+            user=self.user,
+            sender='something')
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="assignment"
         )
         assert feature_complete
 
     def test_resolved_in_release(self):
-        issue_resolved_in_release.send(project=self.project, sender=type(self.project))
+        issue_resolved_in_release.send(
+            project=self.project,
+            group=self.group,
+            user=self.user,
+            resolution_type='now',
+            sender=type(
+                self.project))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="resolved_in_release"
         )
@@ -655,7 +665,7 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete
 
     def test_save_search(self):
-        save_search_created.send(project=self.project, sender=type(self.project))
+        save_search_created.send(project=self.project, user=self.user, sender=type(self.project))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="saved_search"
         )
@@ -673,7 +683,12 @@ class FeatureAdoptionTest(TestCase):
             project=self.project, label="Trivially modified rule", data=DEFAULT_RULE_DATA
         )
 
-        alert_rule_created.send(project=self.project, rule=rule, sender=type(self.project))
+        alert_rule_created.send(
+            user=self.owner,
+            project=self.project,
+            rule=rule,
+            sender=type(
+                self.project))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="alert_rules"
         )
@@ -704,7 +719,12 @@ class FeatureAdoptionTest(TestCase):
         assert feature_complete
 
     def test_sso(self):
-        sso_enabled.send(organization=self.organization, sender=type(self.organization))
+        sso_enabled.send(
+            organization=self.organization,
+            user=self.user,
+            provider='google',
+            sender=type(
+                self.organization))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="sso"
         )
@@ -714,5 +734,15 @@ class FeatureAdoptionTest(TestCase):
         data_scrubber_enabled.send(organization=self.organization, sender=type(self.organization))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="data_scrubbers"
+        )
+        assert feature_complete
+
+    def test_delete_and_discard(self):
+        GroupTombstone.objects.create(
+            previous_group_id=self.group.id,
+            project=self.project,
+        )
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization, slug="delete_and_discard"
         )
         assert feature_complete

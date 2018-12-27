@@ -32,7 +32,12 @@ class RuleProcessorTest(TestCase):
             }
         )
 
-        rp = RuleProcessor(event, is_new=True, is_regression=True, is_sample=False)
+        rp = RuleProcessor(
+            event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=True)
         results = list(rp.apply())
         assert len(results) == 1
         callback, futures = results[0]
@@ -60,7 +65,7 @@ class EventCompatibilityProxyTest(TestCase):
         event = self.create_event(
             message='biz baz',
             data={
-                'sentry.interfaces.Message': {
+                'logentry': {
                     'message': 'foo %s',
                     'formatted': 'foo bar',
                     'params': ['bar'],

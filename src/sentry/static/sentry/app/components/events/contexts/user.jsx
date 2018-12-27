@@ -1,16 +1,16 @@
 /*eslint react/jsx-key:0*/
 import PropTypes from 'prop-types';
-
 import React from 'react';
 import _ from 'lodash';
 
-import Avatar from '../../../components/avatar';
-import KeyValueList from '../interfaces/keyValueList';
+import Avatar from 'app/components/avatar';
+import ErrorBoundary from 'app/components/errorBoundary';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
 
-const UserContextType = React.createClass({
-  propTypes: {
-    data: PropTypes.object.isRequired
-  },
+class UserContextType extends React.Component {
+  static propTypes = {
+    data: PropTypes.object.isRequired,
+  };
 
   render() {
     let user = this.props.data;
@@ -27,7 +27,7 @@ const UserContextType = React.createClass({
           <a href={`mailto:${user.email}`} target="_blank" className="external-icon">
             <em className="icon-envelope" />
           </a>
-        </pre>
+        </pre>,
       ]);
     user.username && builtins.push(['Username', <pre>{user.username}</pre>]);
     user.ip_address && builtins.push(['IP Address', <pre>{user.ip_address}</pre>]);
@@ -41,25 +41,31 @@ const UserContextType = React.createClass({
     return (
       <div className="user-widget">
         <div className="pull-left">
-          <Avatar user={user} size={96} gravatar={false} />
+          <Avatar user={user} size={48} gravatar={false} />
         </div>
         <table className="key-value table">
           <tbody>
             {builtins.map(([key, value]) => {
               return (
                 <tr key={key}>
-                  <td className="key" key="0">{key}</td>
-                  <td className="value" key="1">{value}</td>
+                  <td className="key" key="0">
+                    {key}
+                  </td>
+                  <td className="value" key="1">
+                    {value}
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-        {children && <KeyValueList data={children} isContextData={true} />}
+        <ErrorBoundary mini>
+          {children && <KeyValueList data={children} isContextData={true} />}
+        </ErrorBoundary>
       </div>
     );
   }
-});
+}
 
 UserContextType.getTitle = function(value) {
   return 'User';

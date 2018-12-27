@@ -1,6 +1,7 @@
+import {MetaProxy, withMeta} from 'app/components/events/meta/metaProxy';
 import {
   getCurlCommand,
-  objectToSortedTupleArray
+  objectToSortedTupleArray,
 } from 'app/components/events/interfaces/utils';
 
 describe('components/interfaces/utils', function() {
@@ -14,17 +15,17 @@ describe('components/interfaces/utils', function() {
             ['Referer', 'http://example.com'],
             [
               'User-Agent',
-              'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36'
+              'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36',
             ],
-            ['Content-Type', 'application/json']
+            ['Content-Type', 'application/json'],
           ],
           env: {
-            ENV: 'prod'
+            ENV: 'prod',
           },
           fragment: '',
           query: 'foo=bar',
           data: '{"hello": "world"}',
-          method: 'GET'
+          method: 'GET',
         })
       ).toEqual(
         'curl \\\n' +
@@ -42,15 +43,15 @@ describe('components/interfaces/utils', function() {
           headers: [
             ['Content-Type', 'application/json'],
             ['Referer', 'http://example.com'],
-            ['Accept-Encoding', 'gzip']
+            ['Accept-Encoding', 'gzip'],
           ],
           env: {
-            ENV: 'prod'
+            ENV: 'prod',
           },
           fragment: '',
           query: 'foo=bar',
           data: '{"hello": "world"}',
-          method: 'GET'
+          method: 'GET',
         })
       ).toEqual(
         'curl \\\n' +
@@ -68,13 +69,47 @@ describe('components/interfaces/utils', function() {
           url: 'http://example.com/foo',
           headers: [],
           env: {
-            ENV: 'prod'
+            ENV: 'prod',
           },
           fragment: '',
           query: 'foo=bar',
-          method: 'GET'
+          method: 'GET',
         })
       ).toEqual('curl \\\n "http://example.com/foo?foo=bar"');
+    });
+
+    it('works with a Proxy', function() {
+      const spy = jest.spyOn(MetaProxy.prototype, 'get');
+      const data = {
+        fragment: '',
+        cookies: [],
+        inferredContentType: null,
+        env: {
+          SERVER_NAME: 'sentry',
+          SERVER_PORT: '443',
+          REMOTE_ADDR: '127.0.0.1',
+        },
+        headers: [
+          ['Accept-Language', 'en'],
+          ['Referer', 'http://example.com'],
+          [
+            'User-Agent',
+            'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.72 Safari/537.36',
+          ],
+          ['Content-Type', 'application/json'],
+          ['Referer', 'http://example.com'],
+          ['Accept-Encoding', 'gzip'],
+        ],
+        url: 'https://www.sentry.io',
+        query: '',
+        data: null,
+        method: 'GET',
+      };
+      const eventWithProxy = withMeta(data);
+      getCurlCommand(eventWithProxy);
+
+      // This may need to change, but we should aim to keep this low
+      expect(spy).toHaveBeenCalledTimes(172);
     });
   });
 
@@ -95,7 +130,7 @@ describe('components/interfaces/utils', function() {
 
       expect(
         objectToSortedTupleArray({
-          foo: ['bar', 'baz']
+          foo: ['bar', 'baz'],
         })
       ).toEqual([['foo', 'bar'], ['foo', 'baz']]);
 

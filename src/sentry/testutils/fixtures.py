@@ -10,21 +10,44 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import copy
 import json
+import os
 import petname
+import random
 import six
 import warnings
 
+from django.db import IntegrityError, transaction
+from django.utils import timezone
 from django.utils.text import slugify
 from exam import fixture
+from hashlib import sha1
+from loremipsum import Generator
 from uuid import uuid4
-import os
-from django.utils import timezone
 
+from sentry.event_manager import EventManager
+from sentry.constants import SentryAppStatus
+from sentry.mediators import sentry_apps, sentry_app_installations, service_hooks
 from sentry.models import (
-    Activity, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
+    Activity, Environment, Event, EventError, EventMapping, Group, Organization, OrganizationMember,
     OrganizationMemberTeam, Project, Team, User, UserEmail, Release, Commit, ReleaseCommit,
-    CommitAuthor, Repository, CommitFileChange
+    CommitAuthor, Repository, CommitFileChange, ProjectDebugFile, File, UserPermission, EventAttachment
 )
+from sentry.utils.canonical import CanonicalKeyDict
+
+loremipsum = Generator()
+
+
+def make_sentence(words=None):
+    if words is None:
+        words = int(random.weibullvariate(8, 3))
+    return ' '.join(random.choice(loremipsum.words) for _ in range(words))
+
+
+def make_word(words=None):
+    if words is None:
+        words = int(random.weibullvariate(8, 3))
+    return random.choice(loremipsum.words)
+
 
 DEFAULT_EVENT_DATA = {
     'extra': {
@@ -39,7 +62,7 @@ DEFAULT_EVENT_DATA = {
     'modules': {
         'raven': '3.1.13'
     },
-    'sentry.interfaces.Http': {
+    'request': {
         'cookies': {},
         'data': {},
         'env': {},
@@ -48,7 +71,7 @@ DEFAULT_EVENT_DATA = {
         'query_string': '',
         'url': 'http://example.com',
     },
-    'sentry.interfaces.Stacktrace': {
+    'stacktrace': {
         'frames': [
             {
                 'abs_path':
@@ -56,7 +79,7 @@ DEFAULT_EVENT_DATA = {
                 'context_line':
                 '                        string_max_length=self.string_max_length)',
                 'filename':
-                'raven/base.py',
+                'sentry/models/foo.py',
                 'function':
                 'build_msg',
                 'in_app':
@@ -67,12 +90,12 @@ DEFAULT_EVENT_DATA = {
                 'raven.base',
                 'post_context': [
                     '                },', '            })', '',
-                    "        if 'sentry.interfaces.Stacktrace' in data:",
+                    "        if 'stacktrace' in data:",
                     '            if self.include_paths:'
                 ],
                 'pre_context': [
                     '', '            data.update({',
-                    "                'sentry.interfaces.Stacktrace': {",
+                    "                'stacktrace': {",
                     "                    'frames': get_stack_info(frames,",
                     '                        list_max_length=self.list_max_length,'
                 ],
@@ -83,10 +106,10 @@ DEFAULT_EVENT_DATA = {
                     'event_type': 'raven.events.Message',
                     'frames': '<generator object iter_stack_frames at 0x103fef050>',
                     'handler': '<raven.events.Message object at 0x103feb710>',
-                    'k': 'sentry.interfaces.Message',
+                    'k': 'logentry',
                     'public_key': None,
                     'result': {
-                        'sentry.interfaces.Message':
+                        'logentry':
                         "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
                     },
                     'self': '<raven.base.Client object at 0x104397f10>',
@@ -112,12 +135,12 @@ DEFAULT_EVENT_DATA = {
                 'raven.base',
                 'post_context': [
                     '                },', '            })', '',
-                    "        if 'sentry.interfaces.Stacktrace' in data:",
+                    "        if 'stacktrace' in data:",
                     '            if self.include_paths:'
                 ],
                 'pre_context': [
                     '', '            data.update({',
-                    "                'sentry.interfaces.Stacktrace': {",
+                    "                'stacktrace': {",
                     "                    'frames': get_stack_info(frames,",
                     '                        list_max_length=self.list_max_length,'
                 ],
@@ -128,10 +151,10 @@ DEFAULT_EVENT_DATA = {
                     'event_type': 'raven.events.Message',
                     'frames': '<generator object iter_stack_frames at 0x103fef050>',
                     'handler': '<raven.events.Message object at 0x103feb710>',
-                    'k': 'sentry.interfaces.Message',
+                    'k': 'logentry',
                     'public_key': None,
                     'result': {
-                        'sentry.interfaces.Message':
+                        'logentry':
                         "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
                     },
                     'self': '<raven.base.Client object at 0x104397f10>',
@@ -143,6 +166,7 @@ DEFAULT_EVENT_DATA = {
         ],
     },
     'tags': [],
+    'platform': 'python',
 }
 
 
@@ -189,7 +213,14 @@ class Fixtures(object):
         return self.create_project(
             name='Bar',
             slug='bar',
-            team=self.team,
+            teams=[self.team],
+        )
+
+    @fixture
+    def environment(self):
+        return self.create_environment(
+            name='development',
+            project=self.project,
         )
 
     @fixture
@@ -209,15 +240,11 @@ class Fixtures(object):
             group=self.group, project=self.project, type=Activity.NOTE, user=self.user, data={}
         )
 
-    def create_organization(self, **kwargs):
-        if not kwargs.get('name'):
-            kwargs['name'] = petname.Generate(2, ' ', letters=10).title()
+    def create_organization(self, name=None, owner=None, **kwargs):
+        if not name:
+            name = petname.Generate(2, ' ', letters=10).title()
 
-        owner = kwargs.pop('owner', -1)
-        if owner is -1:
-            owner = self.user
-
-        org = Organization.objects.create(**kwargs)
+        org = Organization.objects.create(name=name, **kwargs)
         if owner:
             self.create_member(
                 organization=org,
@@ -232,12 +259,27 @@ class Fixtures(object):
         om = OrganizationMember.objects.create(**kwargs)
         if teams:
             for team in teams:
-                OrganizationMemberTeam.objects.create(
+                self.create_team_membership(
                     team=team,
-                    organizationmember=om,
-                    is_active=True,
+                    member=om,
                 )
         return om
+
+    def create_team_membership(self, team, member=None, user=None):
+        if member is None:
+            member, _ = OrganizationMember.objects.get_or_create(
+                user=user,
+                organization=team.organization,
+                defaults={
+                    'role': 'member',
+                }
+            )
+
+        return OrganizationMemberTeam.objects.create(
+            team=team,
+            organizationmember=member,
+            is_active=True,
+        )
 
     def create_team(self, **kwargs):
         if not kwargs.get('name'):
@@ -246,21 +288,41 @@ class Fixtures(object):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('organization'):
             kwargs['organization'] = self.organization
+        members = kwargs.pop('members', None)
 
-        return Team.objects.create(**kwargs)
+        team = Team.objects.create(**kwargs)
+        if members:
+            for user in members:
+                self.create_team_membership(team=team, user=user)
+        return team
+
+    def create_environment(self, **kwargs):
+        project = kwargs.get('project', self.project)
+        name = kwargs.get('name', petname.Generate(3, ' ', letters=10)[:64])
+        env = Environment.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            name=name,
+        )
+        env.add_project(project)
+        return env
 
     def create_project(self, **kwargs):
+        teams = kwargs.pop('teams', None)
+
+        if teams is None:
+            teams = [self.team]
+
         if not kwargs.get('name'):
             kwargs['name'] = petname.Generate(2, ' ', letters=10).title()
         if not kwargs.get('slug'):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
-        if not kwargs.get('team'):
-            kwargs['team'] = self.team
         if not kwargs.get('organization'):
-            kwargs['organization'] = kwargs['team'].organization
+            kwargs['organization'] = teams[0].organization
 
         project = Project.objects.create(**kwargs)
-        project.add_team(kwargs['team'])
+        for team in teams:
+            project.add_team(team)
         return project
 
     def create_project_key(self, project):
@@ -281,16 +343,23 @@ class Fixtures(object):
         Activity.objects.create(
             type=Activity.RELEASE,
             project=project,
-            ident=version,
+            ident=Activity.get_version_ident(version),
             user=user,
             data={'version': version},
         )
 
         # add commits
         if user:
-            author = self.create_commit_author(project, user)
-            repo = self.create_repo(project)
-            commit = self.create_commit(project, repo, author, release)
+            author = self.create_commit_author(project=project, user=user)
+            repo = self.create_repo(project, name='organization-{}'.format(project.slug))
+            commit = self.create_commit(
+                project=project,
+                repo=repo,
+                author=author,
+                release=release,
+                key='deadbeef',
+                message='placeholder commit message',
+            )
 
             release.update(
                 authors=[six.text_type(author.id)],
@@ -300,51 +369,55 @@ class Fixtures(object):
 
         return release
 
-    def create_repo(self, project):
+    def create_repo(self, project, name=None):
         repo = Repository.objects.create(
             organization_id=project.organization_id,
-            name='organization-{}'.format(project.name),
+            name=name or '{}-{}'.format(petname.Generate(2, '',
+                                                         letters=10), random.randint(1000, 9999)),
         )
         return repo
 
-    def create_commit(self, project, repo, author, release):
+    def create_commit(self, repo, project=None, author=None, release=None,
+                      message=None, key=None, date_added=None):
         commit = Commit.objects.get_or_create(
-            organization_id=project.organization_id,
+            organization_id=repo.organization_id,
             repository_id=repo.id,
-            key='deadbeef',
+            key=key or sha1(uuid4().hex).hexdigest(),
             defaults={
-                'message': 'placeholder commit message',
-                'author': author,
-                'date_added': timezone.now(),
+                'message': message or make_sentence(),
+                'author': author or self.create_commit_author(organization_id=repo.organization_id),
+                'date_added': date_added or timezone.now(),
             }
         )[0]
 
-        # add it to release
-        ReleaseCommit.objects.create(
-            organization_id=project.organization_id,
-            project_id=project.id,
-            release=release,
-            commit=commit,
-            order=1,
-        )
+        if release:
+            assert project
+            ReleaseCommit.objects.create(
+                organization_id=repo.organization_id,
+                project_id=project.id,
+                release=release,
+                commit=commit,
+                order=1,
+            )
 
-        self.create_commit_file_change(commit, release, project, '/models/foo.py')
-        self.create_commit_file_change(commit, release, project, '/worsematch/foo.py')
-        self.create_commit_file_change(commit, release, project, '/models/other.py')
+        self.create_commit_file_change(commit=commit, filename='/models/foo.py')
+        self.create_commit_file_change(commit=commit, filename='/worsematch/foo.py')
+        self.create_commit_file_change(commit=commit, filename='/models/other.py')
 
         return commit
 
-    def create_commit_author(self, project, user):
-        commit_author = CommitAuthor.objects.get_or_create(
-            organization_id=project.organization_id, email=user, defaults={
-                'name': user,
+    def create_commit_author(self, organization_id=None, project=None, user=None):
+        return CommitAuthor.objects.get_or_create(
+            organization_id=organization_id or project.organization_id,
+            email=user.email if user else '{}@example.com'.format(make_word()),
+            defaults={
+                'name': user.name if user else make_word(),
             }
         )[0]
-        return commit_author
 
-    def create_commit_file_change(self, commit, release, project, filename):
+    def create_commit_file_change(self, commit, filename):
         commit_file_change = CommitFileChange.objects.get_or_create(
-            organization_id=project.organization_id,
+            organization_id=commit.organization_id,
             commit=commit,
             filename=filename,
             type='M',
@@ -352,7 +425,7 @@ class Fixtures(object):
         return commit_file_change
 
     def create_user(self, email=None, **kwargs):
-        if not email:
+        if email is None:
             email = uuid4().hex + '@example.com'
 
         kwargs.setdefault('username', email)
@@ -361,11 +434,12 @@ class Fixtures(object):
         kwargs.setdefault('is_superuser', False)
 
         user = User(email=email, **kwargs)
-        user.set_password('admin')
+        if not kwargs.get('password'):
+            user.set_password('admin')
         user.save()
 
         # UserEmail is created by a signal
-        UserEmail.objects.filter(
+        assert UserEmail.objects.filter(
             user=user,
             email=email,
         ).update(is_verified=True)
@@ -383,18 +457,27 @@ class Fixtures(object):
 
         return useremail
 
-    def create_event(self, event_id=None, **kwargs):
+    def create_event(self, event_id=None, normalize=True, **kwargs):
         if event_id is None:
             event_id = uuid4().hex
         if 'group' not in kwargs:
             kwargs['group'] = self.group
         kwargs.setdefault('project', kwargs['group'].project)
         kwargs.setdefault('data', copy.deepcopy(DEFAULT_EVENT_DATA))
+        kwargs.setdefault('platform', kwargs['data'].get('platform', 'python'))
+        kwargs.setdefault('message', kwargs['data'].get('message', 'message'))
         if kwargs.get('tags'):
             tags = kwargs.pop('tags')
             if isinstance(tags, dict):
                 tags = list(tags.items())
             kwargs['data']['tags'] = tags
+        if kwargs.get('stacktrace'):
+            stacktrace = kwargs.pop('stacktrace')
+            kwargs['data']['stacktrace'] = stacktrace
+
+        user = kwargs.pop('user', None)
+        if user is not None:
+            kwargs['data']['user'] = user
 
         kwargs['data'].setdefault(
             'errors', [{
@@ -405,20 +488,20 @@ class Fixtures(object):
 
         # maintain simple event fixtures by supporting the legacy message
         # parameter just like our API would
-        if 'sentry.interfaces.Message' not in kwargs['data']:
-            kwargs['data']['sentry.interfaces.Message'] = {
+        if 'logentry' not in kwargs['data']:
+            kwargs['data']['logentry'] = {
                 'message': kwargs.get('message') or '<unlabeled event>',
             }
 
-        if 'type' not in kwargs['data']:
-            kwargs['data'].update(
-                {
-                    'type': 'default',
-                    'metadata': {
-                        'title': kwargs['data']['sentry.interfaces.Message']['message'],
-                    },
-                }
-            )
+        if normalize:
+            manager = EventManager(CanonicalKeyDict(kwargs['data']),
+                                   for_store=False)
+            manager.normalize()
+            kwargs['data'] = manager.get_data()
+            kwargs['message'] = manager.get_search_message()
+
+        else:
+            assert 'message' not in kwargs, 'do not pass message this way'
 
         event = Event(event_id=event_id, **kwargs)
         EventMapping.objects.create(
@@ -459,7 +542,7 @@ class Fixtures(object):
                 "extra": {
                     "session:duration": 40364
                 },
-                "sentry.interfaces.Exception": {
+                "exception": {
                     "exc_omitted": null,
                     "values": [{
                         "stacktrace": {
@@ -490,20 +573,20 @@ class Fixtures(object):
                         "module": null
                     }]
                 },
-                "sentry.interfaces.Http": {
+                "request": {
                     "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
                     "headers": [
                         ["Referer", "https://sentry.io/welcome/"],
                         ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
                     ]
                 },
-                "sentry.interfaces.User": {
+                "user": {
                     "ip_address": "0.0.0.0",
                     "id": "41656",
                     "email": "test@example.com"
                 },
                 "version": "7",
-                "sentry.interfaces.Breadcrumbs": {
+                "breadcrumbs": {
                     "values": [
                         {
                             "category": "xhr",
@@ -541,3 +624,133 @@ class Fixtures(object):
         if 'short_id' not in kwargs:
             kwargs['short_id'] = project.next_short_id()
         return Group.objects.create(project=project, **kwargs)
+
+    def create_file(self, **kwargs):
+        return File.objects.create(**kwargs)
+
+    def create_file_from_path(self, path, name=None, **kwargs):
+        if name is None:
+            name = os.path.basename(path)
+
+        file = self.create_file(name=name, **kwargs)
+        with open(path) as f:
+            file.putfile(f)
+        return file
+
+    def create_event_attachment(self, event=None, file=None, **kwargs):
+        if event is None:
+            event = self.event
+
+        if file is None:
+            file = self.create_file(
+                name='log.txt',
+                size=32,
+                headers={'Content-Type': 'text/plain'},
+                checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+            )
+
+        return EventAttachment.objects.create(
+            project_id=event.project_id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+            file=file,
+            **kwargs
+        )
+
+    def create_dif_file(self, debug_id=None, project=None, object_name=None,
+                        features=None, data=None, file=None, cpu_name=None, **kwargs):
+        if project is None:
+            project = self.project
+
+        if debug_id is None:
+            debug_id = six.text_type(uuid4())
+
+        if object_name is None:
+            object_name = '%s.dSYM' % debug_id
+
+        if features is not None:
+            if data is None:
+                data = {}
+            data['features'] = features
+
+        if file is None:
+            file = self.create_file(
+                name=object_name,
+                size=42,
+                headers={'Content-Type': 'application/x-mach-binary'},
+                checksum='dc1e3f3e411979d336c3057cce64294f3420f93a',
+            )
+
+        return ProjectDebugFile.objects.create(
+            debug_id=debug_id,
+            project=project,
+            object_name=object_name,
+            cpu_name=cpu_name or 'x86_64',
+            file=file,
+            data=data,
+            **kwargs
+        )
+
+        return ProjectDebugFile.objects.create(project=project, **kwargs)
+
+    def create_dif_from_path(self, path, object_name=None, **kwargs):
+        if object_name is None:
+            object_name = os.path.basename(path)
+
+        headers = {'Content-Type': 'application/x-mach-binary'}
+        file = self.create_file_from_path(path, name=object_name, headers=headers)
+        return self.create_dif_file(file=file, object_name=object_name, **kwargs)
+
+    def add_user_permission(self, user, permission):
+        try:
+            with transaction.atomic():
+                UserPermission.objects.create(user=user, permission=permission)
+        except IntegrityError:
+            raise
+
+    def create_sentry_app(self, name=None, organization=None, published=False, scopes=(),
+                          webhook_url=None, **kwargs):
+        if not name:
+            name = 'Test App'
+        if not organization:
+            organization = self.create_organization()
+        if not webhook_url:
+            webhook_url = 'https://example.com/webhook'
+
+        app = sentry_apps.Creator.run(
+            name=name,
+            organization=organization,
+            scopes=scopes,
+            webhook_url=webhook_url,
+            **kwargs
+        )
+        if published:
+            app.update(status=SentryAppStatus.PUBLISHED)
+
+        return app
+
+    def create_sentry_app_installation(self, organization=None, slug=None, user=None):
+        return sentry_app_installations.Creator.run(
+            slug=(slug or self.create_sentry_app().slug),
+            organization=(organization or self.create_organization()),
+            user=(user or self.create_user()),
+        )
+
+    def create_service_hook(self, actor=None, project=None, events=None, url=None, **kwargs):
+        if not actor:
+            actor = self.create_user()
+        if not project:
+            org = self.create_organization(owner=actor)
+            project = self.create_project(organization=org)
+        if not events:
+            events = ('event.created',)
+        if not url:
+            url = 'https://example/sentry/webhook'
+
+        return service_hooks.Creator.run(
+            actor=actor,
+            project=project,
+            events=events,
+            url=url,
+            **kwargs
+        )

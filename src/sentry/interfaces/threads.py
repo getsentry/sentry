@@ -23,6 +23,8 @@ class Threads(Interface):
         threads = []
 
         for thread in data.get('values') or ():
+            if thread is None:
+                continue
             threads.append(
                 {
                     'stacktrace': get_stacktrace(thread.get('stacktrace')),
@@ -38,12 +40,15 @@ class Threads(Interface):
 
     def to_json(self):
         def export_thread(data):
+            if data is None:
+                return None
+
             rv = {
                 'id': data['id'],
                 'current': data['current'],
                 'crashed': data['crashed'],
                 'name': data['name'],
-                'stacktrace': None,
+                'stacktrace': None
             }
             if data['stacktrace']:
                 rv['stacktrace'] = data['stacktrace'].to_json()
@@ -75,19 +80,22 @@ class Threads(Interface):
             'values': [export_thread(x) for x in self.values],
         }
 
-    def get_path(self):
-        return 'threads'
+    def get_meta_context(self, meta, is_public=False):
+        if meta and 'values' not in meta:
+            return {'values': meta}
+        else:
+            return meta
 
-    def get_hash(self, is_processed_data=True):
+    def get_hash(self):
         if len(self.values) != 1:
             return []
         stacktrace = self.values[0].get('stacktrace')
         if not stacktrace:
             return []
-        system_hash = stacktrace.get_hash(system_frames=True, is_processed_data=is_processed_data)
+        system_hash = stacktrace.get_hash(system_frames=True)
         if not system_hash:
             return []
-        app_hash = stacktrace.get_hash(system_frames=False, is_processed_data=is_processed_data)
+        app_hash = stacktrace.get_hash(system_frames=False)
         if system_hash == app_hash or not app_hash:
             return [system_hash]
 

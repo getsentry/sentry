@@ -19,8 +19,8 @@ class OrganizationUserIssuesTest(APITestCase):
         self.org.save()
         self.team1 = self.create_team(organization=self.org)
         self.team2 = self.create_team(organization=self.org)
-        self.project1 = self.create_project(team=self.team1)
-        self.project2 = self.create_project(team=self.team2)
+        self.project1 = self.create_project(teams=[self.team1])
+        self.project2 = self.create_project(teams=[self.team2])
         self.group1 = self.create_group(
             project=self.project1,
             last_seen=timezone.now() - timedelta(minutes=1),
@@ -37,19 +37,22 @@ class OrganizationUserIssuesTest(APITestCase):
             key='sentry:user',
             value=self.euser1.tag_value,
             group_id=self.group1.id,
-            project_id=self.project1.id
+            project_id=self.project1.id,
+            environment_id=None,
         )
         tagstore.create_group_tag_value(
             key='sentry:user',
             value=self.euser2.tag_value,
             group_id=self.group1.id,
-            project_id=self.project1.id
+            project_id=self.project1.id,
+            environment_id=None,
         )
         tagstore.create_group_tag_value(
             key='sentry:user',
             value=self.euser3.tag_value,
             group_id=self.group2.id,
-            project_id=self.project2.id
+            project_id=self.project2.id,
+            environment_id=None,
         )
         self.path = reverse(
             'sentry-api-0-organization-user-issues', args=[

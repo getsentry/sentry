@@ -1,17 +1,20 @@
+import {Box} from 'grid-emotion';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 
-import OrganizationState from '../../mixins/organizationState';
+import OrganizationState from 'app/mixins/organizationState';
 
-import CreateProject from '../onboarding/createProject';
-import ProjectSelector from '../../components/projectHeader/projectSelector';
+import CreateProject from 'app/views/onboarding/createProject';
+import ProjectSelector from 'app/components/projectHeader/projectSelector';
 
-const NewProject = React.createClass({
+const NewProject = createReactClass({
+  displayName: 'NewProject',
   mixins: [OrganizationState],
 
   render() {
     return (
-      <div className="getting-started">
+      <Box flex={1}>
         <div className="sub-header flex flex-container flex-vertically-centered">
           <div className="p-t-1 p-b-1">
             <ProjectSelector organization={this.getOrganization()} />
@@ -28,9 +31,9 @@ const NewProject = React.createClass({
             />
           </div>
         </div>
-      </div>
+      </Box>
     );
-  }
+  },
 });
 
 export default NewProject;

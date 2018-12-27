@@ -18,10 +18,10 @@ class Migration(SchemaMigration):
                 ('project_id', self.gf('sentry.db.models.fields.bounded.BoundedBigIntegerField')()),
                 ('platform', self.gf('django.db.models.fields.CharField')(max_length=64)), (
                     'date_added',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ), (
                     'last_seen',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )

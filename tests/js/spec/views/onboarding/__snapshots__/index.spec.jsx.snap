@@ -4,7 +4,7 @@ exports[`OnboardingWizard render() should render NotFound if no matching organiz
 <div
   className="onboarding-container"
 >
-  <DocumentTitle
+  <SideEffect(DocumentTitle)
     title="Sentry"
   />
   <div
@@ -39,9 +39,13 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
   <div
     className="onboarding-container"
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
-    />
+    >
+      <DocumentTitle
+        title="Sentry"
+      />
+    </SideEffect(DocumentTitle)>
     <div
       className="step-container"
     >
@@ -69,6 +73,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
           >
             <div
               className="node done"
+              key="0"
             >
               <span
                 className="node done"
@@ -77,6 +82,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
             </div>
             <div
               className="node active"
+              key="1"
             >
               <span
                 className="node active"
@@ -85,6 +91,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
             </div>
             <div
               className="node"
+              key="2"
             >
               <span
                 className="node"
@@ -111,10 +118,10 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
       <div>
         <OnboardingProject
           name=""
-          next={[Function]}
+          next={[MockFunction]}
           platform=""
-          setName={[Function]}
-          setPlatform={[Function]}
+          setName={[MockFunction]}
+          setPlatform={[MockFunction]}
           setTeam={[Function]}
           team=""
           teams={Array []}
@@ -127,10 +134,10 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
             </h4>
             <PlatformPicker
               name=""
-              next={[Function]}
+              next={[MockFunction]}
               platform=""
-              setName={[Function]}
-              setPlatform={[Function]}
+              setName={[MockFunction]}
+              setPlatform={[MockFunction]}
               setTeam={[Function]}
               showOther={true}
               team=""
@@ -139,164 +146,198 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
               <div
                 className="platform-picker"
               >
-                <ul
-                  className="nav nav-tabs"
-                >
-                  <li
-                    style={
-                      Object {
-                        "float": "right",
-                        "marginRight": 0,
+                <NavTabs>
+                  <ul
+                    className="nav nav-tabs"
+                  >
+                    <li
+                      style={
+                        Object {
+                          "float": "right",
+                          "marginRight": 0,
+                        }
                       }
-                    }
-                  >
-                    <div
-                      className="platform-filter-container"
                     >
-                      <span
-                        className="icon icon-search"
-                      />
-                      <input
-                        className="platform-filter"
-                        label="Filter"
-                        onChange={[Function]}
-                        placeholder="Filter"
-                        type="text"
-                        value=""
-                      />
-                    </div>
-                  </li>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className="active"
-                    >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <div
+                        className="platform-filter-container"
                       >
-                        <a
-                          onClick={[Function]}
-                          style={Object {}}
-                        >
-                          Popular
-                        </a>
-                      </Link>
+                        <span
+                          className="icon icon-search"
+                        />
+                        <input
+                          className="platform-filter"
+                          label="Filter"
+                          onChange={[Function]}
+                          placeholder="Filter"
+                          type="text"
+                          value=""
+                        />
+                      </div>
                     </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="popular"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className="active"
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          Frontend
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Popular
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="browser"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className=""
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          Mobile
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Browser
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="server"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className=""
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          Backend
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Server
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="mobile"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className=""
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          All
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                </ul>
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Mobile
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="desktop"
+                      onClick={[Function]}
+                      to=""
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onClick={[Function]}
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to=""
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Desktop
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="all"
+                      onClick={[Function]}
+                      to=""
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onClick={[Function]}
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to=""
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            All
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                  </ul>
+                </NavTabs>
                 <ul
                   className="client-platform-list platform-tiles"
                 >
                   <PlatformCard
                     className=""
+                    key="csharp"
                     onClick={[Function]}
                     platform="csharp"
                   >
@@ -311,7 +352,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled csharp csharp "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-csharp"
@@ -327,6 +367,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="java"
                     onClick={[Function]}
                     platform="java"
                   >
@@ -341,7 +382,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled java java "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-java"
@@ -357,6 +397,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="javascript-angular"
                     onClick={[Function]}
                     platform="javascript-angular"
                   >
@@ -371,7 +412,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-angular javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-angular"
@@ -387,6 +427,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="javascript"
                     onClick={[Function]}
                     platform="javascript"
                   >
@@ -401,7 +442,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript"
@@ -417,6 +457,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="javascript-react"
                     onClick={[Function]}
                     platform="javascript-react"
                   >
@@ -431,7 +472,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-react javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-react"
@@ -447,6 +487,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="node-express"
                     onClick={[Function]}
                     platform="node-express"
                   >
@@ -461,7 +502,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled node-express node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node-express"
@@ -477,6 +517,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="node"
                     onClick={[Function]}
                     platform="node"
                   >
@@ -491,7 +532,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled node node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node"
@@ -507,6 +547,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="php-laravel"
                     onClick={[Function]}
                     platform="php-laravel"
                   >
@@ -521,7 +562,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled php-laravel php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-laravel"
@@ -537,6 +577,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="php"
                     onClick={[Function]}
                     platform="php"
                   >
@@ -551,7 +592,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled php php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php"
@@ -567,6 +607,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="php-symfony2"
                     onClick={[Function]}
                     platform="php-symfony2"
                   >
@@ -581,7 +622,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled php-symfony2 php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-symfony2"
@@ -597,6 +637,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="python-django"
                     onClick={[Function]}
                     platform="python-django"
                   >
@@ -611,7 +652,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled python-django python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-django"
@@ -627,6 +667,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="python-flask"
                     onClick={[Function]}
                     platform="python-flask"
                   >
@@ -641,7 +682,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled python-flask python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-flask"
@@ -657,6 +697,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="python"
                     onClick={[Function]}
                     platform="python"
                   >
@@ -671,7 +712,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled python python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python"
@@ -687,6 +727,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="cocoa"
                     onClick={[Function]}
                     platform="cocoa"
                   >
@@ -701,7 +742,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled cocoa cocoa "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-cocoa"
@@ -717,6 +757,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="ruby-rails"
                     onClick={[Function]}
                     platform="ruby-rails"
                   >
@@ -731,7 +772,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby-rails ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby-rails"
@@ -747,6 +787,7 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="ruby"
                     onClick={[Function]}
                     platform="ruby"
                   >
@@ -761,7 +802,6 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby"
@@ -812,16 +852,278 @@ exports[`OnboardingWizard render() should render and respond to click events 1`]
                   />
                 </div>
               </div>
+              <div
+                className="new-project-team"
+              >
+                <h4>
+                  Team:
+                </h4>
+                <div>
+                  <SelectField
+                    clearable={false}
+                    disabled={false}
+                    hideErrorMessage={false}
+                    multiple={false}
+                    name="select-team"
+                    onChange={[Function]}
+                    options={Array []}
+                    required={false}
+                    style={
+                      Object {
+                        "marginBottom": 0,
+                        "width": 180,
+                      }
+                    }
+                    value=""
+                  >
+                    <div
+                      className=""
+                      style={
+                        Object {
+                          "marginBottom": 0,
+                          "width": 180,
+                        }
+                      }
+                    >
+                      <div
+                        className="controls"
+                      >
+                        <StyledSelectControl
+                          clearable={false}
+                          disabled={false}
+                          id="id-select-team"
+                          multiple={false}
+                          name="select-team"
+                          onChange={[Function]}
+                          options={Array []}
+                          required={false}
+                          value=""
+                        >
+                          <SelectControl
+                            className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                            clearable={false}
+                            disabled={false}
+                            height={36}
+                            id="id-select-team"
+                            multiple={false}
+                            name="select-team"
+                            onChange={[Function]}
+                            options={Array []}
+                            required={false}
+                            value=""
+                          >
+                            <StyledSelect
+                              arrowRenderer={[Function]}
+                              backspaceRemoves={false}
+                              className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                              clearable={false}
+                              deleteRemoves={false}
+                              disabled={false}
+                              height={36}
+                              id="id-select-team"
+                              multiple={false}
+                              name="select-team"
+                              onChange={[Function]}
+                              options={Array []}
+                              required={false}
+                              value=""
+                            >
+                              <ForwardRef(SelectPicker)
+                                arrowRenderer={[Function]}
+                                backspaceRemoves={false}
+                                className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
+                                clearable={false}
+                                deleteRemoves={false}
+                                disabled={false}
+                                height={36}
+                                id="id-select-team"
+                                multiple={false}
+                                name="select-team"
+                                onChange={[Function]}
+                                options={Array []}
+                                required={false}
+                                value=""
+                              >
+                                <SelectPicker
+                                  arrowRenderer={[Function]}
+                                  backspaceRemoves={false}
+                                  className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
+                                  clearable={false}
+                                  deleteRemoves={false}
+                                  disabled={false}
+                                  forwardedRef={null}
+                                  height={36}
+                                  id="id-select-team"
+                                  multiple={false}
+                                  name="select-team"
+                                  onChange={[Function]}
+                                  options={Array []}
+                                  required={false}
+                                  value=""
+                                >
+                                  <Select
+                                    arrowRenderer={[Function]}
+                                    autosize={true}
+                                    backspaceRemoves={false}
+                                    backspaceToRemoveMessage="Press backspace to remove {label}"
+                                    className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
+                                    clearAllText="Clear all"
+                                    clearRenderer={[Function]}
+                                    clearValueText="Clear value"
+                                    clearable={false}
+                                    closeOnSelect={true}
+                                    deleteRemoves={false}
+                                    delimiter=","
+                                    disabled={false}
+                                    escapeClearsValue={true}
+                                    filterOptions={[Function]}
+                                    height={36}
+                                    id="id-select-team"
+                                    ignoreAccents={true}
+                                    ignoreCase={true}
+                                    inputProps={Object {}}
+                                    isLoading={false}
+                                    joinValues={false}
+                                    labelKey="label"
+                                    matchPos="any"
+                                    matchProp="any"
+                                    menuBuffer={0}
+                                    menuRenderer={[Function]}
+                                    multi={false}
+                                    multiple={false}
+                                    name="select-team"
+                                    noResultsText="No results found"
+                                    onBlurResetsInput={true}
+                                    onChange={[Function]}
+                                    onCloseResetsInput={true}
+                                    onSelectResetsInput={true}
+                                    openOnClick={true}
+                                    optionComponent={[Function]}
+                                    options={Array []}
+                                    pageSize={5}
+                                    placeholder="Select..."
+                                    removeSelected={true}
+                                    required={false}
+                                    rtl={false}
+                                    scrollMenuIntoView={true}
+                                    searchable={true}
+                                    simpleValue={false}
+                                    tabSelectsValue={true}
+                                    trimFilter={true}
+                                    value=""
+                                    valueComponent={[Function]}
+                                    valueKey="value"
+                                  >
+                                    <div
+                                      className="Select e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
+                                    >
+                                      <div
+                                        className="Select-control"
+                                        onKeyDown={[Function]}
+                                        onMouseDown={[Function]}
+                                        onTouchEnd={[Function]}
+                                        onTouchMove={[Function]}
+                                        onTouchStart={[Function]}
+                                      >
+                                        <span
+                                          className="Select-multi-value-wrapper"
+                                          id="react-select-2--value"
+                                        >
+                                          <div
+                                            className="Select-placeholder"
+                                          >
+                                            Select...
+                                          </div>
+                                          <AutosizeInput
+                                            aria-activedescendant="react-select-2--value"
+                                            aria-expanded="false"
+                                            aria-haspopup="false"
+                                            aria-owns=""
+                                            className="Select-input"
+                                            id="id-select-team"
+                                            injectStyles={true}
+                                            minWidth="5"
+                                            onBlur={[Function]}
+                                            onChange={[Function]}
+                                            onFocus={[Function]}
+                                            required={false}
+                                            role="combobox"
+                                            value=""
+                                          >
+                                            <div
+                                              className="Select-input"
+                                              style={
+                                                Object {
+                                                  "display": "inline-block",
+                                                }
+                                              }
+                                            >
+                                              <input
+                                                aria-activedescendant="react-select-2--value"
+                                                aria-expanded="false"
+                                                aria-haspopup="false"
+                                                aria-owns=""
+                                                id="id-select-team"
+                                                onBlur={[Function]}
+                                                onChange={[Function]}
+                                                onFocus={[Function]}
+                                                required={false}
+                                                role="combobox"
+                                                style={
+                                                  Object {
+                                                    "boxSizing": "content-box",
+                                                    "width": "5px",
+                                                  }
+                                                }
+                                                value=""
+                                              />
+                                              <div
+                                                style={
+                                                  Object {
+                                                    "height": 0,
+                                                    "left": 0,
+                                                    "overflow": "scroll",
+                                                    "position": "absolute",
+                                                    "top": 0,
+                                                    "visibility": "hidden",
+                                                    "whiteSpace": "pre",
+                                                  }
+                                                }
+                                              />
+                                            </div>
+                                          </AutosizeInput>
+                                        </span>
+                                        <span
+                                          className="Select-arrow-zone"
+                                          onMouseDown={[Function]}
+                                        >
+                                          <span
+                                            className="icon-arrow-down"
+                                          />
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </Select>
+                                </SelectPicker>
+                              </ForwardRef(SelectPicker)>
+                            </StyledSelect>
+                          </SelectControl>
+                        </StyledSelectControl>
+                      </div>
+                    </div>
+                  </SelectField>
+                </div>
+              </div>
               <div>
                 <button
-                  className="btn btn-primary submit-new-team"
+                  className="btn btn-primary new-project-submit"
                   onClick={[Function]}
                 >
                   Create Project
                 </button>
               </div>
               <p>
-                Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+                Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
               </p>
             </div>
           </div>
@@ -849,9 +1151,13 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
   <div
     className="onboarding-container"
   >
-    <DocumentTitle
+    <SideEffect(DocumentTitle)
       title="Sentry"
-    />
+    >
+      <DocumentTitle
+        title="Sentry"
+      />
+    </SideEffect(DocumentTitle)>
     <div
       className="step-container"
     >
@@ -879,6 +1185,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
           >
             <div
               className="node done"
+              key="0"
             >
               <span
                 className="node done"
@@ -887,6 +1194,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
             </div>
             <div
               className="node active"
+              key="1"
             >
               <span
                 className="node active"
@@ -895,6 +1203,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
             </div>
             <div
               className="node"
+              key="2"
             >
               <span
                 className="node"
@@ -921,10 +1230,24 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
       <div>
         <OnboardingProject
           name=""
-          next={[Function]}
+          next={[MockFunction]}
           platform=""
-          setName={[Function]}
-          setPlatform={[Function]}
+          setName={[MockFunction]}
+          setPlatform={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  "csharp",
+                ],
+              ],
+              "results": Array [
+                Object {
+                  "isThrow": false,
+                  "value": undefined,
+                },
+              ],
+            }
+          }
           setTeam={[Function]}
           team=""
           teams={Array []}
@@ -937,10 +1260,24 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
             </h4>
             <PlatformPicker
               name=""
-              next={[Function]}
+              next={[MockFunction]}
               platform=""
-              setName={[Function]}
-              setPlatform={[Function]}
+              setName={[MockFunction]}
+              setPlatform={
+                [MockFunction] {
+                  "calls": Array [
+                    Array [
+                      "csharp",
+                    ],
+                  ],
+                  "results": Array [
+                    Object {
+                      "isThrow": false,
+                      "value": undefined,
+                    },
+                  ],
+                }
+              }
               setTeam={[Function]}
               showOther={true}
               team=""
@@ -949,164 +1286,198 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
               <div
                 className="platform-picker"
               >
-                <ul
-                  className="nav nav-tabs"
-                >
-                  <li
-                    style={
-                      Object {
-                        "float": "right",
-                        "marginRight": 0,
+                <NavTabs>
+                  <ul
+                    className="nav nav-tabs"
+                  >
+                    <li
+                      style={
+                        Object {
+                          "float": "right",
+                          "marginRight": 0,
+                        }
                       }
-                    }
-                  >
-                    <div
-                      className="platform-filter-container"
                     >
-                      <span
-                        className="icon icon-search"
-                      />
-                      <input
-                        className="platform-filter"
-                        label="Filter"
-                        onChange={[Function]}
-                        placeholder="Filter"
-                        type="text"
-                        value=""
-                      />
-                    </div>
-                  </li>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className="active"
-                    >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <div
+                        className="platform-filter-container"
                       >
-                        <a
-                          onClick={[Function]}
-                          style={Object {}}
-                        >
-                          Popular
-                        </a>
-                      </Link>
+                        <span
+                          className="icon icon-search"
+                        />
+                        <input
+                          className="platform-filter"
+                          label="Filter"
+                          onChange={[Function]}
+                          placeholder="Filter"
+                          type="text"
+                          value=""
+                        />
+                      </div>
                     </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="popular"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className="active"
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          Frontend
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Popular
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="browser"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className=""
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          Mobile
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Browser
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="server"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className=""
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          Backend
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                  <ListLink
-                    activeClassName="active"
-                    index={false}
-                    isActive={[Function]}
-                    onClick={[Function]}
-                    to=""
-                  >
-                    <li
-                      className=""
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Server
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="mobile"
+                      onClick={[Function]}
+                      to=""
                     >
-                      <Link
-                        onClick={[Function]}
-                        onlyActiveOnIndex={false}
-                        style={Object {}}
-                        to=""
+                      <li
+                        className=""
                       >
-                        <a
+                        <Link
                           onClick={[Function]}
+                          onlyActiveOnIndex={false}
                           style={Object {}}
+                          to=""
                         >
-                          All
-                        </a>
-                      </Link>
-                    </li>
-                  </ListLink>
-                </ul>
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Mobile
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="desktop"
+                      onClick={[Function]}
+                      to=""
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onClick={[Function]}
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to=""
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            Desktop
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                    <ListLink
+                      activeClassName="active"
+                      index={false}
+                      isActive={[Function]}
+                      key="all"
+                      onClick={[Function]}
+                      to=""
+                    >
+                      <li
+                        className=""
+                      >
+                        <Link
+                          onClick={[Function]}
+                          onlyActiveOnIndex={false}
+                          style={Object {}}
+                          to=""
+                        >
+                          <a
+                            onClick={[Function]}
+                            style={Object {}}
+                          >
+                            All
+                          </a>
+                        </Link>
+                      </li>
+                    </ListLink>
+                  </ul>
+                </NavTabs>
                 <ul
                   className="client-platform-list platform-tiles"
                 >
                   <PlatformCard
                     className=""
+                    key="csharp"
                     onClick={[Function]}
                     platform="csharp"
                   >
@@ -1121,7 +1492,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled csharp csharp "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-csharp"
@@ -1137,6 +1507,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="java"
                     onClick={[Function]}
                     platform="java"
                   >
@@ -1151,7 +1522,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled java java "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-java"
@@ -1167,6 +1537,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="javascript-angular"
                     onClick={[Function]}
                     platform="javascript-angular"
                   >
@@ -1181,7 +1552,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-angular javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-angular"
@@ -1197,6 +1567,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="javascript"
                     onClick={[Function]}
                     platform="javascript"
                   >
@@ -1211,7 +1582,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript"
@@ -1227,6 +1597,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="javascript-react"
                     onClick={[Function]}
                     platform="javascript-react"
                   >
@@ -1241,7 +1612,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled javascript-react javascript "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-javascript-react"
@@ -1257,6 +1627,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="node-express"
                     onClick={[Function]}
                     platform="node-express"
                   >
@@ -1271,7 +1642,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled node-express node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node-express"
@@ -1287,6 +1657,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="node"
                     onClick={[Function]}
                     platform="node"
                   >
@@ -1301,7 +1672,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled node node "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-node"
@@ -1317,6 +1687,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="php-laravel"
                     onClick={[Function]}
                     platform="php-laravel"
                   >
@@ -1331,7 +1702,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled php-laravel php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-laravel"
@@ -1347,6 +1717,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="php"
                     onClick={[Function]}
                     platform="php"
                   >
@@ -1361,7 +1732,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled php php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php"
@@ -1377,6 +1747,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="php-symfony2"
                     onClick={[Function]}
                     platform="php-symfony2"
                   >
@@ -1391,7 +1762,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled php-symfony2 php "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-php-symfony2"
@@ -1407,6 +1777,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="python-django"
                     onClick={[Function]}
                     platform="python-django"
                   >
@@ -1421,7 +1792,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled python-django python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-django"
@@ -1437,6 +1807,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="python-flask"
                     onClick={[Function]}
                     platform="python-flask"
                   >
@@ -1451,7 +1822,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled python-flask python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python-flask"
@@ -1467,6 +1837,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="python"
                     onClick={[Function]}
                     platform="python"
                   >
@@ -1481,7 +1852,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled python python "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-python"
@@ -1497,6 +1867,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="cocoa"
                     onClick={[Function]}
                     platform="cocoa"
                   >
@@ -1511,7 +1882,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled cocoa cocoa "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-cocoa"
@@ -1527,6 +1897,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="ruby-rails"
                     onClick={[Function]}
                     platform="ruby-rails"
                   >
@@ -1541,7 +1912,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby-rails ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby-rails"
@@ -1557,6 +1927,7 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   </PlatformCard>
                   <PlatformCard
                     className=""
+                    key="ruby"
                     onClick={[Function]}
                     platform="ruby"
                   >
@@ -1571,7 +1942,6 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                       >
                         <li
                           className="platform-tile list-unstyled ruby ruby "
-                          onClick={[Function]}
                         >
                           <span
                             className="platformicon platformicon-ruby"
@@ -1622,16 +1992,278 @@ exports[`OnboardingWizard render() should render and respond to click events 2`]
                   />
                 </div>
               </div>
+              <div
+                className="new-project-team"
+              >
+                <h4>
+                  Team:
+                </h4>
+                <div>
+                  <SelectField
+                    clearable={false}
+                    disabled={false}
+                    hideErrorMessage={false}
+                    multiple={false}
+                    name="select-team"
+                    onChange={[Function]}
+                    options={Array []}
+                    required={false}
+                    style={
+                      Object {
+                        "marginBottom": 0,
+                        "width": 180,
+                      }
+                    }
+                    value=""
+                  >
+                    <div
+                      className=""
+                      style={
+                        Object {
+                          "marginBottom": 0,
+                          "width": 180,
+                        }
+                      }
+                    >
+                      <div
+                        className="controls"
+                      >
+                        <StyledSelectControl
+                          clearable={false}
+                          disabled={false}
+                          id="id-select-team"
+                          multiple={false}
+                          name="select-team"
+                          onChange={[Function]}
+                          options={Array []}
+                          required={false}
+                          value=""
+                        >
+                          <SelectControl
+                            className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                            clearable={false}
+                            disabled={false}
+                            height={36}
+                            id="id-select-team"
+                            multiple={false}
+                            name="select-team"
+                            onChange={[Function]}
+                            options={Array []}
+                            required={false}
+                            value=""
+                          >
+                            <StyledSelect
+                              arrowRenderer={[Function]}
+                              backspaceRemoves={false}
+                              className="css-j6zs66-StyledSelectControl e1qrhqd00"
+                              clearable={false}
+                              deleteRemoves={false}
+                              disabled={false}
+                              height={36}
+                              id="id-select-team"
+                              multiple={false}
+                              name="select-team"
+                              onChange={[Function]}
+                              options={Array []}
+                              required={false}
+                              value=""
+                            >
+                              <ForwardRef(SelectPicker)
+                                arrowRenderer={[Function]}
+                                backspaceRemoves={false}
+                                className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
+                                clearable={false}
+                                deleteRemoves={false}
+                                disabled={false}
+                                height={36}
+                                id="id-select-team"
+                                multiple={false}
+                                name="select-team"
+                                onChange={[Function]}
+                                options={Array []}
+                                required={false}
+                                value=""
+                              >
+                                <SelectPicker
+                                  arrowRenderer={[Function]}
+                                  backspaceRemoves={false}
+                                  className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
+                                  clearable={false}
+                                  deleteRemoves={false}
+                                  disabled={false}
+                                  forwardedRef={null}
+                                  height={36}
+                                  id="id-select-team"
+                                  multiple={false}
+                                  name="select-team"
+                                  onChange={[Function]}
+                                  options={Array []}
+                                  required={false}
+                                  value=""
+                                >
+                                  <Select
+                                    arrowRenderer={[Function]}
+                                    autosize={true}
+                                    backspaceRemoves={false}
+                                    backspaceToRemoveMessage="Press backspace to remove {label}"
+                                    className="e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20"
+                                    clearAllText="Clear all"
+                                    clearRenderer={[Function]}
+                                    clearValueText="Clear value"
+                                    clearable={false}
+                                    closeOnSelect={true}
+                                    deleteRemoves={false}
+                                    delimiter=","
+                                    disabled={false}
+                                    escapeClearsValue={true}
+                                    filterOptions={[Function]}
+                                    height={36}
+                                    id="id-select-team"
+                                    ignoreAccents={true}
+                                    ignoreCase={true}
+                                    inputProps={Object {}}
+                                    isLoading={false}
+                                    joinValues={false}
+                                    labelKey="label"
+                                    matchPos="any"
+                                    matchProp="any"
+                                    menuBuffer={0}
+                                    menuRenderer={[Function]}
+                                    multi={false}
+                                    multiple={false}
+                                    name="select-team"
+                                    noResultsText="No results found"
+                                    onBlurResetsInput={true}
+                                    onChange={[Function]}
+                                    onCloseResetsInput={true}
+                                    onSelectResetsInput={true}
+                                    openOnClick={true}
+                                    optionComponent={[Function]}
+                                    options={Array []}
+                                    pageSize={5}
+                                    placeholder="Select..."
+                                    removeSelected={true}
+                                    required={false}
+                                    rtl={false}
+                                    scrollMenuIntoView={true}
+                                    searchable={true}
+                                    simpleValue={false}
+                                    tabSelectsValue={true}
+                                    trimFilter={true}
+                                    value=""
+                                    valueComponent={[Function]}
+                                    valueKey="value"
+                                  >
+                                    <div
+                                      className="Select e1qrhqd00 css-1cl3z8x-StyledSelect-StyledSelectControl eho28m20 is-searchable Select--single"
+                                    >
+                                      <div
+                                        className="Select-control"
+                                        onKeyDown={[Function]}
+                                        onMouseDown={[Function]}
+                                        onTouchEnd={[Function]}
+                                        onTouchMove={[Function]}
+                                        onTouchStart={[Function]}
+                                      >
+                                        <span
+                                          className="Select-multi-value-wrapper"
+                                          id="react-select-2--value"
+                                        >
+                                          <div
+                                            className="Select-placeholder"
+                                          >
+                                            Select...
+                                          </div>
+                                          <AutosizeInput
+                                            aria-activedescendant="react-select-2--value"
+                                            aria-expanded="false"
+                                            aria-haspopup="false"
+                                            aria-owns=""
+                                            className="Select-input"
+                                            id="id-select-team"
+                                            injectStyles={true}
+                                            minWidth="5"
+                                            onBlur={[Function]}
+                                            onChange={[Function]}
+                                            onFocus={[Function]}
+                                            required={false}
+                                            role="combobox"
+                                            value=""
+                                          >
+                                            <div
+                                              className="Select-input"
+                                              style={
+                                                Object {
+                                                  "display": "inline-block",
+                                                }
+                                              }
+                                            >
+                                              <input
+                                                aria-activedescendant="react-select-2--value"
+                                                aria-expanded="false"
+                                                aria-haspopup="false"
+                                                aria-owns=""
+                                                id="id-select-team"
+                                                onBlur={[Function]}
+                                                onChange={[Function]}
+                                                onFocus={[Function]}
+                                                required={false}
+                                                role="combobox"
+                                                style={
+                                                  Object {
+                                                    "boxSizing": "content-box",
+                                                    "width": "5px",
+                                                  }
+                                                }
+                                                value=""
+                                              />
+                                              <div
+                                                style={
+                                                  Object {
+                                                    "height": 0,
+                                                    "left": 0,
+                                                    "overflow": "scroll",
+                                                    "position": "absolute",
+                                                    "top": 0,
+                                                    "visibility": "hidden",
+                                                    "whiteSpace": "pre",
+                                                  }
+                                                }
+                                              />
+                                            </div>
+                                          </AutosizeInput>
+                                        </span>
+                                        <span
+                                          className="Select-arrow-zone"
+                                          onMouseDown={[Function]}
+                                        >
+                                          <span
+                                            className="icon-arrow-down"
+                                          />
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </Select>
+                                </SelectPicker>
+                              </ForwardRef(SelectPicker)>
+                            </StyledSelect>
+                          </SelectControl>
+                        </StyledSelectControl>
+                      </div>
+                    </div>
+                  </SelectField>
+                </div>
+              </div>
               <div>
                 <button
-                  className="btn btn-primary submit-new-team"
+                  className="btn btn-primary new-project-submit"
                   onClick={[Function]}
                 >
                   Create Project
                 </button>
               </div>
               <p>
-                Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects your API server and frontend client.
+                Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for your API server and frontend client.
               </p>
             </div>
           </div>

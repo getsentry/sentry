@@ -1,7 +1,7 @@
 import Reflux from 'reflux';
-import AlertActions from '../actions/alertActions';
-import localStorage from '../utils/localStorage';
-import {defined} from '../utils';
+import AlertActions from 'app/actions/alertActions';
+import localStorage from 'app/utils/localStorage';
+import {defined} from 'app/utils';
 
 const AlertStore = Reflux.createStore({
   listenables: AlertActions,
@@ -67,7 +67,7 @@ const AlertStore = Reflux.createStore({
     // TODO(dcramer): we need some animations here for closing alerts
     this.alerts = this.alerts.filter(item => alert !== item);
     this.trigger(this.alerts);
-  }
+  },
 });
 
 export default AlertStore;

@@ -4,7 +4,7 @@ import mock
 from django.core.urlresolvers import reverse
 
 from sentry.plugins import plugins, NotificationPlugin
-from sentry.models import ProjectOption
+from sentry.models import ProjectOption, AuditLogEntry
 from sentry.testutils import APITestCase
 
 
@@ -55,11 +55,18 @@ class UpdateProjectPluginTest(APITestCase):
                 'plugin_id': 'webhooks',
             }
         )
+        audit = AuditLogEntry.objects.filter(target_object=project.id)
+
+        assert not audit
+
         response = self.client.put(
             url, data={
                 'urls': 'http://example.com/foo',
             }
         )
+        audit = AuditLogEntry.objects.get(target_object=project.id)
+
+        assert audit.event == 111
         assert response.status_code == 200, (response.status_code, response.content)
         assert ProjectOption.objects.get(
             key='webhooks:urls',
@@ -84,17 +91,37 @@ class EnableProjectPluginTest(APITestCase):
                 'plugin_id': 'webhooks',
             }
         )
+        audit = AuditLogEntry.objects.filter(target_object=project.id)
+
+        assert not audit
+
         response = self.client.post(url)
+        audit = AuditLogEntry.objects.get(target_object=project.id)
+
+        assert audit.event == 110
         assert response.status_code == 201, (response.status_code, response.content)
         assert ProjectOption.objects.get(
             key='webhooks:enabled',
             project=project,
         ).value is True
+        audit.delete()
 
         # Testing the Plugin
         response = self.client.post(url, {'test': True})
         test_configuration.assert_called_once_with(project)
         assert response.status_code == 200, (response.status_code, response.content)
+
+        # Reset the plugin
+        response = self.client.post(url, {'reset': True})
+        audit = AuditLogEntry.objects.get(target_object=project.id)
+        test_configuration.assert_called_once_with(project)
+        assert audit.event == 111
+        assert response.status_code == 200, (response.status_code, response.content)
+
+        configs = response.data.get('config')
+
+        for config in configs:
+            assert config.get('value') is None
 
 
 class DisableProjectPluginTest(APITestCase):
@@ -113,7 +140,14 @@ class DisableProjectPluginTest(APITestCase):
                 'plugin_id': 'webhooks',
             }
         )
+        audit = AuditLogEntry.objects.filter(target_object=project.id)
+
+        assert not audit
+
         response = self.client.delete(url)
+        audit = AuditLogEntry.objects.get(target_object=project.id)
+
+        assert audit.event == 112
         assert response.status_code == 204, (response.status_code, response.content)
         assert ProjectOption.objects.get(
             key='webhooks:enabled',

@@ -1,46 +1,46 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import GroupEventDataSection from '../eventDataSection';
-import SentryTypes from '../../../proptypes';
-import RichHttpContent from './richHttpContent';
-import {getCurlCommand} from './utils';
-import {isUrl} from '../../../utils';
-import {t} from '../../../locale';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import SentryTypes from 'app/sentryTypes';
+import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
+import {getCurlCommand} from 'app/components/events/interfaces/utils';
+import {isUrl} from 'app/utils';
+import {t} from 'app/locale';
 
-import Truncate from '../../../components/truncate';
+import Truncate from 'app/components/truncate';
 
-const RequestInterface = React.createClass({
-  propTypes: {
+class RequestInterface extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
     type: PropTypes.string.isRequired,
     data: PropTypes.object.isRequired,
-    isShare: PropTypes.bool
-  },
+  };
 
-  contextTypes: {
+  static contextTypes = {
     organization: SentryTypes.Organization,
-    project: SentryTypes.Project
-  },
+    project: SentryTypes.Project,
+  };
 
-  getInitialState() {
-    return {
-      view: 'formatted'
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      view: 'formatted',
     };
-  },
+  }
 
-  isPartial() {
+  isPartial = () => {
     // We assume we only have a partial interface is we're missing
     // an HTTP method. This means we don't have enough information
     // to reliably construct a full HTTP request.
     return !this.props.data.method;
-  },
+  };
 
-  toggleView(value) {
+  toggleView = value => {
     this.setState({
-      view: value
+      view: value,
     });
-  },
+  };
 
   render() {
     let group = this.props.group;
@@ -70,13 +70,15 @@ const RequestInterface = React.createClass({
         <div key="view-buttons" className="btn-group">
           <a
             className={(view === 'formatted' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'formatted')}>
+            onClick={this.toggleView.bind(this, 'formatted')}
+          >
             {/* Translators: this means "formatted" rendering (fancy tables) */
             t('Formatted')}
           </a>
           <a
             className={(view === 'curl' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'curl')}>
+            onClick={this.toggleView.bind(this, 'curl')}
+          >
             <code>{'curl'}</code>
           </a>
         </div>
@@ -90,12 +92,15 @@ const RequestInterface = React.createClass({
             <strong>{data.method || 'GET'}</strong>
             <Truncate value={parsedUrl.pathname} maxLength={36} leftTrim={true} />
           </span>
-          {isValidUrl &&
+          {isValidUrl && (
             <span className="external-icon">
               <em className="icon-open" />
-            </span>}
+            </span>
+          )}
         </a>
-        <small style={{marginLeft: 10}} className="host">{parsedUrl.hostname}</small>
+        <small style={{marginLeft: 10}} className="host">
+          {parsedUrl.hostname}
+        </small>
       </h3>
     );
 
@@ -108,13 +113,16 @@ const RequestInterface = React.createClass({
         type={this.props.type}
         title={title}
         wrapTitle={false}
-        className="request">
-        {view === 'curl'
-          ? <pre>{getCurlCommand(data)}</pre>
-          : <RichHttpContent data={data} />}
+        className="request"
+      >
+        {view === 'curl' ? (
+          <pre>{getCurlCommand(data)}</pre>
+        ) : (
+          <RichHttpContent data={data} />
+        )}
       </GroupEventDataSection>
     );
   }
-});
+}
 
 export default RequestInterface;

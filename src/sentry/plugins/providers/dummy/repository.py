@@ -37,3 +37,6 @@ class DummyRepositoryProvider(RepositoryProvider):
                 'repository': repo.name,
             }
         ]
+
+    def repository_external_slug(self, repo):
+        return repo.external_id

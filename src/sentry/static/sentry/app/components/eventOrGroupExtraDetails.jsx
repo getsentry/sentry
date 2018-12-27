@@ -1,29 +1,38 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import styled from 'react-emotion';
+import {Flex, Box} from 'grid-emotion';
 
-import ProjectState from '../mixins/projectState';
-import TimeSince from './timeSince';
-import ShortId from './shortId';
+import ProjectState from 'app/mixins/projectState';
+import TimeSince from 'app/components/timeSince';
+import ShortId from 'app/components/shortId';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {t, tct} from 'app/locale';
+import InlineSvg from 'app/components/inlineSvg';
+import space from 'app/styles/space';
 
-const EventOrGroupExtraDetails = React.createClass({
+const EventOrGroupExtraDetails = createReactClass({
+  displayName: 'EventOrGroupExtraDetails',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
-    firstSeen: PropTypes.string,
     lastSeen: PropTypes.string,
-    shortId: PropTypes.string,
+    firstSeen: PropTypes.string,
     subscriptionDetails: PropTypes.shape({
-      reason: PropTypes.string
+      reason: PropTypes.string,
     }),
     numComments: PropTypes.number,
     logger: PropTypes.string,
     annotations: PropTypes.arrayOf(PropTypes.string),
     assignedTo: PropTypes.shape({
-      name: PropTypes.string
+      name: PropTypes.string,
     }),
-    showAssignee: PropTypes.bool
+    showAssignee: PropTypes.bool,
+    shortId: PropTypes.string,
   },
 
   mixins: [ProjectState],
@@ -35,76 +44,132 @@ const EventOrGroupExtraDetails = React.createClass({
       groupId,
       lastSeen,
       firstSeen,
-      shortId,
       subscriptionDetails,
       numComments,
       logger,
       assignedTo,
       annotations,
-      showAssignee
+      showAssignee,
+      shortId,
     } = this.props;
-    let styles = {};
-    if (subscriptionDetails && subscriptionDetails.reason === 'mentioned') {
-      styles = {color: '#57be8c'};
-    }
 
     return (
-      <div className="event-extra">
-        <ul>
-          {shortId &&
-            <li>
-              <ShortId shortId={shortId} />
-            </li>}
-          <li>
-            <span className="icon icon-clock" />
-            {lastSeen && <TimeSince date={lastSeen} />}
-            {firstSeen && lastSeen && <span>&nbsp;—&nbsp;</span>}
-            {firstSeen && <TimeSince date={firstSeen} suffix="old" />}
-          </li>
-          {numComments > 0 &&
-            <li>
-              <Link
+      <GroupExtra align="center">
+        {shortId && <GroupShortId shortId={shortId} />}
+        <Times>
+          <div css={overflowEllipsis}>
+            {lastSeen && (
+              <React.Fragment>
+                <GroupTimeIcon src="icon-clock-sm" />
+                <TimeSince date={lastSeen} suffix={t('ago')} />
+              </React.Fragment>
+            )}
+            {firstSeen &&
+              lastSeen && <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>}
+            {firstSeen && (
+              <TimeSince
+                date={firstSeen}
+                suffix={t('old')}
+                className="hidden-xs hidden-sm"
+              />
+            )}
+          </div>
+        </Times>
+        <GroupExtraCommentsAndLogger>
+          {numComments > 0 && (
+            <Box mr={2}>
+              <CommentsLink
                 to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}
-                className="comments">
-                <span className="icon icon-comments" style={styles} />
-                <span className="tag-count">
-                  {numComments}
-                </span>
-              </Link>
-            </li>}
-          {logger &&
-            <li className="event-annotation">
+                className="comments"
+              >
+                <GroupExtraIcon
+                  src="icon-comment-sm"
+                  mentioned={
+                    subscriptionDetails && subscriptionDetails.reason === 'mentioned'
+                  }
+                />
+                <span>{numComments}</span>
+              </CommentsLink>
+            </Box>
+          )}
+          {logger && (
+            <Box className="event-annotation" mr={2}>
               <Link
                 to={{
                   pathname: `/${orgId}/${projectId}/`,
                   query: {
-                    query: 'logger:' + logger
-                  }
-                }}>
+                    query: 'logger:' + logger,
+                  },
+                }}
+              >
                 {logger}
               </Link>
-            </li>}
-          {annotations &&
-            annotations.map((annotation, key) => {
-              return (
-                <li
-                  className="event-annotation"
-                  dangerouslySetInnerHTML={{
-                    __html: annotation
-                  }}
-                  key={key}
-                />
-              );
-            })}
+            </Box>
+          )}
+        </GroupExtraCommentsAndLogger>
+        {annotations &&
+          annotations.map((annotation, key) => {
+            return (
+              <div
+                className="event-annotation"
+                dangerouslySetInnerHTML={{
+                  __html: annotation,
+                }}
+                key={key}
+              />
+            );
+          })}
 
-          {showAssignee &&
-            assignedTo &&
-            <li>
-              Assigned to {assignedTo.name}
-            </li>}
-        </ul>
-      </div>
+        {showAssignee &&
+          assignedTo && <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>}
+      </GroupExtra>
     );
-  }
+  },
 });
+
+const GroupExtra = styled(Flex)`
+  color: ${p => p.theme.gray3};
+  font-size: 12px;
+  position: relative;
+
+  a {
+    color: inherit;
+  }
+`;
+
+const GroupExtraCommentsAndLogger = styled(Flex)`
+  color: ${p => p.theme.gray4};
+`;
+
+const CommentsLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+`;
+
+const Times = styled('div')`
+  margin-right: ${space(2)};
+  flex-shrink: 1;
+  min-width: 0; /* flex-hack for overflow-ellipsised children */
+`;
+
+const GroupShortId = styled(ShortId)`
+  margin-right: ${space(2)};
+  flex-shrink: 0;
+  font-size: 12px;
+  color: ${p => p.theme.gray3};
+`;
+
+const GroupExtraIcon = styled(InlineSvg)`
+  color: ${p => (p.isMentioned ? p.theme.green : null)};
+  font-size: 11px;
+  margin-right: 4px;
+`;
+
+const GroupTimeIcon = styled(GroupExtraIcon)`
+  /* this is solely for optics, since TimeSince always begins
+  with a number, and numbers do not have descenders */
+  transform: translateY(-1px);
+`;
+
 export default EventOrGroupExtraDetails;

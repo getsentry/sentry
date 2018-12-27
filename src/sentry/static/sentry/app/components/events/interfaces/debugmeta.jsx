@@ -1,17 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import SentryTypes from '../../../proptypes';
-import EventDataSection from '../eventDataSection';
-import ClippedBox from '../../clippedBox';
-import KeyValueList from './keyValueList';
-import {t} from '../../../locale';
+import SentryTypes from 'app/sentryTypes';
+import EventDataSection from 'app/components/events/eventDataSection';
+import ClippedBox from 'app/components/clippedBox';
+import KeyValueList from 'app/components/events/interfaces/keyValueList';
+import {t} from 'app/locale';
 
-const DebugMetaInterface = React.createClass({
-  propTypes: {
+class DebugMetaInterface extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
     event: SentryTypes.Event.isRequired,
-    data: PropTypes.object.isRequired
-  },
+    data: PropTypes.object.isRequired,
+  };
 
   getImageDetail(img, evt) {
     // in particular proguard images do not have a name, skip them
@@ -19,8 +19,7 @@ const DebugMetaInterface = React.createClass({
       return null;
     }
 
-    let name = img.name.split('/').pop();
-
+    let name = img.name.split(/^([a-z]:\\|\\\\)/i.test(img.name) ? '\\' : '/').pop();
     if (name == 'dyld_sim') return null; // this is only for simulator builds
 
     let version = null;
@@ -34,12 +33,12 @@ const DebugMetaInterface = React.createClass({
         version = (evt.release && evt.release.shortVersion) || 'unknown';
       } else
         version = `${img.major_version}.${img.minor_version}.${img.revision_version}`;
-    } else version = img.uuid;
+    } else version = img.id || img.uuid || '<none>';
 
     if (version) return [name, version];
 
     return null;
-  },
+  }
 
   render() {
     let data = this.props.data;
@@ -56,7 +55,8 @@ const DebugMetaInterface = React.createClass({
             group={this.props.group}
             event={this.props.event}
             type="packages"
-            title={t('Images Loaded')}>
+            title={t('Images Loaded')}
+          >
             <ClippedBox>
               <KeyValueList data={images} isSorted={false} />
             </ClippedBox>
@@ -67,6 +67,6 @@ const DebugMetaInterface = React.createClass({
 
     return result;
   }
-});
+}
 
 export default DebugMetaInterface;

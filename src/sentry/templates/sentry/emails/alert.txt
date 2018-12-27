@@ -10,6 +10,6 @@ Details
 {{ link }}
 
 Date: {{ alert.datetime }}
-Project: {{ alert.project.name }}
+Project: {{ alert.project.slug }}
 {% endautoescape %}
 {% endspaceless %}

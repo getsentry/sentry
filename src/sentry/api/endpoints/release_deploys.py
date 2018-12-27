@@ -12,7 +12,8 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import Deploy, Environment, Release
+from sentry.models import Deploy, Environment, Release, ReleaseProjectEnvironment
+from sentry.signals import deploy_created
 
 
 class DeploySerializer(serializers.Serializer):
@@ -21,6 +22,12 @@ class DeploySerializer(serializers.Serializer):
     url = serializers.URLField(required=False)
     dateStarted = serializers.DateTimeField(required=False)
     dateFinished = serializers.DateTimeField(required=False)
+
+    def validate_environment(self, attrs, source):
+        value = attrs[source]
+        if not Environment.is_valid_name(value):
+            raise serializers.ValidationError('Invalid value for environment')
+        return attrs
 
 
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
@@ -111,6 +118,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                 name=result.get('name'),
                 url=result.get('url'),
             )
+            deploy_created.send_robust(deploy=deploy, sender=self.__class__)
 
             # XXX(dcramer): this has a race for most recent deploy, but
             # should be unlikely to hit in the real world
@@ -118,6 +126,16 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                 total_deploys=F('total_deploys') + 1,
                 last_deploy_id=deploy.id,
             )
+
+            for project in projects:
+                ReleaseProjectEnvironment.objects.create_or_update(
+                    release=release,
+                    environment=env,
+                    project=project,
+                    values={
+                        'last_deploy_id': deploy.id,
+                    }
+                )
 
             Deploy.notify_if_ready(deploy.id)
 

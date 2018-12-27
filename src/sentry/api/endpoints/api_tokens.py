@@ -9,6 +9,7 @@ from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
 from sentry.models import ApiToken
+from sentry.security import capture_security_activity
 
 
 class ApiTokenSerializer(serializers.Serializer):
@@ -43,6 +44,15 @@ class ApiTokensEndpoint(Endpoint):
                 scope_list=result['scopes'],
                 refresh_token=None,
                 expires_at=None,
+            )
+
+            capture_security_activity(
+                account=request.user,
+                type='api-token-generated',
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                context={},
+                send_email=True
             )
 
             return Response(serialize(token, request.user), status=201)

@@ -1,25 +1,42 @@
 from __future__ import absolute_import
 
-from rest_framework.exceptions import NotAuthenticated
+from rest_framework.exceptions import PermissionDenied
 
-from sentry.api.base import Endpoint, logger
+from sentry import roles
+from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import ScopedPermission
-from sentry.app import raven
-from sentry.auth import access
+from sentry.api.permissions import SentryPermission
+from sentry.api.utils import (
+    get_date_range_from_params,
+    InvalidParams,
+)
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    ApiKey, Organization, OrganizationMemberTeam, OrganizationStatus, Project, ReleaseProject, Team
+    ApiKey, Authenticator, Environment, Organization, OrganizationMember, OrganizationMemberTeam, Project,
+    ProjectStatus, ProjectTeam, ReleaseProject, Team
 )
 from sentry.utils import auth
+from sentry.utils.sdk import configure_scope
 
 
-class OrganizationPermission(ScopedPermission):
+class OrganizationEventsError(Exception):
+    pass
+
+
+class NoProjects(Exception):
+    pass
+
+
+class OrganizationPermission(SentryPermission):
     scope_map = {
         'GET': ['org:read', 'org:write', 'org:admin'],
         'POST': ['org:write', 'org:admin'],
         'PUT': ['org:write', 'org:admin'],
         'DELETE': ['org:admin'],
     }
+
+    def is_not_2fa_compliant(self, user, organization):
+        return organization.flags.require_2fa and not Authenticator.objects.user_has_2fa(user)
 
     def needs_sso(self, request, organization):
         # XXX(dcramer): this is very similar to the server-rendered views
@@ -33,40 +50,7 @@ class OrganizationPermission(ScopedPermission):
         return False
 
     def has_object_permission(self, request, view, organization):
-        if request.user and request.user.is_authenticated() and request.auth:
-            request.access = access.from_request(
-                request,
-                organization,
-                scopes=request.auth.get_scopes(),
-            )
-
-        elif request.auth:
-            return request.auth.organization_id == organization.id
-
-        else:
-            request.access = access.from_request(request, organization)
-
-            if auth.is_user_signed_request(request):
-                # if the user comes from a signed request
-                # we let them pass if sso is enabled
-                logger.info(
-                    'access.signed-sso-passthrough',
-                    extra={
-                        'organization_id': organization.id,
-                        'user_id': request.user.id,
-                    }
-                )
-            elif request.user.is_authenticated() and self.needs_sso(request, organization):
-                # session auth needs to confirm various permissions
-                logger.info(
-                    'access.must-sso',
-                    extra={
-                        'organization_id': organization.id,
-                        'user_id': request.user.id,
-                    }
-                )
-                raise NotAuthenticated(detail='Must login via SSO')
-
+        self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
@@ -92,7 +76,7 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
     }
 
 
-class OrganizationApiKeysPermission(OrganizationPermission):
+class OrganizationAdminPermission(OrganizationPermission):
     scope_map = {
         'GET': ['org:admin'],
         'POST': ['org:admin'],
@@ -101,8 +85,161 @@ class OrganizationApiKeysPermission(OrganizationPermission):
     }
 
 
+class OrganizationAuthProviderPermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read'],
+        'POST': ['org:admin'],
+        'PUT': ['org:admin'],
+        'DELETE': ['org:admin'],
+    }
+
+
+class OrganizationDiscoverSavedQueryPermission(OrganizationPermission):
+    # Relaxed permissions for saved queries in Discover
+    scope_map = {
+        'GET': ['org:read', 'org:write', 'org:admin'],
+        'POST': ['org:read', 'org:write', 'org:admin'],
+        'PUT': ['org:read', 'org:write', 'org:admin'],
+        'DELETE': ['org:read', 'org:write', 'org:admin'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission, )
+
+    def get_project_ids(
+        self,
+        request,
+        organization,
+        force_global_perms=False,
+        include_allow_joinleave=False,
+    ):
+        """
+        Determines which project ids to filter the endpoint by. If a list of
+        project ids is passed in via the `project` querystring argument then
+        validate that these projects can be accessed. If not passed, then
+        return all project ids that the user can access within this
+        organization.
+
+        :param request:
+        :param organization: Organization to fetch projects for
+        :param force_global_perms: Permission override. Allows subclasses to
+        perform their own validation and allow the user to access any project
+        in the organization. This is a hack to support the old
+        `request.auth.has_scope` way of checking permissions, don't use it
+        for anything else, we plan to remove this once we remove uses of
+        `auth.has_scope`.
+        :param include_allow_joinleave: Whether to factor the organization
+        allow_joinleave flag into permission checks. We should ideally
+        standardize how this is used and remove this parameter.
+        :return: A list of project ids, or raises PermissionDenied.
+        """
+        project_ids = set(map(int, request.GET.getlist('project')))
+
+        requested_projects = project_ids.copy()
+
+        om_role = None
+        if request.user.is_authenticated():
+            try:
+                om_role = OrganizationMember.objects.filter(
+                    user=request.user,
+                    organization=organization,
+                ).values_list('role', flat=True).get()
+            except OrganizationMember.DoesNotExist:
+                pass
+
+        if (
+            request.user.is_superuser
+            or (om_role and roles.get(om_role).is_global)
+            or include_allow_joinleave and organization.flags.allow_joinleave
+            or force_global_perms
+        ):
+            qs = Project.objects.filter(
+                organization=organization,
+                status=ProjectStatus.VISIBLE,
+            )
+        else:
+            qs = Project.objects.filter(
+                organization=organization,
+                teams__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=request.user,
+                    organizationmember__organization=organization,
+                ).values_list('team'),
+                status=ProjectStatus.VISIBLE,
+            )
+
+        if project_ids:
+            qs = qs.filter(id__in=project_ids)
+
+        project_ids = set(qs.values_list('id', flat=True))
+
+        if requested_projects and project_ids != requested_projects:
+            raise PermissionDenied
+
+        return list(project_ids)
+
+    def get_environments(self, request, organization):
+        requested_environments = set(request.GET.getlist('environment'))
+
+        if not requested_environments:
+            return []
+
+        environments = set(
+            Environment.objects.filter(
+                organization_id=organization.id,
+                name__in=requested_environments,
+            ).values_list('name', flat=True),
+        )
+
+        if requested_environments != environments:
+            raise ResourceDoesNotExist
+
+        return list(environments)
+
+    def get_filter_params(self, request, organization, date_filter_optional=False):
+        """
+        Extracts common filter parameters from the request and returns them
+        in a standard format.
+        :param request:
+        :param organization: Organization to get params for
+        :param date_filter_optional: Defines what happens if no date filter
+        parameters are passed. If False, no date filtering occurs. If True, we
+        provide default values.
+        :return: A dict with keys:
+         - start: start date of the filter
+         - end: end date of the filter
+         - project_id: A list of project ids to filter on
+         - environment(optional): If environments were passed in, a list of
+         environment names
+        """
+        # get the top level params -- projects, time range, and environment
+        # from the request
+        try:
+            start, end = get_date_range_from_params(
+                request.GET,
+                optional=date_filter_optional,
+            )
+        except InvalidParams as exc:
+            raise OrganizationEventsError(exc.message)
+
+        try:
+            project_ids = self.get_project_ids(request, organization)
+        except ValueError:
+            raise OrganizationEventsError('Invalid project ids')
+
+        if not project_ids:
+            raise NoProjects
+
+        environments = self.get_environments(request, organization)
+        params = {
+            'start': start,
+            'end': end,
+            'project_id': project_ids,
+        }
+        if environments:
+            params['environment'] = environments
+
+        return params
 
     def convert_args(self, request, organization_slug, *args, **kwargs):
         try:
@@ -112,14 +249,17 @@ class OrganizationEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if organization.status != OrganizationStatus.VISIBLE:
-            raise ResourceDoesNotExist
-
         self.check_object_permissions(request, organization)
 
-        raven.tags_context({
-            'organization': organization.id,
-        })
+        with configure_scope() as scope:
+            scope.set_tag("organization", organization.id)
+
+        request._request.organization = organization
+
+        # Track the 'active' organization when the request came from
+        # a cookie based agent (react app)
+        if request.auth is None and request.user:
+            request.session['activeorg'] = organization.slug
 
         kwargs['organization'] = organization
         return (args, kwargs)
@@ -139,7 +279,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if not (has_valid_api_key or request.user.is_authenticated()):
             return []
 
-        if has_valid_api_key or request.is_superuser() or organization.flags.allow_joinleave:
+        if has_valid_api_key or is_active_superuser(request) or organization.flags.allow_joinleave:
             allowed_teams = Team.objects.filter(organization=organization).values_list(
                 'id', flat=True
             )
@@ -150,7 +290,12 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             ).values_list(
                 'team_id', flat=True
             )
-        return Project.objects.filter(team_id__in=allowed_teams)
+
+        return Project.objects.filter(
+            id__in=ProjectTeam.objects.filter(
+                team_id__in=allowed_teams,
+            ).values_list('project_id', flat=True)
+        )
 
     def has_release_permission(self, request, organization, release):
         return ReleaseProject.objects.filter(

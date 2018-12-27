@@ -1,17 +1,17 @@
 from __future__ import absolute_import
 
+import six
 import logging
-import hashlib
 from datetime import datetime
+from django.utils import timezone
 
 from collections import namedtuple
 
 from sentry.models import Project, Release
-from sentry.utils.safe import safe_execute
 from sentry.utils.cache import cache
+from sentry.utils.hashlib import hash_values
+from sentry.utils.safe import get_path, safe_execute
 
-import six
-from six import integer_types, text_type
 
 logger = logging.getLogger(__name__)
 
@@ -69,38 +69,8 @@ class ProcessableFrame(object):
             self.cache_key = None
             return
 
-        h = hashlib.md5()
-        h.update((u'%s\xff' % self.processor.__class__.__name__).encode('utf-8'))
-
-        def _hash_value(value):
-            if value is None:
-                h.update(b'\x00')
-            elif value is True:
-                h.update(b'\x01')
-            elif value is False:
-                h.update(b'\x02')
-            elif isinstance(value, integer_types):
-                h.update(b'\x03' + text_type(value).encode('ascii') + b'\x00')
-            elif isinstance(value, (tuple, list)):
-                h.update(b'\x04' + text_type(len(value)).encode('utf-8'))
-                for item in value:
-                    _hash_value(item)
-            elif isinstance(value, dict):
-                h.update(b'\x05' + text_type(len(value)).encode('utf-8'))
-                for k, v in six.iteritems(value):
-                    _hash_value(k)
-                    _hash_value(v)
-            elif isinstance(value, bytes):
-                h.update(b'\x06' + value + b'\x00')
-            elif isinstance(value, text_type):
-                h.update(b'\x07' + value.encode('utf-8') + b'\x00')
-            else:
-                raise TypeError('Invalid value for frame cache')
-
-        for value in values:
-            _hash_value(value)
-
-        self.cache_key = rv = 'pf:%s' % h.hexdigest()
+        h = hash_values(values, seed=self.processor.__class__.__name__)
+        self.cache_key = rv = 'pf:%s' % h
         return rv
 
 
@@ -149,7 +119,7 @@ class StacktraceProcessor(object):
             return Release.get(project=self.project, version=self.data['release'])
         timestamp = self.data.get('timestamp')
         if timestamp is not None:
-            date = datetime.fromtimestamp(timestamp)
+            date = datetime.fromtimestamp(timestamp).replace(tzinfo=timezone.utc)
         else:
             date = None
         return Release.get_or_create(
@@ -198,42 +168,33 @@ def find_stacktraces_in_data(data, include_raw=False):
     rv = []
 
     def _report_stack(stacktrace, container):
-        platforms = set()
-        for frame in stacktrace.get('frames') or ():
-            platforms.add(frame.get('platform') or data.get('platform'))
+        if not stacktrace or not get_path(stacktrace, 'frames', filter=True):
+            return
+
+        platforms = set(
+            frame.get('platform') or data.get('platform')
+            for frame in get_path(stacktrace, 'frames', filter=True, default=())
+        )
         rv.append(StacktraceInfo(stacktrace=stacktrace, container=container, platforms=platforms))
 
-    exc_container = data.get('sentry.interfaces.Exception')
-    if exc_container:
-        for exc in exc_container['values']:
-            stacktrace = exc.get('stacktrace')
-            if stacktrace:
-                _report_stack(stacktrace, exc)
+    for exc in get_path(data, 'exception', 'values', filter=True, default=()):
+        _report_stack(exc.get('stacktrace'), exc)
 
-    stacktrace = data.get('sentry.interfaces.Stacktrace')
-    if stacktrace:
-        _report_stack(stacktrace, None)
+    _report_stack(data.get('stacktrace'), None)
 
-    threads = data.get('threads')
-    if threads:
-        for thread in threads['values']:
-            stacktrace = thread.get('stacktrace')
-            if stacktrace:
-                _report_stack(stacktrace, thread)
+    for thread in get_path(data, 'threads', 'values', filter=True, default=()):
+        _report_stack(thread.get('stacktrace'), thread)
 
     if include_raw:
-        for stacktrace_info in rv[:]:
-            if stacktrace_info.container is None:
-                continue
-            raw = stacktrace_info.container.get('raw_stacktrace')
-            if raw:
-                _report_stack(raw, stacktrace_info.container)
+        for info in rv[:]:
+            if info.container is not None:
+                _report_stack(info.container.get('raw_stacktrace'), info.container)
 
     return rv
 
 
 def normalize_in_app(data):
-    def _get_has_system_frames(frames):
+    def _has_system_frames(frames):
         system_frames = 0
         for frame in frames:
             if not frame.get('in_app'):
@@ -241,8 +202,8 @@ def normalize_in_app(data):
         return bool(system_frames) and len(frames) != system_frames
 
     for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
-        frames = stacktrace_info.stacktrace.get('frames') or ()
-        has_system_frames = _get_has_system_frames(frames)
+        frames = get_path(stacktrace_info.stacktrace, 'frames', filter=True, default=())
+        has_system_frames = _has_system_frames(frames)
         for frame in frames:
             if not has_system_frames:
                 frame['in_app'] = False
@@ -299,9 +260,10 @@ def get_processable_frames(stacktrace_info, processors):
     """Returns thin wrappers around the frames in a stacktrace associated
     with the processor for it.
     """
-    frame_count = len(stacktrace_info.stacktrace['frames'])
+    frames = get_path(stacktrace_info.stacktrace, 'frames', filter=True, default=())
+    frame_count = len(frames)
     rv = []
-    for idx, frame in enumerate(stacktrace_info.stacktrace['frames']):
+    for idx, frame in enumerate(frames):
         processor = next((p for p in processors if p.handles_frame(frame, stacktrace_info)), None)
         if processor is not None:
             rv.append(
@@ -380,6 +342,16 @@ def get_stacktrace_processing_task(infos, processors):
     )
 
 
+def dedup_errors(errors):
+    # This operation scales bad but we do not expect that many items to
+    # end up in rv, so that should be okay enough to do.
+    rv = []
+    for error in errors:
+        if error not in rv:
+            rv.append(error)
+    return rv
+
+
 def process_stacktraces(data, make_processors=None):
     infos = find_stacktraces_in_data(data)
     if make_processors is None:
@@ -418,7 +390,7 @@ def process_stacktraces(data, make_processors=None):
                 )
                 changed = True
             if errors:
-                data.setdefault('errors', []).extend(errors)
+                data.setdefault('errors', []).extend(dedup_errors(errors))
                 changed = True
 
     finally:

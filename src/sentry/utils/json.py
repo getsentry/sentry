@@ -9,12 +9,14 @@ sentry.utils.json
 # Avoid shadowing the standard library json module
 from __future__ import absolute_import
 
+from enum import Enum
 from simplejson import JSONEncoder, _default_decoder
 import datetime
 import uuid
 import six
 import decimal
 
+from bitfield.types import BitHandler
 from django.utils.timezone import is_aware
 from django.utils.html import mark_safe
 
@@ -37,6 +39,12 @@ def better_default_encoder(o):
         return list(o)
     elif isinstance(o, decimal.Decimal):
         return six.text_type(o)
+    elif isinstance(o, Enum):
+        return o.value
+    elif isinstance(o, BitHandler):
+        return int(o)
+    elif callable(o):
+        return '<function>'
     raise TypeError(repr(o) + ' is not JSON serializable')
 
 

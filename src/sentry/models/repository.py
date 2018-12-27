@@ -17,7 +17,7 @@ class Repository(Model):
     url = models.URLField(null=True)
     provider = models.CharField(max_length=64, null=True)
     external_id = models.CharField(max_length=64, null=True)
-    config = JSONField(default=lambda: {})
+    config = JSONField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.VISIBLE,
         choices=ObjectStatus.as_choices(),
@@ -35,17 +35,65 @@ class Repository(Model):
 
     __repr__ = sane_repr('organization_id', 'name', 'provider')
 
+    def has_integration_provider(self):
+        return self.provider and self.provider.startswith('integrations:')
+
     def get_provider(self):
         from sentry.plugins import bindings
+        if self.has_integration_provider():
+            provider_cls = bindings.get('integration-repository.provider').get(self.provider)
+            return provider_cls(self.provider)
+
         provider_cls = bindings.get('repository.provider').get(self.provider)
         return provider_cls(self.provider)
 
+    def generate_delete_fail_email(self, error_message):
+        from sentry.utils.email import MessageBuilder
+
+        new_context = {
+            'repo': self,
+            'error_message': error_message,
+            'provider_name': self.get_provider().name,
+        }
+
+        return MessageBuilder(
+            subject='Unable to Delete Repository Webhooks',
+            context=new_context,
+            template='sentry/emails/unable-to-delete-repo.txt',
+            html_template='sentry/emails/unable-to-delete-repo.html',
+        )
+
 
 def on_delete(instance, actor=None, **kwargs):
-    instance.get_provider().delete_repository(
-        repo=instance,
-        actor=actor,
-    )
+    # If there is no provider, we don't have any webhooks, etc to delete
+    if not instance.provider:
+        return
+
+    # TODO(lb): I'm assuming that this is used by integrations... is it?
+    def handle_exception(exc):
+        from sentry.exceptions import InvalidIdentity, PluginError
+        from sentry.integrations.exceptions import IntegrationError
+        if isinstance(exc, (IntegrationError, PluginError, InvalidIdentity)):
+            error = exc.message
+        else:
+            error = 'An unknown error occurred'
+        if actor is not None:
+            msg = instance.generate_delete_fail_email(error)
+            msg.send_async(to=[actor.email])
+
+    if instance.has_integration_provider():
+        try:
+            instance.get_provider().on_delete_repository(repo=instance)
+        except Exception as exc:
+            handle_exception(exc)
+    else:
+        try:
+            instance.get_provider().delete_repository(
+                repo=instance,
+                actor=actor,
+            )
+        except Exception as exc:
+            handle_exception(exc)
 
 
 pending_delete.connect(on_delete, sender=Repository, weak=False)

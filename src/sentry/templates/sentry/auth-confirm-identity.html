@@ -16,6 +16,8 @@
       <span class="icon-arrow-left"></span>
       <span class="avatar">
         {% letter_avatar_svg identity_display_name identity_identifier %}
+      </span>
+      <span class="avatar">
         <img src="{% gravatar_url identity.email size 36 default 'blank' %}" class="avatar">
       </span>
     </div>
@@ -46,6 +48,8 @@
       <div class="sso-link">
         <span class="avatar">
           {% letter_avatar_svg identity_display_name identity_identifier %}
+        </span>
+        <span class="avatar">
           <img src="{% gravatar_url identity.email size 36 default 'blank' %}" class="avatar">
         </span>
       </div>

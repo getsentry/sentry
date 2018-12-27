@@ -17,7 +17,7 @@ class ReleaseWebhookTest(TestCase):
         super(ReleaseWebhookTest, self).setUp()
         self.organization = self.create_organization()
         self.team = self.create_team(organization=self.organization)
-        self.project = self.create_project(team=self.team)
+        self.project = self.create_project(teams=[self.team])
         self.token = 'a2587e3af83411e4a28634363b8514c2'
         self.signature = hmac.new(
             key=self.token.encode('utf-8'),
@@ -38,7 +38,7 @@ class ReleaseWebhookTest(TestCase):
         )
 
     def test_no_token(self):
-        project = self.create_project(team=self.team)
+        project = self.create_project(teams=[self.team])
         path = reverse(
             'sentry-release-hook',
             kwargs={
@@ -101,7 +101,7 @@ class BuiltinReleaseWebhookTest(TestCase):
         super(BuiltinReleaseWebhookTest, self).setUp()
         self.organization = self.create_organization()
         self.team = self.create_team(organization=self.organization)
-        self.project = self.create_project(team=self.team)
+        self.project = self.create_project(teams=[self.team])
         self.token = 'a2587e3af83411e4a28634363b8514c2'
         self.signature = hmac.new(
             key=self.token.encode('utf-8'),

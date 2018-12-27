@@ -1,26 +1,27 @@
 import React from 'react';
 
-import OrganizationIssueList from '../../components/organizationIssueList';
-import {t} from '../../locale';
+import OrganizationIssueList from 'app/components/organizationIssueList';
+import {t} from 'app/locale';
 
-const AssignedToMe = React.createClass({
-  getEndpoint() {
+class AssignedToMe extends React.Component {
+  getEndpoint = () => {
     return `/organizations/${this.props.params.orgId}/members/me/issues/assigned/`;
-  },
+  };
 
-  getTitle() {
+  getTitle = () => {
     return t('Assigned to me');
-  },
+  };
 
   render() {
     return (
       <OrganizationIssueList
         title={this.getTitle()}
         endpoint={this.getEndpoint()}
+        emptyText={t('No issues currently assigned to you.')}
         {...this.props}
       />
     );
   }
-});
+}
 
 export default AssignedToMe;

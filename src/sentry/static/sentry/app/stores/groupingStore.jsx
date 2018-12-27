@@ -1,14 +1,14 @@
 import Reflux from 'reflux';
 import {pick} from 'lodash';
 
-import IndicatorStore from './indicatorStore';
-import {Client} from '../api';
-import GroupingActions from '../actions/groupingActions';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {Client} from 'app/api';
+import GroupingActions from 'app/actions/groupingActions';
 
 const api = new Client();
 
 // Between 0-100
-const MIN_SCORE = 0.60;
+const MIN_SCORE = 0.6;
 
 // @param score: {[key: string]: number}
 const checkBelowThreshold = scores => {
@@ -50,7 +50,7 @@ const GroupingStore = Reflux.createStore({
       mergeDisabled: false,
 
       loading: true,
-      error: false
+      error: false,
     };
   },
 
@@ -66,8 +66,8 @@ const GroupingStore = Reflux.createStore({
   },
 
   isAllUnmergedSelected() {
-    let lockedItems = Array.from(this.unmergeState.values()).filter(({busy}) => busy) || [
-    ];
+    let lockedItems =
+      Array.from(this.unmergeState.values()).filter(({busy}) => busy) || [];
     return (
       this.unmergeList.size ===
       this.mergedItems.filter(({latestEvent}) => !!latestEvent).length -
@@ -92,13 +92,13 @@ const GroupingStore = Reflux.createStore({
             resolve({
               dataKey,
               data,
-              links: jqXHR.getResponseHeader('Link')
+              links: jqXHR.getResponseHeader('Link'),
             });
           },
           error: err => {
             let error = (err.responseJSON && err.responseJSON.detail) || true;
             reject(error);
-          }
+          },
         });
       });
     });
@@ -107,7 +107,7 @@ const GroupingStore = Reflux.createStore({
       merged: item => {
         // Check for locked items
         this.setStateForId(this.unmergeState, item.id, {
-          busy: item.state === 'locked'
+          busy: item.state === 'locked',
         });
         return item;
       },
@@ -146,9 +146,9 @@ const GroupingStore = Reflux.createStore({
           score: scoreMap,
           scoresByInterface,
           aggregate,
-          isBelowThreshold
+          isBelowThreshold,
         };
-      }
+      },
     };
 
     if (toFetchArray) {
@@ -192,7 +192,7 @@ const GroupingStore = Reflux.createStore({
     }
 
     this.setStateForId(this.mergeState, id, {
-      checked
+      checked,
     });
 
     this.triggerMergeState();
@@ -217,7 +217,7 @@ const GroupingStore = Reflux.createStore({
 
     // Update "checked" state for row
     this.setStateForId(this.unmergeState, fingerprint, {
-      checked
+      checked,
     });
 
     // Unmerge should be disabled if 0 or all items are selected
@@ -242,7 +242,7 @@ const GroupingStore = Reflux.createStore({
       // Disable rows
       this.setStateForId(this.unmergeState, ids, {
         checked: false,
-        busy: true
+        busy: true,
       });
       this.triggerUnmergeState();
       let loadingIndicator = IndicatorStore.add(loadingMessage);
@@ -250,17 +250,17 @@ const GroupingStore = Reflux.createStore({
       api.request(`/issues/${groupId}/hashes/`, {
         method: 'DELETE',
         query: {
-          id: ids
+          id: ids,
         },
         success: (data, _, jqXHR) => {
           IndicatorStore.remove(loadingIndicator);
           IndicatorStore.add(successMessage, 'success', {
-            duration: 5000
+            duration: 5000,
           });
           // Busy rows after successful merge
           this.setStateForId(this.unmergeState, ids, {
             checked: false,
-            busy: true
+            busy: true,
           });
           this.unmergeList.clear();
         },
@@ -269,13 +269,13 @@ const GroupingStore = Reflux.createStore({
           IndicatorStore.add(errorMessage, 'error');
           this.setStateForId(this.unmergeState, ids, {
             checked: true,
-            busy: false
+            busy: false,
           });
         },
         complete: () => {
           this.unmergeDisabled = false;
           resolve(this.triggerUnmergeState());
-        }
+        },
       });
     });
   },
@@ -285,7 +285,7 @@ const GroupingStore = Reflux.createStore({
 
     this.mergeDisabled = true;
     this.setStateForId(this.mergeState, ids, {
-      busy: true
+      busy: true,
     });
     this.triggerMergeState();
 
@@ -299,27 +299,33 @@ const GroupingStore = Reflux.createStore({
             orgId,
             projectId,
             itemIds: [...ids, groupId],
-            query
+            query,
           },
           {
             success: (data, _, jqXHR) => {
+              if (data && data.merge && data.merge.parent) {
+                this.trigger({
+                  mergedParent: data.merge.parent,
+                });
+              }
+
               // Hide rows after successful merge
               this.setStateForId(this.mergeState, ids, {
                 checked: false,
-                busy: true
+                busy: true,
               });
               this.mergeList.clear();
             },
             error: () => {
               this.setStateForId(this.mergeState, ids, {
                 checked: true,
-                busy: false
+                busy: false,
               });
             },
             complete: () => {
               this.mergeDisabled = false;
               resolve(this.triggerMergeState());
-            }
+            },
           }
         );
       } else {
@@ -330,25 +336,17 @@ const GroupingStore = Reflux.createStore({
     return promise;
   },
 
-  onMergeSuccess(id, ids, response) {
-    if (!response || !response.merge || !response.merge.parent) return;
-
-    this.trigger({
-      mergedParent: response.merge.parent
-    });
-  },
-
   // Toggle collapsed state of all fingerprints
   onToggleCollapseFingerprints() {
     this.setStateForId(this.unmergeState, this.mergedItems.map(({id}) => id), {
-      collapsed: !this.unmergeLastCollapsed
+      collapsed: !this.unmergeLastCollapsed,
     });
 
     this.unmergeLastCollapsed = !this.unmergeLastCollapsed;
 
     this.trigger({
       unmergeLastCollapsed: this.unmergeLastCollapsed,
-      unmergeState: this.unmergeState
+      unmergeState: this.unmergeState,
     });
   },
 
@@ -357,7 +355,7 @@ const GroupingStore = Reflux.createStore({
       this.unmergeState.has(fingerprint) && this.unmergeState.get(fingerprint).collapsed;
     this.setStateForId(this.unmergeState, fingerprint, {collapsed: !collapsed});
     this.trigger({
-      unmergeState: this.unmergeState
+      unmergeState: this.unmergeState,
     });
   },
 
@@ -374,8 +372,8 @@ const GroupingStore = Reflux.createStore({
         'mergeState',
         'unmergeState',
         'loading',
-        'error'
-      ])
+        'error',
+      ]),
     };
     this.trigger(state);
     return state;
@@ -387,7 +385,7 @@ const GroupingStore = Reflux.createStore({
       'unmergeState',
       'unmergeList',
       'enableFingerprintCompare',
-      'unmergeLastCollapsed'
+      'unmergeLastCollapsed',
     ]);
     this.trigger(state);
     return state;
@@ -397,7 +395,7 @@ const GroupingStore = Reflux.createStore({
     let state = pick(this, ['mergeDisabled', 'mergeState', 'mergeList']);
     this.trigger(state);
     return state;
-  }
+  },
 });
 
 export default GroupingStore;

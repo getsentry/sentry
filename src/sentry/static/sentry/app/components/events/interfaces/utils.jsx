@@ -1,4 +1,7 @@
-import {defined} from '../../../utils';
+import {isString} from 'lodash';
+
+import sdk from 'app/utils/sdk';
+import {defined} from 'app/utils';
 
 export function escapeQuotes(v) {
   return v.replace(/"/g, '\\"');
@@ -38,7 +41,13 @@ export function getCurlCommand(data) {
         result += ' \\\n --data "' + escapeQuotes(jQuery.param(data.data)) + '"';
         break;
       default:
-        result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
+        if (isString(data.data)) {
+          result += ' \\\n --data "' + escapeQuotes(data.data) + '"';
+        } else {
+          sdk.captureException(new Error('Unknown event data'), {
+            extra: data,
+          });
+        }
     }
   }
 

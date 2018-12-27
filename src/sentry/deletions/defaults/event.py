@@ -16,17 +16,18 @@ class NodeDeletionTask(BaseDeletionTask):
 
 
 class EventDeletionTask(ModelDeletionTask):
+    def get_child_relations(self, instance):
+        from sentry import models
+        relations = super(EventDeletionTask, self).get_child_relations(instance)
+        key = {'project_id': instance.project_id, 'event_id': instance.event_id}
+        relations.extend([
+            ModelRelation(models.EventAttachment, key),
+            ModelRelation(models.EventMapping, key),
+            ModelRelation(models.UserReport, key),
+        ])
+        return relations
+
     def get_child_relations_bulk(self, instance_list):
-        from sentry.models import EventTag
-
         node_ids = [i.data.id for i in instance_list]
-        event_ids = [i.id for i in instance_list]
 
-        return [
-            BaseRelation({
-                'nodes': node_ids
-            }, NodeDeletionTask),
-            ModelRelation(EventTag, {
-                'event_id__in': event_ids,
-            }, ModelDeletionTask),
-        ]
+        return [BaseRelation({'nodes': node_ids}, NodeDeletionTask)]

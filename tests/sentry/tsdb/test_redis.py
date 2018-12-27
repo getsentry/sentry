@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+import pytest
 import pytz
 
+from contextlib import contextmanager
 from datetime import (
     datetime,
     timedelta,
@@ -9,8 +11,26 @@ from datetime import (
 
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel, ONE_MINUTE, ONE_HOUR, ONE_DAY
-from sentry.tsdb.redis import RedisTSDB, CountMinScript
+from sentry.tsdb.redis import RedisTSDB, CountMinScript, SuppressionWrapper
 from sentry.utils.dates import to_datetime, to_timestamp
+
+
+def test_suppression_wrapper():
+
+    @contextmanager
+    def raise_after():
+        yield
+        raise Exception('Boom!')
+
+    with pytest.raises(Exception):
+        with raise_after():
+            pass
+
+    with SuppressionWrapper(raise_after()):
+        pass
+
+    with SuppressionWrapper(raise_after()):
+        raise Exception('should not propagate')
 
 
 class RedisTSDBTest(TestCase):
@@ -164,7 +184,7 @@ class RedisTSDBTest(TestCase):
                 (timestamp(dts[2]), 0),
                 (timestamp(dts[3]), 6),
             ],
-            2: [(timestamp(dts[i]), 0) for i in xrange(0, 4)],
+            2: [(timestamp(dts[i]), 0) for i in range(0, 4)],
         }
 
         results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
@@ -367,6 +387,11 @@ class RedisTSDBTest(TestCase):
     def test_frequency_tables(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC)
         model = TSDBModel.frequent_projects_by_organization
+
+        # None of the registered frequency tables actually support
+        # environments, so we have to pretend like one actually does
+        self.db.models_with_environment_support = self.db.models_with_environment_support | set([
+                                                                                                model])
 
         rollup = 3600
 

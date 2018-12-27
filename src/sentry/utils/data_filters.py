@@ -26,6 +26,8 @@ class FilterStatKeys(object):
     WEB_CRAWLER = 'web-crawlers'
     INVALID_CSP = 'invalid-csp'
     CORS = 'cors'
+    DISCARDED_HASH = 'discarded-hash'
+
 
 FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.IP_ADDRESS: tsdb.models.project_total_received_ip_address,
@@ -37,6 +39,7 @@ FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.WEB_CRAWLER: tsdb.models.project_total_received_web_crawlers,
     FilterStatKeys.INVALID_CSP: tsdb.models.project_total_received_invalid_csp,
     FilterStatKeys.CORS: tsdb.models.project_total_received_cors,
+    FilterStatKeys.DISCARDED_HASH: tsdb.models.project_total_received_discarded,
 }
 
 
@@ -79,7 +82,7 @@ def is_valid_release(project, release):
     Verify that a release is not being filtered
     for the given project.
     """
-    invalid_versions = project.get_option('sentry:{}'.format(FilterTypes.RELEASES))
+    invalid_versions = project.get_option(u'sentry:{}'.format(FilterTypes.RELEASES))
     if not invalid_versions:
         return True
 
@@ -97,7 +100,7 @@ def is_valid_error_message(project, message):
     Verify that an error message is not being filtered
     for the given project.
     """
-    filtered_errors = project.get_option('sentry:{}'.format(FilterTypes.ERROR_MESSAGES))
+    filtered_errors = project.get_option(u'sentry:{}'.format(FilterTypes.ERROR_MESSAGES))
     if not filtered_errors:
         return True
 

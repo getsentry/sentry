@@ -2,8 +2,11 @@ from __future__ import absolute_import
 
 import posixpath
 
-from sentry.utils.compat import implements_to_string
 from sentry.constants import NATIVE_UNKNOWN_STRING
+from sentry.interfaces.exception import upgrade_legacy_mechanism
+from sentry.lang.native.utils import image_name
+from sentry.utils.compat import implements_to_string
+from sentry.utils.safe import get_path
 
 from symbolic import parse_addr
 
@@ -31,43 +34,46 @@ class AppleCrashReport(object):
 
     def _get_meta_header(self):
         return 'OS Version: %s %s (%s)\nReport Version: %s' % (
-            self.context.get('os').get(
-                'name'), self.context.get('os').get('version'),
-            self.context.get('os').get('build'), REPORT_VERSION
+            get_path(self.context, 'os', 'name'),
+            get_path(self.context, 'os', 'version'),
+            get_path(self.context, 'os', 'build'),
+            REPORT_VERSION,
         )
 
     def _get_exception_info(self):
         rv = []
-        if self.exceptions and self.exceptions[0]:
-            # We only have one exception at a time
-            exception = self.exceptions[0] or {}
-            mechanism = exception.get('mechanism') or {}
 
-            signal = (mechanism.get('posix_signal') or {}).get('name')
-            name = (mechanism.get('mach_exception')
-                    or {}).get('exception_name')
+        # We only have one exception at a time
+        exception = get_path(self.exceptions, 0)
+        if not exception:
+            return ''
 
-            if name or signal:
-                rv.append(
-                    'Exception Type: %s%s' %
-                    (name or 'Unknown', signal and (' (%s)' % signal) or '', )
-                )
+        mechanism = upgrade_legacy_mechanism(exception.get('mechanism')) or {}
+        mechanism_meta = get_path(mechanism, 'meta', default={})
 
-            exc_name = (mechanism.get('posix_signal') or {}).get('code_name')
-            exc_addr = mechanism.get('relevant_address')
-            if exc_name:
-                rv.append(
-                    'Exception Codes: %s%s' %
-                    (exc_name, exc_addr is not None and (
-                        ' at %s' % exc_addr) or '', )
-                )
+        signal = get_path(mechanism_meta, 'signal', 'name')
+        name = get_path(mechanism_meta, 'mach_exception', 'name')
 
-            if exception.get('thread_id') is not None:
-                rv.append('Crashed Thread: %s' % exception['thread_id'])
+        if name or signal:
+            rv.append(
+                'Exception Type: %s%s' %
+                (name or 'Unknown', signal and (' (%s)' % signal) or '', )
+            )
 
-            if exception.get('value'):
-                rv.append('\nApplication Specific Information:\n%s' %
-                          exception['value'])
+        exc_name = get_path(mechanism_meta, 'signal', 'code_name')
+        exc_addr = get_path(mechanism, 'data', 'relevant_address')
+        if exc_name:
+            rv.append(
+                'Exception Codes: %s%s' %
+                (exc_name, exc_addr is not None and (
+                    ' at %s' % exc_addr) or '', )
+            )
+
+        if exception.get('thread_id') is not None:
+            rv.append('Crashed Thread: %s' % exception['thread_id'])
+
+        if exception.get('value'):
+            rv.append('\nApplication Specific Information:\n%s' % exception['value'])
 
         return '\n'.join(rv)
 
@@ -83,11 +89,12 @@ class AppleCrashReport(object):
 
     def get_thread_apple_string(self, thread_info):
         rv = []
-        stacktrace = thread_info.get('stacktrace')
+        stacktrace = get_path(thread_info, 'stacktrace')
         if stacktrace is None:
             return None
+
         if stacktrace:
-            frames = stacktrace.get('frames')
+            frames = get_path(stacktrace, 'frames', filter=True)
             if frames:
                 for i, frame in enumerate(reversed(frames)):
                     frame_string = self._convert_frame_to_apple_string(
@@ -102,10 +109,9 @@ class AppleCrashReport(object):
         if len(rv) == 0:
             return None  # No frames in thread, so we remove thread
 
-        is_exception = thread_info.get('mechanism', False)
-        thread_id = thread_info.get('id', False) or thread_info.get(
-            'thread_id', False) or '0'
-        thread_name = thread_info.get('name', False)
+        is_exception = bool(thread_info.get('mechanism'))
+        thread_id = thread_info.get('id') or thread_info.get('thread_id') or '0'
+        thread_name = thread_info.get('name')
         thread_name_string = ' name: %s' % (thread_name) if thread_name else ''
         thread_crashed = thread_info.get('crashed') or is_exception
         thread_crashed_thread = ' Crashed:' if thread_crashed else ''
@@ -140,13 +146,12 @@ class AppleCrashReport(object):
                 )
             symbol = '%s%s' % (frame.get('function')
                                or NATIVE_UNKNOWN_STRING, file)
-            if next and parse_addr(frame['instruction_addr']) == \
-               parse_addr(next['instruction_addr']):
+            if next and parse_addr(frame.get('instruction_addr')) == \
+               parse_addr(next.get('instruction_addr')):
                 symbol = '[inlined] ' + symbol
         return '%s%s%s%s%s' % (
             str(number).ljust(4, ' '),
-            (frame.get('package') or NATIVE_UNKNOWN_STRING).rsplit(
-                '/', 1)[-1].ljust(32, ' '),
+            image_name(frame.get('package') or NATIVE_UNKNOWN_STRING).ljust(32, ' '),
             hex(instruction_addr).ljust(20, ' '), symbol, offset
         )
 
@@ -173,8 +178,10 @@ class AppleCrashReport(object):
         slide_value = parse_addr(debug_image['image_vmaddr'])
         image_addr = parse_addr(debug_image['image_addr']) + slide_value
         return '%s - %s %s %s  <%s> %s' % (
-            hex(image_addr), hex(image_addr + debug_image['image_size'] - 1),
-            debug_image['name'].rsplit(
-                '/', 1)[-1], self.context['device']['arch'],
-            debug_image['uuid'].replace('-', '').lower(), debug_image['name']
+            hex(image_addr),
+            hex(image_addr + debug_image['image_size'] - 1),
+            image_name(debug_image['name']),
+            self.context['device']['arch'],
+            (debug_image.get('id') or debug_image.get('uuid')).replace('-', '').lower(),
+            debug_image['name']
         )

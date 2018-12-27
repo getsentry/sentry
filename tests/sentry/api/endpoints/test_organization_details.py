@@ -6,14 +6,61 @@ from base64 import b64encode
 from django.core.urlresolvers import reverse
 from django.core import mail
 from mock import patch
+from exam import fixture
+from pprint import pprint
 
-from sentry.models import (Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus)
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.models import (
+    AuditLogEntry,
+    Authenticator,
+    AuthProvider,
+    DeletedOrganization,
+    Organization,
+    OrganizationAvatar,
+    OrganizationOption,
+    OrganizationStatus,
+    TotpInterface)
 from sentry.signals import project_created
-from sentry.testutils import APITestCase
+from sentry.testutils import APITestCase, TwoFactorAPITestCase
 
 
 class OrganizationDetailsTest(APITestCase):
     def test_simple(self):
+        org = self.create_organization(owner=self.user)
+        self.create_team(
+            name='appy',
+            organization=org,
+            members=[self.user])
+
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.get(url, format='json')
+        assert response.data['onboardingTasks'] == []
+        assert response.status_code == 200, response.content
+        assert response.data['id'] == six.text_type(org.id)
+        assert len(response.data['teams']) == 1
+
+        for i in range(5):
+            self.create_project(organization=org)
+
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        # TODO(dcramer): we need to pare this down -- lots of duplicate queries
+        # for membership data
+        with self.assertNumQueries(33, using='default'):
+            from django.db import connections
+            response = self.client.get(url, format='json')
+            pprint(connections['default'].queries)
+        assert len(response.data['projects']) == 5
+
+    def test_onboarding_tasks(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
         url = reverse(
@@ -75,7 +122,7 @@ class OrganizationUpdateTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-    def test_setting_rate_limit(self):
+    def test_short_slug(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
         url = reverse(
@@ -85,12 +132,25 @@ class OrganizationUpdateTest(APITestCase):
         )
         response = self.client.put(
             url, data={
-                'projectRateLimit': '80',
+                'slug': 'a',
             }
         )
-        assert response.status_code == 200, response.content
-        result = OrganizationOption.objects.get_value(org, 'sentry:project-rate-limit')
-        assert result == 80
+        assert response.status_code == 400, response.content
+
+    def test_reserved_slug(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'slug': list(RESERVED_ORGANIZATION_SLUGS)[0],
+            }
+        )
+        assert response.status_code == 400, response.content
 
     def test_upload_avatar(self):
         org = self.create_organization(owner=self.user)
@@ -118,35 +178,47 @@ class OrganizationUpdateTest(APITestCase):
 
     def test_various_options(self):
         org = self.create_organization(owner=self.user)
+        initial = org.get_audit_log_data()
+        AuditLogEntry.objects.filter(organization=org).delete()
+
         self.login_as(user=self.user)
         url = reverse(
             'sentry-api-0-organization-details', kwargs={
                 'organization_slug': org.slug,
             }
         )
-        response = self.client.put(
-            url,
-            data={
-                'openMembership': False,
-                'isEarlyAdopter': True,
-                'allowSharedIssues': False,
-                'enhancedPrivacy': True,
-                'dataScrubber': True,
-                'dataScrubberDefaults': True,
-                'sensitiveFields': ['password'],
-                'safeFields': ['email'],
-                'scrubIPAddresses': True,
-                'defaultRole': 'owner',
-            }
-        )
+
+        data = {
+            'openMembership': False,
+            'isEarlyAdopter': True,
+            'allowSharedIssues': False,
+            'enhancedPrivacy': True,
+            'dataScrubber': True,
+            'dataScrubberDefaults': True,
+            'sensitiveFields': [u'password'],
+            'safeFields': [u'email'],
+            'storeCrashReports': True,
+            'scrubIPAddresses': True,
+            'scrapeJavaScript': False,
+            'defaultRole': 'owner',
+            'require2FA': True
+        }
+
+        # needed to set require2FA
+        interface = TotpInterface()
+        interface.enroll(self.user)
+        assert Authenticator.objects.user_has_2fa(self.user)
+
+        response = self.client.put(url, data=data)
         assert response.status_code == 200, response.content
         org = Organization.objects.get(id=org.id)
+        assert initial != org.get_audit_log_data()
 
         assert org.flags.early_adopter
         assert not org.flags.allow_joinleave
         assert org.flags.disable_shared_issues
         assert org.flags.enhanced_privacy
-        assert org.flags.enhanced_privacy
+        assert org.flags.require_2fa
         assert org.default_role == 'owner'
 
         options = {o.key: o.value for o in OrganizationOption.objects.filter(
@@ -158,6 +230,114 @@ class OrganizationUpdateTest(APITestCase):
         assert options.get('sentry:require_scrub_ip_address')
         assert options.get('sentry:sensitive_fields') == ['password']
         assert options.get('sentry:safe_fields') == ['email']
+        assert options.get('sentry:store_crash_reports') is True
+        assert options.get('sentry:scrape_javascript') is False
+
+        # log created
+        log = AuditLogEntry.objects.get(organization=org)
+        assert log.get_event_display() == 'org.edit'
+        # org fields & flags
+        assert u'to {}'.format(data['defaultRole']) in log.data['default_role']
+        assert u'to {}'.format(data['openMembership']) in log.data['allow_joinleave']
+        assert u'to {}'.format(data['isEarlyAdopter']) in log.data['early_adopter']
+        assert u'to {}'.format(data['enhancedPrivacy']) in log.data['enhanced_privacy']
+        assert u'to {}'.format(not data['allowSharedIssues']) in log.data['disable_shared_issues']
+        assert u'to {}'.format(data['require2FA']) in log.data['require_2fa']
+        # org options
+        assert u'to {}'.format(data['dataScrubber']) in log.data['dataScrubber']
+        assert u'to {}'.format(data['dataScrubberDefaults']) in log.data['dataScrubberDefaults']
+        assert u'to {}'.format(data['sensitiveFields']) in log.data['sensitiveFields']
+        assert u'to {}'.format(data['safeFields']) in log.data['safeFields']
+        assert u'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
+        assert u'to {}'.format(data['scrapeJavaScript']) in log.data['scrapeJavaScript']
+
+    def test_setting_trusted_relays_forbidden(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        data = {
+            'trustedRelays': [u'key1', u'key2']
+        }
+
+        response = self.client.put(url, data=data)
+        assert response.status_code == 400
+        assert 'feature' in response.content
+
+    def test_setting_trusted_relays(self):
+        org = self.create_organization(owner=self.user)
+        AuditLogEntry.objects.filter(organization=org).delete()
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+
+        data = {'trustedRelays': [u'key1', u'key2']}
+
+        with self.feature("organizations:relay"):
+            response = self.client.put(url, data=data)
+            assert response.status_code == 200
+
+        option, = OrganizationOption.objects.filter(
+            organization=org,
+            key="sentry:trusted-relays"
+        )
+
+        assert option.value == data['trustedRelays']
+        log = AuditLogEntry.objects.get(organization=org)
+        assert 'to {}'.format(data['trustedRelays']) in log.data['trustedRelays']
+
+    def test_setting_legacy_rate_limits(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url,
+            data={
+                'accountRateLimit': 1000,
+            }
+        )
+        assert response.status_code == 400, response.content
+
+        response = self.client.put(
+            url,
+            data={
+                'projectRateLimit': 1000,
+            }
+        )
+        assert response.status_code == 400, response.content
+
+        OrganizationOption.objects.set_value(org, 'sentry:project-rate-limit', 1)
+
+        response = self.client.put(
+            url,
+            data={
+                'projectRateLimit': 100,
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        assert OrganizationOption.objects.get_value(org, 'sentry:project-rate-limit') == 100
+
+        response = self.client.put(
+            url,
+            data={
+                'accountRateLimit': 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        assert OrganizationOption.objects.get_value(org, 'sentry:account-rate-limit') == 50
 
     def test_safe_fields_as_string_regression(self):
         org = self.create_organization(owner=self.user)
@@ -277,6 +457,23 @@ class OrganizationUpdateTest(APITestCase):
 
         assert not options.get('sentry:sensitive_fields')
 
+    def test_cancel_delete(self):
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
+        self.login_as(user=self.user)
+        url = reverse(
+            'sentry-api-0-organization-details', kwargs={
+                'organization_slug': org.slug,
+            }
+        )
+        response = self.client.put(
+            url, data={
+                'cancelDeletion': True,
+            }
+        )
+        assert response.status_code == 200, (response.status_code, response.content)
+        org = Organization.objects.get(id=org.id)
+        assert org.status == OrganizationStatus.VISIBLE
+
 
 class OrganizationDeleteTest(APITestCase):
     @patch('sentry.api.endpoints.organization_details.uuid4')
@@ -313,9 +510,12 @@ class OrganizationDeleteTest(APITestCase):
 
         org = Organization.objects.get(id=org.id)
 
-        assert response.status_code == 204, response.data
+        assert response.status_code == 202, response.data
 
         assert org.status == OrganizationStatus.PENDING_DELETION
+
+        deleted_org = DeletedOrganization.objects.get(slug=org.slug)
+        self.assert_valid_deleted_log(deleted_org, org)
 
         mock_delete_organization.apply_async.assert_called_once_with(
             kwargs={
@@ -375,3 +575,121 @@ class OrganizationDeleteTest(APITestCase):
             response = self.client.delete(url)
 
         assert response.status_code == 400, response.data
+
+
+class OrganizationSettings2FATest(TwoFactorAPITestCase):
+    def setUp(self):
+        self.org_2fa = self.create_organization(owner=self.create_user())
+        self.enable_org_2fa(self.org_2fa)
+        self.no_2fa_user = self.create_user()
+        self.create_member(organization=self.org_2fa, user=self.no_2fa_user, role="member")
+
+        # 2FA not enforced org and members
+        self.owner = self.create_user()
+        self.organization = self.create_organization(owner=self.owner)
+        self.manager = self.create_user()
+        self.create_member(organization=self.organization, user=self.manager, role="manager")
+        self.org_user = self.create_user()
+        self.create_member(organization=self.organization, user=self.org_user, role="member")
+
+    @fixture
+    def path(self):
+        return reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': self.org_2fa.slug,
+        })
+
+    def assert_2fa_email_equal(self, outbox, expected):
+        assert len(outbox) == len(expected)
+        assert sorted([email.to[0] for email in outbox]) == sorted(expected)
+
+    def assert_can_access_org_details(self, url):
+        response = self.client.get(url)
+        assert response.status_code == 200
+
+    def assert_cannot_access_org_details(self, url):
+        response = self.client.get(url)
+        assert response.status_code == 401
+
+    def test_cannot_enforce_2fa_without_2fa_enabled(self):
+        assert not Authenticator.objects.user_has_2fa(self.owner)
+        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400)
+
+    def test_cannot_enforce_2fa_with_saml_enabled(self):
+        self.auth_provider = AuthProvider.objects.create(
+            provider='saml2',
+            organization=self.org_2fa,
+        )
+        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400)
+
+    def test_can_enforce_2fa_with_non_saml_sso_enabled(self):
+        org = self.create_organization(owner=self.owner)
+        TotpInterface().enroll(self.owner)
+        self.auth_provider = AuthProvider.objects.create(
+            provider='github',
+            organization=org,
+        )
+        self.assert_can_enable_org_2fa(self.organization, self.owner)
+
+    def test_owner_can_set_2fa_single_member(self):
+        org = self.create_organization(owner=self.owner)
+        TotpInterface().enroll(self.owner)
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.assert_can_enable_org_2fa(org, self.owner)
+        assert len(mail.outbox) == 0
+
+    def test_manager_can_set_2fa(self):
+        org = self.create_organization(owner=self.owner)
+        self.create_member(organization=org, user=self.manager, role="manager")
+
+        self.assert_cannot_enable_org_2fa(org, self.manager, 400)
+        TotpInterface().enroll(self.manager)
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.assert_can_enable_org_2fa(org, self.manager)
+        self.assert_2fa_email_equal(mail.outbox, [self.owner.email])
+
+    def test_members_cannot_set_2fa(self):
+        self.assert_cannot_enable_org_2fa(self.organization, self.org_user, 403)
+        TotpInterface().enroll(self.org_user)
+        self.assert_cannot_enable_org_2fa(self.organization, self.org_user, 403)
+
+    def test_owner_can_set_org_2fa(self):
+        org = self.create_organization(owner=self.owner)
+        TotpInterface().enroll(self.owner)
+        user_emails_without_2fa = self.add_2fa_users_to_org(org)
+
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            self.assert_can_enable_org_2fa(org, self.owner)
+        self.assert_2fa_email_equal(mail.outbox, user_emails_without_2fa)
+
+        mail.outbox = []
+        with self.options({'system.url-prefix': 'http://example.com'}), self.tasks():
+            response = self.api_disable_org_2fa(org, self.owner)
+
+        assert response.status_code == 200
+        assert not Organization.objects.get(id=org.id).flags.require_2fa
+        assert len(mail.outbox) == 0
+
+    def test_preexisting_members_must_enable_2fa(self):
+        self.login_as(self.no_2fa_user)
+        self.assert_cannot_access_org_details(self.path)
+
+        TotpInterface().enroll(self.no_2fa_user)
+        self.assert_can_access_org_details(self.path)
+
+    def test_new_member_must_enable_2fa(self):
+        new_user = self.create_user()
+        self.create_member(organization=self.org_2fa, user=new_user, role="member")
+        self.login_as(new_user)
+        self.assert_cannot_access_org_details(self.path)
+
+        TotpInterface().enroll(new_user)
+        self.assert_can_access_org_details(self.path)
+
+    def test_member_disable_all_2fa_blocked(self):
+        TotpInterface().enroll(self.no_2fa_user)
+        self.login_as(self.no_2fa_user)
+
+        self.assert_can_access_org_details(self.path)
+
+        Authenticator.objects.get(user=self.no_2fa_user).delete()
+        self.assert_cannot_access_org_details(self.path)

@@ -1,8 +1,8 @@
-import Raven from 'raven-js';
+import sdk from 'app/utils/sdk';
 
 export function logException(ex, context) {
-  Raven.captureException(ex, {
-    extra: context
+  sdk.captureException(ex, {
+    extra: context,
   });
   /*eslint no-console:0*/
   window.console && console.error && console.error(ex);
@@ -14,8 +14,8 @@ export function logAjaxError(error, context) {
     : error.responseText ? error.responseText.substr(0, 255) : '<unknown response>'; // occassionally responseText is undefined
 
   let message = `HTTP ${error.status}: ${errorString}`;
-  Raven.captureMessage(message, {
-    extra: context
+  sdk.captureMessage(message, {
+    extra: context,
   });
   /*eslint no-console:0*/
   window.console && console.error && console.error(message);

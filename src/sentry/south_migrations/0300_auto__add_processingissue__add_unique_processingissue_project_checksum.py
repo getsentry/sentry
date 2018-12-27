@@ -24,7 +24,7 @@ class Migration(SchemaMigration):
                 ), ('type', self.gf('django.db.models.fields.CharField')(max_length=30)),
                 ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()), (
                     'datetime',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )
@@ -49,7 +49,7 @@ class Migration(SchemaMigration):
                     self.gf('django.db.models.fields.CharField')(max_length=32, null=True)
                 ), (
                     'datetime',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
             )
         )
@@ -74,7 +74,7 @@ class Migration(SchemaMigration):
                     self.gf('django.db.models.fields.CharField')(max_length=32, null=True)
                 ), (
                     'datetime',
-                    self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)
+                    self.gf('django.db.models.fields.DateTimeField')()
                 ),
                 ('data', self.gf('sentry.db.models.fields.node.NodeField')(null=True, blank=True)),
             )
@@ -105,11 +105,13 @@ class Migration(SchemaMigration):
         )
         db.send_create_signal('sentry', ['EventProcessingIssue'])
 
-        # Adding unique constraint on 'EventProcessingIssue', fields ['raw_event', 'processing_issue']
+        # Adding unique constraint on 'EventProcessingIssue', fields ['raw_event',
+        # 'processing_issue']
         db.create_unique('sentry_eventprocessingissue', ['raw_event_id', 'processing_issue_id'])
 
     def backwards(self, orm):
-        # Removing unique constraint on 'EventProcessingIssue', fields ['raw_event', 'processing_issue']
+        # Removing unique constraint on 'EventProcessingIssue', fields
+        # ['raw_event', 'processing_issue']
         db.delete_unique('sentry_eventprocessingissue', ['raw_event_id', 'processing_issue_id'])
 
         # Removing unique constraint on 'RawEvent', fields ['project', 'event_id']

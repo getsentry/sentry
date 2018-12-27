@@ -13,8 +13,9 @@ import string
 
 from django.utils.encoding import force_text
 
-from sentry.utils.safe import trim
 from sentry.interfaces.base import Interface
+from sentry.utils.contexts_normalization import normalize_os, normalize_runtime
+from sentry.utils.safe import get_path, trim
 
 __all__ = ('Contexts', )
 
@@ -58,19 +59,18 @@ class ContextType(object):
 
     @classmethod
     def values_for_data(cls, data):
-        contexts = data.get('contexts') or {}
         rv = []
-        for context in six.itervalues(contexts):
-            if context.get('type') == cls.type:
+        for context in six.itervalues(data.get('contexts') or {}):
+            if context and context.get('type') == cls.type:
                 rv.append(context)
         return rv
 
     @classmethod
     def primary_value_for_data(cls, data):
-        contexts = data.get('contexts') or {}
-        val = contexts.get(cls.type)
+        val = get_path(data, 'contexts', cls.type)
         if val and val.get('type') == cls.type:
             return val
+
         rv = cls.values_for_data(data)
         if len(rv) == 1:
             return rv[0]
@@ -121,6 +121,10 @@ class RuntimeContextType(ContextType):
         'name': u'{name}',
     }
 
+    def __init__(self, alias, data):
+        normalize_runtime(data)
+        super(RuntimeContextType, self).__init__(alias, data)
+
 
 @contexttype
 class BrowserContextType(ContextType):
@@ -142,6 +146,19 @@ class OsContextType(ContextType):
     }
     # build, rooted
 
+    def __init__(self, alias, data):
+        normalize_os(data)
+        super(OsContextType, self).__init__(alias, data)
+
+
+@contexttype
+class GpuContextType(ContextType):
+    type = 'gpu'
+    indexed_fields = {
+        'name': u'{name}',
+        'vendor': u'{vendor_name}',
+    }
+
 
 class Contexts(Interface):
     """
@@ -154,7 +171,8 @@ class Contexts(Interface):
     def to_python(cls, data):
         rv = {}
         for alias, value in six.iteritems(data):
-            rv[alias] = cls.normalize_context(alias, value)
+            if value is not None:
+                rv[alias] = cls.normalize_context(alias, value)
         return cls(**rv)
 
     @classmethod
@@ -176,6 +194,3 @@ class Contexts(Interface):
         for inst in self.iter_contexts():
             for tag in inst.iter_tags():
                 yield tag
-
-    def get_path(self):
-        return 'contexts'

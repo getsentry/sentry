@@ -1,12 +1,13 @@
+import {Flex} from 'grid-emotion';
 import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import {Form, FormState} from '../../components/forms';
-import PluginComponentBase from '../../components/bases/pluginComponentBase';
-import LoadingIndicator from '../../components/loadingIndicator';
-import {t, tct} from '../../locale';
-import {parseRepo} from '../../utils';
+import {Form, FormState} from 'app/components/forms';
+import {parseRepo} from 'app/utils';
+import {t, tct} from 'app/locale';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import PluginComponentBase from 'app/components/bases/pluginComponentBase';
 
 class PluginSettings extends PluginComponentBase {
   constructor(props, context) {
@@ -20,7 +21,7 @@ class PluginSettings extends PluginComponentBase {
       rawData: {},
       // override default FormState.READY if api requests are
       // necessary to even load the form
-      state: FormState.LOADING
+      state: FormState.LOADING,
     });
   }
 
@@ -61,15 +62,15 @@ class PluginSettings extends PluginComponentBase {
           fieldList: data.config,
           formData,
           initialData,
-          errors: {}
+          errors: {},
         });
       }),
       error: this.onSaveError.bind(this, error => {
         this.setState({
-          errors: (error.responseJSON || {}).errors || {}
+          errors: (error.responseJSON || {}).errors || {},
         });
       }),
-      complete: this.onSaveComplete
+      complete: this.onSaveComplete,
     });
   }
 
@@ -79,7 +80,7 @@ class PluginSettings extends PluginComponentBase {
         if (!data.config) {
           this.setState(
             {
-              rawData: data
+              rawData: data,
             },
             this.onLoadSuccess
           );
@@ -95,14 +96,14 @@ class PluginSettings extends PluginComponentBase {
           {
             fieldList: data.config,
             formData,
-            initialData
+            initialData,
             // call this here to prevent FormState.READY from being
             // set before fieldList is
           },
           this.onLoadSuccess
         );
       },
-      error: this.onLoadError
+      error: this.onLoadError,
     });
   }
 
@@ -123,9 +124,7 @@ class PluginSettings extends PluginComponentBase {
       }
       return (
         <div className="m-b-1">
-          <div className="alert alert-warning m-b-1">
-            {data.config_error}
-          </div>
+          <div className="alert alert-warning m-b-1">{data.config_error}</div>
           <a className="btn btn-primary" href={authUrl}>
             {t('Associate Identity')}
           </a>
@@ -137,7 +136,7 @@ class PluginSettings extends PluginComponentBase {
       return (
         <div className="alert alert-error m-b-1">
           {tct('An unknown error occurred. Need help with this? [link:Contact support]', {
-            link: <a href="https://sentry.io/support/" />
+            link: <a href="https://sentry.io/support/" />,
           })}
         </div>
       );
@@ -147,22 +146,29 @@ class PluginSettings extends PluginComponentBase {
       return null;
     }
     return (
-      <Form onSubmit={this.onSubmit} submitDisabled={isSaving || !hasChanges}>
-        {this.state.errors.__all__ &&
-          <div className="alert alert-block alert-error">
-            <ul>
-              <li>{this.state.errors.__all__}</li>
-            </ul>
-          </div>}
-        {this.state.fieldList.map(f => {
-          return this.renderField({
-            key: f.name,
-            config: f,
-            formData: this.state.formData,
-            formErrors: this.state.errors,
-            onChange: this.changeField.bind(this, f.name)
-          });
-        })}
+      <Form
+        css={{width: '100%'}}
+        onSubmit={this.onSubmit}
+        submitDisabled={isSaving || !hasChanges}
+      >
+        <Flex direction="column">
+          {this.state.errors.__all__ && (
+            <div className="alert alert-block alert-error">
+              <ul>
+                <li>{this.state.errors.__all__}</li>
+              </ul>
+            </div>
+          )}
+          {this.state.fieldList.map(f => {
+            return this.renderField({
+              key: f.name,
+              config: f,
+              formData: this.state.formData,
+              formErrors: this.state.errors,
+              onChange: this.changeField.bind(this, f.name),
+            });
+          })}
+        </Flex>
       </Form>
     );
   }
@@ -171,7 +177,7 @@ class PluginSettings extends PluginComponentBase {
 PluginSettings.propTypes = {
   organization: PropTypes.object.isRequired,
   project: PropTypes.object.isRequired,
-  plugin: PropTypes.object.isRequired
+  plugin: PropTypes.object.isRequired,
 };
 
 export default PluginSettings;

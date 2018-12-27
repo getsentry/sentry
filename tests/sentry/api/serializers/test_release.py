@@ -19,6 +19,7 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     ReleaseProject,
+    ReleaseProjectEnvironment,
     User,
     UserEmail,
 )
@@ -35,12 +36,34 @@ class ReleaseSerializerTest(TestCase):
         )
         release.add_project(project)
         release.add_project(project2)
+
         ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
         ReleaseProject.objects.filter(release=release, project=project2).update(new_groups=1)
+
+        environment = Environment.objects.create(
+            organization_id=project.organization_id,
+            name='prod',
+        )
+        environment.add_project(project)
+        environment.add_project(project2)
+
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project.id,
+            release_id=release.id,
+            environment_id=environment.id,
+            new_issues_count=1,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project2.id,
+            release_id=release.id,
+            environment_id=environment.id,
+            new_issues_count=1,
+        )
         key = 'sentry:release'
         value = release.version
         tagstore.create_tag_value(
             project_id=project.id,
+            environment_id=None,
             key=key,
             value=value,
             first_seen=timezone.now(),
@@ -49,6 +72,7 @@ class ReleaseSerializerTest(TestCase):
         )
         tagstore.create_tag_value(
             project_id=project2.id,
+            environment_id=None,
             key=key,
             value=value,
             first_seen=timezone.now() - datetime.timedelta(days=2),
@@ -86,8 +110,8 @@ class ReleaseSerializerTest(TestCase):
         # should be sum of all projects
         assert result['newGroups'] == 2
         # should be tags from all projects
-        tagvalue1 = tagstore.get_tag_value(project.id, key, value)
-        tagvalue2 = tagstore.get_tag_value(project2.id, key, value)
+        tagvalue1 = tagstore.get_tag_value(project.id, None, key, value)
+        tagvalue2 = tagstore.get_tag_value(project2.id, None, key, value)
         assert result['firstEvent'] == tagvalue2.first_seen
         assert result['lastEvent'] == tagvalue1.last_seen
         assert result['commitCount'] == 1
@@ -364,6 +388,7 @@ class ReleaseSerializerTest(TestCase):
             commit=commit2,
             order=2,
         )
+        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
         release.update(
             authors=[
                 six.text_type(commit_author1.id),
@@ -383,12 +408,18 @@ class ReleaseSerializerTest(TestCase):
             organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
-        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
+
         env = Environment.objects.create(
             organization_id=project.organization_id,
             name='production',
         )
         env.add_project(project)
+        ReleaseProjectEnvironment.objects.create(
+            project_id=project.id,
+            release_id=release.id,
+            environment_id=env.id,
+            new_issues_count=1,
+        )
         deploy = Deploy.objects.create(
             organization_id=project.organization_id,
             release=release,
@@ -400,6 +431,27 @@ class ReleaseSerializerTest(TestCase):
         assert result['version'] == release.version
         assert result['deployCount'] == 1
         assert result['lastDeploy']['id'] == six.text_type(deploy.id)
+
+    def test_release_no_users(self):
+        """
+        Testing when a repo gets deleted leaving dangling last commit id and author_ids
+        Made the decision that the Serializer must handle the data even in the case that the
+        commit_id or the author_ids point to records that do not exist.
+        """
+        commit_id = 9999999
+        commit_author_id = 9999999
+
+        project = self.create_project()
+        release = Release.objects.create(
+            organization_id=project.organization_id, version=uuid4().hex,
+            authors=[
+                six.text_type(commit_author_id),
+            ],
+            commit_count=1,
+            last_commit_id=commit_id,
+        )
+        release.add_project(project)
+        serialize(release)
 
 
 class ReleaseRefsSerializerTest(TestCase):

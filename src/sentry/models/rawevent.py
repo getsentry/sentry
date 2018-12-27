@@ -10,7 +10,8 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (BaseManager, Model, NodeField, FlexibleForeignKey, sane_repr)
+from sentry.db.models import (Model, NodeField, FlexibleForeignKey, sane_repr)
+from sentry.utils.canonical import CanonicalKeyView
 
 
 class RawEvent(Model):
@@ -24,9 +25,8 @@ class RawEvent(Model):
         null=True,
         ref_func=lambda x: x.project_id or x.project.id,
         ref_version=1,
+        wrapper=CanonicalKeyView,
     )
-
-    objects = BaseManager()
 
     class Meta:
         app_label = 'sentry'

@@ -72,14 +72,14 @@ class Map(Attribute):
 
 
 class Event(object):
-    __slots__ = ['guid', 'attributes', 'data', 'datetime', 'type']
+    __slots__ = ['uuid', 'attributes', 'data', 'datetime', 'type']
 
     type = None
 
     attributes = ()
 
     def __init__(self, type=None, datetime=None, **items):
-        self.guid = uuid1()
+        self.uuid = uuid1()
 
         self.datetime = datetime or timezone.now()
         if type is not None:
@@ -106,7 +106,7 @@ class Event(object):
 
     def serialize(self):
         return {
-            'guid': b64encode(self.guid.bytes),
+            'uuid': b64encode(self.uuid.bytes),
             'timestamp': to_timestamp(self.datetime),
             'type': self.type,
             'data': self.data,
@@ -116,5 +116,5 @@ class Event(object):
     def from_instance(cls, instance, **kwargs):
         values = {}
         for attr in cls.attributes:
-            values[attr.name] = (kwargs.get(attr.name) or getattr(instance, attr.name, None))
+            values[attr.name] = kwargs.get(attr.name, getattr(instance, attr.name, None))
         return cls(**values)

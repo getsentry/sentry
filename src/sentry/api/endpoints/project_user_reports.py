@@ -1,16 +1,25 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
-from rest_framework.response import Response
 from uuid import uuid4
 
-from sentry.api.base import DocSection
+from sentry.api.authentication import DSNAuthentication
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, ProjectUserReportSerializer
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import (Event, EventMapping, EventUser, Group, GroupStatus, UserReport)
+from sentry.models import (
+    Environment,
+    Event,
+    EventUser,
+    Group,
+    GroupStatus,
+    ProjectKey,
+    UserReport)
+from sentry.signals import user_feedback_received
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -19,7 +28,7 @@ def create_user_feedback_scenario(runner):
     with runner.isolated_project('Plain Proxy') as project:
         runner.request(
             method='POST',
-            path='/projects/{}/{}/user-feedback/'.format(runner.org.slug, project.slug),
+            path=u'/projects/{}/{}/user-feedback/'.format(runner.org.slug, project.slug),
             data={
                 'name': 'Jane Smith',
                 'email': 'jane@example.com',
@@ -35,7 +44,8 @@ class UserReportSerializer(serializers.ModelSerializer):
         fields = ('name', 'email', 'comments', 'event_id')
 
 
-class ProjectUserReportsEndpoint(ProjectEndpoint):
+class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
+    authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
     doc_section = DocSection.PROJECTS
 
     def get(self, request, project):
@@ -49,24 +59,43 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project.
         :auth: required
         """
-        queryset = UserReport.objects.filter(
-            project=project,
-            group__isnull=False,
-        ).select_related('group')
+        # we dont allow read permission with DSNs
+        if isinstance(request.auth, ProjectKey):
+            return self.respond(status=401)
 
-        status = request.GET.get('status', 'unresolved')
-        if status == 'unresolved':
-            queryset = queryset.filter(
-                group__status=GroupStatus.UNRESOLVED,
+        try:
+            environment = self._get_environment_from_request(
+                request,
+                project.organization_id,
             )
-        elif status:
-            return Response({'status': 'Invalid status choice'}, status=400)
+        except Environment.DoesNotExist:
+            queryset = UserReport.objects.none()
+        else:
+            queryset = UserReport.objects.filter(
+                project=project,
+                group__isnull=False,
+            ).select_related('group')
+            if environment is not None:
+                queryset = queryset.filter(
+                    environment=environment,
+                )
+
+            status = request.GET.get('status', 'unresolved')
+            if status == 'unresolved':
+                queryset = queryset.filter(
+                    group__status=GroupStatus.UNRESOLVED,
+                )
+            elif status:
+                return self.respond({'status': 'Invalid status choice'}, status=400)
 
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by='-date_added',
-            on_results=lambda x: serialize(x, request.user, ProjectUserReportSerializer()),
+            on_results=lambda x: serialize(x, request.user, ProjectUserReportSerializer(
+                environment_func=self._get_environment_func(
+                    request, project.organization_id)
+            )),
             paginator_cls=DateTimePaginator,
         )
 
@@ -78,6 +107,15 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
 
         Submit and associate user feedback with an issue.
 
+        Feedback must be received by the server no more than 30 minutes after the event was saved.
+
+        Additionally, within 5 minutes of submitting feedback it may also be overwritten. This is useful
+        in situations where you may need to retry sending a request due to network failures.
+
+        If feedback is rejected due to a mutability threshold, a 409 status code will be returned.
+
+        Note: Feedback may be submitted with DSN authentication (see auth documentation).
+
         :pparam string organization_slug: the slug of the organization.
         :pparam string project_slug: the slug of the project.
         :auth: required
@@ -86,9 +124,12 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
         :param string email: user's email address
         :param string comments: comments supplied by user
         """
+        if hasattr(request.auth, 'project_id') and project.id != request.auth.project_id:
+            return self.respond(status=400)
+
         serializer = UserReportSerializer(data=request.DATA)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return self.respond(serializer.errors, status=400)
 
         report = serializer.object
         report.project = project
@@ -101,16 +142,24 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
         if euser:
             report.event_user_id = euser.id
 
-        try:
-            mapping = EventMapping.objects.get(
-                event_id=report.event_id,
-                project_id=project.id,
-            )
-        except EventMapping.DoesNotExist:
-            # XXX(dcramer): the system should fill this in later
-            pass
+        event = Event.objects.filter(
+            project_id=project.id,
+            event_id=report.event_id,
+        ).first()
+        if not event:
+            try:
+                report.group = Group.objects.from_event_id(project, report.event_id)
+            except Group.DoesNotExist:
+                pass
         else:
-            report.group = Group.objects.get(id=mapping.group_id)
+            # if the event is more than 30 minutes old, we dont allow updates
+            # as it might be abusive
+            if event.datetime < timezone.now() - timedelta(minutes=30):
+                return self.respond(
+                    {'detail': 'Feedback for this event cannot be modified.'}, status=409)
+
+            report.environment = event.get_environment()
+            report.group = event.group
 
         try:
             with transaction.atomic():
@@ -127,6 +176,12 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
                 event_id=report.event_id,
             )
 
+            # if the existing report was submitted more than 5 minutes ago, we dont
+            # allow updates as it might be abusive (replay attacks)
+            if existing_report.date_added < timezone.now() - timedelta(minutes=5):
+                return self.respond(
+                    {'detail': 'Feedback for this event cannot be modified.'}, status=409)
+
             existing_report.update(
                 name=report.name,
                 email=report.email,
@@ -136,7 +191,16 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             )
             report = existing_report
 
-        return Response(serialize(report, request.user, ProjectUserReportSerializer()))
+        else:
+            if report.group:
+                report.notify()
+
+        user_feedback_received.send(project=report.project, group=report.group, sender=self)
+
+        return self.respond(serialize(report, request.user, ProjectUserReportSerializer(
+            environment_func=self._get_environment_func(
+                request, project.organization_id)
+        )))
 
     def find_event_user(self, report):
         try:

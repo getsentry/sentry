@@ -1,84 +1,81 @@
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
 
-import TestUtils from 'react-addons-test-utils';
+import TestUtils from 'react-dom/test-utils';
 
-import {Client} from 'app/api';
-import TagDistributionMeter from 'app/components/group/tagDistributionMeter';
+import {TagDistributionMeter} from 'app/components/group/tagDistributionMeter';
 
 describe('TagDistributionMeter', function() {
+  let sandbox;
+  let element;
+  let emptyElement;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request');
-
-    this.element = TestUtils.renderIntoDocument(
+    element = TestUtils.renderIntoDocument(
       <TagDistributionMeter
+        key="element"
         tag="browser"
         group={{id: '1337'}}
         orgId="123"
         projectId="456"
+        totalValues={TestStubs.Tags()[0].totalValues}
+        topValues={TestStubs.TagValues()[0].topValues}
+      />
+    );
+
+    emptyElement = TestUtils.renderIntoDocument(
+      <TagDistributionMeter
+        key="emptyElement"
+        tag="browser"
+        group={{id: '1337'}}
+        orgId="123"
+        projectId="456"
+        totalValues={0}
       />
     );
   });
 
   afterEach(function() {
-    this.sandbox.restore();
-  });
-
-  describe('fetchData()', function() {
-    it('should make a request to the groups/tags endpoint', function() {
-      // NOTE: creation of OrganizationTeams causes a bunch of API requests to fire ...
-      //       reset the request stub so that we can get an accurate count
-      this.stubbedApiRequest.reset();
-
-      this.element.fetchData();
-
-      expect(this.stubbedApiRequest.callCount).toEqual(1);
-      expect(this.stubbedApiRequest.getCall(0).args[0]).toEqual(
-        '/issues/1337/tags/browser/'
-      );
-    });
+    sandbox.restore();
   });
 
   describe('renderBody()', function() {
     it('should return null if loading', function(done) {
-      this.element.setState(
+      element.setState(
         {
           loading: true,
-          error: false
+          error: false,
         },
         () => {
-          expect(this.element.renderBody()).toBe(null);
+          expect(element.renderBody()).toBe(null);
           done();
         }
       );
     });
 
     it('should return null if in an error state', function(done) {
-      this.element.setState(
+      element.setState(
         {
           error: true,
-          loading: false
+          loading: false,
         },
         () => {
-          expect(this.element.renderBody()).toBe(null);
+          expect(element.renderBody()).toBe(null);
           done();
         }
       );
     });
 
     it('should return "no recent data" if no total values present', function(done) {
-      this.element.setState(
+      emptyElement.setState(
         {
           error: false,
           loading: false,
-          data: {
-            totalValues: 0
-          }
         },
         () => {
-          let out = this.element.renderBody();
+          let out = emptyElement.renderBody();
           expect(ReactDOMServer.renderToStaticMarkup(out)).toEqual(
             '<p>No recent data.</p>'
           );
@@ -88,19 +85,16 @@ describe('TagDistributionMeter', function() {
     });
 
     it('should call renderSegments() if values present', function(done) {
-      this.sandbox.stub(this.element, 'renderSegments');
+      sandbox.stub(element, 'renderSegments');
 
-      this.element.setState(
+      element.setState(
         {
           error: false,
           loading: false,
-          data: {
-            totalValues: 100
-          }
         },
         () => {
-          this.element.renderBody();
-          expect(this.element.renderSegments.calledOnce);
+          element.renderBody();
+          expect(element.renderSegments.callCount).toBeTruthy();
           done();
         }
       );

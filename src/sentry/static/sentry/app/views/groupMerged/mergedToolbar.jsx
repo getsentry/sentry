@@ -2,20 +2,25 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import _ from 'lodash';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import {t} from '../../locale';
-import GroupingStore from '../../stores/groupingStore';
-import ProjectActions from '../../actions/projectActions';
-import Button from '../../components/buttons/button';
-import LinkWithConfirmation from '../../components/linkWithConfirmation';
-import Toolbar from '../../components/toolbar';
-import SpreadLayout from '../../components/spreadLayout';
+import {openDiffModal} from 'app/actionCreators/modal';
+import {t} from 'app/locale';
+import Button from 'app/components/button';
+import GroupingStore from 'app/stores/groupingStore';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import SpreadLayout from 'app/components/spreadLayout';
+import Toolbar from 'app/components/toolbar';
+import space from 'app/styles/space';
 
-const MergedToolbar = React.createClass({
+const MergedToolbar = createReactClass({
+  displayName: 'MergedToolbar',
+
   propTypes: {
     onUnmerge: PropTypes.func,
     groupId: PropTypes.string,
-    onToggleCollapse: PropTypes.func
+    onToggleCollapse: PropTypes.func,
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
@@ -25,14 +30,14 @@ const MergedToolbar = React.createClass({
       unmergeList,
       unmergeLastCollapsed,
       unmergeDisabled,
-      enableFingerprintCompare
+      enableFingerprintCompare,
     } = GroupingStore;
 
     return {
       enableFingerprintCompare,
       unmergeList,
       unmergeLastCollapsed,
-      unmergeDisabled
+      unmergeDisabled,
     };
   },
 
@@ -41,7 +46,7 @@ const MergedToolbar = React.createClass({
       'unmergeLastCollapsed',
       'unmergeDisabled',
       'unmergeList',
-      'enableFingerprintCompare'
+      'enableFingerprintCompare',
     ];
 
     this.setState(_.pick(updateObj, allowedKeys));
@@ -52,15 +57,16 @@ const MergedToolbar = React.createClass({
     let entries = this.state.unmergeList.entries();
 
     // `unmergeList` should only have 2 items in map
-    if (entries.length !== 2) return;
+    if (this.state.unmergeList.size !== 2) return;
 
     // only need eventId, not fingerprint
     let [baseEventId, targetEventId] = Array.from(entries).map(([, eventId]) => eventId);
-    ProjectActions.openDiffModal({
+
+    openDiffModal({
       baseIssueId: groupId,
       targetIssueId: groupId,
       baseEventId,
-      targetEventId
+      targetEventId,
     });
 
     e.stopPropagation();
@@ -71,10 +77,10 @@ const MergedToolbar = React.createClass({
     let unmergeCount = (this.state.unmergeList && this.state.unmergeList.size) || 0;
 
     return (
-      <Toolbar className="merged-toolbar">
-        <SpreadLayout responsive>
+      <StyledToolbar>
+        <SpreadLayout>
           <SpreadLayout>
-            <div className="merged-toolbar-actions">
+            <div>
               <LinkWithConfirmation
                 disabled={this.state.unmergeDisabled}
                 title={t(`Unmerging ${unmergeCount} events`)}
@@ -82,33 +88,39 @@ const MergedToolbar = React.createClass({
                   'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
                 )}
                 className="btn btn-sm btn-default"
-                onConfirm={onUnmerge}>
+                onConfirm={onUnmerge}
+              >
                 {t('Unmerge')} ({unmergeCount || 0})
               </LinkWithConfirmation>
 
-              <Button
-                style={{marginLeft: 10}}
+              <CompareButton
                 size="small"
                 disabled={!this.state.enableFingerprintCompare}
-                onClick={this.handleShowDiff}>
+                onClick={this.handleShowDiff}
+              >
                 {t('Compare')}
-              </Button>
+              </CompareButton>
             </div>
           </SpreadLayout>
           <SpreadLayout>
             <div>
-              <Button
-                className="toggle-collapse-all"
-                size="small"
-                onClick={onToggleCollapse}>
+              <Button size="small" onClick={onToggleCollapse}>
                 {this.state.unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
               </Button>
             </div>
           </SpreadLayout>
         </SpreadLayout>
-      </Toolbar>
+      </StyledToolbar>
     );
-  }
+  },
 });
+
+const CompareButton = styled(Button)`
+  margin-left: ${space(1)};
+`;
+
+const StyledToolbar = styled(Toolbar)`
+  padding: ${space(0.5)} ${space(1)};
+`;
 
 export default MergedToolbar;

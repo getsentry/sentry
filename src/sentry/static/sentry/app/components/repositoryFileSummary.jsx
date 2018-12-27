@@ -1,14 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import FileChange from './fileChange';
-import {t, tn} from '../locale';
+import FileChange from 'app/components/fileChange';
+import {t, tn} from 'app/locale';
 
 function Collapsed(props) {
   return (
     <li className="list-group-item list-group-item-sm align-center">
       <span className="icon-container" />
       <a onClick={props.onClick}>
-        {tn('Show %d collapsed file', 'Show %d collapsed files', props.count)}
+        {tn('Show %s collapsed file', 'Show %s collapsed files', props.count)}
       </a>
     </li>
   );
@@ -16,31 +16,30 @@ function Collapsed(props) {
 
 Collapsed.propTypes = {
   onClick: PropTypes.func.isRequired,
-  count: PropTypes.number.isRequired
+  count: PropTypes.number.isRequired,
 };
 
-const RepositoryFileSummary = React.createClass({
-  propTypes: {
+class RepositoryFileSummary extends React.Component {
+  static propTypes = {
     fileChangeSummary: PropTypes.object,
-    repository: PropTypes.string
-  },
+    repository: PropTypes.string,
+  };
 
-  statics: {
-    MAX_WHEN_COLLAPSED: 5
-  },
+  static MAX_WHEN_COLLAPSED = 5;
 
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       loading: true,
-      collapsed: true
+      collapsed: true,
     };
-  },
+  }
 
-  onCollapseToggle() {
+  onCollapseToggle = () => {
     this.setState({
-      collapsed: !this.state.collapsed
+      collapsed: !this.state.collapsed,
     });
-  },
+  };
 
   render() {
     let {repository, fileChangeSummary} = this.props;
@@ -57,8 +56,8 @@ const RepositoryFileSummary = React.createClass({
       <div>
         <h5>
           {tn(
-            '%d file changed in ' + repository,
-            '%d files changed in ' + repository,
+            '%s file changed in ' + repository,
+            '%s files changed in ' + repository,
             fileCount
           )}
         </h5>
@@ -74,18 +73,20 @@ const RepositoryFileSummary = React.createClass({
               />
             );
           })}
-          {numCollapsed > 0 &&
-            <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />}
+          {numCollapsed > 0 && (
+            <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />
+          )}
           {numCollapsed === 0 &&
-            canCollapse &&
-            <li className="list-group-item list-group-item-sm align-center">
-              <span className="icon-container" />
-              <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
-            </li>}
+            canCollapse && (
+              <li className="list-group-item list-group-item-sm align-center">
+                <span className="icon-container" />
+                <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
+              </li>
+            )}
         </ul>
       </div>
     );
   }
-});
+}
 
 export default RepositoryFileSummary;

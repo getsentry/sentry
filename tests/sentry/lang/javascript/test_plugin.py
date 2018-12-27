@@ -2,13 +2,16 @@
 
 from __future__ import absolute_import
 
-import responses
+import pytest
 import os.path
+import responses
 
 from mock import patch
+from django.conf import settings
 
 from sentry.models import Event, File, Release, ReleaseFile
 from sentry.testutils import TestCase
+
 
 BASE64_SOURCEMAP = 'data:application/json;base64,' + (
     '{"version":3,"file":"generated.js","sources":["/test.js"],"names":[],"mappings":"AAAA","sourcesContent":["console.log(\\"hello, World!\\")"]}'.
@@ -26,11 +29,15 @@ def load_fixture(name):
 
 
 class JavascriptIntegrationTest(TestCase):
+    @pytest.mark.skipif(
+        settings.SENTRY_TAGSTORE == 'sentry.tagstore.v2.V2TagStorage',
+        reason='Queries are completly different when using tagstore'
+    )
     def test_adds_contexts_without_device(self):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Http': {
+            'request': {
                 'url':
                 'http://example.com',
                 'headers': [
@@ -42,10 +49,23 @@ class JavascriptIntegrationTest(TestCase):
             }
         }
 
-        resp = self._postWithHeader(data)
+        # We do a preflight post, because there are many queries polluting the array
+        # before the actual "processing" happens (like, auth_user)
+        self._postWithHeader(data)
+        with self.assertWriteQueries({
+            'nodestore_node': 2,
+            'sentry_eventtag': 1,
+            'sentry_eventuser': 1,
+            'sentry_filtervalue': 6,
+            'sentry_groupedmessage': 1,
+            'sentry_message': 1,
+            'sentry_messagefiltervalue': 6,
+            'sentry_userreport': 1
+        }, debug=True):  # debug=True is for coverage
+            resp = self._postWithHeader(data)
         assert resp.status_code, 200
 
-        event = Event.objects.get()
+        event = Event.objects.first()
         contexts = event.interfaces['contexts'].to_json()
         assert contexts.get('os') == {
             'name': 'Windows 8',
@@ -62,7 +82,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Http': {
+            'request': {
                 'url':
                 'http://example.com',
                 'headers': [
@@ -100,7 +120,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Http': {
+            'request': {
                 'url':
                 'http://example.com',
                 'headers': [
@@ -131,7 +151,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -171,7 +191,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         event = Event.objects.get()
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -193,7 +213,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -230,7 +250,7 @@ class JavascriptIntegrationTest(TestCase):
         )
 
         event = Event.objects.get()
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -238,6 +258,40 @@ class JavascriptIntegrationTest(TestCase):
         assert frame.context_line == 'console.log("hello, World!")'
         assert not frame.post_context
         assert frame.data['sourcemap'] == 'http://example.com/test.min.js'
+
+    @responses.activate
+    def test_error_message_translations(self):
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'logentry': {
+                'message': u'ReferenceError: Impossible de d\xe9finir une propri\xe9t\xe9 \xab foo \xbb : objet non extensible'
+            },
+            'exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'value': u'P\u0159\xedli\u0161 mnoho soubor\u016f'
+                    },
+                    {
+                        'type': 'Error',
+                        'value': u'foo: wyst\u0105pi\u0142 nieoczekiwany b\u0142\u0105d podczas pr\xf3by uzyskania informacji o metadanych'
+                    }
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+
+        message = event.interfaces['logentry']
+        assert message.message == 'ReferenceError: Cannot define property \'foo\': object is not extensible'
+
+        exception = event.interfaces['exception']
+        assert exception.values[0].value == 'Too many files'
+        assert exception.values[1].value == 'foo: an unexpected failure occurred while trying to obtain metadata information'
 
     @responses.activate
     def test_sourcemap_source_expansion(self):
@@ -270,7 +324,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -310,7 +364,7 @@ class JavascriptIntegrationTest(TestCase):
             }
         ]
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -352,7 +406,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -392,7 +446,7 @@ class JavascriptIntegrationTest(TestCase):
             }
         ]
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -403,6 +457,87 @@ class JavascriptIntegrationTest(TestCase):
         expected = u'\treturn a + b; // fôo'
         assert frame.context_line == expected
         assert frame.post_context == ['}', '']
+
+    @responses.activate
+    def test_sourcemap_nofiles_source_expansion(self):
+        project = self.project
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='abc',
+        )
+        release.add_project(project)
+
+        f_minified = File.objects.create(
+            name='nofiles.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f_minified.putfile(open(get_fixture_path('nofiles.js'), 'rb'))
+        ReleaseFile.objects.create(
+            name=u'~/{}'.format(f_minified.name),
+            release=release,
+            organization_id=project.organization_id,
+            file=f_minified,
+        )
+
+        f_sourcemap = File.objects.create(
+            name='nofiles.js.map',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f_sourcemap.putfile(open(get_fixture_path('nofiles.js.map'), 'rb'))
+        ReleaseFile.objects.create(
+            name=u'app:///{}'.format(f_sourcemap.name),
+            release=release,
+            organization_id=project.organization_id,
+            file=f_sourcemap,
+        )
+
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'release': 'abc',
+            'exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'app:///nofiles.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                }
+                            ],
+                        },
+                    }
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        assert 'errors' not in event.data
+
+        exception = event.interfaces['exception']
+        frame_list = exception.values[0].stacktrace.frames
+
+        assert len(frame_list) == 1
+        frame = frame_list[0]
+        assert frame.pre_context == [
+            'function multiply(a, b) {',
+            '\t"use strict";',
+        ]
+        assert frame.context_line == u'\treturn a * b;'
+        assert frame.post_context == [
+            '}',
+            'function divide(a, b) {',
+            '\t"use strict";',
+            '\ttry {',
+            '\t\treturn multiply(add(a, b), a, b) / c;'
+        ]
 
     @responses.activate
     def test_indexed_sourcemap_source_expansion(self):
@@ -434,7 +569,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -463,9 +598,9 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -530,7 +665,7 @@ class JavascriptIntegrationTest(TestCase):
         # Intentionally omit hostname - use alternate artifact path lookup instead
         # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
-            name='~/{}?foo=bar'.format(f_minified.name),
+            name=u'~/{}?foo=bar'.format(f_minified.name),
             release=release,
             organization_id=project.organization_id,
             file=f_minified,
@@ -547,7 +682,7 @@ class JavascriptIntegrationTest(TestCase):
         f1.putfile(open(get_fixture_path('file1.js'), 'rb'))
 
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f1.name),
+            name=u'http://example.com/{}'.format(f1.name),
             release=release,
             organization_id=project.organization_id,
             file=f1,
@@ -563,7 +698,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2.putfile(open(get_fixture_path('file2.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f2.name),
+            name=u'http://example.com/{}'.format(f2.name),
             release=release,
             organization_id=project.organization_id,
             file=f2,
@@ -581,7 +716,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2_empty.putfile(open(get_fixture_path('empty.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
+            name=u'~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
             release=release,
             organization_id=project.organization_id,
             file=f2_empty,
@@ -597,7 +732,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_sourcemap.putfile(open(get_fixture_path('file.sourcemap.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f_sourcemap.name),
+            name=u'http://example.com/{}'.format(f_sourcemap.name),
             release=release,
             organization_id=project.organization_id,
             file=f_sourcemap,
@@ -607,7 +742,7 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'release': 'abc',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -635,9 +770,9 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -682,7 +817,7 @@ class JavascriptIntegrationTest(TestCase):
         # Intentionally omit hostname - use alternate artifact path lookup instead
         # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
-            name='~/{}?foo=bar'.format(f_minified.name),
+            name=u'~/{}?foo=bar'.format(f_minified.name),
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -700,7 +835,7 @@ class JavascriptIntegrationTest(TestCase):
         f1.putfile(open(get_fixture_path('file1.js'), 'rb'))
 
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f1.name),
+            name=u'http://example.com/{}'.format(f1.name),
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -717,7 +852,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2.putfile(open(get_fixture_path('file2.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f2.name),
+            name=u'http://example.com/{}'.format(f2.name),
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -736,7 +871,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f2_empty.putfile(open(get_fixture_path('empty.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
+            name=u'~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -753,7 +888,7 @@ class JavascriptIntegrationTest(TestCase):
         )
         f_sourcemap.putfile(open(get_fixture_path('file.sourcemap.js'), 'rb'))
         ReleaseFile.objects.create(
-            name='http://example.com/{}'.format(f_sourcemap.name),
+            name=u'http://example.com/{}'.format(f_sourcemap.name),
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -765,7 +900,7 @@ class JavascriptIntegrationTest(TestCase):
             'platform': 'javascript',
             'release': 'abc',
             'dist': 'foo',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -793,9 +928,9 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert not event.data['errors']
+        assert 'errors' not in event.data
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -840,12 +975,20 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
                         'stacktrace': {
+                            # Add two frames.  We only want to see the
+                            # error once though.
                             'frames': [
+                                {
+                                    'abs_path': 'http://example.com/file.min.js',
+                                    'filename': 'file.min.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
                                 {
                                     'abs_path': 'http://example.com/file.min.js',
                                     'filename': 'file.min.js',
@@ -871,7 +1014,7 @@ class JavascriptIntegrationTest(TestCase):
             }
         ]
 
-        exception = event.interfaces['sentry.interfaces.Exception']
+        exception = event.interfaces['exception']
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
@@ -908,7 +1051,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -942,7 +1085,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -982,7 +1125,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1009,7 +1152,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code == 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == []
+        assert 'errors' not in event.data
 
     @responses.activate
     def test_html_response_for_js(self):
@@ -1034,7 +1177,7 @@ class JavascriptIntegrationTest(TestCase):
         data = {
             'message': 'hello',
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type': 'Error',
@@ -1078,3 +1221,213 @@ class JavascriptIntegrationTest(TestCase):
                 'type': 'js_invalid_content'
             }
         ]
+
+    def test_node_processing(self):
+        project = self.project
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='nodeabc123',
+        )
+        release.add_project(project)
+
+        f_minified = File.objects.create(
+            name='dist.bundle.js',
+            type='release.file',
+            headers={'Content-Type': 'application/javascript'},
+        )
+        f_minified.putfile(open(get_fixture_path('dist.bundle.js'), 'rb'))
+        ReleaseFile.objects.create(
+            name=u'~/{}'.format(f_minified.name),
+            release=release,
+            organization_id=project.organization_id,
+            file=f_minified,
+        )
+
+        f_sourcemap = File.objects.create(
+            name='dist.bundle.js.map',
+            type='release.file',
+            headers={'Content-Type': 'application/javascript'},
+        )
+        f_sourcemap.putfile(open(get_fixture_path('dist.bundle.js.map'), 'rb'))
+        ReleaseFile.objects.create(
+            name=u'~/{}'.format(f_sourcemap.name),
+            release=release,
+            organization_id=project.organization_id,
+            file=f_sourcemap,
+        )
+
+        data = {
+            'message': 'hello',
+            'platform': 'node',
+            'release': 'nodeabc123',
+            'exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'filename': 'app:///dist.bundle.js',
+                                    'function': 'bar',
+                                    'lineno': 9,
+                                    'colno': 2321,
+                                },
+                                {
+                                    'filename': 'app:///dist.bundle.js',
+                                    'function': 'foo',
+                                    'lineno': 3,
+                                    'colno': 2308,
+                                },
+                                {
+                                    'filename': 'app:///dist.bundle.js',
+                                    'function': 'App',
+                                    'lineno': 3,
+                                    'colno': 1011,
+                                },
+                                {
+                                    'filename': 'app:///dist.bundle.js',
+                                    'function': 'Object.<anonymous>',
+                                    'lineno': 1,
+                                    'colno': 1014,
+                                },
+                                {
+                                    'filename': 'app:///dist.bundle.js',
+                                    'function': '__webpack_require__',
+                                    'lineno': 20,
+                                    'colno': 30,
+                                },
+                                {
+                                    'filename': 'app:///dist.bundle.js',
+                                    'function': '<unknown>',
+                                    'lineno': 18,
+                                    'colno': 63,
+                                }
+                            ],
+                        },
+                    }
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+
+        exception = event.interfaces['exception']
+        frame_list = exception.values[0].stacktrace.frames
+
+        assert len(frame_list) == 6
+
+        import pprint
+        pprint.pprint(frame_list[0].__dict__)
+        pprint.pprint(frame_list[1].__dict__)
+        pprint.pprint(frame_list[2].__dict__)
+        pprint.pprint(frame_list[3].__dict__)
+        pprint.pprint(frame_list[4].__dict__)
+        pprint.pprint(frame_list[5].__dict__)
+
+        assert frame_list[0].abs_path == 'webpack:///webpack/bootstrap d9a5a31d9276b73873d3'
+        assert frame_list[0].function == 'bar'
+        assert frame_list[0].lineno == 8
+
+        assert frame_list[1].abs_path == 'webpack:///webpack/bootstrap d9a5a31d9276b73873d3'
+        assert frame_list[1].function == 'foo'
+        assert frame_list[1].lineno == 2
+
+        assert frame_list[2].abs_path == 'webpack:///webpack/bootstrap d9a5a31d9276b73873d3'
+        assert frame_list[2].function == 'App'
+        assert frame_list[2].lineno == 2
+
+        assert frame_list[3].abs_path == 'app:///dist.bundle.js'
+        assert frame_list[3].function == 'Object.<anonymous>'
+        assert frame_list[3].lineno == 1
+
+        assert frame_list[4].abs_path == 'webpack:///webpack/bootstrap d9a5a31d9276b73873d3'
+        assert frame_list[4].function == '__webpack_require__'
+        assert frame_list[4].lineno == 19
+
+        assert frame_list[5].abs_path == 'webpack:///webpack/bootstrap d9a5a31d9276b73873d3'
+        assert frame_list[5].function == '<unknown>'
+        assert frame_list[5].lineno == 16
+
+    @responses.activate
+    def test_no_fetch_from_http(self):
+        responses.add(
+            responses.GET,
+            'http://example.com/node_app.min.js',
+            body=load_fixture('node_app.min.js'),
+            content_type='application/javascript; charset=utf-8'
+        )
+        responses.add(
+            responses.GET,
+            'http://example.com/node_app.min.js.map',
+            body=load_fixture('node_app.min.js.map'),
+            content_type='application/javascript; charset=utf-8'
+        )
+
+        data = {
+            'message': 'hello',
+            'platform': 'node',
+            'exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'node_bootstrap.js',
+                                    'filename': 'node_bootstrap.js',
+                                    'lineno': 1,
+                                    'colno': 38,
+                                },
+                                {
+                                    'abs_path': 'timers.js',
+                                    'filename': 'timers.js',
+                                    'lineno': 1,
+                                    'colno': 39,
+                                },
+                                {
+                                    'abs_path': 'webpack:///internal',
+                                    'filename': 'internal',
+                                    'lineno': 1,
+                                    'colno': 43,
+                                },
+                                {
+                                    'abs_path': 'webpack:///~/some_dep/file.js',
+                                    'filename': 'file.js',
+                                    'lineno': 1,
+                                    'colno': 41,
+                                },
+                                {
+                                    'abs_path': 'webpack:///./node_modules/file.js',
+                                    'filename': 'file.js',
+                                    'lineno': 1,
+                                    'colno': 42,
+                                },
+                                {
+                                    'abs_path': 'http://example.com/node_app.min.js',
+                                    'filename': 'node_app.min.js',
+                                    'lineno': 1,
+                                    'colno': 40,
+                                },
+                            ],
+                        },
+                    }
+                ],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        exception = event.interfaces['exception']
+        frame_list = exception.values[0].stacktrace.frames
+
+        # This one should not process, so this one should be none.
+        assert exception.values[0].raw_stacktrace is None
+
+        # None of the in app should update
+        for x in range(6):
+            assert not frame_list[x].in_app

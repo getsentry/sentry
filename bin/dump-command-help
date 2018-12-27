@@ -71,7 +71,13 @@ def write_page(out, data):
             f.write('%s\n' % line.encode('utf-8'))
 
 
+class NoHelp(Exception):
+    pass
+
+
 def dump_command(out, cmd, path):
+    if cmd.help is None:
+        raise NoHelp
     data = {
         'path': path,
         'help': cmd.help.replace('\b', ''),
@@ -99,8 +105,12 @@ def dump_command(out, cmd, path):
 
     if isinstance(cmd, click.Group):
         for child_name, child_cmd in six.iteritems(cmd.commands):
-            dump_command(out, child_cmd, path + [child_name])
-            data['subcommands'].append(child_name)
+            try:
+                dump_command(out, child_cmd, path + [child_name])
+            except NoHelp:
+                pass
+            else:
+                data['subcommands'].append(child_name)
 
     write_page(out, data)
 

@@ -154,7 +154,8 @@ def merge_series(target, other, function=operator.add):
     return results
 
 
-def prepare_project_series((start, stop), project, rollup=60 * 60 * 24):
+def prepare_project_series(start__stop, project, rollup=60 * 60 * 24):
+    start, stop = start__stop
     resolution, series = tsdb.get_optimal_rollup_series(start, stop, rollup)
     assert resolution == rollup, 'resolution does not match requested value'
     clean = functools.partial(clean_series, start, stop, rollup)
@@ -165,11 +166,13 @@ def prepare_project_series((start, stop), project, rollup=60 * 60 * 24):
                 clean,
                 tsdb.get_range(
                     tsdb.models.group,
-                    project.group_set.filter(
-                        status=GroupStatus.RESOLVED,
-                        resolved_at__gte=start,
-                        resolved_at__lt=stop,
-                    ).values_list('id', flat=True),
+                    list(
+                        project.group_set.filter(
+                            status=GroupStatus.RESOLVED,
+                            resolved_at__gte=start,
+                            resolved_at__lt=stop,
+                        ).values_list('id', flat=True),
+                    ),
                     start,
                     stop,
                     rollup=rollup,
@@ -193,10 +196,11 @@ def prepare_project_series((start, stop), project, rollup=60 * 60 * 24):
     )
 
 
-def prepare_project_aggregates((_, stop), project):
+def prepare_project_aggregates(ignore__stop, project):
     # TODO: This needs to return ``None`` for periods that don't have any data
     # (because the project is not old enough) and possibly extrapolate for
     # periods that only have partial periods.
+    _, stop = ignore__stop
     segments = 4
     period = timedelta(days=7)
     start = stop - (period * segments)
@@ -281,7 +285,8 @@ def prepare_project_issue_summaries(interval, project):
     ]
 
 
-def prepare_project_usage_summary((start, stop), project):
+def prepare_project_usage_summary(start__stop, project):
+    start, stop = start__stop
     return (
         tsdb.get_sums(
             tsdb.models.project_total_blacklisted,
@@ -299,7 +304,8 @@ def prepare_project_usage_summary((start, stop), project):
     )
 
 
-def get_calendar_range((_, stop_time), months):
+def get_calendar_range(ignore__stop_time, months):
+    _, stop_time = ignore__stop_time
     assert (
         stop_time.hour, stop_time.minute, stop_time.second, stop_time.microsecond, stop_time.tzinfo,
     ) == (0, 0, 0, 0, pytz.utc)
@@ -453,7 +459,7 @@ class RedisReportBackend(ReportBackend):
         self.namespace = namespace
 
     def __make_key(self, timestamp, duration, organization):
-        return '{}:{}:{}:{}:{}'.format(
+        return u'{}:{}:{}:{}:{}'.format(
             self.namespace,
             self.version,
             organization.id,
@@ -548,28 +554,35 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
         )
 
 
-def fetch_personal_statistics((start, stop), organization, user):
-    resolved_issue_ids = Activity.objects.filter(
-        project__organization_id=organization.id,
-        user_id=user.id,
-        type__in=(Activity.SET_RESOLVED, Activity.SET_RESOLVED_IN_RELEASE, ),
-        datetime__gte=start,
-        datetime__lt=stop,
-        group__status=GroupStatus.RESOLVED,  # only count if the issue is still resolved
-    ).distinct().values_list(
-        'group_id', flat=True
+def fetch_personal_statistics(start__stop, organization, user):
+    start, stop = start__stop
+    resolved_issue_ids = set(
+        Activity.objects.filter(
+            project__organization_id=organization.id,
+            user_id=user.id,
+            type__in=(Activity.SET_RESOLVED, Activity.SET_RESOLVED_IN_RELEASE, ),
+            datetime__gte=start,
+            datetime__lt=stop,
+            group__status=GroupStatus.RESOLVED,  # only count if the issue is still resolved
+        ).distinct().values_list(
+            'group_id', flat=True
+        )
     )
-    return {
-        'resolved':
-        len(resolved_issue_ids),
-        'users':
-        tsdb.get_distinct_counts_union(
+
+    if resolved_issue_ids:
+        users = tsdb.get_distinct_counts_union(
             tsdb.models.users_affected_by_group,
             resolved_issue_ids,
             start,
             stop,
             60 * 60 * 24,
-        ),
+        )
+    else:
+        users = {}
+
+    return {
+        'resolved': len(resolved_issue_ids),
+        'users': users,
     }
 
 
@@ -644,7 +657,8 @@ class Skipped(object):
     NoReports = object()
 
 
-def has_valid_aggregates(interval, (project, report)):
+def has_valid_aggregates(interval, project__report):
+    project, report = project__report
     return any(bool(value) for value in report.aggregates)
 
 
@@ -691,7 +705,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     projects = list(projects)
 
     inclusion_predicates = [
-        lambda interval, (project, report): report is not None,
+        lambda interval, project__report: project__report[1] is not None,
         has_valid_aggregates,
     ]
 
@@ -764,7 +778,8 @@ def build_project_breakdown_series(reports):
         operator.itemgetter(0),
         sorted(
             reports.items(),
-            key=lambda (instance, report): sum(sum(values) for timestamp, values in report[0]),
+            key=lambda instance__report: sum(sum(values)
+                                             for timestamp, values in instance__report[1][0]),
             reverse=True,
         ),
     )[:len(colors)]
@@ -775,14 +790,14 @@ def build_project_breakdown_series(reports):
     # largest color blocks are at the bottom and it feels appropriately
     # weighted.)
     selections = map(
-        lambda (instance, color): (
+        lambda instance__color: (
             Key(
-                instance.slug,
-                instance.get_absolute_url(),
-                color,
-                get_legend_data(reports[instance]),
+                instance__color[0].slug,
+                instance__color[0].get_absolute_url(),
+                instance__color[1],
+                get_legend_data(reports[instance__color[0]]),
             ),
-            reports[instance],
+            reports[instance__color[0]],
         ),
         zip(
             instances,

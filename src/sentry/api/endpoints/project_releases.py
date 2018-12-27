@@ -5,24 +5,40 @@ from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
-from sentry.models import Activity, Release
+from sentry.models import Activity, CommitFileChange, Environment, Release, ReleaseEnvironment
 from sentry.plugins.interfaces.releasehook import ReleaseHook
+from sentry.constants import VERSION_LENGTH
+from sentry.signals import release_created
 
-BAD_RELEASE_CHARS = '\n\f\t/'
+
+class CommitPatchSetSerializer(serializers.Serializer):
+    path = serializers.CharField(max_length=255)
+    type = serializers.CharField(max_length=1)
+
+    def validate_type(self, attrs, source):
+        value = attrs[source]
+        if not CommitFileChange.is_valid_type(value):
+            raise serializers.ValidationError('Commit patch_set type %s is not supported.' % value)
+        return attrs
+
+
+class CommitSerializerWithPatchSet(CommitSerializer):
+    patch_set = ListField(child=CommitPatchSetSerializer(), required=False, allow_null=False)
 
 
 class ReleaseSerializer(serializers.Serializer):
-    version = serializers.CharField(max_length=64, required=True)
-    ref = serializers.CharField(max_length=64, required=False)
+    version = serializers.CharField(max_length=VERSION_LENGTH, required=True)
+    ref = serializers.CharField(max_length=VERSION_LENGTH, required=False)
     url = serializers.URLField(required=False)
     owner = UserField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
-    commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
+    commits = ListField(child=CommitSerializerWithPatchSet(), required=False, allow_null=False)
 
     def validate_version(self, attrs, source):
         value = attrs[source]
@@ -31,7 +47,7 @@ class ReleaseSerializer(serializers.Serializer):
         return attrs
 
 
-class ProjectReleasesEndpoint(ProjectEndpoint):
+class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectReleasePermission, )
 
     def get(self, request, project):
@@ -49,14 +65,29 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                               "starts with" filter for the version.
         """
         query = request.GET.get('query')
-
-        queryset = Release.objects.filter(
-            projects=project, organization_id=project.organization_id
-        ).select_related('owner')
+        try:
+            environment = self._get_environment_from_request(
+                request,
+                project.organization_id,
+            )
+        except Environment.DoesNotExist:
+            queryset = Release.objects.none()
+            environment = None
+        else:
+            queryset = Release.objects.filter(
+                projects=project, organization_id=project.organization_id
+            ).select_related('owner')
+            if environment is not None:
+                # TODO(LB): May want to change this to ReleaseProjectEnv don't see a
+                # reason to change now.
+                queryset = queryset.filter(id__in=ReleaseEnvironment.objects.filter(
+                    organization_id=project.organization_id,
+                    environment_id=environment.id,
+                ).values_list('release_id', flat=True))
 
         if query:
             queryset = queryset.filter(
-                version__istartswith=query,
+                version__icontains=query,
             )
 
         queryset = queryset.extra(select={
@@ -68,7 +99,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             queryset=queryset,
             order_by='-sort',
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user, project=project),
+            on_results=lambda x: serialize(
+                x, request.user, project=project, environment=environment),
         )
 
     def post(self, request, project):
@@ -127,6 +159,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                     version=result['version'],
                 ), False
                 was_released = bool(release.date_released)
+            else:
+                release_created.send_robust(release=release, sender=self.__class__)
 
             created = release.add_project(project)
 
@@ -140,7 +174,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                 Activity.objects.create(
                     type=Activity.RELEASE,
                     project=project,
-                    ident=result['version'],
+                    ident=Activity.get_version_ident(result['version']),
                     data={'version': result['version']},
                     datetime=release.date_released,
                 )

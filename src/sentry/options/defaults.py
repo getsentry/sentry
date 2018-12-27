@@ -16,7 +16,7 @@ from sentry.options import (
     FLAG_ALLOW_EMPTY,
     register,
 )
-from sentry.utils.types import Dict, String, Sequence
+from sentry.utils.types import Bool, Dict, String, Sequence, Int
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -29,11 +29,15 @@ register('system.security-email', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('system.databases', type=Dict, flags=FLAG_NOSTORE)
 # register('system.debug', default=False, flags=FLAG_NOSTORE)
 register('system.rate-limit', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('system.event-retention-days', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('system.secret-key', flags=FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register('system.url-prefix', ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register('system.root-api-key', flags=FLAG_PRIORITIZE_DISK)
 register('system.logging-format', default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
+# This is used for the chunk upload endpoint
+register('system.upload-url-prefix', flags=FLAG_PRIORITIZE_DISK)
+register('system.maximum-file-size', default=2 ** 31, flags=FLAG_PRIORITIZE_DISK)
 
 # Redis
 register(
@@ -69,6 +73,7 @@ register('mail.list-namespace', type=String, default='localhost', flags=FLAG_NOS
 register('mail.enable-replies', default=False, flags=FLAG_PRIORITIZE_DISK)
 register('mail.reply-hostname', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('mail.mailgun-api-key', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('mail.timeout', default=10, type=Int, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
 # SMS
 register('sms.twilio-account', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
@@ -90,8 +95,7 @@ register(
 register('api.rate-limit.org-create', default=5, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
 # Beacon
-
-register('beacon.anonymous', default=True, flags=FLAG_REQUIRED)
+register('beacon.anonymous', type=Bool, flags=FLAG_REQUIRED)
 
 # Filestore
 register('filestore.backend', default='filesystem', flags=FLAG_NOSTORE)
@@ -110,3 +114,45 @@ register('analytics.backend', default='noop', flags=FLAG_NOSTORE)
 register('analytics.options', default={}, flags=FLAG_NOSTORE)
 
 register('cloudflare.secret-key', default='')
+
+# Tagstore
+register('tagstore.multi-sampling', default=0.0)
+
+# Slack Integration
+register('slack.client-id', flags=FLAG_PRIORITIZE_DISK)
+register('slack.client-secret', flags=FLAG_PRIORITIZE_DISK)
+register('slack.verification-token', flags=FLAG_PRIORITIZE_DISK)
+
+# GitHub Integration
+register('github-app.id', default=0)
+register('github-app.name', default='')
+register('github-app.webhook-secret', default='')
+register('github-app.private-key', default='')
+register('github-app.client-id', flags=FLAG_PRIORITIZE_DISK)
+register('github-app.client-secret', flags=FLAG_PRIORITIZE_DISK)
+
+# VSTS Integration
+register('vsts.client-id', flags=FLAG_PRIORITIZE_DISK)
+register('vsts.client-secret', flags=FLAG_PRIORITIZE_DISK)
+
+# Snuba
+register('snuba.use_group_id_column', default=True)
+register('snuba.search.pre-snuba-candidates-optimizer', type=Bool, default=False)
+register('snuba.search.pre-snuba-candidates-percentage', default=0.2)
+register('snuba.search.project-group-count-cache-time', default=24 * 60 * 60)
+register('snuba.search.min-pre-snuba-candidates', default=500)
+register('snuba.search.max-pre-snuba-candidates', default=5000)
+register('snuba.search.chunk-growth-rate', default=1.5)
+register('snuba.search.max-chunk-size', default=2000)
+register('snuba.search.max-total-chunk-time-seconds', default=30.0)
+
+# Kafka Publisher
+register('kafka-publisher.raw-event-sample-rate', default=0.0)
+register('kafka-publisher.max-event-size', default=100000)
+
+# Event Stream
+register('eventstream.kafka.send-post_process-task', type=Bool, default=True)
+
+# Ingest refactor
+register('store.process-in-kafka', type=Bool, default=False)
+register('store.kafka-sample-rate', default=0.0)

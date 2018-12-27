@@ -1,17 +1,18 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import absolute_import
 
 import pytest
+import re
 import responses
 import six
-from libsourcemap import Token
+from symbolic import SourceMapTokenMatch
 
+from copy import deepcopy
 from mock import patch
 from requests.exceptions import RequestException
 
 from sentry import http
 from sentry.lang.javascript.processor import (
+    JavaScriptStacktraceProcessor,
     discover_sourcemap,
     fetch_sourcemap,
     fetch_file,
@@ -19,6 +20,9 @@ from sentry.lang.javascript.processor import (
     trim_line,
     fetch_release_file,
     UnparseableSourcemap,
+    get_max_age,
+    CACHE_CONTROL_MAX,
+    CACHE_CONTROL_MIN,
 )
 from sentry.lang.javascript.errormapping import (rewrite_exception, REACT_MAPPING_URL)
 from sentry.models import File, Release, ReleaseFile, EventError
@@ -27,10 +31,29 @@ from sentry.utils.strings import truncatechars
 
 base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
 
-unicode_body = u"""function add(a, b) {
+unicode_body = b"""function add(a, b) {
     "use strict";
-    return a + b; // fôo
-}"""
+    return a + b; // f\xc3\xb4o
+}""".decode('utf-8')
+
+
+class JavaScriptStacktraceProcessorTest(TestCase):
+    def test_infers_allow_scraping(self):
+        project = self.create_project()
+        r = JavaScriptStacktraceProcessor({}, None, project)
+        # defaults
+        assert r.allow_scraping
+
+        # disabled for project
+        project.update_option('sentry:scrape_javascript', False)
+        r = JavaScriptStacktraceProcessor({}, None, project)
+        assert not r.allow_scraping
+
+        # disabled for org
+        project.delete_option('sentry:scrape_javascript')
+        project.organization.update_option('sentry:scrape_javascript', False)
+        r = JavaScriptStacktraceProcessor({}, None, project)
+        assert not r.allow_scraping
 
 
 class FetchReleaseFileTest(TestCase):
@@ -60,7 +83,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file('file.min.js', release)
 
-        assert type(result.body) is six.binary_type
+        assert isinstance(result.body, six.binary_type)
         assert result == http.UrlResult(
             'file.min.js',
             {'content-type': 'application/json; charset=utf-8'},
@@ -116,7 +139,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file('file.min.js', release, dist)
 
-        assert type(result.body) is six.binary_type
+        assert isinstance(result.body, six.binary_type)
         assert result == http.UrlResult(
             'file.min.js',
             {'content-type': 'application/json; charset=utf-8'},
@@ -156,7 +179,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file('http://example.com/file.min.js?lol', release)
 
-        assert type(result.body) is six.binary_type
+        assert isinstance(result.body, six.binary_type)
         assert result == http.UrlResult(
             'http://example.com/file.min.js?lol',
             {'content-type': 'application/json; charset=utf-8'},
@@ -191,20 +214,34 @@ class FetchFileTest(TestCase):
     @responses.activate
     def test_with_token(self):
         responses.add(
-            responses.GET, 'http://example.com', body='foo bar', content_type='application/json'
+            responses.GET,
+            re.compile(r'http://example.com/\d+/'),
+            body='foo bar',
+            content_type='application/json'
         )
 
         self.project.update_option('sentry:token', 'foobar')
         self.project.update_option('sentry:origins', ['*'])
 
-        result = fetch_file('http://example.com', project=self.project)
+        default_header_name = 'X-Sentry-Token'
+        header_pairs = [
+            (None, default_header_name),
+            ('', default_header_name),
+            ('X-Custom-Token-Header', 'X-Custom-Token-Header'),
+        ]
 
-        assert len(responses.calls) == 1
-        assert responses.calls[0].request.headers['X-Sentry-Token'] == 'foobar'
+        for i, (header_name_option_value, expected_request_header_name) in enumerate(header_pairs):
+            self.project.update_option('sentry:token_header', header_name_option_value)
 
-        assert result.url == 'http://example.com'
-        assert result.body == 'foo bar'
-        assert result.headers == {'content-type': 'application/json'}
+            url = u'http://example.com/{}/'.format(i)
+            result = fetch_file(url, project=self.project)
+
+            assert result.url == url
+            assert result.body == 'foo bar'
+            assert result.headers == {'content-type': 'application/json'}
+
+            assert len(responses.calls) == i + 1
+            assert responses.calls[i].request.headers[expected_request_header_name] == 'foobar'
 
     @responses.activate
     def test_connection_failure(self):
@@ -252,7 +289,7 @@ class FetchFileTest(TestCase):
         responses.add(
             responses.GET,
             'http://example.com',
-            body=u'"fôo bar"'.encode('utf-8'),
+            body=b'"f\xc3\xb4o bar"'.decode('utf-8'),
             content_type='application/json; charset=utf-8'
         )
 
@@ -280,6 +317,48 @@ class FetchFileTest(TestCase):
 
         assert exc.value.data['type'] == EventError.JS_MISSING_SOURCE
         assert exc.value.data['url'] == url
+
+
+class CacheControlTest(TestCase):
+    def test_simple(self):
+        headers = {'content-type': 'application/json', 'cache-control': 'max-age=120'}
+        assert get_max_age(headers) == 120
+
+    def test_max_and_min(self):
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'max-age=%s' % CACHE_CONTROL_MAX}
+        assert get_max_age(headers) == CACHE_CONTROL_MAX
+
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'max-age=%s' % CACHE_CONTROL_MIN}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
+
+    def test_out_of_bounds(self):
+        greater_than_max = CACHE_CONTROL_MAX + 1
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'max-age=%s' % greater_than_max}
+        assert get_max_age(headers) == CACHE_CONTROL_MAX
+
+        less_than_min = CACHE_CONTROL_MIN - 1
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'max-age=%s' % less_than_min}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
+
+    def test_no_cache_control(self):
+        headers = {'content-type': 'application/json'}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
+
+    def test_additional_cache_control_values(self):
+        headers = {'content-type': 'application/json',
+                   'cache-control': 'private, s-maxage=60, max-age=120'}
+        assert get_max_age(headers) == 120
+
+    def test_valid_input(self):
+        headers = {'content-type': 'application/json', 'cache-control': 'max-age=12df0sdgfjhdgf'}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
+
+        headers = {'content-type': 'application/json', 'cache-control': 'max-age=df0sdgfjhdgf'}
+        assert get_max_age(headers) == CACHE_CONTROL_MIN
 
 
 class DiscoverSourcemapTest(TestCase):
@@ -368,7 +447,11 @@ class GenerateModuleTest(TestCase):
         assert generate_module('http://example.com/foo/bar.coffee') == 'foo/bar'
         assert generate_module('http://example.com/foo/bar.js?v=1234') == 'foo/bar'
         assert generate_module('/foo/bar.js') == 'foo/bar'
+        assert generate_module('/foo/bar.ts') == 'foo/bar'
         assert generate_module('../../foo/bar.js') == 'foo/bar'
+        assert generate_module('../../foo/bar.ts') == 'foo/bar'
+        assert generate_module('../../foo/bar.awesome') == 'foo/bar'
+        assert generate_module('../../foo/bar') == 'foo/bar'
         assert generate_module('/foo/bar-7d6d00eae0ceccdc7ee689659585d95f.js') == 'foo/bar'
         assert generate_module('/bower_components/foo/bar.js') == 'foo/bar'
         assert generate_module('/node_modules/foo/bar.js') == 'foo/bar'
@@ -399,18 +482,20 @@ class GenerateModuleTest(TestCase):
 class FetchSourcemapTest(TestCase):
     def test_simple_base64(self):
         smap_view = fetch_sourcemap(base64_sourcemap)
-        tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
+        tokens = [SourceMapTokenMatch(0, 0, 1, 0, src='/test.js', src_id=0)]
 
         assert list(smap_view) == tokens
-        assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
+        sv = smap_view.get_sourceview(0)
+        assert sv.get_source() == u'console.log("hello, World!")'
         assert smap_view.get_source_name(0) == u'/test.js'
 
     def test_base64_without_padding(self):
         smap_view = fetch_sourcemap(base64_sourcemap.rstrip('='))
-        tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
+        tokens = [SourceMapTokenMatch(0, 0, 1, 0, src='/test.js', src_id=0)]
 
         assert list(smap_view) == tokens
-        assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
+        sv = smap_view.get_sourceview(0)
+        assert sv.get_source() == u'console.log("hello, World!")'
         assert smap_view.get_source_name(0) == u'/test.js'
 
     def test_broken_base64(self):
@@ -449,76 +534,112 @@ class TrimLineTest(TestCase):
         ) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
 
 
-def test_get_culprit_is_patched():
-    from sentry.lang.javascript.plugin import fix_culprit, generate_modules
+class GenerateModulesTest(TestCase):
+    def test_get_culprit_is_patched(self):
+        from sentry.lang.javascript.plugin import fix_culprit, generate_modules
 
-    data = {
-        'message': 'hello',
-        'platform': 'javascript',
-        'sentry.interfaces.Exception': {
-            'values': [
-                {
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 4,
-                                'colno': 0,
-                                'function': 'thing',
-                            },
-                            {
-                                'abs_path': 'http://example.com/bar.js',
-                                'filename': 'bar.js',
-                                'lineno': 1,
-                                'colno': 0,
-                                'function': 'oops',
-                            },
-                        ],
-                    },
-                }
-            ],
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/foo.js',
+                                    'filename': 'foo.js',
+                                    'lineno': 4,
+                                    'colno': 0,
+                                    'function': 'thing',
+                                },
+                                {
+                                    'abs_path': 'http://example.com/bar.js',
+                                    'filename': 'bar.js',
+                                    'lineno': 1,
+                                    'colno': 0,
+                                    'function': 'oops',
+                                },
+                            ],
+                        },
+                    }
+                ],
+            }
         }
-    }
-    generate_modules(data)
-    fix_culprit(data)
-    assert data['culprit'] == 'bar in oops'
+        generate_modules(data)
+        fix_culprit(data)
+        assert data['culprit'] == 'bar in oops'
 
-
-def test_ensure_module_names():
-    from sentry.lang.javascript.plugin import generate_modules
-    data = {
-        'message': 'hello',
-        'platform': 'javascript',
-        'sentry.interfaces.Exception': {
-            'values': [
-                {
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'filename': 'foo.js',
-                                'lineno': 4,
-                                'colno': 0,
-                                'function': 'thing',
-                            },
-                            {
-                                'abs_path': 'http://example.com/foo/bar.js',
-                                'filename': 'bar.js',
-                                'lineno': 1,
-                                'colno': 0,
-                                'function': 'oops',
-                            },
-                        ],
-                    },
-                }
-            ],
+    def test_ensure_module_names(self):
+        from sentry.lang.javascript.plugin import generate_modules
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'filename': 'foo.js',
+                                    'lineno': 4,
+                                    'colno': 0,
+                                    'function': 'thing',
+                                },
+                                {
+                                    'abs_path': 'http://example.com/foo/bar.js',
+                                    'filename': 'bar.js',
+                                    'lineno': 1,
+                                    'colno': 0,
+                                    'function': 'oops',
+                                },
+                            ],
+                        },
+                    }
+                ],
+            }
         }
-    }
-    generate_modules(data)
-    exc = data['sentry.interfaces.Exception']['values'][0]
-    assert exc['stacktrace']['frames'][1]['module'] == 'foo/bar'
+        generate_modules(data)
+        exc = data['exception']['values'][0]
+        assert exc['stacktrace']['frames'][1]['module'] == 'foo/bar'
+
+    def test_generate_modules_skips_none(self):
+        from sentry.lang.javascript.plugin import fix_culprit, generate_modules
+
+        expected = {
+            'culprit': '',
+            'exception': {
+                'values': [
+                    None,
+                    {},
+                    {
+                        'value': 'MyError',
+                        'stacktrace': None,
+                    },
+                    {
+                        'value': 'MyError',
+                        'stacktrace': {
+                            'frames': None,
+                        },
+                    },
+                    {
+                        'value': 'MyError',
+                        'stacktrace': {
+                            'frames': [
+                                None
+                            ],
+                        },
+                    },
+                ]
+            }
+        }
+
+        actual = deepcopy(expected)
+        generate_modules(actual)
+        fix_culprit(actual)
+        assert actual == expected
 
 
 class ErrorMappingTest(TestCase):
@@ -540,7 +661,7 @@ class ErrorMappingTest(TestCase):
         for x in range(3):
             data = {
                 'platform': 'javascript',
-                'sentry.interfaces.Exception': {
+                'exception': {
                     'values': [
                         {
                             'type':
@@ -575,7 +696,7 @@ class ErrorMappingTest(TestCase):
 
             assert rewrite_exception(data)
 
-            assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+            assert data['exception']['values'][0]['value'] == (
                 'Component.render(): A valid React element (or null) must be '
                 'returned. You may have returned undefined, an array or '
                 'some other invalid object.'
@@ -596,7 +717,7 @@ class ErrorMappingTest(TestCase):
 
         data = {
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type':
@@ -625,7 +746,7 @@ class ErrorMappingTest(TestCase):
 
         assert rewrite_exception(data)
 
-        assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+        assert data['exception']['values'][0]['value'] == (
             'Component.getChildContext(): key "" is not defined in '
             'childContextTypes.'
         )
@@ -645,14 +766,14 @@ class ErrorMappingTest(TestCase):
 
         data = {
             'platform': 'javascript',
-            'sentry.interfaces.Exception': {
+            'exception': {
                 'values': [
                     {
                         'type':
                         'InvariantViolation',
                         'value': (
                             u'Minified React error #108; visit http://facebook'
-                            u'.github.io/react/docs/error-decoder.html?…'
+                            u'.github.io/react/docs/error-decoder.html?\u2026'
                         ),
                         'stacktrace': {
                             'frames': [
@@ -671,7 +792,23 @@ class ErrorMappingTest(TestCase):
 
         assert rewrite_exception(data)
 
-        assert data['sentry.interfaces.Exception']['values'][0]['value'] == (
+        assert data['exception']['values'][0]['value'] == (
             '<redacted>.getChildContext(): key "<redacted>" is not defined in '
             'childContextTypes.'
         )
+
+    @responses.activate
+    def test_skip_none_values(self):
+        expected = {
+            'exception': {
+                'values': [
+                    None,
+                    {},
+                ]
+            }
+        }
+
+        actual = deepcopy(expected)
+        assert not rewrite_exception(actual)
+
+        assert actual == expected

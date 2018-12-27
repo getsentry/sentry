@@ -1,21 +1,29 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ApiMixin from '../mixins/apiMixin';
-import CompactIssue from './compactIssue';
-import LoadingError from './loadingError';
-import LoadingIndicator from './loadingIndicator';
-import Pagination from './pagination';
-import {t} from '../locale';
+import createReactClass from 'create-react-class';
 
-const IssueList = React.createClass({
+import {Panel, PanelBody} from 'app/components/panels';
+import ApiMixin from 'app/mixins/apiMixin';
+import CompactIssue from 'app/components/compactIssue';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import {t} from 'app/locale';
+
+const IssueList = createReactClass({
+  displayName: 'IssueList',
+
   propTypes: {
     endpoint: PropTypes.string.isRequired,
+    emptyText: PropTypes.string,
     query: PropTypes.object,
     pagination: PropTypes.bool,
     renderEmpty: PropTypes.func,
     statsPeriod: PropTypes.string,
-    showActions: PropTypes.bool
+    showActions: PropTypes.bool,
+    noBorder: PropTypes.bool,
   },
 
   mixins: [ApiMixin],
@@ -23,7 +31,8 @@ const IssueList = React.createClass({
   getDefaultProps() {
     return {
       pagination: true,
-      query: {}
+      query: {},
+      noBorder: false,
     };
   },
 
@@ -32,7 +41,7 @@ const IssueList = React.createClass({
       issueIds: [],
       loading: true,
       error: false,
-      pageLinks: null
+      pageLinks: null,
     };
   },
 
@@ -64,7 +73,7 @@ const IssueList = React.createClass({
       method: 'GET',
       query: {
         cursor: (location && location.query && location.query.cursor) || '',
-        ...this.props.query
+        ...this.props.query,
       },
       success: (data, _, jqXHR) => {
         this.setState({
@@ -72,40 +81,44 @@ const IssueList = React.createClass({
           loading: false,
           error: false,
           issueIds: data.map(item => item.id),
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
-      }
+      },
     });
   },
 
   renderResults() {
     let body;
-    let params = this.props.params;
+    const {params, noBorder} = this.props;
 
     if (this.state.loading) body = this.renderLoading();
     else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
     else if (this.state.issueIds.length > 0) {
+      const panelStyle = noBorder ? {border: 0, borderRadius: 0} : {};
+
       body = (
-        <ul className="issue-list">
-          {this.state.data.map(issue => {
-            return (
-              <CompactIssue
-                key={issue.id}
-                id={issue.id}
-                data={issue}
-                orgId={params.orgId}
-                statsPeriod={this.props.statsPeriod}
-                showActions={this.props.showActions}
-              />
-            );
-          })}
-        </ul>
+        <Panel style={panelStyle}>
+          <PanelBody className="issue-list">
+            {this.state.data.map(issue => {
+              return (
+                <CompactIssue
+                  key={issue.id}
+                  id={issue.id}
+                  data={issue}
+                  orgId={params.orgId}
+                  statsPeriod={this.props.statsPeriod}
+                  showActions={this.props.showActions}
+                />
+              );
+            })}
+          </PanelBody>
+        </Panel>
       );
     } else body = (this.props.renderEmpty || this.renderEmpty)();
 
@@ -121,19 +134,28 @@ const IssueList = React.createClass({
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('Nothing to show here, move along.')}</div>;
+    const {emptyText} = this.props;
+
+    return (
+      <Panel>
+        <EmptyMessage icon="icon-circle-exclamation">
+          {emptyText ? emptyText : t('Nothing to show here, move along.')}
+        </EmptyMessage>
+      </Panel>
+    );
   },
 
   render() {
     return (
-      <div>
+      <React.Fragment>
         {this.renderResults()}
         {this.props.pagination &&
-          this.state.pageLinks &&
-          <Pagination pageLinks={this.state.pageLinks} {...this.props} />}
-      </div>
+          this.state.pageLinks && (
+            <Pagination pageLinks={this.state.pageLinks} {...this.props} />
+          )}
+      </React.Fragment>
     );
-  }
+  },
 });
 
 export default IssueList;

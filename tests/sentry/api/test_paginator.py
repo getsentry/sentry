@@ -3,10 +3,18 @@ from __future__ import absolute_import
 import pytest
 from datetime import timedelta
 from django.utils import timezone
+from unittest import TestCase as SimpleTestCase
 
-from sentry.api.paginator import (Paginator, DateTimePaginator, OffsetPaginator)
+from sentry.api.paginator import (
+    Paginator,
+    DateTimePaginator,
+    OffsetPaginator,
+    SequencePaginator,
+    GenericOffsetPaginator,
+    reverse_bisect_left)
 from sentry.models import User
 from sentry.testutils import TestCase
+from sentry.utils.cursors import Cursor
 from sentry.utils.db import is_mysql
 
 
@@ -208,7 +216,7 @@ class DateTimePaginatorTest(TestCase):
         assert len(result4) == 0, result4
 
     @pytest.mark.skipif(is_mysql(), reason='MySQL does not support above second accuracy')
-    def test_roudning_offset(self):
+    def test_rounding_offset(self):
         joined = timezone.now()
 
         res1 = self.create_user('foo@example.com', date_joined=joined)
@@ -240,3 +248,233 @@ class DateTimePaginatorTest(TestCase):
 
         result5 = paginator.get_result(limit=10, cursor=result4.prev)
         assert len(result5) == 0, list(result5)
+
+    def test_same_row_updated(self):
+        joined = timezone.now()
+        res1 = self.create_user('foo@example.com', date_joined=joined)
+        queryset = User.objects.all()
+
+        paginator = DateTimePaginator(queryset, '-date_joined')
+        result1 = paginator.get_result(limit=3, cursor=None)
+        assert len(result1) == 1, result1
+        assert result1[0] == res1
+
+        # Prev page should return no results
+        result2 = paginator.get_result(limit=3, cursor=result1.prev)
+        assert len(result2) == 0, result2
+
+        # If the same row has an updated join date then it should
+        # show up on the prev page
+        res1.update(date_joined=joined + timedelta(seconds=1))
+        result3 = paginator.get_result(limit=3, cursor=result1.prev)
+        assert len(result3) == 1, result3
+        assert result3[0] == res1
+
+        # Make sure updates work as expected with extra rows
+        res1.update(date_joined=res1.date_joined + timedelta(seconds=1))
+        res2 = self.create_user(
+            'bar@example.com',
+            date_joined=res1.date_joined + timedelta(seconds=1),
+        )
+        res3 = self.create_user(
+            'baz@example.com',
+            date_joined=res1.date_joined + timedelta(seconds=2),
+        )
+        res4 = self.create_user(
+            'bat@example.com',
+            date_joined=res1.date_joined + timedelta(seconds=3),
+        )
+        result4 = paginator.get_result(limit=1, cursor=result3.prev)
+        assert len(result4) == 1, result4
+        assert result4[0] == res1
+
+        result5 = paginator.get_result(limit=3, cursor=result3.prev)
+        assert len(result5) == 3, result5
+        assert result5[0] == res3
+        assert result5[1] == res2
+        assert result5[2] == res1
+
+        result6 = paginator.get_result(limit=3, cursor=result5.prev)
+        assert len(result6) == 1, result6
+        assert result6[0] == res4
+
+        res4.update(date_joined=res4.date_joined + timedelta(seconds=1))
+        result7 = paginator.get_result(limit=3, cursor=result6.prev)
+        assert len(result7) == 1, result7
+        assert result7[0] == res4
+
+
+def test_reverse_bisect_left():
+    assert reverse_bisect_left([], 0) == 0
+
+    assert reverse_bisect_left([1], -1) == 1
+    assert reverse_bisect_left([1], 0) == 1
+    assert reverse_bisect_left([1], 1) == 0
+    assert reverse_bisect_left([1], 2) == 0
+
+    assert reverse_bisect_left([2, 1], -1) == 2
+    assert reverse_bisect_left([2, 1], 0) == 2
+    assert reverse_bisect_left([2, 1], 1) == 1
+    assert reverse_bisect_left([2, 1], 2) == 0
+    assert reverse_bisect_left([2, 1], 3) == 0
+
+    assert reverse_bisect_left([3, 2, 1], -1) == 3
+    assert reverse_bisect_left([3, 2, 1], 0) == 3
+    assert reverse_bisect_left([3, 2, 1], 1) == 2
+    assert reverse_bisect_left([3, 2, 1], 2) == 1
+    assert reverse_bisect_left([3, 2, 1], 3) == 0
+    assert reverse_bisect_left([3, 2, 1], 4) == 0
+
+    assert reverse_bisect_left([4, 3, 2, 1], -1) == 4
+    assert reverse_bisect_left([4, 3, 2, 1], 0) == 4
+    assert reverse_bisect_left([4, 3, 2, 1], 1) == 3
+    assert reverse_bisect_left([4, 3, 2, 1], 2) == 2
+    assert reverse_bisect_left([4, 3, 2, 1], 3) == 1
+    assert reverse_bisect_left([4, 3, 2, 1], 4) == 0
+    assert reverse_bisect_left([4, 3, 2, 1], 5) == 0
+
+    assert reverse_bisect_left([1, 1], 0) == 2
+    assert reverse_bisect_left([1, 1], 1) == 0
+    assert reverse_bisect_left([1, 1], 2) == 0
+
+    assert reverse_bisect_left([2, 1, 1], 0) == 3
+    assert reverse_bisect_left([2, 1, 1], 1) == 1
+    assert reverse_bisect_left([2, 1, 1], 2) == 0
+
+    assert reverse_bisect_left([2, 2, 1], 0) == 3
+    assert reverse_bisect_left([2, 2, 1], 1) == 2
+    assert reverse_bisect_left([2, 2, 1], 2) == 0
+
+    assert reverse_bisect_left([3, 2, 1], 2, hi=10) == 1
+
+
+class SequencePaginatorTestCase(SimpleTestCase):
+    def test_empty_results(self):
+        paginator = SequencePaginator([])
+        result = paginator.get_result(5)
+        assert list(result) == []
+        assert result.prev == Cursor(0, 0, True, False)
+        assert result.next == Cursor(0, 0, False, False)
+
+        paginator = SequencePaginator([], reverse=True)
+        result = paginator.get_result(5)
+        assert list(result) == []
+        assert result.prev == Cursor(0, 0, True, False)
+        assert result.next == Cursor(0, 0, False, False)
+
+    def test_ascending_simple(self):
+        paginator = SequencePaginator([(i, i) for i in range(10)], reverse=False)
+
+        result = paginator.get_result(5)
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev == Cursor(0, 0, True, False)
+        assert result.next == Cursor(5, 0, False, True)
+
+        result = paginator.get_result(5, result.next)
+        assert list(result) == [5, 6, 7, 8, 9]
+        assert result.prev == Cursor(5, 0, True, True)
+        assert result.next == Cursor(9, 1, False, False)
+
+        result = paginator.get_result(5, result.prev)
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev == Cursor(0, 0, True, False)
+        assert result.next == Cursor(5, 0, False, True)
+
+        result = paginator.get_result(5, Cursor(100, 0, False))
+        assert list(result) == []
+        assert result.prev == Cursor(9, 1, True, True)
+        assert result.next == Cursor(9, 1, False, False)
+
+    def test_descending_simple(self):
+        paginator = SequencePaginator([(i, i) for i in range(10)], reverse=True)
+
+        result = paginator.get_result(5)
+        assert list(result) == [9, 8, 7, 6, 5]
+        assert result.prev == Cursor(9, 0, True, False)
+        assert result.next == Cursor(4, 0, False, True)
+
+        result = paginator.get_result(5, result.next)
+        assert list(result) == [4, 3, 2, 1, 0]
+        assert result.prev == Cursor(4, 0, True, True)
+        assert result.next == Cursor(0, 1, False, False)
+
+        result = paginator.get_result(5, result.prev)
+        assert list(result) == [9, 8, 7, 6, 5]
+        assert result.prev == Cursor(9, 0, True, False)
+        assert result.next == Cursor(4, 0, False, True)
+
+        result = paginator.get_result(5, Cursor(-10, 0, False))
+        assert list(result) == []
+        assert result.prev == Cursor(0, 1, True, True)
+        assert result.next == Cursor(0, 1, False, False)
+
+    def test_ascending_repeated_scores(self):
+        paginator = SequencePaginator([(1, i) for i in range(10)], reverse=False)
+
+        result = paginator.get_result(5)
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev == Cursor(1, 0, True, False)
+        assert result.next == Cursor(1, 5, False, True)
+
+        result = paginator.get_result(5, result.next)
+        assert list(result) == [5, 6, 7, 8, 9]
+        assert result.prev == Cursor(1, 5, True, True)
+        assert result.next == Cursor(1, 10, False, False)
+
+        result = paginator.get_result(5, result.prev)
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev == Cursor(1, 0, True, False)
+        assert result.next == Cursor(1, 5, False, True)
+
+        result = paginator.get_result(5, Cursor(100, 0, False))
+        assert list(result) == []
+        assert result.prev == Cursor(1, 10, True, True)
+        assert result.next == Cursor(1, 10, False, False)
+
+    def test_descending_repeated_scores(self):
+        paginator = SequencePaginator([(1, i) for i in range(10)], reverse=True)
+
+        result = paginator.get_result(5)
+        assert list(result) == [9, 8, 7, 6, 5]
+        assert result.prev == Cursor(1, 0, True, False)
+        assert result.next == Cursor(1, 5, False, True)
+
+        result = paginator.get_result(5, result.next)
+        assert list(result) == [4, 3, 2, 1, 0]
+        assert result.prev == Cursor(1, 5, True, True)
+        assert result.next == Cursor(1, 10, False, False)
+
+        result = paginator.get_result(5, result.prev)
+        assert list(result) == [9, 8, 7, 6, 5]
+        assert result.prev == Cursor(1, 0, True, False)
+        assert result.next == Cursor(1, 5, False, True)
+
+        result = paginator.get_result(5, Cursor(-10, 0, False))
+        assert list(result) == []
+        assert result.prev == Cursor(1, 10, True, True)
+        assert result.next == Cursor(1, 10, False, False)
+
+    def test_hits(self):
+        n = 10
+        paginator = SequencePaginator([(i, i) for i in range(n)])
+        assert paginator.get_result(5, count_hits=True).hits == n
+
+
+class GenericOffsetPaginatorTest(TestCase):
+    def test_simple(self):
+        def data_fn(offset=None, limit=None):
+            return [i for i in range(offset, limit)]
+
+        paginator = GenericOffsetPaginator(data_fn=data_fn)
+
+        result = paginator.get_result(5)
+
+        assert list(result) == [0, 1, 2, 3, 4]
+        assert result.prev == Cursor(0, 0, True, False)
+        assert result.next == Cursor(0, 5, False, True)
+
+        result2 = paginator.get_result(5, result.next)
+
+        assert list(result2) == [5]
+        assert result2.prev == Cursor(0, 0, True, True)
+        assert result2.next == Cursor(0, 10, False, False)

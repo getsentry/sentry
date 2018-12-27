@@ -2,7 +2,6 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
-{% load sentry_auth %}
 {% load sentry_avatars %}
 
 {% block title %}{% trans "Authorize Application" %} | {{ block.super }}{% endblock %}
@@ -32,9 +31,9 @@
       {% endif %}
     </div>
 
-    <fieldset class="form-actions">
+    <div class="auth-footer">
       <button type="submit" class="btn btn-primary" name="op" value="approve">{% trans "Approve" %}</button>
       <button type="submit" class="btn btn-danger" name="op" value="deny">{% trans "Deny" %}</button>
-    </fieldset>
+    </div>
   </form>
 {% endblock %}

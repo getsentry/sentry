@@ -8,6 +8,7 @@ sentry.plugins.bases.notify
 from __future__ import absolute_import, print_function
 
 import logging
+import six
 from six.moves.urllib.parse import (
     urlparse,
     urlencode,
@@ -16,6 +17,7 @@ from six.moves.urllib.parse import (
 )
 
 from django import forms
+from requests.exceptions import SSLError, HTTPError
 
 from sentry import digests, ratelimits
 from sentry.digests import get_option_key as get_digest_option_key
@@ -23,6 +25,8 @@ from sentry.digests.notifications import (
     event_to_record,
     unsplit_key,
 )
+from sentry.exceptions import PluginError
+from sentry.integrations.exceptions import ApiError
 from sentry.plugins import Notification, Plugin
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.models import ProjectOption
@@ -66,7 +70,15 @@ class NotificationPlugin(Plugin):
 
     def notify(self, notification):
         event = notification.event
-        return self.notify_users(event.group, event)
+        try:
+            return self.notify_users(event.group, event, triggering_rules=[
+                                     r.label for r in notification.rules])
+        except (SSLError, HTTPError, ApiError, PluginError) as err:
+            self.logger.info('notification-plugin.notify-failed.', extra={
+                'error': six.text_type(err),
+                'plugin': self.slug
+            })
+            return False
 
     def rule_notify(self, event, futures):
         rules = []
@@ -117,7 +129,7 @@ class NotificationPlugin(Plugin):
 
         self.logger.info('notification.%s' % log_event, extra=extra)
 
-    def notify_users(self, group, event, fail_silently=False):
+    def notify_users(self, group, event, triggering_rules, fail_silently=False, **kwargs):
         raise NotImplementedError
 
     def notify_about_activity(self, activity):
@@ -154,7 +166,7 @@ class NotificationPlugin(Plugin):
         # older plugins.
         if not (hasattr(self, 'notify_digest') and
                 digests.enabled(project)) and self.__is_rate_limited(group, event):
-            logger = logging.getLogger('sentry.plugins.{0}'.format(self.get_conf_key()))
+            logger = logging.getLogger(u'sentry.plugins.{0}'.format(self.get_conf_key()))
             logger.info('notification.rate_limited', extra={'project_id': project.id})
             return False
 

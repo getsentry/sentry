@@ -4,7 +4,7 @@ let defaults = {
   limit: null,
   key: function(item) {
     return item.id;
-  }
+  },
 };
 
 function Collection(collection, options) {

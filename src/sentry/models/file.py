@@ -15,24 +15,74 @@ import tempfile
 
 from hashlib import sha1
 from uuid import uuid4
+from threading import Semaphore
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 
 from django.conf import settings
 from django.core.files.base import File as FileObj
 from django.core.files.base import ContentFile
 from django.core.files.storage import get_storage_class
-from django.db import models
+from django.db import models, transaction, IntegrityError
 from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.app import locks
 from sentry.db.models import (BoundedPositiveIntegerField, FlexibleForeignKey, Model)
+from sentry.tasks.files import delete_file as delete_file_task
 from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
 ONE_DAY = 60 * 60 * 24
 
+UPLOAD_RETRY_TIME = 60  # 1min
+
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
+CHUNK_STATE_HEADER = '__state'
+MULTI_BLOB_UPLOAD_CONCURRENCY = 8
+MAX_FILE_SIZE = 2 ** 31  # 2GB is the maximum offset supported by fileblob
+
+
+def enum(**named_values):
+    return type('Enum', (), named_values)
+
+
+ChunkFileState = enum(
+    OK='ok',  # File in database
+    NOT_FOUND='not_found',  # File not found in database
+    CREATED='created',  # File was created in the request and send to the worker for assembling
+    ASSEMBLING='assembling',  # File still being processed by worker
+    ERROR='error'  # Error happened during assembling
+)
+
+
+def _get_size_and_checksum(fileobj):
+    size = 0
+    checksum = sha1()
+    while True:
+        chunk = fileobj.read(65536)
+        if not chunk:
+            break
+        size += len(chunk)
+        checksum.update(chunk)
+
+    return size, checksum.hexdigest()
+
+
+@contextmanager
+def _locked_blob(checksum):
+    lock = locks.get(u'fileblob:upload:{}'.format(checksum), duration=UPLOAD_RETRY_TIME)
+    with TimedRetryPolicy(UPLOAD_RETRY_TIME)(lock.acquire):
+        # test for presence
+        try:
+            existing = FileBlob.objects.get(checksum=checksum)
+        except FileBlob.DoesNotExist:
+            existing = None
+        yield existing
+
+
+class AssembleChecksumMismatch(Exception):
+    pass
 
 
 def get_storage():
@@ -62,41 +112,126 @@ class FileBlob(Model):
         db_table = 'sentry_fileblob'
 
     @classmethod
+    def from_files(cls, files, organization=None):
+        """A faster version of `from_file` for multiple files at the time.
+        If an organization is provided it will also create `FileBlobOwner`
+        entries.  Files can be a list of files or tuples of file and checksum.
+        If both are provided then a checksum check is performed.
+
+        If the checksums mismatch an `IOError` is raised.
+        """
+        files_with_checksums = []
+        for fileobj in files:
+            if isinstance(fileobj, tuple):
+                files_with_checksums.append(fileobj)
+            else:
+                files_with_checksums.append((fileobj, None))
+
+        checksums_seen = set()
+        blobs_created = []
+        blobs_to_save = []
+        locks = set()
+        semaphore = Semaphore(value=MULTI_BLOB_UPLOAD_CONCURRENCY)
+
+        def _upload_and_pend_chunk(fileobj, size, checksum, lock):
+            blob = cls(size=size, checksum=checksum)
+            blob.path = cls.generate_unique_path()
+            storage = get_storage()
+            storage.save(blob.path, fileobj)
+            blobs_to_save.append((blob, lock))
+            metrics.timing('filestore.blob-size', size, tags={'function': 'from_files'})
+
+        def _ensure_blob_owned(blob):
+            if organization is None:
+                return
+            try:
+                with transaction.atomic():
+                    FileBlobOwner.objects.create(
+                        organization=organization,
+                        blob=blob
+                    )
+            except IntegrityError:
+                pass
+
+        def _save_blob(blob):
+            blob.save()
+            _ensure_blob_owned(blob)
+
+        def _flush_blobs():
+            while True:
+                try:
+                    blob, lock = blobs_to_save.pop()
+                except IndexError:
+                    break
+
+                _save_blob(blob)
+                lock.__exit__(None, None, None)
+                locks.discard(lock)
+                semaphore.release()
+
+        try:
+            with ThreadPoolExecutor(max_workers=MULTI_BLOB_UPLOAD_CONCURRENCY) as exe:
+                for fileobj, reference_checksum in files_with_checksums:
+                    _flush_blobs()
+
+                    # Before we go and do something with the files we calculate
+                    # the checksums and compare it against the reference.  This
+                    # also deduplicates duplicates uploaded in the same request.
+                    # This is necessary because we acquire multiple locks in one
+                    # go which would let us deadlock otherwise.
+                    size, checksum = _get_size_and_checksum(fileobj)
+                    if reference_checksum is not None and checksum != reference_checksum:
+                        raise IOError('Checksum mismatch')
+                    if checksum in checksums_seen:
+                        continue
+                    checksums_seen.add(checksum)
+
+                    # Check if we need to lock the blob.  If we get a result back
+                    # here it means the blob already exists.
+                    lock = _locked_blob(checksum)
+                    existing = lock.__enter__()
+                    if existing is not None:
+                        lock.__exit__(None, None, None)
+                        blobs_created.append(existing)
+                        _ensure_blob_owned(existing)
+                        continue
+
+                    # Remember the lock to force unlock all at the end if we
+                    # encounter any difficulties.
+                    locks.add(lock)
+
+                    # Otherwise we leave the blob locked and submit the task.
+                    # We use the semaphore to ensure we never schedule too
+                    # many.  The upload will be done with a certain amount
+                    # of concurrency controlled by the semaphore and the
+                    # `_flush_blobs` call will take all those uploaded
+                    # blobs and associate them with the database.
+                    semaphore.acquire()
+                    exe.submit(_upload_and_pend_chunk(fileobj, size, checksum, lock))
+
+            _flush_blobs()
+        finally:
+            for lock in locks:
+                try:
+                    lock.__exit__(None, None, None)
+                except Exception:
+                    pass
+
+    @classmethod
     def from_file(cls, fileobj):
         """
-        Retrieve a list of FileBlobIndex instances for the given file.
-
-        If not already present, this will cause it to be stored.
-
-        >>> blobs = FileBlob.from_file(fileobj)
+        Retrieve a single FileBlob instances for the given file.
         """
-        size = 0
-
-        checksum = sha1(b'')
-        for chunk in fileobj:
-            size += len(chunk)
-            checksum.update(chunk)
-        checksum = checksum.hexdigest()
+        size, checksum = _get_size_and_checksum(fileobj)
 
         # TODO(dcramer): the database here is safe, but if this lock expires
         # and duplicate files are uploaded then we need to prune one
-        lock = locks.get('fileblob:upload:{}'.format(checksum), duration=60 * 10)
-        with TimedRetryPolicy(60)(lock.acquire):
-            # test for presence
-            try:
-                existing = FileBlob.objects.get(checksum=checksum)
-            except FileBlob.DoesNotExist:
-                pass
-            else:
+        with _locked_blob(checksum) as existing:
+            if existing is not None:
                 return existing
 
-            blob = cls(
-                size=size,
-                checksum=checksum,
-            )
-
-            blob.path = cls.generate_unique_path(blob.timestamp)
-
+            blob = cls(size=size, checksum=checksum)
+            blob.path = cls.generate_unique_path()
             storage = get_storage()
             storage.save(blob.path, fileobj)
             blob.save()
@@ -105,23 +240,34 @@ class FileBlob(Model):
         return blob
 
     @classmethod
-    def generate_unique_path(cls, timestamp):
-        pieces = [six.text_type(x) for x in divmod(int(timestamp.strftime('%s')), ONE_DAY)]
-        pieces.append(uuid4().hex)
+    def generate_unique_path(cls):
+        # We intentionally do not use checksums as path names to avoid concurrency issues
+        # when we attempt concurrent uploads for any reason.
+        uuid_hex = uuid4().hex
+        pieces = [uuid_hex[:2], uuid_hex[2:6], uuid_hex[6:]]
         return u'/'.join(pieces)
 
     def delete(self, *args, **kwargs):
-        lock = locks.get('fileblob:upload:{}'.format(self.checksum), duration=60 * 10)
-        with TimedRetryPolicy(60)(lock.acquire):
-            if self.path:
-                self.deletefile(commit=False)
+        lock = locks.get(u'fileblob:upload:{}'.format(self.checksum), duration=UPLOAD_RETRY_TIME)
+        with TimedRetryPolicy(UPLOAD_RETRY_TIME)(lock.acquire):
             super(FileBlob, self).delete(*args, **kwargs)
+        if self.path:
+            self.deletefile(commit=False)
 
     def deletefile(self, commit=False):
         assert self.path
 
-        storage = get_storage()
-        storage.delete(self.path)
+        # Defer this by 1 minute just to make sure
+        # we avoid any transaction isolation where the
+        # FileBlob row might still be visible by the
+        # task before transaction is committed.
+        delete_file_task.apply_async(
+            kwargs={
+                'path': self.path,
+                'checksum': self.checksum,
+            },
+            countdown=60,
+        )
 
         self.path = None
 
@@ -145,13 +291,13 @@ class FileBlob(Model):
 class File(Model):
     __core__ = False
 
-    name = models.CharField(max_length=128)
+    name = models.TextField()
     type = models.CharField(max_length=64)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
     headers = JSONField()
     blobs = models.ManyToManyField('sentry.FileBlob', through='sentry.FileBlobIndex')
     size = BoundedPositiveIntegerField(null=True)
-    checksum = models.CharField(max_length=40, null=True)
+    checksum = models.CharField(max_length=40, null=True, db_index=True)
 
     # <Legacy fields>
     # Remove in 8.1
@@ -254,6 +400,43 @@ class File(Model):
             self.save()
         return results
 
+    def assemble_from_file_blob_ids(self, file_blob_ids, checksum, commit=True):
+        """
+        This creates a file, from file blobs and returns a temp file with the
+        contents.
+        """
+        tf = tempfile.NamedTemporaryFile()
+        with transaction.atomic():
+            file_blobs = FileBlob.objects.filter(id__in=file_blob_ids).all()
+            # Make sure the blobs are sorted with the order provided
+            file_blobs = sorted(file_blobs, key=lambda blob: file_blob_ids.index(blob.id))
+
+            new_checksum = sha1(b'')
+            offset = 0
+            for blob in file_blobs:
+                FileBlobIndex.objects.create(
+                    file=self,
+                    blob=blob,
+                    offset=offset,
+                )
+                for chunk in blob.getfile().chunks():
+                    new_checksum.update(chunk)
+                    tf.write(chunk)
+                offset += blob.size
+
+            self.size = offset
+            self.checksum = new_checksum.hexdigest()
+
+            if checksum != self.checksum:
+                raise AssembleChecksumMismatch('Checksum mismatch')
+
+        metrics.timing('filestore.file-size', offset)
+        if commit:
+            self.save()
+        tf.flush()
+        tf.seek(0)
+        return tf
+
 
 class FileBlobIndex(Model):
     __core__ = False
@@ -338,7 +521,7 @@ class ChunkedFileBlobIndexWrapper(object):
 
         def fetch_file(offset, getfile):
             with getfile() as sf:
-                while 1:
+                while True:
                     chunk = sf.read(65535)
                     if not chunk:
                         break
@@ -416,3 +599,15 @@ class ChunkedFileBlobIndexWrapper(object):
                     result.extend(blob_result)
 
         return bytes(result)
+
+
+class FileBlobOwner(Model):
+    __core__ = False
+
+    blob = FlexibleForeignKey('sentry.FileBlob')
+    organization = FlexibleForeignKey('sentry.Organization')
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_fileblobowner'
+        unique_together = (('blob', 'organization'), )

@@ -13,7 +13,13 @@ from uuid import uuid4
 import click
 from django.utils import timezone
 
-from sentry.runner.decorators import configuration, log_options
+from sentry.runner.decorators import log_options
+from six.moves import xrange
+
+
+# allows services like tagstore to add their own (abstracted) models
+# to cleanup
+EXTRA_BULK_QUERY_DELETES = []
 
 
 def get_project(value):
@@ -33,6 +39,71 @@ def get_project(value):
         return None
 
 
+# We need a unique value to indicate when to stop multiprocessing queue
+# an identity on an object() isn't guaranteed to work between parent
+# and child proc
+_STOP_WORKER = '91650ec271ae4b3e8a67cdc909d80f8c'
+
+
+def multiprocess_worker(task_queue):
+    # Configure within each Process
+    import logging
+    from sentry.utils.imports import import_string
+
+    logger = logging.getLogger('sentry.cleanup')
+
+    configured = False
+
+    while True:
+        j = task_queue.get()
+        if j == _STOP_WORKER:
+            task_queue.task_done()
+            return
+
+        # On first task, configure Sentry environment
+        if not configured:
+            from sentry.runner import configure
+            configure()
+
+            from sentry import models
+            from sentry import deletions
+            from sentry import similarity
+
+            skip_models = [
+                # Handled by other parts of cleanup
+                models.Event,
+                models.EventMapping,
+                models.EventAttachment,
+                models.UserReport,
+                models.Group,
+                models.GroupEmailThread,
+                models.GroupRuleStatus,
+                # Handled by TTL
+                similarity.features,
+            ] + [b[0] for b in EXTRA_BULK_QUERY_DELETES]
+
+            configured = True
+
+        model, chunk = j
+        model = import_string(model)
+
+        try:
+            task = deletions.get(
+                model=model,
+                query={'id__in': chunk},
+                skip_models=skip_models,
+                transaction_id=uuid4().hex,
+            )
+
+            while True:
+                if not task.chunk():
+                    break
+        except Exception as e:
+            logger.exception(e)
+        finally:
+            task_queue.task_done()
+
+
 @click.command()
 @click.option('--days', default=30, show_default=True, help='Numbers of days to truncate on.')
 @click.option('--project', help='Limit truncation to only entries from project.')
@@ -41,7 +112,7 @@ def get_project(value):
     type=int,
     default=1,
     show_default=True,
-    help='The number of concurrent workers to run.'
+    help='The total number of concurrent worker processes to run.'
 )
 @click.option(
     '--silent', '-q', default=False, is_flag=True, help='Run quietly. No output on success.'
@@ -56,7 +127,6 @@ def get_project(value):
     help='Send the duration of this command to internal metrics.'
 )
 @log_options()
-@configuration
 def cleanup(days, project, concurrency, silent, model, router, timed):
     """Delete a portion of trailing data based on creation date.
 
@@ -70,13 +140,25 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         click.echo('Error: Minimum concurrency is 1', err=True)
         raise click.Abort()
 
-    from threading import Thread
+    # Make sure we fork off multiprocessing pool
+    # before we import or configure the app
+    from multiprocessing import Process, JoinableQueue as Queue
+
+    pool = []
+    task_queue = Queue(1000)
+    for _ in xrange(concurrency):
+        p = Process(target=multiprocess_worker, args=(task_queue,))
+        p.daemon = True
+        p.start()
+        pool.append(p)
+
+    from sentry.runner import configure
+    configure()
+
     from django.db import router as db_router
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
-    from sentry import deletions
     from sentry import models
-    from sentry import similarity
 
     if timed:
         import time
@@ -95,13 +177,13 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
     # (model, datetime_field, order_by)
-    BULK_QUERY_DELETES = (
+    BULK_QUERY_DELETES = [
+        (models.EventMapping, 'date_added', '-date_added'),
+        (models.EventAttachment, 'date_added', None),
+        (models.UserReport, 'date_added', None),
         (models.GroupEmailThread, 'date', None),
         (models.GroupRuleStatus, 'date_added', None),
-        (models.GroupTagValue, 'last_seen', None),
-        (models.TagValue, 'last_seen', None),
-        (models.EventTag, 'date_added', 'date_added'),
-    )
+    ] + EXTRA_BULK_QUERY_DELETES
 
     # Deletions that use the `deletions` code path (which handles their child relations)
     # (model, datetime_field, order_by)
@@ -121,13 +203,20 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             date_added__lte=timezone.now() - timedelta(hours=48)
         ).delete()
 
+    if is_filtered(models.OrganizationMember) and not silent:
+        click.echo('>> Skipping OrganizationMember')
+    else:
+        click.echo('Removing expired values for OrganizationMember')
+        expired_threshold = timezone.now() - timedelta(days=days)
+        models.OrganizationMember.delete_expired(expired_threshold)
+
     for model in [models.ApiGrant, models.ApiToken]:
         if not silent:
-            click.echo('Removing expired values for {}'.format(model.__name__))
+            click.echo(u'Removing expired values for {}'.format(model.__name__))
 
         if is_filtered(model):
             if not silent:
-                click.echo('>> Skipping {}'.format(model.__name__))
+                click.echo(u'>> Skipping {}'.format(model.__name__))
         else:
             model.objects.filter(expires_at__lt=timezone.now()).delete()
 
@@ -142,18 +231,24 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     else:
         if not silent:
             click.echo("Removing old NodeStore values")
-        else:
-            cutoff = timezone.now() - timedelta(days=days)
-            try:
-                nodestore.cleanup(cutoff)
-            except NotImplementedError:
-                click.echo(
-                    "NodeStore backend does not support cleanup operation", err=True)
 
-    for model, dtfield, order_by in BULK_QUERY_DELETES:
+        cutoff = timezone.now() - timedelta(days=days)
+        try:
+            nodestore.cleanup(cutoff)
+        except NotImplementedError:
+            click.echo(
+                "NodeStore backend does not support cleanup operation", err=True)
+
+    for bqd in BULK_QUERY_DELETES:
+        if len(bqd) == 4:
+            model, dtfield, order_by, chunk_size = bqd
+        else:
+            chunk_size = 10000
+            model, dtfield, order_by = bqd
+
         if not silent:
             click.echo(
-                "Removing {model} for days={days} project={project}".format(
+                u"Removing {model} for days={days} project={project}".format(
                     model=model.__name__,
                     days=days,
                     project=project or '*',
@@ -169,12 +264,12 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 days=days,
                 project_id=project_id,
                 order_by=order_by,
-            ).execute()
+            ).execute(chunk_size=chunk_size)
 
     for model, dtfield, order_by in DELETES:
         if not silent:
             click.echo(
-                "Removing {model} for days={days} project={project}".format(
+                u"Removing {model} for days={days} project={project}".format(
                     model=model.__name__,
                     days=days,
                     project=project or '*',
@@ -185,72 +280,20 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             if not silent:
                 click.echo('>> Skipping %s' % model.__name__)
         else:
-            query = {
-                '{}__lte'.format(dtfield): (timezone.now() - timedelta(days=days)),
-            }
+            imp = '.'.join((model.__module__, model.__name__))
 
-            if project_id:
-                if 'project' in model._meta.get_all_field_names():
-                    query['project'] = project_id
-                else:
-                    query['project_id'] = project_id
-
-            task = deletions.get(
+            q = BulkDeleteQuery(
                 model=model,
-                query=query,
+                dtfield=dtfield,
+                days=days,
+                project_id=project_id,
                 order_by=order_by,
-                skip_models=[
-                    # Handled by other parts of cleanup
-                    models.Event,
-                    models.EventMapping,
-                    models.EventTag,
-                    models.GroupEmailThread,
-                    models.GroupRuleStatus,
-                    models.GroupTagValue,
-                    # Handled by TTL
-                    similarity.features,
-                ],
-                transaction_id=uuid4().hex,
             )
 
-            def _chunk_until_complete(num_shards=None, shard_id=None):
-                has_more = True
-                while has_more:
-                    has_more = task.chunk(
-                        num_shards=num_shards, shard_id=shard_id)
+            for chunk in q.iterator(chunk_size=100):
+                task_queue.put((imp, chunk))
 
-            if concurrency > 1:
-                threads = []
-                for shard_id in range(concurrency):
-                    t = Thread(
-                        target=(
-                            lambda shard_id=shard_id: _chunk_until_complete(
-                                num_shards=concurrency, shard_id=shard_id)
-                        )
-                    )
-                    t.start()
-                    threads.append(t)
-
-                for t in threads:
-                    t.join()
-            else:
-                _chunk_until_complete()
-
-    # EventMapping is fairly expensive and is special cased as it's likely you
-    # won't need a reference to an event for nearly as long
-    if not silent:
-        click.echo("Removing expired values for EventMapping")
-    if is_filtered(models.EventMapping):
-        if not silent:
-            click.echo('>> Skipping EventMapping')
-    else:
-        BulkDeleteQuery(
-            model=models.EventMapping,
-            dtfield='date_added',
-            days=min(days, 7),
-            project_id=project_id,
-            order_by='-date_added'
-        ).execute()
+            task_queue.join()
 
     # Clean up FileBlob instances which are no longer used and aren't super
     # recent (as there could be a race between blob creation and reference)
@@ -261,6 +304,14 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             click.echo('>> Skipping FileBlob')
     else:
         cleanup_unused_files(silent)
+
+    # Shut down our pool
+    for _ in pool:
+        task_queue.put(_STOP_WORKER)
+
+    # And wait for it to drain
+    for p in pool:
+        p.join()
 
     if timed:
         duration = int(time.time() - start_time)

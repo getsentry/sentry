@@ -7,6 +7,8 @@ sentry.api.paginator
 """
 from __future__ import absolute_import
 
+import bisect
+import functools
 import math
 
 from datetime import datetime
@@ -19,8 +21,12 @@ from sentry.utils.cursors import build_cursor, Cursor, CursorResult
 quote_name = connections['default'].ops.quote_name
 
 
+MAX_LIMIT = 100
+MAX_HITS_LIMIT = 1000
+
+
 class BasePaginator(object):
-    def __init__(self, queryset, order_by=None, max_limit=100):
+    def __init__(self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None):
         if order_by:
             if order_by.startswith('-'):
                 self.key, self.desc = order_by[1:], True
@@ -31,6 +37,7 @@ class BasePaginator(object):
             self.desc = False
         self.queryset = queryset
         self.max_limit = max_limit
+        self.on_results = on_results
 
     def _is_asc(self, is_prev):
         return (self.desc and is_prev) or not (self.desc or is_prev)
@@ -113,23 +120,37 @@ class BasePaginator(object):
         # TODO(dcramer): this does not yet work correctly for ``is_prev`` when
         # the key is not unique
         if count_hits:
-            max_hits = 1000
-            hits = self.count_hits(max_hits)
+            hits = self.count_hits(MAX_HITS_LIMIT)
         else:
             hits = None
-            max_hits = None
 
         offset = cursor.offset
+        # The extra amount is needed so we can decide in the ResultCursor if there is
+        # more on the next page.
+        extra = 1
         # this effectively gets us the before row, and the current (after) row
         # every time. Do not offset if the provided cursor value was empty since
         # there is nothing to traverse past.
+        # We need to actually fetch the before row so that we can compare it to the
+        # cursor value. This allows us to handle an edge case where the first row
+        # for a given cursor is the same row that generated the cursor on the
+        # previous page, but we want to display since it has had its its sort value
+        # updated.
         if cursor.is_prev and cursor.value:
-            offset += 1
+            extra += 1
 
-        # The + 1 is needed so we can decide in the ResultCursor if there is
-        # more on the next page.
-        stop = offset + limit + 1
+        stop = offset + limit + extra
         results = list(queryset[offset:stop])
+
+        if cursor.is_prev and cursor.value:
+            # If the first result is equal to the cursor_value then it's safe to filter
+            # it out, since the value hasn't been updated
+            if results and self.get_item_key(results[0], for_prev=True) == cursor.value:
+                results = results[1:]
+            # Otherwise we may have fetched an extra row, just drop it off the end if so.
+            elif len(results) == offset + limit + extra:
+                results = results[:-1]
+
         if cursor.is_prev:
             results.reverse()
 
@@ -137,10 +158,11 @@ class BasePaginator(object):
             results=results,
             limit=limit,
             hits=hits,
-            max_hits=max_hits,
+            max_hits=MAX_HITS_LIMIT if count_hits else None,
             cursor=cursor,
             is_desc=self.desc,
             key=self.get_item_key,
+            on_results=self.on_results,
         )
 
     def count_hits(self, max_hits):
@@ -200,7 +222,7 @@ class OffsetPaginator(BasePaginator):
         queryset = self.queryset
         if self.key:
             if self.desc:
-                queryset = queryset.order_by('-{}'.format(self.key))
+                queryset = queryset.order_by(u'-{}'.format(self.key))
             else:
                 queryset = queryset.order_by(self.key)
 
@@ -215,8 +237,163 @@ class OffsetPaginator(BasePaginator):
         next_cursor = Cursor(limit, page + 1, False, len(results) > limit)
         prev_cursor = Cursor(limit, page - 1, True, page > 0)
 
+        results = list(results[:limit])
+        if self.on_results:
+            results = self.on_results(results)
+
         return CursorResult(
-            results=results[:limit],
+            results=results,
             next=next_cursor,
             prev=prev_cursor,
         )
+
+
+def reverse_bisect_left(a, x, lo=0, hi=None):
+    """\
+    Similar to ``bisect.bisect_left``, but expects the data in the array ``a``
+    to be provided in descending order, rather than the ascending order assumed
+    by ``bisect_left``.
+
+    The returned index ``i`` partitions the array ``a`` into two halves so that:
+
+    - left side: ``all(val > x for val in a[lo:i])``
+    - right side: ``all(val <= x for val in a[i:hi])``
+    """
+    if lo < 0:
+        raise ValueError('lo must be non-negative')
+
+    if hi is None or hi > len(a):
+        hi = len(a)
+
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if a[mid] > x:
+            lo = mid + 1
+        else:
+            hi = mid
+
+    return lo
+
+
+class SequencePaginator(object):
+    def __init__(self, data, reverse=False, max_limit=MAX_LIMIT, on_results=None):
+        self.scores, self.values = map(
+            list,
+            zip(*sorted(data, reverse=reverse)),
+        ) if data else ([], [])
+        self.reverse = reverse
+        self.search = functools.partial(
+            reverse_bisect_left if reverse else bisect.bisect_left,
+            self.scores,
+        )
+        self.max_limit = max_limit
+        self.on_results = on_results
+
+    def get_result(self, limit, cursor=None, count_hits=False):
+        limit = min(limit, self.max_limit)
+
+        if cursor is None:
+            cursor = Cursor(0, 0, False)
+
+        assert cursor.offset > -1
+
+        if cursor.value == 0:
+            position = len(self.scores) if cursor.is_prev else 0
+        else:
+            position = self.search(cursor.value)
+
+        position = position + cursor.offset
+
+        if cursor.is_prev:
+            # TODO: It might make sense to ensure that this hi value is at
+            # least the length of the page + 1 if we want to ensure we return a
+            # full page of results when paginating backwards while data is
+            # being mutated.
+            hi = min(position, len(self.scores))
+            lo = max(hi - limit, 0)
+        else:
+            lo = max(position, 0)
+            hi = min(lo + limit, len(self.scores))
+
+        if self.scores:
+            prev_score = self.scores[min(lo, len(self.scores) - 1)]
+            prev_cursor = Cursor(
+                prev_score,
+                lo - self.search(prev_score, hi=lo),
+                True,
+                True if lo > 0 else False,
+            )
+
+            next_score = self.scores[min(hi, len(self.scores) - 1)]
+            next_cursor = Cursor(
+                next_score,
+                hi - self.search(next_score, hi=hi),
+                False,
+                True if hi < len(self.scores) else False,
+            )
+        else:
+            prev_cursor = Cursor(cursor.value, cursor.offset, True, False)
+            next_cursor = Cursor(cursor.value, cursor.offset, False, False)
+
+        results = self.values[lo:hi]
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(
+            results,
+            prev=prev_cursor,
+            next=next_cursor,
+            hits=min(len(self.scores), MAX_HITS_LIMIT) if count_hits else None,
+            max_hits=MAX_HITS_LIMIT if count_hits else None,
+        )
+
+
+class GenericOffsetPaginator(object):
+    """
+    A paginator for getting pages of results for a query using the OFFSET/LIMIT
+    mechanism.
+
+    This class makes the assumption that the query provides a static,
+    totally-ordered view on the data, so that the next page of data can be
+    retrieved by incrementing OFFSET to the next multiple of LIMIT with no
+    overlaps or gaps from the previous page.
+
+    It is potentially less performant than a ranged query solution that might
+    not to have to look at as many rows.
+
+    Can either take data as a list or dictionary with data as value in order to
+    return full object if necessary. (if isinstance statement)
+    """
+
+    def __init__(self, data_fn):
+        self.data_fn = data_fn
+
+    def get_result(self, limit, cursor=None):
+        assert limit > 0
+        offset = cursor.offset if cursor is not None else 0
+        # Request 1 more than limit so we can tell if there is another page
+        data = self.data_fn(offset=offset, limit=limit + 1)
+
+        if isinstance(data, list):
+            has_more = len(data) == limit + 1
+            if has_more:
+                data.pop()
+        elif isinstance(data.get('data'), list):
+            has_more = len(data['data']) == limit + 1
+            if has_more:
+                data['data'].pop()
+        else:
+            raise NotImplementedError
+
+        # Since we are not issuing ranged queries, our cursors always have
+        # `value=0` (ie. all rows have the same value), and so offset naturally
+        # becomes the absolute row offset from the beginning of the entire
+        # dataset, which is the same meaning as SQLs `OFFSET`.
+        return CursorResult(
+            data,
+            prev=Cursor(0, max(0, offset - limit), True, offset > 0),
+            next=Cursor(0, max(0, offset + limit), False, has_more)
+        )
+        # TODO use Cursor.value as the `end` argument to data_fn() so that
+        # subsequent pages returned using these cursors are using the same end
+        # date for queries, this should stop drift from new incoming events.

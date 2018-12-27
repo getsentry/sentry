@@ -6,7 +6,7 @@
 //
 
 .list-group {
-  box-shadow: 0 1px 0px rgba(0,0,0, .03);
+  box-shadow: 0 1px 0px rgba(0, 0, 0, 0.03);
   &.list-group-striped {
     .list-group-item:nth-child(odd) {
       background: @white-dark;
@@ -19,32 +19,19 @@
     &.list-group-item-sm {
       padding: 5px 10px;
       min-height: 36px;
-
-      &.list-group-avatar {
-        padding-left: 36px;
-        position: relative;
-
-        div[class^="col-"] {
-          position: static;
-        }
-
-        .avatar {
-          .square(20px);
-          position: absolute;
-          left: 8px;
-          top: 7px;
-        }
-      }
     }
 
     // When pairing title / description / meta use <h*>, <p>, and <p>
-    h1, h2 {
+    h1,
+    h2 {
       font-size: 18px;
       line-height: 1.4;
       margin-bottom: 4px;
     }
 
-    h3, h4, h5 {
+    h3,
+    h4,
+    h5 {
       margin: 1px 0;
       font-size: 15px;
       line-height: 1.25;
@@ -65,27 +52,16 @@
       }
     }
 
-    .list-group-avatar {
-      padding-left: 60px;
-      position: relative;
-
-      .avatar {
-        .square(36px);
-        position: absolute;
-        left: 15px;
-        border-radius: 3px;
-      }
-    }
-
     .list-group-actions {
-      > .btn-group, > .btn {
+      > .btn-group,
+      > .btn {
         margin-left: 5px;
       }
       > .btn-group .btn,
-      .btn-group .btn+.btn,
-      .btn-group .btn+.btn-group,
-      .btn-group .btn-group+.btn,
-      .btn-group .btn-group+.btn-group {
+      .btn-group .btn + .btn,
+      .btn-group .btn + .btn-group,
+      .btn-group .btn-group + .btn,
+      .btn-group .btn-group + .btn-group {
         margin-left: -1px;
       }
     }

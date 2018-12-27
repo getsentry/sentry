@@ -1,50 +1,59 @@
+import {withRouter} from 'react-router';
+import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import DocumentTitle from 'react-document-title';
+import createReactClass from 'create-react-class';
 
-import ApiMixin from '../../mixins/apiMixin';
-import EnvironmentStore from '../../stores/environmentStore';
-import MemberListStore from '../../stores/memberListStore';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import MissingProjectMembership from '../../components/missingProjectMembership';
-import OrganizationState from '../../mixins/organizationState';
-import SentryTypes from '../../proptypes';
-import TeamStore from '../../stores/teamStore';
-import ProjectStore from '../../stores/projectStore';
-import {t} from '../../locale';
+import {loadEnvironments} from 'app/actionCreators/environments';
+import {setActiveProject} from 'app/actionCreators/projects';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import MemberListStore from 'app/stores/memberListStore';
+import MissingProjectMembership from 'app/components/missingProjectMembership';
+import OrganizationState from 'app/mixins/organizationState';
+import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/sentryTypes';
+import withProjects from 'app/utils/withProjects';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
   PROJECT_NOT_FOUND: 'PROJECT_NOT_FOUND',
-  UNKNOWN: 'UNKNOWN'
+  UNKNOWN: 'UNKNOWN',
 };
 
 /**
- * Higher-order component that sets `project` and `team` as child context
- * values to be accessed by child elements.
+ * Higher-order component that sets `project` as a child context
+ * value to be accessed by child elements.
  *
  * Additionally delays rendering of children until project XHR has finished
  * and context is populated.
  */
-const ProjectContext = React.createClass({
+const ProjectContext = createReactClass({
+  displayName: 'ProjectContext',
+
   propTypes: {
+    /**
+     * If true, this will not change `state.loading` during `fetchData` phase
+     */
+    skipReload: PropTypes.bool,
+    projects: PropTypes.arrayOf(SentryTypes.Project),
     projectId: PropTypes.string,
-    orgId: PropTypes.string
+    orgId: PropTypes.string,
+    location: PropTypes.object,
   },
 
   childContextTypes: {
     project: SentryTypes.Project,
-    team: SentryTypes.Team
   },
 
   mixins: [
     ApiMixin,
     Reflux.connect(MemberListStore, 'memberList'),
-    Reflux.listenTo(TeamStore, 'onTeamChange'),
-    Reflux.listenTo(ProjectStore, 'onProjectChange'),
-    OrganizationState
+    Reflux.listenTo(ProjectsStore, 'onProjectChange'),
+    OrganizationState,
   ],
 
   getInitialState() {
@@ -54,15 +63,13 @@ const ProjectContext = React.createClass({
       errorType: null,
       memberList: [],
       project: null,
-      team: null,
-      projectNavSection: null
+      projectNavSection: null,
     };
   },
 
   getChildContext() {
     return {
       project: this.state.project,
-      team: this.state.team
     };
   },
 
@@ -71,7 +78,9 @@ const ProjectContext = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.projectId !== this.props.projectId) {
+    if (nextProps.projectId === this.props.projectId) return;
+
+    if (!nextProps.skipReload) {
       this.remountComponent();
     }
   },
@@ -94,7 +103,8 @@ const ProjectContext = React.createClass({
       prevState.project !== this.state.project ||
       prevState.organization !== this.state.organization
     ) {
-      let docTitle = this.refs.docTitle;
+      if (!this.docTitle) return;
+      let docTitle = this.docTitleRef.docTitle;
       if (docTitle) docTitle.forceUpdate();
     }
   },
@@ -104,17 +114,8 @@ const ProjectContext = React.createClass({
   },
 
   getTitle() {
-    if (this.state.project) return this.state.team.name + ' / ' + this.state.project.name;
+    if (this.state.project) return this.state.project.slug;
     return 'Sentry';
-  },
-
-  onTeamChange(itemIds) {
-    if (!this.state.team) return;
-    if (!itemIds.has(this.state.team.id)) return;
-
-    this.setState({
-      team: {...TeamStore.getById(this.state.team.id)}
-    });
   },
 
   onProjectChange(projectIds) {
@@ -122,87 +123,87 @@ const ProjectContext = React.createClass({
     if (!projectIds.has(this.state.project.id)) return;
 
     this.setState({
-      project: {...ProjectStore.getById(this.state.project.id)}
+      project: {...ProjectsStore.getById(this.state.project.id)},
     });
   },
 
   identifyProject() {
-    let {projectId} = this.props;
+    let {projects, projectId} = this.props;
     let projectSlug = projectId;
-    let activeProject = null;
-    let activeTeam = null;
-    let org = this.context.organization;
-    org.teams.forEach(team => {
-      team.projects.forEach(project => {
-        if (project.slug == projectSlug) {
-          activeProject = project;
-          activeTeam = team;
-        }
-      });
-    });
-    return [activeTeam, activeProject];
+    return projects.find(({slug}) => slug === projectSlug) || null;
   },
 
   fetchData() {
-    let {orgId, projectId} = this.props;
+    let {orgId, projectId, location, skipReload} = this.props;
     // we fetch core access/information from the global organization data
-    let [activeTeam, activeProject] = this.identifyProject();
-    let hasAccess = activeTeam && activeTeam.hasAccess;
+    let activeProject = this.identifyProject();
+    let hasAccess = activeProject && activeProject.hasAccess;
 
-    this.setState({
-      loading: true,
+    this.setState(state => ({
+      // if `skipReload` is true, then don't change loading state
+      loading: skipReload ? state.loading : true,
       // we bind project initially, but it'll rebind
       project: activeProject,
-      team: activeTeam
-    });
+    }));
 
     if (activeProject && hasAccess) {
-      this.api.request(`/projects/${orgId}/${projectId}/`, {
-        success: data => {
+      setActiveProject(null);
+      const projectRequest = this.api.requestPromise(`/projects/${orgId}/${projectId}/`);
+
+      const environmentRequest = this.api.requestPromise(
+        this.getEnvironmentListEndpoint()
+      );
+
+      Promise.all([projectRequest, environmentRequest]).then(
+        ([project, envs]) => {
           this.setState({
             loading: false,
-            project: data,
-            team: data.team,
+            project,
             error: false,
-            errorType: null
+            errorType: null,
           });
+
+          // assuming here that this means the project is considered the active project
+          setActiveProject(project);
+
+          // If an environment is specified in the query string, load it instead of default
+          const queryEnv = location.query.environment;
+          // The default environment cannot be "" (No Environment)
+          const {defaultEnvironment} = project;
+          const envName = typeof queryEnv === 'undefined' ? defaultEnvironment : queryEnv;
+          loadEnvironments(envs, envName);
         },
-        error: error => {
-          // TODO(dcramer): this should handle 404 (project not found)
+        () => {
           this.setState({
             loading: false,
             error: false,
-            errorType: ERROR_TYPES.UNKNOWN
+            errorType: ERROR_TYPES.UNKNOWN,
           });
         }
-      });
+      );
+
       // TODO(dcramer): move member list to organization level
       this.api.request(this.getMemberListEndpoint(), {
         success: data => {
           MemberListStore.loadInitialData(data.filter(m => m.user).map(m => m.user));
-        }
+        },
       });
-
-      this.api.request(this.getEnvironmentListEndpoint(), {
-        success: data => {
-          EnvironmentStore.loadInitialData(data);
-        }
-      });
-
-      this.setState({
-        loading: false
-      });
-    } else if (activeTeam && activeTeam.isMember) {
+    } else if (activeProject && !activeProject.isMember) {
       this.setState({
         loading: false,
         error: true,
-        errorType: ERROR_TYPES.MISSING_MEMBERSHIP
+        errorType: ERROR_TYPES.MISSING_MEMBERSHIP,
       });
     } else {
-      this.setState({
-        loading: false,
-        error: true,
-        errorType: ERROR_TYPES.PROJECT_NOT_FOUND
+      // The request is a 404 or other error
+      this.api.request(`/projects/${orgId}/${projectId}/`, {
+        error: () => {
+          this.setState({
+            loading: false,
+            error: true,
+            errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
+          });
+        },
       });
     }
   },
@@ -219,18 +220,24 @@ const ProjectContext = React.createClass({
 
   setProjectNavSection(section) {
     this.setState({
-      projectNavSection: section
+      projectNavSection: section,
     });
   },
 
   renderBody() {
-    if (this.state.loading) return <LoadingIndicator />;
-    else if (this.state.error) {
+    if (this.state.loading) {
+      return (
+        <div className="loading-full-layout">
+          <LoadingIndicator />
+        </div>
+      );
+    } else if (this.state.error) {
       switch (this.state.errorType) {
         case ERROR_TYPES.PROJECT_NOT_FOUND:
+          // TODO(chrissy): use scale for margin values
           return (
             <div className="container">
-              <div className="alert alert-block">
+              <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
                 {t('The project you were looking for was not found.')}
               </div>
             </div>
@@ -241,8 +248,7 @@ const ProjectContext = React.createClass({
           return (
             <MissingProjectMembership
               organization={this.getOrganization()}
-              team={this.state.team}
-              project={this.state.project}
+              projectId={this.state.project.slug}
             />
           );
         default:
@@ -255,11 +261,13 @@ const ProjectContext = React.createClass({
 
   render() {
     return (
-      <DocumentTitle ref="docTitle" title={this.getTitle()}>
+      <DocumentTitle ref={ref => (this.docTitleRef = ref)} title={this.getTitle()}>
         {this.renderBody()}
       </DocumentTitle>
     );
-  }
+  },
 });
 
-export default ProjectContext;
+export {ProjectContext};
+
+export default withProjects(withRouter(ProjectContext));

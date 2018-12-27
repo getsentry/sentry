@@ -1,60 +1,57 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 
-import StackedBarChart from '../stackedBarChart';
-import SentryTypes from '../../proptypes';
-import {t} from '../../locale';
-import {defined, escape, intcomma} from '../../utils';
+import StackedBarChart from 'app/components/stackedBarChart';
+import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
+import {escape, intcomma} from 'app/utils';
+import theme from 'app/utils/theme';
 
-const GroupReleaseChart = React.createClass({
+const GroupReleaseChart = createReactClass({
+  displayName: 'GroupReleaseChart',
+
   propTypes: {
     group: SentryTypes.Group.isRequired,
     release: PropTypes.shape({
-      version: PropTypes.string.isRequired
+      version: PropTypes.string.isRequired,
     }),
-    releaseStats: PropTypes.object,
     statsPeriod: PropTypes.string.isRequired,
     environment: PropTypes.string,
-    environmentStats: PropTypes.object,
     firstSeen: PropTypes.string,
     lastSeen: PropTypes.string,
-    title: PropTypes.string
+    title: PropTypes.string,
   },
 
-  getInitialState(props) {
-    if (!defined(props)) props = this.props;
+  getInitialState() {
+    return this.getNextState(this.props);
+  },
+
+  componentWillReceiveProps(nextProps) {
+    this.setState(this.getNextState(nextProps));
+  },
+
+  getNextState(props) {
     let releaseStats = props.releaseStats;
     let releasePoints = {};
-    if (defined(releaseStats)) {
-      releaseStats[this.props.statsPeriod].forEach(point => {
+    if (releaseStats) {
+      releaseStats[props.statsPeriod].forEach(point => {
         releasePoints[point[0]] = point[1];
       });
     }
 
     let envStats = props.environmentStats;
     let envPoints = {};
-    if (defined(envStats)) {
-      envStats[this.props.statsPeriod].forEach(point => {
+    if (envStats) {
+      envStats[props.statsPeriod].forEach(point => {
         envPoints[point[0]] = point[1];
       });
     }
 
     return {
       releasePoints,
-      envPoints
+      envPoints,
     };
-  },
-
-  componentWillReceiveProps(nextProps) {
-    this.setState(this.getInitialState());
-  },
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return (
-      // environment comes from grouprelease, so we can hack
-      this.props.environment !== nextProps.environment ||
-      this.props.group.id !== nextProps.group.id
-    );
   },
 
   renderTooltip(point, pointIdx, chart) {
@@ -75,13 +72,18 @@ const GroupReleaseChart = React.createClass({
       `<dd>${intcomma(totalY)} event${totalY !== 1 ? 's' : ''}</dd>` +
       (environment
         ? '<dt class="environment"><span></span></dt>' +
-            `<dd>${intcomma(envPoints[point.x] || 0)} event${envPoints[point.x] !== 1 ? 's' : ''}` +
-            `<small>in ${escape(environment)}</small></dd>`
+          `<dd>${intcomma(envPoints[point.x] || 0)} event${envPoints[point.x] !== 1
+            ? 's'
+            : ''}` +
+          `<small>in ${escape(environment)}</small></dd>`
         : '') +
       (release
         ? '<dt class="active"><span></span></dt>' +
-            `<dd>${intcomma(releasePoints[point.x] || 0)} event${releasePoints[point.x] !== 1 ? 's' : ''}` +
-            `<small>in ${escape(release.version.substr(0, 12))}</small></dd>`
+          `<dd>${intcomma(releasePoints[point.x] || 0)} event${releasePoints[point.x] !==
+          1
+            ? 's'
+            : ''}` +
+          `<small>in ${escape(release.version.substr(0, 12))}</small></dd>`
         : '') +
       '</dl>' +
       '</div>'
@@ -104,7 +106,7 @@ const GroupReleaseChart = React.createClass({
       let remaining = point[1] - rData - eData;
       return {
         x: point[0],
-        y: [rData, eData, remaining >= 0 ? remaining : 0]
+        y: [rData, eData, remaining >= 0 ? remaining : 0],
       };
     });
 
@@ -116,7 +118,9 @@ const GroupReleaseChart = React.createClass({
         markers.push({
           label: t('First seen'),
           x: firstSeenX,
-          className: 'first-seen'
+          className: 'first-seen',
+          offset: -7.5,
+          fill: theme.pink,
         });
       }
     }
@@ -127,25 +131,30 @@ const GroupReleaseChart = React.createClass({
         markers.push({
           label: t('Last seen'),
           x: lastSeenX,
-          className: 'last-seen'
+          className: 'last-seen',
+          fill: theme.green,
         });
       }
     }
 
     return (
       <div className={className}>
-        <h6><span>{this.props.title}</span></h6>
+        <h6>
+          <span>{this.props.title}</span>
+        </h6>
         <StackedBarChart
           points={points}
           height={40}
-          label="events"
+          label={t('events')}
           markers={markers}
           barClasses={['release', 'environment', 'inactive']}
           tooltip={this.renderTooltip}
+          gap={0.75}
+          minHeights={[0, 0, 5]}
         />
       </div>
     );
-  }
+  },
 });
 
 export default GroupReleaseChart;

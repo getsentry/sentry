@@ -19,7 +19,7 @@ class DeprecatedSettingWarning(DeprecationWarning):
 
     def __str__(self):
         chunks = [
-            'The {} setting is deprecated. Please use {} instead.'.format(
+            u'The {} setting is deprecated. Please use {} instead.'.format(
                 self.setting,
                 self.replacement,
             )
@@ -27,7 +27,7 @@ class DeprecatedSettingWarning(DeprecationWarning):
 
         if self.removed_in_version:
             chunks.append(
-                'This setting will be removed in Sentry {}.'.format(
+                u'This setting will be removed in Sentry {}.'.format(
                     self.removed_in_version,
                 ),
             )
@@ -35,7 +35,7 @@ class DeprecatedSettingWarning(DeprecationWarning):
         # TODO(tkaemming): This will be removed from the message in the future
         # when it's added to the API payload separately.
         if self.url:
-            chunks.append('See {} for more information.'.format(self.url))
+            chunks.append(u'See {} for more information.'.format(self.url))
 
         return ' '.join(chunks)
 

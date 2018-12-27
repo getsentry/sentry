@@ -1,58 +1,56 @@
-import React, {PropTypes} from 'react';
-import classNames from 'classnames';
+import React from 'react';
+import PropTypes from 'prop-types';
+import createReactClass from 'create-react-class';
+import styled, {css} from 'react-emotion';
 
-import ApiMixin from '../mixins/apiMixin';
-import LoadingIndicator from './loadingIndicator';
-import rawStacktraceContent from './events/interfaces/rawStacktraceContent';
+import ApiMixin from 'app/mixins/apiMixin';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import rawStacktraceContent from 'app/components/events/interfaces/rawStacktraceContent';
 
-import '../../less/components/issueDiff.less';
-
-const IssueDiff = React.createClass({
-  propTypes: {
+class IssueDiff extends React.Component {
+  static propTypes = {
+    api: PropTypes.object,
     baseIssueId: PropTypes.string.isRequired,
     targetIssueId: PropTypes.string.isRequired,
     baseEventId: PropTypes.string.isRequired,
-    targetEventId: PropTypes.string.isRequired
-  },
+    targetEventId: PropTypes.string.isRequired,
+  };
 
-  mixins: [ApiMixin],
+  static defaultProps = {
+    baseEventId: 'latest',
+    targetEventId: 'latest',
+  };
 
-  getDefaultProps() {
-    return {
-      baseEventId: 'latest',
-      targetEventId: 'latest'
-    };
-  },
-
-  getInitialState() {
-    return {
+  constructor(...args) {
+    super(...args);
+    this.state = {
       loading: true,
       baseEvent: {},
       targetEvent: {},
 
       // `SplitDiffAsync` is an async-loaded component
       // This will eventually contain a reference to the exported component from `./splitDiff`
-      SplitDiffAsync: null
+      SplitDiffAsync: null,
     };
-  },
+  }
 
   componentDidMount() {
     let {baseIssueId, targetIssueId, baseEventId, targetEventId} = this.props;
 
     // Fetch component and event data
     Promise.all([
-      import('./splitDiff'),
+      import(/* webpackChunkName: "splitDiff" */ './splitDiff'),
       this.fetchData(baseIssueId, baseEventId),
-      this.fetchData(targetIssueId, targetEventId)
+      this.fetchData(targetIssueId, targetEventId),
     ]).then(([{default: SplitDiffAsync}, baseEvent, targetEvent]) => {
       this.setState({
         SplitDiffAsync,
         baseEvent: this.getException(baseEvent),
         targetEvent: this.getException(targetEvent),
-        loading: false
+        loading: false,
       });
     });
-  },
+  }
 
   getException(event) {
     if (!event || !event.entries) return [];
@@ -61,16 +59,25 @@ const IssueDiff = React.createClass({
     // diff multiple exceptions
     //
     // See: https://github.com/getsentry/sentry/issues/6055
-    const exc = event.entries.find(({type}) => type === 'exception');
+    let exc = event.entries.find(({type}) => type === 'exception');
 
-    if (!exc || !exc.data) return [];
+    if (!exc) {
+      // Look for a message if not an exception
+      let msg = event.entries.find(({type}) => type === 'message');
+      if (!msg) return [];
+
+      return msg.data && msg.data.message && [msg.data.message];
+    }
+
+    if (!exc.data) return [];
 
     return exc.data.values
+      .filter(value => !!value.stacktrace)
       .map(value => rawStacktraceContent(value.stacktrace, event.platform, value))
       .reduce((acc, value) => {
         return acc.concat(value);
       }, []);
-  },
+  }
 
   getEndpoint(issueId, eventId) {
     if (eventId !== 'latest') {
@@ -78,27 +85,24 @@ const IssueDiff = React.createClass({
     }
 
     return `/issues/${issueId}/events/${eventId}/`;
-  },
+  }
 
   fetchData(issueId, eventId) {
     return new Promise((resolve, reject) => {
-      this.api.request(this.getEndpoint(issueId, eventId), {
+      this.props.api.request(this.getEndpoint(issueId, eventId), {
         success: data => resolve(data),
-        error: err => reject(err)
+        error: err => reject(err),
       });
     });
-  },
+  }
 
   render() {
     let {className} = this.props;
-    let cx = classNames('issue-diff', className, {
-      loading: this.state.loading
-    });
     let DiffComponent = this.state.SplitDiffAsync;
     let diffReady = !this.state.loading && !!DiffComponent;
 
     return (
-      <div className={cx}>
+      <StyledIssueDiff className={className} loading={this.state.loading}>
         {this.state.loading && <LoadingIndicator />}
         {diffReady &&
           this.state.baseEvent.map((value, i) => (
@@ -109,9 +113,37 @@ const IssueDiff = React.createClass({
               type="words"
             />
           ))}
-      </div>
+      </StyledIssueDiff>
     );
   }
+}
+
+const IssueDiffContainer = createReactClass({
+  displayName: 'IssueDiffContainer',
+  mixins: [ApiMixin],
+  render() {
+    return <IssueDiff {...this.props} api={this.api} />;
+  },
 });
 
-export default IssueDiff;
+export default IssueDiffContainer;
+export {IssueDiff};
+
+const getLoadingStyle = p =>
+  (p.loading &&
+    css`
+      background-color: white;
+      justify-content: center;
+    `) ||
+  '';
+
+const StyledIssueDiff = styled('div')`
+  background-color: #f7f8f9;
+  overflow: auto;
+  padding: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  ${getLoadingStyle};
+`;

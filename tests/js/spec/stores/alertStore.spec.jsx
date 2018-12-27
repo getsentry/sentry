@@ -12,15 +12,15 @@ describe('AlertStore', function() {
     it('should add a new alert with incrementing key', function() {
       AlertStore.onAddAlert({
         message: 'Bzzzzzzp *crash*',
-        type: 'error'
+        type: 'error',
       });
 
       AlertStore.onAddAlert({
         message: 'Everything is super',
-        type: 'info'
+        type: 'info',
       });
 
-      expect(AlertStore.alerts.length).toEqual(2);
+      expect(AlertStore.alerts).toHaveLength(2);
       expect(AlertStore.alerts[0].key).toEqual(0);
       expect(AlertStore.alerts[1].key).toEqual(1);
     });
@@ -31,12 +31,12 @@ describe('AlertStore', function() {
       AlertStore.alerts = [
         {key: 1, message: 'foo', type: 'error'},
         {key: 2, message: 'bar', type: 'error'},
-        {key: 3, message: 'baz', type: 'error'}
+        {key: 3, message: 'baz', type: 'error'},
       ];
 
       AlertStore.onCloseAlert(AlertStore.alerts[1]);
 
-      expect(AlertStore.alerts.length).toEqual(2);
+      expect(AlertStore.alerts).toHaveLength(2);
       expect(AlertStore.alerts[0].key).toEqual(1);
       expect(AlertStore.alerts[1].key).toEqual(3);
     });
@@ -44,7 +44,7 @@ describe('AlertStore', function() {
       let alert = {key: 1, id: 'test', message: 'foo', type: 'error'};
       AlertStore.onCloseAlert(alert);
       AlertStore.onAddAlert(alert);
-      expect(AlertStore.alerts.length).toEqual(0);
+      expect(AlertStore.alerts).toHaveLength(0);
     });
   });
 });

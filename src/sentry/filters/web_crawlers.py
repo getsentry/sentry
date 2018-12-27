@@ -19,6 +19,7 @@ CRAWLERS = re.compile(
             r'Google',
             # Bing search
             r'BingBot',
+            r'BingPreview',
             # Baidu search
             r'Baiduspider',
             # Yahoo
@@ -30,11 +31,13 @@ CRAWLERS = re.compile(
             # Alexa
             r'ia_archiver',
             # Generic bot
-            r'bot[\/\s\)\;]',
+            r'bots?[\/\s\)\;]',
             # Generic spider
             r'spider[\/\s\)\;]',
             # Slack - see https://api.slack.com/robots
             r'Slack',
+            # Google indexing bot
+            r'Calypso AppCrawler',
         )
     ),
     re.I
@@ -49,7 +52,7 @@ class WebCrawlersFilter(Filter):
 
     def get_user_agent(self, data):
         try:
-            for key, value in data['sentry.interfaces.Http']['headers']:
+            for key, value in data['request']['headers']:
                 if key.lower() == 'user-agent':
                     return value
         except LookupError:

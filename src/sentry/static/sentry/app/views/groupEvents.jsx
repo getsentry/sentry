@@ -1,27 +1,65 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
+import React from 'react';
+import createReactClass from 'create-react-class';
+import {isEqual, omit} from 'lodash';
+import qs from 'query-string';
 
-import ApiMixin from '../mixins/apiMixin';
-import GroupState from '../mixins/groupState';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import Pagination from '../components/pagination';
-import SearchBar from '../components/searchBar';
-import EventsTable from '../components/eventsTable/eventsTable';
-import {t} from '../locale';
+import {Panel, PanelBody} from 'app/components/panels';
+import {
+  getQueryEnvironment,
+  getQueryStringWithEnvironment,
+  getQueryStringWithoutEnvironment,
+} from 'app/utils/queryString';
+import {setActiveEnvironmentName} from 'app/actionCreators/environments';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import EventsTable from 'app/components/eventsTable/eventsTable';
+import GroupState from 'app/mixins/groupState';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
+import SearchBar from 'app/components/searchBar';
+import SentryTypes from 'app/sentryTypes';
+import parseApiError from 'app/utils/parseApiError';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
 
-const GroupEvents = React.createClass({
+const GroupEvents = createReactClass({
+  displayName: 'GroupEvents',
+
+  propTypes: {
+    environment: SentryTypes.Environment,
+  },
+
   mixins: [ApiMixin, GroupState],
 
   getInitialState() {
-    let queryParams = this.props.location.query;
-    return {
+    const queryParams = this.props.location.query;
+
+    const initialState = {
       eventList: [],
       loading: true,
       error: false,
       pageLinks: '',
-      query: queryParams.query || ''
+      query: queryParams.query || '',
+      environment: this.props.environment,
     };
+
+    // If an environment is specified in the query, update the global environment
+    // Otherwise if a global environment is present update the query
+    const queryEnvironment = getQueryEnvironment(queryParams.query || '');
+
+    if (queryEnvironment) {
+      setActiveEnvironmentName(queryEnvironment);
+    } else if (this.props.environment) {
+      const newQuery = getQueryStringWithEnvironment(
+        initialState.query,
+        initialState.environment.name
+      );
+      this.handleSearch(newQuery);
+    }
+
+    return initialState;
   },
 
   componentWillMount() {
@@ -29,88 +67,112 @@ const GroupEvents = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (
-      nextProps.params.groupId !== this.props.params.groupId ||
-      nextProps.location.search !== this.props.location.search
-    ) {
-      let queryParams = nextProps.location.query;
+    // omit when environment changes in query string since we handle that separately
+    const searchHasChanged = !isEqual(
+      omit(qs.parse(nextProps.location.search), 'environment'),
+      omit(qs.parse(this.props.location.search), 'environment')
+    );
+
+    if (searchHasChanged) {
+      const queryParams = nextProps.location.query;
+
       this.setState(
         {
-          query: queryParams.query
+          query: queryParams.query,
+        },
+        this.fetchData
+      );
+    }
+
+    // If environment has changed, refetch data
+    if (nextProps.environment !== this.props.environment) {
+      this.setState(
+        {
+          environment: nextProps.environment,
         },
         this.fetchData
       );
     }
   },
 
-  onSearch(query) {
-    let targetQueryParams = {};
-    if (query !== '') targetQueryParams.query = query;
+  handleSearch(query) {
+    const queryEnvironment = getQueryEnvironment(query);
 
+    if (queryEnvironment) {
+      setActiveEnvironmentName(queryEnvironment);
+    }
+
+    query = getQueryStringWithoutEnvironment(query);
+    let targetQueryParams = {...this.props.location.query};
+    targetQueryParams.query = query;
     let {groupId, orgId, projectId} = this.props.params;
-    browserHistory.pushState(
-      null,
-      `/${orgId}/${projectId}/issues/${groupId}/events/`,
-      targetQueryParams
-    );
-  },
 
-  getEndpoint() {
-    let params = this.props.params;
-    let queryParams = {
-      ...this.props.location.query,
-      limit: 50,
-      query: this.state.query
-    };
-
-    return `/issues/${params.groupId}/events/?${jQuery.param(queryParams)}`;
+    browserHistory.push({
+      pathname: `/${orgId}/${projectId}/issues/${groupId}/events/`,
+      query: targetQueryParams,
+    });
   },
 
   fetchData() {
-    let queryParams = this.props.location.query;
-
     this.setState({
       loading: true,
-      error: false
+      error: false,
     });
 
-    this.api.request(this.getEndpoint(), {
+    const query = {...this.props.location.query, limit: 50, query: this.state.query};
+
+    if (this.state.environment) {
+      query.environment = this.state.environment.name;
+    } else {
+      delete query.environment;
+    }
+
+    this.api.request(`/issues/${this.props.params.groupId}/events/`, {
+      query,
       method: 'GET',
-      data: queryParams,
       success: (data, _, jqXHR) => {
         this.setState({
           eventList: data,
           error: false,
           loading: false,
-          pageLinks: jqXHR.getResponseHeader('Link')
+          pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
       error: err => {
-        let error = err.responseJSON || true;
-        error = error.detail || true;
         this.setState({
-          error,
-          loading: false
+          error: parseApiError(err),
+          loading: false,
         });
-      }
+      },
     });
   },
 
   renderNoQueryResults() {
+    const {environment} = this.state;
+    const message = environment
+      ? tct('Sorry, no events match your search query in the [env] environment.', {
+          env: environment.displayName,
+        })
+      : t('Sorry, no events match your search query.');
+
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{t('Sorry, no events match your search query.')}</p>
-      </div>
+      <EmptyStateWarning>
+        <p>{message}</p>
+      </EmptyStateWarning>
     );
   },
 
   renderEmpty() {
+    const {environment} = this.state;
+    const message = environment
+      ? tct("There don't seem to be any events in the [env] environment yet.", {
+          env: environment.displayName,
+        })
+      : t("There don't seem to be any events yet.");
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{t("There don't seem to be any events yet.")}</p>
-      </div>
+      <EmptyStateWarning>
+        <p>{t(message)}</p>
+      </EmptyStateWarning>
     );
   },
 
@@ -119,16 +181,11 @@ const GroupEvents = React.createClass({
     let tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
-      <div>
-        <div className="event-list">
-          <EventsTable
-            tagList={tagList}
-            events={this.state.eventList}
-            params={this.props.params}
-          />
-        </div>
-        <Pagination pageLinks={this.state.pageLinks} />
-      </div>
+      <EventsTable
+        tagList={tagList}
+        events={this.state.eventList}
+        params={this.props.params}
+      />
     );
   },
 
@@ -152,15 +209,19 @@ const GroupEvents = React.createClass({
         <div style={{marginBottom: 20}}>
           <SearchBar
             defaultQuery=""
-            placeholder={t('search event message or tags')}
+            placeholder={t('search event id, message, or tags')}
             query={this.state.query}
-            onSearch={this.onSearch}
+            onSearch={this.handleSearch}
           />
         </div>
-        {this.renderBody()}
+        <Panel className="event-list">
+          <PanelBody>{this.renderBody()}</PanelBody>
+        </Panel>
+        <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
-  }
+  },
 });
 
-export default GroupEvents;
+export {GroupEvents}; // For tests
+export default withEnvironmentInQueryString(GroupEvents);

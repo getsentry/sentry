@@ -4,6 +4,7 @@ from mock import MagicMock
 
 from sentry.testutils.cases import RuleTestCase
 from sentry.rules.actions.notify_event import NotifyEventAction
+from sentry.rules.actions.services import LegacyPluginService
 
 
 class NotifyEventActionTest(RuleTestCase):
@@ -14,7 +15,7 @@ class NotifyEventActionTest(RuleTestCase):
 
         plugin = MagicMock()
         rule = self.get_rule()
-        rule.get_plugins = lambda: (plugin, )
+        rule.get_plugins = lambda: (LegacyPluginService(plugin), )
 
         results = list(rule.after(event=event, state=self.get_state()))
 

@@ -1,0 +1,32 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block wrapperclass %} narrow auth {% endblock %}
+{% block modal_header_signout %} {% endblock %}
+
+{% block title %} {% trans "GitHub Enterprise Setup" %} | {{ block.super }} {% endblock %}
+
+{% block main %}
+<h3>GitHub Enterprise Configuration</h3>
+
+<form action="" method="post" class="form-stacked">
+  {% csrf_token %}
+  <input type="hidden" name="provider" value="vsts" />
+
+  <p>
+    Configure GitHub Enterprise to use with Sentry.io.
+  </p>
+
+  {{ form|as_crispy_errors }}
+
+  {% for field in form %}
+   {{ field|as_crispy_field }}
+  {% endfor %}
+
+  <fieldset class="form-actions">
+    <button type="submit" class="btn btn-primary" name="save_mappings" value="url">{% trans "Submit" %}</button>
+  </fieldset>
+</form>
+{% endblock %}

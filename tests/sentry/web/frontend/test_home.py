@@ -29,7 +29,7 @@ class HomeTest(TestCase):
     def test_shows_no_access(self):
         self.login_as(self.user)
 
-        with self.feature('organizations:create', False):
+        with self.feature({'organizations:create': False}):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 403
@@ -43,4 +43,4 @@ class HomeTest(TestCase):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver/{}/'.format(org.slug)
+        assert resp['Location'] == u'http://testserver/{}/'.format(org.slug)

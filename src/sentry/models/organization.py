@@ -7,7 +7,11 @@ sentry.models.organization
 """
 from __future__ import absolute_import, print_function
 
+import logging
+import six
+
 from datetime import timedelta
+from enum import IntEnum
 
 from bitfield import BitField
 from django.conf import settings
@@ -15,22 +19,50 @@ from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
 from sentry.app import locks
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS, RESERVED_PROJECT_SLUGS
 from sentry.db.models import (BaseManager, BoundedPositiveIntegerField, Model, sane_repr)
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 
 
-# TODO(dcramer): pull in enum library
-class OrganizationStatus(object):
-    VISIBLE = 0
+class OrganizationStatus(IntEnum):
+    ACTIVE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
+
+    # alias
+    VISIBLE = 0
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def label(self):
+        return OrganizationStatus._labels[self]
+
+    @classmethod
+    def as_choices(cls):
+        result = []
+        for name, member in six.iteritems(cls.__members__):
+            # an alias
+            if name != member.name:
+                continue
+            # realistically Enum shouldn't even creating these, but alas
+            if name.startswith('_'):
+                continue
+            result.append((member.value, member.label))
+        return tuple(result)
+
+
+OrganizationStatus._labels = {
+    OrganizationStatus.ACTIVE: 'active',
+    OrganizationStatus.PENDING_DELETION: 'pending deletion',
+    OrganizationStatus.DELETION_IN_PROGRESS: 'deletion in progress',
+}
 
 
 class OrganizationManager(BaseManager):
@@ -48,13 +80,13 @@ class OrganizationManager(BaseManager):
 
         if settings.SENTRY_PUBLIC and scope is None:
             if only_visible:
-                return list(self.filter(status=OrganizationStatus.VISIBLE))
+                return list(self.filter(status=OrganizationStatus.ACTIVE))
             else:
                 return list(self.filter())
 
         qs = OrganizationMember.objects.filter(user=user).select_related('organization')
         if only_visible:
-            qs = qs.filter(organization__status=OrganizationStatus.VISIBLE)
+            qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
 
         results = list(qs)
 
@@ -72,12 +104,10 @@ class Organization(Model):
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
-        choices=(
-            (OrganizationStatus.VISIBLE,
-             _('Visible')), (OrganizationStatus.PENDING_DELETION, _('Pending Deletion')),
-            (OrganizationStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
-        ),
-        default=OrganizationStatus.VISIBLE
+        choices=OrganizationStatus.as_choices(),
+        # south will generate a default value of `'<OrganizationStatus.ACTIVE: 0>'`
+        # if `.value` is omitted
+        default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
     members = models.ManyToManyField(
@@ -105,6 +135,9 @@ class Organization(Model):
             ), (
                 'early_adopter',
                 'Enable early adopter status, gaining access to features prior to public release.'
+            ), (
+                'require_2fa',
+                'Require and enforce two-factor authentication for all members.'
             ),
         ),
         default=1
@@ -124,7 +157,7 @@ class Organization(Model):
         Return the organization used in single organization mode.
         """
         return cls.objects.filter(
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
         )[0]
 
     def __unicode__(self):
@@ -163,8 +196,8 @@ class Organization(Model):
             'id': self.id,
             'slug': self.slug,
             'name': self.name,
-            'status': self.status,
-            'flags': self.flags,
+            'status': int(self.status),
+            'flags': int(self.flags),
             'default_role': self.default_role,
         }
 
@@ -195,7 +228,10 @@ class Organization(Model):
         from sentry.models import (
             ApiKey,
             AuditLogEntry,
+            AuthProvider,
             Commit,
+            OrganizationAvatar,
+            OrganizationIntegration,
             OrganizationMember,
             OrganizationMemberTeam,
             Project,
@@ -212,6 +248,7 @@ class Organization(Model):
         for from_member in OrganizationMember.objects.filter(
             organization=from_org, user__isnull=False
         ):
+            logger = logging.getLogger('sentry.merge')
             try:
                 to_member = OrganizationMember.objects.get(
                     organization=to_org,
@@ -233,54 +270,113 @@ class Organization(Model):
                             'is_active': True,
                         },
                     )
+            logger.info('user.migrate', extra={
+                'instance_id': from_member.id,
+                'new_member_id': to_member.id,
+                'from_organization_id': from_org.id,
+                'to_organization_id': to_org.id,
+            })
 
-        for team in Team.objects.filter(organization=from_org):
+        for from_team in Team.objects.filter(organization=from_org):
             try:
                 with transaction.atomic():
-                    team.update(organization=to_org)
+                    from_team.update(organization=to_org)
             except IntegrityError:
-                slugify_instance(team, team.name, organization=to_org)
-                team.update(
+                slugify_instance(from_team, from_team.name, organization=to_org)
+                from_team.update(
                     organization=to_org,
-                    slug=team.slug,
+                    slug=from_team.slug,
                 )
+            logger.info('team.migrate', extra={
+                'instance_id': from_team.id,
+                'new_slug': from_team.slug,
+                'from_organization_id': from_org.id,
+                'to_organization_id': to_org.id,
+            })
 
-        for project in Project.objects.filter(organization=from_org):
+        for from_project in Project.objects.filter(organization=from_org):
             try:
                 with transaction.atomic():
-                    project.update(organization=to_org)
+                    from_project.update(organization=to_org)
             except IntegrityError:
-                slugify_instance(project, project.name, organization=to_org)
-                project.update(
+                slugify_instance(
+                    from_project,
+                    from_project.name,
                     organization=to_org,
-                    slug=project.slug,
+                    reserved=RESERVED_PROJECT_SLUGS)
+                from_project.update(
+                    organization=to_org,
+                    slug=from_project.slug,
                 )
+            logger.info('project.migrate', extra={
+                'instance_id': from_project.id,
+                'new_slug': from_project.slug,
+                'from_organization_id': from_org.id,
+                'to_organization_id': to_org.id,
+            })
 
         # TODO(jess): update this when adding unique constraint
         # on version, organization for releases
-        for release in Release.objects.filter(organization=from_org):
+        for from_release in Release.objects.filter(organization=from_org):
             try:
-                to_release = Release.objects.get(version=release.version, organization=to_org)
+                to_release = Release.objects.get(version=from_release.version, organization=to_org)
             except Release.DoesNotExist:
-                Release.objects.filter(id=release.id).update(organization=to_org)
+                Release.objects.filter(id=from_release.id).update(organization=to_org)
             else:
-                Release.merge(to_release, [release])
+                Release.merge(to_release, [from_release])
+            logger.info('release.migrate', extra={
+                'instance_id': from_release.id,
+                'from_organization_id': from_org.id,
+                'to_organization_id': to_org.id,
+            })
 
-        for model in (ApiKey, AuditLogEntry, ReleaseFile):
-            model.objects.filter(
-                organization=from_org,
-            ).update(organization=to_org)
-
-        for model in (
-            Commit, ReleaseCommit, ReleaseEnvironment, ReleaseHeadCommit, Repository, Environment
-        ):
+        def do_update(queryset, params):
+            model_name = queryset.model.__name__.lower()
             try:
                 with transaction.atomic():
-                    model.objects.filter(
-                        organization_id=from_org.id,
-                    ).update(organization_id=to_org.id)
+                    queryset.update(**params)
             except IntegrityError:
-                pass
+                for instance in queryset:
+                    try:
+                        with transaction.atomic():
+                            instance.update(**params)
+                    except IntegrityError:
+                        logger.info('{}.migrate-skipped'.format(model_name), extra={
+                            'from_organization_id': from_org.id,
+                            'to_organization_id': to_org.id,
+                        })
+                    else:
+                        logger.info('{}.migrate'.format(model_name), extra={
+                            'instance_id': instance.id,
+                            'from_organization_id': from_org.id,
+                            'to_organization_id': to_org.id,
+                        })
+            else:
+                logger.info('{}.migrate'.format(model_name), extra={
+                    'from_organization_id': from_org.id,
+                    'to_organization_id': to_org.id,
+                })
+
+        INST_MODEL_LIST = (
+            AuthProvider, ApiKey, AuditLogEntry, OrganizationAvatar,
+            OrganizationIntegration, ReleaseFile,
+        )
+
+        ATTR_MODEL_LIST = (
+            Commit, ReleaseCommit, ReleaseEnvironment, ReleaseHeadCommit, Repository, Environment,
+        )
+
+        for model in INST_MODEL_LIST:
+            queryset = model.objects.filter(
+                organization=from_org,
+            )
+            do_update(queryset, {'organization': to_org})
+
+        for model in ATTR_MODEL_LIST:
+            queryset = model.objects.filter(
+                organization_id=from_org.id,
+            )
+            do_update(queryset, {'organization_id': to_org.id})
 
     # TODO: Make these a mixin
     def update_option(self, *args, **kwargs):
@@ -321,3 +417,24 @@ class Organization(Model):
             type='org.confirm_delete',
             context=context,
         ).send_async([o.email for o in owners])
+
+    def flag_has_changed(self, flag_name):
+        "Returns ``True`` if ``flag`` has changed since initialization."
+        return getattr(self.old_value('flags'), flag_name, None) != getattr(self.flags, flag_name)
+
+    def handle_2fa_required(self, request):
+        from sentry.models import ApiKey
+        from sentry.tasks.auth import remove_2fa_non_compliant_members
+
+        actor_id = request.user.id if request.user and request.user.is_authenticated() else None
+        api_key_id = request.auth.id if hasattr(
+            request, 'auth') and isinstance(
+            request.auth, ApiKey) else None
+        ip_address = request.META['REMOTE_ADDR']
+
+        remove_2fa_non_compliant_members.delay(
+            self.id,
+            actor_id=actor_id,
+            actor_key_id=api_key_id,
+            ip_address=ip_address
+        )

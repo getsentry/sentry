@@ -1,17 +1,22 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import moment from 'moment';
-import ApiMixin from '../../mixins/apiMixin';
-import BarChart from '../../components/barChart';
-import DynamicWrapper from '../../components/dynamicWrapper';
-import LoadingError from '../../components/loadingError';
-import LoadingIndicator from '../../components/loadingIndicator';
-import ProjectState from '../../mixins/projectState';
+import SentryTypes from 'app/sentryTypes';
+import ApiMixin from 'app/mixins/apiMixin';
+import BarChart from 'app/components/barChart';
+import DynamicWrapper from 'app/components/dynamicWrapper';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import ProjectState from 'app/mixins/projectState';
 
-const ProjectChart = React.createClass({
+const ProjectChart = createReactClass({
+  displayName: 'ProjectChart',
+
   propTypes: {
     dateSince: PropTypes.number.isRequired,
-    resolution: PropTypes.string.isRequired
+    resolution: PropTypes.string.isRequired,
+    environment: SentryTypes.Environment,
   },
 
   mixins: [ApiMixin, ProjectState],
@@ -21,7 +26,8 @@ const ProjectChart = React.createClass({
       loading: true,
       error: false,
       stats: [],
-      releaseList: []
+      releaseList: [],
+      environment: this.props.environment,
     };
   },
 
@@ -29,14 +35,21 @@ const ProjectChart = React.createClass({
     this.fetchData();
   },
 
-  componentWillReceiveProps() {
-    this.setState(
-      {
-        loading: true,
-        error: false
-      },
-      this.fetchData
-    );
+  componentWillReceiveProps(nextProps) {
+    if (
+      nextProps.environment !== this.props.environment ||
+      nextProps.resolution !== this.props.resolution ||
+      nextProps.dateSince !== this.props.dateSince
+    ) {
+      this.setState(
+        {
+          environment: nextProps.environment,
+          loading: true,
+          error: false,
+        },
+        this.fetchData
+      );
+    }
   },
 
   getStatsEndpoint() {
@@ -52,33 +65,42 @@ const ProjectChart = React.createClass({
   },
 
   fetchData() {
+    const statsQuery = {
+      since: this.props.dateSince,
+      resolution: this.props.resolution,
+      stat: 'generated',
+    };
+
+    const releasesQuery = {};
+
+    if (this.state.environment) {
+      statsQuery.environment = this.state.environment.name;
+      releasesQuery.environment = this.state.environment.name;
+    }
     this.api.request(this.getStatsEndpoint(), {
-      query: {
-        since: this.props.dateSince,
-        resolution: this.props.resolution,
-        stat: 'generated'
-      },
+      query: statsQuery,
       success: data => {
         this.setState({
           stats: data,
           error: false,
-          loading: false
+          loading: false,
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
 
     this.api.request(this.getProjectReleasesEndpoint(), {
+      query: releasesQuery,
       success: (data, _, jqXHR) => {
         this.setState({
-          releaseList: data
+          releaseList: data,
         });
-      }
+      },
     });
   },
 
@@ -86,7 +108,7 @@ const ProjectChart = React.createClass({
     let points = this.state.stats.map(point => {
       return {x: point[0], y: point[1]};
     });
-    let startX = new Date().getTime() / 1000 - 3600 * 24 * 7;
+    let startX = this.props.dateSince;
     let markers = this.state.releaseList
       .filter(release => {
         let date = new Date(release.dateCreated).getTime() / 1000;
@@ -95,7 +117,7 @@ const ProjectChart = React.createClass({
       .map(release => {
         return {
           label: 'Version ' + release.shortVersion,
-          x: new Date(release.dateCreated).getTime() / 1000
+          x: new Date(release.dateCreated).getTime() / 1000,
         };
       });
 
@@ -106,6 +128,7 @@ const ProjectChart = React.createClass({
           markers={markers}
           label="events"
           height={150}
+          gap={0.2}
           className="standard-barchart"
         />
         <small className="date-legend">
@@ -119,10 +142,14 @@ const ProjectChart = React.createClass({
   },
 
   render() {
-    return this.state.loading
-      ? <LoadingIndicator />
-      : this.state.error ? <LoadingError onRetry={this.fetchData} /> : this.renderChart();
-  }
+    return this.state.loading ? (
+      <LoadingIndicator />
+    ) : this.state.error ? (
+      <LoadingError onRetry={this.fetchData} />
+    ) : (
+      this.renderChart()
+    );
+  },
 });
 
 export default ProjectChart;

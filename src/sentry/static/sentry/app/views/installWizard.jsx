@@ -2,15 +2,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 
-import AsyncView from '../views/asyncView';
-import {t} from '../locale';
-import ConfigStore from '../stores/configStore';
-import {ApiForm} from '../components/forms';
-import {getOptionField, getForm} from '../options';
+import AsyncView from 'app/views/asyncView';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import {ApiForm} from 'app/components/forms';
+import {getOptionField, getForm} from 'app/options';
 
 export default class InstallWizard extends AsyncView {
   static propTypes = {
-    onConfigured: PropTypes.func.isRequired
+    onConfigured: PropTypes.func.isRequired,
   };
 
   componentWillMount() {
@@ -23,12 +23,13 @@ export default class InstallWizard extends AsyncView {
     jQuery(document.body).removeClass('install-wizard');
   }
 
-  getEndpoint() {
-    return '/internal/options/?query=is:required';
+  getEndpoints() {
+    return [['data', '/internal/options/?query=is:required']];
   }
 
   renderFormFields() {
     let options = this.state.data;
+
     let missingOptions = new Set(
       Object.keys(options).filter(option => !options[option].field.isSet)
     );
@@ -60,7 +61,7 @@ export default class InstallWizard extends AsyncView {
     let data = {};
     Object.keys(options).forEach(optionName => {
       let option = options[optionName];
-      if (option.field.isSet) {
+      if (!option.field.isSet) {
         data[optionName] = option.value;
       }
     });
@@ -85,8 +86,8 @@ export default class InstallWizard extends AsyncView {
             {this.state.loading
               ? this.renderLoading()
               : this.state.error
-                  ? this.renderError(new Error('Unable to load all required endpoints'))
-                  : this.renderBody()}
+                ? this.renderError(new Error('Unable to load all required endpoints'))
+                : this.renderBody()}
           </div>
         </div>
       </DocumentTitle>
@@ -108,13 +109,12 @@ export default class InstallWizard extends AsyncView {
     return (
       <ApiForm
         apiMethod="PUT"
-        apiEndpoint={this.getEndpoint()}
+        apiEndpoint={this.getEndpoints()[0][1]}
         submitLabel={t('Continue')}
         initialData={this.getInitialData()}
-        onSubmitSuccess={this.props.onConfigured}>
-        <p>
-          {t('Complete setup by filling out the required configuration.')}
-        </p>
+        onSubmitSuccess={this.props.onConfigured}
+      >
+        <p>{t('Complete setup by filling out the required configuration.')}</p>
 
         {this.renderFormFields()}
       </ApiForm>

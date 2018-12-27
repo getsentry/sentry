@@ -3,10 +3,10 @@ import {storiesOf} from '@storybook/react';
 import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import DetailedError from 'sentry-ui/errors/detailedError';
+import DetailedError from 'app/components/errors/detailedError';
 
 // eslint-disable-next-line
-storiesOf('DetailedError', module)
+storiesOf('UI|DetailedError', module)
   .add(
     'default',
     withInfo('Displays a detailed error message')(() => (

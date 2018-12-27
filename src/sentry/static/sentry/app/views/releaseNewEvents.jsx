@@ -1,13 +1,20 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
-import GroupList from '../components/groupList';
-import {t} from '../locale';
 
-const ReleaseNewEvents = React.createClass({
-  contextTypes: {
-    release: PropTypes.object
-  },
+import SentryTypes from 'app/sentryTypes';
+import GroupList from 'app/components/groupList';
+import {t} from 'app/locale';
+import withEnvironmentInQueryString from 'app/utils/withEnvironmentInQueryString';
+
+class ReleaseNewEvents extends React.Component {
+  static propTypes = {
+    environment: SentryTypes.Environment,
+  };
+
+  static contextTypes = {
+    release: PropTypes.object,
+  };
 
   render() {
     let {orgId, projectId} = this.props.params;
@@ -17,8 +24,9 @@ const ReleaseNewEvents = React.createClass({
           <Link
             to={{
               pathname: `/${orgId}/${projectId}/`,
-              query: {query: 'first-release:' + this.context.release.version}
-            }}>
+              query: {query: 'first-release:' + this.context.release.version},
+            }}
+          >
             <span className="icon icon-open" />
             {t('View new events seen in this release in the stream')}
           </Link>
@@ -28,11 +36,11 @@ const ReleaseNewEvents = React.createClass({
           projectId={projectId}
           query={'first-release:"' + this.context.release.version + '"'}
           canSelectGroups={false}
-          bulkActions={false}
+          environment={this.props.environment}
         />
       </div>
     );
   }
-});
+}
 
-export default ReleaseNewEvents;
+export default withEnvironmentInQueryString(ReleaseNewEvents);

@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import jQuery from 'jquery';
 import ReactDOM from 'react-dom';
 
-import InputField from './inputField';
+import InputField from 'app/components/forms/inputField';
 
 export default class RangeField extends InputField {
   static formatMinutes = value => {
@@ -16,7 +16,7 @@ export default class RangeField extends InputField {
     max: PropTypes.number,
     step: PropTypes.number,
     snap: PropTypes.bool,
-    allowedValues: PropTypes.arrayOf(PropTypes.number)
+    allowedValues: PropTypes.arrayOf(PropTypes.number),
   };
 
   static defaultProps = {
@@ -26,7 +26,7 @@ export default class RangeField extends InputField {
     max: 100,
     step: 1,
     snap: true,
-    allowedValues: null
+    allowedValues: null,
   };
 
   componentDidMount() {
@@ -62,7 +62,7 @@ export default class RangeField extends InputField {
         step: this.props.step,
         snap: this.props.snap,
         allowedValues: this.props.allowedValues,
-        classSuffix: suffixClassNames
+        classSuffix: suffixClassNames,
       });
   }
 
@@ -75,7 +75,7 @@ export default class RangeField extends InputField {
     return {
       min: this.props.min,
       max: this.props.max,
-      step: this.props.step
+      step: this.props.step,
     };
   }
 

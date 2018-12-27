@@ -1,18 +1,18 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import Avatar from './avatar';
-import TimeSince from './timeSince';
+import Avatar from 'app/components/avatar';
+import TimeSince from 'app/components/timeSince';
 
-import {t} from '../locale';
+import {t} from 'app/locale';
 
-const LastCommit = React.createClass({
-  propTypes: {
+class LastCommit extends React.Component {
+  static propTypes = {
     commit: PropTypes.object.isRequired,
-    headerClass: PropTypes.string
-  },
+    headerClass: PropTypes.string,
+  };
 
-  renderMessage(message) {
+  renderMessage = message => {
     if (!message) {
       return t('No message provided');
     }
@@ -29,7 +29,7 @@ const LastCommit = React.createClass({
       return truncated + '...';
     }
     return firstLine;
-  },
+  };
 
   render() {
     let {commit, headerClass} = this.props;
@@ -54,6 +54,6 @@ const LastCommit = React.createClass({
       </div>
     );
   }
-});
+}
 
 export default LastCommit;

@@ -1,35 +1,43 @@
 import React from 'react';
-import TestUtils from 'react-addons-test-utils';
+import TestUtils from 'react-dom/test-utils';
 import LetterAvatar from 'app/components/letterAvatar';
 
 describe('LetterAvatar', function() {
   const USER_1 = {
     identifier: 'janedoe@example.com',
-    displayName: 'Jane Doe'
+    displayName: 'Jane Doe',
   };
   const USER_2 = {
     identifier: 'johnsmith@example.com',
-    displayName: 'johnsmith@example.com'
+    displayName: 'johnsmith@example.com',
   };
   const USER_3 = {
     identifier: 'foo@example.com',
-    displayName: 'foo@example.com'
+    displayName: 'foo@example.com',
   };
   const USER_4 = {
     identifier: '2',
-    displayName: ''
+    displayName: '',
   };
   const USER_5 = {
     identifier: '127.0.0.1',
-    displayName: ''
+    displayName: '',
   };
   const USER_6 = {
     identifier: 'janedoe@example.com',
-    displayName: 'Jane Doe '
+    displayName: 'Jane Doe ',
   };
   const USER_7 = {
     identifier: 'janedoe@example.com',
-    displayName: ' '
+    displayName: ' ',
+  };
+  const USER_8 = {
+    identifier: 'janedoe@example.com',
+    displayName: '\u2603super \u2603duper',
+  };
+  const USER_9 = {
+    identifier: 'janedoe@example.com',
+    displayName: 'jane austen doe',
   };
 
   describe('getInitials()', function() {
@@ -60,6 +68,16 @@ describe('LetterAvatar', function() {
 
     it('should get initials based on name even if there are trailing spaces', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_6} />);
+      expect(letterAvatar.getInitials()).toEqual('JD');
+    });
+
+    it('should not slice multibyte characters in half', function() {
+      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_8} />);
+      expect(letterAvatar.getInitials()).toEqual('\u2603\u2603');
+    });
+
+    it('should pick most last name', function() {
+      let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_9} />);
       expect(letterAvatar.getInitials()).toEqual('JD');
     });
   });

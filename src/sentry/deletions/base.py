@@ -1,9 +1,12 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import re
 
 from sentry.constants import ObjectStatus
 from sentry.utils.query import bulk_delete_objects
+
+_leaf_re = re.compile(r'^(Event|Group)(.+)')
 
 
 class BaseRelation(object):
@@ -16,11 +19,15 @@ class BaseRelation(object):
 
 
 class ModelRelation(BaseRelation):
-    def __init__(self, model, query, task=None):
+    def __init__(self, model, query, task=None, partition_key=None):
         params = {
             'model': model,
             'query': query,
         }
+
+        if partition_key:
+            params['partition_key'] = partition_key
+
         super(ModelRelation, self).__init__(params=params, task=task)
 
 
@@ -30,12 +37,12 @@ class BaseDeletionTask(object):
     DEFAULT_CHUNK_SIZE = 100
 
     def __init__(self, manager, skip_models=None, transaction_id=None,
-                 actor_id=None, chunk_size=DEFAULT_CHUNK_SIZE):
+                 actor_id=None, chunk_size=None):
         self.manager = manager
         self.skip_models = set(skip_models) if skip_models else None
         self.transaction_id = transaction_id
         self.actor_id = actor_id
-        self.chunk_size = chunk_size
+        self.chunk_size = chunk_size if chunk_size is not None else self.DEFAULT_CHUNK_SIZE
 
     def __repr__(self):
         return '<%s: skip_models=%s transaction_id=%s actor_id=%s>' % (
@@ -60,6 +67,12 @@ class BaseDeletionTask(object):
             # ModelRelation(Model, {'parent_id__in': [i.id for id in instance_list]})
         ]
 
+    def extend_relations(self, child_relations, obj):
+        return child_relations
+
+    def extend_relations_bulk(self, child_relations, obj_list):
+        return child_relations
+
     def filter_relations(self, child_relations):
         if not self.skip_models or not child_relations:
             return child_relations
@@ -77,6 +90,7 @@ class BaseDeletionTask(object):
         self.mark_deletion_in_progress(instance_list)
 
         child_relations = self.get_child_relations_bulk(instance_list)
+        child_relations = self.extend_relations_bulk(child_relations, instance_list)
         child_relations = self.filter_relations(child_relations)
         if child_relations:
             has_more = self.delete_children(child_relations)
@@ -85,6 +99,7 @@ class BaseDeletionTask(object):
 
         for instance in instance_list:
             child_relations = self.get_child_relations(instance)
+            child_relations = self.extend_relations(child_relations, instance)
             child_relations = self.filter_relations(child_relations)
             if child_relations:
                 has_more = self.delete_children(child_relations)
@@ -102,19 +117,17 @@ class BaseDeletionTask(object):
 
     def delete_children(self, relations):
         # Ideally this runs through the deletion manager
-        has_more = False
         for relation in relations:
             task = self.manager.get(
                 transaction_id=self.transaction_id,
                 actor_id=self.actor_id,
-                chunk_size=self.chunk_size,
                 task=relation.task,
                 **relation.params
             )
-            has_more = task.chunk()
-            if has_more:
-                return has_more
-        return has_more
+            has_more = True
+            while has_more:
+                has_more = task.chunk()
+        return False
 
     def mark_deletion_in_progress(self, instance_list):
         pass
@@ -135,6 +148,17 @@ class ModelDeletionTask(BaseDeletionTask):
             type(self), self.model, self.query, self.order_by, self.transaction_id, self.actor_id,
         )
 
+    def extend_relations(self, child_relations, obj):
+        from sentry.deletions import default_manager
+
+        return child_relations + [rel(obj) for rel in default_manager.dependencies[self.model]]
+
+    def extend_relations_bulk(self, child_relations, obj_list):
+        from sentry.deletions import default_manager
+
+        return child_relations + [rel(obj_list)
+                                  for rel in default_manager.bulk_dependencies[self.model]]
+
     def chunk(self, num_shards=None, shard_id=None):
         """
         Deletes a chunk of this instance's data. Return ``True`` if there is
@@ -152,7 +176,7 @@ class ModelDeletionTask(BaseDeletionTask):
                 assert shard_id < num_shards
                 queryset = queryset.extra(
                     where=[
-                        'id %% {num_shards} = {shard_id}'.format(
+                        u'id %% {num_shards} = {shard_id}'.format(
                             num_shards=num_shards,
                             shard_id=shard_id,
                         )
@@ -177,15 +201,18 @@ class ModelDeletionTask(BaseDeletionTask):
         try:
             instance.delete()
         finally:
-            self.logger.info(
-                'object.delete.executed',
-                extra={
-                    'object_id': instance_id,
-                    'transaction_id': self.transaction_id,
-                    'app_label': instance._meta.app_label,
-                    'model': type(instance).__name__,
-                }
-            )
+            # Don't log Group and Event child object deletions.
+            model_name = type(instance).__name__
+            if not _leaf_re.search(model_name):
+                self.logger.info(
+                    'object.delete.executed',
+                    extra={
+                        'object_id': instance_id,
+                        'transaction_id': self.transaction_id,
+                        'app_label': instance._meta.app_label,
+                        'model': model_name,
+                    }
+                )
 
     def get_actor(self):
         from sentry.models import User
@@ -213,6 +240,11 @@ class BulkModelDeletionTask(ModelDeletionTask):
     """
     DEFAULT_CHUNK_SIZE = 10000
 
+    def __init__(self, manager, model, query, partition_key=None, **kwargs):
+        super(BulkModelDeletionTask, self).__init__(manager, model, query, **kwargs)
+
+        self.partition_key = partition_key
+
     def chunk(self):
         return self.delete_instance_bulk()
 
@@ -222,16 +254,20 @@ class BulkModelDeletionTask(ModelDeletionTask):
                 model=self.model,
                 limit=self.chunk_size,
                 transaction_id=self.transaction_id,
+                partition_key=self.partition_key,
                 **self.query
             )
         finally:
-            self.logger.info(
-                'object.delete.bulk_executed',
-                extra=dict(
-                    {
-                        'transaction_id': self.transaction_id,
-                        'app_label': self.model._meta.app_label,
-                        'model': self.model.__name__,
-                    }, **self.query
+            # Don't log Group and Event child object deletions.
+            model_name = self.model.__name__
+            if not _leaf_re.search(model_name):
+                self.logger.info(
+                    'object.delete.bulk_executed',
+                    extra=dict(
+                        {
+                            'transaction_id': self.transaction_id,
+                            'app_label': self.model._meta.app_label,
+                            'model': model_name,
+                        }, **self.query
+                    )
                 )
-            )

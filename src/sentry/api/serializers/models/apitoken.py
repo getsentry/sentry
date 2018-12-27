@@ -28,7 +28,9 @@ class ApiTokenSerializer(Serializer):
             'application': attrs['application'],
             'expiresAt': obj.expires_at,
             'dateCreated': obj.date_added,
+            'state': attrs.get('state'),
         }
         if not attrs['application']:
             data['token'] = obj.token
+            data['refreshToken'] = obj.refresh_token
         return data

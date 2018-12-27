@@ -1,16 +1,16 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import CrumbTable from './crumbTable';
-import SummaryLine from './summaryLine';
+import CrumbTable from 'app/components/events/interfaces/breadcrumbs/crumbTable';
+import SummaryLine from 'app/components/events/interfaces/breadcrumbs/summaryLine';
 
-const DefaultRenderer = React.createClass({
-  propTypes: {
+class DefaultRenderer extends React.Component {
+  static propTypes = {
     crumb: PropTypes.object.isRequired,
-    kvData: PropTypes.object
-  },
+    kvData: PropTypes.object,
+  };
 
-  getTitle() {
+  getTitle = () => {
     let crumb = this.props.crumb;
     if (crumb.type === 'default') {
       return null;
@@ -21,17 +21,21 @@ const DefaultRenderer = React.createClass({
         return word.substr(0, 1).toUpperCase() + word.substr(1);
       })
       .join(' ');
-  },
+  };
 
-  renderSummary() {
+  renderSummary = () => {
     let {crumb} = this.props;
 
     return (
       <SummaryLine crumb={crumb}>
-        {crumb.message && <pre><code>{crumb.message}</code></pre>}
+        {crumb.message && (
+          <pre>
+            <code>{crumb.message}</code>
+          </pre>
+        )}
       </SummaryLine>
     );
-  },
+  };
 
   render() {
     return (
@@ -43,6 +47,6 @@ const DefaultRenderer = React.createClass({
       />
     );
   }
-});
+}
 
 export default DefaultRenderer;

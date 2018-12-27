@@ -1,0 +1,7 @@
+Unable to Delete Repo
+---------------------
+
+We were unable to delete webhooks in Example for your repository (<em>getsentry/sentry</em>) due to the following error:
+An internal server error occurred
+
+You will need to remove these webhooks manually in Example in order to stop sending commit data to Sentry.

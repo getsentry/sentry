@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from six import string_types
 import psycopg2 as Database
 
 # Some of these imports are unused, but they are inherited from other engines
@@ -12,7 +13,41 @@ from .decorators import (
 )
 from .operations import DatabaseOperations
 
+from sentry.utils.strings import strip_lone_surrogates
+
 __all__ = ('DatabaseWrapper', )
+
+
+def remove_null(value):
+    # In psycopg2 2.7+, behavior was introduced where a
+    # NULL byte in a parameter would start raising a ValueError.
+    # psycopg2 chose to do this rather than let Postgres silently
+    # truncate the data, which is it's behavior when it sees a
+    # NULL byte. But for us, we'd rather remove the null value so it's
+    # somewhat legible rather than error. Considering this is better
+    # behavior than the database truncating, seems good to do this
+    # rather than attempting to sanitize all data inputs now manually.
+    return value.replace('\x00', '')
+
+
+def remove_surrogates(value):
+    # Another hack.  postgres does not accept lone surrogates
+    # in utf-8 mode.  If we encounter any lone surrogates in
+    # our string we need to remove it.
+    if type(value) is bytes:
+        try:
+            return strip_lone_surrogates(value.decode('utf-8')).encode('utf-8')
+        except UnicodeError:
+            return value
+    return strip_lone_surrogates(value)
+
+
+def clean_bad_params(params):
+    params = list(params)
+    for idx, param in enumerate(params):
+        if isinstance(param, string_types):
+            params[idx] = remove_null(remove_surrogates(param))
+    return params
 
 
 class CursorWrapper(object):
@@ -36,7 +71,7 @@ class CursorWrapper(object):
     @less_shitty_error_messages
     def execute(self, sql, params=None):
         if params is not None:
-            return self.cursor.execute(sql, params)
+            return self.cursor.execute(sql, clean_bad_params(params))
         return self.cursor.execute(sql)
 
     @capture_transaction_exceptions

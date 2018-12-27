@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 
-import IncidentActions from '../actions/incidentActions';
+import IncidentActions from 'app/actions/incidentActions';
 
 const IncidentStore = Reflux.createStore({
   init() {
@@ -20,7 +20,7 @@ const IncidentStore = Reflux.createStore({
 
   getStatus() {
     return this.status;
-  }
+  },
 });
 
 export default IncidentStore;

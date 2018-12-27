@@ -46,7 +46,7 @@ class Quota(Service):
     """
     __all__ = (
         'get_maximum_quota', 'get_organization_quota', 'get_project_quota', 'is_rate_limited',
-        'translate_quota', 'validate',
+        'translate_quota', 'validate', 'refund', 'get_event_retention',
     )
 
     def __init__(self, **options):
@@ -54,6 +54,9 @@ class Quota(Service):
 
     def is_rate_limited(self, project, key=None):
         return NotRateLimited()
+
+    def refund(self, project, key=None, timestamp=None):
+        raise NotImplementedError
 
     def get_time_remaining(self):
         return 0
@@ -89,7 +92,7 @@ class Quota(Service):
 
         if max_quota_share != 100 and org_quota:
             quota = self.translate_quota(
-                '{}%'.format(max_quota_share),
+                u'{}%'.format(max_quota_share),
                 org_quota,
             )
         else:
@@ -112,14 +115,11 @@ class Quota(Service):
 
         # If there is only a single org, this one org should
         # be allowed to consume the entire quota.
-        if settings.SENTRY_SINGLE_ORGANIZATION:
-            if system_limit < account_limit:
+        if settings.SENTRY_SINGLE_ORGANIZATION or account_limit:
+            if system_limit and (not account_limit or system_limit < account_limit / 60):
                 return (system_limit, 60)
-            return (account_limit, 3600)
-
-        # an account limit is enforced, which is set as a fixed value and cannot
-        # utilize percentage based limits
-        elif account_limit:
+            # an account limit is enforced, which is set as a fixed value and cannot
+            # utilize percentage based limits
             return (account_limit, 3600)
 
         return (
@@ -134,3 +134,6 @@ class Quota(Service):
         Return the maximum capable rate for an organization.
         """
         return (options.get('system.rate-limit'), 60)
+
+    def get_event_retention(self, organization):
+        return options.get('system.event-retention-days') or None

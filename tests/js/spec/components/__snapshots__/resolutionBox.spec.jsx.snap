@@ -3,12 +3,91 @@
 exports[`ResolutionBox render() handles default 1`] = `
 <div
   className="box"
+  style={
+    Object {
+      "alignItems": "center",
+      "display": "flex",
+      "flex": 1,
+      "paddingBottom": 15,
+    }
+  }
 >
   <span
     className="icon icon-checkmark"
+    style={
+      Object {
+        "position": "static",
+        "top": 0,
+      }
+    }
   />
-  <p>
+  <p
+    className="truncate break-all"
+    style={
+      Object {
+        "paddingBottom": 0,
+        "paddingLeft": 16,
+      }
+    }
+  >
     This issue has been marked as resolved.
+  </p>
+</div>
+`;
+
+exports[`ResolutionBox render() handles inCommit 1`] = `
+<div
+  className="box"
+  style={
+    Object {
+      "alignItems": "center",
+      "display": "flex",
+      "flex": 1,
+      "paddingBottom": 15,
+    }
+  }
+>
+  <span
+    className="icon icon-checkmark"
+    style={
+      Object {
+        "position": "static",
+        "top": 0,
+      }
+    }
+  />
+  <p
+    className="truncate break-all"
+    style={
+      Object {
+        "paddingBottom": 0,
+        "paddingLeft": 16,
+      }
+    }
+  >
+    <span
+      key="3"
+    >
+      <span
+        key="0"
+      >
+        This issue has been marked as resolved by 
+      </span>
+      <CommitLink
+        commitId="f7f395d14b2fe29a4e253bf1d3094d61e6ad4434"
+        key="1"
+        repository={
+          Object {
+            "externalSlug": "example/repo-name",
+            "id": "4",
+            "name": "example/repo-name",
+            "provider": "github",
+            "status": "active",
+            "url": "https://github.com/example/repo-name",
+          }
+        }
+      />
+    </span>
   </p>
 </div>
 `;
@@ -16,11 +95,33 @@ exports[`ResolutionBox render() handles default 1`] = `
 exports[`ResolutionBox render() handles inNextRelease 1`] = `
 <div
   className="box"
+  style={
+    Object {
+      "alignItems": "center",
+      "display": "flex",
+      "flex": 1,
+      "paddingBottom": 15,
+    }
+  }
 >
   <span
     className="icon icon-checkmark"
+    style={
+      Object {
+        "position": "static",
+        "top": 0,
+      }
+    }
   />
-  <p>
+  <p
+    className="truncate break-all"
+    style={
+      Object {
+        "paddingBottom": 0,
+        "paddingLeft": 16,
+      }
+    }
+  >
     This issue has been marked as resolved in the upcoming release.
   </p>
 </div>
@@ -29,20 +130,47 @@ exports[`ResolutionBox render() handles inNextRelease 1`] = `
 exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
 <div
   className="box"
+  style={
+    Object {
+      "alignItems": "center",
+      "display": "flex",
+      "flex": 1,
+      "paddingBottom": 15,
+    }
+  }
 >
   <span
     className="icon icon-checkmark"
+    style={
+      Object {
+        "position": "static",
+        "top": 0,
+      }
+    }
   />
-  <p>
-    <span>
-      <strong>
+  <p
+    className="truncate break-all"
+    style={
+      Object {
+        "paddingBottom": 0,
+        "paddingLeft": 16,
+      }
+    }
+  >
+    <span
+      key="3"
+    >
+      <strong
+        key="0"
+      >
         <Avatar
           className="avatar"
-          gravatar={true}
+          hasTooltip={false}
           size={20}
           user={
             Object {
               "email": "david@sentry.io",
+              "id": "111",
               "name": "David Cramer",
             }
           }
@@ -57,7 +185,9 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
           David Cramer
         </span>
       </strong>
-      <span>
+      <span
+        key="1"
+      >
          marked this issue as resolved in the upcoming release.
       </span>
     </span>
@@ -68,22 +198,52 @@ exports[`ResolutionBox render() handles inNextRelease with actor 1`] = `
 exports[`ResolutionBox render() handles inRelease 1`] = `
 <div
   className="box"
+  style={
+    Object {
+      "alignItems": "center",
+      "display": "flex",
+      "flex": 1,
+      "paddingBottom": 15,
+    }
+  }
 >
   <span
     className="icon icon-checkmark"
+    style={
+      Object {
+        "position": "static",
+        "top": 0,
+      }
+    }
   />
-  <p>
-    <span>
-      <span>
+  <p
+    className="truncate break-all"
+    style={
+      Object {
+        "paddingBottom": 0,
+        "paddingLeft": 16,
+      }
+    }
+  >
+    <span
+      key="4"
+    >
+      <span
+        key="0"
+      >
         This issue has been marked as resolved in version 
       </span>
       <Version
         anchor={true}
+        key="1"
         orgId="org"
         projectId="project"
+        showShortVersion={true}
         version="1.0"
       />
-      <span>
+      <span
+        key="2"
+      >
         .
       </span>
     </span>
@@ -94,20 +254,47 @@ exports[`ResolutionBox render() handles inRelease 1`] = `
 exports[`ResolutionBox render() handles inRelease with actor 1`] = `
 <div
   className="box"
+  style={
+    Object {
+      "alignItems": "center",
+      "display": "flex",
+      "flex": 1,
+      "paddingBottom": 15,
+    }
+  }
 >
   <span
     className="icon icon-checkmark"
+    style={
+      Object {
+        "position": "static",
+        "top": 0,
+      }
+    }
   />
-  <p>
-    <span>
-      <strong>
+  <p
+    className="truncate break-all"
+    style={
+      Object {
+        "paddingBottom": 0,
+        "paddingLeft": 16,
+      }
+    }
+  >
+    <span
+      key="5"
+    >
+      <strong
+        key="0"
+      >
         <Avatar
           className="avatar"
-          gravatar={true}
+          hasTooltip={false}
           size={20}
           user={
             Object {
               "email": "david@sentry.io",
+              "id": "111",
               "name": "David Cramer",
             }
           }
@@ -122,16 +309,22 @@ exports[`ResolutionBox render() handles inRelease with actor 1`] = `
           David Cramer
         </span>
       </strong>
-      <span>
+      <span
+        key="1"
+      >
          marked this issue as resolved in version 
       </span>
       <Version
         anchor={true}
+        key="2"
         orgId="org"
         projectId="project"
+        showShortVersion={true}
         version="1.0"
       />
-      <span>
+      <span
+        key="3"
+      >
         .
       </span>
     </span>

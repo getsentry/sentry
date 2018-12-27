@@ -64,3 +64,6 @@ SENTRY_OPTIONS.update({
     'filestore.backend': 'filesystem',
     'filestore.options': {'location': '/tmp/sentry-files'},
 })
+
+# Enable feature flags so sample responses generate.
+SENTRY_FEATURES['projects:servicehooks'] = True

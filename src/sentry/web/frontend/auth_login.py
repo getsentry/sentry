@@ -9,14 +9,43 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
+from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
 from sentry.utils import auth
+from sentry.utils.sdk import capture_exception
 
-ERR_NO_SSO = _('The organization does not exist or does not have Single Sign-On enabled.')
+ERR_NO_SSO = _(
+    'The organization does not exist or does not have Single Sign-On enabled.')
+
+
+# Stores callbacks that are called to get additional template context data before the login page
+# is rendered. Callbacks are called in any order. If an error is encountered in a callback it is
+# ignored. This works like HookStore in Javascript.
+class AdditionalContext(object):
+    def __init__(self):
+        self._callbacks = set()
+
+    def add_callback(self, callback):
+        """callback should take a request object and return a dict of key-value pairs
+        to add to the context."""
+        self._callbacks.add(callback)
+
+    def run_callbacks(self, request):
+        context = {}
+        for cb in self._callbacks:
+            try:
+                result = cb(request)
+                context.update(result)
+            except Exception:
+                capture_exception()
+        return context
+
+
+additional_context = AdditionalContext()
 
 
 class AuthLoginView(BaseView):
@@ -56,7 +85,10 @@ class AuthLoginView(BaseView):
         return bool(auth.has_user_registration() or request.session.get('can_register'))
 
     def get_next_uri(self, request, *args, **kwargs):
-        return request.GET.get(REDIRECT_FIELD_NAME, None)
+        next_uri_fallback = None
+        if request.session.get('_next') is not None:
+            next_uri_fallback = request.session.pop('_next')
+        return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
     def respond_login(self, request, context, *args, **kwargs):
         return self.respond('sentry/login.html', context)
@@ -67,15 +99,19 @@ class AuthLoginView(BaseView):
 
         op = request.POST.get('op')
 
-        # Detect that we are on the register page by url /register/ and
-        # then activate the register tab by default.
-        if not op and '/register' in request.path_info and can_register:
-            op = 'register'
+        if not op:
+            # Detect that we are on the register page by url /register/ and
+            # then activate the register tab by default.
+            if '/register' in request.path_info and can_register:
+                op = 'register'
+            elif request.GET.get('op') == 'sso':
+                op = 'sso'
 
         login_form = self.get_login_form(request)
         if can_register:
             register_form = self.get_register_form(
-                request, initial={'username': request.session.get('invite_email', '')}
+                request, initial={
+                    'username': request.session.get('invite_email', '')}
             )
         else:
             register_form = None
@@ -137,6 +173,8 @@ class AuthLoginView(BaseView):
             'register_form': register_form,
             'CAN_REGISTER': can_register,
         }
+        context.update(additional_context.run_callbacks(request))
+
         return self.respond_login(request, context, organization=organization, *args, **kwargs)
 
     def handle_authenticated(self, request, *args, **kwargs):
@@ -154,7 +192,10 @@ class AuthLoginView(BaseView):
     def get(self, request, *args, **kwargs):
         next_uri = self.get_next_uri(request, *args, **kwargs)
         if request.user.is_authenticated():
-            return self.handle_authenticated(request, *args, **kwargs)
+            # if the user is a superuser, but not 'superuser authenticated'
+            # we allow them to re-authenticate to gain superuser status
+            if not request.user.is_superuser or is_active_superuser(request):
+                return self.handle_authenticated(request, *args, **kwargs)
 
         request.session.set_test_cookie()
 
@@ -169,7 +210,8 @@ class AuthLoginView(BaseView):
 
         session_expired = 'session_expired' in request.COOKIES
         if session_expired:
-            messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)
+            messages.add_message(request, messages.WARNING,
+                                 WARN_SESSION_EXPIRED)
 
         response = self.handle_basic_auth(request, *args, **kwargs)
 
@@ -182,9 +224,11 @@ class AuthLoginView(BaseView):
     def post(self, request, *args, **kwargs):
         op = request.POST.get('op')
         if op == 'sso' and request.POST.get('organization'):
-            auth_provider = self.get_auth_provider(request.POST['organization'])
+            auth_provider = self.get_auth_provider(
+                request.POST['organization'])
             if auth_provider:
-                next_uri = reverse('sentry-auth-organization', args=[request.POST['organization']])
+                next_uri = reverse('sentry-auth-organization',
+                                   args=[request.POST['organization']])
             else:
                 next_uri = request.get_full_path()
                 messages.add_message(request, messages.ERROR, ERR_NO_SSO)

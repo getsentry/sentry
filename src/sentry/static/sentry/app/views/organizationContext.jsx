@@ -1,41 +1,42 @@
+import DocumentTitle from 'react-document-title';
+import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
-import DocumentTitle from 'react-document-title';
-import moment from 'moment';
+import createReactClass from 'create-react-class';
+import styled from 'react-emotion';
 
-import ApiMixin from '../mixins/apiMixin';
-import HookStore from '../stores/hookStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import BroadcastModal from '../components/broadcastModal';
-import SentryTypes from '../proptypes';
-import TeamStore from '../stores/teamStore';
-import ProjectStore from '../stores/projectStore';
-import ProjectActions from '../actions/projectActions';
-import ConfigStore from '../stores/configStore';
-
-import OrganizationState from '../mixins/organizationState';
-
-import {t} from '../locale';
+import {openSudo} from 'app/actionCreators/modal';
+import {setActiveOrganization} from 'app/actionCreators/organizations';
+import {t} from 'app/locale';
+import Alert from 'app/components/alert';
+import ApiMixin from 'app/mixins/apiMixin';
+import ConfigStore from 'app/stores/configStore';
+import HookStore from 'app/stores/hookStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import ProjectActions from 'app/actions/projectActions';
+import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/sentryTypes';
+import Sidebar from 'app/components/sidebar';
+import TeamStore from 'app/stores/teamStore';
+import space from 'app/styles/space';
 
 let ERROR_TYPES = {
-  ORG_NOT_FOUND: 'ORG_NOT_FOUND'
+  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
 };
 
-function getRequiredAdminActions(org) {
-  return [];
-}
+const OrganizationContext = createReactClass({
+  displayName: 'OrganizationContext',
 
-const OrganizationContext = React.createClass({
-  childContextTypes: {
-    organization: SentryTypes.Organization
+  propTypes: {
+    includeSidebar: PropTypes.bool,
   },
 
-  mixins: [
-    ApiMixin,
-    OrganizationState,
-    Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')
-  ],
+  childContextTypes: {
+    organization: SentryTypes.Organization,
+  },
+
+  mixins: [ApiMixin, Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')],
 
   getInitialState() {
     return {
@@ -43,13 +44,12 @@ const OrganizationContext = React.createClass({
       error: false,
       errorType: null,
       organization: null,
-      showBroadcast: false
     };
   },
 
   getChildContext() {
     return {
-      organization: this.state.organization
+      organization: this.state.organization,
     };
   },
 
@@ -90,25 +90,21 @@ const OrganizationContext = React.createClass({
           hooks.push(cb(data));
         });
 
-        data.requiredAdminActions = getRequiredAdminActions(data);
+        setActiveOrganization(data);
+
+        TeamStore.loadInitialData(data.teams);
+        ProjectsStore.loadInitialData(data.projects);
+
         this.setState({
           organization: data,
           loading: false,
           error: false,
           errorType: null,
           hooks,
-          showBroadcast: this.shouldShowBroadcast(data)
         });
-
-        TeamStore.loadInitialData(data.teams);
-        ProjectStore.loadInitialData(
-          data.teams.reduce((out, team) => {
-            return out.concat(team.projects);
-          }, [])
-        );
       },
 
-      error: (_, textStatus, errorThrown) => {
+      error: (err, textStatus, errorThrown) => {
         let errorType = null;
         switch (errorThrown) {
           case 'NOT FOUND':
@@ -116,12 +112,22 @@ const OrganizationContext = React.createClass({
             break;
           default:
         }
+
         this.setState({
           loading: false,
           error: true,
-          errorType
+          errorType,
         });
-      }
+
+        // If user is superuser, open sudo window
+        let user = ConfigStore.get('user');
+        if (!user || !user.isSuperuser || err.status !== 403) {
+          return;
+        }
+        openSudo({
+          retryRequest: () => Promise.resolve(this.fetchData()),
+        });
+      },
     });
   },
 
@@ -134,31 +140,28 @@ const OrganizationContext = React.createClass({
     return 'Sentry';
   },
 
-  shouldShowBroadcast(data) {
-    let user = ConfigStore.get('user');
-    let options = user ? user.options : {};
-    let seen = options.seenReleaseBroadcast;
-    let tasks = data.onboardingTasks;
-    // don't show broadcast they've seen it
-    if (seen) {
-      return false;
-    }
+  renderSidebar() {
+    if (!this.props.includeSidebar) return null;
 
-    // also if they havn't sent their first event
-    let sentFirstEvent = tasks.find(
-      ({task, status}) => task == 2 && status == 'complete'
-    );
-
-    if (!sentFirstEvent) {
-      return false;
-    }
-
-    // show it if they sent their first event more than 2 days ago
-    return moment().diff(sentFirstEvent.dateCompleted, 'days') > 2;
+    return <Sidebar {...this.props} organization={this.state.organization} />;
   },
 
-  closeBroadcast() {
-    this.setState({showBroadcast: false});
+  renderError() {
+    let errorComponent;
+
+    switch (this.state.errorType) {
+      case ERROR_TYPES.ORG_NOT_FOUND:
+        errorComponent = (
+          <Alert type="error">
+            {t('The organization you were looking for was not found.')}
+          </Alert>
+        );
+        break;
+      default:
+        errorComponent = <LoadingError onRetry={this.remountComponent} />;
+    }
+
+    return <ErrorWrapper>{errorComponent}</ErrorWrapper>;
   },
 
   render() {
@@ -169,31 +172,28 @@ const OrganizationContext = React.createClass({
         </LoadingIndicator>
       );
     } else if (this.state.error) {
-      switch (this.state.errorType) {
-        case ERROR_TYPES.ORG_NOT_FOUND:
-          return (
-            <div className="container">
-              <div className="alert alert-block">
-                {t('The organization you were looking for was not found.')}
-              </div>
-            </div>
-          );
-        default:
-          return <LoadingError onRetry={this.remountComponent} />;
-      }
+      return (
+        <React.Fragment>
+          {this.renderSidebar()}
+          {this.renderError()}
+        </React.Fragment>
+      );
     }
 
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {this.state.hooks}
-          {this.state.showBroadcast &&
-            <BroadcastModal closeBroadcast={this.closeBroadcast} />}
+          {this.renderSidebar()}
           {this.props.children}
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default OrganizationContext;
+
+const ErrorWrapper = styled('div')`
+  padding: ${space(3)};
+`;

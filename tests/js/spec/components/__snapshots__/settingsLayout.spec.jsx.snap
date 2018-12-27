@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SettingsLayout renders 1`] = `
+<Fragment>
+  <SettingsHeader>
+    <SettingsSubheader>
+      <Container>
+        <withOrganizations(withLatestContext(BackButton)) />
+      </Container>
+    </SettingsSubheader>
+    <Container>
+      <Flex
+        align="center"
+        width={1}
+      >
+        <Box
+          flex="1"
+        >
+          <ConnectedSettingsBreadcrumb
+            route={Object {}}
+            routes={Array []}
+          />
+        </Box>
+        <StyledSettingsSearch
+          routes={Array []}
+        />
+      </Flex>
+    </Container>
+  </SettingsHeader>
+  <ContentContainerWrapper>
+    <Container>
+      <Content />
+    </Container>
+  </ContentContainerWrapper>
+  <Footer />
+</Fragment>
+`;

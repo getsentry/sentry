@@ -15,13 +15,16 @@ from collections import OrderedDict
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from hashlib import md5
 
 from sentry import eventtypes
 from sentry.db.models import (
-    BaseManager, BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
+    BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
 )
 from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
+from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
+from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
 
 
@@ -43,9 +46,8 @@ class Event(Model):
         null=True,
         ref_func=lambda x: x.project_id or x.project.id,
         ref_version=2,
+        wrapper=CanonicalKeyDict,
     )
-
-    objects = BaseManager()
 
     class Meta:
         app_label = 'sentry'
@@ -56,6 +58,29 @@ class Event(Model):
         index_together = (('group_id', 'datetime'), )
 
     __repr__ = sane_repr('project_id', 'group_id')
+
+    @classmethod
+    def generate_node_id(cls, project_id, event_id):
+        """
+        Returns a deterministic node_id for this event based on the project_id
+        and event_id which together are globally unique. The event body should
+        be saved under this key in nodestore so it can be retrieved using the
+        same generated id when we only have project_id and event_id.
+        """
+        return md5('{}:{}'.format(project_id, event_id)).hexdigest()
+
+    def __getstate__(self):
+        state = Model.__getstate__(self)
+
+        # do not pickle cached info.  We want to fetch this on demand
+        # again.  In particular if we were to pickle interfaces we would
+        # pickle a CanonicalKeyView which old sentry workers do not know
+        # about
+        state.pop('_project_cache', None)
+        state.pop('_group_cache', None)
+        state.pop('interfaces', None)
+
+        return state
 
     # Implement a ForeignKey-like accessor for backwards compat
     def _set_group(self, group):
@@ -84,10 +109,13 @@ class Event(Model):
     project = property(_get_project, _set_project)
 
     def get_legacy_message(self):
-        msg_interface = self.data.get('sentry.interfaces.Message', {
-            'message': self.message,
-        })
-        return msg_interface.get('formatted', msg_interface['message'])
+        # TODO(mitsuhiko): remove this code once it's unused.  It's still
+        # being used by plugin code and once the message rename is through
+        # plugins should instead swithc to the actual message attribute or
+        # this method could return what currently is real_message.
+        return get_path(self.data, 'logentry', 'formatted') \
+            or get_path(self.data, 'logentry', 'message') \
+            or self.message
 
     def get_event_type(self):
         """
@@ -103,13 +131,24 @@ class Event(Model):
 
         See ``sentry.eventtypes``.
         """
-        etype = self.data.get('type', 'default')
-        if 'metadata' not in self.data:
-            # TODO(dcramer): remove after Dec 1 2016
-            data = self.data.copy() if self.data else {}
-            data['message'] = self.message
-            return eventtypes.get(etype)(data).get_metadata()
-        return self.data['metadata']
+        from sentry.event_manager import get_event_metadata_compat
+        return get_event_metadata_compat(self.data, self.message)
+
+    def get_hashes(self):
+        """
+        Returns the calculated hashes for the event.
+        """
+        from sentry.event_hashing import calculate_event_hashes
+        # If we have hashes stored in the data we use them, otherwise we
+        # fall back to generating new ones from the data
+        hashes = self.data.get('hashes')
+        if hashes is not None:
+            return hashes
+        return calculate_event_hashes(self)
+
+    def get_primary_hash(self):
+        # TODO: This *might* need to be protected from an IndexError?
+        return self.get_hashes()[0]
 
     @property
     def title(self):
@@ -123,17 +162,17 @@ class Event(Model):
     error.short_description = _('error')
 
     @property
+    def real_message(self):
+        # XXX(mitsuhiko): this is a transitional attribute that should be
+        # removed.  `message` will be renamed to `search_message` and this
+        # will become `message`.
+        msg_interface = self.data.get('logentry')
+        return msg_interface and (msg_interface.get('formatted') or msg_interface['message']) or ''
+
+    @property
     def message_short(self):
         warnings.warn('Event.message_short is deprecated, use Event.title', DeprecationWarning)
         return self.title
-
-    def has_two_part_message(self):
-        warnings.warn('Event.has_two_part_message is no longer used', DeprecationWarning)
-        return False
-
-    @property
-    def team(self):
-        return self.project.team
 
     @property
     def organization(self):
@@ -145,22 +184,18 @@ class Event(Model):
 
     @memoize
     def ip_address(self):
-        user_data = self.data.get('sentry.interfaces.User', self.data.get('user'))
-        if user_data:
-            value = user_data.get('ip_address')
-            if value:
-                return value
+        ip_address = get_path(self.data, 'user', 'ip_address')
+        if ip_address:
+            return ip_address
 
-        http_data = self.data.get('sentry.interfaces.Http', self.data.get('http'))
-        if http_data and 'env' in http_data:
-            value = http_data['env'].get('REMOTE_ADDR')
-            if value:
-                return value
+        remote_addr = get_path(self.data, 'request', 'env', 'REMOTE_ADDR')
+        if remote_addr:
+            return remote_addr
 
         return None
 
     def get_interfaces(self):
-        return get_interfaces(self.data)
+        return CanonicalKeyView(get_interfaces(self.data))
 
     @memoize
     def interfaces(self):
@@ -183,29 +218,42 @@ class Event(Model):
         return None
 
     @property
+    def release(self):
+        return self.get_tag('sentry:release')
+
+    @property
     def dist(self):
         return self.get_tag('sentry:dist')
 
     def as_dict(self):
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
         data = OrderedDict()
-        data['id'] = self.event_id
+        data['event_id'] = self.event_id
         data['project'] = self.project_id
-        data['release'] = self.get_tag('sentry:release')
+        data['release'] = self.release
         data['dist'] = self.dist
         data['platform'] = self.platform
-        data['culprit'] = self.group.culprit
-        data['message'] = self.get_legacy_message()
+        data['message'] = self.real_message
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
-        data['tags'] = self.get_tags()
+        data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.get_tags()]
         for k, v in sorted(six.iteritems(self.data)):
+            if k in data:
+                continue
+            if k == 'sdk':
+                v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != 'client_ip'}
             data[k] = v
+
+        # for a long time culprit was not persisted.  In those cases put
+        # the culprit in from the group.
+        if data.get('culprit') is None:
+            data['culprit'] = self.group.culprit
+
         return data
 
     @property
     def size(self):
-        data_len = len(self.get_legacy_message())
+        data_len = 0
         for value in six.itervalues(self.data):
             data_len += len(repr(value))
         return data_len
@@ -240,7 +288,7 @@ class Event(Model):
     @property
     def culprit(self):
         warnings.warn('Event.culprit is deprecated. Use Group.culprit instead.')
-        return self.transaction or self.group.culprit
+        return self.group.culprit
 
     @property
     def checksum(self):
@@ -263,6 +311,17 @@ class Event(Model):
             ),
             128,
         ).encode('utf-8')
+
+    def get_environment(self):
+        from sentry.models import Environment
+
+        if not hasattr(self, '_environment_cache'):
+            self._environment_cache = Environment.objects.get(
+                organization_id=self.project.organization_id,
+                name=Environment.get_name_or_default(self.get_tag('environment')),
+            )
+
+        return self._environment_cache
 
 
 class EventSubjectTemplate(string.Template):
@@ -290,6 +349,8 @@ class EventSubjectTemplateData(object):
             return self.event.project.get_full_name()
         elif name == 'projectID':
             return self.event.project.slug
+        elif name == 'shortID':
+            return self.event.group.qualified_short_id
         elif name == 'orgID':
             return self.event.organization.slug
         elif name == 'title':
@@ -297,4 +358,4 @@ class EventSubjectTemplateData(object):
         raise KeyError
 
 
-DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('[$project] ${tag:level}: $title')
+DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('$shortID - $title')

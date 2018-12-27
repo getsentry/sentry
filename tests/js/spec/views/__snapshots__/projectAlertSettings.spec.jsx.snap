@@ -1,140 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProjectAlertSettings render() renders 1`] = `
-<DocumentTitle
-  title="Project Alert Settings"
+<SideEffect(DocumentTitle)
+  title="Project Alert Settings - Sentry"
 >
-  <div>
-    <SpreadLayout
-      center={true}
-      responsive={false}
-      style={
-        Object {
-          "marginBottom": 20,
-        }
-      }
-    >
-      <h2
-        style={
-          Object {
-            "margin": 0,
-          }
-        }
-      >
-        Alerts
-      </h2>
-      <Button
-        className="pull-right"
-        disabled={false}
-        href="/org-slug/project-slug/settings/alerts/rules/new/"
-        priority="primary"
-        size="small"
-      >
-        <span
-          className="icon-plus"
-        />
-        New Alert Rule
-      </Button>
-    </SpreadLayout>
-    <ul
-      className="nav nav-tabs"
-      style={
-        Object {
-          "borderBottom": "1px solid #ddd",
-        }
-      }
-    >
-      <ListLink
-        activeClassName="active"
-        index={true}
-        to="/org-slug/project-slug/settings/alerts/"
-      >
-        Settings
-      </ListLink>
-      <ListLink
-        activeClassName="active"
-        index={false}
-        to="/org-slug/project-slug/settings/alerts/rules/"
-      >
-        Rules
-      </ListLink>
-    </ul>
-    <div
-      className="alert alert-block alert-info"
-    >
-      <span>
-        <span>
-          These settings cover rule-based alerts. If you're looking to change which notifications you receive you may do so from your 
-        </span>
-        <a
-          href="/account/settings/notifications/"
-        >
-          <span>
-            account settings
-          </span>
-        </a>
-        <span>
-          .
-        </span>
-      </span>
-    </div>
-    <GeneralSettings
-      initialData={
-        Object {
-          "subjectTemplate": "[$project] \${tag:level}: $title",
-        }
-      }
-      onSave={[Function]}
-      orgId="org-slug"
-      projectId="project-slug"
-    />
-    <DigestSettings
-      initialData={
-        Object {
-          "digestsMaxDelay": 60,
-          "digestsMinDelay": 5,
-        }
-      }
-      onSave={[Function]}
-      orgId="org-slug"
-      projectId="project-slug"
-    />
-    <pluginList
-      onDisablePlugin={[Function]}
-      onEnablePlugin={[Function]}
-      organization={
-        Object {
-          "access": Array [
-            "org:read",
-            "org:write",
-            "org:admin",
-            "project:read",
-            "project:write",
-            "project:admin",
-            "team:read",
-            "team:write",
-            "team:admin",
-          ],
-          "features": Array [],
-          "id": "3",
-          "name": "Organization Name",
-          "onboardingTasks": Array [],
-          "slug": "org-slug",
-          "teams": Array [],
-        }
-      }
-      pluginList={Array []}
-      project={
-        Object {
-          "digestsMaxDelay": 60,
-          "digestsMinDelay": 5,
-          "id": "2",
-          "name": "Project Name",
-          "slug": "project-slug",
-          "subjectTemplate": "[$project] \${tag:level}: $title",
-        }
-      }
-    />
-  </div>
-</DocumentTitle>
+  <AccessContainer
+    access={
+      Array [
+        "project:write",
+      ]
+    }
+  >
+    <Component />
+  </AccessContainer>
+</SideEffect(DocumentTitle)>
 `;

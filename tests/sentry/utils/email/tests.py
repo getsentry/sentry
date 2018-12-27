@@ -15,6 +15,7 @@ from sentry.utils.email import (
     default_list_type_handlers,
     get_from_email_domain,
     get_mail_backend,
+    create_fake_email,
 )
 
 
@@ -33,7 +34,7 @@ class ListResolverTestCase(TestCase):
             self.resolver(object())
 
     def test_generates_list_ids(self):
-        expected = "{0.project.slug}.{0.organization.slug}.namespace".format(self.event)
+        expected = u"{0.project.slug}.{0.organization.slug}.namespace".format(self.event)
         assert self.resolver(self.event) == expected
         assert self.resolver(self.event.group) == expected
         assert self.resolver(self.event.project) == expected
@@ -124,6 +125,35 @@ class MessageBuilderTest(TestCase):
             'fizzle@example.com',
             'foo@example.com',
         ]
+
+    def test_fake_dont_send(self):
+        project = self.project
+
+        user_a = User.objects.create(email=create_fake_email('foo', 'fake'))
+        user_b = User.objects.create(email=create_fake_email('bar', 'fake'))
+        user_c = User.objects.create(email=create_fake_email('baz', 'fake'))
+
+        UserOption.objects.create(
+            user=user_b,
+            key='alert_email',
+            value=create_fake_email('fizzle', 'fake'),
+        )
+        UserOption.objects.create(
+            user=user_c,
+            project=project,
+            key='mail:email',
+            value=create_fake_email('bazzer', 'fake'),
+        )
+
+        msg = MessageBuilder(
+            subject='Test',
+            body='hello world',
+            html_body='<!DOCTYPE html>\n<b>hello world</b>',
+        )
+        msg.add_users([user_a.id, user_b.id, user_c.id], project=project)
+        msg.send()
+
+        assert len(mail.outbox) == 0
 
     @patch('sentry.utils.email.make_msgid')
     def test_message_id(self, make_msgid):
@@ -270,7 +300,7 @@ class MessageBuilderTest(TestCase):
             html_body='<b>hello world</b>',
         )
 
-        expected = "{event.project.slug}.{event.organization.slug}.{namespace}".format(
+        expected = u"{event.project.slug}.{event.organization.slug}.{namespace}".format(
             event=self.event,
             namespace=options.get('mail.list-namespace'),
         )

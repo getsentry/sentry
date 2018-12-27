@@ -1,104 +1,88 @@
 import React from 'react';
-import {mount, shallow} from 'enzyme';
+import {mount} from 'enzyme';
 
-import ProjectSelector from 'app/components/projectHeader/projectSelector';
+import ProjectHeaderProjectSelector from 'app/components/projectHeader/projectSelector';
 
-describe('ProjectSelector', function() {
-  const mockOrg = {
+describe('ProjectHeaderProjectSelector', function() {
+  const testTeam = TestStubs.Team({
+    id: 'test-team',
+    slug: 'test-team',
+    isMember: true,
+  });
+
+  const testProject = TestStubs.Project({
+    id: 'test-project',
+    slug: 'test-project',
+    isMember: true,
+    teams: [testTeam],
+  });
+  const anotherProject = TestStubs.Project({
+    id: 'another-project',
+    slug: 'another-project',
+    isMember: true,
+    teams: [testTeam],
+  });
+
+  const mockOrg = TestStubs.Organization({
     id: 'org',
     slug: 'org',
-    teams: [
-      {
-        name: 'Test Team',
-        slug: 'test-team',
-        isMember: true,
-        projects: [
-          {
-            slug: 'test-project',
-            name: 'Test Project'
-          },
-          {
-            slug: 'another-project',
-            name: 'Another Project'
-          }
-        ]
-      }
-    ],
-    access: []
-  };
-  describe('render()', function() {
-    it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
-      let wrapper = shallow(
-        <ProjectSelector
-          organization={{
-            id: 'org',
-            slug: 'org-slug',
-            teams: [],
-            access: []
-          }}
-          projectId=""
-        />,
-        {
-          context: {router: TestStubs.router()}
-        }
-      );
-      expect(wrapper).toMatchSnapshot();
-    });
+    teams: [testTeam],
+    projects: [testProject, anotherProject],
+    features: ['new-teams'],
+    access: [],
+  });
 
-    it('should show empty message and create project button, when no projects and has "project:write" access', function() {
-      let wrapper = shallow(
-        <ProjectSelector
-          organization={{
-            id: 'org',
-            slug: 'org-slug',
-            teams: [],
-            access: ['project:write']
-          }}
-          projectId=""
-        />,
-        {
-          context: {router: TestStubs.router()}
-        }
-      );
-      expect(wrapper).toMatchSnapshot();
-    });
+  const routerContext = TestStubs.routerContext([{organization: mockOrg}]);
 
-    it('lists projects and has filter', function() {
-      let wrapper = shallow(<ProjectSelector organization={mockOrg} projectId="" />, {
-        context: {router: TestStubs.router()}
-      });
-      expect(wrapper).toMatchSnapshot();
-    });
+  const openMenu = wrapper => wrapper.find('DropdownLabel').simulate('click');
 
-    it('can filter projects by team name/project name', function() {
-      let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+  it('renders with "Select a project" when no project is selected', function() {
+    let wrapper = mount(
+      <ProjectHeaderProjectSelector organization={mockOrg} projectId="" />,
+      routerContext
+    );
 
-      const input = wrapper.find('.project-filter input');
-      // Team name contains test
-      input.value = 'TEST';
-      input.simulate('change', {target: input});
+    expect(wrapper.find('SelectProject')).toHaveLength(1);
+  });
 
-      expect(wrapper).toMatchSnapshot();
-    });
+  it('has project label when project is selected', function() {
+    let wrapper = mount(
+      <ProjectHeaderProjectSelector organization={mockOrg} projectId="" />,
+      routerContext
+    );
+    openMenu(wrapper);
 
-    it('can filter projects by project name', function() {
-      let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+    // Select first project
+    wrapper
+      .find('AutoCompleteItem')
+      .first()
+      .simulate('click');
 
-      const input = wrapper.find('.project-filter input');
-      input.value = 'another';
-      input.simulate('change', {target: input});
+    expect(wrapper.find('IdBadge').prop('project')).toEqual(
+      expect.objectContaining({
+        slug: 'test-project',
+      })
+    );
+  });
 
-      expect(wrapper).toMatchSnapshot();
-    });
+  it('calls `router.push` when a project is selected', function() {
+    let routerMock = TestStubs.router();
+    let wrapper = mount(
+      <ProjectHeaderProjectSelector
+        organization={mockOrg}
+        projectId=""
+        router={routerMock}
+      />,
+      routerContext
+    );
+    openMenu(wrapper);
 
-    it('shows empty filter message when filtering has no results', function() {
-      let wrapper = mount(<ProjectSelector organization={mockOrg} projectId="" />, {});
+    // Select first project
+    wrapper
+      .find('AutoCompleteItem')
+      .first()
+      .simulate('click');
 
-      const input = wrapper.find('.project-filter input');
-      input.value = 'Foo';
-      input.simulate('change', {target: input});
-
-      expect(wrapper).toMatchSnapshot();
-    });
+    expect(routerMock.push).toHaveBeenCalledWith('/org/test-project/');
   });
 });

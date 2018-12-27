@@ -11,22 +11,24 @@ class GroupTagKeyValuesTest(APITestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        tagstore.create_tag_key(project_id=project.id, key=key)
+        tagstore.create_tag_key(project_id=project.id, environment_id=None, key=key)
         tagstore.create_tag_value(
             project_id=project.id,
+            environment_id=None,
             key=key,
             value=value,
         )
         tagstore.create_group_tag_value(
             project_id=project.id,
             group_id=group.id,
+            environment_id=None,
             key=key,
             value=value,
         )
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/tags/{}/values/'.format(group.id, key)
+        url = u'/api/0/issues/{}/tags/{}/values/'.format(group.id, key)
 
         response = self.client.get(url)
 
@@ -47,23 +49,26 @@ class GroupTagKeyValuesTest(APITestCase):
         )
         tagstore.create_tag_key(
             project_id=project.id,
+            environment_id=None,
             key='sentry:user',
         )
         tagstore.create_tag_value(
             project_id=project.id,
+            environment_id=None,
             key='sentry:user',
             value=euser.tag_value,
         )
         tagstore.create_group_tag_value(
             project_id=project.id,
             group_id=group.id,
+            environment_id=None,
             key='sentry:user',
             value=euser.tag_value,
         )
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/tags/user/values/'.format(group.id)
+        url = u'/api/0/issues/{}/tags/user/values/'.format(group.id)
 
         response = self.client.get(url)
 

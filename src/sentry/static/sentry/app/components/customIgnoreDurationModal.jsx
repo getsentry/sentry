@@ -3,29 +3,28 @@ import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import {sprintf} from 'sprintf-js';
 
-import {t} from '../locale';
+import {t} from 'app/locale';
 
-export default React.createClass({
-  propTypes: {
+export default class CustomIgnoreDurationModal extends React.Component {
+  static propTypes = {
     onSelected: PropTypes.func,
     onCanceled: PropTypes.func,
     show: PropTypes.bool,
-    label: PropTypes.string
-  },
+    label: PropTypes.string,
+  };
 
-  getDefaultProps() {
-    return {
-      label: t('Ignore this issue until it occurs after ..')
+  static defaultProps = {
+    label: t('Ignore this issue until it occurs after ..'),
+  };
+
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      dateWarning: false,
     };
-  },
+  }
 
-  getInitialState() {
-    return {
-      dateWarning: false
-    };
-  },
-
-  selectedIgnoreMinutes() {
+  selectedIgnoreMinutes = () => {
     const dateStr = this.refs.snoozeDateInput.value; // YYYY-MM-DD
     const timeStr = this.refs.snoozeTimeInput.value; // HH:MM
     if (dateStr && timeStr) {
@@ -38,19 +37,19 @@ export default React.createClass({
       }
     }
     return 0;
-  },
+  };
 
-  snoozeClicked() {
+  snoozeClicked = () => {
     const minutes = this.selectedIgnoreMinutes();
 
     this.setState({
-      dateWarning: minutes <= 0
+      dateWarning: minutes <= 0,
     });
 
     if (minutes > 0) {
       this.props.onSelected({ignoreDuration: minutes});
     }
-  },
+  };
 
   render() {
     // Give the user a sane starting point to select a date
@@ -102,15 +101,17 @@ export default React.createClass({
             </div>
           </form>
         </div>
-        {this.state.dateWarning &&
+        {this.state.dateWarning && (
           <div className="alert alert-error" style={{'margin-top': '5px'}}>
             {t('Please enter a valid date in the future')}
-          </div>}
+          </div>
+        )}
         <div className="modal-footer">
           <button
             type="button"
             className="btn btn-default"
-            onClick={this.props.onCanceled}>
+            onClick={this.props.onCanceled}
+          >
             {t('Cancel')}
           </button>
           <button type="button" className="btn btn-primary" onClick={this.snoozeClicked}>
@@ -120,4 +121,4 @@ export default React.createClass({
       </Modal>
     );
   }
-});
+}
