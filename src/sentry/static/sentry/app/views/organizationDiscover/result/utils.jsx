@@ -48,6 +48,7 @@ export function getChartData(data, query, options = {}) {
  * @param {Object} query Query state corresponding to data
  * @param {Object} [options] Options object
  * @param {Boolean} [options.useTimestamps] (default: false) Return raw timestamps instead of formatting dates
+ * @param {Boolean} [options.allSeries] (default: false) Return all series instead of top 10
  * @returns {Array}
  */
 export function getChartDataByDay(rawData, query, options = {}) {
@@ -57,7 +58,11 @@ export function getChartDataByDay(rawData, query, options = {}) {
   const data = getDataWithKeys(rawData, query);
 
   // We only want to show the top 10 series
-  const top10Series = getTopSeries(data, aggregate);
+  const top10Series = getTopSeries(
+    data,
+    aggregate,
+    options.allSeries ? -1 : options.allSeries
+  );
 
   // Reverse to get ascending dates - we request descending to ensure latest
   // day data is compplete in the case of limits being hit
@@ -128,12 +133,12 @@ function getEmptySeries(dates) {
 }
 
 // Get the top series ranked by latest time / largest aggregate
-function getTopSeries(data, aggregate) {
+function getTopSeries(data, aggregate, limit = NUMBER_OF_SERIES_BY_DAY) {
   const allData = orderBy(data, ['time', aggregate], ['desc', 'desc']);
 
-  return new Set(
-    [...new Set(allData.map(row => row[CHART_KEY]))].slice(0, NUMBER_OF_SERIES_BY_DAY)
-  );
+  const orderedData = [...new Set(allData.map(row => row[CHART_KEY]))];
+
+  return new Set(limit <= 0 ? orderedData : orderedData.slice(0, limit));
 }
 
 function getDataWithKeys(data, query) {
