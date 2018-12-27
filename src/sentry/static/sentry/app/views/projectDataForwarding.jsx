@@ -1,15 +1,22 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 
-import ApiMixin from '../mixins/apiMixin';
-import HookStore from '../stores/hookStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import PluginList from '../components/pluginList';
-import ProjectState from '../mixins/projectState';
-import StackedBarChart from '../components/stackedBarChart';
-import {t} from '../locale';
+import {t, tct} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import ExternalLink from 'app/components/externalLink';
+import HookStore from 'app/stores/hookStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import PluginList from 'app/components/pluginList';
+import ProjectState from 'app/mixins/projectState';
+import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import StackedBarChart from 'app/components/stackedBarChart';
+import TextBlock from 'app/views/settings/components/text/textBlock';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 
-const DataForwardingStats = React.createClass({
+const DataForwardingStats = createReactClass({
+  displayName: 'DataForwardingStats',
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -22,7 +29,7 @@ const DataForwardingStats = React.createClass({
       loading: true,
       error: false,
       stats: null,
-      emptyStats: false
+      emptyStats: false,
     };
   },
 
@@ -37,7 +44,7 @@ const DataForwardingStats = React.createClass({
         since: this.state.since,
         until: this.state.until,
         resolution: '1d',
-        stat: 'forwarded'
+        stat: 'forwarded',
       },
       success: data => {
         let emptyStats = true;
@@ -49,46 +56,55 @@ const DataForwardingStats = React.createClass({
           stats,
           emptyStats,
           error: false,
-          loading: false
+          loading: false,
         });
       },
       error: () => {
         this.setState({error: true, loading: false});
-      }
+      },
     });
   },
 
   render() {
-    if (this.state.loading) return <div className="box"><LoadingIndicator /></div>;
+    if (this.state.loading)
+      return (
+        <div className="box">
+          <LoadingIndicator />
+        </div>
+      );
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
-      <div className="box">
-        <div className="box-header">
-          <h5>{t('Forwarded events in the last 30 days (by day)')}</h5>
-        </div>
-        {!this.state.emptyStats
-          ? <StackedBarChart
+      <Panel>
+        <PanelHeader>{t('Forwarded events in the last 30 days (by day)')}</PanelHeader>
+        <PanelBody>
+          {!this.state.emptyStats ? (
+            <StackedBarChart
+              style={{
+                border: 'none',
+              }}
               points={this.state.stats}
               height={150}
               label="events"
               barClasses={['accepted']}
               className="standard-barchart"
             />
-          : <div className="box-content">
-              <div className="blankslate p-y-2">
-                <h5>{t('Nothing forwarded in the last 30 days.')}</h5>
-                <p className="m-b-0">
-                  {t('Total events forwarded to third party integrations.')}
-                </p>
-              </div>
-            </div>}
-      </div>
+          ) : (
+            <div className="blankslate p-y-2">
+              <h5>{t('Nothing forwarded in the last 30 days.')}</h5>
+              <p className="m-b-0">
+                {t('Total events forwarded to third party integrations.')}
+              </p>
+            </div>
+          )}
+        </PanelBody>
+      </Panel>
     );
-  }
+  },
 });
 
-export default React.createClass({
+export default createReactClass({
+  displayName: 'projectDataForwarding',
   mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
@@ -96,7 +112,7 @@ export default React.createClass({
       loading: true,
       error: false,
       pluginList: [],
-      hooksDisabled: HookStore.get('project:data-forwarding:disabled')
+      hooksDisabled: HookStore.get('project:data-forwarding:disabled'),
     };
   },
 
@@ -111,15 +127,17 @@ export default React.createClass({
         this.setState({
           error: false,
           loading: false,
-          pluginList: data.filter(p => p.type === 'data-forwarding')
+          pluginList: data.filter(
+            p => p.type === 'data-forwarding' && p.hasConfiguration
+          ),
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
-      }
+      },
     });
   },
 
@@ -129,9 +147,9 @@ export default React.createClass({
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: true
+          enabled: true,
         };
-      })
+      }),
     });
   },
 
@@ -141,9 +159,9 @@ export default React.createClass({
         if (p.id !== plugin.id) return p;
         return {
           ...plugin,
-          enabled: false
+          enabled: false,
         };
-      })
+      }),
     });
   },
 
@@ -187,10 +205,11 @@ export default React.createClass({
 
   renderEmpty() {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
-        <p>{t('There are no integrations available for data forwarding.')}</p>
-      </div>
+      <Panel>
+        <EmptyStateWarning>
+          <p>{t('There are no integrations available for data forwarding.')}</p>
+        </EmptyStateWarning>
+      </Panel>
     );
   },
 
@@ -198,34 +217,37 @@ export default React.createClass({
     let {params} = this.props;
     return (
       <div className="ref-data-forwarding-settings">
-        <h1>{t('Data Forwarding')}</h1>
-        <div className="panel panel-default">
-          <div className="panel-body p-b-0">
-            <p>
+        <SettingsPageHeader title={t('Data Forwarding')} />
+
+        <TextBlock>
+          {t(
+            "Enable Data Forwarding to send processed events to your favorite business intelligence tools. The exact payload and types of data depend on the integration you're using."
+          )}
+        </TextBlock>
+
+        <TextBlock>
+          {tct('Learn more about this functionality in our [link:documentation].', {
+            link: <ExternalLink href="https://docs.sentry.io/learn/data-forwarding/" />,
+          })}
+        </TextBlock>
+
+        <TextBlock>
+          <small>
+            {tct(
+              `Note: Sentry will forward [em:all applicable events] to the
+              given provider, which in some situations may be a much more significant
+              volume of data.`,
               {
-                "Enable Data Forwarding to send processed events to your favorite business intelligence tools. The exact payload and types of data depend on the integration you're using."
+                em: <strong />,
               }
-            </p>
-            <p>
-              Learn more about this functionality in our
-              {' '}
-              <a href="https://docs.sentry.io/learn/data-forwarding/">documentation</a>
-              .
-            </p>
-            <p>
-              <small>
-                Note: Sentry will forward
-                {' '}
-                <strong>all applicable events</strong>
-                {' '}
-                to the given provider, which in some situations may be a much more significant volume of data.
-              </small>
-            </p>
-          </div>
-        </div>
+            )}
+          </small>
+        </TextBlock>
+
         <DataForwardingStats params={params} />
+
         {this.renderBody()}
       </div>
     );
-  }
+  },
 });

@@ -1,41 +1,34 @@
+import DocumentTitle from 'react-document-title';
 import React from 'react';
 import Reflux from 'reflux';
-import DocumentTitle from 'react-document-title';
+import createReactClass from 'create-react-class';
 import moment from 'moment';
 
-import ApiMixin from '../mixins/apiMixin';
-import HookStore from '../stores/hookStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
-import BroadcastModal from '../components/broadcastModal';
-import SentryTypes from '../proptypes';
-import TeamStore from '../stores/teamStore';
-import ProjectStore from '../stores/projectStore';
-import ProjectActions from '../actions/projectActions';
-import ConfigStore from '../stores/configStore';
-
-import OrganizationState from '../mixins/organizationState';
-
-import {t} from '../locale';
+import {setActiveOrganization} from 'app/actionCreators/organizations';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import BroadcastModal from 'app/components/broadcastModal';
+import ConfigStore from 'app/stores/configStore';
+import HookStore from 'app/stores/hookStore';
+import LoadingError from 'app/components/loadingError';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import ProjectActions from 'app/actions/projectActions';
+import ProjectsStore from 'app/stores/projectsStore';
+import SentryTypes from 'app/sentryTypes';
+import TeamStore from 'app/stores/teamStore';
 
 let ERROR_TYPES = {
-  ORG_NOT_FOUND: 'ORG_NOT_FOUND'
+  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
 };
 
-function getRequiredAdminActions(org) {
-  return [];
-}
+const OrganizationContext = createReactClass({
+  displayName: 'OrganizationContext',
 
-const OrganizationContext = React.createClass({
   childContextTypes: {
-    organization: SentryTypes.Organization
+    organization: SentryTypes.Organization,
   },
 
-  mixins: [
-    ApiMixin,
-    OrganizationState,
-    Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')
-  ],
+  mixins: [ApiMixin, Reflux.listenTo(ProjectActions.createSuccess, 'onProjectCreation')],
 
   getInitialState() {
     return {
@@ -43,13 +36,13 @@ const OrganizationContext = React.createClass({
       error: false,
       errorType: null,
       organization: null,
-      showBroadcast: false
+      showBroadcast: false,
     };
   },
 
   getChildContext() {
     return {
-      organization: this.state.organization
+      organization: this.state.organization,
     };
   },
 
@@ -90,22 +83,19 @@ const OrganizationContext = React.createClass({
           hooks.push(cb(data));
         });
 
-        data.requiredAdminActions = getRequiredAdminActions(data);
+        setActiveOrganization(data);
+
+        TeamStore.loadInitialData(data.teams);
+        ProjectsStore.loadInitialData(data.projects);
+
         this.setState({
           organization: data,
           loading: false,
           error: false,
           errorType: null,
           hooks,
-          showBroadcast: this.shouldShowBroadcast(data)
+          showBroadcast: this.shouldShowBroadcast(data),
         });
-
-        TeamStore.loadInitialData(data.teams);
-        ProjectStore.loadInitialData(
-          data.teams.reduce((out, team) => {
-            return out.concat(team.projects);
-          }, [])
-        );
       },
 
       error: (_, textStatus, errorThrown) => {
@@ -119,9 +109,9 @@ const OrganizationContext = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType
+          errorType,
         });
-      }
+      },
     });
   },
 
@@ -187,13 +177,14 @@ const OrganizationContext = React.createClass({
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {this.state.hooks}
-          {this.state.showBroadcast &&
-            <BroadcastModal closeBroadcast={this.closeBroadcast} />}
+          {this.state.showBroadcast && (
+            <BroadcastModal closeBroadcast={this.closeBroadcast} />
+          )}
           {this.props.children}
         </div>
       </DocumentTitle>
     );
-  }
+  },
 });
 
 export default OrganizationContext;

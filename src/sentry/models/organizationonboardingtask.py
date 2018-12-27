@@ -26,7 +26,7 @@ class OnboardingTask(object):
     SECOND_PLATFORM = 4  # dependent on FIRST_EVENT.
     USER_CONTEXT = 5  # dependent on FIRST_EVENT
     RELEASE_TRACKING = 6  # dependent on FIRST_EVENT
-    SOURCEMAPS = 7  # dependent on RELEASE_TRACKING and one of the platforms being javascript
+    SOURCEMAPS = 7  # dependent on RELEASE_TRACKING and one of the platforms being javascript or node
     USER_REPORTS = 8  # Only for web frameworks
     ISSUE_TRACKER = 9
     NOTIFICATION_SERVICE = 10

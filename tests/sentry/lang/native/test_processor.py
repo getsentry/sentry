@@ -22,10 +22,13 @@ SWIFT_OBJECT_NAME = (
     "SentryTest.app/Frameworks/libswiftCore.dylib"
 )
 
-SDK_INFO = {"sdk_name": "iOS", "version_major": 9, "version_minor": 3, "version_patchlevel": 0}
+SDK_INFO = {"sdk_name": "iOS", "version_major": 9,
+            "version_minor": 3, "version_patchlevel": 0}
 
 
 def patched_symbolize_app_frame(self, instruction_addr, img, sdk_info=None):
+    if instruction_addr != 4295123756:
+        return []
     return [
         {
             'filename': 'Foo.swift',
@@ -130,18 +133,20 @@ class BasicResolvingFileTest(TestCase):
                         "type":
                         "NSRangeException",
                         "mechanism": {
-                            "posix_signal": {
-                                "signal": 6,
-                                "code": 0,
-                                "name": "SIGABRT",
-                                "code_name": None
-                            },
-                            "type": "cocoa",
-                            "mach_exception": {
-                                "subcode": 0,
-                                "code": 0,
-                                "exception": 10,
-                                "exception_name": "EXC_CRASH"
+                            "type": "mach",
+                            "meta": {
+                                "signal": {
+                                    "number": 6,
+                                    "code": 0,
+                                    "name": "SIGABRT",
+                                    "code_name": None
+                                },
+                                "mach_exception": {
+                                    "subcode": 0,
+                                    "code": 0,
+                                    "exception": 10,
+                                    "name": "EXC_CRASH"
+                                }
                             }
                         },
                         "value": (
@@ -170,7 +175,8 @@ class BasicResolvingFileTest(TestCase):
         def make_processors(data, infos):
             return [NativeStacktraceProcessor(data, infos)]
 
-        event_data = process_stacktraces(event_data, make_processors=make_processors)
+        event_data = process_stacktraces(
+            event_data, make_processors=make_processors)
 
         bt = event_data['sentry.interfaces.Exception']['values'][0]['stacktrace']
         frames = bt['frames']
@@ -240,7 +246,6 @@ class BasicInAppTest(TestCase):
                     '2DA67FF5-2643-44D6-8FFF-1B6BC78C9912',
                 ]
             ),
-            cpu_name='arm64'
         )
 
         assert sym.is_in_app(4295121764)

@@ -1,18 +1,22 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {t} from '../locale';
+import createReactClass from 'create-react-class';
 
-const AvatarRadio = React.createClass({
+import {t} from 'app/locale';
+
+const AvatarRadio = createReactClass({
+  displayName: 'AvatarRadio',
+
   propTypes: {
     user: PropTypes.object.isRequired,
-    updateUser: PropTypes.func.isRequired
+    updateUser: PropTypes.func.isRequired,
   },
 
   OPTIONS: {
     upload: 'Upload a Photo',
     gravatar: 'Use Gravatar',
-    letter_avatar: 'Use my initials'
+    letter_avatar: 'Use my initials',
   },
 
   onChange(ev) {
@@ -42,12 +46,10 @@ const AvatarRadio = React.createClass({
     return (
       <div>
         <legend>{t('Avatar Type')}</legend>
-        <ul className="radio-inputs">
-          {radios}
-        </ul>
+        <ul className="radio-inputs">{radios}</ul>
       </div>
     );
-  }
+  },
 });
 
 export default AvatarRadio;

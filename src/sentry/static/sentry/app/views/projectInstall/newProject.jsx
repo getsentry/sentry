@@ -1,12 +1,14 @@
 import React from 'react';
+import createReactClass from 'create-react-class';
 import DocumentTitle from 'react-document-title';
 
-import OrganizationState from '../../mixins/organizationState';
+import OrganizationState from 'app/mixins/organizationState';
 
-import CreateProject from '../onboarding/createProject';
-import ProjectSelector from '../../components/projectHeader/projectSelector';
+import CreateProject from 'app/views/onboarding/createProject';
+import ProjectSelector from 'app/components/projectHeader/projectSelector';
 
-const NewProject = React.createClass({
+const NewProject = createReactClass({
+  displayName: 'NewProject',
   mixins: [OrganizationState],
 
   render() {
@@ -30,7 +32,7 @@ const NewProject = React.createClass({
         </div>
       </div>
     );
-  }
+  },
 });
 
 export default NewProject;

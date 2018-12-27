@@ -13,10 +13,13 @@ from sentry.utils.functional import apply_values
 
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
     def get(self, request, group):
-        # TODO(tkaemming): This should have a limit somewhere.
+        limit = request.GET.get('limit', None)
+        if limit is not None:
+            limit = int(limit) + 1  # the target group will always be included
+
         results = filter(
-            lambda (group_id, scores): group_id != group.id,
-            features.compare(group)
+            lambda group_id__scores: group_id__scores[0] != group.id,
+            features.compare(group, limit=limit)
         )
 
         serialized_groups = apply_values(
@@ -29,9 +32,9 @@ class GroupSimilarIssuesEndpoint(GroupEndpoint):
         # unexpected behavior, but still possible.)
         return Response(
             filter(
-                lambda (group_id, scores): group_id is not None,
+                lambda group_id__scores: group_id__scores[0] is not None,
                 map(
-                    lambda (group_id, scores): (serialized_groups.get(group_id), scores, ),
+                    lambda group_id__scores: (serialized_groups.get(group_id__scores[0]), group_id__scores[1], ),
                     results,
                 ),
             ),

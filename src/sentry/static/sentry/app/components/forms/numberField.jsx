@@ -1,15 +1,24 @@
 import PropTypes from 'prop-types';
-import InputField from './inputField';
+import InputField from 'app/components/forms/inputField';
 
 export default class NumberField extends InputField {
   static propTypes = {
     ...InputField.propTypes,
     min: PropTypes.number,
-    max: PropTypes.number
+    max: PropTypes.number,
   };
 
-  coerceValue(value) {
-    return parseInt(value, 10);
+  coerceValue(value, prevValue) {
+    let intValue = parseInt(value, 10);
+
+    // return previous value if new value is NaN, otherwise, will get recursive error
+    let isNewCoercedNaN = isNaN(intValue);
+
+    if (!isNewCoercedNaN) {
+      return intValue;
+    }
+
+    return '';
   }
 
   getType() {
@@ -19,7 +28,7 @@ export default class NumberField extends InputField {
   getAttributes() {
     return {
       min: this.props.min || undefined,
-      max: this.props.max || undefined
+      max: this.props.max || undefined,
     };
   }
 }

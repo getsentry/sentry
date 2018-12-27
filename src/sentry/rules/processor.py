@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 import logging
+import six
 
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from datetime import timedelta
 from django.utils import timezone
 
@@ -36,17 +37,16 @@ class EventCompatibilityProxy(object):
 class RuleProcessor(object):
     logger = logging.getLogger('sentry.rules')
 
-    def __init__(self, event, is_new, is_regression, is_sample):
+    def __init__(self, event, is_new, is_regression, is_new_group_environment):
         self.event = EventCompatibilityProxy(event)
         self.group = event.group
         self.project = event.project
 
         self.is_new = is_new
         self.is_regression = is_regression
-        # TODO(dcramer): lets remove is_sample
-        self.is_sample = is_sample
+        self.is_new_group_environment = is_new_group_environment
 
-        self.futures_by_cb = defaultdict(list)
+        self.grouped_futures = {}
 
     def get_rules(self):
         return Rule.get_for_project(self.project.id)
@@ -75,7 +75,7 @@ class RuleProcessor(object):
         return EventState(
             is_new=self.is_new,
             is_regression=self.is_regression,
-            is_sample=self.is_sample,
+            is_new_group_environment=self.is_new_group_environment,
         )
 
     def apply_rule(self, rule):
@@ -86,6 +86,10 @@ class RuleProcessor(object):
         # XXX(dcramer): if theres no condition should we really skip it,
         # or should we just apply it blindly?
         if not condition_list:
+            return
+
+        if rule.environment_id is not None \
+                and self.event.get_environment().id != rule.environment_id:
             return
 
         status = self.get_rule_status(rule)
@@ -135,11 +139,16 @@ class RuleProcessor(object):
                 continue
 
             for future in results:
-                self.futures_by_cb[future.callback
-                                   ].append(RuleFuture(rule=rule, kwargs=future.kwargs))
+                key = future.key if future.key is not None else future.callback
+                rule_future = RuleFuture(rule=rule, kwargs=future.kwargs)
+
+                if key not in self.grouped_futures:
+                    self.grouped_futures[key] = (future.callback, [rule_future])
+                else:
+                    self.grouped_futures[key][1].append(rule_future)
 
     def apply(self):
-        self.futures_by_cb = defaultdict(list)
+        self.grouped_futures.clear()
         for rule in self.get_rules():
             self.apply_rule(rule)
-        return list(self.futures_by_cb.items())
+        return six.itervalues(self.grouped_futures)

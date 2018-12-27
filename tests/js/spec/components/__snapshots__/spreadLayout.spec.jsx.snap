@@ -2,7 +2,7 @@
 
 exports[`SpreadLayout renders with multiple children 1`] = `
 <div
-  className="spread-layout"
+  className="spread-layout center"
 >
   <div>
     child #1
@@ -15,7 +15,7 @@ exports[`SpreadLayout renders with multiple children 1`] = `
 
 exports[`SpreadLayout renders with one child 1`] = `
 <div
-  className="spread-layout"
+  className="spread-layout center"
 >
   <div>
     child

@@ -20,11 +20,11 @@ describe('PasswordField', function() {
         context: {
           form: {
             data: {
-              fieldName: 'foobar'
+              fieldName: 'foobar',
             },
-            errors: {}
-          }
-        }
+            errors: {},
+          },
+        },
       });
       expect(wrapper).toMatchSnapshot();
     });

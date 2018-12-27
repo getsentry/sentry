@@ -2,28 +2,28 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group import GroupSerializer
 from sentry.models import (
     Group,
-    GroupCommitResolution,
+    GroupLink,
     GroupResolution,
     Release,
     ReleaseCommit,
 )
 
 
-class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
+class IssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
     doc_section = DocSection.RELEASES
     permission_classes = (ProjectPermission, )
 
     def get(self, request, project, version):
         """
         List issues to be resolved in a particular release
-        ````````````````````````
+        ``````````````````````````````````````````````````
 
         Retrieve a list of issues to be resolved in a given release.
 
@@ -45,8 +45,9 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
             ).values_list('group_id', flat=True)
         )
         group_ids |= set(
-            GroupCommitResolution.objects.filter(
-                commit_id__in=ReleaseCommit.objects.filter(
+            GroupLink.objects.filter(
+                linked_type=GroupLink.LinkedType.commit,
+                linked_id__in=ReleaseCommit.objects.filter(
                     release=release,
                 ).values_list(
                     'commit_id',
@@ -60,5 +61,12 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
 
         groups = Group.objects.filter(project=project, id__in=group_ids)
 
-        context = serialize(list(groups), request.user, StreamGroupSerializer(stats_period=None))
+        context = serialize(
+            list(groups),
+            request.user,
+            GroupSerializer(
+                environment_func=self._get_environment_func(request, project.organization_id)
+            )
+        )
+
         return Response(context)

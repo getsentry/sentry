@@ -2,6 +2,14 @@ from __future__ import absolute_import
 
 from rest_framework import permissions
 
+from sentry.api.exceptions import SuperuserRequired
+from sentry.auth.superuser import is_active_superuser
+
+
+class RelayPermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return getattr(request, 'relay', None) is not None
+
 
 class NoPermission(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -42,6 +50,8 @@ class ScopedPermission(permissions.BasePermission):
 
 class SuperuserPermission(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.is_superuser():
+        if is_active_superuser(request):
             return True
+        if request.user.is_authenticated() and request.user.is_superuser:
+            raise SuperuserRequired
         return False

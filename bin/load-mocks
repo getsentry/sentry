@@ -17,18 +17,17 @@ from django.utils import timezone
 from loremipsum import Generator
 from pytz import utc
 
-from sentry import buffer, roles
+from sentry import buffer, roles, tsdb
 from sentry.event_manager import HashDiscarded
 from sentry.models import (
-    Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy,
+    Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy, EventAttachment, Event,
     Environment, File, Group, GroupMeta, GroupRelease, GroupTombstone, Organization,
     OrganizationAccessRequest, OrganizationMember, Project, Release,
-    ReleaseCommit, ReleaseEnvironment, ReleaseFile, Repository, Team,
-    TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
+    ReleaseCommit, ReleaseEnvironment, ReleaseProjectEnvironment, ReleaseFile, Repository,
+    Team, TOMBSTONE_FIELDS_FROM_GROUP, User, UserReport
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
-from sentry.tsdb import backend as tsdb
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event
 from sentry.utils.samples import generate_user
@@ -57,6 +56,7 @@ ENVIRONMENTS = itertools.cycle([
     'staging',
     'alpha',
     'beta',
+    ''
 ])
 
 
@@ -76,10 +76,14 @@ def create_sample_event(*args, **kwargs):
             features.record([event])
             return event
 
+
 def generate_commits(user):
     commits = []
-    for i in range(random.randint(0, 20)):
-        filename = random.choice(loremipsum.words)
+    for i in range(random.randint(1, 20)):
+        if i == 1:
+            filename = 'raven/base.py'
+        else:
+            filename = random.choice(loremipsum.words) + '.js'
         if random.randint(0, 5) == 1:
             author = (user.name, user.email)
         else:
@@ -95,7 +99,7 @@ def generate_commits(user):
 
         commits.append({
             'key': sha1(uuid4().hex).hexdigest(),
-            'message': 'modified {}.js}',
+            'message': 'feat: Do something to {}\n{}'.format(filename, make_sentence()),
             'author': author,
             'files': [
                 (filename, 'M'),
@@ -161,6 +165,8 @@ def create_sample_time_series(event, release=None):
     if event is None:
         return
 
+    Event.objects.bind_nodes([event], 'data')
+
     group = event.group
 
     project = group.project
@@ -171,7 +177,7 @@ def create_sample_time_series(event, release=None):
 
     environment = Environment.get_or_create(
         project=project,
-        name=event.get_tag('environment') or ''
+        name=Environment.get_name_or_default(event.get_tag('environment')),
     )
 
     if release:
@@ -194,7 +200,7 @@ def create_sample_time_series(event, release=None):
         tsdb.incr_multi((
             (tsdb.models.project, project.id),
             (tsdb.models.group, group.id),
-        ), now, count)
+        ), now, count, environment_id=environment.id)
         tsdb.incr_multi((
             (tsdb.models.organization_total_received, project.organization_id),
             (tsdb.models.project_total_forwarded, project.id),
@@ -242,7 +248,7 @@ def create_sample_time_series(event, release=None):
         tsdb.incr_multi((
             (tsdb.models.project, group.project.id),
             (tsdb.models.group, group.id),
-        ), now, count)
+        ), now, count, environment_id=environment.id)
         tsdb.incr_multi((
             (tsdb.models.organization_total_received, project.organization_id),
             (tsdb.models.project_total_received, project.id),
@@ -343,7 +349,6 @@ def main(num_events=1, extra_events=False):
         for project_name in project_names:
             print('  > Mocking project {}'.format(project_name))
             project, _ = Project.objects.get_or_create(
-                team=team,
                 name=project_name,
                 defaults={
                     'organization': org,
@@ -351,6 +356,7 @@ def main(num_events=1, extra_events=False):
                     'flags': Project.flags.has_releases,
                 }
             )
+            project.add_team(team)
             if not project.first_event:
                 project.update(
                     first_event=project.date_added,
@@ -439,6 +445,21 @@ def main(num_events=1, extra_events=False):
                     order=commit_index,
                 )
 
+            # create an unreleased commit
+            Commit.objects.get_or_create(
+                organization_id=org.id,
+                repository_id=repo[0].id,
+                key=sha1(uuid4().hex).hexdigest(),
+                defaults={
+                    'author': CommitAuthor.objects.get_or_create(
+                        organization_id=org.id,
+                        email=user.email,
+                        defaults={'name': user.name}
+                    )[0],
+                    'message': 'feat: Do something to {}\n{}'.format(random.choice(loremipsum.words) + '.js', make_sentence()),
+                },
+            )[0]
+
             Activity.objects.create(
                 type=Activity.RELEASE,
                 project=project,
@@ -464,6 +485,13 @@ def main(num_events=1, extra_events=False):
                 total_deploys=Deploy.objects.filter(release=release).count(),
                 last_deploy_id=deploy.id,
                 authors=[six.text_type(a.id) for a in authors],
+            )
+
+            ReleaseProjectEnvironment.objects.create_or_update(
+                project=project,
+                environment=environment,
+                release=release,
+                defaults={'last_deploy_id': deploy.id}
             )
 
             Activity.objects.create(
@@ -501,6 +529,19 @@ def main(num_events=1, extra_events=False):
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
                     user=generate_user(),
+                )
+
+                EventAttachment.objects.create(
+                    project_id=project.id,
+                    group_id=event1.group_id,
+                    event_id=event1.event_id,
+                    name='example-logfile.txt',
+                    file=File.objects.get_or_create(
+                        name='example-logfile.txt',
+                        type='text/plain',
+                        checksum='abcde' * 8,
+                        size=13043,
+                    )[0],
                 )
 
                 event2 = create_sample_event(
@@ -564,7 +605,6 @@ def main(num_events=1, extra_events=False):
                         'message': 'Ooops!\nFixes {}'.format(event5.group.qualified_short_id),
                     },
                 )[0]
-
 
             create_sample_event(
                 project=project,

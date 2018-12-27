@@ -15,13 +15,14 @@ from raven.contrib.django.models import client as Raven
 from time import time
 from django.utils import timezone
 
+from sentry import reprocessing
 from sentry.cache import default_cache
-from sentry.filters.preprocess_hashes import get_raw_cache_key, hash_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.stacktraces import process_stacktraces, \
     should_process_for_stacktraces
+from sentry.utils.canonical import CanonicalKeyDict, CANONICAL_TYPES
 from sentry.utils.dates import to_datetime
 from sentry.models import ProjectOption, Activity, Project
 
@@ -30,6 +31,10 @@ info_logger = logging.getLogger('sentry.store')
 
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
+
+
+class RetryProcessing(Exception):
+    pass
 
 
 def should_process(data):
@@ -58,16 +63,13 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
         error_logger.error('preprocess.failed.empty', extra={'cache_key': cache_key})
         return
 
-    project_id = data['project']
+    data = CanonicalKeyDict(data)
+    project = data['project']
     Raven.tags_context({
-        'project': project_id,
+        'project': project,
     })
 
     if should_process(data):
-        # save another version of data for some projects to generate
-        # preprocessing hash that won't be modified by pipeline
-        hash_cache.set(get_raw_cache_key(project_id, data['event_id']), data)
-
         process_event.delay(cache_key=cache_key, start_time=start_time, event_id=event_id)
         return
 
@@ -75,7 +77,10 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_event):
     # so we can jump directly to save_event
     if cache_key:
         data = None
-    save_event.delay(cache_key=cache_key, data=data, start_time=start_time, event_id=event_id)
+    save_event.delay(
+        cache_key=cache_key, data=data, start_time=start_time, event_id=event_id,
+        project_id=project
+    )
 
 
 @instrumented_task(
@@ -102,7 +107,7 @@ def preprocess_event_from_reprocessing(
     )
 
 
-def _do_process_event(cache_key, start_time, event_id):
+def _do_process_event(cache_key, start_time, event_id, process_task):
     from sentry.plugins import plugins
 
     data = default_cache.get(cache_key)
@@ -112,11 +117,15 @@ def _do_process_event(cache_key, start_time, event_id):
         error_logger.error('process.failed.empty', extra={'cache_key': cache_key})
         return
 
+    data = CanonicalKeyDict(data)
     project = data['project']
     Raven.tags_context({
         'project': project,
     })
     has_changed = False
+
+    # Fetch the reprocessing revision
+    reprocessing_rev = reprocessing.get_reprocessing_revision(project)
 
     # Stacktrace based event processors.  These run before anything else.
     new_data = process_stacktraces(data)
@@ -140,14 +149,31 @@ def _do_process_event(cache_key, start_time, event_id):
 
     if has_changed:
         issues = data.get('processing_issues')
-        if issues and create_failed_event(
-            cache_key, project, list(issues.values()), event_id=event_id, start_time=start_time
-        ):
+        try:
+            if issues and create_failed_event(
+                cache_key, project, list(issues.values()),
+                event_id=event_id, start_time=start_time,
+                reprocessing_rev=reprocessing_rev
+            ):
+                return
+        except RetryProcessing:
+            # If `create_failed_event` indicates that we need to retry we
+            # invoke outselves again.  This happens when the reprocessing
+            # revision changed while we were processing.
+            process_task.delay(cache_key, start_time=start_time,
+                               event_id=event_id)
             return
 
+        # We cannot persist canonical types in the cache, so we need to
+        # downgrade this.
+        if isinstance(data, CANONICAL_TYPES):
+            data = dict(data.items())
         default_cache.set(cache_key, data, 3600)
 
-    save_event.delay(cache_key=cache_key, data=None, start_time=start_time, event_id=event_id)
+    save_event.delay(
+        cache_key=cache_key, data=None, start_time=start_time, event_id=event_id,
+        project_id=project
+    )
 
 
 @instrumented_task(
@@ -157,7 +183,7 @@ def _do_process_event(cache_key, start_time, event_id):
     soft_time_limit=60,
 )
 def process_event(cache_key, start_time=None, event_id=None, **kwargs):
-    return _do_process_event(cache_key, start_time, event_id)
+    return _do_process_event(cache_key, start_time, event_id, process_event)
 
 
 @instrumented_task(
@@ -167,7 +193,8 @@ def process_event(cache_key, start_time=None, event_id=None, **kwargs):
     soft_time_limit=60,
 )
 def process_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
-    return _do_process_event(cache_key, start_time, event_id)
+    return _do_process_event(cache_key, start_time, event_id,
+                             process_event_from_reprocessing)
 
 
 def delete_raw_event(project_id, event_id, allow_hint_clear=False):
@@ -194,13 +221,24 @@ def delete_raw_event(project_id, event_id, allow_hint_clear=False):
                 ProjectOption.objects.set_value(project, 'sentry:sent_failed_event_hint', False)
 
 
-def create_failed_event(cache_key, project_id, issues, event_id, start_time=None):
+def create_failed_event(cache_key, project_id, issues, event_id, start_time=None,
+                        reprocessing_rev=None):
     """If processing failed we put the original data from the cache into a
     raw event.  Returns `True` if a failed event was inserted
     """
     reprocessing_active = ProjectOption.objects.get_value(
         project_id, 'sentry:reprocessing_active', REPROCESSING_DEFAULT
     )
+
+    # In case there is reprocessing active but the current reprocessing
+    # revision is already different than when we started, we want to
+    # immediately retry the event.  This resolves the problem when
+    # otherwise a concurrent change of debug symbols might leave a
+    # reprocessing issue stuck in the project forever.
+    if reprocessing_active and \
+       reprocessing.get_reprocessing_revision(project_id, cached=False) != \
+       reprocessing_rev:
+        raise RetryProcessing()
 
     # The first time we encounter a failed event and the hint was cleared
     # we send a notification.
@@ -233,6 +271,7 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
         error_logger.error('process.failed_raw.empty', extra={'cache_key': cache_key})
         return True
 
+    data = CanonicalKeyDict(data)
     from sentry.models import RawEvent, ProcessingIssue
     raw_event = RawEvent.objects.create(
         project_id=project_id,
@@ -256,41 +295,87 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
 
 
 @instrumented_task(name='sentry.tasks.store.save_event', queue='events.save_event')
-def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwargs):
+def save_event(cache_key=None, data=None, start_time=None, event_id=None,
+               project_id=None, **kwargs):
     """
     Saves an event to the database.
     """
     from sentry.event_manager import HashDiscarded, EventManager
+    from sentry import quotas, tsdb
+    from sentry.models import ProjectKey
 
     if cache_key:
         data = default_cache.get(cache_key)
 
+    if data is not None:
+        data = CanonicalKeyDict(data)
+
     if event_id is None and data is not None:
         event_id = data['event_id']
 
-    if data is None:
+    # only when we come from reprocessing we get a project_id sent into
+    # the task.
+    if project_id is None:
+        project_id = data.pop('project')
+
+    delete_raw_event(project_id, event_id, allow_hint_clear=True)
+
+    # This covers two cases: where data is None because we did not manage
+    # to fetch it from the default cache or the empty dictionary was
+    # stored in the default cache.  The former happens if the event
+    # expired while being on the queue, the second happens on reprocessing
+    # if the raw event was deleted concurrently while we held on to
+    # it.  This causes the node store to delete the data and we end up
+    # fetching an empty dict.  We could in theory not invoke `save_event`
+    # in those cases but it's important that we always clean up the
+    # reprocessing reports correctly or they will screw up the UI.  So
+    # to future proof this correctly we just handle this case here.
+    if not data:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
         return
 
-    project = data.pop('project')
-
-    delete_raw_event(project, event_id, allow_hint_clear=True)
-
     Raven.tags_context({
-        'project': project,
+        'project': project_id,
     })
 
     try:
         manager = EventManager(data)
-        manager.save(project)
-    except HashDiscarded as exc:
-        # TODO(jess): remove this before it goes out to a wider audience
-        info_logger.info(
-            'discarded.hash', extra={
-                'project_id': project,
-                'description': exc.message,
-            }
+        manager.save(project_id)
+    except HashDiscarded:
+        increment_list = [
+            (tsdb.models.project_total_received_discarded, project_id),
+        ]
+
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            pass
+        else:
+            increment_list.extend([
+                (tsdb.models.project_total_blacklisted, project.id),
+                (tsdb.models.organization_total_blacklisted, project.organization_id),
+            ])
+
+            project_key = None
+            if data.get('key_id') is not None:
+                try:
+                    project_key = ProjectKey.objects.get_from_cache(id=data['key_id'])
+                except ProjectKey.DoesNotExist:
+                    pass
+                else:
+                    increment_list.append((tsdb.models.key_total_blacklisted, project_key.id))
+
+            quotas.refund(
+                project,
+                key=project_key,
+                timestamp=start_time,
+            )
+
+        tsdb.incr_multi(
+            increment_list,
+            timestamp=to_datetime(start_time) if start_time is not None else None,
         )
+
     finally:
         if cache_key:
             default_cache.delete(cache_key)

@@ -16,7 +16,7 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
     def get(self, request, organization, version):
         """
         Retrieve Files Changed in a Release's Commits
-        ````````````````````````
+        `````````````````````````````````````````````
 
         Retrieve a list of files that were changed in a given release's commits.
 

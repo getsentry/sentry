@@ -1,39 +1,37 @@
 /* eslint-env jest */
 import React from 'react';
 import {mount, shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
-
 import GroupSimilarView from 'app/views/groupSimilar/groupSimilarView';
-import {Client} from 'app/api';
+
 import issues from '../../mocks/issues';
 
-jest.mock('app/api');
 jest.mock('app/mixins/projectState', () => {
   return {
-    getFeatures: () => new Set(['callsigns']),
-    getProjectFeatures: () => new Set(['similarity-view'])
+    getFeatures: () => new Set([]),
+    getProjectFeatures: () => new Set(['similarity-view']),
   };
 });
 
 const scores = [
   {'exception:stacktrace:pairs': 0.375},
-  {'exception:stacktrace:pairs': 0.375},
   {'exception:stacktrace:pairs': 0.01264},
+  {'exception:stacktrace:pairs': 0.875},
   {
     'exception:stacktrace:application-chunks': 0.000235,
-    'exception:stacktrace:pairs': 0.001488
-  }
+    'exception:stacktrace:pairs': 0.001488,
+  },
 ];
 
 const mockData = {
-  similar: issues.map((issue, i) => [issue, scores[i]])
+  similar: issues.map((issue, i) => [issue, scores[i]]),
 };
 
 describe('Issues Similar View', function() {
-  beforeAll(function() {
-    Client.addMockResponse({
+  let mock;
+  beforeEach(function() {
+    mock = MockApiClient.addMockResponse({
       url: '/issues/groupId/similar/?limit=50',
-      body: mockData.similar
+      body: mockData.similar,
     });
   });
 
@@ -42,22 +40,22 @@ describe('Issues Similar View', function() {
       <GroupSimilarView params={{groupId: 'groupId'}} location={{}} />
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
-  it('renders with mocked data', function(done) {
+  it('renders with mocked data', async function() {
     let wrapper = mount(
       <GroupSimilarView
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{}}
-      />
+      />,
+      TestStubs.routerContext()
     );
 
-    wrapper.instance().componentDidUpdate = jest.fn(() => {
-      if (!wrapper.state('loading')) {
-        expect(toJson(wrapper)).toMatchSnapshot();
-        done();
-      }
-    });
+    await tick();
+    await tick();
+    wrapper.update();
+    expect(mock).toHaveBeenCalled();
+    expect(wrapper.find('GroupGroupingView')).toMatchSnapshot();
   });
 });

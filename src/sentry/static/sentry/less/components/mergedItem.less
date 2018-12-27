@@ -2,7 +2,7 @@
 
 .merged-list {
   border: 1px solid @trim;
-  border-bottom: none;
+  border-top: none;
 }
 
 .merged-group {
@@ -49,7 +49,6 @@
   }
 }
 
-
 .merged-collapse {
   cursor: pointer;
   padding: 0 10px;
@@ -66,12 +65,28 @@
 
 .merged-events-list {
   &.event-list {
+    overflow: hidden;
     border: none;
+
+    .event-details {
+      padding: 10px;
+      .event-message {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .fingerprint {
+    font-family: Monaco, monospace;
+    font-size: 11px;
+    margin-left: 5px;
+    padding-left: 5px;
   }
 }
 
-.fingerprint {
-  font-family: Monaco, monospace;
+.fingerprint-header {
+  font-weight: bold;
+  font-size: 14px;
 }
 
 .merged-toolbar {

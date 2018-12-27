@@ -6,5 +6,8 @@ from sentry.utils.services import LazyServiceWrapper
 
 from .base import SearchBackend  # NOQA
 
-backend = LazyServiceWrapper(SearchBackend, settings.SENTRY_SEARCH, settings.SENTRY_SEARCH_OPTIONS)
-backend.expose(locals())
+LazyServiceWrapper(
+    SearchBackend,
+    settings.SENTRY_SEARCH,
+    settings.SENTRY_SEARCH_OPTIONS,
+).expose(locals())

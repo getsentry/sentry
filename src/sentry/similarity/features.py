@@ -16,9 +16,9 @@ def get_application_chunks(exception):
     application code "chunks": blocks of contiguously called application code.
     """
     return map(
-        lambda (in_app, frames): list(frames),
+        lambda in_app__frames: list(in_app__frames[1]),
         itertools.ifilter(
-            lambda (in_app, frames): in_app,
+            lambda in_app__frames: in_app__frames[0],
             itertools.groupby(
                 exception.stacktrace.frames,
                 key=lambda frame: frame.in_app,
@@ -141,12 +141,16 @@ class FeatureSet(object):
             timestamp=int(to_timestamp(event.datetime)),
         )
 
-    def classify(self, events):
+    def classify(self, events, limit=None, thresholds=None):
         if not events:
             return []
 
+        if thresholds is None:
+            thresholds = {}
+
         scope = None
 
+        labels = []
         items = []
         for event in events:
             for label, features in self.extract(event).items():
@@ -172,40 +176,41 @@ class FeatureSet(object):
                     )
                 else:
                     if features:
-                        items.append((self.aliases[label], features, ))
-        return zip(
-            map(
-                lambda (alias, characteristics): self.aliases.get_key(alias),
-                items,
+                        items.append((self.aliases[label], thresholds.get(label, 0), features))
+                        labels.append(label)
+
+        return map(
+            lambda key__scores: (
+                int(key__scores[0]),
+                dict(zip(labels, key__scores[1])),
             ),
             self.index.classify(
                 scope,
                 items,
+                limit=limit,
                 timestamp=int(to_timestamp(event.datetime)),
             ),
         )
 
-    def compare(self, group):
+    def compare(self, group, limit=None, thresholds=None):
+        if thresholds is None:
+            thresholds = {}
+
         features = list(self.features.keys())
 
-        results = self.index.compare(
-            self.__get_scope(group.project),
-            self.__get_key(group),
-            [self.aliases[label] for label in features],
-        )
+        items = [(self.aliases[label], thresholds.get(label, 0), ) for label in features]
 
-        items = {}
-        for feature, result in zip(features, results):
-            for item, score in result:
-                items.setdefault(
-                    int(item),
-                    {},
-                )[feature] = score
-
-        return sorted(
-            items.items(),
-            key=lambda (id, features): sum(features.values()),
-            reverse=True,
+        return map(
+            lambda key__scores: (
+                int(key__scores[0]),
+                dict(zip(features, key__scores[1])),
+            ),
+            self.index.compare(
+                self.__get_scope(group.project),
+                self.__get_key(group),
+                items,
+                limit=limit,
+            ),
         )
 
     def merge(self, destination, sources, allow_unsafe=False):
@@ -265,8 +270,8 @@ class FeatureSet(object):
             [(self.aliases[label], key) for label in self.features.keys()],
         )
 
-    def flush(self, project=None):
+    def flush(self, project):
         return self.index.flush(
-            '*' if project is None else self.__get_scope(project),
+            self.__get_scope(project),
             self.aliases.values(),
         )

@@ -2,17 +2,16 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import _ from 'lodash';
 
-import Category from './category';
+import Category from 'app/components/events/interfaces/breadcrumbs/category';
 
-const CrumbTable = React.createClass({
-  propTypes: {
+class CrumbTable extends React.Component {
+  static propTypes = {
     crumb: PropTypes.object,
-    title: PropTypes.string,
     kvData: PropTypes.object,
-    summary: PropTypes.object
-  },
+    summary: PropTypes.object,
+  };
 
-  renderData() {
+  renderData = () => {
     if (!this.props.kvData) {
       return null;
     }
@@ -20,11 +19,13 @@ const CrumbTable = React.createClass({
       return (
         <tr key={key}>
           <td className="key">{key}</td>
-          <td className="value"><pre>{val + ''}</pre></td>
+          <td className="value">
+            <pre>{val + ''}</pre>
+          </td>
         </tr>
       );
     });
-  },
+  };
 
   render() {
     return (
@@ -44,6 +45,6 @@ const CrumbTable = React.createClass({
       </table>
     );
   }
-});
+}
 
 export default CrumbTable;

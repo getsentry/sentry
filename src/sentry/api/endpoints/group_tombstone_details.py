@@ -15,7 +15,7 @@ class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
     def delete(self, request, project, tombstone_id):
         """
         Remove a GroupTombstone
-        ```````````````
+        ```````````````````````
 
         Undiscards a group such that new events in that group will be captured.
         This does not restore any previous data.

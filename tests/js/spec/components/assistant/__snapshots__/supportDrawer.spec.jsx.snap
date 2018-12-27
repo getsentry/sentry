@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SupportDrawer renders cue 1`] = `
+<StyledCueContainer
+  className="assistant-cue"
+  onClick={[Function]}
+>
+  <CueIcon
+    hasGuide={false}
+  />
+  <StyledCueText>
+    Need Help?
+  </StyledCueText>
+</StyledCueContainer>
+`;

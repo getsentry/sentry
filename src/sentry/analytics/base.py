@@ -4,6 +4,7 @@ __all__ = ('Analytics', )
 
 import six
 
+from sentry.analytics.event import Event
 from sentry.utils.services import Service
 
 from .event_manager import default_manager
@@ -23,8 +24,10 @@ class Analytics(Service):
             event = self.event_manager.get(
                 event_or_event_type,
             ).from_instance(instance, **kwargs)
+        elif isinstance(event_or_event_type, Event):
+            event = event_or_event_type.from_instance(instance, **kwargs)
         else:
-            event = event_or_event_type
+            return
         self.record_event(event)
 
     def record_event(self, event):

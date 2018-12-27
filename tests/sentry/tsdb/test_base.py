@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division
 
+import itertools
 import mock
 import pytz
 
@@ -8,6 +9,7 @@ from datetime import datetime, timedelta
 from sentry.testutils import TestCase
 from sentry.tsdb.base import BaseTSDB, ONE_MINUTE, ONE_HOUR, ONE_DAY
 from sentry.utils.dates import to_timestamp
+from six.moves import xrange
 
 
 class BaseTSDBTest(TestCase):
@@ -103,3 +105,28 @@ class BaseTSDBTest(TestCase):
         assert self.tsdb.get_optimal_rollup_series(
             start, rollup=ONE_DAY
         ) == (ONE_DAY, [to_timestamp(datetime(2016, 8, 1, 0, tzinfo=pytz.utc))])
+
+    @mock.patch('django.utils.timezone.now')
+    def test_make_series_aligned_intervals(self, now):
+        now.return_value = datetime(2016, 8, 1, tzinfo=pytz.utc)
+
+        start = now() - timedelta(seconds=30)
+        assert self.tsdb.make_series(0, start) == [
+            (to_timestamp(start + timedelta(seconds=10) * i), 0) for i in xrange(4)
+        ]
+
+        start = now() - timedelta(minutes=30)
+        assert self.tsdb.make_series(lambda timestamp: 1, start) == [
+            (to_timestamp(start + timedelta(minutes=1) * i), 1) for i in xrange(31)
+        ]
+
+        counter = itertools.count()
+        start = now() - timedelta(hours=5)
+        assert self.tsdb.make_series(lambda timestamp: next(counter), start) == [
+            (to_timestamp(start + timedelta(hours=1) * i), i) for i in xrange(6)
+        ]
+
+        start = now() - timedelta(days=7)
+        assert self.tsdb.make_series(0, start) == [
+            (to_timestamp(start + timedelta(hours=24) * i), 0) for i in xrange(8)
+        ]

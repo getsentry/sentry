@@ -52,6 +52,12 @@ class UserTest(TestCase):
                 email='foo',
             ))
 
+    def test_id_long_dict(self):
+        u = User.to_python({
+            'id': {x: 'foobarbaz' for x in range(10)},  # dict longer than 128 chars
+        })
+        assert len(u.to_json()['id']) == 128
+
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())
         assert result.to_json() == self.interface.to_json()

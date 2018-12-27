@@ -1,41 +1,38 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import {Event} from '../../proptypes';
-import {t} from '../../locale';
-import MergedItem from './mergedItem';
-import MergedToolbar from './mergedToolbar';
-import Pagination from '../../components/pagination';
-import QueryCount from '../../components/queryCount';
+import {Event} from 'app/sentryTypes';
+import {t} from 'app/locale';
+import MergedItem from 'app/views/groupMerged/mergedItem';
+import MergedToolbar from 'app/views/groupMerged/mergedToolbar';
+import Pagination from 'app/components/pagination';
+import QueryCount from 'app/components/queryCount';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import {Panel} from 'app/components/panels';
 
-const MergedList = React.createClass({
-  propTypes: {
+class MergedList extends React.Component {
+  static propTypes = {
     onUnmerge: PropTypes.func.isRequired,
-    onCollapse: PropTypes.func.isRequired,
+    onToggleCollapse: PropTypes.func.isRequired,
     items: PropTypes.arrayOf(Event),
-    pageLinks: PropTypes.string
-  },
+    pageLinks: PropTypes.string,
+  };
 
-  renderEmpty() {
+  renderEmpty = () => {
     return (
-      <div className="box empty-stream">
-        <span className="icon icon-exclamation" />
+      <EmptyStateWarning>
         <p>{t("There don't seem to be any hashes for this issue.")}</p>
-      </div>
+      </EmptyStateWarning>
     );
-  },
+  };
 
   render() {
-    let {items, pageLinks, onCollapse, onUnmerge, ...otherProps} = this.props;
+    let {items, pageLinks, onToggleCollapse, onUnmerge, ...otherProps} = this.props;
     let itemsWithLatestEvent = items.filter(({latestEvent}) => !!latestEvent);
     let hasResults = itemsWithLatestEvent.length > 0;
 
     if (!hasResults) {
-      return (
-        <div className="merged-list-container">
-          {this.renderEmpty()}
-        </div>
-      );
+      return <Panel>{this.renderEmpty()}</Panel>;
     }
 
     return (
@@ -45,7 +42,11 @@ const MergedList = React.createClass({
           <QueryCount count={itemsWithLatestEvent.length} />
         </h2>
 
-        <MergedToolbar onCollapse={onCollapse} onUnmerge={onUnmerge} />
+        <MergedToolbar
+          {...otherProps}
+          onToggleCollapse={onToggleCollapse}
+          onUnmerge={onUnmerge}
+        />
 
         <div className="merged-list">
           {itemsWithLatestEvent.map(({id, latestEvent}) => (
@@ -63,6 +64,6 @@ const MergedList = React.createClass({
       </div>
     );
   }
-});
+}
 
 export default MergedList;

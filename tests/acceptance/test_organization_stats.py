@@ -9,21 +9,12 @@ class OrganizationStatsTest(AcceptanceTestCase):
     def setUp(self):
         super(OrganizationStatsTest, self).setUp()
         self.user = self.create_user('foo@example.com')
-        self.org = self.create_organization(
-            name='Rowdy Tiger',
-            owner=None,
-        )
-        self.team = self.create_team(organization=self.org, name='Mariachi Band')
+        self.org = self.create_organization(name='Org Name')
+        self.team = self.create_team(name='Team Name', organization=self.org, members=[self.user])
         self.project = self.create_project(
             organization=self.org,
-            team=self.team,
-            name='Bengal',
-        )
-        self.create_member(
-            user=self.user,
-            organization=self.org,
-            role='owner',
             teams=[self.team],
+            name='Project Name'
         )
         self.login_as(self.user)
         self.path = '/organizations/{}/stats/'.format(self.org.slug)

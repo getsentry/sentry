@@ -1,31 +1,36 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import _ from 'lodash';
 
-import {t} from '../locale';
-import ApiMixin from '../mixins/apiMixin';
-import ConfigStore from '../stores/configStore';
-import IndicatorStore from '../stores/indicatorStore';
-import LoadingIndicator from '../components/loadingIndicator';
-import {getOption, getOptionField, getForm} from '../options';
+import AsyncView from 'app/views/asyncView';
+import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
+import {ApiForm} from 'app/components/forms';
+import {getOptionField, getForm} from 'app/options';
 
-const InstallWizardSettings = React.createClass({
-  propTypes: {
-    options: PropTypes.object.isRequired,
-    formDisabled: PropTypes.bool,
-    onSubmit: PropTypes.func.isRequired
-  },
+export default class InstallWizard extends AsyncView {
+  static propTypes = {
+    onConfigured: PropTypes.func.isRequired,
+  };
 
-  getInitialState() {
-    let options = {...this.props.options};
-    let requiredOptions = Object.keys(
-      _.pickBy(options, option => {
-        return option.field.required && !option.field.disabled;
-      })
-    );
+  componentWillMount() {
+    super.componentWillMount();
+    jQuery(document.body).addClass('install-wizard');
+  }
+
+  componentWillUnmount() {
+    super.componentWillUnmount();
+    jQuery(document.body).removeClass('install-wizard');
+  }
+
+  getEndpoint() {
+    return '/internal/options/?query=is:required';
+  }
+
+  renderFormFields() {
+    let options = this.state.data;
     let missingOptions = new Set(
-      requiredOptions.filter(option => !options[option].field.isSet)
+      Object.keys(options).filter(option => !options[option].field.isSet)
     );
     // This is to handle the initial installation case.
     // Even if all options are filled out, we want to prompt to confirm
@@ -33,7 +38,7 @@ const InstallWizardSettings = React.createClass({
     // the backend only spit back all filled out options for
     // this case.
     if (missingOptions.size === 0) {
-      missingOptions = new Set(requiredOptions);
+      missingOptions = new Set(Object.keys(options));
     }
 
     // A mapping of option name to Field object
@@ -41,208 +46,35 @@ const InstallWizardSettings = React.createClass({
 
     for (let key of missingOptions) {
       let option = options[key];
-      if (!option.field.isSet) {
-        let o = getOption(key);
-        option.value = o.defaultValue ? o.defaultValue() : '';
-      }
-      fields[key] = getOptionField(
-        key,
-        option.field,
-        option.value,
-        this.onFieldChange.bind(this, key)
-      );
-      // options is used for submitting to the server, and we dont submit values
-      // that are deleted
       if (option.field.disabled) {
-        delete options[key];
+        continue;
       }
+      fields[key] = getOptionField(key, option.field);
     }
 
-    return {
-      options,
-      required: requiredOptions,
-      fields
-    };
-  },
-
-  onFieldChange(name, value) {
-    let options = {...this.state.options};
-    options[name].value = value;
-    this.setState({
-      options
-    });
-  },
-
-  onSubmit(e) {
-    e.preventDefault();
-    this.props.onSubmit(this.state.options);
-  },
-
-  render() {
-    let {fields, required, options} = this.state;
-    let formValid = !required.filter(
-      option => !options[option].field.allowEmpty && !options[option].value
-    ).length;
-    let disabled = !formValid || this.props.formDisabled;
-
-    return (
-      <form onSubmit={this.onSubmit}>
-        <p>
-          Welcome to Sentry, yo! Complete setup by filling out the required
-          configuration.
-        </p>
-
-        {getForm(fields)}
-
-        <div className="form-actions" style={{marginTop: 25}}>
-          <button className="btn btn-primary" disabled={disabled} type="submit">
-            {t('Continue')}
-          </button>
-        </div>
-      </form>
-    );
+    return getForm(fields);
   }
-});
 
-const InstallWizard = React.createClass({
-  propTypes: {
-    onConfigured: PropTypes.func.isRequired
-  },
-
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      options: {},
-      submitError: false,
-      submitErrorType: null,
-      submitInProgress: false
-    };
-  },
-
-  componentWillMount() {
-    this.fetchData();
-    jQuery(document.body).addClass('install-wizard');
-  },
-
-  componentWillUnmount() {
-    jQuery(document.body).removeClass('install-wizard');
-  },
-
-  remountComponent() {
-    this.setState(this.getInitialState(), this.fetchData);
-  },
-
-  fetchData(callback) {
-    // TODO(dcramer): ideally this would only be fetching options that aren't
-    // already configured
-    this.api.request('/internal/options/?query=is:required', {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          options: data,
-          loading: false,
-          error: false
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: false,
-          error: true
-        });
+  getInitialData() {
+    let options = this.state.data;
+    let data = {};
+    Object.keys(options).forEach(optionName => {
+      let option = options[optionName];
+      if (!option.field.isSet) {
+        data[optionName] = option.value;
       }
     });
-  },
+    return data;
+  }
 
-  onSubmit(options) {
-    this.setState({
-      submitInProgress: true,
-      submitError: false
-    });
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-
-    // We only want to send back the values which weren't disabled
-    let data = _.mapValues(
-      _.pickBy(options, option => !option.field.disabled),
-      option => option.value
-    );
-
-    // keys to cast as boolean, otherwise will throw server error
-    // see https://github.com/getsentry/sentry/issues/5699
-    ['mail.use-tls'].forEach(key => {
-      if (typeof data[key] !== 'undefined') {
-        data[key] = !!data[key];
-      }
-    });
-
-    this.api.request('/internal/options/', {
-      method: 'PUT',
-      data,
-      success: () => {
-        this.setState({
-          submitInProgress: false
-        });
-        this.props.onConfigured();
-      },
-      error: (xhr, textStatus, errorThrown) => {
-        let err = {};
-        try {
-          err = xhr.responseJSON;
-        } catch (ex) {
-          // ...
-        }
-        let errorMessage = '';
-        if (err.detail) {
-          // err.detail comes back on some API responses
-          // specifically on a failed CSRF
-          errorMessage = err.detail;
-        } else {
-          switch (err.error) {
-            case 'unknown_option':
-              errorMessage = t(
-                'An invalid option (%s) was passed to the server. Please report this issue to the Sentry team.',
-                err.errorDetail.option
-              );
-              break;
-            case 'invalid_type':
-              errorMessage = t(
-                'An invalid value for (%s) was passed to the server.',
-                err.errorDetail.option
-              );
-              break;
-            default:
-              errorMessage = t(
-                'An unknown error occurred. Please take a look at the service logs.'
-              );
-          }
-        }
-        this.setState({
-          submitInProgress: false,
-          submitError: true,
-          submitErrorMessage: errorMessage,
-          submitErrorType: err.error
-        });
-      },
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
-    });
-  },
+  getTitle() {
+    return t('Setup Sentry');
+  }
 
   render() {
-    let {
-      error,
-      loading,
-      options,
-      submitError,
-      submitErrorMessage,
-      submitInProgress
-    } = this.state;
     let version = ConfigStore.get('version');
     return (
-      <DocumentTitle title={t('Sentry Setup')}>
+      <DocumentTitle title={this.getTitle()}>
         <div className="app">
           <div className="pattern" />
           <div className="setup-wizard">
@@ -250,33 +82,41 @@ const InstallWizard = React.createClass({
               <span>{t('Welcome to Sentry')}</span>
               <small>{version.current}</small>
             </h1>
-            {loading
-              ? <LoadingIndicator>
-                  {t('Please wait while we load configuration.')}
-                </LoadingIndicator>
-              : error
-                  ? <div className="loading-error">
-                      <span className="icon-exclamation" />
-                      {t(
-                        'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
-                      )}
-                    </div>
-                  : <div>
-                      {submitError &&
-                        <div className="alert alert-block alert-error">
-                          {submitErrorMessage}
-                        </div>}
-                      <InstallWizardSettings
-                        options={options}
-                        onSubmit={this.onSubmit}
-                        formDisabled={submitInProgress}
-                      />
-                    </div>}
+            {this.state.loading
+              ? this.renderLoading()
+              : this.state.error
+                ? this.renderError(new Error('Unable to load all required endpoints'))
+                : this.renderBody()}
           </div>
         </div>
       </DocumentTitle>
     );
   }
-});
 
-export default InstallWizard;
+  renderError() {
+    return (
+      <div className="loading-error">
+        <span className="icon-exclamation" />
+        {t(
+          'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
+        )}
+      </div>
+    );
+  }
+
+  renderBody() {
+    return (
+      <ApiForm
+        apiMethod="PUT"
+        apiEndpoint={this.getEndpoint()}
+        submitLabel={t('Continue')}
+        initialData={this.getInitialData()}
+        onSubmitSuccess={this.props.onConfigured}
+      >
+        <p>{t('Complete setup by filling out the required configuration.')}</p>
+
+        {this.renderFormFields()}
+      </ApiForm>
+    );
+  }
+}

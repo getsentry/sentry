@@ -80,23 +80,34 @@ class ReleaseWebhookView(View):
         )
 
     def post(self, request, plugin_id, project_id, signature):
-        project = Project.objects.get_from_cache(id=project_id)
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            logger.warn('release-webhook.invalid-project', extra={
+                'project_id': project_id,
+                'plugin_id': plugin_id,
+            })
+            return HttpResponse(status=404)
 
-        logger.info('Incoming webhook for project_id=%s, plugin_id=%s', project_id, plugin_id)
+        logger.info('release-webhook.incoming', extra={
+            'project_id': project_id,
+            'plugin_id': plugin_id,
+        })
 
         token = ProjectOption.objects.get_value(project, 'sentry:release-token')
 
         if token is None:
-            logger.warn(
-                'No token for release hook project_id=%s, plugin_id=%s', project_id, plugin_id
-            )
+            logger.warn('release-webhook.missing-token', extra={
+                'project_id': project_id,
+                'plugin_id': plugin_id,
+            })
             return HttpResponse(status=403)
 
         if not self.verify(plugin_id, project_id, token, signature):
-            logger.warn(
-                'Unable to verify signature for release hook project_id=%s, plugin_id=%s',
-                project_id, plugin_id
-            )
+            logger.warn('release-webhook.invalid-signature', extra={
+                'project_id': project_id,
+                'plugin_id': plugin_id,
+            })
             return HttpResponse(status=403)
 
         if plugin_id == 'builtin':
@@ -104,10 +115,10 @@ class ReleaseWebhookView(View):
 
         plugin = plugins.get(plugin_id)
         if not plugin.is_enabled(project):
-            logger.warn(
-                'Disabled release hook received for project_id=%s, plugin_id=%s', project_id,
-                plugin_id
-            )
+            logger.warn('release-webhook.plugin-disabled', extra={
+                'project_id': project_id,
+                'plugin_id': plugin_id,
+            })
             return HttpResponse(status=403)
 
         cls = plugin.get_release_hook()

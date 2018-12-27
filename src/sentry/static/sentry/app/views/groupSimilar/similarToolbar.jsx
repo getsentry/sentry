@@ -1,33 +1,36 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
-import {t} from '../../locale';
-import GroupingStore from '../../stores/groupingStore';
+import {t} from 'app/locale';
+import GroupingStore from 'app/stores/groupingStore';
 
-import SpreadLayout from '../../components/spreadLayout';
-import FlowLayout from '../../components/flowLayout';
-import LinkWithConfirmation from '../../components/linkWithConfirmation';
-import Toolbar from '../../components/toolbar';
-import ToolbarHeader from '../../components/toolbarHeader';
+import SpreadLayout from 'app/components/spreadLayout';
+import FlowLayout from 'app/components/flowLayout';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
+import Toolbar from 'app/components/toolbar';
+import ToolbarHeader from 'app/components/toolbarHeader';
 
-const SimilarToolbar = React.createClass({
+const SimilarToolbar = createReactClass({
+  displayName: 'SimilarToolbar',
+
   propTypes: {
-    onMerge: PropTypes.func.isRequired
+    onMerge: PropTypes.func.isRequired,
   },
 
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
     return {
-      mergeCount: 0
+      mergeCount: 0,
     };
   },
 
   onGroupingUpdate({mergeList}) {
     if (mergeList && mergeList.size !== this.state.mergedCount) {
       this.setState({
-        mergeCount: mergeList.size
+        mergeCount: mergeList.size,
       });
     }
   },
@@ -45,7 +48,8 @@ const SimilarToolbar = React.createClass({
                   title={t(`Merging ${this.state.mergeCount} issues`)}
                   message={t('Are you sure you want to merge these issues?')}
                   className="btn btn-sm btn-default"
-                  onConfirm={onMerge}>
+                  onConfirm={onMerge}
+                >
                   {t('Merge')} ({this.state.mergeCount || 0})
                 </LinkWithConfirmation>
               </div>
@@ -66,7 +70,7 @@ const SimilarToolbar = React.createClass({
         </SpreadLayout>
       </Toolbar>
     );
-  }
+  },
 });
 
 export default SimilarToolbar;

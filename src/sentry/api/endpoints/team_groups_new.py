@@ -4,12 +4,13 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.response import Response
 
+from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.team import TeamEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import serialize, GroupSerializer
 from sentry.models import Group, GroupStatus, Project
 
 
-class TeamGroupsNewEndpoint(TeamEndpoint):
+class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
     def get(self, request, team):
         """
         Return a list of the newest groups for a given team.
@@ -41,4 +42,12 @@ class TeamGroupsNewEndpoint(TeamEndpoint):
         for group in group_list:
             group._project_cache = project_dict.get(group.project_id)
 
-        return Response(serialize(group_list, request.user))
+        return Response(
+            serialize(
+                group_list,
+                request.user,
+                GroupSerializer(
+                    environment_func=self._get_environment_func(request, team.organization_id)
+                )
+            )
+        )

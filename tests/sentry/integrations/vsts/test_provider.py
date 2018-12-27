@@ -1,0 +1,180 @@
+
+from __future__ import absolute_import
+from mock import Mock
+import responses
+from django.http import HttpRequest
+from sentry.identity.vsts.provider import VSTSOAuth2CallbackView, VSTSIdentityProvider
+from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
+from sentry.testutils import TestCase
+from six.moves.urllib.parse import parse_qs
+from sentry.utils.http import absolute_uri
+from sentry.models import Identity, IdentityProvider
+from time import time
+
+
+class TestVSTSOAuthCallbackView(TestCase):
+    @responses.activate
+    def test_exchange_token(self):
+        def redirect_url():
+            return 'https://app.vssps.visualstudio.com/oauth2/authorize'
+
+        view = VSTSOAuth2CallbackView(
+            access_token_url='https://app.vssps.visualstudio.com/oauth2/token',
+            client_id='vsts-client-id',
+            client_secret='vsts-client-secret',
+        )
+        request = Mock()
+        pipeline = Mock()
+
+        pipeline.redirect_url = redirect_url
+
+        responses.add(
+            responses.POST, 'https://app.vssps.visualstudio.com/oauth2/token',
+            json={
+                'access_token': 'xxxxxxxxx',
+                'token_type': 'jwt-bearer',
+                'expires_in': '3599',
+                'refresh_token': 'zzzzzzzzzz',
+            },
+        )
+
+        result = view.exchange_token(request, pipeline, 'oauth-code')
+        mock_request = responses.calls[0].request
+        req_params = parse_qs(mock_request.body)
+
+        assert req_params['grant_type'] == ['urn:ietf:params:oauth:grant-type:jwt-bearer']
+        assert req_params['assertion'] == ['oauth-code']
+        assert req_params['redirect_uri'] == ['https://app.vssps.visualstudio.com/oauth2/authorize']
+        assert req_params['client_assertion_type'] == [
+            'urn:ietf:params:oauth:client-assertion-type:jwt-bearer']
+        assert req_params['client_assertion'] == ['vsts-client-secret']
+
+        assert result['access_token'] == 'xxxxxxxxx'
+        assert result['token_type'] == 'jwt-bearer'
+        assert result['expires_in'] == '3599'
+        assert result['refresh_token'] == 'zzzzzzzzzz'
+
+
+class TestAccountConfigView(TestCase):
+    def setUp(self):
+        self.accounts = [
+            {
+                'AccountId': '1234567-89',
+                'NamespaceId': '00000000-0000-0000-0000-000000000000',
+                'AccountName': 'sentry',
+                'OrganizationName': None,
+                'AccountType': 0,
+                'AccountOwner': '00000000-0000-0000-0000-000000000000',
+                'CreatedBy': '00000000-0000-0000-0000-000000000000',
+                'CreatedDate': '0001-01-01T00:00:00',
+                'AccountStatus': 0,
+                'StatusReason': None,
+                'LastUpdatedBy': '00000000-0000-0000-0000-000000000000',
+                'Properties': {},
+            },
+            {
+                'AccountId': '1234567-8910',
+                'NamespaceId': '00000000-0000-0000-0000-000000000000',
+                'AccountName': 'sentry2',
+                'OrganizationName': None,
+                'AccountType': 0,
+                'AccountOwner': '00000000-0000-0000-0000-000000000000',
+                'CreatedBy': '00000000-0000-0000-0000-000000000000',
+                'CreatedDate': '0001-01-01T00:00:00',
+                'AccountStatus': 0,
+                'StatusReason': None,
+                'LastUpdatedBy': '00000000-0000-0000-0000-000000000000',
+                'Properties': {},
+            },
+
+        ]
+        responses.add(
+            responses.GET,
+            'https://app.vssps.visualstudio.com/_apis/accounts',
+            json=self.accounts,
+            status=200,
+
+        )
+
+    @responses.activate
+    def test_dispatch(self):
+        view = AccountConfigView()
+        request = HttpRequest()
+        request.POST = {'account': '1234567-8910'}
+
+        pipeline = Mock()
+        pipeline.state = {'accounts': self.accounts}
+        pipeline.fetch_state = lambda key: pipeline.state[key]
+        pipeline.bind_state = lambda name, value: pipeline.state.update({name: value})
+
+        view.dispatch(request, pipeline)
+
+        assert pipeline.fetch_state(key='instance') == 'sentry2.visualstudio.com'
+        assert pipeline.fetch_state(key='account') == self.accounts[1]
+        assert pipeline.next_step.call_count == 1
+
+    @responses.activate
+    def test_get_accounts(self):
+        view = AccountConfigView()
+        accounts = view.get_accounts('access-token')
+        assert accounts[0]['AccountName'] == 'sentry'
+        assert accounts[1]['AccountName'] == 'sentry2'
+
+    def test_account_form(self):
+        account_form = AccountForm(self.accounts)
+        assert account_form.fields['account'].choices == [
+            ('1234567-89', 'sentry'), ('1234567-8910', 'sentry2')]
+
+
+class VstsIdentityProviderTest(TestCase):
+
+    def setUp(self):
+        self.identity_provider_model = IdentityProvider.objects.create(type='vsts')
+        self.identity = Identity.objects.create(
+            idp=self.identity_provider_model,
+            user=self.user,
+            external_id='vsts_id',
+            data={
+                'access_token': '123456789',
+                'token_type': 'token_type',
+                'expires': 12345678,
+                'refresh_token': 'n354678',
+            }
+
+        )
+        self.provider = VSTSIdentityProvider()
+        self.client_secret = '12345678'
+        self.provider.get_oauth_client_secret = lambda: self.client_secret
+
+    def get_refresh_token_params(self):
+        refresh_token = 'wertyui'
+        params = self.provider.get_refresh_token_params(refresh_token)
+        assert params == {
+            'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+            'client_assertion': self.client_secret,
+            'grant_type': 'refresh_token',
+            'assertion': refresh_token,
+            'redirect_uri': absolute_uri(self.provider.oauth_redirect_url),
+        }
+
+    @responses.activate
+    def test_refresh_identity(self):
+        refresh_data = {
+            'access_token': 'access token for this user',
+            'token_type': 'type of token',
+            'expires': 1234567,
+            'refresh_token': 'new refresh token to use when the token has timed out',
+        }
+        responses.add(
+            responses.POST,
+            'https://app.vssps.visualstudio.com/oauth2/token',
+            json=refresh_data,
+        )
+        self.provider.refresh_identity(self.identity, redirect_url='redirect_url')
+
+        assert len(responses.calls) == 1
+
+        new_identity = Identity.objects.get(id=self.identity.id)
+        assert new_identity.data['access_token'] == refresh_data['access_token']
+        assert new_identity.data['token_type'] == refresh_data['token_type']
+        assert new_identity.data['expires'] <= int(time())

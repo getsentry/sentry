@@ -1,15 +1,15 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import ProjectContext from '../projects/projectContext';
-import ProjectDocsContext from './docsContext';
-import ProjectSelector from '../../components/projectHeader/projectSelector';
+import ProjectContext from 'app/views/projects/projectContext';
+import ProjectDocsContext from 'app/views/projectInstall/docsContext';
+import ProjectSelector from 'app/components/projectHeader/projectSelector';
 
-const GettingStartedBody = React.createClass({
-  contextTypes: {
+class GettingStartedBody extends React.Component {
+  static contextTypes = {
     project: PropTypes.object,
-    organization: PropTypes.object
-  },
+    organization: PropTypes.object,
+  };
 
   render() {
     let {project, organization} = this.context;
@@ -25,7 +25,7 @@ const GettingStartedBody = React.createClass({
             <ProjectDocsContext>
               {React.cloneElement(this.props.children, {
                 linkPath: (orgId, projectId, platform) =>
-                  `/${orgId}/${projectId}/getting-started/${platform}/`
+                  `/${orgId}/${projectId}/getting-started/${platform}/`,
               })}
             </ProjectDocsContext>
           </div>
@@ -33,19 +33,17 @@ const GettingStartedBody = React.createClass({
       </div>
     );
   }
-});
+}
 
-const GettingStarted = React.createClass({
+class GettingStarted extends React.Component {
   render() {
     let {projectId, orgId} = this.props.params;
     return (
       <ProjectContext orgId={orgId} projectId={projectId}>
-        <GettingStartedBody>
-          {this.props.children}
-        </GettingStartedBody>
+        <GettingStartedBody>{this.props.children}</GettingStartedBody>
       </ProjectContext>
     );
   }
-});
+}
 
 export default GettingStarted;

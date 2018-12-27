@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import zipfile
-from six import BytesIO
+from six import BytesIO, text_type
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse
@@ -43,14 +43,16 @@ class DSymFilesUploadTest(APITestCase):
         response = self.client.post(
             url, {
                 'file':
-                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+                SimpleUploadedFile('symbols.zip', out.getvalue(),
+                                   content_type='application/zip'),
             },
             format='multipart'
         )
 
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
-        assert response.data[0]['headers'] == {'Content-Type': 'text/x-proguard+plain'}
+        assert response.data[0]['headers'] == {
+            'Content-Type': 'text/x-proguard+plain'}
         assert response.data[0]['sha1'] == 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44'
         assert response.data[0]['uuid'] == PROGUARD_UUID
         assert response.data[0]['objectName'] == 'proguard-mapping'
@@ -78,14 +80,16 @@ class DSymFilesUploadTest(APITestCase):
         response = self.client.post(
             url, {
                 'file':
-                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+                SimpleUploadedFile('symbols.zip', out.getvalue(),
+                                   content_type='application/zip'),
             },
             format='multipart'
         )
 
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
-        assert response.data[0]['headers'] == {'Content-Type': 'text/x-proguard+plain'}
+        assert response.data[0]['headers'] == {
+            'Content-Type': 'text/x-proguard+plain'}
         assert response.data[0]['sha1'] == 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44'
         assert response.data[0]['uuid'] == PROGUARD_UUID
         assert response.data[0]['objectName'] == 'proguard-mapping'
@@ -120,7 +124,7 @@ class DSymFilesUploadTest(APITestCase):
         assert vdf.version == '1.0'
         assert vdf.build == '1'
         assert vdf.dsym_app.app_id == 'com.example.myapp'
-        assert vdf.dsym_file.uuid == PROGUARD_UUID
+        assert vdf.dsym_file.debug_id == PROGUARD_UUID
 
     def test_associate_proguard_dsym_no_build(self):
         project = self.create_project(name='foo')
@@ -143,14 +147,16 @@ class DSymFilesUploadTest(APITestCase):
         response = self.client.post(
             url, {
                 'file':
-                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+                SimpleUploadedFile('symbols.zip', out.getvalue(),
+                                   content_type='application/zip'),
             },
             format='multipart'
         )
 
         assert response.status_code == 201, response.content
         assert len(response.data) == 1
-        assert response.data[0]['headers'] == {'Content-Type': 'text/x-proguard+plain'}
+        assert response.data[0]['headers'] == {
+            'Content-Type': 'text/x-proguard+plain'}
         assert response.data[0]['sha1'] == 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44'
         assert response.data[0]['uuid'] == PROGUARD_UUID
         assert response.data[0]['objectName'] == 'proguard-mapping'
@@ -184,9 +190,9 @@ class DSymFilesUploadTest(APITestCase):
         assert vdf.version == '1.0'
         assert vdf.build is None
         assert vdf.dsym_app.app_id == 'com.example.myapp'
-        assert vdf.dsym_file.uuid == PROGUARD_UUID
+        assert vdf.dsym_file.debug_id == PROGUARD_UUID
 
-    def test_list_dsyms(self):
+    def test_dsyms_requests(self):
         project = self.create_project(name='foo')
 
         url = reverse(
@@ -207,7 +213,8 @@ class DSymFilesUploadTest(APITestCase):
         response = self.client.post(
             url, {
                 'file':
-                SimpleUploadedFile('symbols.zip', out.getvalue(), content_type='application/zip'),
+                SimpleUploadedFile('symbols.zip', out.getvalue(),
+                                   content_type='application/zip'),
             },
             format='multipart'
         )
@@ -238,6 +245,7 @@ class DSymFilesUploadTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data['associatedDsymFiles'][0]['uuid'] == PROGUARD_UUID
+        download_id = response.data['associatedDsymFiles'][0]['id']
 
         url = reverse(
             'sentry-api-0-dsym-files',
@@ -261,10 +269,29 @@ class DSymFilesUploadTest(APITestCase):
         assert dsym['build'] == '1'
         assert dsym['version'] == '1.0'
         assert dsym['dsym']['cpuName'] == 'any'
-        assert dsym['dsym']['headers'] == {'Content-Type': 'text/x-proguard+plain'}
+        assert dsym['dsym']['headers'] == {
+            'Content-Type': 'text/x-proguard+plain'}
         assert dsym['dsym']['objectName'] == 'proguard-mapping'
         assert dsym['dsym']['sha1'] == 'e6d3c5185dac63eddfdc1a5edfffa32d46103b44'
         assert dsym['dsym']['symbolType'] == 'proguard'
         assert dsym['dsym']['uuid'] == '6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1'
 
         assert response.data['unreferencedDebugSymbols'] == []
+
+        # Test download
+        response = self.client.get(url + "?download_id=" + download_id)
+
+        assert response.status_code == 200, response.content
+        assert response.get(
+            'Content-Disposition') == 'attachment; filename="' + PROGUARD_UUID + '.txt"'
+        assert response.get(
+            'Content-Length') == text_type(len(PROGUARD_SOURCE))
+        assert response.get('Content-Type') == 'application/octet-stream'
+        assert PROGUARD_SOURCE == BytesIO(
+            b"".join(response.streaming_content)).getvalue()
+
+        # Login user with no permissions
+        user_no_permission = self.create_user('baz@localhost', username='baz')
+        self.login_as(user=user_no_permission)
+        response = self.client.get(url + "?download_id=" + download_id)
+        assert response.status_code == 403, response.content

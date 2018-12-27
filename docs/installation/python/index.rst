@@ -21,7 +21,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
 
 If you're building from source you'll also need:
 
-* Node.js 4.0 or newer.
+* Node.js 8.0 or newer.
 
 Setting up an Environment
 -------------------------
@@ -111,7 +111,7 @@ Once your system is prepared, symlink your source into the virtualenv:
 
 .. code-block:: bash
 
-  $ python setup.py develop
+  $ pip install --editable .
 
 .. Note:: This command will install npm dependencies as well as compile
           static assets.

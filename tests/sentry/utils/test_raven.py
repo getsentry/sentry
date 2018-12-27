@@ -40,3 +40,24 @@ class SentryInternalClientTest(TestCase):
                 _, kwargs = send.call_args
                 # and got tagged properly
                 assert kwargs['tags']['install-id'] == 'abc123'
+
+    @patch.object(SentryInternalClient, 'is_enabled', Mock(return_value=True))
+    def test_encoding(self):
+
+        class NotJSONSerializable():
+            pass
+
+        sic = SentryInternalClient()
+        with self.tasks():
+            sic.send(**{
+                'sentry.interfaces.Message': {
+                    'message': 'check the req',
+                },
+                'extra': {
+                    'request': NotJSONSerializable()
+                },
+            })
+
+        event = Event.objects.get()
+        assert event.data['sentry.interfaces.Message']['message'] == 'check the req'
+        assert 'NotJSONSerializable' in event.data['extra']['request']

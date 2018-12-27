@@ -10,23 +10,13 @@
   <div class="page-header">
     <h2>
       {% trans "Remove Team" %}
-      <small>{{ team.name }}</small>
+      <small>#{{ team.slug }}</small>
     </h2>
   </div>
   <form action="" method="post">
     {% csrf_token %}
 
     <p><strong>{% trans "Removing this team is permanent and cannot be undone!" %}</strong></p>
-
-    {% if project_list %}
-      <p>{% trans "This will also remove all associated projects and events:" %}</p>
-
-      <ul>
-        {% for project in project_list %}
-          <li>{{ project.name }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
 
     {{ form|as_crispy_errors }}
 
@@ -35,8 +25,7 @@
     {% endfor %}
 
     <fieldset class="form-actions">
-      <button type="submit" class="btn btn-danger"
-              onclick="return confirm('Are you sure you want to remove this team?')">{% trans "Remove Team" %}</button>
+      <button type="submit" class="btn btn-danger">{% trans "Remove Team" %}</button>
       <a href="{% absolute_uri '/organizations/{}/teams/{}/settings/' team.organization.slug team.slug %}" class="btn btn-default">{% trans "Cancel" %}</a>
     </fieldset>
   </form>

@@ -1,7 +1,8 @@
 /* eslint-env jest */
-import React, {PropTypes} from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
+
 import {mount, shallow} from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 import GroupMergedView from 'app/views/groupMerged/groupMergedView';
 import {Client} from 'app/api';
@@ -10,7 +11,7 @@ import events from '../../mocks/events';
 jest.mock('app/api');
 jest.mock('app/mixins/projectState', () => {
   return {
-    getFeatures: () => new Set(['callsigns'])
+    getFeatures: () => new Set([]),
   };
 });
 
@@ -19,27 +20,27 @@ const mockData = {
     {
       latestEvent: events[0],
       state: 'unlocked',
-      id: '2c4887696f708c476a81ce4e834c4b02'
+      id: '2c4887696f708c476a81ce4e834c4b02',
     },
     {
       latestEvent: events[1],
       state: 'unlocked',
-      id: 'e05da55328a860b21f62e371f0a7507d'
-    }
-  ]
+      id: 'e05da55328a860b21f62e371f0a7507d',
+    },
+  ],
 };
 
 describe('Issues -> Merged View', function() {
   let context = {
     group: {
       id: 'id',
-      tags: []
-    }
+      tags: [],
+    },
   };
   beforeAll(function() {
     Client.addMockResponse({
       url: '/issues/groupId/hashes/?limit=50&query=',
-      body: mockData.merged
+      body: mockData.merged,
     });
   });
 
@@ -48,10 +49,11 @@ describe('Issues -> Merged View', function() {
       <GroupMergedView
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{query: {}}}
-      />
+      />,
+      TestStubs.routerContext()
     );
 
-    expect(toJson(component)).toMatchSnapshot();
+    expect(component).toMatchSnapshot();
   });
 
   it('renders with mocked data', function(done) {
@@ -60,17 +62,20 @@ describe('Issues -> Merged View', function() {
         params={{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
         location={{query: {}}}
       />,
-      {
-        context,
-        childContextTypes: {
-          group: PropTypes.object
-        }
-      }
+      TestStubs.routerContext([
+        {
+          group: context,
+        },
+        {
+          group: PropTypes.object,
+        },
+      ])
     );
 
     wrapper.instance().componentDidUpdate = jest.fn(() => {
       if (!wrapper.state('loading')) {
-        expect(toJson(wrapper)).toMatchSnapshot();
+        wrapper.update();
+        expect(wrapper).toMatchSnapshot();
         done();
       }
     });

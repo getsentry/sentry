@@ -280,6 +280,8 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         """
         return self.title
 
+    get_short_title = get_title
+
     def get_description(self):
         """
         Returns the description for this plugin. This is shown on the plugin configuration
@@ -504,6 +506,9 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
             )
         self.configure(project, request.DATA)
         return Response({'message': 'Successfully updated configuration.'})
+
+    def handle_signal(self, name, payload, **kwargs):
+        pass
 
 
 @six.add_metaclass(PluginMount)

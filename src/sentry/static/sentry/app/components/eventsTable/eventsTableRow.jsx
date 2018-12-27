@@ -3,29 +3,27 @@ import React from 'react';
 import {Link} from 'react-router';
 import classNames from 'classnames';
 
-import CustomPropTypes from '../../proptypes';
-import Avatar from '../../components/avatar';
-import DateTime from '../../components/dateTime';
-import deviceNameMapper from '../../utils/deviceNameMapper';
+import CustomPropTypes from 'app/sentryTypes';
+import Avatar from 'app/components/avatar';
+import DateTime from 'app/components/dateTime';
+import DeviceName from 'app/components/deviceName';
 
-import '../../../less/components/eventsTableRow.less';
+import 'app/../less/components/eventsTableRow.less';
 
-const EventsTableRow = React.createClass({
-  propTypes: {
+class EventsTableRow extends React.Component {
+  static propTypes = {
     hasUser: PropTypes.bool,
     truncate: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     event: CustomPropTypes.Event.isRequired,
-    tagList: PropTypes.arrayOf(CustomPropTypes.Tag)
-  },
+    tagList: PropTypes.arrayOf(CustomPropTypes.Tag),
+  };
 
-  getDefaultProps() {
-    return {truncate: false};
-  },
+  static defaultProps = {truncate: false};
 
-  getEventTitle(event) {
+  getEventTitle = event => {
     switch (event.type) {
       case 'error':
         if (event.metadata.type && event.metadata.value)
@@ -38,7 +36,7 @@ const EventsTableRow = React.createClass({
       default:
         return event.message.split('\n')[0];
     }
-  },
+  };
 
   render() {
     let {
@@ -49,7 +47,7 @@ const EventsTableRow = React.createClass({
       groupId,
       tagList,
       truncate,
-      hasUser
+      hasUser,
     } = this.props;
     let cx = classNames('events-table-row', className);
     let tagMap = {};
@@ -68,28 +66,28 @@ const EventsTableRow = React.createClass({
           </h5>
         </td>
 
-        {hasUser &&
+        {hasUser && (
           <td className="event-user table-user-info">
-            {event.user
-              ? <div>
-                  <Avatar
-                    user={event.user}
-                    size={64}
-                    className="avatar"
-                    gravatar={false}
-                  />
-                  {event.user.email}
-                </div>
-              : <span>—</span>}
-          </td>}
+            {event.user ? (
+              <div>
+                <Avatar user={event.user} size={24} className="avatar" gravatar={false} />
+                {event.user.email}
+              </div>
+            ) : (
+              <span>—</span>
+            )}
+          </td>
+        )}
 
         {tagList.map(tag => {
           return (
             <td key={tag.key}>
               <div className={truncate ? 'truncate' : ''}>
-                {tag.key === 'device'
-                  ? deviceNameMapper(tagMap[tag.key])
-                  : tagMap[tag.key]}
+                {tag.key === 'device' ? (
+                  <DeviceName>{tagMap[tag.key]}</DeviceName>
+                ) : (
+                  tagMap[tag.key]
+                )}
               </div>
             </td>
           );
@@ -97,6 +95,6 @@ const EventsTableRow = React.createClass({
       </tr>
     );
   }
-});
+}
 
 export default EventsTableRow;

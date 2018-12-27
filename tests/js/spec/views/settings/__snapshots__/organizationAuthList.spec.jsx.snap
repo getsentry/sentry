@@ -1,0 +1,155 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OrganizationAuthList renders 1`] = `
+<div
+  className="sso"
+>
+  <SettingsPageHeading
+    title="Authentication"
+  />
+  <Panel>
+    <PanelHeader>
+      Choose a provider
+    </PanelHeader>
+    <PanelBody
+      direction="column"
+      disablePadding={true}
+      flex={false}
+    >
+      <PanelAlert
+        m={0}
+        mb={0}
+        type="info"
+      >
+        <span
+          key="5"
+        >
+          <span
+            key="0"
+          >
+            Get started with Single Sign-on for your organization by
+                selecting a provider. Read more in our 
+          </span>
+          <ExternalLink
+            href="https://docs.sentry.io/learn/sso/"
+            key="2"
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            <span
+              key="1"
+            >
+              SSO documentation
+            </span>
+          </ExternalLink>
+          <span
+            key="3"
+          >
+            .
+          </span>
+        </span>
+      </PanelAlert>
+      <form
+        action="/organizations/org-slug/auth/configure/"
+        method="POST"
+      >
+        <input
+          name="csrfmiddlewaretoken"
+          type="hidden"
+          value={null}
+        />
+        <input
+          name="init"
+          type="hidden"
+          value="1"
+        />
+        <ProviderItem
+          key="dummy"
+          onConfigure={[Function]}
+          providerKey="dummy"
+          providerName="Dummy"
+        />
+      </form>
+    </PanelBody>
+  </Panel>
+</div>
+`;
+
+exports[`OrganizationAuthList renders with no providers 1`] = `
+<div
+  className="sso"
+>
+  <SettingsPageHeading
+    title="Authentication"
+  />
+  <Panel>
+    <PanelHeader>
+      Choose a provider
+    </PanelHeader>
+    <PanelBody
+      direction="column"
+      disablePadding={true}
+      flex={false}
+    >
+      <PanelAlert
+        m={0}
+        mb={0}
+        type="info"
+      >
+        <span
+          key="5"
+        >
+          <span
+            key="0"
+          >
+            Get started with Single Sign-on for your organization by
+                selecting a provider. Read more in our 
+          </span>
+          <ExternalLink
+            href="https://docs.sentry.io/learn/sso/"
+            key="2"
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            <span
+              key="1"
+            >
+              SSO documentation
+            </span>
+          </ExternalLink>
+          <span
+            key="3"
+          >
+            .
+          </span>
+        </span>
+      </PanelAlert>
+      <form
+        action="/organizations/org-slug/auth/configure/"
+        method="POST"
+      >
+        <input
+          name="csrfmiddlewaretoken"
+          type="hidden"
+          value={null}
+        />
+        <input
+          name="init"
+          type="hidden"
+          value="1"
+        />
+      </form>
+      <EmptyMessage
+        style={
+          Object {
+            "padding": 50,
+            "textAlign": "center",
+          }
+        }
+      >
+        No authentication providers are available.
+      </EmptyMessage>
+    </PanelBody>
+  </Panel>
+</div>
+`;

@@ -3,8 +3,8 @@ export function getTranslations(language) {
     '': {
       domain: 'the_domain',
       lang: 'en',
-      plural_forms: 'nplurals=2; plural=(n != 1);'
-    }
+      plural_forms: 'nplurals=2; plural=(n != 1);',
+    },
   };
 }
 

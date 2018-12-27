@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
-import six
-
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
+from sentry import tagstore
+from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import (GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, Group)
+from sentry.models import Environment, Group
 from sentry.utils.apidocs import scenario
 
 
@@ -21,7 +20,7 @@ def list_tag_details_scenario(runner):
     )
 
 
-class GroupTagKeyDetailsEndpoint(GroupEndpoint):
+class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     doc_section = DocSection.EVENTS
 
     # XXX: this scenario does not work for some inexplicable reasons
@@ -37,37 +36,34 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         :pparam string key: the tag key to look the values up for.
         :auth: required
         """
-        # XXX(dcramer): kill sentry prefix for internal reserved tags
-        if TagKey.is_reserved_key(key):
-            lookup_key = 'sentry:{0}'.format(key)
-        else:
-            lookup_key = key
+        lookup_key = tagstore.prefix_reserved_key(key)
 
         try:
-            tag_key = TagKey.objects.get(
-                project_id=group.project_id,
-                key=lookup_key,
-                status=TagKeyStatus.VISIBLE,
-            )
-        except TagKey.DoesNotExist:
+            environment_id = self._get_environment_id_from_request(
+                request, group.project.organization_id)
+        except Environment.DoesNotExist:
+            # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
 
         try:
-            group_tag_key = GroupTagKey.objects.get(
-                group_id=group.id,
-                key=lookup_key,
-            )
-        except GroupTagKey.DoesNotExist:
+            tag_key = tagstore.get_tag_key(group.project_id, environment_id, lookup_key)
+        except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 
-        total_values = GroupTagValue.get_value_count(group.id, lookup_key)
+        try:
+            group_tag_key = tagstore.get_group_tag_key(
+                group.project_id, group.id, environment_id, lookup_key)
+        except tagstore.GroupTagKeyNotFound:
+            raise ResourceDoesNotExist
 
-        top_values = GroupTagValue.get_top_values(group.id, lookup_key, limit=9)
+        total_values = tagstore.get_group_tag_value_count(
+            group.project_id, group.id, environment_id, lookup_key)
+        top_values = tagstore.get_top_group_tag_values(
+            group.project_id, group.id, environment_id, lookup_key, limit=9)
 
         data = {
-            'id': six.text_type(tag_key.id),
             'key': key,
-            'name': tag_key.get_label(),
+            'name': tagstore.get_tag_key_label(tag_key.key),
             'uniqueValues': group_tag_key.values_seen,
             'totalValues': total_values,
             'topValues': serialize(top_values, request.user),

@@ -9,7 +9,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 from requests.exceptions import HTTPError
 
-from sentry.exceptions import PluginError, PluginIdentityRequired
+from sentry.exceptions import InvalidIdentity, PluginError, PluginIdentityRequired
 from sentry.plugins import plugins
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -17,6 +17,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import (
     PluginSerializer, PluginWithConfigSerializer, serialize_field
 )
+from sentry.models import AuditLogEntryEvent
 from sentry.signals import plugin_enabled
 
 ERR_ALWAYS_ENABLED = 'This plugin is always enabled.'
@@ -46,7 +47,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
 
     def post(self, request, project, plugin_id):
         """
-        Enable plugin or Test plugin
+        Enable plugin, Test plugin or Reset plugin values
         """
         plugin = self._get_plugin(plugin_id)
 
@@ -66,10 +67,33 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                 test_results = 'No errors returned'
             return Response({'detail': test_results}, status=200)
 
+        if request.DATA.get('reset'):
+            plugin = self._get_plugin(plugin_id)
+            plugin.reset_options(project=project)
+            context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
+
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=project.id,
+                event=AuditLogEntryEvent.INTEGRATION_EDIT,
+                data={'integration': plugin_id, 'project': project.slug}
+            )
+
+            return Response(context, status=200)
+
         if not plugin.can_disable:
             return Response({'detail': ERR_ALWAYS_ENABLED}, status=400)
 
         plugin.enable(project)
+
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=AuditLogEntryEvent.INTEGRATION_ADD,
+            data={'integration': plugin_id, 'project': project.slug}
+        )
 
         return Response(status=201)
 
@@ -84,6 +108,14 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
 
         plugin.disable(project)
 
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=AuditLogEntryEvent.INTEGRATION_REMOVE,
+            data={'integration': plugin_id, 'project': project.slug}
+        )
+
         return Response(status=204)
 
     def put(self, request, project, plugin_id):
@@ -94,6 +126,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             for c in plugin.get_config(
                 project=project,
                 user=request.user,
+                initial=request.DATA,
             )
         ]
 
@@ -113,7 +146,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     value=value,
                     actor=request.user,
                 )
-            except (forms.ValidationError, serializers.ValidationError, PluginError) as e:
+            except (forms.ValidationError, serializers.ValidationError, InvalidIdentity, PluginError) as e:
                 errors[key] = e.message
 
             if not errors.get(key):
@@ -126,7 +159,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     config=cleaned,
                     actor=request.user,
                 )
-            except PluginError as e:
+            except (InvalidIdentity, PluginError) as e:
                 errors['__all__'] = e.message
 
         if errors:
@@ -152,5 +185,13 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         context = serialize(plugin, request.user, PluginWithConfigSerializer(project))
 
         plugin_enabled.send(plugin=plugin, project=project, user=request.user, sender=self)
+
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=AuditLogEntryEvent.INTEGRATION_EDIT,
+            data={'integration': plugin_id, 'project': project.slug}
+        )
 
         return Response(context)

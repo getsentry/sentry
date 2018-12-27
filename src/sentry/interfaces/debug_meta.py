@@ -6,7 +6,8 @@ import uuid
 __all__ = ('DebugMeta', )
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
-from sentry.utils.native import parse_addr
+
+from symbolic import parse_addr, normalize_debug_id
 
 image_types = {}
 
@@ -19,27 +20,51 @@ def imagetype(name):
     return decorator
 
 
+def _addr(x):
+    return '0x%x' % parse_addr(x)
+
+
+@imagetype('symbolic')
+def process_symbolic_image(image):
+    try:
+        symbolic_image = {
+            'id': normalize_debug_id(image.get('id')),
+            'image_addr': _addr(image.get('image_addr')),
+            'image_size': parse_addr(image['image_size']),
+            'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
+            'name': image.get('name'),
+        }
+
+        if image.get('arch') is not None:
+            symbolic_image['arch'] = image.get('arch')
+
+        return symbolic_image
+    except KeyError as e:
+        raise InterfaceValidationError('Missing value for symbolic image: %s' % e.args[0])
+
+
 @imagetype('apple')
 def process_apple_image(image):
-    def _addr(x):
-        return '0x%x' % parse_addr(x)
-
     try:
         apple_image = {
-            'cpu_type': image['cpu_type'],
-            'cpu_subtype': image['cpu_subtype'],
-            'image_addr': _addr(image['image_addr']),
+            'uuid': six.text_type(uuid.UUID(image['uuid'])),
+            'cpu_type': image.get('cpu_type'),
+            'cpu_subtype': image.get('cpu_subtype'),
+            'image_addr': _addr(image.get('image_addr')),
             'image_size': image['image_size'],
             'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
-            'name': image['name'],
-            'uuid': six.text_type(uuid.UUID(image['uuid']))
+            'name': image.get('name'),
         }
+
+        if image.get('arch') is not None:
+            apple_image['arch'] = image.get('arch')
         if image.get('major_version') is not None:
             apple_image['major_version'] = image['major_version']
         if image.get('minor_version') is not None:
             apple_image['minor_version'] = image['minor_version']
         if image.get('revision_version') is not None:
             apple_image['revision_version'] = image['revision_version']
+
         return apple_image
     except KeyError as e:
         raise InterfaceValidationError('Missing value for apple image: %s' % e.args[0])
@@ -73,14 +98,13 @@ class DebugMeta(Interface):
 
     @classmethod
     def to_python(cls, data):
-        if 'images' not in data:
-            raise InterfaceValidationError('Missing key "images"')
+        images = data.get('images', [])
         is_debug_build = data.get('is_debug_build')
         if is_debug_build is not None and not isinstance(is_debug_build, bool):
             raise InterfaceValidationError('Invalid value for "is_debug_build"')
 
         return cls(
-            images=[cls.normalize_image(x) for x in data['images']],
+            images=[cls.normalize_image(x) for x in images],
             sdk_info=cls.normalize_sdk_info(data.get('sdk_info')),
             is_debug_build=is_debug_build,
         )
@@ -94,7 +118,7 @@ class DebugMeta(Interface):
         if func is None:
             raise InterfaceValidationError('Unknown image type %r' % image)
         rv = func(image)
-        assert 'uuid' in rv, 'debug image normalizer did not produce a UUID'
+        assert 'uuid' in rv or 'id' in rv, 'debug image normalizer did not produce an identifier'
         rv['type'] = ty
         return rv
 

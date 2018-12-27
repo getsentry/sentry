@@ -9,9 +9,20 @@ from django.template.loader import render_to_string
 from exam import fixture
 
 from sentry.interfaces.base import InterfaceValidationError
-from sentry.interfaces.stacktrace import (Frame, Stacktrace, get_context, slim_frame_data)
+from sentry.interfaces.stacktrace import (Frame, Stacktrace, get_context, is_url, slim_frame_data)
 from sentry.models import Event
 from sentry.testutils import TestCase
+
+
+def test_is_url():
+    assert is_url('http://example.org/') is True
+    assert is_url('https://example.org/') is True
+    assert is_url('file:///tmp/filename') is True
+    assert is_url('applewebdata://00000000-0000-1000-8080-808080808080') is True
+    assert is_url('app:///index.bundle') is False   # react native
+    assert is_url('webpack:///./app/index.jsx') is False  # webpack bundle
+    assert is_url('data:,') is False
+    assert is_url('blob:\x00') is False
 
 
 class GetContextTest(TestCase):
@@ -252,7 +263,7 @@ class StacktraceTest(TestCase):
                 'function': 'call',
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(result, [
             '<module>',
             'call',
@@ -276,7 +287,7 @@ class StacktraceTest(TestCase):
                 'function': 'invoke'
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(result, [
             'sentry_clojure_example.core$_main$fn__<auto>',
             'invoke',
@@ -289,7 +300,7 @@ class StacktraceTest(TestCase):
                 'function': 'invoke'
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(
             result, [
                 'sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>',
@@ -307,7 +318,7 @@ class StacktraceTest(TestCase):
                 'jipJipManagementApplication'
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(
             result, [
                 'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
@@ -328,13 +339,53 @@ class StacktraceTest(TestCase):
                 'jipJipManagementApplication'
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(
             result, [
                 'invalid.gruml.talkytalkyhub.common.config.JipJipConfig'
                 '$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>'
                 '$$FastClassBySpringCGLIB$$<auto>',
                 'jipJipManagementApplication',
+            ]
+        )
+
+    def test_get_hash_ignores_javassist(self):
+        interface = Frame.to_python(
+            {
+                'module': 'com.example.api.entry.EntriesResource_$$_javassist_seam_74',
+                'function': 'fn',
+            }
+        )
+        result = interface.get_hash(platform='java')
+        self.assertEquals(
+            result, [
+                'com.example.api.entry.EntriesResource_$$_javassist<auto>', 'fn'
+            ]
+        )
+
+        interface = Frame.to_python(
+            {
+                'module': 'com.example.api.entry.EntriesResource_$$_javassist_74',
+                'function': 'fn',
+            }
+        )
+        result = interface.get_hash(platform='java')
+        self.assertEquals(
+            result, [
+                'com.example.api.entry.EntriesResource_$$_javassist<auto>', 'fn'
+            ]
+        )
+
+        interface = Frame.to_python(
+            {
+                'filename': 'EntriesResource_$$_javassist_seam_74.java',
+                'function': 'fn',
+            }
+        )
+        result = interface.get_hash(platform='java')
+        self.assertEquals(
+            result, [
+                'EntriesResource_$$_javassist<auto>.java', 'fn'
             ]
         )
 
@@ -345,7 +396,7 @@ class StacktraceTest(TestCase):
                 'function': 'invoke',
             }
         )
-        result = interface.get_hash()
+        result = interface.get_hash(platform='java')
         self.assertEquals(result, [
             'sun.reflect.GeneratedMethodAccessor',
             'invoke',
@@ -488,6 +539,105 @@ class StacktraceTest(TestCase):
         )
         result = interface.get_hash()
         assert result == []
+
+    def test_get_hash_ignores_module_if_page_url(self):
+        """
+        When the abs_path is a URL without a file extension, and the module is
+        a suffix of that URL, we should ignore the module. This takes care of a
+        raven-js issue where page URLs (not source filenames) are being used as
+        the module.
+        """
+
+        interface = Frame.to_python({
+            'filename': 'foo.py',
+            'abs_path': 'https://sentry.io/foo/bar/baz.js',
+            'module': 'foo/bar/baz',
+        })
+        result = interface.get_hash(platform='javascript')
+        assert result == ['foo/bar/baz']
+
+        interface = Frame.to_python({
+            'filename': 'foo.py',
+            'abs_path': 'https://sentry.io/foo/bar/baz',
+            'module': 'foo/bar/baz',
+        })
+        result = interface.get_hash(platform='javascript')
+        assert result == ['<module>']
+
+    def test_collapse_recursion(self):
+        interface = Stacktrace.to_python(
+            {
+                'frames': [
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'main',
+                        'in_app': False,
+                        'lineno': 13,
+                        'module': 'io.sentry.example.Application'
+                    },
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'normalFunc',
+                        'in_app': False,
+                        'lineno': 20,
+                        'module': 'io.sentry.example.Application'
+                    },
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'recurFunc',
+                        'in_app': False,
+                        'lineno': 27,
+                        'module': 'io.sentry.example.Application'
+                    },
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'recurFunc',
+                        'in_app': False,
+                        'lineno': 27,
+                        'module': 'io.sentry.example.Application'
+                    },
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'recurFunc',
+                        'in_app': False,
+                        'lineno': 27,
+                        'module': 'io.sentry.example.Application'
+                    },
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'recurFunc',
+                        'in_app': False,
+                        'lineno': 25,
+                        'module': 'io.sentry.example.Application'
+                    },
+                    {
+                        'abs_path': 'Application.java',
+                        'filename': 'Application.java',
+                        'function': 'throwError',
+                        'in_app': False,
+                        'lineno': 32,
+                        'module': 'io.sentry.example.Application'
+                    }
+                ]
+            }
+        )
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'io.sentry.example.Application', 'main',
+            'io.sentry.example.Application', 'normalFunc',
+            # first call to recursive function
+            'io.sentry.example.Application', 'recurFunc',
+            # (exact) recursive frames omitted here
+            # call from *different location* in recursive function
+            'io.sentry.example.Application', 'recurFunc',
+            'io.sentry.example.Application', 'throwError'
+        ])
 
     def test_get_hash_ignores_safari_native_code(self):
         interface = Frame.to_python(

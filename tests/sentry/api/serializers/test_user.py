@@ -7,7 +7,7 @@ import six
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
 from sentry.testutils import TestCase
-from sentry.models import AuthIdentity, AuthProvider, Authenticator, UserEmail
+from sentry.models import AuthIdentity, AuthProvider, Authenticator, UserEmail, UserPermission
 from sentry.models.authenticator import available_authenticators
 
 
@@ -44,6 +44,7 @@ class UserSerializerTest(TestCase):
 class DetailedUserSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()
+        UserPermission.objects.create(user=user, permission='foo')
 
         org = self.create_organization(owner=user)
 
@@ -74,3 +75,4 @@ class DetailedUserSerializerTest(TestCase):
         assert 'authenticators' in result
         assert len(result['authenticators']) == 1
         assert result['authenticators'][0]['id'] == six.text_type(auth.id)
+        assert result['permissions'] == ['foo']

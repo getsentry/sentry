@@ -55,7 +55,7 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
 
     def get_subject(self):
         return u'Processing Issues on {}'.format(
-            self.project.name,
+            self.project.slug
         )
 
     def get_template(self):

@@ -1,0 +1,19 @@
+{% spaceless %}
+{% autoescape off %}
+# New Feedback
+
+{{ report.name }} left a new comment:
+
+{{ report.comments }}
+
+
+## Details
+
+{{ group.message_short }}
+
+{{ link }}
+
+Unsubscribe: {{ unsubscribe_link }}
+
+{% endautoescape %}
+{% endspaceless %}

@@ -20,10 +20,10 @@ from six.moves.urllib.parse import urlparse
 
 from sentry.app import env
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
-from sentry.constants import VALID_PLATFORMS
 
 _ruby_anon_func = re.compile(r'_\d{2,}')
 _filename_version_re = re.compile(
@@ -37,12 +37,28 @@ _filename_version_re = re.compile(
 
 # Java Spring specific anonymous classes.
 # see: http://mydailyjava.blogspot.co.at/2013/11/cglib-missing-manual.html
-_java_enhancer_re = re.compile(r'''
-(\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?
-''', re.X)
+_java_cglib_enhancer_re = re.compile(r'''(\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?''', re.X)
+
+# Handle Javassist auto-generated classes and filenames:
+#   com.example.api.entry.EntriesResource_$$_javassist_74
+#   com.example.api.entry.EntriesResource_$$_javassist_seam_74
+#   EntriesResource_$$_javassist_seam_74.java
+_java_assist_enhancer_re = re.compile(r'''(\$\$_javassist)(?:_seam)?(?:_[0-9]+)?''', re.X)
 
 # Clojure anon functions are compiled down to myapp.mymodule$fn__12345
 _clojure_enhancer_re = re.compile(r'''(\$fn__)\d+''', re.X)
+
+# fields that need to be the same between frames for them to be considered
+# recursive calls
+RECURSION_COMPARISON_FIELDS = [
+    'abs_path',
+    'package',
+    'module',
+    'filename',
+    'function',
+    'lineno',
+    'colno',
+]
 
 
 def max_addr(cur, addr):
@@ -141,7 +157,7 @@ def is_newest_frame_first(event):
 
 
 def is_url(filename):
-    return filename.startswith(('file:', 'http:', 'https:'))
+    return filename.startswith(('file:', 'http:', 'https:', 'applewebdata:'))
 
 
 def remove_function_outliers(function):
@@ -171,15 +187,20 @@ def remove_filename_outliers(filename, platform=None):
     # contain things like /Users/foo/Dropbox/...
     if platform == 'cocoa':
         return posixpath.basename(filename)
+    elif platform == 'java':
+        filename = _java_assist_enhancer_re.sub(r'\1<auto>', filename)
     return _filename_version_re.sub('<version>/', filename)
 
 
-def remove_module_outliers(module):
+def remove_module_outliers(module, platform=None):
     """Remove things that augment the module but really should not."""
-    if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
-        return 'sun.reflect.GeneratedMethodAccessor'
-    module = _java_enhancer_re.sub(r'\1<auto>', module)
-    return _clojure_enhancer_re.sub(r'\1<auto>', module)
+    if platform == 'java':
+        if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
+            return 'sun.reflect.GeneratedMethodAccessor'
+        module = _java_cglib_enhancer_re.sub(r'\1<auto>', module)
+        module = _java_assist_enhancer_re.sub(r'\1<auto>', module)
+        module = _clojure_enhancer_re.sub(r'\1<auto>', module)
+    return module
 
 
 def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):
@@ -252,9 +273,25 @@ def handle_nan(value):
     return value
 
 
+def is_recursion(frame1, frame2):
+    "Returns a boolean indicating whether frames are recursive calls."
+    for field in RECURSION_COMPARISON_FIELDS:
+        if getattr(frame1, field, None) != getattr(frame2, field, None):
+            return False
+
+    return True
+
+
 class Frame(Interface):
+
+    path = 'frame'
+
     @classmethod
     def to_python(cls, data, raw=False):
+        is_valid, errors = validate_and_default_interface(data, cls.path)
+        if not is_valid:
+            raise InterfaceValidationError("Invalid stack frame data.")
+
         abs_path = data.get('abs_path')
         filename = data.get('filename')
         symbol = data.get('symbol')
@@ -269,11 +306,6 @@ class Frame(Interface):
         # For consistency reasons
         if symbol == '?':
             symbol = None
-
-        for name in ('abs_path', 'filename', 'symbol', 'function', 'module', 'package'):
-            v = data.get(name)
-            if v is not None and not isinstance(v, six.string_types):
-                raise InterfaceValidationError("Invalid value for '%s'" % name)
 
         # Some of this processing should only be done for non raw frames
         if not raw:
@@ -293,15 +325,12 @@ class Frame(Interface):
                 else:
                     filename = abs_path
 
-            if not (filename or function or module or package):
-                raise InterfaceValidationError(
-                    "No 'filename' or 'function' or "
-                    "'module' or 'package'"
-                )
+        if not (filename or function or module or package):
+            raise InterfaceValidationError(
+                "No 'filename' or 'function' or 'module' or 'package'"
+            )
 
         platform = data.get('platform')
-        if platform not in VALID_PLATFORMS:
-            platform = None
 
         context_locals = data.get('vars') or {}
         if isinstance(context_locals, (list, tuple)):
@@ -329,10 +358,7 @@ class Frame(Interface):
         else:
             pre_context, post_context = None, None
 
-        try:
-            in_app = validate_bool(data.get('in_app'), False)
-        except AssertionError:
-            raise InterfaceValidationError("Invalid value for 'in_app'")
+        in_app = validate_bool(data.get('in_app'), False)
 
         kwargs = {
             'abs_path': trim(abs_path, 2048),
@@ -389,10 +415,10 @@ class Frame(Interface):
             return output
 
         if self.module:
-            if self.is_unhashable_module():
+            if self.is_unhashable_module(platform):
                 output.append('<module>')
             else:
-                output.append(remove_module_outliers(self.module))
+                output.append(remove_module_outliers(self.module, platform))
         elif self.filename and not self.is_url() and not self.is_caused_by():
             output.append(remove_filename_outliers(self.filename, platform))
 
@@ -501,9 +527,15 @@ class Frame(Interface):
         # values (see raven-java#125)
         return self.filename.startswith('Caused by: ')
 
-    def is_unhashable_module(self):
-        # TODO(dcramer): this is Java specific
-        return '$$Lambda$' in self.module
+    def is_unhashable_module(self, platform):
+        # Fix for the case where module is a partial copy of the URL
+        # and should not be hashed
+        if (platform == 'javascript' and '/' in self.module
+                and self.abs_path and self.abs_path.endswith(self.module)):
+            return True
+        elif platform == 'java' and '$$Lambda$' in self.module:
+            return True
+        return False
 
     def is_unhashable_function(self):
         # TODO(dcramer): lambda$ is Java specific
@@ -541,7 +573,7 @@ class Frame(Interface):
         fileloc = self.module or self.filename
         if not fileloc:
             return ''
-        elif platform == 'javascript':
+        elif platform in ('javascript', 'node'):
             # function and fileloc might be unicode here, so let it coerce
             # to a unicode string if needed.
             return '%s(%s)' % (self.function or '?', fileloc)
@@ -648,17 +680,16 @@ class Stacktrace(Interface):
               to the full interface path.
     """
     score = 2000
+    path = 'sentry.interfaces.Stacktrace'
 
     def __iter__(self):
         return iter(self.frames)
 
     @classmethod
     def to_python(cls, data, slim_frames=True, raw=False):
-        if not data.get('frames'):
-            raise InterfaceValidationError("No 'frames' present")
-
-        if not isinstance(data['frames'], list):
-            raise InterfaceValidationError("Invalid value for 'frames'")
+        is_valid, errors = validate_and_default_interface(data, cls.path)
+        if not is_valid:
+            raise InterfaceValidationError("Invalid stack frame data.")
 
         frame_list = [
             # XXX(dcramer): handle PHP sending an empty array for a frame
@@ -674,8 +705,6 @@ class Stacktrace(Interface):
             kwargs['registers'] = data.get('registers')
 
         if data.get('frames_omitted'):
-            if len(data['frames_omitted']) != 2:
-                raise InterfaceValidationError("Invalid value for 'frames_omitted'")
             kwargs['frames_omitted'] = data['frames_omitted']
         else:
             kwargs['frames_omitted'] = None
@@ -721,7 +750,7 @@ class Stacktrace(Interface):
         }
 
     def get_path(self):
-        return 'sentry.interfaces.Stacktrace'
+        return self.path
 
     def compute_hashes(self, platform):
         system_hash = self.get_hash(platform, system_frames=True)
@@ -757,9 +786,20 @@ class Stacktrace(Interface):
             if len(frames) / float(total_frames) < 0.10:
                 return []
 
+        if not frames:
+            return []
+
         output = []
-        for frame in frames:
-            output.extend(frame.get_hash(platform))
+
+        # stacktraces that only differ by the number of recursive calls should
+        # hash the same, so we squash recursive calls by comparing each frame
+        # to the previous frame
+        output.extend(frames[0].get_hash(platform))
+        prev_frame = frames[0]
+        for frame in frames[1:]:
+            if not is_recursion(frame, prev_frame):
+                output.extend(frame.get_hash(platform))
+            prev_frame = frame
         return output
 
     def to_string(self, event, is_public=False, **kwargs):

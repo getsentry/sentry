@@ -94,12 +94,17 @@ def get_react_config(context):
 
     if user:
         user = extract_lazy_object(user)
+        is_superuser = user.is_superuser
 
     enabled_features = []
     if features.has('organizations:create', actor=user):
         enabled_features.append('organizations:create')
     if auth.has_user_registration():
         enabled_features.append('auth:register')
+    if features.has('user:assistant', actor=user):
+        enabled_features.append('assistant')
+    if features.has('user:install-experiment', actor=user):
+        enabled_features.append('install-experiment')
 
     version_info = _get_version_info()
 
@@ -123,7 +128,10 @@ def get_react_config(context):
             'level': msg.tags,
         } for msg in messages],
         'isOnPremise': settings.SENTRY_ONPREMISE,
+        'invitesEnabled': settings.SENTRY_ENABLE_INVITES,
         'gravatarBaseUrl': settings.SENTRY_GRAVATAR_BASE_URL,
+        'termsUrl': settings.TERMS_URL,
+        'privacyUrl': settings.PRIVACY_URL,
     }
     if user and user.is_authenticated():
         context.update({

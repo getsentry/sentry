@@ -380,6 +380,16 @@ def get_stacktrace_processing_task(infos, processors):
     )
 
 
+def dedup_errors(errors):
+    # This operation scales bad but we do not expect that many items to
+    # end up in rv, so that should be okay enough to do.
+    rv = []
+    for error in errors:
+        if error not in rv:
+            rv.append(error)
+    return rv
+
+
 def process_stacktraces(data, make_processors=None):
     infos = find_stacktraces_in_data(data)
     if make_processors is None:
@@ -418,7 +428,7 @@ def process_stacktraces(data, make_processors=None):
                 )
                 changed = True
             if errors:
-                data.setdefault('errors', []).extend(errors)
+                data.setdefault('errors', []).extend(dedup_errors(errors))
                 changed = True
 
     finally:

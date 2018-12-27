@@ -7,12 +7,15 @@ from sentry.stacktraces import find_stacktraces_in_data
 
 from .processor import JavaScriptStacktraceProcessor
 from .errormapping import rewrite_exception
+from .errorlocale import translate_exception
 
 
 def preprocess_event(data):
     rewrite_exception(data)
+    translate_exception(data)
     fix_culprit(data)
-    inject_device_data(data)
+    if data.get('platform') == 'javascript':
+        inject_device_data(data)
     generate_modules(data)
     return data
 
@@ -23,7 +26,7 @@ def generate_modules(data):
     for info in find_stacktraces_in_data(data):
         for frame in info.stacktrace['frames']:
             platform = frame.get('platform') or data['platform']
-            if platform != 'javascript' or frame.get('module'):
+            if platform not in ('javascript', 'node') or frame.get('module'):
                 continue
             abs_path = frame.get('abs_path')
             if abs_path and abs_path.startswith(('http:', 'https:', 'webpack:', 'app:')):
@@ -129,10 +132,10 @@ class JavascriptPlugin(Plugin2):
     def get_event_preprocessors(self, data, **kwargs):
         # XXX: rewrite_exception we probably also want if the event
         # platform is something else? unsure
-        if data.get('platform') == 'javascript':
+        if data.get('platform') in ('javascript', 'node'):
             return [preprocess_event]
         return []
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
-        if 'javascript' in platforms:
+        if 'javascript' in platforms or 'node' in platforms:
             return [JavaScriptStacktraceProcessor]

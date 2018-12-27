@@ -6,9 +6,10 @@ import classNames from 'classnames';
 //
 // Intended for children.length == 2
 // "responsive" will change flex-direction to be column on small widths
-const SpreadLayout = ({children, className, responsive, ...props}) => {
+const SpreadLayout = ({children, className, responsive, center, ...props}) => {
   const cx = classNames('spread-layout', className, {
-    'allow-responsive': responsive
+    center,
+    'allow-responsive': responsive,
   });
 
   return (
@@ -18,10 +19,16 @@ const SpreadLayout = ({children, className, responsive, ...props}) => {
   );
 };
 
+SpreadLayout.defaultProps = {
+  responsive: false,
+  center: true,
+};
+
 SpreadLayout.propTypes = {
   children: PropTypes.node,
   style: PropTypes.object,
-  responsive: PropTypes.bool
+  center: PropTypes.bool,
+  responsive: PropTypes.bool,
 };
 
 export default SpreadLayout;

@@ -13,6 +13,7 @@ from multiprocessing import cpu_count
 import click
 
 from sentry.runner.decorators import configuration, log_options
+from sentry.bgtasks.api import managed_bgtasks
 
 
 class AddressParamType(click.ParamType):
@@ -111,11 +112,12 @@ def web(bind, workers, upgrade, with_lock, noinput):
                 raise
 
     from sentry.services.http import SentryHTTPServer
-    SentryHTTPServer(
-        host=bind[0],
-        port=bind[1],
-        workers=workers,
-    ).run()
+    with managed_bgtasks(role='web'):
+        SentryHTTPServer(
+            host=bind[0],
+            port=bind[1],
+            workers=workers,
+        ).run()
 
 
 @run.command()
@@ -137,10 +139,11 @@ def smtp(bind, upgrade, noinput):
         )
 
     from sentry.services.smtp import SentrySMTPServer
-    SentrySMTPServer(
-        host=bind[0],
-        port=bind[1],
-    ).run()
+    with managed_bgtasks(role='smtp'):
+        SentrySMTPServer(
+            host=bind[0],
+            port=bind[1],
+        ).run()
 
 
 @run.command()
@@ -194,21 +197,22 @@ def worker(**options):
         )
 
     from sentry.celery import app
-    worker = app.Worker(
-        # without_gossip=True,
-        # without_mingle=True,
-        # without_heartbeat=True,
-        pool_cls='processes',
-        **options
-    )
-    worker.start()
-    try:
-        sys.exit(worker.exitcode)
-    except AttributeError:
-        # `worker.exitcode` was added in a newer version of Celery:
-        # https://github.com/celery/celery/commit/dc28e8a5
-        # so this is an attempt to be forwards compatible
-        pass
+    with managed_bgtasks(role='worker'):
+        worker = app.Worker(
+            # without_gossip=True,
+            # without_mingle=True,
+            # without_heartbeat=True,
+            pool_cls='processes',
+            **options
+        )
+        worker.start()
+        try:
+            sys.exit(worker.exitcode)
+        except AttributeError:
+            # `worker.exitcode` was added in a newer version of Celery:
+            # https://github.com/celery/celery/commit/dc28e8a5
+            # so this is an attempt to be forwards compatible
+            pass
 
 
 @run.command()
@@ -240,9 +244,10 @@ def cron(**options):
         )
 
     from sentry.celery import app
-    app.Beat(
-        # without_gossip=True,
-        # without_mingle=True,
-        # without_heartbeat=True,
-        **options
-    ).run()
+    with managed_bgtasks(role='cron'):
+        app.Beat(
+            # without_gossip=True,
+            # without_mingle=True,
+            # without_heartbeat=True,
+            **options
+        ).run()

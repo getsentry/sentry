@@ -1,5 +1,6 @@
 {% extends "sentry/emails/base.html" %}
 
+{% load sentry_avatars %}
 {% load sentry_helpers %}
 {% load i18n %}
 
@@ -15,6 +16,7 @@
 {% block main %}
     <h2 style="margin-bottom: 15px">
         New alert from <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}">{{ project_label }}</a>
+        {% if environment %} in {{ environment }}{% endif %}
     </h2>
 
     {% if enhanced_privacy %}
@@ -87,6 +89,29 @@
         <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e" }}</div>
       </div>
 
+      {% if commits %}
+      <div class="committers">
+        <h3 class="title" style="margin-bottom: 10px">Suspect Commits</h3>
+        <table class="table commit-table">
+        {% for commit in commits %}
+          <tr>
+            <td style="padding:0;width:32px;">{% email_avatar commits.author.name commits.author.email size 32 %}</td>
+            <td>
+              <h5 class="truncate">{{ commit.subject }}</h5>
+              <div><small>{{ commit.shortId }}&nbsp;&mdash;&nbsp;
+                {% if commit.author %}
+                  <strong>{{ commit.author.name }}</strong>
+                {% else %}
+                  <strong>Unknown Author</strong>
+                {% endif %}
+              </small></div>
+            </td>
+          </tr>
+        {% endfor %}
+        </table>
+      </div>
+      {% endif %}
+
       {% for label, html, _ in interfaces %}
       <div class="interface">
           <h3 class="title">{{ label }}</h3>
@@ -104,7 +129,7 @@
               <em>=</em>
               <span>
               {% with query=tag_key|add:":\""|add:tag_value|add:"\""|urlencode %}
-                <a href="{% absolute_uri project_link %}?query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
+                <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}?query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
               {% endwith %}
               </span>
           </li>

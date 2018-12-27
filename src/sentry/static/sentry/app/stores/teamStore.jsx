@@ -1,60 +1,63 @@
 import Reflux from 'reflux';
-import TeamActions from '../actions/teamActions';
-import ProjectStore from './projectStore';
+import TeamActions from 'app/actions/teamActions';
 
 const TeamStore = Reflux.createStore({
   init() {
+    this.initialized = false;
     this.reset();
 
     this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess);
-    this.listenTo(ProjectStore, this.onProject);
+    this.listenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess);
+    this.listenTo(TeamActions.removeTeamSuccess, this.onRemoveSuccess);
+    this.listenTo(TeamActions.createTeamSuccess, this.onCreateSuccess);
   },
 
   reset() {
     this.items = [];
-    this.projectMap = {}; // map of project ids => team ids
   },
 
   loadInitialData(items) {
-    items.forEach(item => {
-      item.projects.forEach(project => {
-        this.projectMap[project.id] = item.id;
-      });
-    });
+    this.initialized = true;
     this.items = items;
     this.trigger(new Set(items.map(item => item.id)));
   },
 
-  onUpdateSuccess(changeId, itemId, response) {
+  onUpdateSuccess(itemId, response) {
     if (!response) return;
 
     let item = this.getBySlug(itemId);
+
     if (!item) {
       this.items.push(response);
     } else {
+      // Slug was changed
+      // Note: This is the proper way to handle slug changes but unfortunately not all of our
+      // components use stores correctly. To be safe reload browser :((
+      if (response.slug !== itemId) {
+        // Remove old team
+        this.items = this.items.filter(({slug}) => slug !== itemId);
+        // Add team w/ updated slug
+        this.items.push(response);
+        this.trigger(new Set([response.slug]));
+        return;
+      }
+
       $.extend(true /*deep*/, item, response);
     }
 
     this.trigger(new Set([itemId]));
   },
 
-  onProject(projectIds) {
-    let teamsChanged = new Set();
-    projectIds.forEach((set, projectId) => {
-      let teamId = this.projectMap[projectId];
-      if (teamId === undefined) return;
-      let team = this.getById(teamId);
-      // TODO: make copy of project? right now just assigning reference
-      // to project form project store
-      let project = ProjectStore.getById(projectId);
-      team.project = project;
-      teamsChanged.add(team.id);
-    });
-    this.trigger(teamsChanged);
+  onRemoveSuccess(slug) {
+    this.loadInitialData(this.items.filter(team => team.slug !== slug));
+  },
+
+  onCreateSuccess(team) {
+    this.loadInitialData([...this.items, team]);
   },
 
   getById(id) {
-    return this.items.find(item => item.id === '' + id) || null;
+    return this.items.find(item => item.id.toString() === id.toString()) || null;
   },
 
   getBySlug(slug) {
@@ -67,9 +70,7 @@ const TeamStore = Reflux.createStore({
 
   getAll() {
     return this.items;
-  }
+  },
 });
-
-window.TeamStore = TeamStore;
 
 export default TeamStore;

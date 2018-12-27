@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
@@ -23,7 +24,6 @@ class RepositoryProvider(ProviderMixin):
             return Response(
                 {
                     'error_type': 'auth',
-                    'title': self.name,
                     'auth_url': reverse('socialauth_associate', args=[self.auth_provider]),
                 },
                 status=400
@@ -66,14 +66,34 @@ class RepositoryProvider(ProviderMixin):
                 }, status=400
             )
 
-        repo = Repository.objects.create(
-            organization_id=organization.id,
-            name=result['name'],
-            external_id=result.get('external_id'),
-            url=result.get('url'),
-            config=result.get('config') or {},
-            provider=self.id,
-        )
+        try:
+            with transaction.atomic():
+                repo = Repository.objects.create(
+                    organization_id=organization.id,
+                    name=result['name'],
+                    external_id=result.get('external_id'),
+                    url=result.get('url'),
+                    config=result.get('config') or {},
+                    provider=self.id,
+                )
+        except IntegrityError:
+            # Try to delete webhook we just created
+            try:
+                repo = Repository(
+                    organization_id=organization.id,
+                    name=result['name'],
+                    external_id=result.get('external_id'),
+                    url=result.get('url'),
+                    config=result.get('config') or {},
+                    provider=self.id,
+                )
+                self.delete_repository(repo, actor=request.user)
+            except PluginError:
+                pass
+            return Response(
+                {'errors': {'__all__': 'A repository with that name already exists'}},
+                status=400,
+            )
 
         return Response(serialize(repo, request.user), status=201)
 

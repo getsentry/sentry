@@ -9,42 +9,136 @@
 
 .hovercard {
   @hovercard-padding: 15px;
-  border: none;
-  border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(52, 60, 69, .2), 0 1px 3px rgba(70, 82, 98, .25);
-  -webkit-background-clip: padding-box;
-  -moz-background-clip: padding;
+  @hovercard-width: 295px;
+  border-radius: 4px;
   background-clip: padding-box;
   background: #fff;
   color: @gray-darker;
   text-align: left;
   position: absolute;
   display: block;
-  right: 0;
-  bottom: 35px;
-  width: 295px;
   padding: 0;
-  border-radius: 5px;
   line-height: 1;
   z-index: 1000;
-  box-shadow: 0 6px 24px 0 rgba(67,62,75,0.35), 0 1px 12px 0 rgba(67,61,74,0.16);
+  box-shadow: 0 0 35px 0 rgba(67, 62, 75, 0.2);
+  border: 1px solid @trim;
+  white-space: initial;
 
-  &:before, &:after {
-    width: 0;
-    height: 0;
-    content: "";
-    display: block;
-    position: absolute;
+  // The hovercard may appear in different contexts, don't inherit fonts
+  font-family: @font-family-base;
+
+  // Default align hovercard top-middle
+  bottom: 28px;
+  left: 50%;
+  margin-left: -@hovercard-width / 2;
+  width: @hovercard-width;
+  visibility: hidden;
+
+  @keyframes hovercardSlideUp {
+    from {
+      transform: translateY(12px);
+    }
+    to {
+      transform: translateY(0);
+    }
   }
 
+  @keyframes hovercardSlideDown {
+    from {
+      transform: translateY(-12px);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes hovercardFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  animation: hovercardFadeIn 100ms ease-in-out, hovercardSlideDown 100ms ease-in-out;
+
+  // Wait for the element to become visible
+  animation-play-state: paused;
+
+  &.visible {
+    visibility: visible;
+    animation-play-state: running;
+  }
+
+  &.hovercard-bottom {
+    bottom: initial;
+    top: 28px;
+
+    animation: hovercardFadeIn 100ms ease-in-out, hovercardSlideUp 100ms ease-in-out;
+
+    .hovercard-hoverlap {
+      top: -16px;
+    }
+
+    &:before,
+    &:after {
+      bottom: initial;
+      top: -20px;
+      // Avoid having
+      transform: rotate(180deg);
+    }
+
+    &:before {
+      top: -21px;
+    }
+
+    &.with-header:after {
+      border-top-color: @white-dark;
+    }
+  }
+
+  &.hovercard-left {
+    left: 0;
+    margin-left: 0;
+
+    &:before,
+    &:after {
+      left: 21px;
+      margin-left: 0;
+    }
+  }
+
+  &.hovercard-right {
+    left: initial;
+    right: 0;
+    margin-left: 0;
+
+    &:before,
+    &:after {
+      left: initial;
+      right: 21px;
+      margin-left: 0;
+    }
+  }
+
+  &:before,
   &:after {
+    .square(0);
+    content: '';
+    display: block;
+    position: absolute;
     z-index: -1;
     bottom: -20px;
-    right: 21px;
-    border-bottom: 10px solid transparent;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-top: 10px solid #fff;
+    left: 50%;
+    margin-left: -10px;
+    border: 10px solid transparent;
+    border-top-color: #fff;
+  }
+
+  &:before {
+    bottom: -21px;
+    border-top-color: @trim;
   }
 
   .hovercard-hoverlap {
@@ -56,12 +150,16 @@
   }
 
   .hovercard-header {
-    padding: @hovercard-padding;
+    font-size: 14px;
     background: @white-dark;
     border-bottom: 1px solid @trim;
-    border-radius: 5px 5px 0 0;
+    border-radius: 4px 4px 0 0;
     font-weight: 600;
     word-wrap: break-word;
+
+    // Thhe font needs a little extra padding. It has funny vert alignment.
+    padding: @hovercard-padding * 0.6 @hovercard-padding * 0.75;
+    padding-top: @hovercard-padding * 0.6 + 2px;
 
     .pull-right {
       a {
@@ -120,13 +218,14 @@
     &:before {
       display: block;
       position: absolute;
-      content: "";
+      content: '';
       height: 1px;
       top: 50%;
       left: -@hovercard-padding;
       right: -@hovercard-padding;
       background: @trim;
-      opacity: .6;
+      opacity: 0.6;
+      z-index: -1;
     }
 
     h6 {
@@ -139,7 +238,9 @@
 
   h6 {
     color: @50 !important;
+    font-size: 11px;
     margin-bottom: 4px !important;
+    text-transform: uppercase;
   }
 
   p {
@@ -147,7 +248,7 @@
     margin-bottom: 15px;
   }
 
-  .count {
+  .count-since {
     color: @80;
     font-size: 22px;
     padding: 3px 0 0;
@@ -156,12 +257,8 @@
   .avatar-grid {
     margin-top: 7px;
 
-    .avatar-grid-item {
-      margin-bottom: 0;
-
-      .avatar {
-        .square(20px);
-      }
+    .avatar-grid-item .avatar {
+      .square(20px);
     }
 
     .tip {
@@ -177,7 +274,6 @@
     margin-top: 5px;
     font-size: 13px;
 
-
     .deploy-meta {
       font-size: 12px;
       color: @70;
@@ -192,7 +288,7 @@
   h3 {
     color: @gray-darkest;
     font-size: 14px;
-    margin: 0 0 8px;
+    margin: 0 0 5px;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
@@ -205,7 +301,8 @@
       font-size: 90%;
     }
   }
-  .event-message, .event-meta {
+  .event-message,
+  .event-meta {
     line-height: 1.2;
     font-size: 12px;
     text-overflow: ellipsis;

@@ -3,11 +3,7 @@ import {shallow} from 'enzyme';
 import toJson from 'enzyme-to-json';
 import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
 
-jest.mock('app/mixins/projectState', () => {
-  return {
-    getFeatures: () => new Set(['callsigns'])
-  };
-});
+jest.mock('app/mixins/projectState');
 
 describe('EventOrGroupExtraDetails', function() {
   it('renders last and first seen', function() {
@@ -62,6 +58,34 @@ describe('EventOrGroupExtraDetails', function() {
         shortId="shortId"
         logger="javascript logger"
         annotations={['annotation1', 'annotation2']}
+        assignedTo={{
+          name: 'Assignee Name',
+        }}
+        status="resolved"
+      />
+    );
+
+    expect(toJson(component)).toMatchSnapshot();
+  });
+
+  it('renders assignee and status', function() {
+    let component = shallow(
+      <EventOrGroupExtraDetails
+        orgId="orgId"
+        projectId="projectId"
+        groupId="groupId"
+        lastSeen="2017-07-25T22:56:12Z"
+        firstSeen="2017-07-01T02:06:02Z"
+        numComments={14}
+        shortId="shortId"
+        logger="javascript logger"
+        annotations={['annotation1', 'annotation2']}
+        assignedTo={{
+          name: 'Assignee Name',
+        }}
+        status="resolved"
+        showAssignee
+        showStatus
       />
     );
 

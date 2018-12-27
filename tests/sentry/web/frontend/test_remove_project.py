@@ -2,14 +2,14 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Project, ProjectStatus
+from sentry.models import Project, ProjectStatus, DeletedProject
 from sentry.testutils import TestCase, PermissionTestCase
 
 
 class RemoveProjectPermissionTest(PermissionTestCase):
     def setUp(self):
         super(RemoveProjectPermissionTest, self).setUp()
-        self.project = self.create_project(team=self.team)
+        self.project = self.create_project(teams=[self.team])
         self.path = reverse(
             'sentry-remove-project', args=[self.organization.slug, self.project.slug]
         )
@@ -30,7 +30,7 @@ class RemoveProjectTest(TestCase):
         self.owner = self.create_user(email='example@example.com', is_superuser=False)
         organization = self.create_organization(owner=self.owner)
         self.team = self.create_team(name='bar', organization=organization)
-        self.project = self.create_project(name='bar', team=self.team)
+        self.project = self.create_project(name='bar', teams=[self.team])
         self.path = reverse('sentry-remove-project', args=[organization.slug, self.project.slug])
 
     def test_requires_authentication(self):
@@ -42,7 +42,6 @@ class RemoveProjectTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/projects/remove.html')
-        assert resp.context['team'] == self.team
         assert resp.context['project'] == self.project
 
     def test_deletion_flow(self):
@@ -51,3 +50,6 @@ class RemoveProjectTest(TestCase):
         resp = self.client.post(self.path, {})
         assert resp.status_code == 302
         assert Project.objects.get(id=self.project.id).status == ProjectStatus.PENDING_DELETION
+
+        deleted_project = DeletedProject.objects.get(slug=self.project.slug)
+        self.assert_valid_deleted_log(deleted_project, self.project)

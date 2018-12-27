@@ -3,8 +3,8 @@ import React from 'react';
 import {Link} from 'react-router';
 import classNames from 'classnames';
 
-const MenuItem = React.createClass({
-  propTypes: {
+class MenuItem extends React.Component {
+  static propTypes = {
     header: PropTypes.bool,
     divider: PropTypes.bool,
     title: PropTypes.string,
@@ -18,17 +18,17 @@ const MenuItem = React.createClass({
     to: PropTypes.string,
     query: PropTypes.object,
     linkClassName: PropTypes.string,
-    onClick: PropTypes.func
-  },
+    onClick: PropTypes.func,
+  };
 
-  handleClick(e) {
+  handleClick = e => {
     if (this.props.onSelect) {
       e.preventDefault();
       this.props.onSelect(this.props.eventKey);
     }
-  },
+  };
 
-  renderAnchor() {
+  renderAnchor = () => {
     if (this.props.to) {
       return (
         <Link
@@ -36,7 +36,8 @@ const MenuItem = React.createClass({
           title={this.props.title}
           onClick={this.handleClick}
           className={this.props.linkClassName}
-          tabIndex="-1">
+          tabIndex="-1"
+        >
           {this.props.children}
         </Link>
       );
@@ -47,17 +48,18 @@ const MenuItem = React.createClass({
         onClick={this.handleClick}
         href={this.props.href}
         className={this.props.linkClassName}
-        tabIndex="-1">
+        tabIndex="-1"
+      >
         {this.props.children}
       </a>
     );
-  },
+  };
 
   render() {
     let classes = {
       'dropdown-header': this.props.header,
       divider: this.props.divider,
-      active: this.props.isActive
+      active: this.props.isActive,
     };
 
     let children = null;
@@ -75,11 +77,12 @@ const MenuItem = React.createClass({
         title={null}
         href={null}
         className={classNames(this.props.className, classes)}
-        onClick={this.props.onClick}>
+        onClick={this.props.onClick}
+      >
         {children}
       </li>
     );
   }
-});
+}
 
 export default MenuItem;

@@ -38,15 +38,19 @@ def send_beacon():
     from sentry import options
     from sentry.models import Broadcast, Organization, Project, Team, User
 
-    if not settings.SENTRY_BEACON:
-        logger.info('Not sending beacon (disabled)')
-        return
-
     install_id = options.get('sentry:install-id')
     if not install_id:
-        logger.info('Generated installation ID: %s', install_id)
         install_id = sha1(uuid4().bytes).hexdigest()
+        logger.info('beacon.generated-install-id', extra={'install_id': install_id})
         options.set('sentry:install-id', install_id)
+
+    if not settings.SENTRY_BEACON:
+        logger.info('beacon.skipped', extra={'install_id': install_id, 'reason': 'disabled'})
+        return
+
+    if settings.DEBUG:
+        logger.info('beacon.skipped', extra={'install_id': install_id, 'reason': 'debug'})
+        return
 
     end = timezone.now()
     events_24h = tsdb.get_sums(
@@ -56,11 +60,14 @@ def send_beacon():
         end=end,
     )['events.total']
 
+    # we need this to be explicitly configured and it defaults to None,
+    # which is the same as False
+    anonymous = options.get('beacon.anonymous') is not False
+
     payload = {
         'install_id': install_id,
         'version': sentry.get_version(),
         'docker': sentry.is_docker(),
-        'admin_email': options.get('system.admin-email'),
         'data': {
             # TODO(dcramer): we'd also like to get an idea about the throughput
             # of the system (i.e. events in 24h)
@@ -71,15 +78,21 @@ def send_beacon():
             'events.24h': events_24h,
         },
         'packages': get_all_package_versions(),
+        'anonymous': anonymous,
     }
+
+    if not anonymous:
+        payload['admin_email'] = options.get('system.admin-email')
 
     # TODO(dcramer): relay the response 'notices' as admin broadcasts
     try:
         request = safe_urlopen(BEACON_URL, json=payload, timeout=5)
         response = safe_urlread(request)
     except Exception:
-        logger.warning('Failed sending beacon', exc_info=True)
+        logger.warning('beacon.failed', exc_info=True, extra={'install_id': install_id})
         return
+    else:
+        logger.info('beacon.sent', extra={'install_id': install_id})
 
     data = json.loads(response)
 

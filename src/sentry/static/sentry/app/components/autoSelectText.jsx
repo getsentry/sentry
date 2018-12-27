@@ -1,40 +1,52 @@
 import React from 'react';
-import jQuery from 'jquery';
-import ReactDOM from 'react-dom';
+import PropTypes from 'prop-types';
 
-const AutoSelectText = React.createClass({
-  componentDidMount() {
-    let ref = ReactDOM.findDOMNode(this.refs.element);
-    jQuery(ref).bind('click', this.selectText);
-  },
+import {selectText} from 'app/utils/selectText';
 
-  componentWillUnmount() {
-    let ref = ReactDOM.findDOMNode(this.refs.element);
-    jQuery(ref).unbind('click', this.selectText);
-  },
+class AutoSelectText extends React.Component {
+  static propTypes = {
+    /**
+     * Can be a `node` for a simple auto select div container.
+     * When children is a render function, it is passed 2 functions:
+     * - `doMount` - should be applied on parent element's `ref`
+     *   (or `innerRef` for styled components) whose children is the
+     *   text to be copied
+     * - `doSelect` - selects text
+     */
+    children: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
+  };
 
-  selectText() {
-    let node = ReactDOM.findDOMNode(this.refs.element).firstChild;
-    if (document.selection) {
-      let range = document.body.createTextRange();
-      range.moveToElementText(node);
-      range.select();
-    } else if (window.getSelection) {
-      let range = document.createRange();
-      range.selectNode(node);
-      let selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-  },
+  selectText = () => {
+    if (!this.el) return;
+
+    selectText(this.el);
+  };
+
+  handleMount = el => {
+    this.el = el;
+  };
 
   render() {
+    let {children, ...props} = this.props;
+
+    if (typeof children === 'function') {
+      return children({
+        doMount: this.handleMount,
+        doSelect: this.selectText,
+      });
+    }
+
     return (
-      <div ref="element" className={this.props.className}>
-        {this.props.children}
+      <div
+        {...props}
+        ref={this.handleMount}
+        onClick={this.selectText}
+        className="auto-select-text"
+      >
+        {children}
       </div>
     );
   }
-});
+}
 
 export default AutoSelectText;

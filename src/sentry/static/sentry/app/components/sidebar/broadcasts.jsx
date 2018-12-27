@@ -1,22 +1,29 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 
-import ApiMixin from '../../mixins/apiMixin';
-import LoadingIndicator from '../loadingIndicator';
-import {t} from '../../locale';
-
-import SidebarPanel from '../sidebarPanel';
-import SidebarPanelItem from '../sidebarPanelItem';
+import {t} from 'app/locale';
+import ApiMixin from 'app/mixins/apiMixin';
+import InlineSvg from 'app/components/inlineSvg';
+import LoadingIndicator from 'app/components/loadingIndicator';
+import SidebarItem from 'app/components/sidebar/sidebarItem';
+import SidebarPanel from 'app/components/sidebar/sidebarPanel';
+import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
+import SidebarPanelItem from 'app/components/sidebar/sidebarPanelItem';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 60000;
 
-const Broadcasts = React.createClass({
+const Broadcasts = createReactClass({
+  displayName: 'Broadcasts',
+
   propTypes: {
+    orientation: PropTypes.oneOf(['top', 'left']),
+    collapsed: PropTypes.bool,
     showPanel: PropTypes.bool,
     currentPanel: PropTypes.string,
     hidePanel: PropTypes.func,
-    onShowPanel: PropTypes.func.isRequired
+    onShowPanel: PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -25,7 +32,7 @@ const Broadcasts = React.createClass({
     return {
       broadcasts: [],
       loading: true,
-      error: false
+      error: false,
     };
   },
 
@@ -57,26 +64,28 @@ const Broadcasts = React.createClass({
       success: data => {
         this.setState({
           broadcasts: data || [],
-          loading: false
+          loading: false,
         });
         this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true
+          error: true,
         });
         this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
-      }
+      },
     });
   },
 
-  onShowPanel() {
+  handleShowPanel() {
     this.timer = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
     this.props.onShowPanel();
   },
 
   getUnseenIds() {
+    if (!this.state.broadcasts) return [];
+
     return this.state.broadcasts
       .filter(item => {
         return !item.hasSeen;
@@ -94,56 +103,71 @@ const Broadcasts = React.createClass({
       method: 'PUT',
       query: {id: unseenBroadcastIds},
       data: {
-        hasSeen: '1'
+        hasSeen: '1',
       },
       success: () => {
         this.setState({
           broadcasts: this.state.broadcasts.map(item => {
             item.hasSeen = true;
             return item;
-          })
+          }),
         });
-      }
+      },
     });
   },
 
   render() {
+    let {orientation, collapsed, currentPanel, showPanel, hidePanel} = this.props;
     let {broadcasts, loading} = this.state;
+
+    let unseenPosts = this.getUnseenIds();
+
     return (
-      <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null}>
-        <a
-          className="broadcasts-toggle"
-          onClick={this.onShowPanel}
-          title="Updates from Sentry">
-          <span className="icon icon-globe" />
-          {this.getUnseenIds() > 0 && <span className="activity-indicator" />}
-        </a>
-        {this.props.showPanel &&
-          this.props.currentPanel == 'broadcasts' &&
-          <SidebarPanel
-            title={t('Recent updates from Sentry')}
-            hidePanel={this.props.hidePanel}>
-            {loading
-              ? <LoadingIndicator />
-              : broadcasts.length === 0
-                  ? <div className="sidebar-panel-empty">
-                      {t('No recent updates from the Sentry team.')}
-                    </div>
-                  : broadcasts.map(item => {
-                      return (
-                        <SidebarPanelItem
-                          key={item.id}
-                          className={!item.hasSeen && 'unseen'}
-                          title={item.title}
-                          message={item.message}
-                          link={item.link}
-                        />
-                      );
-                    })}
-          </SidebarPanel>}
-      </li>
+      <React.Fragment>
+        <SidebarItem
+          data-test-id="sidebar-broadcasts"
+          orientation={orientation}
+          collapsed={collapsed}
+          active={currentPanel == 'broadcasts'}
+          badge={unseenPosts.length}
+          icon={<InlineSvg src="icon-broadcast" size="22px" />}
+          label={t("What's new")}
+          onClick={this.handleShowPanel}
+        />
+
+        {showPanel &&
+          currentPanel == 'broadcasts' && (
+            <SidebarPanel
+              data-test-id="sidebar-broadcasts-panel"
+              orientation={orientation}
+              collapsed={collapsed}
+              title={t("What's new in Sentry")}
+              hidePanel={hidePanel}
+            >
+              {loading ? (
+                <LoadingIndicator />
+              ) : broadcasts.length === 0 ? (
+                <SidebarPanelEmpty>
+                  {t('No recent updates from the Sentry team.')}
+                </SidebarPanelEmpty>
+              ) : (
+                broadcasts.map(item => {
+                  return (
+                    <SidebarPanelItem
+                      key={item.id}
+                      hasSeen={item.hasSeen}
+                      title={item.title}
+                      message={item.message}
+                      link={item.link}
+                    />
+                  );
+                })
+              )}
+            </SidebarPanel>
+          )}
+      </React.Fragment>
     );
-  }
+  },
 });
 
 export default Broadcasts;

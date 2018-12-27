@@ -1,35 +1,41 @@
 import React from 'react';
+import _ from 'lodash';
 
-import EventDataSection from './eventDataSection';
-import EventErrorItem from './errorItem';
-import SentryTypes from '../../proptypes';
-import {t, tn} from '../../locale';
+import EventDataSection from 'app/components/events/eventDataSection';
+import EventErrorItem from 'app/components/events/errorItem';
+import SentryTypes from 'app/sentryTypes';
+import {t, tn} from 'app/locale';
 
-const EventErrors = React.createClass({
-  propTypes: {
+class EventErrors extends React.Component {
+  static propTypes = {
     group: SentryTypes.Group.isRequired,
-    event: SentryTypes.Event.isRequired
-  },
+    event: SentryTypes.Event.isRequired,
+  };
 
-  getInitialState() {
-    return {
-      isOpen: false
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      isOpen: false,
     };
-  },
+  }
 
   shouldComponentUpdate(nextProps, nextState) {
     if (this.state.isOpen != nextState.isOpen) {
       return true;
     }
     return this.props.event.id !== nextProps.event.id;
-  },
+  }
 
-  toggle() {
+  toggle = () => {
     this.setState({isOpen: !this.state.isOpen});
-  },
+  };
+
+  uniqueErrors = errors => {
+    return _.uniqWith(errors, _.isEqual);
+  };
 
   render() {
-    let errors = this.props.event.errors;
+    let errors = this.uniqueErrors(this.props.event.errors);
     let numErrors = errors.length;
     let isOpen = this.state.isOpen;
     return (
@@ -37,7 +43,8 @@ const EventErrors = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type="errors"
-        className="errors">
+        className="errors"
+      >
         <span className="icon icon-alert" />
         <p>
           <a className="pull-right" onClick={this.toggle}>
@@ -57,6 +64,6 @@ const EventErrors = React.createClass({
       </EventDataSection>
     );
   }
-});
+}
 
 export default EventErrors;

@@ -14,14 +14,25 @@ from sentry.models import (
     UserAvatar,
     UserOption,
     UserEmail,
+    UserPermission,
 )
+from sentry.auth.superuser import is_active_superuser
 from sentry.utils.avatar import get_gravatar_url
+
+
+def manytoone_to_dict(queryset, key, filter=None):
+    result = defaultdict(list)
+    for row in queryset:
+        if filter and not filter(row):
+            continue
+        result[getattr(row, key)].append(row)
+    return result
 
 
 @register(User)
 class UserSerializer(Serializer):
     def _get_identities(self, item_list, user):
-        if not (env.request and env.request.is_superuser()):
+        if not (env.request and is_active_superuser(env.request)):
             item_list = [x for x in item_list if x == user]
 
         queryset = AuthIdentity.objects.filter(
@@ -33,21 +44,11 @@ class UserSerializer(Serializer):
             results[item.user_id].append(item)
         return results
 
-    def _get_useremails(self, item_list, user):
-        queryset = UserEmail.objects.filter(
-            user__in=item_list,
-        )
-
-        results = {i.id: [] for i in item_list}
-        for item in queryset:
-            results[item.user_id].append(item)
-        return results
-
     def get_attrs(self, item_list, user):
         avatars = {a.user_id: a for a in UserAvatar.objects.filter(user__in=item_list)}
         identities = self._get_identities(item_list, user)
-        emails = self._get_useremails(item_list, user)
 
+        emails = manytoone_to_dict(UserEmail.objects.filter(user__in=item_list), 'user_id')
         authenticators = Authenticator.objects.bulk_users_have_2fa([i.id for i in item_list])
 
         data = {}
@@ -68,6 +69,7 @@ class UserSerializer(Serializer):
             'email': obj.email,
             'avatarUrl': get_gravatar_url(obj.email, size=32),
             'isActive': obj.is_active,
+            'hasPasswordAuth': obj.password not in ('!', ''),
             'isManaged': obj.is_managed,
             'dateJoined': obj.date_joined,
             'lastLogin': obj.last_login,
@@ -83,12 +85,6 @@ class UserSerializer(Serializer):
                 )
             }
             stacktrace_order = int(options.get('stacktrace_order', -1) or -1)
-            if stacktrace_order == -1:
-                stacktrace_order = 'default'
-            elif stacktrace_order == 2:
-                stacktrace_order = 'newestFirst'
-            elif stacktrace_order == 1:
-                stacktrace_order = 'newestLast'
 
             d['options'] = {
                 'language': options.get('language') or 'en',
@@ -98,15 +94,20 @@ class UserSerializer(Serializer):
                 'seenReleaseBroadcast': options.get('seen_release_broadcast'),
             }
 
+            d['flags'] = {
+                'newsletter_consent_prompt': bool(obj.flags.newsletter_consent_prompt),
+            }
+
         if attrs.get('avatar'):
             avatar = {
                 'avatarType': attrs['avatar'].get_avatar_type_display(),
-                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file else None
+                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file_id else None
             }
         else:
             avatar = {'avatarType': 'letter_avatar', 'avatarUuid': None}
         d['avatar'] = avatar
 
+        # TODO(dcramer): move this to DetailedUserSerializer
         if attrs['identities'] is not None:
             d['identities'] = [
                 {
@@ -140,23 +141,30 @@ class DetailedUserSerializer(UserSerializer):
     def get_attrs(self, item_list, user):
         attrs = super(DetailedUserSerializer, self).get_attrs(item_list, user)
 
-        authenticators = defaultdict(list)
-        queryset = Authenticator.objects.filter(
+        # ignore things that aren't user controlled (like recovery codes)
+        authenticators = manytoone_to_dict(Authenticator.objects.filter(
             user__in=item_list,
-        )
-        for auth in queryset:
-            # ignore things that aren't user controlled (like recovery codes)
-            if auth.interface.is_backup_interface:
-                continue
-            authenticators[auth.user_id].append(auth)
+        ), 'user_id', lambda x: not x.interface.is_backup_interface)
+
+        permissions = manytoone_to_dict(UserPermission.objects.filter(
+            user__in=item_list,
+        ), 'user_id')
 
         for item in item_list:
             attrs[item]['authenticators'] = authenticators[item.id]
+            attrs[item]['permissions'] = permissions[item.id]
 
         return attrs
 
     def serialize(self, obj, attrs, user):
         d = super(DetailedUserSerializer, self).serialize(obj, attrs, user)
+        # XXX(dcramer): we dont use is_active_superuser here as we simply
+        # want to tell the UI that we're an authenticated superuser, and
+        # for requests that require an *active* session, they should prompt
+        # on-demand. This ensures things like links to the Sentry admin can
+        # still easily be rendered.
+        d['isSuperuser'] = obj.is_superuser
+        d['permissions'] = [up.permission for up in attrs['permissions']]
         d['authenticators'] = [
             {
                 'id': six.text_type(a.id),

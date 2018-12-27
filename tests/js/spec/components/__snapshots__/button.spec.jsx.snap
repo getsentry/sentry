@@ -1,35 +1,60 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Button renders 1`] = `
-<button
-  className="button button-primary button-lg"
+<StyledButton
+  aria-label="Button"
+  disabled={false}
   onClick={[Function]}
+  priority="primary"
   role="button"
+  size="large"
 >
-  Button
-</button>
+  <ButtonLabel
+    size="large"
+  >
+    Button
+  </ButtonLabel>
+</StyledButton>
 `;
 
-exports[`Button renders normal link 1`] = `
-<a
-  className="button button-default"
+exports[`Button renders disabled normal link 1`] = `
+<StyledButton
+  aria-label="Normal Link"
+  disabled={false}
   href="/some/relative/url"
   onClick={[Function]}
   role="button"
 >
-  Normal Link
-</a>
+  <ButtonLabel>
+    Normal Link
+  </ButtonLabel>
+</StyledButton>
+`;
+
+exports[`Button renders normal link 1`] = `
+<StyledButton
+  aria-label="Normal Link"
+  disabled={false}
+  href="/some/relative/url"
+  onClick={[Function]}
+  role="button"
+>
+  <ButtonLabel>
+    Normal Link
+  </ButtonLabel>
+</StyledButton>
 `;
 
 exports[`Button renders react-router link 1`] = `
-<Link
-  className="button button-default"
+<StyledButton
+  aria-label="Router Link"
+  disabled={false}
   onClick={[Function]}
-  onlyActiveOnIndex={false}
   role="button"
-  style={Object {}}
   to="/some/route"
 >
-  Router Link
-</Link>
+  <ButtonLabel>
+    Router Link
+  </ButtonLabel>
+</StyledButton>
 `;

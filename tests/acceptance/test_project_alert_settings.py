@@ -15,7 +15,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
-            team=self.team,
+            teams=[self.team],
             name='Bengal',
         )
         self.create_member(
@@ -58,5 +58,4 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
     def test_rules_load(self):
         self.browser.get(self.path2)
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.wait_until('.rules-list')
         self.browser.snapshot('project alert rules')

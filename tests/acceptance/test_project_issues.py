@@ -13,9 +13,10 @@ class ProjectIssuesTest(AcceptanceTestCase):
         self.team = self.create_team(organization=self.org, name='Mariachi Band')
         self.project = self.create_project(
             organization=self.org,
-            team=self.team,
+            teams=[self.team],
             name='Bengal',
         )
+        self.environment = self.create_environment(name="staging")
         self.login_as(self.user)
         self.path = '/{}/{}/'.format(self.org.slug, self.project.slug)
 
@@ -25,7 +26,7 @@ class ProjectIssuesTest(AcceptanceTestCase):
         # TODO(dcramer): we should add basic assertions around "i wanted this
         # URL but was sent somewhere else"
         self.browser.get(self.path)
-        self.browser.wait_until('.awaiting-events')
+        self.browser.wait_until('[data-test-id="awaiting-events"]')
         self.browser.snapshot('project issues not configured')
 
     def test_with_issues(self):
@@ -35,7 +36,7 @@ class ProjectIssuesTest(AcceptanceTestCase):
             message='Foo bar',
         )
         self.browser.get(self.path)
-        self.browser.wait_until('.group-list')
+        self.browser.wait_until('.ref-group-list')
         self.browser.wait_until('.barchart')
         self.browser.snapshot('project issues with issues')
 

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from six import string_types
 import psycopg2 as Database
 
 # Some of these imports are unused, but they are inherited from other engines
@@ -13,6 +14,12 @@ from .decorators import (
 from .operations import DatabaseOperations
 
 __all__ = ('DatabaseWrapper', )
+
+
+def remove_null(value):
+    if not isinstance(value, string_types):
+        return value
+    return value.replace('\x00', '')
 
 
 class CursorWrapper(object):
@@ -36,7 +43,24 @@ class CursorWrapper(object):
     @less_shitty_error_messages
     def execute(self, sql, params=None):
         if params is not None:
-            return self.cursor.execute(sql, params)
+            try:
+                return self.cursor.execute(sql, params)
+            except ValueError as e:
+                # In psycopg2 2.7+, behavior was introduced where a
+                # NULL byte in a parameter would start raising a ValueError.
+                # psycopg2 chose to do this rather than let Postgres silently
+                # truncate the data, which is it's behavior when it sees a
+                # NULL byte. But for us, we'd rather remove the null value so it's
+                # somewhat legible rather than error. Considering this is better
+                # behavior than the database truncating, seems good to do this
+                # rather than attempting to sanitize all data inputs now manually.
+
+                # Note: This message is brittle, but it's currently hardcoded into
+                # psycopg2 for this behavior. If anything changes, we're choosing to
+                # address that later rather than potentially catch incorrect behavior.
+                if e.message != 'A string literal cannot contain NUL (0x00) characters.':
+                    raise
+                return self.cursor.execute(sql, [remove_null(param) for param in params])
         return self.cursor.execute(sql)
 
     @capture_transaction_exceptions

@@ -3,17 +3,32 @@ import {storiesOf} from '@storybook/react';
 import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
-import LinkWithConfirmation from 'sentry-ui/linkWithConfirmation';
+import LinkWithConfirmation from 'app/components/linkWithConfirmation';
 
-// eslint-disable-next-line
-storiesOf('LinkWithConfirmation', module).add(
+storiesOf('Links/LinkWithConfirmation', module).add(
   'default',
-  withInfo('A link that opens a confirmation modal.')(() => (
+  withInfo('A link (<a>) that opens a confirmation modal.')(() => (
     <div>
       <LinkWithConfirmation
         message="Message"
         title="Titlte"
-        onConfirm={action('confirmed')}>
+        onConfirm={action('confirmed')}
+      >
+        Link With Confirmation
+      </LinkWithConfirmation>
+    </div>
+  ))
+);
+
+storiesOf('Confirm/LinkWithConfirmation', module).add(
+  'default',
+  withInfo('A link (<a>) that opens a confirmation modal.')(() => (
+    <div>
+      <LinkWithConfirmation
+        message="Message"
+        title="Titlte"
+        onConfirm={action('confirmed')}
+      >
         Link With Confirmation
       </LinkWithConfirmation>
     </div>

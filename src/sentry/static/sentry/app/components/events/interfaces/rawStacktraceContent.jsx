@@ -1,5 +1,5 @@
-import {defined, trim} from '../../../utils';
-import {trimPackage} from './frame';
+import {defined, trim} from 'app/utils';
+import {trimPackage} from 'app/components/events/interfaces/frame';
 
 function getJavaScriptFrame(frame) {
   let result = '';
@@ -99,7 +99,7 @@ function ljust(str, len) {
   return str + Array(Math.max(0, len - str.length) + 1).join(' ');
 }
 
-export function getCocoaFrame(frame) {
+export function getNativeFrame(frame) {
   let result = '  ';
   if (defined(frame.package)) {
     result += ljust(trimPackage(frame.package), 20);
@@ -151,8 +151,11 @@ function getFrame(frame, frameIdx, platform) {
     case 'java':
       return getJavaFrame(frame, frameIdx);
     case 'objc':
+    // fallthrough
     case 'cocoa':
-      return getCocoaFrame(frame, frameIdx);
+    // fallthrough
+    case 'native':
+      return getNativeFrame(frame, frameIdx);
     default:
       return getPythonFrame(frame, frameIdx);
   }

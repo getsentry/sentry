@@ -10,6 +10,7 @@ from __future__ import absolute_import
 import logging
 import warnings
 
+from bitfield import BitField
 from django.contrib.auth.models import AbstractBaseUser, UserManager
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
@@ -17,6 +18,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField
+from sentry.models import LostPasswordHash
 from sentry.utils.http import absolute_uri
 
 audit_logger = logging.getLogger('sentry.audit.user')
@@ -66,6 +68,16 @@ class User(BaseModel, AbstractBaseUser):
             'modifying their account (username, password, etc).'
         )
     )
+    is_sentry_app = models.NullBooleanField(
+        _('is sentry app'),
+        null=True,
+        default=None,
+        help_text=_(
+            'Designates whether this user is the entity used for Permissions'
+            'on behalf of a Sentry App. Cannot login or use Sentry like a'
+            'normal User would.'
+        )
+    )
     is_password_expired = models.BooleanField(
         _('password expired'),
         default=False,
@@ -78,6 +90,17 @@ class User(BaseModel, AbstractBaseUser):
         _('date of last password change'),
         null=True,
         help_text=_('The date the password was changed last.')
+    )
+
+    flags = BitField(
+        flags=(
+            (
+                'newsletter_consent_prompt',
+                'Do we need to ask this user for newsletter consent?'
+            ),
+        ),
+        default=0,
+        null=True,
     )
 
     session_nonce = models.CharField(max_length=12, null=True)
@@ -138,6 +161,11 @@ class User(BaseModel, AbstractBaseUser):
     def get_short_name(self):
         return self.username
 
+    def get_salutation_name(self):
+        name = self.name or self.username.split('@', 1)[0].split('.', 1)[0]
+        first_name = name.split(' ', 1)[0]
+        return first_name.capitalize()
+
     def get_avatar_type(self):
         avatar = self.avatar.first()
         if avatar:
@@ -183,8 +211,8 @@ class User(BaseModel, AbstractBaseUser):
         from sentry import roles
         from sentry.models import (
             Activity, AuditLogEntry, AuthIdentity, Authenticator, GroupAssignee, GroupBookmark, GroupSeen,
-            GroupSubscription, OrganizationMember, OrganizationMemberTeam, UserAvatar, UserEmail,
-            UserOption
+            GroupShare, GroupSubscription, OrganizationMember, OrganizationMemberTeam, UserAvatar,
+            UserEmail, UserOption,
         )
 
         audit_logger.info(
@@ -220,8 +248,8 @@ class User(BaseModel, AbstractBaseUser):
                     pass
 
         model_list = (
-            Authenticator, GroupAssignee, GroupBookmark, GroupSeen, GroupSubscription, UserAvatar, UserEmail,
-            UserOption
+            Authenticator, GroupAssignee, GroupBookmark, GroupSeen, GroupShare,
+            GroupSubscription, UserAvatar, UserEmail, UserOption,
         )
 
         for model in model_list:
@@ -273,3 +301,18 @@ class User(BaseModel, AbstractBaseUser):
                 user=self,
             ).values('organization'),
         )
+
+    def get_orgs_require_2fa(self):
+        from sentry.models import (Organization, OrganizationStatus)
+        return Organization.objects.filter(
+            flags=models.F('flags').bitor(Organization.flags.require_2fa),
+            status=OrganizationStatus.VISIBLE,
+            member_set__user=self,
+        )
+
+    def clear_lost_passwords(self):
+        LostPasswordHash.objects.filter(user=self).delete()
+
+
+# HACK(dcramer): last_login needs nullable for Django 1.8
+User._meta.get_field('last_login').null = True

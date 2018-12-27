@@ -1,13 +1,16 @@
 from __future__ import absolute_import
 
+from django.core import mail
 from mock import patch
+from social_auth.models import UserSocialAuth
 
-from sentry.models import Commit, Deploy, Release, ReleaseHeadCommit, Repository
-from sentry.tasks.commits import fetch_commits
+from sentry.exceptions import InvalidIdentity, PluginError
+from sentry.models import Commit, Deploy, LatestRelease, Release, ReleaseHeadCommit, Repository
+from sentry.tasks.commits import fetch_commits, handle_invalid_identity
 from sentry.testutils import TestCase
 
 
-class FetchCommits(TestCase):
+class FetchCommitsTest(TestCase):
     def test_simple(self):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name='baz')
@@ -79,3 +82,217 @@ class FetchCommits(TestCase):
         assert commit_list[2].key == 'b' * 40
 
         mock_notify_if_ready.assert_called_with(deploy.id, fetch_complete=True)
+
+        latest_release = LatestRelease.objects.get(
+            repository_id=repo.id,
+            environment_id=5,
+        )
+        assert latest_release.deploy_id == deploy.id
+        assert latest_release.release_id == release2.id
+        assert latest_release.commit_id == commit_list[0].id
+
+    @patch('sentry.tasks.commits.handle_invalid_identity')
+    @patch('sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits')
+    def test_fetch_error_invalid_identity(self, mock_compare_commits, mock_handle_invalid_identity):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name='baz')
+
+        repo = Repository.objects.create(
+            name='example',
+            provider='dummy',
+            organization_id=org.id,
+        )
+        release = Release.objects.create(
+            organization_id=org.id,
+            version='abcabcabc',
+        )
+
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            key='a' * 40,
+        )
+
+        ReleaseHeadCommit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            release=release,
+            commit=commit,
+        )
+
+        refs = [{
+            'repository': repo.name,
+            'commit': 'b' * 40,
+        }]
+
+        release2 = Release.objects.create(
+            organization_id=org.id,
+            version='12345678',
+        )
+
+        usa = UserSocialAuth.objects.create(
+            user=self.user,
+            provider='dummy',
+        )
+
+        mock_compare_commits.side_effect = InvalidIdentity(identity=usa)
+
+        fetch_commits(
+            release_id=release2.id,
+            user_id=self.user.id,
+            refs=refs,
+            previous_release_id=release.id,
+        )
+
+        mock_handle_invalid_identity.assert_called_once_with(
+            identity=usa,
+            commit_failure=True,
+        )
+
+    @patch('sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits')
+    def test_fetch_error_plugin_error(self, mock_compare_commits):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name='baz')
+
+        repo = Repository.objects.create(
+            name='example',
+            provider='dummy',
+            organization_id=org.id,
+        )
+        release = Release.objects.create(
+            organization_id=org.id,
+            version='abcabcabc',
+        )
+
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            key='a' * 40,
+        )
+
+        ReleaseHeadCommit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            release=release,
+            commit=commit,
+        )
+
+        refs = [{
+            'repository': repo.name,
+            'commit': 'b' * 40,
+        }]
+
+        release2 = Release.objects.create(
+            organization_id=org.id,
+            version='12345678',
+        )
+
+        UserSocialAuth.objects.create(
+            user=self.user,
+            provider='dummy',
+        )
+
+        mock_compare_commits.side_effect = Exception('secrets')
+
+        with self.tasks():
+            fetch_commits(
+                release_id=release2.id,
+                user_id=self.user.id,
+                refs=refs,
+                previous_release_id=release.id,
+            )
+
+        msg = mail.outbox[-1]
+        assert msg.subject == 'Unable to Fetch Commits'
+        assert msg.to == [self.user.email]
+        assert 'secrets' not in msg.body
+
+    @patch('sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits')
+    def test_fetch_error_random_exception(self, mock_compare_commits):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name='baz')
+
+        repo = Repository.objects.create(
+            name='example',
+            provider='dummy',
+            organization_id=org.id,
+        )
+        release = Release.objects.create(
+            organization_id=org.id,
+            version='abcabcabc',
+        )
+
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            key='a' * 40,
+        )
+
+        ReleaseHeadCommit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            release=release,
+            commit=commit,
+        )
+
+        refs = [{
+            'repository': repo.name,
+            'commit': 'b' * 40,
+        }]
+
+        release2 = Release.objects.create(
+            organization_id=org.id,
+            version='12345678',
+        )
+
+        UserSocialAuth.objects.create(
+            user=self.user,
+            provider='dummy',
+        )
+
+        mock_compare_commits.side_effect = PluginError('You can read me')
+
+        with self.tasks():
+            fetch_commits(
+                release_id=release2.id,
+                user_id=self.user.id,
+                refs=refs,
+                previous_release_id=release.id,
+            )
+
+        msg = mail.outbox[-1]
+        assert msg.subject == 'Unable to Fetch Commits'
+        assert msg.to == [self.user.email]
+        assert 'You can read me' in msg.body
+
+
+class HandleInvalidIdentityTest(TestCase):
+    def test_simple(self):
+        usa = UserSocialAuth.objects.create(
+            user=self.user,
+            provider='dummy',
+        )
+
+        with self.tasks():
+            handle_invalid_identity(usa)
+
+        assert not UserSocialAuth.objects.filter(id=usa.id).exists()
+
+        msg = mail.outbox[-1]
+        assert msg.subject == 'Action Required'
+        assert msg.to == [self.user.email]
+
+    def test_commit_failure(self):
+        usa = UserSocialAuth.objects.create(
+            user=self.user,
+            provider='dummy',
+        )
+
+        with self.tasks():
+            handle_invalid_identity(usa, commit_failure=True)
+
+        assert not UserSocialAuth.objects.filter(id=usa.id).exists()
+
+        msg = mail.outbox[-1]
+        assert msg.subject == 'Unable to Fetch Commits'
+        assert msg.to == [self.user.email]

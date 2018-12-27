@@ -11,9 +11,11 @@ import six
 
 from collections import namedtuple
 from django.conf import settings
-from six.moves.urllib.parse import urlencode, urljoin, urlparse
+from six.moves.urllib.parse import parse_qs, quote, urlencode, urljoin, urlparse
+from functools import partial
 
 from sentry import options
+from sentry.utils import json
 
 ParsedUriMatch = namedtuple('ParsedUriMatch', ['scheme', 'domain', 'path'])
 
@@ -84,7 +86,7 @@ def get_origins(project=None):
 
     # lowercase and strip the trailing slash from all origin values
     # filter out empty values
-    return frozenset(filter(bool, map(lambda x: x.lower().rstrip('/'), result)))
+    return frozenset(filter(bool, map(lambda x: (x or '').lower().rstrip('/'), result)))
 
 
 def parse_uri_match(value):
@@ -105,7 +107,7 @@ def parse_uri_match(value):
 
     # we need to coerce our unicode inputs into proper
     # idna/punycode encoded representation for normalization.
-    if type(domain) == six.binary_type:
+    if isinstance(domain, six.binary_type):
         domain = domain.decode('utf8')
     domain = domain.encode('idna')
 
@@ -152,8 +154,14 @@ def is_valid_origin(origin, project=None, allowed=None):
     if origin == 'null':
         return False
 
-    if type(origin) == six.binary_type:
-        origin = origin.decode('utf-8')
+    if isinstance(origin, six.binary_type):
+        try:
+            origin = origin.decode('utf-8')
+        except UnicodeDecodeError:
+            try:
+                origin = origin.decode('windows-1252')
+            except UnicodeDecodeError:
+                return False
 
     parsed = urlparse(origin)
 
@@ -222,3 +230,40 @@ def origin_from_request(request):
     if rv in ('', 'null'):
         rv = origin_from_url(request.META.get('HTTP_REFERER'))
     return rv
+
+
+def heuristic_decode(data, possible_content_type=None):
+    """
+    Attempt to decode a HTTP body by trying JSON and Form URL decoders,
+    returning the decoded body (if decoding was successful) and the inferred
+    content type.
+    """
+    inferred_content_type = possible_content_type
+
+    form_encoded_parser = partial(
+        parse_qs,
+        strict_parsing=True,
+        keep_blank_values=True,
+    )
+
+    decoders = [
+        ('application/x-www-form-urlencoded', form_encoded_parser),
+        ('application/json', json.loads),
+    ]
+
+    # Prioritize the decoder which supports the possible content type first.
+    decoders.sort(key=lambda d: d[0] == possible_content_type, reverse=True)
+
+    for decoding_type, decoder in decoders:
+        try:
+            return (decoder(data), decoding_type)
+        except Exception:
+            # Try another decoder
+            continue
+
+    return (data, inferred_content_type)
+
+
+def percent_encode(val):
+    # see https://en.wikipedia.org/wiki/Percent-encoding
+    return quote(val.encode('utf8', errors='replace')).replace('%7E', '~').replace('/', '%2F')

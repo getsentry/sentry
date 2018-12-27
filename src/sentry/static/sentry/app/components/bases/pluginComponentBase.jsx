@@ -1,10 +1,10 @@
 import React from 'react';
 import _ from 'lodash';
 
-import {Client} from '../../api';
-import {FormState, GenericField} from '../../components/forms';
-import IndicatorStore from '../../stores/indicatorStore';
-import {t} from '../../locale';
+import {Client} from 'app/api';
+import {FormState, GenericField} from 'app/components/forms';
+import IndicatorStore from 'app/stores/indicatorStore';
+import {t} from 'app/locale';
 
 const callbackWithArgs = function(callback, ...args) {
   if (_.isFunction(callback)) {
@@ -26,7 +26,7 @@ class PluginComponentBase extends React.Component {
       'onSaveSuccess',
       'onSaveError',
       'onSaveComplete',
-      'renderField'
+      'renderField',
     ].map(method => (this[method] = this[method].bind(this)));
 
     if (this.fetchData) {
@@ -37,7 +37,7 @@ class PluginComponentBase extends React.Component {
     }
 
     this.state = {
-      state: FormState.READY
+      state: FormState.READY,
     };
   }
 
@@ -52,7 +52,7 @@ class PluginComponentBase extends React.Component {
   onLoad(callback, ...args) {
     this.setState(
       {
-        state: FormState.LOADING
+        state: FormState.LOADING,
       },
       callbackWithArgs(callback, ...args)
     );
@@ -61,7 +61,7 @@ class PluginComponentBase extends React.Component {
   onLoadSuccess(callback, ...args) {
     this.setState(
       {
-        state: FormState.READY
+        state: FormState.READY,
       },
       callbackWithArgs(callback, ...args)
     );
@@ -70,12 +70,12 @@ class PluginComponentBase extends React.Component {
   onLoadError(callback, ...args) {
     this.setState(
       {
-        state: FormState.ERROR
+        state: FormState.ERROR,
       },
       callbackWithArgs(callback, ...args)
     );
     IndicatorStore.add(t('An error occurred.'), 'error', {
-      duration: 3000
+      duration: 3000,
     });
   }
 
@@ -86,7 +86,7 @@ class PluginComponentBase extends React.Component {
     callback = callbackWithArgs(callback, ...args);
     this.setState(
       {
-        state: FormState.SAVING
+        state: FormState.SAVING,
       },
       () => {
         this._loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -98,12 +98,12 @@ class PluginComponentBase extends React.Component {
   onSaveSuccess(callback, ...args) {
     this.setState(
       {
-        state: FormState.READY
+        state: FormState.READY,
       },
       callbackWithArgs(callback, ...args)
     );
     IndicatorStore.add(t('Success!'), 'success', {
-      duration: 3000
+      duration: 3000,
     });
   }
 
@@ -111,11 +111,11 @@ class PluginComponentBase extends React.Component {
     callback = callbackWithArgs(callback, ...args);
     this.setState(
       {
-        state: FormState.ERROR
+        state: FormState.ERROR,
       },
       () => {
         IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error', {
-          duration: 3000
+          duration: 3000,
         });
         callback && callback();
       }
@@ -131,7 +131,8 @@ class PluginComponentBase extends React.Component {
   renderField(props) {
     props = {...props};
     props.formState = this.state.state;
-    return <GenericField {...props} />;
+    props.config = props.config || {};
+    return <GenericField key={props.config.name} {...props} />;
   }
 }
 

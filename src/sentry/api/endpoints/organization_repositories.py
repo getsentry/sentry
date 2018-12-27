@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -14,6 +15,13 @@ from sentry.plugins import bindings
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     doc_section = DocSection.ORGANIZATIONS
 
+    def has_feature(self, request, organization):
+        return features.has(
+            'organizations:repos',
+            organization=organization,
+            actor=request.user,
+        )
+
     def get(self, request, organization):
         """
         List an Organization's Repositories
@@ -24,6 +32,12 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the organization short name
         :auth: required
         """
+        if not self.has_feature(request, organization):
+            return self.respond({
+                'error_type': 'unavailable_feature',
+                'detail': ['You do not have that feature enabled']
+            }, status=403)
+
         queryset = Repository.objects.filter(
             organization_id=organization.id,
         )
@@ -52,7 +66,29 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated():
             return Response(status=401)
 
+        if not self.has_feature(request, organization):
+            return self.respond({
+                'error_type': 'unavailable_feature',
+                'detail': ['You do not have that feature enabled']
+            }, status=403)
+
         provider_id = request.DATA.get('provider')
+        has_ghe = provider_id == 'integrations:github_enterprise' and features.has(
+            'organizations:github-enterprise', organization, actor=request.user)
+        if features.has('organizations:internal-catchall', organization,
+                        actor=request.user) or has_ghe:
+            if provider_id is not None and provider_id.startswith('integrations:'):
+                try:
+                    provider_cls = bindings.get('integration-repository.provider').get(provider_id)
+                except KeyError:
+                    return Response(
+                        {
+                            'error_type': 'validation',
+                        }, status=400
+                    )
+                provider = provider_cls(id=provider_id)
+                return provider.dispatch(request, organization)
+
         try:
             provider_cls = bindings.get('repository.provider').get(provider_id)
         except KeyError:

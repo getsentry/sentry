@@ -1,7 +1,7 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
-import TeamCreate from 'app/views/teamCreate';
+import {TeamCreate} from 'app/views/teamCreate';
 
 describe('TeamCreate', function() {
   describe('render()', function() {
@@ -9,14 +9,53 @@ describe('TeamCreate', function() {
       let wrapper = shallow(
         <TeamCreate
           params={{
-            orgId: 'org'
+            orgId: 'org',
           }}
         />,
         {
-          context: {router: TestStubs.router()}
+          context: {router: TestStubs.router(), organization: TestStubs.Organization()},
         }
       );
       expect(wrapper).toMatchSnapshot();
+    });
+  });
+
+  describe('handleSubmitSuccess()', function() {
+    let wrapper;
+    let redirectMock = jest.fn();
+
+    beforeEach(function() {
+      redirectMock.mockReset();
+      wrapper = shallow(
+        <TeamCreate
+          router={{
+            push: redirectMock,
+          }}
+          params={{
+            orgId: 'org',
+          }}
+        />,
+        {
+          context: {
+            router: TestStubs.router(),
+            organization: {
+              id: '1337',
+            },
+          },
+        }
+      );
+    });
+
+    it('redirects to team settings', function() {
+      wrapper.setContext({
+        organization: {
+          id: '1337',
+        },
+      });
+      wrapper.instance().handleSubmitSuccess({
+        slug: 'new-team',
+      });
+      expect(redirectMock).toBeCalledWith('/settings/org/teams/new-team/');
     });
   });
 });

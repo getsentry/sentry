@@ -42,6 +42,7 @@ class Activity(Model):
     NEW_PROCESSING_ISSUES = 18
     UNMERGE_SOURCE = 19
     UNMERGE_DESTINATION = 20
+    SET_RESOLVED_IN_PULL_REQUEST = 21
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -49,6 +50,7 @@ class Activity(Model):
         (SET_RESOLVED_BY_AGE, 'set_resolved_by_age'),
         (SET_RESOLVED_IN_RELEASE, 'set_resolved_in_release'),
         (SET_RESOLVED_IN_COMMIT, 'set_resolved_in_commit'),
+        (SET_RESOLVED_IN_PULL_REQUEST, 'set_resolved_in_pull_request'),
         (SET_UNRESOLVED, 'set_unresolved'),
         (SET_IGNORED, 'set_ignored'),
         (SET_PUBLIC, 'set_public'),
@@ -82,6 +84,10 @@ class Activity(Model):
         db_table = 'sentry_activity'
 
     __repr__ = sane_repr('project_id', 'group_id', 'event_id', 'user_id', 'type', 'ident')
+
+    @staticmethod
+    def get_version_ident(version):
+        return (version or '')[:64]
 
     def __init__(self, *args, **kwargs):
         super(Activity, self).__init__(*args, **kwargs)

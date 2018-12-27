@@ -131,8 +131,7 @@ def test_get_threads_apple_string():
         ]
     )
     threads = acr.get_threads_apple_string()
-    assert threads == 'Thread 1 name: \n\
-Thread 1 Crashed:\n\
+    assert threads == 'Thread 1 Crashed:\n\
 0   SentrySwift                     0x31c3e8            0x2c8000 + 2544\n\
 1   SentrySwift                     0x31caa4            0x2c8000 + 108\n\n\
 Thread 2 name: com.apple.test\n\
@@ -253,8 +252,7 @@ def test_get_threads_apple_string_symbolicated():
     )
     threads = acr.get_threads_apple_string()
     assert threads.rstrip() == '''\
-Thread 1 name: \n\
-Thread 1 Crashed:
+Thread 1 Crashed:\n\
 0   SentrySwift                     0x31c3e8            UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool (SentrySwizzle.swift:92)
 1   SentrySwift                     0x31caa4            @objc UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool
 
@@ -458,8 +456,7 @@ def test_get_thread_apple_string():
         }
     )
     # TODO(hazat): the address here in a real crash is 0x0000000100556cc4 but we just get 0x556cc4
-    assert thread == 'Thread 1 name: \n\
-Thread 1 Crashed:\n\
+    assert thread == 'Thread 1 Crashed:\n\
 0   libswiftCore.dylib              0x556cc4            0x3f8000 + 160\n\
 1   libswiftCore.dylib              0x556cc4            0x3f8000 + 160\n\
 2   SentrySwift                     0x312308            0x2c8000 + 136\n\
@@ -676,7 +673,45 @@ def test__convert_debug_meta_to_binary_image_row():
 
 def test__get_exception_info():
     acr = AppleCrashReport(
-        exception=[
+        exceptions=[
+            {
+                "value": "Attempted to dereference garbage pointer 0x10.",
+                "mechanism": {
+                    "type": "mach",
+                    "data": {
+                        "relevant_address": "0x10"
+                    },
+                    "meta": {
+                        "signal": {
+                            "number": 10,
+                            "code": 0,
+                            "name": "SIGBUS",
+                            "code_name": "BUS_NOOP"
+                        },
+                        "mach_exception": {
+                            "exception": 1,
+                            "name": "EXC_BAD_ACCESS",
+                            "subcode": 8,
+                            "code": 16
+                        }
+                    }
+                },
+                "type": "EXC_BAD_ACCESS",
+                "thread_id": 0
+            }
+        ]
+    )
+    exception_info = acr._get_exception_info()
+    assert exception_info == 'Exception Type: EXC_BAD_ACCESS (SIGBUS)\n\
+Exception Codes: BUS_NOOP at 0x10\n\
+Crashed Thread: 0\n\n\
+Application Specific Information:\n\
+Attempted to dereference garbage pointer 0x10.'
+
+
+def test__get_exception_info_legacy_mechanism():
+    acr = AppleCrashReport(
+        exceptions=[
             {
                 "value": "Attempted to dereference garbage pointer 0x10.",
                 "mechanism": {
@@ -709,13 +744,9 @@ Attempted to dereference garbage pointer 0x10.'
 
 def test__get_exception_info_partial():
     acr = AppleCrashReport(
-        exception=[
+        exceptions=[
             {
                 "value": "Attempted to dereference garbage pointer 0x10.",
-                "mechanism": {
-                    "posix_signal": None,
-                    "mach_exception": None,
-                },
                 "type": "EXC_BAD_ACCESS",
                 "thread_id": 0
             }

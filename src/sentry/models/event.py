@@ -18,11 +18,11 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import eventtypes
 from sentry.db.models import (
-    BaseManager, BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
+    BoundedBigIntegerField, BoundedIntegerField, Model, NodeField, sane_repr
 )
-from sentry.interfaces.base import get_interface
+from sentry.interfaces.base import get_interfaces
 from sentry.utils.cache import memoize
-from sentry.utils.safe import safe_execute
+from sentry.utils.canonical import CanonicalKeyDict, CanonicalKeyView
 from sentry.utils.strings import truncatechars
 
 
@@ -44,9 +44,8 @@ class Event(Model):
         null=True,
         ref_func=lambda x: x.project_id or x.project.id,
         ref_version=2,
+        wrapper=CanonicalKeyDict,
     )
-
-    objects = BaseManager()
 
     class Meta:
         app_label = 'sentry'
@@ -57,6 +56,19 @@ class Event(Model):
         index_together = (('group_id', 'datetime'), )
 
     __repr__ = sane_repr('project_id', 'group_id')
+
+    def __getstate__(self):
+        state = Model.__getstate__(self)
+
+        # do not pickle cached info.  We want to fetch this on demand
+        # again.  In particular if we were to pickle interfaces we would
+        # pickle a CanonicalKeyView which old sentry workers do not know
+        # about
+        state.pop('_project_cache', None)
+        state.pop('_group_cache', None)
+        state.pop('interfaces', None)
+
+        return state
 
     # Implement a ForeignKey-like accessor for backwards compat
     def _set_group(self, group):
@@ -107,8 +119,9 @@ class Event(Model):
         etype = self.data.get('type', 'default')
         if 'metadata' not in self.data:
             # TODO(dcramer): remove after Dec 1 2016
-            data = self.data.copy() if self.data else {}
+            data = dict(self.data or {})
             data['message'] = self.message
+            data = CanonicalKeyView(data)
             return eventtypes.get(etype)(data).get_metadata()
         return self.data['metadata']
 
@@ -127,14 +140,6 @@ class Event(Model):
     def message_short(self):
         warnings.warn('Event.message_short is deprecated, use Event.title', DeprecationWarning)
         return self.title
-
-    def has_two_part_message(self):
-        warnings.warn('Event.has_two_part_message is no longer used', DeprecationWarning)
-        return False
-
-    @property
-    def team(self):
-        return self.project.team
 
     @property
     def organization(self):
@@ -161,33 +166,15 @@ class Event(Model):
         return None
 
     def get_interfaces(self):
-        result = []
-        for key, data in six.iteritems(self.data):
-            try:
-                cls = get_interface(key)
-            except ValueError:
-                continue
-
-            value = safe_execute(cls.to_python, data, _with_transaction=False)
-            if not value:
-                continue
-
-            result.append((key, value))
-
-        return OrderedDict(
-            (k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True)
-        )
+        return CanonicalKeyView(get_interfaces(self.data))
 
     @memoize
     def interfaces(self):
         return self.get_interfaces()
 
-    def get_tags(self, with_internal=True):
+    def get_tags(self):
         try:
-            return sorted(
-                (t, v) for t, v in self.data.get('tags') or ()
-                if with_internal or not t.startswith('sentry:')
-            )
+            return sorted((t, v) for t, v in self.data.get('tags') or ())
         except ValueError:
             # at one point Sentry allowed invalid tag sets such as (foo, bar)
             # vs ((tag, foo), (tag, bar))
@@ -219,12 +206,14 @@ class Event(Model):
         data['time_spent'] = self.time_spent
         data['tags'] = self.get_tags()
         for k, v in sorted(six.iteritems(self.data)):
+            if k == 'sdk':
+                v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != 'client_ip'}
             data[k] = v
         return data
 
     @property
     def size(self):
-        data_len = len(self.get_legacy_message())
+        data_len = 0
         for value in six.itervalues(self.data):
             data_len += len(repr(value))
         return data_len
@@ -283,6 +272,17 @@ class Event(Model):
             128,
         ).encode('utf-8')
 
+    def get_environment(self):
+        from sentry.models import Environment
+
+        if not hasattr(self, '_environment_cache'):
+            self._environment_cache = Environment.objects.get(
+                organization_id=self.project.organization_id,
+                name=Environment.get_name_or_default(self.get_tag('environment')),
+            )
+
+        return self._environment_cache
+
 
 class EventSubjectTemplate(string.Template):
     idpattern = r'(tag:)?[_a-z][_a-z0-9]*'
@@ -309,6 +309,8 @@ class EventSubjectTemplateData(object):
             return self.event.project.get_full_name()
         elif name == 'projectID':
             return self.event.project.slug
+        elif name == 'shortID':
+            return self.event.group.qualified_short_id
         elif name == 'orgID':
             return self.event.organization.slug
         elif name == 'title':
@@ -316,4 +318,4 @@ class EventSubjectTemplateData(object):
         raise KeyError
 
 
-DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('[$project] ${tag:level}: $title')
+DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('$shortID - $title')

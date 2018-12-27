@@ -23,7 +23,7 @@ class RemoveProjectView(ProjectView):
             return RemoveProjectForm(request.POST)
         return RemoveProjectForm()
 
-    def handle(self, request, organization, team, project):
+    def handle(self, request, organization, project):
         form = self.get_form(request)
 
         if form.is_valid():
@@ -33,13 +33,14 @@ class RemoveProjectView(ProjectView):
                 is_sudo=True
             )
 
+            project_name = project.slug.encode('utf-8')
             messages.add_message(
                 request, messages.SUCCESS,
-                _(u'The project %r was scheduled for deletion.') % (project.name.encode('utf-8'), )
+                _(u'The project %r was scheduled for deletion.') % (project_name, )
             )
 
             return HttpResponseRedirect(
-                reverse('sentry-organization-home', args=[team.organization.slug])
+                reverse('sentry-organization-home', args=[organization.slug])
             )
 
         context = {

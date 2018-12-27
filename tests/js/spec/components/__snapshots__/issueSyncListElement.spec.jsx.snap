@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AlertLink renders 1`] = `
+<IssueSyncListElementContainer>
+  <div>
+    <IntegrationIcon
+      src="icon-github"
+    />
+    <IntegrationLink>
+      Link GitHub Issue
+    </IntegrationLink>
+  </div>
+</IssueSyncListElementContainer>
+`;

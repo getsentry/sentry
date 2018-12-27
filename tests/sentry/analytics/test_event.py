@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+from datetime import datetime
+from mock import patch
 import pytest
+import pytz
 
 from sentry.analytics import Attribute, Event, Map
 from sentry.testutils import TestCase
@@ -20,14 +23,37 @@ class DummyType(object):
 
 
 class EventTest(TestCase):
-    def test_simple(self):
-        result = ExampleEvent(id='1', map={'key': 'value'}, optional=False)
+    @patch('sentry.analytics.event.uuid1')
+    def test_simple(self, mock_uuid1):
+        class uuid(object):
+            bytes = b'\x00\x01\x02'
+
+        mock_uuid1.return_value = uuid
+
+        result = ExampleEvent(
+            id='1',
+            map={'key': 'value'},
+            optional=False,
+            datetime=datetime(2001, 4, 18, tzinfo=pytz.utc)
+        )
         assert result.data == {
             'id': 1,
             'map': {
                 'key': 'value',
             },
             'optional': False,
+        }
+        assert result.serialize() == {
+            'data': {
+                'id': 1,
+                'map': {
+                    'key': 'value',
+                },
+                'optional': False,
+            },
+            'type': 'example',
+            'timestamp': 987552000,
+            'uuid': 'AAEC',
         }
 
     def test_optional_is_optional(self):

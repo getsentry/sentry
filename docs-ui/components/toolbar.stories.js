@@ -3,9 +3,9 @@ import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
 // import {action} from '@storybook/addon-actions';
 
-import Toolbar from 'sentry-ui/toolbar';
-import ToolbarHeader from 'sentry-ui/toolbarHeader';
-import SpreadLayout from 'sentry-ui/spreadLayout';
+import Toolbar from 'app/components/toolbar';
+import ToolbarHeader from 'app/components/toolbarHeader';
+import SpreadLayout from 'app/components/spreadLayout';
 
 storiesOf('Toolbar', module).add(
   'default',
@@ -14,7 +14,8 @@ storiesOf('Toolbar', module).add(
   )(() => (
     <Toolbar>
       <SpreadLayout>
-        <ToolbarHeader>Left</ToolbarHeader><ToolbarHeader>Right</ToolbarHeader>
+        <ToolbarHeader>Left</ToolbarHeader>
+        <ToolbarHeader>Right</ToolbarHeader>
       </SpreadLayout>
     </Toolbar>
   ))

@@ -2,31 +2,23 @@ from __future__ import absolute_import
 
 import six
 
-from django.core.urlresolvers import reverse
-from exam import fixture
-
 from sentry.models import Project, ProjectStatus
 from sentry.testutils import APITestCase
 
 
 class ProjectsListTest(APITestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-api-0-projects')
+    path = '/api/0/projects/'
 
-    def test_member(self):
-        user = self.create_user('foo@example.com', is_superuser=False)
-        org = self.create_organization(name='foo')
-        team = self.create_team(organization=org, name='foo')
-        project = self.create_project(team=team, organization=org)
+    def test_member_constraints(self):
+        user = self.create_user(is_superuser=True)
+        org = self.create_organization()
+        team = self.create_team(organization=org, members=[user])
+        project = self.create_project(teams=[team])
+        org2 = self.create_organization()
+        team2 = self.create_team(organization=org2, members=[])
+        self.create_project(teams=[team2])
 
-        self.create_member(organization=org, user=user, teams=[team])
-
-        org2 = self.create_organization(name='bar')
-        team2 = self.create_team(organization=org, name='bar')
-        self.create_project(team=team2, organization=org2)
-
-        self.login_as(user=user)
+        self.login_as(user=user, superuser=True)
         response = self.client.get(self.path)
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -34,32 +26,46 @@ class ProjectsListTest(APITestCase):
         assert response.data[0]['id'] == six.text_type(project.id)
         assert response.data[0]['organization']['id'] == six.text_type(org.id)
 
-    def test_superuser(self):
+    def test_show_all_with_superuser(self):
         Project.objects.all().delete()
 
-        user = self.create_user('foo@example.com', is_superuser=True)
+        user = self.create_user(is_superuser=True)
 
-        org = self.create_organization(name='foo', owner=user)
+        org = self.create_organization(owner=user)
         self.create_project(organization=org)
 
-        org2 = self.create_organization(name='bar')
+        org2 = self.create_organization()
+        self.create_project(organization=org2)
+
+        self.login_as(user=user, superuser=True)
+        response = self.client.get('{}?show=all'.format(self.path))
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+    def test_show_all_without_superuser(self):
+        Project.objects.all().delete()
+
+        user = self.create_user(is_superuser=False)
+
+        org = self.create_organization(owner=user)
+        self.create_project(organization=org)
+
+        org2 = self.create_organization()
         self.create_project(organization=org2)
 
         self.login_as(user=user)
         response = self.client.get(self.path)
         assert response.status_code == 200
-        assert len(response.data) == 2
+        assert len(response.data) == 0
 
     def test_status_filter(self):
         Project.objects.all().delete()
 
-        user = self.create_user('foo@example.com', is_superuser=True)
-
-        org = self.create_organization(name='foo')
-        project1 = self.create_project(organization=org)
-
-        org2 = self.create_organization(name='bar')
-        project2 = self.create_project(organization=org2, status=ProjectStatus.PENDING_DELETION)
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org, members=[user])
+        project1 = self.create_project(teams=[team])
+        project2 = self.create_project(teams=[team], status=ProjectStatus.PENDING_DELETION)
 
         self.login_as(user=user)
 
@@ -76,13 +82,11 @@ class ProjectsListTest(APITestCase):
     def test_query_filter(self):
         Project.objects.all().delete()
 
-        user = self.create_user('foo@example.com', is_superuser=True)
-
-        org = self.create_organization(name='foo')
-        project1 = self.create_project(name='foo', organization=org)
-
-        org2 = self.create_organization(name='bar')
-        self.create_project(name='bar', organization=org2)
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org, members=[user])
+        project1 = self.create_project(name='foo', teams=[team])
+        self.create_project(name='bar', teams=[team])
 
         self.login_as(user=user)
 
@@ -98,12 +102,11 @@ class ProjectsListTest(APITestCase):
     def test_slug_query(self):
         Project.objects.all().delete()
 
-        user = self.create_user('foo@example.com', is_superuser=True)
-
-        org = self.create_organization(name='foo')
-        project1 = self.create_project(name='foo', slug='foo', organization=org)
-
-        self.create_project(name='bar', slug='bar', organization=org)
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org, members=[user])
+        project1 = self.create_project(slug='foo', name='foo', teams=[team])
+        self.create_project(name='bar', slug='bar', teams=[team])
 
         self.login_as(user=user)
 
@@ -119,12 +122,11 @@ class ProjectsListTest(APITestCase):
     def test_id_query(self):
         Project.objects.all().delete()
 
-        user = self.create_user('foo@example.com', is_superuser=True)
-
-        org = self.create_organization(name='foo')
-        project1 = self.create_project(name='foo', slug='foo', organization=org)
-
-        self.create_project(name='bar', slug='bar', organization=org)
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org, members=[user])
+        project1 = self.create_project(teams=[team])
+        self.create_project(teams=[team])
 
         self.login_as(user=user)
 

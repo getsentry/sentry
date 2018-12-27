@@ -7,7 +7,9 @@ sentry.models.grouphash
 """
 from __future__ import absolute_import
 
+from django.conf import settings
 from django.db import models
+from django.db.models.signals import post_delete
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
@@ -37,37 +39,32 @@ class GroupHash(Model):
         db_table = 'sentry_grouphash'
         unique_together = (('project', 'hash'), )
 
-    @staticmethod
-    def fetch_last_processed_event_id(project_id, group_hash_ids):
-        prefix = 'last-processed-event:{}'.format(project_id)
-        with redis.clusters.get('default').map() as client:
-            results = map(
-                lambda group_hash_id: client.hget(
-                    '{}:{}'.format(prefix, group_hash_id % 16),
-                    group_hash_id,
-                ),
-                group_hash_ids,
-            )
+    @classmethod
+    def __get_last_processed_event_id_cluster(cls):
+        cluster_name = getattr(settings, 'GROUP_HASH_LAST_PROCESSED_EVENT_CLUSTER_NAME', 'default')
+        return redis.clusters.get(cluster_name)
 
-        return map(
-            lambda result: result.value,
-            results,
-        )
+    @classmethod
+    def fetch_last_processed_event_id(cls, group_hash_ids):
+        with cls.__get_last_processed_event_id_cluster().map() as client:
+            results = [client.get('gh:lp:{}'.format(id)) for id in group_hash_ids]
+        return [result.value for result in results]
 
-    @staticmethod
-    def record_last_processed_event_id(project_id, group_hash_ids, event_id):
-        prefix = 'last-processed-event:{}'.format(project_id)
-        with redis.clusters.get('default').map() as client:
-            results = map(
-                lambda group_hash_id: client.hset(
-                    '{}:{}'.format(prefix, group_hash_id % 16),
-                    group_hash_id,
-                    event_id,
-                ),
-                group_hash_ids,
-            )
+    @classmethod
+    def record_last_processed_event_id(cls, group_hash_id, event_id):
+        with cls.__get_last_processed_event_id_cluster().map() as client:
+            key = 'gh:lp:{}'.format(group_hash_id)
+            client.set(key, '{}'.format(event_id))
+            client.expire(key, 7776000)  # 90d
 
-        return map(
-            lambda result: result.value,
-            results,
-        )
+    @classmethod
+    def delete_last_processed_event_id(cls, group_hash_id):
+        with cls.__get_last_processed_event_id_cluster().map() as client:
+            client.delete('gh:lp:{}'.format(group_hash_id))
+
+
+post_delete.connect(
+    lambda instance, **kwargs: GroupHash.delete_last_processed_event_id(instance.id),
+    sender=GroupHash,
+    weak=False,
+)

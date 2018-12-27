@@ -269,6 +269,8 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return self.title
 
+    get_short_title = get_title
+
     def get_description(self):
         """
         Returns the description for this plugin. This is shown on the plugin configuration
@@ -439,6 +441,9 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
 
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""
+
+    def handle_signal(self, name, payload, **kwargs):
+        pass
 
 
 @six.add_metaclass(PluginMount)

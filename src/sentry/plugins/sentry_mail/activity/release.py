@@ -9,7 +9,7 @@ from django.db.models import Count
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    CommitFileChange, Deploy, Environment, Group, GroupSubscriptionReason, GroupCommitResolution,
+    CommitFileChange, Deploy, Environment, Group, GroupSubscriptionReason, GroupLink, ProjectTeam,
     Release, ReleaseCommit, Repository, Team, User, UserEmail, UserOption, UserOptionValue
 )
 from sentry.utils.http import absolute_uri
@@ -46,14 +46,14 @@ class ReleaseActivityEmail(ActivityEmail):
                 ).select_related('commit', 'commit__author')
             ]
             repos = {
-                r['id']: {
-                    'name': r['name'],
+                r_id: {
+                    'name': r_name,
                     'commits': [],
                 }
-                for r in Repository.objects.filter(
+                for r_id, r_name in Repository.objects.filter(
                     organization_id=self.project.organization_id,
                     id__in={c.repository_id for c in self.commit_list}
-                ).values('id', 'name')
+                ).values_list('id', 'name')
             }
 
             self.email_list = set([c.author.email for c in self.commit_list if c.author])
@@ -82,17 +82,15 @@ class ReleaseActivityEmail(ActivityEmail):
                 id=self.deploy.environment_id
             ).name or 'Default Environment'
 
-            self.group_counts_by_project = {
-                row['project']: row['num_groups']
-                for row in Group.objects.filter(
-                    project__in=self.projects,
-                    id__in=GroupCommitResolution.objects.filter(
-                        commit_id__in=ReleaseCommit.objects.filter(
-                            release=self.release,
-                        ).values_list('commit_id', flat=True),
-                    ).values_list('group_id', flat=True),
-                ).values('project').annotate(num_groups=Count('id'))
-            }
+            self.group_counts_by_project = dict(Group.objects.filter(
+                project__in=self.projects,
+                id__in=GroupLink.objects.filter(
+                    linked_type=GroupLink.LinkedType.commit,
+                    linked_id__in=ReleaseCommit.objects.filter(
+                        release=self.release,
+                    ).values_list('commit_id', flat=True),
+                ).values_list('group_id', flat=True),
+            ).values_list('project').annotate(num_groups=Count('id')))
 
     def should_email(self):
         return bool(self.release and self.deploy)
@@ -105,8 +103,11 @@ class ReleaseActivityEmail(ActivityEmail):
         users = list(
             User.objects.filter(
                 emails__is_verified=True,
-                sentry_orgmember_set__teams=Team.objects.
-                filter(id__in=[p.team_id for p in self.projects]),
+                sentry_orgmember_set__teams=Team.objects.filter(
+                    id__in=ProjectTeam.objects.filter(
+                        project__in=self.projects,
+                    ).values_list('team_id', flat=True),
+                ),
                 is_active=True,
             ).distinct()
         )
@@ -148,9 +149,9 @@ class ReleaseActivityEmail(ActivityEmail):
             user_teams = defaultdict(list)
             queryset = User.objects.filter(
                 sentry_orgmember_set__organization_id=self.organization.id
-            ).values('id', 'sentry_orgmember_set__teams')
-            for user_team in queryset:
-                user_teams[user_team['id']].append(user_team['sentry_orgmember_set__teams'])
+            ).values_list('id', 'sentry_orgmember_set__teams')
+            for user_id, team_id in queryset:
+                user_teams[user_id].append(team_id)
             self.user_id_team_lookup = user_teams
         return self.user_id_team_lookup
 
@@ -186,7 +187,12 @@ class ReleaseActivityEmail(ActivityEmail):
             projects = self.projects
         else:
             teams = self.get_users_by_teams()[user.id]
-            projects = [p for p in self.projects if p.team_id in teams]
+            team_projects = set(
+                ProjectTeam.objects.filter(
+                    team_id__in=teams,
+                ).values_list('project_id', flat=True).distinct()
+            )
+            projects = [p for p in self.projects if p.id in team_projects]
         release_links = [
             absolute_uri(
                 '/{}/{}/releases/{}/'.format(

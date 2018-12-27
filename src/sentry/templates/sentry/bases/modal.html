@@ -19,7 +19,7 @@
             </div>
           {% endif %}
         {% endblock %}
-        <a href="{% block modal_header_link %}/{% endblock %}">
+        <a class="logo-with-action" href="{% block modal_header_link %}/{% endblock %}">
           {% if request.user.is_authenticated %}
             <span class="icon-sentry-logo"></span>
           {% else %}

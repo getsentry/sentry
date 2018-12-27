@@ -4,15 +4,17 @@ from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry import roles
 from sentry.api.bases.organization import (OrganizationEndpoint, OrganizationPermission)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuditLogEntryEvent, OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam, Team
 )
 
-ERR_INSUFFICIENT_ROLE = 'You cannot modify a member other than yourself.'
+ERR_INSUFFICIENT_ROLE = 'You do not have permission to edit that user\'s membership.'
 
 
 class OrganizationMemberTeamSerializer(serializers.Serializer):
@@ -43,15 +45,24 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
     permission_classes = [RelaxedOrganizationPermission]
 
-    def _can_access(self, request, member):
-        # TODO(dcramer): ideally org owners/admins could perform these actions
-        if request.is_superuser():
+    def _can_access(self, request, member, organization):
+        if is_active_superuser(request):
             return True
 
         if not request.user.is_authenticated():
             return False
 
         if request.user.id == member.user_id:
+            return True
+
+        acting_member = OrganizationMember.objects.get(
+            organization=organization,
+            user__id=request.user.id,
+            user__is_active=True,
+        )
+
+        if roles.get(acting_member.role).is_global and \
+                roles.can_manage(acting_member.role, member.role):
             return True
 
         return False
@@ -73,9 +84,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
     def post(self, request, organization, member_id, team_slug):
         """
-        Join a team
+        Join or add a member to a team
 
-        Join or request access to a team.
+        Join, request access to or add a member to a team.
 
         If the user is already a member of the team, this will simply return
         a 204.
@@ -88,7 +99,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self._can_access(request, om):
+        if not self._can_access(request, om, organization):
             return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
 
         try:
@@ -134,16 +145,14 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationEndpoint):
 
     def delete(self, request, organization, member_id, team_slug):
         """
-        Leave a team
-
-        Leave a team.
+        Leave or remove a member from a team
         """
         try:
             om = self._get_member(request, organization, member_id)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if not self._can_access(request, om):
+        if not self._can_access(request, om, organization):
             return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
 
         try:

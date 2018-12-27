@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import os
 import re
 import json
-import base64
 import inspect
 import requests
 import mimetypes
@@ -284,13 +283,16 @@ class MockUtils(object):
             },
         )[0]
 
-    def create_project(self, name, team, org):
+    def create_project(self, name, teams, org):
         from sentry.models import Project
-        return Project.objects.get_or_create(
-            team=team, name=name, defaults={
+        project = Project.objects.get_or_create(
+            name=name, defaults={
                 'organization': org,
             }
         )[0]
+        for team in teams:
+            project.add_team(team)
+        return project
 
     def create_release(self, project, user, version=None):
         from sentry.models import Release, Activity
@@ -314,7 +316,7 @@ class MockUtils(object):
         Activity.objects.create(
             type=Activity.RELEASE,
             project=project,
-            ident=version,
+            ident=Activity.get_version_ident(version),
             user=user,
             data={'version': version},
         )
@@ -384,7 +386,7 @@ class Runner(object):
     def isolated_project(self, project_name):
         from sentry.models import Group, Event
 
-        project = self.utils.create_project(project_name, team=self.default_team, org=self.org)
+        project = self.utils.create_project(project_name, teams=[self.default_team], org=self.org)
         release = self.utils.create_release(project=project, user=self.me)
         self.utils.create_event(project=project, release=release, platform='python')
         self.utils.create_event(project=project, release=release, platform='java')
@@ -442,8 +444,7 @@ class Runner(object):
 
         req_headers = dict(headers)
         req_headers['Host'] = 'sentry.io'
-        req_headers['Authorization'
-                    ] = 'Basic %s' % base64.b64encode('%s:' % (api_key.key.encode('utf-8')))
+        req_headers['Authorization'] = 'Bearer %s' % api_key.key.encode('utf-8')
 
         url = 'http://127.0.0.1:%s%s' % (settings.SENTRY_APIDOCS_WEB_PORT, path, )
 

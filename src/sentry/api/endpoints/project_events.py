@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+from django.utils import timezone
+
+from sentry import quotas
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -43,6 +47,13 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         if query:
             events = events.filter(
                 message__icontains=query,
+            )
+
+        # filter out events which are beyond the retention period
+        retention = quotas.get_event_retention(organization=project.organization)
+        if retention:
+            events = events.filter(
+                datetime__gte=timezone.now() - timedelta(days=retention)
             )
 
         return self.paginate(

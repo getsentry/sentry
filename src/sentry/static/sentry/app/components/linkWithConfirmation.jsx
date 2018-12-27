@@ -1,74 +1,44 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-import Modal from 'react-bootstrap/lib/Modal';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
-import {t} from '../locale';
+import PropTypes from 'prop-types';
 
-const LinkWithConfirmation = React.createClass({
-  propTypes: {
+import Confirm from 'app/components/confirm';
+
+/**
+ * <Confirm> is a more generic version of this component
+ */
+class LinkWithConfirmation extends React.PureComponent {
+  static propTypes = {
     disabled: PropTypes.bool,
-    message: PropTypes.string.isRequired,
-    title: PropTypes.string.isRequired,
-    onConfirm: PropTypes.func.isRequired
-  },
+    message: PropTypes.node.isRequired,
+    title: PropTypes.node.isRequired,
+    onConfirm: PropTypes.func.isRequired,
+  };
 
-  mixins: [PureRenderMixin],
-
-  getInitialState() {
-    return {
-      isModalOpen: false
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      isModalOpen: false,
     };
-  },
-
-  onConfirm() {
-    this.setState({
-      isModalOpen: false
-    });
-
-    this.props.onConfirm();
-  },
-
-  onToggle() {
-    if (this.props.disabled) {
-      return;
-    }
-    this.setState({
-      isModalOpen: !this.state.isModalOpen
-    });
-  },
+  }
 
   render() {
-    let className = this.props.className;
+    let {className, disabled, title, children, ...otherProps} = this.props;
     if (this.props.disabled) {
       className += ' disabled';
     }
     return (
-      <a
-        className={className}
-        disabled={this.props.disabled}
-        onClick={this.onToggle}
-        title={this.props.title}>
-        {this.props.children}
-        <Modal
-          show={this.state.isModalOpen}
-          title={t('Please confirm')}
-          animation={false}
-          onHide={this.onToggle}>
-          <div className="modal-body">
-            <p><strong>{this.props.message}</strong></p>
-          </div>
-          <div className="modal-footer">
-            <button type="button" className="btn btn-default" onClick={this.onToggle}>
-              {t('Cancel')}
-            </button>
-            <button type="button" className="btn btn-primary" onClick={this.onConfirm}>
-              {t('Confirm')}
-            </button>
-          </div>
-        </Modal>
-      </a>
+      <Confirm {...otherProps} disabled={disabled}>
+        <a
+          className={className}
+          disabled={disabled}
+          onClick={this.onToggle}
+          title={title}
+        >
+          {children}
+        </a>
+      </Confirm>
     );
   }
-});
+}
 
 export default LinkWithConfirmation;

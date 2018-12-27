@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 import {number, boolean, array, color} from '@storybook/addon-knobs';
 // import {action} from '@storybook/addon-actions';
 
-import ScoreBar from 'sentry-ui/scoreBar';
+import ScoreBar from 'app/components/scoreBar';
 
 const stories = storiesOf('ScoreBar', module);
 stories
@@ -44,7 +44,7 @@ stories
         color('Low', 'yellow'),
         color('Med', 'lime'),
         color('High', 'blue'),
-        color('Higher', 'purple')
+        color('Higher', 'purple'),
       ]);
 
       return (

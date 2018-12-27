@@ -1,25 +1,35 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import createReactClass from 'create-react-class';
 import {Link} from 'react-router';
+import styled from 'react-emotion';
+import {Flex, Box} from 'grid-emotion';
 
-import ProjectState from '../mixins/projectState';
-import TimeSince from './timeSince';
-import ShortId from './shortId';
+import ProjectState from 'app/mixins/projectState';
+import TimeSince from 'app/components/timeSince';
+import ShortId from 'app/components/shortId';
+import {t, tct} from 'app/locale';
 
-const EventOrGroupExtraDetails = React.createClass({
+const EventOrGroupExtraDetails = createReactClass({
+  displayName: 'EventOrGroupExtraDetails',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     groupId: PropTypes.string.isRequired,
-    firstSeen: PropTypes.string,
     lastSeen: PropTypes.string,
-    shortId: PropTypes.string,
+    firstSeen: PropTypes.string,
     subscriptionDetails: PropTypes.shape({
-      reason: PropTypes.string
+      reason: PropTypes.string,
     }),
     numComments: PropTypes.number,
     logger: PropTypes.string,
-    annotations: PropTypes.arrayOf(PropTypes.string)
+    annotations: PropTypes.arrayOf(PropTypes.string),
+    assignedTo: PropTypes.shape({
+      name: PropTypes.string,
+    }),
+    showAssignee: PropTypes.bool,
+    shortId: PropTypes.string,
   },
 
   mixins: [ProjectState],
@@ -31,11 +41,13 @@ const EventOrGroupExtraDetails = React.createClass({
       groupId,
       lastSeen,
       firstSeen,
-      shortId,
       subscriptionDetails,
       numComments,
       logger,
-      annotations
+      assignedTo,
+      annotations,
+      showAssignee,
+      shortId,
     } = this.props;
     let styles = {};
     if (subscriptionDetails && subscriptionDetails.reason === 'mentioned') {
@@ -43,55 +55,96 @@ const EventOrGroupExtraDetails = React.createClass({
     }
 
     return (
-      <div className="event-extra">
-        <ul>
-          {this.getFeatures().has('callsigns') &&
-            shortId &&
-            <li>
-              <ShortId shortId={shortId} />
-            </li>}
-          <li>
-            <span className="icon icon-clock" />
-            {lastSeen && <TimeSince date={lastSeen} />}
-            {firstSeen && lastSeen && <span>&nbsp;—&nbsp;</span>}
-            {firstSeen && <TimeSince date={firstSeen} suffix="old" />}
-          </li>
-          {numComments > 0 &&
-            <li>
+      <GroupExtra align="center">
+        {shortId && (
+          <Box mr={2}>
+            <GroupShortId shortId={shortId} />
+          </Box>
+        )}
+        <Flex align="center" mr={2}>
+          {lastSeen && (
+            <React.Fragment>
+              <GroupExtraIcon className="icon icon-clock" />
+              <TimeSince date={lastSeen} suffix={t('ago')} />
+            </React.Fragment>
+          )}
+          {firstSeen &&
+            lastSeen && <span className="hidden-xs hidden-sm">&nbsp;—&nbsp;</span>}
+          {firstSeen && (
+            <TimeSince
+              date={firstSeen}
+              suffix={t('old')}
+              className="hidden-xs hidden-sm"
+            />
+          )}
+        </Flex>
+        <GroupExtraCommentsAndLogger>
+          {numComments > 0 && (
+            <Box mr={2}>
               <Link
                 to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}
-                className="comments">
-                <span className="icon icon-comments" style={styles} />
-                <span className="tag-count">{numComments}</span>
+                className="comments"
+              >
+                <GroupExtraIcon className="icon icon-comments" style={styles} />
+                <GroupExtraIcon className="tag-count">{numComments}</GroupExtraIcon>
               </Link>
-            </li>}
-          {logger &&
-            <li className="event-annotation">
+            </Box>
+          )}
+          {logger && (
+            <Box className="event-annotation" mr={2}>
               <Link
                 to={{
                   pathname: `/${orgId}/${projectId}/`,
                   query: {
-                    query: 'logger:' + logger
-                  }
-                }}>
+                    query: 'logger:' + logger,
+                  },
+                }}
+              >
                 {logger}
               </Link>
-            </li>}
-          {annotations &&
-            annotations.map((annotation, key) => {
-              return (
-                <li
-                  className="event-annotation"
-                  dangerouslySetInnerHTML={{
-                    __html: annotation
-                  }}
-                  key={key}
-                />
-              );
-            })}
-        </ul>
-      </div>
+            </Box>
+          )}
+        </GroupExtraCommentsAndLogger>
+        {annotations &&
+          annotations.map((annotation, key) => {
+            return (
+              <Box
+                className="event-annotation"
+                dangerouslySetInnerHTML={{
+                  __html: annotation,
+                }}
+                key={key}
+              />
+            );
+          })}
+
+        {showAssignee &&
+          assignedTo && <Box>{tct('Assigned to [name]', {name: assignedTo.name})}</Box>}
+      </GroupExtra>
     );
-  }
+  },
 });
+
+const GroupExtra = styled(Flex)`
+  color: ${p => p.theme.gray3};
+  font-size: 12px;
+  a {
+    color: inherit;
+  }
+`;
+
+const GroupExtraCommentsAndLogger = styled(Flex)`
+  color: ${p => p.theme.gray4};
+`;
+
+const GroupShortId = styled(ShortId)`
+  font-size: 12px;
+  color: ${p => p.theme.gray3};
+`;
+
+const GroupExtraIcon = styled.span`
+  font-size: 11px;
+  margin-right: 4px;
+`;
+
 export default EventOrGroupExtraDetails;

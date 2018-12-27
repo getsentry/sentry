@@ -4,9 +4,9 @@
     "recommendations": [
         "dzannotti.vscode-babel-coloring",
         "esbenp.prettier-vscode",
-        "donjayamanne.python",
+        "ms-python.python",
         "dbaeumer.vscode-eslint",
         "lextudio.restructuredtext",
-        "jmlntw.vscode-ensure-single-final-newline"
+        "ziyasal.vscode-open-in-github"
     ]
 }

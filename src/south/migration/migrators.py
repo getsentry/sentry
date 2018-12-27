@@ -5,6 +5,7 @@ import datetime
 import inspect
 import sys
 import traceback
+import os
 
 from django.core.management import call_command
 from django.core.management.commands import loaddata
@@ -278,6 +279,16 @@ class Forwards(Migrator):
     @staticmethod
     def orm(migration):
         return migration.orm()
+
+    def run(self, migration, database):
+        if os.environ.get('SOUTH_SKIP_DANGEROUS', '0') == '1' and getattr(
+                migration.migration_instance(), 'is_dangerous', False):
+            # Don't actually run, just record as if ran
+            self.record(migration, database)
+            if self.verbosity:
+                print('   (too dangerous)')
+            return
+        return super(Forwards, self).run(migration, database)
 
     def forwards(self, migration):
         return self._wrap_direction(migration.forwards(), migration.orm())

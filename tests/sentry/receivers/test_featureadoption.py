@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import json
 from django.utils import timezone
 
-from sentry.models import FeatureAdoption, Rule
+from sentry.models import FeatureAdoption, GroupTombstone, Rule
 from sentry.plugins import IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     alert_rule_created,
@@ -32,7 +32,7 @@ class FeatureAdoptionTest(TestCase):
         self.owner = self.create_user()
         self.organization = self.create_organization(owner=self.owner)
         self.team = self.create_team(organization=self.organization)
-        self.project = self.create_project(team=self.team)
+        self.project = self.create_project(teams=[self.team])
 
     def test_bad_feature_slug(self):
         FeatureAdoption.objects.record(self.organization.id, "xxx")
@@ -714,5 +714,15 @@ class FeatureAdoptionTest(TestCase):
         data_scrubber_enabled.send(organization=self.organization, sender=type(self.organization))
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="data_scrubbers"
+        )
+        assert feature_complete
+
+    def test_delete_and_discard(self):
+        GroupTombstone.objects.create(
+            previous_group_id=self.group.id,
+            project=self.project,
+        )
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization, slug="delete_and_discard"
         )
         assert feature_complete

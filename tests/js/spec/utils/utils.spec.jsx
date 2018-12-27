@@ -1,4 +1,10 @@
-import {valueIsEqual, extractMultilineFields, parseRepo} from 'app/utils';
+import {
+  valueIsEqual,
+  extractMultilineFields,
+  parseRepo,
+  explodeSlug,
+  sortProjects,
+} from 'app/utils';
 
 describe('utils.valueIsEqual', function() {
   it('should return true when objects are deeply equal', function() {
@@ -8,16 +14,16 @@ describe('utils.valueIsEqual', function() {
         teams: ['bar', 'baz'],
         avatar: {
           avatarType: 'gravatar',
-          avatarUuid: null
-        }
+          avatarUuid: null,
+        },
       },
       {
         username: 'foo',
         teams: ['bar', 'baz'],
         avatar: {
           avatarType: 'gravatar',
-          avatarUuid: null
-        }
+          avatarUuid: null,
+        },
       },
       true
     );
@@ -31,16 +37,16 @@ describe('utils.valueIsEqual', function() {
         teams: ['bar', 'baz'],
         avatar: {
           avatarType: 'gravatar',
-          avatarUuid: null
-        }
+          avatarUuid: null,
+        },
       },
       {
         username: 'foo',
         teams: ['bar', 'baz'],
         avatar: {
           avatarType: 'notGravatar',
-          avatarUuid: null
-        }
+          avatarUuid: null,
+        },
       },
       true
     );
@@ -52,12 +58,12 @@ describe('utils.valueIsEqual', function() {
       {
         username: 'foo',
         team: 'bar',
-        avatar: 'gravatar'
+        avatar: 'gravatar',
       },
       {
         username: 'foo',
         team: 'bar',
-        avatar: 'gravatar'
+        avatar: 'gravatar',
       },
       false
     );
@@ -69,12 +75,12 @@ describe('utils.valueIsEqual', function() {
       {
         username: 'foo',
         team: 'bar',
-        avatar: 'gravatar'
+        avatar: 'gravatar',
       },
       {
         username: 'foo',
         team: 'bar',
-        avatar: 'notGravatar'
+        avatar: 'notGravatar',
       },
       false
     );
@@ -89,15 +95,15 @@ describe('utils.valueIsEqual', function() {
       {
         username: 'foo',
         teams: ['bar', 'baz'],
-        avatar: null
+        avatar: null,
       },
       {
         username: 'foo',
         teams: ['bar', 'baz'],
         avatar: {
           avatarType: 'notGravatar',
-          avatarUuid: null
-        }
+          avatarUuid: null,
+        },
       },
       true
     );
@@ -145,7 +151,7 @@ describe('utils.parseRepo', function() {
   it('should work for full BitBucket url', function() {
     expect(parseRepo('https://bitbucket.org/example/example')).toEqual('example/example');
   });
-  it('should work for trailing slash', function() {
+  it('should work for trailing Bitbucket slash', function() {
     expect(parseRepo('https://bitbucket.org/example/example/')).toEqual(
       'example/example'
     );
@@ -157,8 +163,74 @@ describe('utils.parseRepo', function() {
     expect(parseRepo('github.com/example/example/commits/adsadsa')).toEqual(
       'example/example'
     );
-    it('should work for nothing passed', function() {
-      expect(parseRepo().toEqual());
-    });
+  });
+  it('should work for nothing passed', function() {
+    expect(parseRepo()).toEqual();
+  });
+});
+
+describe('utils.explodeSlug', function() {
+  it('replaces slug special chars with whitespace', function() {
+    expect(explodeSlug('test--slug__replace-')).toEqual('test slug replace');
+  });
+});
+
+describe('utils.projectDisplayCompare', function() {
+  it('sorts by bookmark and project slug', function() {
+    const projects = [
+      {
+        isBookmarked: true,
+        slug: 'm',
+      },
+      {
+        isBookmarked: false,
+        slug: 'm',
+      },
+      {
+        isBookmarked: false,
+        slug: 'a',
+      },
+      {
+        isBookmarked: true,
+        slug: 'a',
+      },
+      {
+        isBookmarked: true,
+        slug: 'z',
+      },
+      {
+        isBookmarked: false,
+        slug: 'z',
+      },
+    ];
+
+    const sortedProjects = sortProjects(projects);
+
+    expect(sortedProjects).toEqual([
+      {
+        isBookmarked: true,
+        slug: 'a',
+      },
+      {
+        isBookmarked: true,
+        slug: 'm',
+      },
+      {
+        isBookmarked: true,
+        slug: 'z',
+      },
+      {
+        isBookmarked: false,
+        slug: 'a',
+      },
+      {
+        isBookmarked: false,
+        slug: 'm',
+      },
+      {
+        isBookmarked: false,
+        slug: 'z',
+      },
+    ]);
   });
 });

@@ -3,12 +3,14 @@ import {shallow} from 'enzyme';
 import SimilarScoreCard from 'app/components/similarScoreCard';
 
 describe('SimilarScoreCard', function() {
+  let sandbox;
+
   beforeEach(function() {
-    this.sandbox = sinon.sandbox.create();
+    sandbox = sinon.sandbox.create();
   });
 
   afterEach(function() {
-    this.sandbox.restore();
+    sandbox.restore();
   });
 
   it('renders', function() {
@@ -20,10 +22,10 @@ describe('SimilarScoreCard', function() {
     let wrapper = shallow(
       <SimilarScoreCard
         scoreList={[
-          ['exception,message,character-shingles', 0.2],
+          ['exception,message,character-shingles', null],
           ['exception,stacktrace,application-chunks', 0.8],
           ['exception,stacktrace,pairs', 1],
-          ['message,message,character-shingles', 0.5]
+          ['message,message,character-shingles', 0.5],
         ]}
       />
     );

@@ -1,15 +1,36 @@
+import {withRouter} from 'react-router';
 import React from 'react';
+import Reflux from 'reflux';
+import createReactClass from 'create-react-class';
 
-import ProjectHeader from '../components/projectHeader';
-import ProjectState from '../mixins/projectState';
+import {setLastRoute} from 'app/actionCreators/navigation';
+import SentryTypes from 'app/sentryTypes';
+import EnvironmentStore from 'app/stores/environmentStore';
+import ProjectHeader from 'app/components/projectHeader';
+import ProjectState from 'app/mixins/projectState';
+import withEnvironment from 'app/utils/withEnvironment';
 
-const ProjectDetailsLayout = React.createClass({
-  mixins: [ProjectState],
+const ProjectDetailsLayout = createReactClass({
+  displayName: 'ProjectDetailsLayout',
+
+  propTypes: {
+    environment: SentryTypes.Environment,
+  },
+
+  mixins: [ProjectState, Reflux.connect(EnvironmentStore, 'environments')],
 
   getInitialState() {
     return {
-      projectNavSection: null
+      environments: EnvironmentStore.getActive() || [],
+      projectNavSection: null,
     };
+  },
+
+  componentWillUnmount() {
+    let {location} = this.props;
+    let {pathname, search} = location;
+    // Save last route so that we can jump back to view from settings
+    setLastRoute(`${pathname}${search || ''}`);
   },
 
   /**
@@ -19,7 +40,7 @@ const ProjectDetailsLayout = React.createClass({
    */
   setProjectNavSection(section) {
     this.setState({
-      projectNavSection: section
+      projectNavSection: section,
     });
   },
 
@@ -27,23 +48,26 @@ const ProjectDetailsLayout = React.createClass({
     if (!this.context.project) return null;
 
     return (
-      <div>
+      <React.Fragment>
         <ProjectHeader
           activeSection={this.state.projectNavSection}
           project={this.context.project}
           organization={this.getOrganization()}
+          environments={this.state.environments}
+          activeEnvironment={this.props.environment}
         />
         <div className="container">
           <div className="content">
             {React.cloneElement(this.props.children, {
               setProjectNavSection: this.setProjectNavSection,
-              memberList: this.state.memberList
+              memberList: this.state.memberList,
             })}
           </div>
         </div>
-      </div>
+      </React.Fragment>
     );
-  }
+  },
 });
 
-export default ProjectDetailsLayout;
+export {ProjectDetailsLayout};
+export default withRouter(withEnvironment(ProjectDetailsLayout));

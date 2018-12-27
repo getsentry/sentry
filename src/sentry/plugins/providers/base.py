@@ -26,9 +26,10 @@ class ProviderMixin(object):
             raise PluginError
 
         integration = Integration.objects.get_or_create(
-            provider=self.auth_provider, external_id=usa.uid, defaults={'default_auth_id': usa.id}
+            provider=self.auth_provider,
+            external_id=usa.uid,
         )[0]
-        integration.add_organization(organization.id)
+        integration.add_organization(organization.id, default_auth_id=usa.id)
 
     def get_available_auths(self, user, organization, integrations, social_auths, **kwargs):
         if self.auth_provider is None:
@@ -107,11 +108,9 @@ class ProviderMixin(object):
         if organization:
             try:
                 auth = UserSocialAuth.objects.get(
-                    id=Integration.objects.filter(
-                        id=OrganizationIntegration.objects.filter(
-                            integration__provider=self.auth_provider,
-                            organization=organization,
-                        ).values_list('integration_id', flat=True)[0],
+                    id=OrganizationIntegration.objects.filter(
+                        organization=organization,
+                        integration__provider=self.auth_provider,
                     ).values_list('default_auth_id', flat=True)[0]
                 )
             except UserSocialAuth.DoesNotExist:
@@ -132,12 +131,19 @@ class ProviderMixin(object):
             'error_type': 'unknown',
         }
         if isinstance(error, InvalidIdentity):
-            context.update(
-                {
-                    'error_type': 'auth',
-                    'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
-                }
-            )
+            if self.auth_provider is None:
+                context.update(
+                    {
+                        'message': 'Your authentication credentials are invalid. Please check your project settings.'
+                    }
+                )
+            else:
+                context.update(
+                    {
+                        'error_type': 'auth',
+                        'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
+                    }
+                )
             status = 400
         elif isinstance(error, PluginError):
             # TODO(dcramer): we should have a proper validation error

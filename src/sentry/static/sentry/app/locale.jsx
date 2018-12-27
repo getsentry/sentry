@@ -3,7 +3,7 @@ import Jed from 'jed';
 import React from 'react';
 import {sprintf} from 'sprintf-js';
 import _ from 'lodash';
-import {getTranslations} from './translations';
+import {getTranslations} from 'app/translations';
 
 let LOCALE_DEBUG = false;
 
@@ -30,8 +30,8 @@ export function setLocale(locale) {
     domain: 'sentry',
     missing_key_callback: function(key) {},
     locale_data: {
-      sentry: translations
-    }
+      sentry: translations,
+    },
   });
 }
 
@@ -65,11 +65,7 @@ function formatForReact(formatString, args) {
       } else {
         match[2] = null;
         match[1] = 1;
-        rv.push(
-          <span key={idx++}>
-            {sprintf.format([match], [null, arg])}
-          </span>
-        );
+        rv.push(<span key={idx++}>{sprintf.format([match], [null, arg])}</span>);
       }
     }
   });
@@ -183,10 +179,10 @@ function mark(rv) {
     ref: null,
     props: {
       className: 'translation-wrapper',
-      children: _.isArray(rv) ? rv : [rv]
+      children: _.isArray(rv) ? rv : [rv],
     },
     _owner: null,
-    _store: {}
+    _store: {},
   };
 
   proxy.toString = function() {

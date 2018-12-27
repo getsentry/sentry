@@ -7,7 +7,9 @@ exports[`DetailedError can hide support links 1`] = `
   <div
     className="detailed-error-icon"
   >
-    <IconCircleExclamation />
+    <InlineSvg
+      src="icon-circle-exclamation"
+    />
   </div>
   <div
     className="detailed-error-content"
@@ -15,13 +17,13 @@ exports[`DetailedError can hide support links 1`] = `
     <h4>
       Error heading
     </h4>
-    <div
+    <p
       className="detailed-error-content-body"
     >
       <div>
         Message
       </div>
-    </div>
+    </p>
     <div
       className="detailed-error-content-footer"
     >
@@ -45,7 +47,9 @@ exports[`DetailedError hides footer when no "Retry" and no support links 1`] = `
   <div
     className="detailed-error-icon"
   >
-    <IconCircleExclamation />
+    <InlineSvg
+      src="icon-circle-exclamation"
+    />
   </div>
   <div
     className="detailed-error-content"
@@ -53,13 +57,13 @@ exports[`DetailedError hides footer when no "Retry" and no support links 1`] = `
     <h4>
       Error heading
     </h4>
-    <div
+    <p
       className="detailed-error-content-body"
     >
       <div>
         Message
       </div>
-    </div>
+    </p>
   </div>
 </div>
 `;
@@ -71,7 +75,9 @@ exports[`DetailedError renders 1`] = `
   <div
     className="detailed-error-icon"
   >
-    <IconCircleExclamation />
+    <InlineSvg
+      src="icon-circle-exclamation"
+    />
   </div>
   <div
     className="detailed-error-content"
@@ -79,13 +85,13 @@ exports[`DetailedError renders 1`] = `
     <h4>
       Error heading
     </h4>
-    <div
+    <p
       className="detailed-error-content-body"
     >
       <div>
         Message
       </div>
-    </div>
+    </p>
     <div
       className="detailed-error-content-footer"
     >
@@ -116,7 +122,9 @@ exports[`DetailedError renders with "Retry" button 1`] = `
   <div
     className="detailed-error-icon"
   >
-    <IconCircleExclamation />
+    <InlineSvg
+      src="icon-circle-exclamation"
+    />
   </div>
   <div
     className="detailed-error-content"
@@ -124,13 +132,13 @@ exports[`DetailedError renders with "Retry" button 1`] = `
     <h4>
       Error heading
     </h4>
-    <div
+    <p
       className="detailed-error-content-body"
     >
       <div>
         Message
       </div>
-    </div>
+    </p>
     <div
       className="detailed-error-content-footer"
     >

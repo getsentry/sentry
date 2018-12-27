@@ -34,13 +34,28 @@ describe('RangeField', function() {
         context: {
           form: {
             data: {
-              fieldName: 2
+              fieldName: 2,
             },
-            errors: {}
-          }
-        }
+            errors: {},
+          },
+        },
       });
       expect(wrapper).toMatchSnapshot();
+    });
+
+    it('renders with value=0 in form context', function() {
+      let wrapper = shallow(<RangeField name="fieldName" />, {
+        context: {
+          form: {
+            data: {
+              fieldName: 0,
+            },
+            errors: {},
+          },
+        },
+      });
+
+      expect(wrapper.find('input').prop('value')).toBe(0);
     });
   });
 });

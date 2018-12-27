@@ -51,7 +51,7 @@ Renderer.prototype.image = function(href, title, text) {
 marked.setOptions({
   renderer: new Renderer(),
   // Disable all HTML input and only accept Markdown
-  sanitize: true
+  sanitize: true,
 });
 
 export default marked;

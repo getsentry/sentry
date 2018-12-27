@@ -91,7 +91,7 @@ class UpdateProjectKeyTest(APITestCase):
         assert key.rate_limit_window == 60
 
 
-class DeleteProjectKeTest(APITestCase):
+class DeleteProjectKeyTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
         self.login_as(user=self.user)

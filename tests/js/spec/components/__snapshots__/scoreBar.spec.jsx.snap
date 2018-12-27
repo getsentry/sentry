@@ -6,6 +6,7 @@ exports[`ScoreBar has custom palette 1`] = `
 >
   <div
     className="score-bar-bar"
+    key="0"
     style={
       Object {
         "backgroundColor": "purple",
@@ -16,6 +17,7 @@ exports[`ScoreBar has custom palette 1`] = `
   />
   <div
     className="score-bar-bar"
+    key="1"
     style={
       Object {
         "backgroundColor": "purple",
@@ -26,6 +28,7 @@ exports[`ScoreBar has custom palette 1`] = `
   />
   <div
     className="score-bar-bar"
+    key="2"
     style={
       Object {
         "backgroundColor": "purple",
@@ -36,6 +39,7 @@ exports[`ScoreBar has custom palette 1`] = `
   />
   <div
     className="score-bar-bar"
+    key="3"
     style={
       Object {
         "backgroundColor": "purple",
@@ -46,6 +50,7 @@ exports[`ScoreBar has custom palette 1`] = `
   />
   <div
     className="score-bar-bar"
+    key="4"
     style={
       Object {
         "backgroundColor": "purple",
@@ -56,6 +61,7 @@ exports[`ScoreBar has custom palette 1`] = `
   />
   <div
     className="score-bar-bar"
+    key="5"
     style={
       Object {
         "backgroundColor": "purple",
@@ -66,6 +72,7 @@ exports[`ScoreBar has custom palette 1`] = `
   />
   <div
     className="score-bar-bar"
+    key="6"
     style={
       Object {
         "backgroundColor": "purple",
@@ -76,6 +83,7 @@ exports[`ScoreBar has custom palette 1`] = `
   />
   <div
     className="score-bar-bar empty"
+    key="empty-0"
     style={
       Object {
         "height": 2,
@@ -91,7 +99,8 @@ exports[`ScoreBar renders 1`] = `
   className="score-bar horizontal"
 >
   <div
-    className="score-bar-bar orange"
+    className="score-bar-bar med"
+    key="0"
     style={
       Object {
         "height": 60,
@@ -100,7 +109,8 @@ exports[`ScoreBar renders 1`] = `
     }
   />
   <div
-    className="score-bar-bar orange"
+    className="score-bar-bar med"
+    key="1"
     style={
       Object {
         "height": 60,
@@ -109,7 +119,8 @@ exports[`ScoreBar renders 1`] = `
     }
   />
   <div
-    className="score-bar-bar orange"
+    className="score-bar-bar med"
+    key="2"
     style={
       Object {
         "height": 60,
@@ -119,6 +130,7 @@ exports[`ScoreBar renders 1`] = `
   />
   <div
     className="score-bar-bar empty"
+    key="empty-0"
     style={
       Object {
         "height": 60,
@@ -128,6 +140,7 @@ exports[`ScoreBar renders 1`] = `
   />
   <div
     className="score-bar-bar empty"
+    key="empty-1"
     style={
       Object {
         "height": 60,
@@ -143,7 +156,8 @@ exports[`ScoreBar renders vertically 1`] = `
   className="score-bar vertical"
 >
   <div
-    className="score-bar-bar red"
+    className="score-bar-bar low-med"
+    key="0"
     style={
       Object {
         "height": 2,
@@ -152,25 +166,8 @@ exports[`ScoreBar renders vertically 1`] = `
     }
   />
   <div
-    className="score-bar-bar red"
-    style={
-      Object {
-        "height": 2,
-        "width": 60,
-      }
-    }
-  />
-  <div
-    className="score-bar-bar empty"
-    style={
-      Object {
-        "height": 2,
-        "width": 60,
-      }
-    }
-  />
-  <div
-    className="score-bar-bar empty"
+    className="score-bar-bar low-med"
+    key="1"
     style={
       Object {
         "height": 2,
@@ -180,6 +177,27 @@ exports[`ScoreBar renders vertically 1`] = `
   />
   <div
     className="score-bar-bar empty"
+    key="empty-0"
+    style={
+      Object {
+        "height": 2,
+        "width": 60,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    key="empty-1"
+    style={
+      Object {
+        "height": 2,
+        "width": 60,
+      }
+    }
+  />
+  <div
+    className="score-bar-bar empty"
+    key="empty-2"
     style={
       Object {
         "height": 2,
@@ -196,6 +214,7 @@ exports[`ScoreBar renders with < 0 score 1`] = `
 >
   <div
     className="score-bar-bar empty"
+    key="empty-0"
     style={
       Object {
         "height": 60,
@@ -205,6 +224,7 @@ exports[`ScoreBar renders with < 0 score 1`] = `
   />
   <div
     className="score-bar-bar empty"
+    key="empty-1"
     style={
       Object {
         "height": 60,
@@ -214,6 +234,7 @@ exports[`ScoreBar renders with < 0 score 1`] = `
   />
   <div
     className="score-bar-bar empty"
+    key="empty-2"
     style={
       Object {
         "height": 60,
@@ -223,6 +244,7 @@ exports[`ScoreBar renders with < 0 score 1`] = `
   />
   <div
     className="score-bar-bar empty"
+    key="empty-3"
     style={
       Object {
         "height": 60,
@@ -232,6 +254,7 @@ exports[`ScoreBar renders with < 0 score 1`] = `
   />
   <div
     className="score-bar-bar empty"
+    key="empty-4"
     style={
       Object {
         "height": 60,
@@ -248,6 +271,7 @@ exports[`ScoreBar renders with score = 0 1`] = `
 >
   <div
     className="score-bar-bar empty"
+    key="empty-0"
     style={
       Object {
         "height": 60,
@@ -257,6 +281,7 @@ exports[`ScoreBar renders with score = 0 1`] = `
   />
   <div
     className="score-bar-bar empty"
+    key="empty-1"
     style={
       Object {
         "height": 60,
@@ -266,6 +291,7 @@ exports[`ScoreBar renders with score = 0 1`] = `
   />
   <div
     className="score-bar-bar empty"
+    key="empty-2"
     style={
       Object {
         "height": 60,
@@ -275,6 +301,7 @@ exports[`ScoreBar renders with score = 0 1`] = `
   />
   <div
     className="score-bar-bar empty"
+    key="empty-3"
     style={
       Object {
         "height": 60,
@@ -284,6 +311,7 @@ exports[`ScoreBar renders with score = 0 1`] = `
   />
   <div
     className="score-bar-bar empty"
+    key="empty-4"
     style={
       Object {
         "height": 60,
@@ -299,7 +327,8 @@ exports[`ScoreBar renders with score > max score 1`] = `
   className="score-bar horizontal"
 >
   <div
-    className="score-bar-bar green"
+    className="score-bar-bar high"
+    key="0"
     style={
       Object {
         "height": 60,
@@ -308,7 +337,8 @@ exports[`ScoreBar renders with score > max score 1`] = `
     }
   />
   <div
-    className="score-bar-bar green"
+    className="score-bar-bar high"
+    key="1"
     style={
       Object {
         "height": 60,
@@ -317,7 +347,8 @@ exports[`ScoreBar renders with score > max score 1`] = `
     }
   />
   <div
-    className="score-bar-bar green"
+    className="score-bar-bar high"
+    key="2"
     style={
       Object {
         "height": 60,
@@ -326,7 +357,8 @@ exports[`ScoreBar renders with score > max score 1`] = `
     }
   />
   <div
-    className="score-bar-bar green"
+    className="score-bar-bar high"
+    key="3"
     style={
       Object {
         "height": 60,
@@ -335,7 +367,8 @@ exports[`ScoreBar renders with score > max score 1`] = `
     }
   />
   <div
-    className="score-bar-bar green"
+    className="score-bar-bar high"
+    key="4"
     style={
       Object {
         "height": 60,

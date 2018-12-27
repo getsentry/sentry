@@ -2,34 +2,38 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import Reflux from 'reflux';
 import classNames from 'classnames';
+import createReactClass from 'create-react-class';
 
-import GroupingStore from '../../stores/groupingStore';
-import GroupingActions from '../../actions/groupingActions';
-
-import Count from '../../components/count';
-import EventOrGroupHeader from '../../components/eventOrGroupHeader';
-import EventOrGroupExtraDetails from '../../components/eventOrGroupExtraDetails';
-import SpreadLayout from '../../components/spreadLayout';
-import FlowLayout from '../../components/flowLayout';
-import Checkbox from '../../components/checkbox';
-import ScoreBar from '../../components/scoreBar';
-import Hovercard from '../../components/hovercard';
-import SimilarScoreCard from '../../components/similarScoreCard';
+import {openDiffModal} from 'app/actionCreators/modal';
+import Checkbox from 'app/components/checkbox';
+import Count from 'app/components/count';
+import EventOrGroupExtraDetails from 'app/components/eventOrGroupExtraDetails';
+import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import FlowLayout from 'app/components/flowLayout';
+import GroupingActions from 'app/actions/groupingActions';
+import GroupingStore from 'app/stores/groupingStore';
+import Hovercard from 'app/components/hovercard';
+import ScoreBar from 'app/components/scoreBar';
+import SimilarScoreCard from 'app/components/similarScoreCard';
+import SpreadLayout from 'app/components/spreadLayout';
 
 const similarInterfaces = ['exception', 'message'];
 
-const SimilarIssueItem = React.createClass({
+const SimilarIssueItem = createReactClass({
+  displayName: 'SimilarIssueItem',
+
   propTypes: {
     orgId: PropTypes.string.isRequired,
+    groupId: PropTypes.string.isRequired,
     projectId: PropTypes.string.isRequired,
     score: PropTypes.object,
     scoresByInterface: PropTypes.shape({
       exception: PropTypes.array,
-      message: PropTypes.array
+      message: PropTypes.array,
     }),
     aggregate: PropTypes.shape({
       exception: PropTypes.number,
-      message: PropTypes.number
+      message: PropTypes.number,
     }),
     issue: PropTypes.shape({
       id: PropTypes.string.isRequired,
@@ -42,19 +46,20 @@ const SimilarIssueItem = React.createClass({
         directive: PropTypes.string,
         type: PropTypes.string,
         title: PropTypes.string,
-        uri: PropTypes.string
+        uri: PropTypes.string,
       }).isRequired,
       culprit: PropTypes.string,
-      hideLevel: PropTypes.bool
-    })
+      hideLevel: PropTypes.bool,
+    }),
   },
+
   mixins: [Reflux.listenTo(GroupingStore, 'onGroupingUpdate')],
 
   getInitialState() {
     return {
       visible: true,
       checked: false,
-      busy: false
+      busy: false,
     };
   },
 
@@ -66,7 +71,7 @@ const SimilarIssueItem = React.createClass({
         Object.keys(stateForId).forEach(key => {
           if (stateForId[key] !== this.state[key]) {
             this.setState({
-              [key]: stateForId[key]
+              [key]: stateForId[key],
             });
           }
         });
@@ -83,6 +88,16 @@ const SimilarIssueItem = React.createClass({
     }
   },
 
+  handleShowDiff(e) {
+    let {groupId, issue} = this.props;
+    openDiffModal({
+      baseIssueId: groupId,
+      targetIssueId: issue.id,
+    });
+
+    e.stopPropagation();
+  },
+
   render() {
     let {aggregate, scoresByInterface, issue, orgId, projectId} = this.props;
 
@@ -91,7 +106,8 @@ const SimilarIssueItem = React.createClass({
     }
 
     let cx = classNames('group', 'similar-issue', {
-      busy: this.state.busy
+      isResolved: issue.status === 'resolved',
+      busy: this.state.busy,
     });
 
     return (
@@ -109,10 +125,19 @@ const SimilarIssueItem = React.createClass({
                 orgId={orgId}
                 projectId={projectId}
                 lastSeen={null}
+                showAssignee
+                showStatus
                 group
               />
             </div>
           </FlowLayout>
+          <button
+            style={{marginRight: 2}}
+            className="btn btn-default btn-xs"
+            onClick={this.handleShowDiff}
+          >
+            Diff
+          </button>
         </FlowLayout>
 
         <div className="similar-score-columns">
@@ -122,14 +147,14 @@ const SimilarIssueItem = React.createClass({
             let avgScore = aggregate[interfaceName];
             let scoreList = scoresByInterface[interfaceName] || [];
             // Check for valid number (and not NaN)
-            let scoreValue = typeof avgScore === 'number' && !Number.isNaN(avgScore)
-              ? avgScore
-              : 0;
+            let scoreValue =
+              typeof avgScore === 'number' && !Number.isNaN(avgScore) ? avgScore : 0;
 
             return (
               <div key={interfaceName} className="similar-score-column">
                 <Hovercard
-                  body={scoreList.length && <SimilarScoreCard scoreList={scoreList} />}>
+                  body={scoreList.length && <SimilarScoreCard scoreList={scoreList} />}
+                >
                   <ScoreBar vertical score={Math.round(scoreValue * 5)} />
                 </Hovercard>
               </div>
@@ -138,7 +163,7 @@ const SimilarIssueItem = React.createClass({
         </div>
       </SpreadLayout>
     );
-  }
+  },
 });
 
 export default SimilarIssueItem;

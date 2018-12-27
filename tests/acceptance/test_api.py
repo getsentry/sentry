@@ -14,12 +14,14 @@ class ApiTokensTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
         self.browser.snapshot('api tokens - no tokens')
-        # self.browser.click('.ref-create-token')
-        # self.browser.wait_until_not('.loading')
-        # self.browser.snapshot('api tokens - new token')
-        # self.browser.click('.btn-primary')
-        # self.browser.wait_until_not('.loading')
-        # self.browser.snapshot('api tokens - single token')
+
+        self.browser.click_when_visible('.ref-create-token')
+        self.browser.wait_until_not('.loading')
+        self.browser.snapshot('api tokens - new token')
+
+        self.browser.click_when_visible('[data-test-id="form-submit"]')
+        self.browser.wait_until_not('.loading')
+        self.browser.snapshot('api tokens - single token')
 
 
 class ApiApplicationTest(AcceptanceTestCase):
@@ -33,9 +35,11 @@ class ApiApplicationTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('.loading')
         self.browser.snapshot('api applications - no applications')
-        # self.browser.click('.ref-create-application')
-        # self.browser.wait_until_not('.loading')
-        # self.browser.snapshot('api applications - new application')
-        # self.browser.click('.btn-primary')
-        # self.browser.wait_until_not('.loading')
-        # self.browser.snapshot('api applications - single application')
+
+        self.browser.click_when_visible('.ref-create-application')
+        self.browser.wait_until_not('.loading')
+        self.browser.snapshot('api applications - new application')
+
+        self.browser.click('[href="/settings/account/api/applications/"]')
+        self.browser.wait_until_not('.loading')
+        self.browser.snapshot('api applications - single application')

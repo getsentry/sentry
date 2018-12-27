@@ -11,6 +11,8 @@ enabled.
 """
 from __future__ import absolute_import
 
+import logging
+import requests
 import six
 import threading
 
@@ -43,6 +45,8 @@ PIPELINE = setting('SOCIAL_AUTH_PIPELINE', (
     'social_auth.backends.pipeline.social.load_extra_data',
     'social_auth.backends.pipeline.user.update_user_details',
 ))
+
+logger = logging.getLogger('social_auth')
 
 
 class SocialAuthBackend(object):
@@ -609,10 +613,12 @@ class BaseOAuth2(BaseOAuth):
         try:
             response = json.loads(dsa_urlopen(request).read())
         except HTTPError as e:
-            if e.code == 400:
-                raise AuthCanceled(self)
-            else:
-                raise
+            logger.exception('plugins.auth.error', extra={
+                'class': type(self),
+                'status_code': e.code,
+                'response': e.read()[:128],
+            })
+            raise AuthUnknownError(self)
         except (ValueError, KeyError):
             raise AuthUnknownError(self)
 
@@ -621,7 +627,7 @@ class BaseOAuth2(BaseOAuth):
                             *args, **kwargs)
 
     @classmethod
-    def refresh_token_params(cls, token):
+    def refresh_token_params(cls, token, provider):
         client_id, client_secret = cls.get_key_and_secret()
         return {
             'refresh_token': token,
@@ -631,17 +637,15 @@ class BaseOAuth2(BaseOAuth):
         }
 
     @classmethod
-    def process_refresh_token_response(cls, response):
-        return json.loads(response)
-
-    @classmethod
-    def refresh_token(cls, token):
-        request = Request(
+    def refresh_token(cls, token, provider):
+        params = cls.refresh_token_params(token, provider)
+        response = requests.post(
             cls.REFRESH_TOKEN_URL or cls.ACCESS_TOKEN_URL,
-            data=urlencode(cls.refresh_token_params(token)),
-            headers=cls.auth_headers()
+            data=params,
+            headers=cls.auth_headers(),
         )
-        return cls.process_refresh_token_response(dsa_urlopen(request).read())
+        response.raise_for_status()
+        return response.json()
 
     @classmethod
     def revoke_token_params(cls, token, uid):

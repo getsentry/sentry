@@ -1,13 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import U2fInterface from './u2finterface';
-import {t} from '../locale';
+import U2fInterface from 'app/components/u2finterface';
+import {t} from 'app/locale';
 
-const U2fEnrollment = React.createClass({
-  propTypes: {
-    enrollmentData: PropTypes.object
-  },
+class U2fEnrollment extends React.Component {
+  static propTypes = {
+    enrollmentData: PropTypes.object,
+  };
 
   render() {
     return (
@@ -23,6 +23,6 @@ const U2fEnrollment = React.createClass({
       </U2fInterface>
     );
   }
-});
+}
 
 export default U2fEnrollment;

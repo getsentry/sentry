@@ -1,17 +1,17 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 
-import GroupEventDataSection from './eventDataSection';
-import plugins from '../../plugins';
-import {objectIsEmpty, toTitleCase, defined} from '../../utils';
+import {objectIsEmpty, toTitleCase, defined} from 'app/utils';
+import GroupEventDataSection from 'app/components/events/eventDataSection';
+import plugins from 'app/plugins';
 
 const CONTEXT_TYPES = {
-  default: require('./contexts/default').default,
-  app: require('./contexts/app').default,
-  device: require('./contexts/device').default,
-  os: require('./contexts/os').default,
-  runtime: require('./contexts/runtime').default,
-  user: require('./contexts/user').default
+  default: require('app/components/events/contexts/default').default,
+  app: require('app/components/events/contexts/app').default,
+  device: require('app/components/events/contexts/device').default,
+  os: require('app/components/events/contexts/os').default,
+  runtime: require('app/components/events/contexts/runtime').default,
+  user: require('app/components/events/contexts/user').default,
 };
 
 function getContextComponent(type) {
@@ -30,41 +30,42 @@ function getSourcePlugin(pluginContexts, contextType) {
   return null;
 }
 
-const ContextChunk = React.createClass({
-  propTypes: {
+class ContextChunk extends React.Component {
+  static propTypes = {
     event: PropTypes.object.isRequired,
     group: PropTypes.object.isRequired,
     type: PropTypes.string.isRequired,
     alias: PropTypes.string.isRequired,
-    value: PropTypes.object.isRequired
-  },
+    value: PropTypes.object.isRequired,
+  };
 
-  getInitialState() {
-    return {
-      isLoading: false
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      isLoading: false,
     };
-  },
+  }
 
   componentWillMount() {
     this.syncPlugin();
-  },
+  }
 
   componentDidUpdate(prevProps, prevState) {
     if (prevProps.group.id != this.props.group.id || prevProps.type != this.props.type) {
       this.syncPlugin();
     }
-  },
+  }
 
-  syncPlugin() {
+  syncPlugin = () => {
     let sourcePlugin = getSourcePlugin(this.props.group.pluginContexts, this.props.type);
     if (!sourcePlugin) {
       this.setState({
-        pluginLoading: false
+        pluginLoading: false,
       });
     } else {
       this.setState(
         {
-          pluginLoading: true
+          pluginLoading: true,
         },
         () => {
           plugins.load(sourcePlugin, () => {
@@ -73,9 +74,9 @@ const ContextChunk = React.createClass({
         }
       );
     }
-  },
+  };
 
-  renderTitle(component) {
+  renderTitle = component => {
     let {value, alias, type} = this.props;
     let title = null;
     if (defined(value.title)) {
@@ -95,7 +96,7 @@ const ContextChunk = React.createClass({
         {alias !== type ? <small>({alias})</small> : null}
       </span>
     );
-  },
+  };
 
   render() {
     // if we are currently loading the plugin, just render nothing for now.
@@ -119,18 +120,19 @@ const ContextChunk = React.createClass({
         event={evt}
         key={`context-${alias}`}
         type={`context-${alias}`}
-        title={this.renderTitle(Component)}>
+        title={this.renderTitle(Component)}
+      >
         <Component alias={alias} data={value} />
       </GroupEventDataSection>
     );
   }
-});
+}
 
-const ContextsInterface = React.createClass({
-  propTypes: {
+class ContextsInterface extends React.Component {
+  static propTypes = {
     event: PropTypes.object.isRequired,
-    group: PropTypes.object.isRequired
-  },
+    group: PropTypes.object.isRequired,
+  };
 
   render() {
     let group = this.props.group;
@@ -166,6 +168,6 @@ const ContextsInterface = React.createClass({
 
     return <div>{children}</div>;
   }
-});
+}
 
 export default ContextsInterface;

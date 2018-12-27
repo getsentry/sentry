@@ -53,7 +53,7 @@ class EventAttributeConditionTest(RuleTestCase):
         return event
 
     def test_render_label(self):
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'attribute': u'\xc3',
             'value': u'\xc4',
@@ -62,134 +62,110 @@ class EventAttributeConditionTest(RuleTestCase):
 
     def test_equals(self):
         event = self.get_event()
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'attribute': 'platform',
             'value': 'php',
         })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'platform',
-                'value': 'python',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'platform',
+            'value': 'python',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_does_not_equal(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.NOT_EQUAL,
-                'attribute': 'platform',
-                'value': 'php',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.NOT_EQUAL,
+            'attribute': 'platform',
+            'value': 'php',
+        })
         self.assertDoesNotPass(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.NOT_EQUAL,
-                'attribute': 'platform',
-                'value': 'python',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.NOT_EQUAL,
+            'attribute': 'platform',
+            'value': 'python',
+        })
         self.assertPasses(rule, event)
 
     def test_starts_with(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.STARTS_WITH,
-                'attribute': 'platform',
-                'value': 'ph',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.STARTS_WITH,
+            'attribute': 'platform',
+            'value': 'ph',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.STARTS_WITH,
-                'attribute': 'platform',
-                'value': 'py',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.STARTS_WITH,
+            'attribute': 'platform',
+            'value': 'py',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_ends_with(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.ENDS_WITH,
-                'attribute': 'platform',
-                'value': 'hp',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.ENDS_WITH,
+            'attribute': 'platform',
+            'value': 'hp',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.ENDS_WITH,
-                'attribute': 'platform',
-                'value': 'thon',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.ENDS_WITH,
+            'attribute': 'platform',
+            'value': 'thon',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_contains(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.CONTAINS,
-                'attribute': 'platform',
-                'value': 'p',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.CONTAINS,
+            'attribute': 'platform',
+            'value': 'p',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.CONTAINS,
-                'attribute': 'platform',
-                'value': 'z',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.CONTAINS,
+            'attribute': 'platform',
+            'value': 'z',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_does_not_contain(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.NOT_CONTAINS,
-                'attribute': 'platform',
-                'value': 'p',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.NOT_CONTAINS,
+            'attribute': 'platform',
+            'value': 'p',
+        })
         self.assertDoesNotPass(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.NOT_CONTAINS,
-                'attribute': 'platform',
-                'value': 'z',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.NOT_CONTAINS,
+            'attribute': 'platform',
+            'value': 'z',
+        })
         self.assertPasses(rule, event)
 
     def test_message(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'message',
-                'value': 'hello world',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'message',
+            'value': 'hello world',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'attribute': 'message',
             'value': 'php',
@@ -198,74 +174,62 @@ class EventAttributeConditionTest(RuleTestCase):
 
     def test_environment(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'environment',
-                'value': 'production',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'environment',
+            'value': 'production',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'environment',
-                'value': 'staging',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'environment',
+            'value': 'staging',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_http_method(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'http.method',
-                'value': 'get',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'http.method',
+            'value': 'get',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'http.method',
-                'value': 'post',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'http.method',
+            'value': 'post',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_http_url(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'http.url',
-                'value': 'http://example.com',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'http.url',
+            'value': 'http://example.com',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'http.url',
-                'value': 'http://foo.com',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'http.url',
+            'value': 'http://foo.com',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_user_id(self):
         event = self.get_event()
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'attribute': 'user.id',
             'value': '1',
         })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'attribute': 'user.id',
             'value': '2',
@@ -274,36 +238,30 @@ class EventAttributeConditionTest(RuleTestCase):
 
     def test_user_ip_address(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'user.ip_address',
-                'value': '127.0.0.1',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'user.ip_address',
+            'value': '127.0.0.1',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'user.ip_address',
-                'value': '2',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'user.ip_address',
+            'value': '2',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_user_email(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'user.email',
-                'value': 'foo@example.com',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'user.email',
+            'value': 'foo@example.com',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'attribute': 'user.email',
             'value': '2',
@@ -312,194 +270,158 @@ class EventAttributeConditionTest(RuleTestCase):
 
     def test_user_username(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'user.username',
-                'value': 'foo',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'user.username',
+            'value': 'foo',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'user.username',
-                'value': '2',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'user.username',
+            'value': '2',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_exception_type(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'exception.type',
-                'value': 'SyntaxError',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'exception.type',
+            'value': 'SyntaxError',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'exception.type',
-                'value': 'TypeError',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'exception.type',
+            'value': 'TypeError',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_exception_value(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'exception.value',
-                'value': 'hello world',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'exception.value',
+            'value': 'hello world',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'exception.value',
-                'value': 'foo bar',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'exception.value',
+            'value': 'foo bar',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_stacktrace_filename(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'stacktrace.filename',
-                'value': 'example.php',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'stacktrace.filename',
+            'value': 'example.php',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'stacktrace.filename',
-                'value': 'foo.php',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'stacktrace.filename',
+            'value': 'foo.php',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_stacktrace_module(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'stacktrace.module',
-                'value': 'example',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'stacktrace.module',
+            'value': 'example',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'stacktrace.module',
-                'value': 'foo',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'stacktrace.module',
+            'value': 'foo',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_stacktrace_code(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'stacktrace.code',
-                'value': 'echo "hello";',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'stacktrace.code',
+            'value': 'echo "hello";',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'stacktrace.code',
-                'value': 'foo',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'stacktrace.code',
+            'value': 'foo',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_extra_simple_value(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'extra.bar',
-                'value': 'foo',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'extra.bar',
+            'value': 'foo',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'extra.bar',
-                'value': 'bar',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'extra.bar',
+            'value': 'bar',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_extra_nested_value(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'extra.foo.bar',
-                'value': 'baz',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'extra.foo.bar',
+            'value': 'baz',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'extra.foo.bar',
-                'value': 'bar',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'extra.foo.bar',
+            'value': 'bar',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_extra_nested_list(self):
         event = self.get_event()
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'extra.biz',
-                'value': 'baz',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'extra.biz',
+            'value': 'baz',
+        })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule(
-            {
-                'match': MatchType.EQUAL,
-                'attribute': 'extra.biz',
-                'value': 'bar',
-            }
-        )
+        rule = self.get_rule(data={
+            'match': MatchType.EQUAL,
+            'attribute': 'extra.biz',
+            'value': 'bar',
+        })
         self.assertDoesNotPass(rule, event)
 
     def test_event_type(self):
         event = self.get_event()
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'attribute': 'type',
             'value': 'error',
         })
         self.assertPasses(rule, event)
 
-        rule = self.get_rule({
+        rule = self.get_rule(data={
             'match': MatchType.EQUAL,
             'attribute': 'type',
             'value': 'csp',

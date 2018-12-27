@@ -6,6 +6,8 @@ from ua_parser.user_agent_parser import Parse
 from rest_framework import serializers
 from sentry.models import ProjectOption
 from sentry.api.fields import MultipleChoiceField
+from sentry.utils.data_filters import FilterStatKeys
+
 """
 For default (legacy) filter
 """
@@ -17,18 +19,26 @@ MIN_VERSIONS = {
     'Edge': 0,
     'Opera': 15,
     'Android': 4,
+    'Opera Mini': 8
 }
 
 
 class LegacyBrowserFilterSerializer(serializers.Serializer):
     active = serializers.BooleanField()
     subfilters = MultipleChoiceField(
-        choices=['ie_pre_9', 'ie9', 'ie10', 'opera_pre_15', 'android_pre_4', 'safari_pre_6']
+        choices=[
+            'ie_pre_9',
+            'ie9',
+            'ie10',
+            'opera_pre_15',
+            'android_pre_4',
+            'safari_pre_6',
+            'opera_mini_pre_8']
     )
 
 
 class LegacyBrowsersFilter(Filter):
-    id = 'legacy-browsers'
+    id = FilterStatKeys.LEGACY_BROWSER
     name = 'Filter out known errors from legacy browsers'
     description = 'Older browsers often give less accurate information, and while they may report valid issues, the context to understand them is incorrect or missing.'
     default = False
@@ -138,6 +148,20 @@ class LegacyBrowsersFilter(Filter):
 
         return False
 
+    def filter_opera_mini_pre_8(self, browser):
+        if not browser['family'] == "Opera Mini":
+            return False
+
+        try:
+            major_browser_version = int(browser['major'])
+        except (TypeError, ValueError):
+            return False
+
+        if major_browser_version < 8:
+            return True
+
+        return False
+
     def _filter_ie(self, browser, compare_version):
         if not browser['family'] == "IE":
             return False
@@ -179,6 +203,10 @@ class LegacyBrowsersFilter(Filter):
 
         if not browser['family']:
             return False
+
+        # IE Desktop and IE Mobile use the same engines, therefore we can treat them as one
+        if browser['family'] == "IE Mobile":
+            browser['family'] = "IE"
 
         # handle old style config
         if opts == '1':

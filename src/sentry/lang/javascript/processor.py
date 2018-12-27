@@ -11,8 +11,8 @@ import zlib
 from django.conf import settings
 from os.path import splitext
 from requests.utils import get_encoding_from_headers
-from six.moves.urllib.parse import urlparse, urljoin, urlsplit
-from libsourcemap import from_json as view_from_json
+from six.moves.urllib.parse import urljoin, urlsplit
+from symbolic import SourceMapView
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -56,7 +56,10 @@ CLEAN_MODULE_RE = re.compile(
 VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 NODE_MODULES_RE = re.compile(r'\bnode_modules/')
 SOURCE_MAPPING_URL_RE = re.compile(r'\/\/# sourceMappingURL=(.*)$')
-# the maximum number of remote resources (i.e. sourc eifles) that should be
+CACHE_CONTROL_RE = re.compile(r'max-age=(\d+)')
+CACHE_CONTROL_MAX = 7200
+CACHE_CONTROL_MIN = 60
+# the maximum number of remote resources (i.e. source files) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
 
@@ -197,28 +200,18 @@ def discover_sourcemap(result):
 def fetch_release_file(filename, release, dist=None):
     cache_key = 'releasefile:v1:%s:%s' % (release.id, md5_text(filename).hexdigest(), )
 
-    filename_path = None
-    if filename is not None:
-        # Reconstruct url without protocol + host
-        # e.g. http://example.com/foo?bar => ~/foo?bar
-        parsed_url = urlparse(filename)
-        filename_path = '~' + parsed_url.path
-        if parsed_url.query:
-            filename_path += '?' + parsed_url.query
-
     logger.debug('Checking cache for release artifact %r (release_id=%s)', filename, release.id)
     result = cache.get(cache_key)
 
     dist_name = dist and dist.name or None
 
     if result is None:
+        filename_choices = ReleaseFile.normalize(filename)
+        filename_idents = [ReleaseFile.get_ident(f, dist_name) for f in filename_choices]
+
         logger.debug(
             'Checking database for release artifact %r (release_id=%s)', filename, release.id
         )
-
-        filename_idents = [ReleaseFile.get_ident(filename, dist_name)]
-        if filename_path is not None and filename_path != filename:
-            filename_idents.append(ReleaseFile.get_ident(filename_path, dist_name))
 
         possible_files = list(
             ReleaseFile.objects.filter(
@@ -237,10 +230,15 @@ def fetch_release_file(filename, release, dist=None):
         elif len(possible_files) == 1:
             releasefile = possible_files[0]
         else:
-            # Prioritize releasefile that matches full url (w/ host)
-            # over hostless releasefile
-            target_ident = filename_idents[0]
-            releasefile = next((f for f in possible_files if f.ident == target_ident))
+            # Pick first one that matches in priority order.
+            # This is O(N*M) but there are only ever at most 4 things here
+            # so not really worth optimizing.
+            releasefile = next((
+                rf
+                for ident in filename_idents
+                for rf in possible_files
+                if rf.ident == ident
+            ))
 
         logger.debug(
             'Found release artifact %r (id=%s, release_id=%s)', filename, releasefile.id, release.id
@@ -330,16 +328,30 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
             verify_ssl = bool(project.get_option('sentry:verify_ssl', False))
             token = project.get_option('sentry:token')
             if token:
-                token_header = project.get_option(
-                    'sentry:token_header',
-                    'X-Sentry-Token',
-                )
+                token_header = project.get_option('sentry:token_header') or 'X-Sentry-Token'
                 headers[token_header] = token
 
         with metrics.timer('sourcemaps.fetch'):
             result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
             z_body = zlib.compress(result.body)
-            cache.set(cache_key, (url, result.headers, z_body, result.status, result.encoding), 60)
+            cache.set(
+                cache_key,
+                (url,
+                 result.headers,
+                 z_body,
+                 result.status,
+                 result.encoding),
+                get_max_age(result.headers))
+
+    # If we did not get a 200 OK we just raise a cannot fetch here.
+    if result.status != 200:
+        raise http.CannotFetch(
+            {
+                'type': EventError.FETCH_INVALID_HTTP_CODE,
+                'value': result.status,
+                'url': http.expose_url(url),
+            }
+        )
 
     # Make sure the file we're getting back is six.binary_type. The only
     # reason it'd not be binary would be from old cached blobs, so
@@ -379,6 +391,17 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
     return result
 
 
+def get_max_age(headers):
+    cache_control = headers.get('cache-control')
+    max_age = CACHE_CONTROL_MIN
+
+    if cache_control:
+        match = CACHE_CONTROL_RE.search(cache_control)
+        if match:
+            max_age = max(CACHE_CONTROL_MIN, int(match.group(1)))
+    return min(max_age, CACHE_CONTROL_MAX)
+
+
 def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=True):
     if is_data_uri(url):
         try:
@@ -396,7 +419,7 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
         )
         body = result.body
     try:
-        return view_from_json(body)
+        return SourceMapView.from_json_bytes(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
         logger.debug(six.text_type(exc), exc_info=True)
@@ -423,9 +446,6 @@ def generate_module(src):
         return UNKNOWN_MODULE
 
     filename, ext = splitext(urlsplit(src).path)
-    if ext not in ('.js', '.jsx', '.coffee'):
-        return UNKNOWN_MODULE
-
     if filename.endswith('.min'):
         filename = filename[:-4]
 
@@ -456,7 +476,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
         self.max_fetches = MAX_RESOURCE_FETCHES
-        self.allow_scraping = self.project.get_option('sentry:scrape_javascript', True)
+        self.allow_scraping = (
+            self.project.organization.get_option('sentry:scrape_javascript', True) is not False
+            and self.project.get_option('sentry:scrape_javascript', True)
+        )
         self.fetch_count = 0
         self.sourcemaps_touched = set()
         self.cache = SourceCache()
@@ -503,7 +526,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get('platform') or self.data.get('platform')
-        return (settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and platform == 'javascript')
+        return (settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and platform in ('javascript', 'node'))
 
     def preprocess_frame(self, processable_frame):
         # Stores the resolved token.  This is used to cross refer to other
@@ -525,13 +548,20 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if not frame.get('abs_path') or not frame.get('lineno'):
             return
 
+        # can't fetch if this is internal node module as well
+        # therefore we only process user-land frames (starting with /)
+        # or those created by bundle/webpack internals
+        if self.data.get('platform') == 'node' and \
+                not frame.get('abs_path').startswith(('/', 'app:', 'webpack:')):
+            return
+
         errors = cache.get_errors(frame['abs_path'])
         if errors:
             all_errors.extend(errors)
 
         # This might fail but that's okay, we try with a different path a
         # bit later down the road.
-        source = self.get_source(frame['abs_path'])
+        source = self.get_sourceview(frame['abs_path'])
 
         in_app = None
         new_frame = dict(frame)
@@ -554,11 +584,20 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
             sourcemap_label = http.expose_url(sourcemap_label)
 
+            if frame.get('function'):
+                minified_function_name = frame['function']
+                minified_source = self.get_sourceview(frame['abs_path'])
+            else:
+                minified_function_name = minified_source = None
+
             try:
                 # Errors are 1-indexed in the frames, so we need to -1 to get
                 # zero-indexed value from tokens.
                 assert frame['lineno'] > 0, "line numbers are 1-indexed"
-                token = sourcemap_view.lookup_token(frame['lineno'] - 1, frame['colno'] - 1)
+                token = sourcemap_view.lookup(frame['lineno'] - 1,
+                                              frame['colno'] - 1,
+                                              minified_function_name,
+                                              minified_source)
             except Exception:
                 token = None
                 all_errors.append(
@@ -585,9 +624,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 logger.debug(
                     'Mapping compressed source %r to mapping in %r', frame['abs_path'], abs_path
                 )
-                source = self.get_source(abs_path)
+                source = self.get_sourceview(abs_path)
 
-            if not source:
+            if source is None:
                 errors = cache.get_errors(abs_path)
                 if errors:
                     all_errors.extend(errors)
@@ -600,24 +639,29 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     )
 
             if token is not None:
-                # Token's return zero-indexed lineno's
+                # the tokens are zero indexed, so offset correctly
                 new_frame['lineno'] = token.src_line + 1
-                new_frame['colno'] = token.src_col
-                last_token = None
+                new_frame['colno'] = token.src_col + 1
 
-                # we might go back to a frame that is unhandled.  In that
-                # case we might not find the token in the data.
-                if processable_frame.previous_frame:
-                    last_token = processable_frame.previous_frame.data.get('token')
+                # Try to use the function name we got from symbolic
+                original_function_name = token.function_name
 
-                # The offending function is always the previous function in the stack
-                # Honestly, no idea what the bottom most frame is, so
-                # we're ignoring that atm.
-                #
-                # XXX: we should actually be parsing the source code here
-                # and not use the last token
-                if last_token:
-                    new_frame['function'] = last_token.name or frame.get('function')
+                # In the ideal case we can use the function name from the
+                # frame and the location to resolve the original name
+                # through the heuristics in our sourcemap library.
+                if original_function_name is None:
+                    last_token = None
+
+                    # Find the previous token for function name handling as a
+                    # fallback.
+                    if processable_frame.previous_frame and \
+                       processable_frame.previous_frame.processor is self:
+                        last_token = processable_frame.previous_frame.data.get('token')
+                        if last_token:
+                            original_function_name = last_token.name
+
+                if original_function_name is not None:
+                    new_frame['function'] = original_function_name
 
                 filename = token.src
                 # special case webpack support
@@ -633,19 +677,29 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     else:
                         filename = filename.split('webpack:///', 1)[-1]
 
-                    # As noted above, '~/' means they're coming from node_modules,
-                    # so these are not app dependencies
-                    if filename.startswith('~/'):
+                    # As noted above:
+                    # * [js/node] '~/' means they're coming from node_modules, so these are not app dependencies
+                    # * [node] sames goes for `./node_modules/` and '../node_modules/', which is used when bundling node apps
+                    # * [node] and webpack, which includes it's own code to bootstrap all modules and its internals
+                    #   eg. webpack:///webpack/bootstrap, webpack:///external
+                    if filename.startswith('~/') or \
+                            '/node_modules/' in filename or \
+                            not filename.startswith('./'):
                         in_app = False
                     # And conversely, local dependencies start with './'
                     elif filename.startswith('./'):
                         in_app = True
-
                     # We want to explicitly generate a webpack module name
                     new_frame['module'] = generate_module(filename)
 
+                # while you could technically use a subpath of 'node_modules' for your libraries,
+                # it would be an extremely complicated decision and we've not seen anyone do it
+                # so instead we assume if node_modules is in the path its part of the vendored code
+                elif '/node_modules/' in abs_path:
+                    in_app = False
+
                 if abs_path.startswith('app:'):
-                    if NODE_MODULES_RE.search(filename):
+                    if filename and NODE_MODULES_RE.search(filename):
                         in_app = False
                     else:
                         in_app = True
@@ -691,7 +745,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
     def expand_frame(self, frame, source=None):
         if frame.get('lineno') is not None:
             if source is None:
-                source = self.get_source(frame['abs_path'])
+                source = self.get_sourceview(frame['abs_path'])
                 if source is None:
                     logger.debug('No source found for %s', frame['abs_path'])
                     return False
@@ -702,7 +756,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return True
         return False
 
-    def get_source(self, filename):
+    def get_sourceview(self, filename):
         if filename not in self.cache:
             self.cache_source(filename)
         return self.cache.get(filename)
@@ -761,12 +815,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         sourcemaps.add(sourcemap_url, sourcemap_view)
 
         # cache any inlined sources
-        for src_id, source in sourcemap_view.iter_sources():
-            if sourcemap_view.has_source_contents(src_id):
+        for src_id, source_name in sourcemap_view.iter_sources():
+            source_view = sourcemap_view.get_sourceview(src_id)
+            if source_view is not None:
                 self.cache.add(
-                    urljoin(sourcemap_url, source),
-                    lambda view=sourcemap_view, id=src_id: view.get_source_contents(id),
-                    None,
+                    urljoin(sourcemap_url, source_name),
+                    source_view
                 )
 
     def populate_source_cache(self, frames):
@@ -785,6 +839,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # a fetch error that may be confusing.
             if f['abs_path'] == '<anonymous>':
                 continue
+            # we cannot fetch any other files than those uploaded by user
+            if self.data.get('platform') == 'node' and \
+                    not f.get('abs_path').startswith('app:'):
+                continue
             pending_file_list.add(f['abs_path'])
 
         for idx, filename in enumerate(pending_file_list):
@@ -798,5 +856,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             metrics.incr(
                 'sourcemaps.processed',
                 amount=len(self.sourcemaps_touched),
-                instance=self.project.id
+                skip_internal=True,
+                tags={
+                    'project_id': self.project.id,
+                },
             )
