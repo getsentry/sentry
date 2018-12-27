@@ -13,6 +13,7 @@ from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
+    AuthProvider,
     DeletedOrganization,
     Organization,
     OrganizationAvatar,
@@ -233,18 +234,18 @@ class OrganizationUpdateTest(APITestCase):
         log = AuditLogEntry.objects.get(organization=org)
         assert log.get_event_display() == 'org.edit'
         # org fields & flags
-        assert 'to {}'.format(data['defaultRole']) in log.data['default_role']
-        assert 'to {}'.format(data['openMembership']) in log.data['allow_joinleave']
-        assert 'to {}'.format(data['isEarlyAdopter']) in log.data['early_adopter']
-        assert 'to {}'.format(data['enhancedPrivacy']) in log.data['enhanced_privacy']
-        assert 'to {}'.format(not data['allowSharedIssues']) in log.data['disable_shared_issues']
-        assert 'to {}'.format(data['require2FA']) in log.data['require_2fa']
+        assert u'to {}'.format(data['defaultRole']) in log.data['default_role']
+        assert u'to {}'.format(data['openMembership']) in log.data['allow_joinleave']
+        assert u'to {}'.format(data['isEarlyAdopter']) in log.data['early_adopter']
+        assert u'to {}'.format(data['enhancedPrivacy']) in log.data['enhanced_privacy']
+        assert u'to {}'.format(not data['allowSharedIssues']) in log.data['disable_shared_issues']
+        assert u'to {}'.format(data['require2FA']) in log.data['require_2fa']
         # org options
-        assert 'to {}'.format(data['dataScrubber']) in log.data['dataScrubber']
-        assert 'to {}'.format(data['dataScrubberDefaults']) in log.data['dataScrubberDefaults']
-        assert 'to {}'.format(data['sensitiveFields']) in log.data['sensitiveFields']
-        assert 'to {}'.format(data['safeFields']) in log.data['safeFields']
-        assert 'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
+        assert u'to {}'.format(data['dataScrubber']) in log.data['dataScrubber']
+        assert u'to {}'.format(data['dataScrubberDefaults']) in log.data['dataScrubberDefaults']
+        assert u'to {}'.format(data['sensitiveFields']) in log.data['sensitiveFields']
+        assert u'to {}'.format(data['safeFields']) in log.data['safeFields']
+        assert u'to {}'.format(data['scrubIPAddresses']) in log.data['scrubIPAddresses']
 
     def test_setting_legacy_rate_limits(self):
         org = self.create_organization(owner=self.user)
@@ -566,6 +567,22 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         assert not Authenticator.objects.user_has_2fa(self.owner)
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400)
+
+    def test_cannot_enforce_2fa_with_saml_enabled(self):
+        self.auth_provider = AuthProvider.objects.create(
+            provider='saml2',
+            organization=self.org_2fa,
+        )
+        self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400)
+
+    def test_can_enforce_2fa_with_non_saml_sso_enabled(self):
+        org = self.create_organization(owner=self.owner)
+        TotpInterface().enroll(self.owner)
+        self.auth_provider = AuthProvider.objects.create(
+            provider='github',
+            organization=org,
+        )
+        self.assert_can_enable_org_2fa(self.organization, self.owner)
 
     def test_owner_can_set_2fa_single_member(self):
         org = self.create_organization(owner=self.owner)

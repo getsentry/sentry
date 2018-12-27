@@ -11,17 +11,7 @@ import Confirm from 'app/components/confirm';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Tooltip from 'app/components/tooltip';
 
-const CONFIGURABLE_FEATURES = ['commits', 'alert_rule'];
-
-const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray2};
-`;
-
-const removeButton = (
-  <StyledButton borderless icon="icon-trash">
-    Remove
-  </StyledButton>
-);
+const CONFIGURABLE_FEATURES = ['commits', 'alert-rule'];
 
 export default class InstalledIntegration extends React.Component {
   static propTypes = {
@@ -56,6 +46,14 @@ export default class InstalledIntegration extends React.Component {
     this.props.onReinstallIntegration(activeIntegration);
   };
 
+  get removeButton() {
+    return (
+      <StyledButton borderless icon="icon-trash">
+        Remove
+      </StyledButton>
+    );
+  }
+
   renderDisableIntegration(integration) {
     const {body, actionText} = integration.provider.aspects.disable_dialog;
     const message = (
@@ -74,7 +72,7 @@ export default class InstalledIntegration extends React.Component {
         priority="danger"
         onConfirm={() => this.props.onDisable(integration)}
       >
-        {removeButton}
+        {this.removeButton}
       </Confirm>
     );
   }
@@ -113,7 +111,7 @@ export default class InstalledIntegration extends React.Component {
         priority="danger"
         onConfirm={() => this.props.onRemove(integration)}
       >
-        {removeButton}
+        {this.removeButton}
       </Confirm>
     );
   }
@@ -165,3 +163,7 @@ export default class InstalledIntegration extends React.Component {
     );
   }
 }
+
+const StyledButton = styled(Button)`
+  color: ${p => p.theme.gray2};
+`;

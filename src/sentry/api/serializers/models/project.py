@@ -361,7 +361,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
         latest_release_list = list(
             Release.objects.raw(
-                """
+                u"""
             SELECT lr.project_id as actual_project_id, r.*
             FROM (
                 SELECT (
@@ -433,12 +433,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     'filters:blacklisted_ips':
                     '\n'.join(attrs['options'].get(
                         'sentry:blacklisted_ips', [])),
-                    'filters:{}'.format(FilterTypes.RELEASES):
+                    u'filters:{}'.format(FilterTypes.RELEASES):
                     '\n'.join(attrs['options'].get(
-                        'sentry:{}'.format(FilterTypes.RELEASES), [])),
-                    'filters:{}'.format(FilterTypes.ERROR_MESSAGES):
+                        u'sentry:{}'.format(FilterTypes.RELEASES), [])),
+                    u'filters:{}'.format(FilterTypes.ERROR_MESSAGES):
                     '\n'.
-                    join(attrs['options'].get('sentry:{}'.format(
+                    join(attrs['options'].get(u'sentry:{}'.format(
                         FilterTypes.ERROR_MESSAGES), [])),
                     'feedback:branding':
                     attrs['options'].get('feedback:branding', '1') == '1',

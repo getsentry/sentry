@@ -15,7 +15,7 @@ import logging
 from collections import defaultdict
 from datetime import timedelta
 from django.db import connections, router, IntegrityError, transaction
-from django.db.models import Q, Sum
+from django.db.models import F, Q, Sum
 from django.utils import timezone
 from operator import or_
 from six.moves import reduce
@@ -83,8 +83,13 @@ class V2TagStorage(TagStorage):
         self.setup_receivers()
 
     def setup_cleanup(self):
-        # TODO: fix for sharded DB
-        pass
+        from sentry.runner.commands import cleanup
+
+        cleanup.EXTRA_BULK_QUERY_DELETES += [
+            (models.GroupTagValue, 'last_seen', None),
+            (models.TagValue, 'last_seen', None),
+            (models.EventTag, 'date_added', 'date_added', 50000),
+        ]
 
     def setup_deletions(self):
         from sentry.deletions import default_manager as deletion_manager
@@ -880,6 +885,7 @@ class V2TagStorage(TagStorage):
             _key__project_id__in=project_ids,
             _key__environment_id=AGGREGATE_ENVIRONMENT_ID,
             _key__key='sentry:user',
+            _value___key=F('_key'),
             _value__value__in=[eu.tag_value for eu in event_users],
         ).extra(where=[
             # Force the join also through the shard
@@ -936,6 +942,7 @@ class V2TagStorage(TagStorage):
                     _key__project_id=project_id,
                     _key__key=k,
                     _value__project_id=project_id,
+                    _value___key=F('_key'),
                     _value__value=v,
                 )
                 base_qs = self._add_environment_filter(base_qs, environment_id)
@@ -980,7 +987,7 @@ class V2TagStorage(TagStorage):
             )
 
     def get_tag_value_paginator(self, project_id, environment_id, key, query=None,
-            order_by='-last_seen'):
+                                order_by='-last_seen'):
         from sentry.api.paginator import DateTimePaginator
 
         qs = models.TagValue.objects.select_related('_key').filter(
@@ -1010,7 +1017,7 @@ class V2TagStorage(TagStorage):
         return RangeQuerySetWrapper(queryset=qs, callbacks=callbacks)
 
     def get_group_tag_value_paginator(self, project_id, group_id, environment_id, key,
-            order_by='-id'):
+                                      order_by='-id'):
         from sentry.api.paginator import DateTimePaginator, Paginator
 
         qs = self.get_group_tag_value_qs(project_id, group_id, environment_id, key)

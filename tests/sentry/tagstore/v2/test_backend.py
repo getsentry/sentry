@@ -381,6 +381,9 @@ class TagStorage(TestCase):
             status=TagKeyStatus.VISIBLE,
         ).count() == 2
 
+        assert tk1.status == TagKeyStatus.VISIBLE
+        assert tk2.status == TagKeyStatus.VISIBLE
+
         deleted = self.ts.delete_tag_key(self.proj1.id, self.key1)
         assert tk1 in deleted
         assert tk2 in deleted

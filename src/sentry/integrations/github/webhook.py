@@ -38,7 +38,7 @@ class Webhook(object):
     def __call__(self, event, host=None):
         external_id = event['installation']['id']
         if host:
-            external_id = '{}:{}'.format(host, event['installation']['id'])
+            external_id = u'{}:{}'.format(host, event['installation']['id'])
 
         integration = Integration.objects.get(
             external_id=external_id,
@@ -74,7 +74,7 @@ class InstallationEventWebhook(Webhook):
         if installation and event['action'] == 'deleted':
             external_id = event['installation']['id']
             if host:
-                external_id = '{}:{}'.format(host, event['installation']['id'])
+                external_id = u'{}:{}'.format(host, event['installation']['id'])
             integration = Integration.objects.get(
                 external_id=external_id,
                 provider=self.provider,

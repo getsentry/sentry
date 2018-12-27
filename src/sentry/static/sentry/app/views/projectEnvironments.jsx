@@ -25,6 +25,7 @@ import EnvironmentStore from 'app/stores/environmentStore';
 import InlineSvg from 'app/components/inlineSvg';
 import ListLink from 'app/components/listLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import NavTabs from 'app/components/navTabs';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tag from 'app/views/settings/components/tag';
@@ -323,7 +324,7 @@ const ProjectEnvironments = createReactClass({
         <SettingsPageHeader
           title={t('Manage Environments')}
           tabs={
-            <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
+            <NavTabs underlined={true}>
               <ListLink
                 to={`${baseUrl}environments/`}
                 index={true}
@@ -338,7 +339,7 @@ const ProjectEnvironments = createReactClass({
               >
                 {t('Hidden')}
               </ListLink>
-            </ul>
+            </NavTabs>
           }
         />
 

@@ -29,7 +29,7 @@ def get_all_languages():
             continue
         if '_' in path:
             pre, post = path.split('_', 1)
-            path = '{}-{}'.format(pre, post.lower())
+            path = u'{}-{}'.format(pre, post.lower())
         results.append(path)
     return results
 
@@ -159,7 +159,7 @@ HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD',
 CLIENT_RESERVED_ATTRS = (
     'project', 'errors', 'event_id', 'message', 'checksum', 'culprit', 'fingerprint', 'level',
     'time_spent', 'logger', 'server_name', 'site', 'received', 'timestamp', 'extra', 'modules',
-    'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id',
+    'tags', 'platform', 'release', 'dist', 'environment', 'transaction', 'key_id', '_meta',
 )
 
 # XXX: Must be all lowercase

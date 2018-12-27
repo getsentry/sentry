@@ -317,6 +317,9 @@ class EventManager(object):
         data = self.data
         errors = data['errors'] = []
 
+        # Ignore event meta data for now.
+        data.pop('_meta', None)
+
         # Before validating with a schema, attempt to cast values to their desired types
         # so that the schema doesn't have to take every type variation into account.
         text = six.text_type
@@ -930,7 +933,7 @@ class EventManager(object):
         if not raw:
             if not project.first_event:
                 project.update(first_event=date)
-                first_event_received.send(project=project, group=group, sender=Project)
+                first_event_received.send_robust(project=project, group=group, sender=Project)
 
         eventstream.publish(
             group=group,
@@ -975,7 +978,7 @@ class EventManager(object):
         if not euser.hash:
             return
 
-        cache_key = 'euserid:1:{}:{}'.format(
+        cache_key = u'euserid:1:{}:{}'.format(
             project.id,
             euser.hash,
         )

@@ -66,7 +66,7 @@ IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
 
 def get_requirements(env):
-    with open('requirements-{}.txt'.format(env)) as fp:
+    with open(u'requirements-{}.txt'.format(env)) as fp:
         return [x.strip() for x in fp.read().split('\n') if not x.startswith('#')]
 
 
@@ -79,7 +79,7 @@ optional_requires = get_requirements('optional')
 DJANGO_VERSION = os.environ.get('DJANGO_VERSION')
 if DJANGO_VERSION:
     install_requires = [
-        'Django{}'.format(DJANGO_VERSION)
+        u'Django{}'.format(DJANGO_VERSION)
         if r.startswith('Django>=') else r
         for r in install_requires
     ]

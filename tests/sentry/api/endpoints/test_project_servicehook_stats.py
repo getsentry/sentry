@@ -14,7 +14,7 @@ class ProjectServiceHookStatsTest(APITestCase):
             url='http://example.com',
         )[0]
         self.login_as(user=self.user)
-        path = '/api/0/projects/{}/{}/hooks/{}/stats/'.format(
+        path = u'/api/0/projects/{}/{}/hooks/{}/stats/'.format(
             project.organization.slug,
             project.slug,
             hook.guid,

@@ -196,7 +196,7 @@ class Organization(Model):
             'slug': self.slug,
             'name': self.name,
             'status': int(self.status),
-            'flags': self.flags,
+            'flags': int(self.flags),
             'default_role': self.default_role,
         }
 

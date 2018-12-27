@@ -122,7 +122,7 @@ export default class ProjectServiceHooks extends AsyncView {
       <React.Fragment>
         <PanelHeader key={'header'}>{t('Service Hook')}</PanelHeader>
         <PanelBody key={'body'}>
-          <PanelAlert type="info" icon="icon-circle-exclamation" m={0} mb={0}>
+          <PanelAlert type="info" icon="icon-circle-exclamation">
             Service Hooks are an early adopter preview feature and will change in the
             future.
           </PanelAlert>

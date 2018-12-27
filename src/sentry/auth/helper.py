@@ -20,6 +20,7 @@ from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization, OrganizationMember,
     OrganizationMemberTeam, User, UserEmail
 )
+from sentry.signals import sso_enabled
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, metrics
 from sentry.utils.redis import clusters
@@ -61,7 +62,7 @@ class RedisBackedState(object):
         return self.request.session.get('auth_key')
 
     def regenerate(self, initial_state):
-        auth_key = 'auth:pipeline:{}'.format(uuid4().hex)
+        auth_key = u'auth:pipeline:{}'.format(uuid4().hex)
 
         self.request.session['auth_key'] = auth_key
         self.request.session.modified = True
@@ -155,7 +156,7 @@ def handle_new_membership(auth_provider, organization, request, auth_identity):
         organization=organization,
         role=organization.default_role,
         user=user,
-        flags=getattr(OrganizationMember.flags, 'sso:linked'),
+        flags=OrganizationMember.flags['sso:linked'],
     )
 
     default_teams = auth_provider.default_teams.all()
@@ -236,8 +237,8 @@ def handle_attach_identity(auth_provider, request, organization, provider, ident
             except OrganizationMember.DoesNotExist:
                 pass
             else:
-                setattr(other_member.flags, 'sso:invalid', True)
-                setattr(other_member.flags, 'sso:linked', False)
+                other_member.flags['sso:invalid'] = True
+                other_member.flags['sso:linked'] = False
                 other_member.save()
 
         auth_identity.update(
@@ -263,7 +264,7 @@ def handle_attach_identity(auth_provider, request, organization, provider, ident
                 organization=organization,
                 role=organization.default_role,
                 user=user,
-                flags=getattr(OrganizationMember.flags, 'sso:linked'),
+                flags=OrganizationMember.flags['sso:linked'],
             )
 
             default_teams = auth_provider.default_teams.all()
@@ -673,7 +674,7 @@ class AuthHelper(object):
         user_id = identity['id']
 
         lock = locks.get(
-            'sso:auth:{}:{}'.format(
+            u'sso:auth:{}:{}'.format(
                 auth_provider.id,
                 md5_text(user_id).hexdigest(),
             ),
@@ -782,6 +783,12 @@ class AuthHelper(object):
         )
 
         auth.mark_sso_complete(request, self.organization.id)
+
+        sso_enabled.send_robust(
+            organization=self.organization,
+            user=request.user,
+            provider=self.provider.key,
+            sender=self.__class__)
 
         AuditLogEntry.objects.create(
             organization=self.organization,

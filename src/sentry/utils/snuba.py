@@ -33,7 +33,11 @@ class SnubaError(Exception):
     pass
 
 
-class EntireQueryOutsideRetentionError(Exception):
+class QueryOutsideRetentionError(Exception):
+    pass
+
+
+class QueryOutsideGroupActivityError(Exception):
     pass
 
 
@@ -43,7 +47,7 @@ def timer(name, prefix='snuba.client'):
     try:
         yield
     finally:
-        metrics.timing('{}.{}'.format(prefix, name), time.time() - t)
+        metrics.timing(u'{}.{}'.format(prefix, name), time.time() - t)
 
 
 _snuba_pool = urllib3.connectionpool.connection_from_url(
@@ -55,9 +59,9 @@ _snuba_pool = urllib3.connectionpool.connection_from_url(
 
 
 def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
-              aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
-              having=None, referrer=None, is_grouprelease=False, selected_columns=None,
-              totals=None):
+              aggregations=None, rollup=None, arrayjoin=None, limit=None, offset=None,
+              orderby=None, having=None, referrer=None, is_grouprelease=False,
+              selected_columns=None, totals=None):
     """
     Sends a query to snuba.
 
@@ -79,8 +83,8 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
-    start = start if not start.tzinfo else start.astimezone(pytz.utc).replace(tzinfo=None)
-    end = end if not end.tzinfo else end.astimezone(pytz.utc).replace(tzinfo=None)
+    start = naiveify_datetime(start)
+    end = naiveify_datetime(end)
 
     groupby = groupby or []
     conditions = conditions or []
@@ -121,17 +125,25 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     if retention:
         start = max(start, datetime.utcnow() - timedelta(days=retention))
         if start > end:
-            raise EntireQueryOutsideRetentionError
+            raise QueryOutsideRetentionError
 
     # If the grouping, aggregation, or any of the conditions reference `issue`
     # we need to fetch the issue definitions (issue -> fingerprint hashes)
     aggregate_cols = [a[1] for a in aggregations]
-    condition_cols = [c[0] for c in flat_conditions(conditions)]
+    condition_cols = all_referenced_columns(conditions)
     all_cols = groupby + aggregate_cols + condition_cols + selected_columns
     get_issues = 'issue' in all_cols
 
     with timer('get_project_issues'):
         issues = get_project_issues(project_ids, filter_keys.get('issue')) if get_issues else None
+
+    start, end = shrink_time_window(issues, start, end)
+
+    # if `shrink_time_window` pushed `start` after `end` it means the user queried
+    # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
+    # wouldn't return any results anyway
+    if start > end:
+        raise QueryOutsideGroupActivityError
 
     request = {k: v for k, v in six.iteritems({
         'from_date': start.isoformat(),
@@ -146,6 +158,7 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
         'issues': issues,
         'arrayjoin': arrayjoin,
         'limit': limit,
+        'offset': offset,
         'orderby': orderby,
         'selected_columns': selected_columns,
     }) if v is not None}
@@ -164,13 +177,13 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
     try:
         body = json.loads(response.data)
     except ValueError:
-        raise SnubaError("Could not decode JSON response: {}".format(response.data))
+        raise SnubaError(u"Could not decode JSON response: {}".format(response.data))
 
     if response.status != 200:
         if body.get('error'):
             raise SnubaError(body['error'])
         else:
-            raise SnubaError('HTTP {}'.format(response.status))
+            raise SnubaError(u'HTTP {}'.format(response.status))
 
     # Forward and reverse translation maps from model ids to snuba keys, per column
     body['data'] = [reverse(d) for d in body['data']]
@@ -178,9 +191,9 @@ def raw_query(start, end, groupby=None, conditions=None, filter_keys=None,
 
 
 def query(start, end, groupby, conditions=None, filter_keys=None,
-          aggregations=None, rollup=None, arrayjoin=None, limit=None, orderby=None,
-          having=None, referrer=None, is_grouprelease=False, selected_columns=None,
-          totals=None):
+          aggregations=None, rollup=None, arrayjoin=None, limit=None, offset=None,
+          orderby=None, having=None, referrer=None, is_grouprelease=False,
+          selected_columns=None, totals=None):
 
     aggregations = aggregations or [['count()', '', 'aggregate']]
     filter_keys = filter_keys or {}
@@ -190,11 +203,10 @@ def query(start, end, groupby, conditions=None, filter_keys=None,
         body = raw_query(
             start, end, groupby=groupby, conditions=conditions, filter_keys=filter_keys,
             selected_columns=selected_columns, aggregations=aggregations, rollup=rollup,
-            arrayjoin=arrayjoin, limit=limit, orderby=orderby, having=having,
+            arrayjoin=arrayjoin, limit=limit, offset=offset, orderby=orderby, having=having,
             referrer=referrer, is_grouprelease=is_grouprelease, totals=totals
         )
-    except EntireQueryOutsideRetentionError:
-        # this exception could also bubble up to the caller instead
+    except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
         return OrderedDict()
 
     # Validate and scrub response, and translate snuba keys back to IDs
@@ -234,12 +246,32 @@ def nest_groups(data, groups, aggregate_cols):
 
 
 def is_condition(cond_or_list):
-    return len(cond_or_list) == 3 and isinstance(cond_or_list[0], six.string_types)
+    # A condition is a 3-tuple, where the middle element is an operator string,
+    # eg ">=" or "IN". We should possibly validate that it is one of the
+    # allowed operators.
+    return len(cond_or_list) == 3 and isinstance(cond_or_list[1], six.string_types)
 
 
-def flat_conditions(conditions):
-    return list(chain(*[[c] if is_condition(c) else c for c in conditions]))
+def all_referenced_columns(conditions):
+    # Get the set of colummns that are represented by an entire set of conditions
 
+    # First flatten to remove the AND/OR nesting.
+    flat_conditions = list(chain(*[[c] if is_condition(c) else c for c in conditions]))
+    return list(set(chain(*[columns_in_expr(c[0]) for c in flat_conditions])))
+
+
+def columns_in_expr(expr):
+    # Get the set of columns that are referenced by a single column expression.
+    # Either it is a simple string with the column name, or a nested function
+    # that could reference multiple columns
+    cols = []
+    if isinstance(expr, six.string_types):
+        cols.append(expr)
+    elif (isinstance(expr, (list, tuple)) and len(expr) >= 2
+          and isinstance(expr[1], (list, tuple))):
+        for func_arg in expr[1]:
+            cols.extend(columns_in_expr(func_arg))
+    return cols
 
 # The following are functions for resolving information from sentry models
 # about projects, environments, and issues (groups). Having this snuba
@@ -353,7 +385,7 @@ def get_project_issues(project_ids, issue_ids=None):
     Get a list of issues and associated fingerprint hashes for a list of
     project ids. If issue_ids is set, then return only those issues.
 
-    Returns a list: [(issue_id: [hash1, hash2, ...]), ...]
+    Returns a list: [(group_id, project_id, [(hash1, tomestone_date), ...]), ...]
     """
     if issue_ids:
         issue_ids = issue_ids[:MAX_ISSUES]
@@ -428,3 +460,17 @@ def insert_raw(data):
             )
     except urllib3.exceptions.HTTPError as err:
         raise SnubaError(err)
+
+
+def shrink_time_window(issues, start, end):
+    if issues and len(issues) == 1:
+        group_id = issues[0][0]
+        group = Group.objects.get(pk=group_id)
+        start = max(start, naiveify_datetime(group.first_seen) - timedelta(minutes=5))
+        end = min(end, naiveify_datetime(group.last_seen) + timedelta(minutes=5))
+
+    return start, end
+
+
+def naiveify_datetime(dt):
+    return dt if not dt.tzinfo else dt.astimezone(pytz.utc).replace(tzinfo=None)

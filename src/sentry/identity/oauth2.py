@@ -130,7 +130,7 @@ class OAuth2Provider(Provider):
                 error_description = payload.get(desc_key)
                 break
 
-        formatted_error = 'HTTP {} ({}): {}'.format(req.status_code, error_name, error_description)
+        formatted_error = u'HTTP {} ({}): {}'.format(req.status_code, error_name, error_description)
 
         if req.status_code == 401:
             raise IdentityNotValid(formatted_error)
@@ -211,7 +211,7 @@ class OAuth2LoginView(PipelineView):
             state=state,
             redirect_uri=absolute_uri(pipeline.redirect_url()),
         )
-        redirect_uri = '{}?{}'.format(self.get_authorize_url(), urlencode(params))
+        redirect_uri = u'{}?{}'.format(self.get_authorize_url(), urlencode(params))
 
         pipeline.bind_state('state', state)
 

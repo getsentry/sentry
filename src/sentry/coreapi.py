@@ -359,7 +359,7 @@ class ClientApiHelper(object):
             data = dict(data.items())
 
         cache_timeout = 3600
-        cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
+        cache_key = u'e:{1}:{0}'.format(data['project'], data['event_id'])
         default_cache.set(cache_key, data, cache_timeout)
 
         # Attachments will be empty or None if the "event-attachments" feature

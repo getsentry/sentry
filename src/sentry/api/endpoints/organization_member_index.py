@@ -150,14 +150,14 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         except IntegrityError:
             return Response({'email': 'The user %s is already a member' % result['email']}, 409)
 
-        lock = locks.get('org:member:{}'.format(om.id), duration=5)
+        lock = locks.get(u'org:member:{}'.format(om.id), duration=5)
         with TimedRetryPolicy(10)(lock.acquire):
             self.save_team_assignments(om, teams)
 
         if settings.SENTRY_ENABLE_INVITES:
             om.send_invite_email()
-            member_invited.send(member=om, user=request.user, sender=self,
-                                referrer=request.DATA.get('referrer'))
+            member_invited.send_robust(member=om, user=request.user, sender=self,
+                                       referrer=request.DATA.get('referrer'))
 
         self.create_audit_entry(
             request=request,

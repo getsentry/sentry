@@ -4,15 +4,19 @@ import {browserHistory} from 'react-router';
 
 import sdk from 'app/utils/sdk';
 import analytics from 'app/utils/analytics';
-import Waiting from 'app/views/onboarding/configure/waiting';
 import ApiMixin from 'app/mixins/apiMixin';
+import HookStore from 'app/stores/hookStore';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectDocsContext from 'app/views/projectInstall/docsContext';
 import ProjectInstallPlatform from 'app/views/projectInstall/platform';
-import HookStore from 'app/stores/hookStore';
+import SentryTypes from 'app/sentryTypes';
+import Waiting from 'app/views/onboarding/configure/waiting';
 
 const Configure = createReactClass({
   displayName: 'Configure',
+  contextTypes: {
+    organization: SentryTypes.Organization,
+  },
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -28,7 +32,6 @@ const Configure = createReactClass({
     if (!platform || platform === 'other') {
       this.redirectToNeutralDocs();
     }
-
     this.fetchEventData();
     this.timer = setInterval(() => {
       this.fetchEventData();
@@ -118,7 +121,12 @@ const Configure = createReactClass({
               />
             </ProjectDocsContext>
           </ProjectContext>
-          <Waiting skip={this.submit} hasEvent={this.state.hasSentRealEvent} />
+          <Waiting
+            skip={this.submit}
+            hasEvent={this.state.hasSentRealEvent}
+            params={this.props.params}
+            organization={this.context.organization}
+          />
         </div>
       </div>
     );

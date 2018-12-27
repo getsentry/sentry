@@ -68,7 +68,7 @@ export default class VSTSOrganizationLink extends AsyncView {
             clearable={false}
             value={this.defaultChoice}
             name="organization"
-            label={t('Organization to use with VSTS')}
+            label={t('Organization to use with Azure DevOps')}
           />
         </Form>
       </NarrowLayout>

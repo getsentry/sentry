@@ -54,13 +54,14 @@ const OrganizationDiscoverContainer = createReactClass({
     if (!hasFeature) return this.renderComingSoon();
 
     return (
-      <div className="organization-home">
+      <div>
         {isLoading ? (
           this.renderLoading()
         ) : (
           <Discover
             organization={this.getOrganization()}
             queryBuilder={this.queryBuilder}
+            location={this.props.location}
           />
         )}
       </div>

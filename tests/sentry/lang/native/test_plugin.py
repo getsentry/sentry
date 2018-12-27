@@ -174,7 +174,6 @@ class BasicResolvingIntegrationTest(TestCase):
         self._postWithHeader(event_data)
         with self.assertWriteQueries({
             'nodestore_node': 2,
-            'sentry_environmentproject': 1,
             'sentry_eventtag': 1,
             'sentry_eventuser': 1,
             'sentry_filtervalue': 8,
@@ -1612,7 +1611,7 @@ class MinidumpIntegrationTest(TestCase):
 
         self.login_as(self.user)
         with self.tasks():
-            url = '/api/0/issues/{}/'.format(event.group_id)
+            url = u'/api/0/issues/{}/'.format(event.group_id)
             response = self.client.delete(url)
 
         assert response.status_code == 202

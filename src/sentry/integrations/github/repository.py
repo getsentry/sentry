@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
+import dateutil.parser
 import logging
 import six
+
+from django.utils import timezone
 
 from sentry.integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Integration
@@ -23,9 +26,12 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
 
         try:
             # make sure installation has access to this specific repo
+            # use hooks endpoint since we explicity ask for those permissions
+            # when installing the app (commits can be accessed for public repos)
+            # https://developer.github.com/v3/repos/hooks/#list-hooks
             client.repo_hooks(repo)
         except ApiError as e:
-            raise IntegrationError('You must grant Sentry access to {}'.format(repo))
+            raise IntegrationError(u'You must grant Sentry access to {}'.format(repo))
 
         return repo_data
 
@@ -52,7 +58,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         return {
             'name': data['identifier'],
             'external_id': data['external_id'],
-            'url': 'https://github.com/{}'.format(data['identifier']),
+            'url': u'https://github.com/{}'.format(data['identifier']),
             'config': {
                 'name': data['identifier'],
             },
@@ -67,6 +73,9 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
                 'author_email': c['commit']['author'].get('email'),
                 'author_name': c['commit']['author'].get('name'),
                 'message': c['commit']['message'],
+                'timestamp': dateutil.parser.parse(
+                    c['commit']['author'].get('date'),
+                ).astimezone(timezone.utc) if c['commit']['author'].get('date') else None,
             } for c in commit_list
         ]
 

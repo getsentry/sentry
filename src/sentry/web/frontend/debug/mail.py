@@ -59,7 +59,7 @@ def make_culprit(random):
                 random.sample(loremipsum.words, random.randint(1, int(random.paretovariate(2.2))))
             )
 
-    return '{module} in {function}'.format(
+    return u'{module} in {function}'.format(
         module='.'.join(make_module_path_components(1, 4)),
         function=random.choice(
             loremipsum.words,
@@ -72,7 +72,7 @@ def make_group_metadata(random, group):
         'type': 'error',
         'metadata': {
             'type':
-            '{}Error'.format(
+            u'{}Error'.format(
                 ''.join(
                     word.title() for word in random.sample(loremipsum.words, random.randint(1, 3))
                 ),

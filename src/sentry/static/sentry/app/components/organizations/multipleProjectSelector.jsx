@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import {Box} from 'grid-emotion';
+import styled from 'react-emotion';
 
 import DropdownLink from 'app/components/dropdownLink';
 import Button from 'app/components/button';
@@ -42,7 +43,13 @@ export default class MultipleProjectSelector extends React.Component {
   };
 
   render() {
-    const {className, anchorRight, value, projects, onChange} = this.props;
+    const {
+      className,
+      anchorRight,
+      value,
+      projects,
+      onChange,
+    } = this.props;
     const selectedProjectIds = new Set(value);
 
     const projectList = projects
@@ -61,9 +68,12 @@ export default class MultipleProjectSelector extends React.Component {
     });
 
     return (
-      <HeaderItem className={className} label={t('Projects')}>
+      <HeaderItem
+        className={className}
+        label={t('Project(s)')}
+      >
         <DropdownLink
-          title={summary}
+          title={<Title>{summary}</Title>}
           anchorRight={anchorRight}
           isOpen={this.state.isOpen}
           keepMenuOpen={true}
@@ -87,3 +97,8 @@ export default class MultipleProjectSelector extends React.Component {
     );
   }
 }
+
+
+const Title = styled.span`
+  padding-right: 40px;
+`;

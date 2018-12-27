@@ -24,7 +24,7 @@ class BitbucketRepositoryProviderTest(TestCase):
                 'subject': self.subject,
             }
         )
-        self.integration.add_organization(self.organization.id)
+        self.integration.add_organization(self.organization, self.user)
         self.repo = Repository.objects.create(
             provider='bitbucket',
             name='sentryuser/newsdiffs',

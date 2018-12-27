@@ -74,18 +74,18 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
 
-        team_list = list(Team.objects.filter(
+        team_list = sorted(Team.objects.filter(
             organization=obj,
             status=TeamStatus.VISIBLE,
-        ))
+        ), key=lambda x: x.slug)
 
         for team in team_list:
             team._organization_cache = obj
 
-        project_list = list(Project.objects.filter(
+        project_list = sorted(Project.objects.filter(
             organization=obj,
             status=ProjectStatus.VISIBLE,
-        ))
+        ), key=lambda x: x.slug)
 
         for project in project_list:
             project._organization_cache = obj
@@ -109,12 +109,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('group-unmerge')
         if features.has('organizations:github-apps', obj, actor=user):
             feature_list.append('github-apps')
-        if features.has('organizations:new-settings', obj, actor=user):
-            feature_list.append('new-settings')
         if features.has('organizations:require-2fa', obj, actor=user):
             feature_list.append('require-2fa')
-        if features.has('organizations:environments', obj, actor=user):
-            feature_list.append('environments')
         if features.has('organizations:repos', obj, actor=user):
             feature_list.append('repos')
         if features.has('organizations:internal-catchall', obj, actor=user):
@@ -141,6 +137,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             feature_list.append('unreleased-changes')
         if features.has('organizations:relay', obj, actor=user):
             feature_list.append('relay')
+        if features.has('organizations:js-loader', obj, actor=user):
+            feature_list.append('js-loader')
         if features.has('organizations:health', obj, actor=user):
             feature_list.append('health')
         if features.has('organizations:discover', obj, actor=user):

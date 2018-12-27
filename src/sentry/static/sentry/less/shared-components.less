@@ -2191,7 +2191,7 @@ header + .alert {
   }
 
   &.border-bottom {
-    border-bottom: 1px solid lighten(@trim, 2);
+    border-bottom: 1px solid @trim;
   }
 
   &.anchor-right {
@@ -2294,28 +2294,6 @@ header + .alert {
   padding: 5px 8px;
   line-height: 1;
   background: @40;
-}
-
-/**
-* Circle indicators
-* ============================================================================
-*/
-
-.circle-indicator {
-  display: inline-block;
-  .square(14px);
-  border-radius: 14px;
-  margin-right: 8px;
-  position: relative;
-  top: 1px;
-
-  &.enabled {
-    background: @green;
-  }
-
-  &.disabled {
-    background: @red;
-  }
 }
 
 /**
@@ -2568,7 +2546,6 @@ ul.radio-inputs {
 * Well
 * ============================================================================
 */
-
 .well {
   border: 1px solid @trim;
   box-shadow: none;
@@ -2576,37 +2553,23 @@ ul.radio-inputs {
   padding: 15px 20px;
   margin-bottom: 20px;
   border-radius: 3px;
-
   p {
     &:last-child {
       margin-bottom: 0;
     }
   }
-
-  &.important {
-    background: @yellow;
-    border: 0;
-    a,
-    a:active {
-      color: @gray-dark;
-    }
-  }
-
   &.image-well {
     padding: 80px 30px;
   }
 }
-
 .blankslate {
   text-align: center;
   padding: 50px 0;
-
   .icon {
     font-size: 72px;
     color: @40;
     margin-bottom: 10px;
   }
-
   h5 {
     margin-bottom: 10px;
   }
@@ -2835,25 +2798,6 @@ ul.tag-list {
     .platformicon {
       color: black !important;
       background: white !important;
-    }
-  }
-}
-
-/**
-* QR Code
-* ============================================================================
-*/
-div.qrcode {
-  table {
-    border-spacing: 0;
-    margin: 40px auto;
-    td {
-      width: 5px;
-      height: 5px;
-
-      &.black {
-        background: black;
-      }
     }
   }
 }

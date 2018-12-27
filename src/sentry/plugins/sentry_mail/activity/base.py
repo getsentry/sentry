@@ -57,14 +57,14 @@ class ActivityEmail(object):
         return 'sentry/emails/activity/generic.html'
 
     def get_project_link(self):
-        return absolute_uri('/{}/{}/'.format(
+        return absolute_uri(u'/{}/{}/'.format(
             self.organization.slug,
             self.project.slug,
         ))
 
     def get_group_link(self):
         return absolute_uri(
-            '/{}/{}/issues/{}/'.format(
+            u'/{}/{}/issues/{}/'.format(
                 self.organization.slug,
                 self.project.slug,
                 self.group.id,
@@ -86,7 +86,7 @@ class ActivityEmail(object):
 
     def get_group_context(self):
         group_link = self.get_group_link()
-        activity_link = '{}activity/'.format(group_link)
+        activity_link = u'{}activity/'.format(group_link)
 
         return {
             'group': self.group,
@@ -95,7 +95,7 @@ class ActivityEmail(object):
         }
 
     def get_email_type(self):
-        return 'notify.activity.{}'.format(
+        return u'notify.activity.{}'.format(
             self.activity.get_type_display(),
         )
 
@@ -158,12 +158,12 @@ class ActivityEmail(object):
     def avatar_as_html(self):
         user = self.activity.user
         if not user:
-            return '<img class="avatar" src="{}" width="20px" height="20px" />'.format(
+            return u'<img class="avatar" src="{}" width="20px" height="20px" />'.format(
                 escape(self._get_sentry_avatar_url())
             )
         avatar_type = user.get_avatar_type()
         if avatar_type == 'upload':
-            return '<img class="avatar" src="{}" />'.format(
+            return u'<img class="avatar" src="{}" />'.format(
                 escape(self._get_user_avatar_url(user)))
         elif avatar_type == 'letter_avatar':
             return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
@@ -182,7 +182,7 @@ class ActivityEmail(object):
 
         url = reverse('sentry-user-avatar-url', args=[avatar.ident])
         if size:
-            url = '{}?s={}'.format(url, int(size))
+            url = u'{}?s={}'.format(url, int(size))
         return absolute_uri(url)
 
     def description_as_text(self, description, params):

@@ -4,8 +4,8 @@ import {withInfo} from '@storybook/addon-info';
 
 import LazyLoad from 'app/components/lazyLoad';
 
-storiesOf('LazyLoad', module).add(
-  'default',
+storiesOf('Utility|LazyLoad', module).add(
+  'LazyLoad',
   withInfo('Lazy loads a view/component')(() => {
     const MyComponent = () => (
       <div>View that is loaded after 1000ms to simulate dynamic import</div>

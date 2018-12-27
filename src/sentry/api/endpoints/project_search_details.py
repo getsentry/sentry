@@ -119,6 +119,14 @@ class ProjectSearchDetailsEndpoint(ProjectEndpoint):
         except SavedSearch.DoesNotExist:
             raise ResourceDoesNotExist
 
-        search.delete()
+        is_search_owner = request.user and request.user == search.owner
 
-        return Response(status=204)
+        if request.access.has_scope('project:write'):
+            if not search.owner or is_search_owner:
+                search.delete()
+                return Response(status=204)
+        elif is_search_owner:
+            search.delete()
+            return Response(status=204)
+
+        return Response(status=403)

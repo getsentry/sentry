@@ -68,9 +68,9 @@ class LostPasswordHash(Model):
         template = 'set_password' if mode == 'set_password' else 'recover_account'
 
         msg = MessageBuilder(
-            subject='{}Password Recovery'.format(options.get('mail.subject-prefix')),
-            template='sentry/emails/{name}.txt'.format(name=template),
-            html_template='sentry/emails/{name}.html'.format(name=template),
+            subject=u'{}Password Recovery'.format(options.get('mail.subject-prefix')),
+            template=u'sentry/emails/{name}.txt'.format(name=template),
+            html_template=u'sentry/emails/{name}.html'.format(name=template),
             type='user.password_recovery',
             context=context,
         )

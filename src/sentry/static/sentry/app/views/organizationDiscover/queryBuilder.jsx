@@ -4,20 +4,15 @@ import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {COLUMNS, PROMOTED_TAGS} from './data';
+import {COLUMNS, PROMOTED_TAGS, SPECIAL_TAGS} from './data';
 import {isValidAggregation} from './aggregations/utils';
-
-const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
 const DEFAULTS = {
   projects: [],
   fields: [],
   conditions: [],
   aggregations: [],
-  start: moment()
-    .subtract(14, 'days')
-    .format(DATE_TIME_FORMAT),
-  end: moment().format(DATE_TIME_FORMAT),
+  range: '14d',
   orderby: '-timestamp',
   limit: 1000,
 };
@@ -66,13 +61,13 @@ export default function createQueryBuilder(initial = {}, organization) {
       fields: ['tags_key'],
       aggregations: [['count()', null, 'count']],
       orderby: '-count',
-      start: moment()
-        .subtract(90, 'days')
-        .format(DATE_TIME_FORMAT),
-      end: moment().format(DATE_TIME_FORMAT),
+      range: '90d',
     })
       .then(res => {
-        tags = res.data.map(tag => ({name: `tags[${tag.tags_key}]`, type: 'string'}));
+        tags = res.data.map(tag => {
+          const type = SPECIAL_TAGS[tags.tags_key] || 'string';
+          return {name: `tags[${tag.tags_key}]`, type};
+        });
       })
       .catch(err => {
         tags = PROMOTED_TAGS;
@@ -169,7 +164,7 @@ export default function createQueryBuilder(initial = {}, organization) {
    */
   function fetch(data) {
     const api = new Client();
-    const endpoint = `/organizations/${organization.slug}/discover/`;
+    const endpoint = `/organizations/${organization.slug}/discover/query/`;
 
     data = data || getExternal();
 
@@ -212,7 +207,7 @@ export default function createQueryBuilder(initial = {}, organization) {
    *
    * @returns {Void}
    */
-  function reset() {
-    query = applyDefaults({});
+  function reset(q = {}) {
+    query = applyDefaults(q);
   }
 }

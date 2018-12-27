@@ -45,7 +45,7 @@ describe('SearchBar', function() {
     sandbox = sinon.sandbox.create();
 
     options = {
-      context: {organization: {id: '123', features: ['environments']}},
+      context: {organization: {id: '123'}},
     };
 
     urlTagValuesMock = MockApiClient.addMockResponse({

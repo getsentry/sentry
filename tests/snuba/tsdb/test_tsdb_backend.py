@@ -120,18 +120,26 @@ class SnubaTSDBTest(TestCase):
                     'baz': 'quux',
                     # Switch every 2 hours
                     'environment': [self.proj1env1.name, None][(r // 7200) % 2],
-                    'sentry:user': 'id:user{}'.format(r // 3300),
+                    'sentry:user': u'id:user{}'.format(r // 3300),
                     'sentry:release': six.text_type(r // 3600) * 10,  # 1 per hour
                 },
                 'sentry.interfaces.User': {
                     # change every 55 min so some hours have 1 user, some have 2
-                    'id': "user{}".format(r // 3300),
-                    'email': "user{}@sentry.io".format(r)
+                    'id': u"user{}".format(r // 3300),
+                    'email': u"user{}@sentry.io".format(r)
                 }
             },
         } for r in range(0, 14400, 600)])  # Every 10 min for 4 hours
 
         assert requests.post(settings.SENTRY_SNUBA + '/tests/insert', data=data).status_code == 200
+
+        # snuba trims query windows based on first_seen/last_seen, so these need to be correct-ish
+        self.proj1group1.first_seen = self.now
+        self.proj1group1.last_seen = self.now + timedelta(seconds=14400)
+        self.proj1group1.save()
+        self.proj1group2.first_seen = self.now
+        self.proj1group2.last_seen = self.now + timedelta(seconds=14400)
+        self.proj1group2.save()
 
     def test_range_groups(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]

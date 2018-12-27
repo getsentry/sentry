@@ -9,7 +9,7 @@ MAX_COMMIT_DATA_REQUESTS = 90
 
 
 class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
-    name = 'Visual Studio Team Services v2'
+    name = 'Azure DevOps'
 
     def get_installation(self, integration_id, organization_id):
         if integration_id is None:

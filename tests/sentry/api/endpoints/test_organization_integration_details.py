@@ -16,9 +16,9 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        self.integration.add_organization(self.org.id, config={'setting': 'value'})
+        self.integration.add_organization(self.org, self.user)
 
-        self.path = '/api/0/organizations/{}/integrations/{}/'.format(
+        self.path = u'/api/0/organizations/{}/integrations/{}/'.format(
             self.org.slug, self.integration.id)
 
     def test_simple(self):
@@ -26,7 +26,6 @@ class OrganizationIntegrationDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(self.integration.id)
-        assert response.data['configData'] == {'setting': 'value'}
 
     def test_removal(self):
         with self.tasks():

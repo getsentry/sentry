@@ -107,6 +107,7 @@ export default {
     AlertActions: require('app/actions/alertActions').default,
     AsyncComponent: require('app/components/asyncComponent').default,
     AsyncView: require('app/views/asyncView').default,
+    Avatar: require('app/components/avatar').default,
     Button: require('app/components/button').default,
     mixins: {
       ApiMixin: require('app/mixins/apiMixin').default,
@@ -127,6 +128,7 @@ export default {
     HookStore: require('app/stores/hookStore').default,
     Indicators: require('app/components/indicators').default,
     IndicatorStore: require('app/stores/indicatorStore').default,
+    InlineSvg: require('app/components/inlineSvg').default,
     InviteMember: require('app/views/settings/organizationMembers/inviteMember').default,
     LoadingError: require('app/components/loadingError').default,
     LoadingIndicator: require('app/components/loadingIndicator').default,
@@ -146,6 +148,7 @@ export default {
     Pagination: require('app/components/pagination').default,
     PluginConfig: require('app/components/pluginConfig').default,
     ProjectSelector: require('app/components/projectHeader/projectSelector').default,
+    SentryTypes: require('app/sentryTypes').default,
     SettingsPageHeader: require('app/views/settings/components/settingsPageHeader')
       .default,
 
@@ -162,6 +165,7 @@ export default {
     Switch: require('app/components/switch').default,
     GlobalModal: require('app/components/globalModal').default,
     SetupWizard: require('app/components/setupWizard').default,
+    Well: require('app/components/well').default,
     theme: require('app/utils/theme').default,
     utils: {
       errorHandler: require('app/utils/errorHandler').default,

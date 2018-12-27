@@ -138,7 +138,7 @@ class IntegrationPipeline(Pipeline):
                         # The external_id is linked to a different user. If that user doesn't
                         # have a password, we don't delete the link as it may lock them out.
                         if not other_identity.user.has_usable_password():
-                            proper_name = 'GitHub' if idp.type == 'github' else 'VSTS'
+                            proper_name = 'GitHub' if idp.type == 'github' else 'Azure DevOps'
                             return self._dialog_response({
                                 'error': _(
                                     'The provided %s account is linked to a different user. '
@@ -149,15 +149,14 @@ class IntegrationPipeline(Pipeline):
                 identity_model = Identity.reattach(
                     idp, identity['external_id'], self.request.user, identity_data)
 
-        org_integration_args = {}
-
+        default_auth_id = None
         if self.provider.needs_default_identity:
             if not (identity and identity_model):
                 raise NotImplementedError('Integration requires an identity')
-            org_integration_args = {'default_auth_id': identity_model.id}
+            default_auth_id = identity_model.id
 
         org_integration = self.integration.add_organization(
-            self.organization.id, **org_integration_args)
+            self.organization, self.request.user, default_auth_id=default_auth_id)
 
         return self._dialog_response(serialize(org_integration, self.request.user), True)
 

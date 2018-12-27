@@ -3,6 +3,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 import styled from 'react-emotion';
 
+import Well from 'app/components/well';
 import {Panel, PanelBody, PanelHeader} from './panels';
 import {addErrorMessage, addSuccessMessage} from '../actionCreators/indicator';
 import {t} from '../locale';
@@ -176,10 +177,10 @@ const AvatarChooser = createReactClass({
             <AvatarUploadSection>
               {allowGravatar &&
                 avatarType === 'gravatar' && (
-                  <div className="well">
+                  <Well>
                     {t('Gravatars are managed through ')}
                     <ExternalLink href="http://gravatar.com">Gravatar.com</ExternalLink>
-                  </div>
+                  </Well>
                 )}
 
               {avatarType === 'upload' && (

@@ -11,6 +11,7 @@ import IssueSyncListElement from 'app/components/issueSyncListElement';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 import Form from 'app/views/settings/components/forms/form';
+import NavTabs from 'app/components/navTabs';
 import SentryTypes from 'app/sentryTypes';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -170,7 +171,7 @@ class ExternalIssueForm extends AsyncComponent {
       >
         {config.map(field => (
           <FieldFromConfig
-            key={field.name}
+            key={field.default || field.name}
             field={field}
             inline={false}
             stacked
@@ -287,17 +288,14 @@ class ExternalIssueActions extends AsyncComponent {
             <Modal.Header closeButton>
               <Modal.Title>{`${selectedIntegration.provider.name} Issue`}</Modal.Title>
             </Modal.Header>
-            <ul
-              className="nav nav-tabs"
-              style={{borderBottom: '1px solid rgb(221, 221, 221)'}}
-            >
+            <NavTabs underlined={true}>
               <li className={action === 'create' ? 'active' : ''}>
                 <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
               </li>
               <li className={action === 'link' ? 'active' : ''}>
                 <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
               </li>
-            </ul>
+            </NavTabs>
             <Modal.Body>
               {action && (
                 <ExternalIssueForm

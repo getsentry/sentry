@@ -5,8 +5,8 @@ import {text} from '@storybook/addon-knobs';
 
 import Hovercard from 'app/components/hovercard';
 
-storiesOf('Hovercard', module).add(
-  'default',
+storiesOf('UI|Hovercard', module).add(
+  'Hovercard',
   withInfo(
     'Good luck if your container element is near the top and/or left side of the screen'
   )(() => (

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from time import time
 import logging
+import re
 
 from django import forms
 from django.utils.translation import ugettext as _
@@ -11,9 +12,8 @@ from sentry.models import (
     Integration as IntegrationModel, IntegrationExternalProject, Organization,
     OrganizationIntegration,
 )
-from sentry.integrations import Integration, IntegrationFeatures, IntegrationProvider, IntegrationMetadata
+from sentry.integrations import IntegrationInstallation, IntegrationFeatures, IntegrationProvider, IntegrationMetadata, FeatureDescription
 from sentry.integrations.exceptions import ApiError, IntegrationError
-from sentry.integrations.migrate import PluginMigrator
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models import Repository
@@ -22,23 +22,54 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.vsts import VSTSIdentityProvider, get_user_info
 from sentry.pipeline import PipelineView
 from sentry.web.helpers import render_to_response
+from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 from .client import VstsApiClient
 from .repository import VstsRepositoryProvider
 from .webhooks import WorkItemWebhook
 
 DESCRIPTION = """
-Connect your Sentry organization to one or more of your Visual Studio Team Services (VSTS) accounts. Get started streamlining your bug squashing workflow by unifying your Sentry and Visual Studio accounts together.
-
-* Create and link Sentry issue groups directly to a VSTS work item in any of your projects, providing a quick way to jump from Sentry bug to tracked work item!
-* Automatically synchronize assignees to and from VSTS. Don't get confused who's fixing what, let us handle ensuring your issues and work items match up to your Sentry and VSTS assignees.
-* Never forget to close a resolved workitem! Resolving an issue in Sentry will resolve your linked workitems and viceversa.
-* Synchronize comments on Sentry Issues directly to the linked VSTS workitems.
-
+Connect your Sentry organization to one or more of your Azure DevOps
+organizations. Get started streamlining your bug squashing workflow by unifying
+your Sentry and Azure DevOps organization together.
 """
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Create and link Sentry issue groups directly to a Azure DevOps work item in any of
+        your projects, providing a quick way to jump from Sentry bug to tracked
+        work item!
+        """,
+        IntegrationFeatures.ISSUE_BASIC,
+    ),
+    FeatureDescription(
+        """
+        Automatically synchronize assignees to and from Azure DevOps. Don't get
+        confused who's fixing what, let us handle ensuring your issues and work
+        items match up to your Sentry and Azure DevOps assignees.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Never forget to close a resolved workitem! Resolving an issue in Sentry
+        will resolve your linked workitems and viceversa.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Synchronize comments on Sentry Issues directly to the linked Azure
+        DevOps workitems.
+        """,
+        IntegrationFeatures.ISSUE_SYNC,
+    )
+]
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
+    features=FEATURES,
     author='The Sentry Team',
     noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=VSTS%20Integration:%20&labels=Component%3A%20Integrations',
@@ -47,7 +78,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
+class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
     logger = logging.getLogger('sentry.integrations')
     comment_key = 'sync_comments'
     outbound_status_key = 'sync_status_forward'
@@ -86,14 +117,33 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
             external_id__in=[r['identifier'] for r in self.get_repositories()],
         )
 
+    def has_repo_access(self, repo):
+        client = self.get_client()
+        try:
+            # since we don't actually use webhooks for vsts commits,
+            # just verify repo access
+            client.get_repo(self.instance, repo.config['name'], project=repo.config['project'])
+        except ApiError:
+            return False
+        return True
+
     def get_client(self):
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
+        self.check_domain_name()
         return VstsApiClient(
             self.default_identity,
             VstsIntegrationProvider.oauth_redirect_url,
         )
+
+    def check_domain_name(self):
+        if re.match('^https://.+/$', self.model.metadata['domain_name']):
+            return
+        base_url = VstsIntegrationProvider.get_base_url(
+            self.default_identity.data['access_token'], self.model.external_id)
+        self.model.metadata['domain_name'] = base_url
+        self.model.save()
 
     def get_organization_config(self):
         client = self.get_client()
@@ -126,12 +176,12 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                 'name': self.outbound_status_key,
                 'type': 'choice_mapper',
                 'disabled': disabled,
-                'label': _('Sync Sentry Status to VSTS'),
-                'help': _('When a Sentry issue changes status, change the status of the linked work item in VSTS.'),
-                'addButtonText': _('Add VSTS Project'),
+                'label': _('Sync Sentry Status to Azure DevOps'),
+                'help': _('When a Sentry issue changes status, change the status of the linked work item in Azure DevOps.'),
+                'addButtonText': _('Add Azure DevOps Project'),
                 'addDropdown': {
                     'emptyMessage': _('All projects configured'),
-                    'noResultsMessage': _('Could not find VSTS project'),
+                    'noResultsMessage': _('Could not find Azure DevOps project'),
                     'items': project_selector,
                 },
                 'mappedSelectors': {
@@ -142,33 +192,33 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
                     'on_resolve': _('When resolved'),
                     'on_unresolve': _('When unresolved'),
                 },
-                'mappedColumnLabel': _('VSTS Project'),
+                'mappedColumnLabel': _('Azure DevOps Project'),
             },
             {
                 'name': self.outbound_assignee_key,
                 'type': 'boolean',
-                'label': _('Sync Sentry Assignment to VSTS'),
-                'help': _('When an issue is assigned in Sentry, assign its linked VSTS work item to the same user.'),
+                'label': _('Sync Sentry Assignment to Azure DevOps'),
+                'help': _('When an issue is assigned in Sentry, assign its linked Azure DevOps work item to the same user.'),
             },
             {
                 'name': self.comment_key,
                 'type': 'boolean',
-                'label': _('Sync Sentry Comments to VSTS'),
-                'help': _('Post comments from Sentry issues to linked VSTS work items'),
+                'label': _('Sync Sentry Comments to Azure DevOps'),
+                'help': _('Post comments from Sentry issues to linked Azure DevOps work items'),
             },
             {
                 'name': self.inbound_status_key,
                 'type': 'boolean',
-                'label': _('Sync VSTS Status to Sentry'),
-                'help': _('When a VSTS work item is marked done, resolve its linked issue in Sentry. '
-                          'When a VSTS work item is removed from being done, unresolve its linked Sentry issue.'
+                'label': _('Sync Azure DevOps Status to Sentry'),
+                'help': _('When a Azure DevOps work item is marked done, resolve its linked issue in Sentry. '
+                          'When a Azure DevOps work item is removed from being done, unresolve its linked Sentry issue.'
                           ),
             },
             {
                 'name': self.inbound_assignee_key,
                 'type': 'boolean',
-                'label': _('Sync VSTS Assignment to Sentry'),
-                'help': _('When a work item is assigned in VSTS, assign its linked Sentry issue to the same user.'),
+                'label': _('Sync Azure DevOps Assignment to Sentry'),
+                'help': _('When a work item is assigned in Azure DevOps, assign its linked Sentry issue to the same user.'),
             },
         ]
 
@@ -240,36 +290,38 @@ class VstsIntegration(Integration, RepositoryMixin, VstsIssueSync):
 
 class VstsIntegrationProvider(IntegrationProvider):
     key = 'vsts'
-    name = 'Visual Studio Team Services'
+    name = 'Azure DevOps'
     metadata = metadata
-    domain = '.visualstudio.com'
     api_version = '4.1'
     oauth_redirect_url = '/extensions/vsts/setup/'
     needs_default_identity = True
     integration_cls = VstsIntegration
-    features = frozenset([IntegrationFeatures.ISSUE_SYNC, IntegrationFeatures.COMMITS])
+
+    features = frozenset([
+        IntegrationFeatures.ISSUE_BASIC,
+        IntegrationFeatures.ISSUE_SYNC,
+        IntegrationFeatures.COMMITS
+    ])
 
     setup_dialog_config = {
         'width': 600,
         'height': 800,
     }
 
+    VSTS_ACCOUNT_LOOKUP_URL = 'https://app.vssps.visualstudio.com/_apis/resourceareas/79134C72-4A58-4B42-976C-04E7115F32BF?hostId=%s&api-preview=5.0-preview.1'
+
     def post_install(self, integration, organization):
-        installation = self.get_installation(integration, organization.id)
-
-        unmigratable_repos = installation.get_unmigratable_repositories()
-
-        repos = Repository.objects.filter(
+        repo_ids = Repository.objects.filter(
             organization_id=organization.id,
             provider='visualstudio',
-        ).exclude(
-            id__in=unmigratable_repos,
-        )
+        ).values_list('id', flat=True)
 
-        for repo in repos:
-            repo.update(integration_id=integration.id)
-
-        PluginMigrator(installation, organization).call()
+        for repo_id in repo_ids:
+            migrate_repo.apply_async(kwargs={
+                'repo_id': repo_id,
+                'integration_id': integration.id,
+                'organization_id': organization.id,
+            })
 
     def get_pipeline_views(self):
         identity_pipeline_config = {
@@ -292,15 +344,15 @@ class VstsIntegrationProvider(IntegrationProvider):
         data = state['identity']['data']
         oauth_data = self.get_oauth_data(data)
         account = state['account']
-        instance = state['instance']
         user = get_user_info(data['access_token'])
         scopes = sorted(VSTSIdentityProvider.oauth_scopes)
+        base_url = self.get_base_url(data['access_token'], account['accountId'])
 
         integration = {
-            'name': account['AccountName'],
-            'external_id': account['AccountId'],
+            'name': account['accountName'],
+            'external_id': account['accountId'],
             'metadata': {
-                'domain_name': instance,
+                'domain_name': base_url,
                 'scopes': scopes,
             },
             'user_identity': {
@@ -314,7 +366,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         try:
             integration_model = IntegrationModel.objects.get(
                 provider='vsts',
-                external_id=account['AccountId'],
+                external_id=account['accountId'],
                 status=ObjectStatus.VISIBLE,
             )
             assert 'subscription' in integration_model.metadata
@@ -326,7 +378,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         except (IntegrationModel.DoesNotExist, AssertionError):
             subscription_id, subscription_secret = self.create_subscription(
-                instance, account['AccountId'], oauth_data)
+                base_url, account['accountId'], oauth_data)
             integration['metadata']['subscription'] = {
                 'id': subscription_id,
                 'secret': subscription_secret,
@@ -361,6 +413,21 @@ class VstsIntegrationProvider(IntegrationProvider):
 
         return data
 
+    @classmethod
+    def get_base_url(cls, access_token, account_id):
+        session = http.build_session()
+        url = VstsIntegrationProvider.VSTS_ACCOUNT_LOOKUP_URL % account_id
+        response = session.get(
+            url,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer %s' % access_token,
+            },
+        )
+        if response.status_code == 200:
+            return response.json()['locationUrl']
+        return None
+
     def setup(self):
         from sentry.plugins import bindings
         bindings.add(
@@ -377,12 +444,16 @@ class AccountConfigView(PipelineView):
             accounts = pipeline.fetch_state(key='accounts')
             account = self.get_account_from_id(account_id, accounts)
             if account is not None:
+                state = pipeline.fetch_state(key='identity')
+                access_token = state['data']['access_token']
                 pipeline.bind_state('account', account)
-                pipeline.bind_state('instance', account['AccountName'] + '.visualstudio.com')
                 return pipeline.next_step()
 
-        access_token = pipeline.fetch_state(key='identity')['data']['access_token']
-        accounts = self.get_accounts(access_token)
+        state = pipeline.fetch_state(key='identity')
+        access_token = state['data']['access_token']
+        user = get_user_info(access_token)
+
+        accounts = self.get_accounts(access_token, user['uuid'])['value']
         pipeline.bind_state('accounts', accounts)
         account_form = AccountForm(accounts)
         return render_to_response(
@@ -395,13 +466,13 @@ class AccountConfigView(PipelineView):
 
     def get_account_from_id(self, account_id, accounts):
         for account in accounts:
-            if account['AccountId'] == account_id:
+            if account['accountId'] == account_id:
                 return account
         return None
 
-    def get_accounts(self, access_token):
+    def get_accounts(self, access_token, user_id):
         session = http.build_session()
-        url = 'https://app.vssps.visualstudio.com/_apis/accounts'
+        url = 'https://app.vssps.visualstudio.com/_apis/accounts?ownerId=%s&api-version=4.1' % user_id
         response = session.get(
             url,
             headers={
@@ -418,7 +489,7 @@ class AccountForm(forms.Form):
     def __init__(self, accounts, *args, **kwargs):
         super(AccountForm, self).__init__(*args, **kwargs)
         self.fields['account'] = forms.ChoiceField(
-            choices=[(acct['AccountId'], acct['AccountName']) for acct in accounts],
+            choices=[(acct['accountId'], acct['accountName']) for acct in accounts],
             label='Account',
-            help_text='VS Team Services account (account.visualstudio.com).',
+            help_text='Azure DevOps organization.',
         )

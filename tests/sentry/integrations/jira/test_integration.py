@@ -371,7 +371,7 @@ class JiraIntegrationTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         installation = integration.get_installation(org.id)
 
@@ -424,7 +424,7 @@ class JiraIntegrationTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         installation = integration.get_installation(org.id)
 
@@ -448,7 +448,7 @@ class JiraIntegrationTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         installation = integration.get_installation(org.id)
 
@@ -476,7 +476,7 @@ class JiraIntegrationTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         external_issue = ExternalIssue.objects.create(
             organization_id=org.id,
@@ -517,7 +517,7 @@ class JiraIntegrationTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         installation = integration.get_installation(org.id)
 
@@ -647,7 +647,7 @@ class JiraIntegrationTest(APITestCase):
             provider='jira',
             name='Example Jira',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
 
         org_integration = OrganizationIntegration.objects.get(
             organization_id=org.id,

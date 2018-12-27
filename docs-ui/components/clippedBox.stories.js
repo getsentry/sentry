@@ -5,7 +5,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import ClippedBox from 'app/components/clippedBox';
 
-storiesOf('ClippedBox', module).add(
+storiesOf('UI|ClippedBox', module).add(
   'default',
   withInfo('Component that clips content and allows expansion of container')(() => (
     <div>

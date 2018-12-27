@@ -14,7 +14,7 @@ class TeamGroupsTrendingTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/teams/{}/{}/issues/trending/'.format(
+        url = u'/api/0/teams/{}/{}/issues/trending/'.format(
             self.team.organization.slug,
             self.team.slug,
         )

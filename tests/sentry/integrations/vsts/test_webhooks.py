@@ -22,14 +22,14 @@ class VstsWebhookWorkItemTest(APITestCase):
         self.project = self.create_project(organization=self.organization)
         self.access_token = '1234567890'
         self.account_id = u'80ded3e8-3cd3-43b1-9f96-52032624aa3a'
-        self.instance = 'instance.visualstudio.com'
+        self.instance = 'https://instance.visualstudio.com/'
         self.shared_secret = '1234567890'
         self.model = Integration.objects.create(
             provider='vsts',
             external_id=self.account_id,
             name='vsts_name',
             metadata={
-                 'domain_name': 'instance.visualstudio.com',
+                 'domain_name': self.instance,
                  'subscription': {
                      'id': 1234,
                      'secret': self.shared_secret,
@@ -47,7 +47,8 @@ class VstsWebhookWorkItemTest(APITestCase):
                 'expires': int(time()) + int(1234567890),
             }
         )
-        self.org_integration = self.model.add_organization(self.organization.id, self.identity.id)
+        self.org_integration = self.model.add_organization(
+            self.organization, self.user, self.identity.id)
         self.org_integration.config = {
             'sync_status_reverse': True,
             'sync_status_forward': True,

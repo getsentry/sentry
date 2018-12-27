@@ -7,7 +7,7 @@ import Sidebar from 'app/components/sidebar';
 import HookStore from 'app/stores/hookStore';
 import ListLink from 'app/components/listLink';
 
-export default class extends React.Component {
+export default class AdminLayout extends React.Component {
   constructor(props) {
     super(props);
     // Allow injection via getsentry et all

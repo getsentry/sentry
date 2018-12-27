@@ -88,11 +88,16 @@ class Environment(Model):
         return env
 
     def add_project(self, project):
-        try:
-            with transaction.atomic():
-                EnvironmentProject.objects.create(project=project, environment=self)
-        except IntegrityError:
-            pass
+        cache_key = 'envproj:c:%s:%s' % (self.id, project.id)
+
+        if cache.get(cache_key) is None:
+            try:
+                with transaction.atomic():
+                    EnvironmentProject.objects.create(project=project, environment=self)
+                cache.set(cache_key, 1, 3600)
+            except IntegrityError:
+                # We've already created the object, should still cache the action.
+                cache.set(cache_key, 1, 3600)
 
     @staticmethod
     def get_name_from_path_segment(segment):

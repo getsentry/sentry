@@ -173,6 +173,10 @@ def pytest_configure(config):
     configure_structlog()
     fix_south(settings)
 
+    import django
+    if hasattr(django, 'setup'):
+        django.setup()
+
     bind_cache_to_option_store()
 
     initialize_receivers()
@@ -203,6 +207,7 @@ def register_extensions():
     from sentry.integrations.example import ExampleIntegrationProvider, AliasedIntegrationProvider
     from sentry.integrations.github import GitHubIntegrationProvider
     from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
+    from sentry.integrations.gitlab import GitlabIntegrationProvider
     from sentry.integrations.jira import JiraIntegrationProvider
     from sentry.integrations.slack import SlackIntegrationProvider
     from sentry.integrations.vsts import VstsIntegrationProvider
@@ -212,6 +217,7 @@ def register_extensions():
     integrations.register(AliasedIntegrationProvider)
     integrations.register(GitHubIntegrationProvider)
     integrations.register(GitHubEnterpriseIntegrationProvider)
+    integrations.register(GitlabIntegrationProvider)
     integrations.register(JiraIntegrationProvider)
     integrations.register(SlackIntegrationProvider)
     integrations.register(VstsIntegrationProvider)

@@ -8,6 +8,8 @@ from concurrent.futures import Future
 from concurrent.futures._base import RUNNING, FINISHED
 from time import time
 
+from six.moves import xrange
+
 
 logger = logging.getLogger(__name__)
 

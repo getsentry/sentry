@@ -42,14 +42,7 @@ const OrganizationSettingsForm = createReactClass({
             onSave(initialData, model.initialData);
           }
         }}
-        onSubmitError={error => {
-          if (error.responseJSON && 'require2FA' in error.responseJSON) {
-            return addErrorMessage(
-              'Unable to save change. Enable two-factor authentication on your account first.'
-            );
-          }
-          return addErrorMessage('Unable to save change');
-        }}
+        onSubmitError={err => addErrorMessage('Unable to save change')}
       >
         <Box>
           <JsonForm

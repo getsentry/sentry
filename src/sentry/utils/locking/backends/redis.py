@@ -48,7 +48,7 @@ class RedisLockBackend(LockBackend):
         client = self.get_client(key, routing_key)
         full_key = self.prefix_key(key)
         if client.set(full_key, self.uuid, ex=duration, nx=True) is not True:
-            raise Exception('Could not set key: {!r}'.format(full_key))
+            raise Exception(u'Could not set key: {!r}'.format(full_key))
 
     def release(self, key, routing_key=None):
         client = self.get_client(key, routing_key)

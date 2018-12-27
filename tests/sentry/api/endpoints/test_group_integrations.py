@@ -15,7 +15,7 @@ class GroupIntegrationsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
         external_issue = ExternalIssue.objects.create(
             organization_id=org.id,
             integration_id=integration.id,
@@ -31,7 +31,7 @@ class GroupIntegrationsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        path = '/api/0/issues/{}/integrations/'.format(group.id)
+        path = u'/api/0/issues/{}/integrations/'.format(group.id)
 
         with self.feature('organizations:integrations-issue-basic'):
             response = self.client.get(path)
@@ -70,7 +70,7 @@ class GroupIntegrationsTest(APITestCase):
             provider='example',
             name='Example',
         )
-        integration.add_organization(org.id)
+        integration.add_organization(org, self.user)
         external_issue = ExternalIssue.objects.create(
             organization_id=org.id,
             integration_id=integration.id,
@@ -86,7 +86,7 @@ class GroupIntegrationsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        path = '/api/0/issues/{}/integrations/'.format(group.id)
+        path = u'/api/0/issues/{}/integrations/'.format(group.id)
 
         response = self.client.get(path)
         assert response.data == []

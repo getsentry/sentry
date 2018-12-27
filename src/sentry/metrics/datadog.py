@@ -42,7 +42,7 @@ class DatadogMetricsBackend(MetricsBackend):
         if instance:
             tags['instance'] = instance
         if tags:
-            tags = ['{}:{}'.format(*i) for i in tags.items()]
+            tags = [u'{}:{}'.format(*i) for i in tags.items()]
         self.stats.increment(
             self._get_key(key), amount, sample_rate=sample_rate, tags=tags, host=self.host
         )
@@ -55,7 +55,7 @@ class DatadogMetricsBackend(MetricsBackend):
         if instance:
             tags['instance'] = instance
         if tags:
-            tags = ['{}:{}'.format(*i) for i in tags.items()]
+            tags = [u'{}:{}'.format(*i) for i in tags.items()]
         self.stats.timing(
             self._get_key(key), value, sample_rate=sample_rate, tags=tags, host=self.host
         )

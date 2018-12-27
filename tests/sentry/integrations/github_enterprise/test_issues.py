@@ -29,9 +29,10 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
                 'installation_id': 'installation_id',
                 'installation': {
                     'id': 2,
-                    'private_key': 'private_key'}}
+                    'private_key': 'private_key',
+                    'verify_ssl': True}}
         )
-        self.model.add_organization(self.organization.id)
+        self.model.add_organization(self.organization, self.user)
         self.integration = GitHubEnterpriseIntegration(self.model, self.organization.id)
 
     @responses.activate
@@ -73,7 +74,8 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
         responses.add(
             responses.POST,
             'https://35.232.149.196/api/v3/repos/getsentry/sentry/issues',
-            json={'number': 321, 'title': 'hello', 'body': 'This is the description', 'html_url': 'https://35.232.149.196/getsentry/sentry/issues/231'}
+            json={'number': 321, 'title': 'hello', 'body': 'This is the description',
+                  'html_url': 'https://35.232.149.196/getsentry/sentry/issues/231'}
         )
 
         form_data = {
@@ -133,7 +135,8 @@ class GitHubEnterpriseIssueBasicTest(TestCase):
         responses.add(
             responses.GET,
             'https://35.232.149.196/api/v3/repos/getsentry/sentry/issues/321',
-            json={'number': issue_id, 'title': 'hello', 'body': 'This is the description', 'html_url': 'https://35.232.149.196/getsentry/sentry/issues/231'}
+            json={'number': issue_id, 'title': 'hello', 'body': 'This is the description',
+                  'html_url': 'https://35.232.149.196/getsentry/sentry/issues/231'}
         )
 
         data = {

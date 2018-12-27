@@ -26,13 +26,9 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
 
     def build_integration(self, state):
         state['account'] = {
-            'AccountId': state['vsts']['AccountId'],
-            'AccountName': state['vsts']['AccountName'],
+            'accountId': state['vsts']['accountId'],
+            'accountName': state['vsts']['accountName'],
         }
-
-        state['instance'] = '{}.visualstudio.com'.format(
-            state['vsts']['AccountName']
-        )
 
         return super(
             VstsExtensionIntegrationProvider,
@@ -47,7 +43,7 @@ class VstsExtensionFinishedView(PipelineView):
         messages.add_message(request, messages.SUCCESS, 'VSTS Extension installed.')
 
         return HttpResponseRedirect(
-            absolute_uri('/settings/{}/integrations/vsts-extension/{}/'.format(
+            absolute_uri(u'/settings/{}/integrations/vsts-extension/{}/'.format(
                 pipeline.organization.slug,
                 pipeline.integration.id,
             ))

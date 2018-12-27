@@ -31,7 +31,7 @@ class OptionAdmin(admin.ModelAdmin):
     search_fields = ('key', )
 
     def value_repr(self, instance):
-        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
+        return u'<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
             escape(saferepr(instance.value))
         )
 
@@ -124,19 +124,11 @@ class AuthIdentityAdmin(admin.ModelAdmin):
 admin.site.register(AuthIdentity, AuthIdentityAdmin)
 
 
-class TeamProjectInline(admin.TabularInline):
-    model = Project
-    extra = 1
-    fields = ('name', 'slug')
-    raw_id_fields = ('organization',)
-
-
 class TeamAdmin(admin.ModelAdmin):
     list_display = ('name', 'slug', 'organization', 'status', 'date_added')
     list_filter = ('status', )
     search_fields = ('name', 'organization__name', 'slug')
     raw_id_fields = ('organization', )
-    inlines = (TeamProjectInline, )
 
     def save_model(self, request, obj, form, change):
         prev_org = obj.organization_id

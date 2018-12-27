@@ -58,7 +58,9 @@ from .endpoints.organization_auth_provider_details import OrganizationAuthProvid
 from .endpoints.organization_auth_provider_send_reminders import OrganizationAuthProviderSendRemindersEndpoint
 from .endpoints.organization_avatar import OrganizationAvatarEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
-from .endpoints.organization_discover import OrganizationDiscoverEndpoint
+from .endpoints.organization_discover_query import OrganizationDiscoverQueryEndpoint
+from .endpoints.organization_discover_saved_queries import OrganizationDiscoverSavedQueriesEndpoint
+from .endpoints.organization_health import OrganizationHealthTopEndpoint, OrganizationHealthGraphEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
@@ -168,6 +170,7 @@ from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_emails import UserEmailsEndpoint
 from .endpoints.user_emails_confirm import UserEmailsConfirmEndpoint
+from .endpoints.user_ips import UserIPsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_notification_details import UserNotificationDetailsEndpoint
 from .endpoints.user_password import UserPasswordEndpoint
@@ -319,6 +322,11 @@ urlpatterns = patterns(
         name='sentry-api-0-user-identity-details'
     ),
     url(
+        r'^users/(?P<user_id>[^\/]+)/ips/$',
+        UserIPsEndpoint.as_view(),
+        name='sentry-api-0-user-ips'
+    ),
+    url(
         r'^users/(?P<user_id>[^\/]+)/organizations/$',
         UserOrganizationsEndpoint.as_view(),
         name='sentry-api-0-user-organizations'
@@ -368,9 +376,24 @@ urlpatterns = patterns(
         name='sentry-api-0-organization-details'
     ),
     url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/discover/$',
-        OrganizationDiscoverEndpoint.as_view(),
-        name='sentry-api-0-organization-discover'
+        r'^organizations/(?P<organization_slug>[^\/]+)/discover/query/$',
+        OrganizationDiscoverQueryEndpoint.as_view(),
+        name='sentry-api-0-organization-discover-query'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/discover/saved/$',
+        OrganizationDiscoverSavedQueriesEndpoint.as_view(),
+        name='sentry-api-0-organization-discover-saved-queries'
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/health/top/$',
+        OrganizationHealthTopEndpoint.as_view(),
+        name='sentry-api-0-organization-health-top',
+    ),
+    url(
+        r'^organizations/(?P<organization_slug>[^\/]+)/health/graph/$',
+        OrganizationHealthGraphEndpoint.as_view(),
+        name='sentry-api-0-organization-health-graph',
     ),
     url(
         r'^organizations/(?P<organization_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$',

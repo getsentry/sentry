@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
 from sentry.api.serializers import Serializer, register
+from sentry.loader.browsersdkversion import (
+    get_selected_browser_sdk_version, get_browser_sdk_version_choices
+)
 from sentry.models import ProjectKey
 
 
@@ -28,6 +31,10 @@ class ProjectKeySerializer(Serializer):
                 'security': obj.security_endpoint,
                 'minidump': obj.minidump_endpoint,
                 'cdn': obj.js_sdk_loader_cdn_url,
+            },
+            'browserSdkVersion': get_selected_browser_sdk_version(obj),
+            'browserSdk': {
+                'choices': get_browser_sdk_version_choices(),
             },
             'dateCreated': obj.date_added,
         }

@@ -4,8 +4,8 @@ import {withInfo} from '@storybook/addon-info';
 
 import DynamicWrapper from 'app/components/dynamicWrapper';
 
-storiesOf('DynamicWrapper', module).add(
-  'default',
+storiesOf('Utility|DynamicWrapper', module).add(
+  'DynamicWrapper',
   withInfo(
     `
     Use this to wrap dynamic content (i.e. dates) for acceptance/snapshot tests.

@@ -17,8 +17,8 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
 
     def get(self, request, project, hook_id):
         """
-        Retrieve a Service Hooks
-        ````````````````````````
+        Retrieve a Service Hook
+        ```````````````````````
 
         Return a service hook bound to a project.
 

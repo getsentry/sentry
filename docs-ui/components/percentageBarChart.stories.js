@@ -7,9 +7,8 @@ import PercentageBarChart from 'app/components/charts/percentageBarChart';
 
 const TOTAL = 6;
 
-// eslint-disable-next-line
-storiesOf('Charts/PercentageBarChart', module).add(
-  'default',
+storiesOf('Charts|PercentageBarChart', module).add(
+  'PercentageBarChart',
   withInfo('Stacked PercentageBar')(() => {
     const NOW = new Date().getTime();
     const getValue = () => Math.round(Math.random() * 1000);

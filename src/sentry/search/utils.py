@@ -173,13 +173,13 @@ def get_date_params(value, from_field, to_field):
         date_from_value, date_from_inclusive = date_from
         result.update({
             from_field: date_from_value,
-            '{}_inclusive'.format(from_field): date_from_inclusive,
+            u'{}_inclusive'.format(from_field): date_from_inclusive,
         })
     if date_to is not None:
         date_to_value, date_to_inclusive = date_to
         result.update({
             to_field: date_to_value,
-            '{}_inclusive'.format(to_field): date_to_inclusive,
+            u'{}_inclusive'.format(to_field): date_to_inclusive,
         })
     return result
 
@@ -212,23 +212,23 @@ def parse_user_value(value, user):
 numeric_modifiers = [
     (
         '>=', lambda field, value: {
-            '{}_lower'.format(field): value,
-            '{}_lower_inclusive'.format(field): True, }
+            u'{}_lower'.format(field): value,
+            u'{}_lower_inclusive'.format(field): True, }
     ),
     (
         '<=', lambda field, value: {
-            '{}_upper'.format(field): value,
-            '{}_upper_inclusive'.format(field): True, }
+            u'{}_upper'.format(field): value,
+            u'{}_upper_inclusive'.format(field): True, }
     ),
     (
         '>', lambda field, value: {
-            '{}_lower'.format(field): value,
-            '{}_lower_inclusive'.format(field): False, }
+            u'{}_lower'.format(field): value,
+            u'{}_lower_inclusive'.format(field): False, }
     ),
     (
         '<', lambda field, value: {
-            '{}_upper'.format(field): value,
-            '{}_upper_inclusive'.format(field): False, }
+            u'{}_upper'.format(field): value,
+            u'{}_upper_inclusive'.format(field): False, }
     ),
 ]
 

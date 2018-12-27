@@ -2,11 +2,12 @@ from __future__ import absolute_import
 
 from django.http import HttpResponse
 from sentry.integrations import (
-    Integration, IntegrationFeatures, IntegrationMetadata, IntegrationProvider
+    IntegrationInstallation, IntegrationFeatures, IntegrationMetadata,
+    IntegrationProvider, FeatureDescription
 )
 from sentry.integrations.exceptions import IntegrationError
 from sentry.integrations.issues import IssueSyncMixin
-from sentry.integrations.migrate import PluginMigrator
+from sentry.mediators.plugins import Migrator
 from sentry.pipeline import PipelineView
 
 
@@ -29,13 +30,19 @@ class ExampleSetupView(PipelineView):
 
 
 DESCRIPTION = """
-This is an example integration
-
- * Descriptions support _markdown rendering_.
+This is an example integration. Descriptions support _markdown rendering_.
 """
+
+FEATURES = [
+    FeatureDescription(
+        "This is a feature description. Also *supports markdown*",
+        IntegrationFeatures.ISSUE_SYNC,
+    ),
+]
 
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
+    features=FEATURES,
     author='The Sentry Team',
     noun='example',
     issue_url='https://github.com/getsentry/sentry/issues/new',
@@ -44,7 +51,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class ExampleIntegration(Integration, IssueSyncMixin):
+class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     comment_key = 'sync_comments'
     outbound_status_key = 'sync_status_outbound'
     inbound_status_key = 'sync_status_inbound'
@@ -52,7 +59,7 @@ class ExampleIntegration(Integration, IssueSyncMixin):
     inbound_assignee_key = 'sync_assignee_inbound'
 
     def get_issue_url(self, key):
-        return 'https://example/issues/{}'.format(key)
+        return u'https://example/issues/{}'.format(key)
 
     def create_comment(self):
         pass
@@ -124,8 +131,10 @@ class ExampleIntegrationProvider(IntegrationProvider):
         }]
 
     def post_install(self, integration, organization):
-        installation = self.get_installation(integration, organization.id)
-        PluginMigrator(installation, organization).call()
+        Migrator.run(
+            integration=integration,
+            organization=organization
+        )
 
     def build_integration(self, state):
         return {

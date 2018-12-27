@@ -55,7 +55,7 @@ class BitbucketSearchEndpointTest(APITestCase):
         org = self.organization
         self.login_as(self.user)
 
-        self.integration.add_organization(org.id)
+        self.integration.add_organization(org, self.user)
 
         path = reverse('sentry-extensions-bitbucket-search', args=[org.slug, self.integration.id])
         resp = self.client.get('%s?field=externalIssue&repo=meredithanya&query=issue' % (path,))
@@ -70,7 +70,7 @@ class BitbucketSearchEndpointTest(APITestCase):
         org = self.organization
         self.login_as(self.user)
 
-        self.integration.add_organization(org.id)
+        self.integration.add_organization(org, self.user)
 
         path = reverse('sentry-extensions-bitbucket-search', args=[org.slug, self.integration.id])
         resp = self.client.get('%s?field=repo&query=apple' % (path,))

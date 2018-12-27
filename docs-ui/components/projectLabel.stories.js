@@ -1,16 +1,15 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
-// import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
 
 import ProjectLabel from 'app/components/projectLabel';
 
-storiesOf('ProjectLabel', module).add(
+storiesOf('Deprecated|ProjectLabel', module).add(
   'default',
-  withInfo('')(() => {
+  withInfo('Do not use this, use IdBadge instead')(() => {
     return (
       <ProjectLabel
-        project={{name: 'Project Name'}}
+        project={{name: 'Project Name', slug: 'project-name'}}
         organization={{slug: 'test-org', features: []}}
       />
     );

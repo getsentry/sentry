@@ -4,7 +4,7 @@ import {withInfo} from '@storybook/addon-info';
 
 import Text from 'app/components/text';
 
-storiesOf('Text', module).add(
+storiesOf('Style|Text', module).add(
   'default',
   withInfo('On-demand styling for native dom elements')(() => (
     <div style={{padding: 20, backgroundColor: '#ffffff'}}>

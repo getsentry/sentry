@@ -169,8 +169,8 @@ class IssueTrackingPlugin2(Plugin):
         e.g. GitHub represents issues as GH-XXX
         """
         if isinstance(issue, dict):
-            return '#{}'.format(issue['id'])
-        return '#{}'.format(issue)
+            return u'#{}'.format(issue['id'])
+        return u'#{}'.format(issue)
 
     def create_issue(self, request, group, form_data, **kwargs):
         """
@@ -209,10 +209,10 @@ class IssueTrackingPlugin2(Plugin):
         conf_key = self.get_conf_key()
         if self.issue_fields is None:
             return {
-                'id': '{}:tid'.format(conf_key)
+                'id': u'{}:tid'.format(conf_key)
             }
         return {
-            key: '{}:issue_{}'.format(
+            key: u'{}:issue_{}'.format(
                 conf_key,
                 key,
             )
@@ -293,12 +293,13 @@ class IssueTrackingPlugin2(Plugin):
             data=issue_information,
         )
 
-        issue_tracker_used.send(
+        issue_tracker_used.send_robust(
             plugin=self, project=group.project, user=request.user,
             sender=type(self)
         )
         return Response({'issue_url': self.get_issue_url(group, issue),
                          'link': self._get_issue_url_compat(group, issue),
+                         'label': self._get_issue_label_compat(group, issue),
                          'id': issue['id']})
 
     def view_link(self, request, group, **kwargs):
@@ -360,6 +361,7 @@ class IssueTrackingPlugin2(Plugin):
         )
         return Response({'message': 'Successfully linked issue.',
                          'link': self._get_issue_url_compat(group, issue),
+                         'label': self._get_issue_label_compat(group, issue),
                          'id': issue['id']})
 
     def view_unlink(self, request, group, **kwargs):

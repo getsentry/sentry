@@ -38,7 +38,7 @@ class DifAssembleEndpoint(APITestCase):
             data={
                 'lol': 'test'
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 400, response.content
 
@@ -48,7 +48,7 @@ class DifAssembleEndpoint(APITestCase):
             data={
                 checksum: 'test'
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 400, response.content
 
@@ -58,7 +58,7 @@ class DifAssembleEndpoint(APITestCase):
                 checksum: {
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 400, response.content
 
@@ -70,7 +70,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': [],
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 200, response.content
         assert response.data[checksum]['state'] == ChunkFileState.NOT_FOUND
@@ -101,7 +101,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': checksums,
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content
@@ -125,7 +125,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': checksums,
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content
@@ -150,7 +150,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': checksums,
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content
@@ -167,7 +167,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': [not_found_checksum],
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content
@@ -214,7 +214,7 @@ class DifAssembleEndpoint(APITestCase):
                     ]
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]['state'] == ChunkFileState.NOT_FOUND
@@ -237,7 +237,7 @@ class DifAssembleEndpoint(APITestCase):
                     ],
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]['state'] == ChunkFileState.CREATED
@@ -281,7 +281,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': chunks,
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content
@@ -310,7 +310,7 @@ class DifAssembleEndpoint(APITestCase):
                     'chunks': [],
                 }
             },
-            HTTP_AUTHORIZATION='Bearer {}'.format(self.token.token)
+            HTTP_AUTHORIZATION=u'Bearer {}'.format(self.token.token)
         )
 
         assert response.status_code == 200, response.content

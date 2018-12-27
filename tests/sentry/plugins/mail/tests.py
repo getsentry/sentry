@@ -423,7 +423,7 @@ class MailPluginSignalsTest(TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == '[Sentry] {} - New Feedback from Homer Simpson'.format(
+        assert msg.subject == u'[Sentry] {} - New Feedback from Homer Simpson'.format(
             self.group.qualified_short_id,
         )
         assert msg.to == [self.user.email]

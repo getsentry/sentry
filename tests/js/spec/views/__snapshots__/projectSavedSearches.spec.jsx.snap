@@ -322,6 +322,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                       >
                                         <input
                                           checked={true}
+                                          disabled={false}
                                           name="default"
                                           onChange={[Function]}
                                           type="radio"
@@ -348,6 +349,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                           cancelText="Cancel"
                                           confirmText="Confirm"
                                           disableConfirmButton={false}
+                                          disabled={false}
                                           message="Are you sure you want to remove this?"
                                           onConfirm={[Function]}
                                           priority="primary"
@@ -658,6 +660,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                       >
                                         <input
                                           checked={false}
+                                          disabled={false}
                                           name="default"
                                           onChange={[Function]}
                                           type="radio"
@@ -684,6 +687,7 @@ exports[`ProjectSavedSearches renders 1`] = `
                                           cancelText="Cancel"
                                           confirmText="Confirm"
                                           disableConfirmButton={false}
+                                          disabled={false}
                                           message="Are you sure you want to remove this?"
                                           onConfirm={[Function]}
                                           priority="primary"

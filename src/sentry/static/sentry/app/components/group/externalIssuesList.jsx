@@ -28,27 +28,15 @@ class ExternalIssueList extends AsyncComponent {
       integration => integration.status === 'active'
     );
 
-    if (!activeIntegrations.length)
-      return (
-        <AlertLink
-          icon="icon-generic-box"
-          priority="default"
-          size="small"
-          to={`/settings/${this.props.orgId}/integrations`}
-        >
-          {t('Set up Issue Tracking')}
-        </AlertLink>
-      );
-
-    const externalIssues = activeIntegrations.map(integration => (
-      <ExternalIssueActions
-        key={integration.id}
-        integration={integration}
-        group={group}
-      />
-    ));
-
-    return <Box mb={3}>{externalIssues}</Box>;
+    return activeIntegrations.length
+      ? activeIntegrations.map(integration => (
+          <ExternalIssueActions
+            key={integration.id}
+            integration={integration}
+            group={group}
+          />
+        ))
+      : null;
   }
 
   renderPluginIssues() {
@@ -64,7 +52,7 @@ class ExternalIssueList extends AsyncComponent {
   renderPluginActions() {
     const {group} = this.props;
 
-    return group.pluginActions
+    return group.pluginActions && group.pluginActions.length
       ? group.pluginActions.map((plugin, i) => {
           return (
             <IssueSyncListElement externalIssueLink={plugin[1]} key={i}>
@@ -76,15 +64,36 @@ class ExternalIssueList extends AsyncComponent {
   }
 
   renderBody() {
+    const integrationIssues = this.renderIntegrationIssues(this.state.integrations);
+    const pluginIssues = this.renderPluginIssues();
+    const pluginActions = this.renderPluginActions();
+
+    if (!integrationIssues && !pluginIssues && !pluginActions)
+      return (
+        <React.Fragment>
+          <h6>
+            <span>Linked Issues</span>
+          </h6>
+          <AlertLink
+            icon="icon-generic-box"
+            priority="default"
+            size="small"
+            to={`/settings/${this.props.orgId}/integrations`}
+          >
+            {t('Set up Issue Tracking')}
+          </AlertLink>
+        </React.Fragment>
+      );
+
     return (
-      <div>
+      <React.Fragment>
         <h6>
           <span>Linked Issues</span>
         </h6>
-        {this.renderIntegrationIssues(this.state.integrations)}
-        {this.renderPluginIssues()}
-        {this.renderPluginActions()}
-      </div>
+        {integrationIssues && <Box mb={2}>{integrationIssues}</Box>}
+        {pluginIssues && <Box mb={2}>{pluginIssues}</Box>}
+        {pluginActions && <Box mb={2}>{pluginActions}</Box>}
+      </React.Fragment>
     );
   }
 }

@@ -24,7 +24,7 @@ def capture_security_activity(
     if type == 'mfa-removed' or type == 'mfa-added':
         logger_context['authenticator_id'] = context['authenticator'].id
 
-    logger.info('user.{}'.format(type), extra=logger_context)
+    logger.info(u'user.{}'.format(type), extra=logger_context)
 
     if send_email:
         msg = generate_security_email(

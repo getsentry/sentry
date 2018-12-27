@@ -70,7 +70,7 @@ class IntegrationRepositoryProvider(object):
                 status=400,
             )
         else:
-            repo_linked.send_robust(repo=repo, sender=self.__class__)
+            repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
 
         analytics.record(
             'integration.repo.added',

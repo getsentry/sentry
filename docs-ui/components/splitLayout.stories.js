@@ -1,11 +1,10 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
-// import {action} from '@storybook/addon-actions';
 
 import SplitLayout from 'app/components/splitLayout';
 
-storiesOf('ComponentLayouts/SplitLayout', module).add(
+storiesOf('Deprecated|ComponentLayouts/SplitLayout', module).add(
   'default',
   withInfo('Children elements have equal size')(() => (
     <SplitLayout splitWidth={15} style={{backgroundColor: '#fff'}}>

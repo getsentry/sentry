@@ -33,7 +33,7 @@ class WebhookTest(APITestCase):
 
     def test_unregistered_event(self):
         project = self.project  # force creation
-        url = '/extensions/github-enterprise/webhook/'.format(
+        url = u'/extensions/github-enterprise/webhook/'.format(
             project.organization.id,
         )
 
@@ -81,6 +81,7 @@ class PushEventWebhookTest(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         Repository.objects.create(
@@ -98,10 +99,11 @@ class PushEventWebhookTest(APITestCase):
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         response = self.client.post(
             path=url,
@@ -152,6 +154,7 @@ class PushEventWebhookTest(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         integration = Integration.objects.create(
@@ -163,10 +166,11 @@ class PushEventWebhookTest(APITestCase):
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         Repository.objects.create(
             organization_id=project.organization.id,
@@ -233,6 +237,7 @@ class PushEventWebhookTest(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         Repository.objects.create(
@@ -250,10 +255,11 @@ class PushEventWebhookTest(APITestCase):
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         org2 = self.create_organization()
         project2 = self.create_project(organization=org2, name='bar')
@@ -273,10 +279,11 @@ class PushEventWebhookTest(APITestCase):
                     'installation_id': '99',
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
-        integration.add_organization(org2.id)
+        integration.add_organization(org2, self.user)
 
         response = self.client.post(
             path=url,
@@ -318,6 +325,7 @@ class PullRequestEventWebhook(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         integration = Integration.objects.create(
@@ -329,10 +337,11 @@ class PullRequestEventWebhook(APITestCase):
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,
@@ -378,6 +387,7 @@ class PullRequestEventWebhook(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         integration = Integration.objects.create(
@@ -389,10 +399,11 @@ class PullRequestEventWebhook(APITestCase):
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,
@@ -437,6 +448,7 @@ class PullRequestEventWebhook(APITestCase):
             'name': 'test-app',
             'webhook_secret': 'b3002c3e321d4b7880360d397db2ccfd',
             'private_key': 'private_key',
+            'verify_ssl': True,
         }
 
         integration = Integration.objects.create(
@@ -448,10 +460,11 @@ class PullRequestEventWebhook(APITestCase):
                 'installation': {
                     'id': '2',
                     'private_key': 'private_key',
+                    'verify_ssl': True,
                 }
             }
         )
-        integration.add_organization(project.organization.id)
+        integration.add_organization(project.organization, self.user)
 
         repo = Repository.objects.create(
             organization_id=project.organization.id,

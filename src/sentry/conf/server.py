@@ -269,7 +269,7 @@ INSTALLED_APPS = (
 )
 
 import django
-if django.VERSION < (1, 7):
+if django.VERSION < (1, 9):
     INSTALLED_APPS += ('south', )
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
@@ -494,7 +494,7 @@ def create_partitioned_queues(name):
     exchange = Exchange(name, type='direct')
     for num in range(1):
         CELERY_QUEUES.append(Queue(
-            '{0}-{1}'.format(name, num),
+            u'{0}-{1}'.format(name, num),
             exchange=exchange,
         ))
 
@@ -767,23 +767,22 @@ SENTRY_FEATURES = {
     'organizations:sso-saml2': True,
     'organizations:sso-rippling': False,
     'organizations:group-unmerge': False,
-    'organizations:github-apps': False,
+    'organizations:github-apps': True,
     'organizations:invite-members': True,
-    'organizations:new-settings': True,
     'organizations:require-2fa': False,
-    'organizations:environments': False,
     'organizations:internal-catchall': False,
-    'organizations:new-issue-ui': False,
-    'organizations:github-enterprise': False,
-    'organizations:bitbucket-integration': False,
-    'organizations:jira-integration': False,
-    'organizations:vsts-integration': False,
+    'organizations:new-issue-ui': True,
+    'organizations:github-enterprise': True,
+    'organizations:bitbucket-integration': True,
+    'organizations:jira-integration': True,
+    'organizations:vsts-integration': True,
     'organizations:integrations-issue-basic': False,
     'organizations:integrations-issue-sync': False,
     'organizations:new-teams': True,
     'organizations:unreleased-changes': False,
     'organizations:suggested-commits': True,
     'organizations:relay': False,
+    'organizations:js-loader': False,
     'organizations:health': False,
     'organizations:discover': False,
     'projects:global-events': False,
@@ -1036,7 +1035,10 @@ SENTRY_MAX_HTTP_BODY_SIZE = 4096 * 4  # 16kb
 SENTRY_MAX_DICTIONARY_ITEMS = 50
 
 SENTRY_MAX_MESSAGE_LENGTH = 1024 * 8
+# how many frames are fat
 SENTRY_MAX_STACKTRACE_FRAMES = 50
+# how many frames there can be at all
+SENTRY_STACKTRACE_FRAMES_HARD_LIMIT = 250
 SENTRY_MAX_EXCEPTIONS = 25
 
 # Gravatar service base url
@@ -1233,7 +1235,7 @@ SENTRY_WATCHERS = (
     (
         'webpack', [
             os.path.join(NODE_MODULES_ROOT, '.bin', 'webpack'), '--output-pathinfo', '--watch',
-            "--config={}".format(
+            u"--config={}".format(
                 os.path.
                 normpath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js"))
             )
@@ -1262,6 +1264,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     'sentry.integrations.slack.SlackIntegrationProvider',
     'sentry.integrations.github.GitHubIntegrationProvider',
     'sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider',
+    'sentry.integrations.gitlab.GitlabIntegrationProvider',
     'sentry.integrations.jira.JiraIntegrationProvider',
     'sentry.integrations.vsts.VstsIntegrationProvider',
     'sentry.integrations.vsts_extension.VstsExtensionIntegrationProvider',
@@ -1271,6 +1274,7 @@ SENTRY_INTERNAL_INTEGRATIONS = (
     'bitbucket',
     'github',
     'github_enterprise',
+    'gitlab',
     'jira',
     'vsts',
     'vsts-extension',

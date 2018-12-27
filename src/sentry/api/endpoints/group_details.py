@@ -30,6 +30,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.plugins import IssueTrackingPlugin2, plugins
+from sentry.signals import issue_deleted
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -333,7 +334,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         # endpoint
         try:
             response = client.put(
-                path='/projects/{}/{}/issues/'.format(
+                path=u'/projects/{}/{}/issues/'.format(
                     group.project.organization.slug,
                     group.project.slug,
                 ),
@@ -420,5 +421,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     'model': type(group).__name__,
                 }
             )
+
+            issue_deleted.send_robust(
+                group=group,
+                user=request.user,
+                delete_type='delete',
+                sender=self.__class__)
 
         return Response(status=202)

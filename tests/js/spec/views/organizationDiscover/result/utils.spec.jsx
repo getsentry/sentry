@@ -1,6 +1,11 @@
+import {mount} from 'enzyme';
+
 import {
   getChartData,
   getChartDataByDay,
+  getDisplayValue,
+  getDisplayText,
+  downloadAsCsv,
 } from 'app/views/organizationDiscover/result/utils';
 
 describe('Utils', function() {
@@ -134,5 +139,96 @@ describe('Utils', function() {
     ];
 
     expect(getChartDataByDay(raw, query)).toEqual(expected);
+  });
+
+  it('getDisplayValue()', function() {
+    const testData = [
+      {input: null, expectedText: 'null'},
+      {
+        input: 'some thing',
+        expectedText: '"some thing"',
+      },
+      {
+        input: 12,
+        expectedText: '12',
+      },
+      {
+        input: ['one', 'two', 'three'],
+        expectedText: '["one","two","three"]',
+      },
+    ];
+
+    testData.forEach(({input, expectedText}) => {
+      expect(mount(getDisplayValue(input)).text()).toBe(expectedText);
+    });
+  });
+
+  it('getTextValue()', function() {
+    const testData = [
+      {input: null, expectedText: 'null'},
+      {
+        input: 'some thing',
+        expectedText: '"some thing"',
+      },
+      {
+        input: 12,
+        expectedText: '12',
+      },
+      {
+        input: ['one', 'two', 'three'],
+        expectedText: '["one","two","three"]',
+      },
+    ];
+
+    testData.forEach(({input, expectedText}) => {
+      expect(getDisplayText(input)).toBe(expectedText);
+    });
+  });
+
+  describe('downloadAsCsv()', function() {
+    let locationSpy;
+    beforeEach(function() {
+      locationSpy = jest.spyOn(window.location, 'assign').mockImplementation(_ => _);
+    });
+    afterEach(function() {
+      jest.restoreAllMocks();
+    });
+    it('handles raw data', function() {
+      const result = {
+        meta: [{name: 'message'}, {name: 'environment'}],
+        data: [
+          {message: 'test 1', environment: 'prod'},
+          {message: 'test 2', environment: 'test'},
+        ],
+      };
+      downloadAsCsv(result);
+      expect(locationSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          encodeURI('message,environment\r\ntest 1,prod\r\ntest 2,test')
+        )
+      );
+    });
+    it('handles aggregations', function() {
+      const result = {
+        meta: [{type: 'UInt64', name: 'count'}],
+        data: [{count: 3}],
+      };
+      downloadAsCsv(result);
+      expect(locationSpy).toHaveBeenCalledWith(
+        expect.stringContaining(encodeURI('count\r\n3'))
+      );
+    });
+    it('quotes unsafe strings', function() {
+      const result = {
+        meta: [{name: 'message'}],
+        data: [{message: '=HYPERLINK(http://some-bad-website)'}],
+      };
+      downloadAsCsv(result);
+      expect(locationSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          encodeURI("message\r\n'=HYPERLINK(http://some-bad-website)")
+        )
+      );
+    });
   });
 });

@@ -145,7 +145,14 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
           <Route
-            path=":authId/"
+            path="session-history/"
+            name="Session History"
+            componentPromise={() =>
+              import(/*webpackChunkName: "AccountSecuritySessionHistory"*/ './views/settings/account/accountSecurity/accountSecuritySessionHistory')}
+            component={errorHandler(LazyLoad)}
+          />
+          <Route
+            path="mfa/:authId/"
             name="Details"
             componentPromise={() =>
               import(/*webpackChunkName: "AccountSecurityDetails"*/ './views/settings/account/accountSecurity/accountSecurityDetails')}
@@ -154,7 +161,7 @@ function routes() {
         </Route>
 
         <Route
-          path=":authId/enroll/"
+          path="mfa/:authId/enroll/"
           name="Enroll"
           componentPromise={() =>
             import(/*webpackChunkName: "AccountSecurityEnroll"*/ './views/settings/account/accountSecurity/accountSecurityEnroll')}
@@ -395,7 +402,7 @@ function routes() {
           component={errorHandler(LazyLoad)}
         />
       </Route>
-      <Route path="plugins/" name="Integrations">
+      <Route path="plugins/" name="Legacy Integrations">
         <IndexRoute component={errorHandler(ProjectPlugins)} />
         <Route
           path=":pluginId/"
@@ -583,6 +590,12 @@ function routes() {
           import(/*webpackChunkName:"AcceptProjectTransfer"*/ 'app/views/acceptProjectTransfer')}
         component={errorHandler(LazyLoad)}
       />
+      <Route
+        path="/extensions/external-install/:installationId"
+        componentPromise={() =>
+          import(/*webpackChunkName:"AcceptProjectTransfer"*/ 'app/views/integrationInstallation')}
+        component={errorHandler(LazyLoad)}
+      />
 
       <Route
         path="/extensions/vsts/link/"
@@ -760,6 +773,20 @@ function routes() {
               path="transactions"
               componentPromise={() =>
                 import(/*webpackChunkName: HealthTransactions*/ './views/organizationHealth/transactions')}
+              component={errorHandler(LazyLoad)}
+            />
+
+            <Route
+              path="browsers"
+              componentPromise={() =>
+                import(/*webpackChunkName: HealthBrowsers*/ './views/organizationHealth/browsers')}
+              component={errorHandler(LazyLoad)}
+            />
+
+            <Route
+              path="devices"
+              componentPromise={() =>
+                import(/*webpackChunkName: HealthDevices*/ './views/organizationHealth/devices')}
               component={errorHandler(LazyLoad)}
             />
           </Route>

@@ -13,7 +13,7 @@ from django.utils.translation import ugettext as _
 
 
 class VstsIssueSync(IssueSyncMixin):
-    description = 'Integrate Visual Studio Team Services work items by linking a project.'
+    description = 'Integrate Azure DevOps work items by linking a project.'
     slug = 'vsts'
     conf_key = slug
 
@@ -61,7 +61,7 @@ class VstsIssueSync(IssueSyncMixin):
         return fields
 
     def get_issue_url(self, key, **kwargs):
-        return 'https://%s/_workitems/edit/%s' % (self.instance, six.text_type(key))
+        return '%s_workitems/edit/%s' % (self.instance, six.text_type(key))
 
     def create_issue(self, data, **kwargs):
         """
@@ -218,4 +218,6 @@ class VstsIssueSync(IssueSyncMixin):
         return done_states
 
     def get_issue_display_name(self, external_issue):
+        if external_issue.metadata is None:
+            return ''
         return external_issue.metadata['display_name']

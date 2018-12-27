@@ -8,7 +8,7 @@ import SelectField from 'app/components/forms/selectField';
 import SelectCreatableField from 'app/components/forms/selectCreatableField';
 
 // eslint-disable-next-line
-storiesOf('Forms/Fields/Old', module)
+storiesOf('Forms|Fields/Old', module)
   .add(
     'SelectField',
     withInfo({

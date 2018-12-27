@@ -11,6 +11,10 @@ from sentry.db.models import FlexibleForeignKey, ParanoidModel
 from sentry.models.apiscopes import HasApiScopes
 
 
+def default_uuid():
+    return six.binary_type(uuid.uuid4())
+
+
 class SentryApp(ParanoidModel, HasApiScopes):
     __core__ = True
 
@@ -30,7 +34,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
     name = models.TextField()
     slug = models.CharField(max_length=64, unique=True)
     uuid = models.CharField(max_length=64,
-                            default=lambda: six.binary_type(uuid.uuid4()))
+                            default=default_uuid)
 
     webhook_url = models.TextField()
 

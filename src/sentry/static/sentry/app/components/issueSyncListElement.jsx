@@ -25,7 +25,6 @@ class IssueSyncElement extends React.Component {
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
     integrationType: PropTypes.string,
-    integrationName: PropTypes.string,
     hoverCardHeader: PropTypes.node,
     hoverCardBody: PropTypes.node,
   };
@@ -61,7 +60,7 @@ class IssueSyncElement extends React.Component {
       case 'github_enterprise':
         return 'GitHub Enterprise';
       case 'vsts':
-        return 'VSTS';
+        return 'Azure DevOps';
       default:
         return capitalize(type);
     }

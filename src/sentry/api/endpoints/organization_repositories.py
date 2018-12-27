@@ -7,8 +7,9 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.app import raven
 from sentry.constants import ObjectStatus
-from sentry.models import Integration, OrganizationIntegration, Repository
+from sentry.models import Integration, Repository
 from sentry.plugins import bindings
 
 
@@ -54,23 +55,24 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         # TODO(mn): Remove once old Plugins are removed or everyone migrates to
         # the new Integrations. Hopefully someday?
         elif status == 'unmigratable':
+            integrations = Integration.objects.filter(
+                organizationintegration__organization=organization,
+                organizationintegration__status=ObjectStatus.ACTIVE,
+                provider__in=('bitbucket', 'github', 'vsts'),
+                status=ObjectStatus.ACTIVE,
+            )
+
             repos = []
 
-            org_integrations = OrganizationIntegration.objects.filter(
-                organization_id=organization.id,
-            )
-
-            integrations = Integration.objects.filter(
-                id__in=org_integrations.values('integration_id'),
-                provider__in=('bitbucket', 'github', 'vsts'),
-            )
-
-            repos = [
-                repo
-                for i in integrations
-                for repo in i.get_installation(organization.id)
-                             .get_unmigratable_repositories()
-            ]
+            for i in integrations:
+                try:
+                    repos.extend(i.get_installation(organization.id)
+                                  .get_unmigratable_repositories())
+                except Exception:
+                    raven.captureException()
+                    # Don't rely on the Integration's API being available. If
+                    # it's not, the page should still render.
+                    continue
 
             return Response(serialize(repos, request.user))
 
@@ -102,9 +104,11 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
             'organizations:bitbucket-integration', organization, actor=request.user)
         has_vsts = provider_id == 'integrations:vsts' and features.has(
             'organizations:vsts-integration', organization, actor=request.user)
+        has_github = provider_id == 'integrations:github' and features.has(
+            'organizations:github-apps', organization, actor=request.user)
 
         if features.has('organizations:internal-catchall', organization,
-                        actor=request.user) or has_ghe or has_bb or has_vsts:
+                        actor=request.user) or has_ghe or has_bb or has_vsts or has_github:
             if provider_id is not None and provider_id.startswith('integrations:'):
                 try:
                     provider_cls = bindings.get('integration-repository.provider').get(provider_id)

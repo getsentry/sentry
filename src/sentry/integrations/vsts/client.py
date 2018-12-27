@@ -17,18 +17,20 @@ INVALID_ACCESS_TOKEN = 'HTTP 400 (invalid_request): The access token is not vali
 
 
 class VstsApiPath(object):
-    commits = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits'
-    commits_batch = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commitsBatch'
-    commits_changes = u'https://{account_name}/DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
-    projects = u'https://{account_name}/DefaultCollection/_apis/projects'
-    repository = u'https://{account_name}/DefaultCollection/{project}_apis/git/repositories/{repo_id}'
-    repositories = u'https://{account_name}/{project}_apis/git/repositories'
-    subscription = 'https://{account_name}/_apis/hooks/subscriptions/{subscription_id}'
-    subscriptions = u'https://{account_name}/_apis/hooks/subscriptions'
-    work_items = u'https://{account_name}/DefaultCollection/_apis/wit/workitems/{id}'
-    work_items_create = u'https://{account_name}/{project}/_apis/wit/workitems/${type}'
+    commits = u'{instance}_apis/git/repositories/{repo_id}/commits'
+    commits_batch = u'{instance}_apis/git/repositories/{repo_id}/commitsBatch'
+    commits_changes = u'{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes'
+    projects = u'{instance}_apis/projects'
+    repository = u'{instance}{project}_apis/git/repositories/{repo_id}'
+    repositories = u'{instance}{project}_apis/git/repositories'
+    subscription = u'{instance}_apis/hooks/subscriptions/{subscription_id}'
+    subscriptions = u'{instance}_apis/hooks/subscriptions'
+    work_items = u'{instance}_apis/wit/workitems/{id}'
+    work_items_create = u'{instance}{project}/_apis/wit/workitems/${type}'
+    # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
     work_item_search = u'https://{account_name}.almsearch.visualstudio.com/_apis/search/workitemsearchresults'
-    work_item_states = u'https://{account_name}/{project}/_apis/wit/workitemtypes/{type}/states'
+    work_item_states = u'{instance}{project}/_apis/wit/workitemtypes/{type}/states'
+    # TODO(lb): Fix this url so that the base url is given by vsts rather than built by us
     users = u'https://{account_name}.vssps.visualstudio.com/_apis/graph/users'
 
 
@@ -43,16 +45,17 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         if 'access_token' not in self.identity.data:
             raise ValueError('Vsts Identity missing access token')
 
-    def request(self, method, path, data=None, params=None, api_preview=False):
+    def request(self, method, path, data=None, params=None, api_preview=False, timeout=None):
         self.check_auth(redirect_url=self.oauth_redirect_url)
         headers = {
-            'Accept': 'application/json; api-version={}{}'.format(self.api_version, self.api_version_preview if api_preview else ''),
+            'Accept': u'application/json; api-version={}{}'.format(self.api_version, self.api_version_preview if api_preview else ''),
             'Content-Type': 'application/json-patch+json' if method == 'PATCH' else 'application/json',
             'X-HTTP-Method-Override': method,
             'X-TFS-FedAuthRedirect': 'Suppress',
-            'Authorization': 'Bearer {}'.format(self.identity.data['access_token'])
+            'Authorization': u'Bearer {}'.format(self.identity.data['access_token'])
         }
-        return self._request(method, path, headers=headers, data=data, params=params)
+        return self._request(method, path, headers=headers, data=data,
+                             params=params, timeout=timeout)
 
     def create_work_item(self, instance, project, title=None,
                          description=None, comment=None, link=None):
@@ -88,7 +91,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
 
         return self.patch(
             VstsApiPath.work_items_create.format(
-                account_name=instance,
+                instance=instance,
                 project=project,
                 type='Bug'
             ),
@@ -129,7 +132,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
 
         return self.patch(
             VstsApiPath.work_items.format(
-                account_name=instance,
+                instance=instance,
                 id=id,
             ),
             data=data,
@@ -138,7 +141,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def get_work_item(self, instance, id):
         return self.get(
             VstsApiPath.work_items.format(
-                account_name=instance,
+                instance=instance,
                 id=id,
             ),
         )
@@ -146,7 +149,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def get_work_item_states(self, instance, project):
         return self.get(
             VstsApiPath.work_item_states.format(
-                account_name=instance,
+                instance=instance,
                 project=project,
                 # TODO(lb): might want to make this custom like jira at some point
                 type='Bug',
@@ -157,7 +160,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def get_work_item_types(self, instance, process_id):
         return self.get(
             VstsApiPath.work_item_types.format(
-                account_name=instance,
+                instance=instance,
                 process_id=process_id,
             ),
             api_preview=True,
@@ -166,8 +169,8 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def get_repo(self, instance, name_or_id, project=None):
         return self.get(
             VstsApiPath.repository.format(
-                account_name=instance,
-                project='{}/'.format(project) if project else '',
+                instance=instance,
+                project=u'{}/'.format(project) if project else '',
                 repo_id=name_or_id,
             ),
         )
@@ -175,15 +178,16 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def get_repos(self, instance, project=None):
         return self.get(
             VstsApiPath.repositories.format(
-                account_name=instance,
-                project='{}/'.format(project) if project else '',
+                instance=instance,
+                project=u'{}/'.format(project) if project else '',
             ),
+            timeout=5,
         )
 
     def get_commits(self, instance, repo_id, commit, limit=100):
         return self.get(
             VstsApiPath.commits.format(
-                account_name=instance,
+                instance=instance,
                 repo_id=repo_id,
             ),
             params={
@@ -196,7 +200,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
 
         resp = self.get(
             VstsApiPath.commits_changes.format(
-                account_name=instance,
+                instance=instance,
                 repo_id=repo_id,
                 commit_id=commit,
             )
@@ -207,7 +211,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def get_commit_range(self, instance, repo_id, start_sha, end_sha):
         return self.post(
             VstsApiPath.commits_batch.format(
-                account_name=instance,
+                instance=instance,
                 repo_id=repo_id,
             ),
             data={
@@ -227,7 +231,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         # making the assumption that a user has 100 or less projects today.
         return self.get(
             VstsApiPath.projects.format(
-                account_name=instance,
+                instance=instance,
             ),
             params={'stateFilter': 'WellFormed'}
         )
@@ -243,7 +247,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def create_subscription(self, instance, external_id, shared_secret):
         return self.post(
             VstsApiPath.subscriptions.format(
-                account_name=instance
+                instance=instance
             ),
             data={
                 'publisherId': 'tfs',
@@ -262,7 +266,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def delete_subscription(self, instance, subscription_id):
         self.delete(
             VstsApiPath.subscription.format(
-                account_name=instance,
+                instance=instance,
                 subscription_id=subscription_id,
             )
         )

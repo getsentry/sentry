@@ -32,7 +32,7 @@ class Provider(PipelineProvider):
 
     def __init__(self, **config):
         self.config = config
-        self.logger = logging.getLogger('sentry.identity.%s'.format(self.key))
+        self.logger = logging.getLogger(u'sentry.identity.%s'.format(self.key))
 
     def build_identity(self, state):
         """

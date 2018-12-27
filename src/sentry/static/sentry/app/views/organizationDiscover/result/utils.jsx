@@ -4,6 +4,7 @@ import React from 'react';
 import styled from 'react-emotion';
 import moment from 'moment';
 import {orderBy} from 'lodash';
+import Papa from 'papaparse';
 
 import {NUMBER_OF_SERIES_BY_DAY} from '../data';
 
@@ -126,26 +127,6 @@ function formatDate(datetime) {
   return moment.utc(datetime * 1000).format('MMM Do');
 }
 
-export function formatTooltip(seriesParams) {
-  const label = seriesParams.length && seriesParams[0].axisValueLabel;
-  return [
-    `<div>${truncateLabel(label)}</div>`,
-    seriesParams
-      .filter(s => s.data[1] !== null)
-      .map(s => `<div>${s.marker} ${truncateLabel(s.seriesName)}:  ${s.data[1]}</div>`)
-      .join(''),
-  ].join('');
-}
-
-// Truncates labels for tooltip
-function truncateLabel(seriesName) {
-  let result = seriesName;
-  if (seriesName.length > 80) {
-    result = seriesName.substring(0, 80) + '…';
-  }
-  return result;
-}
-
 // Converts a value to a string for the chart label. This could
 // potentially cause incorrect grouping, e.g. if the value null and string
 // 'null' are both present in the same series they will be merged into 1 value
@@ -163,9 +144,13 @@ function getLabel(value) {
 }
 
 /**
- * Takes any value and returns a display version of that value for
- * rendering in the "discover" result table. Handles only the 3 types
- * that we would expect to be present in Snuba data - string, null and array
+ * Takes any value and returns a display version of that value for rendering in
+ * the "discover" result table. Only expected to handle the 4 types that we
+ * would expect to be present in Snuba data - string, number, null and array
+ *
+ * @param {*} val Value to display in table cell
+ * @param {Number} idx Index if part of array
+ * @returns {Object} Formatted cell contents
  */
 export function getDisplayValue(val, idx) {
   if (typeof val === 'string') {
@@ -191,9 +176,19 @@ export function getDisplayValue(val, idx) {
     );
   }
 
-  return val;
+  return <span>{val}</span>;
 }
 
+/**
+ * Takes any value and returns the text-only version of that value that will be
+ * rendered in the table. Only expected to handle the 4 types that we would
+ * expect to be present in Snuba data - string, number, null and array. This
+ * function is required for dynamically calculating column width based on cell
+ * contents.
+ *
+ * @param {*} val Value to display in table cell
+ * @returns {String} Cell contents as string
+ */
 export function getDisplayText(val) {
   if (typeof val === 'string') {
     return `"${val}"`;
@@ -204,17 +199,10 @@ export function getDisplayText(val) {
   }
 
   if (Array.isArray(val)) {
-    return `[
-        ${val.map(getDisplayValue).reduce((acc, curr, arrayIdx) => {
-          if (arrayIdx !== 0) {
-            return [...acc, ',', curr];
-          }
-          return [...acc, curr];
-        }, [])}
-        ]`;
+    return `[${val.map(getDisplayText)}]`;
   }
 
-  return val;
+  return `${val}`;
 }
 
 const LightGray = styled.span`
@@ -224,3 +212,37 @@ const LightGray = styled.span`
 const DarkGray = styled.span`
   color: ${p => p.theme.gray5};
 `;
+
+/**
+ * Downloads a Snuba result object as CSV format
+ *
+ * @param {Object} result Result received from Snuba
+ * @param {Object} result.data Result data object from Snuba
+ * @param {String} result.meta Result metadata from Snuba
+ * @returns {Void}
+ */
+export function downloadAsCsv(result) {
+  const {meta, data} = result;
+  const headings = meta.map(({name}) => name);
+
+  const csvContent = Papa.unparse({
+    fields: headings,
+    data: data.map(row => {
+      return headings.map(col => disableMacros(row[col]));
+    }),
+  });
+
+  const encodedDataUrl = encodeURI(`data:text/csv;charset=utf8,${csvContent}`);
+
+  window.location.assign(encodedDataUrl);
+}
+
+function disableMacros(value) {
+  const unsafeCharacterRegex = /^[\=\+\-\@]/;
+
+  if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {
+    return `'${value}`;
+  }
+
+  return value;
+}

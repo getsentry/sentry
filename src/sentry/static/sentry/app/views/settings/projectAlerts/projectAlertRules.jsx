@@ -21,6 +21,7 @@ import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EnvironmentStore from 'app/stores/environmentStore';
 import ListLink from 'app/components/listLink';
+import NavTabs from 'app/components/navTabs';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
@@ -284,12 +285,12 @@ class ProjectAlertRules extends AsyncView {
             </Tooltip>
           }
           tabs={
-            <ul className="nav nav-tabs" style={{borderBottom: '1px solid #ddd'}}>
+            <NavTabs underlined={true}>
               <ListLink to={recreateRoute('alerts', {...this.props, stepBack: -4})}>
                 {t('Settings')}
               </ListLink>
               <ListLink to={recreateRoute('', this.props)}>{t('Rules')}</ListLink>
-            </ul>
+            </NavTabs>
           }
         />
         {!!ruleList.length && this.renderResults()}

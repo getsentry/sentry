@@ -44,7 +44,7 @@ class GroupTagDetailsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = '/api/0/issues/{}/tags/{}/'.format(group.id, tagkey.key)
+        url = u'/api/0/issues/{}/tags/{}/'.format(group.id, tagkey.key)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert response.data['key'] == six.text_type(tagkey.key)

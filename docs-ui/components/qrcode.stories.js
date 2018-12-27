@@ -1,11 +1,10 @@
 import React from 'react';
 import {storiesOf} from '@storybook/react';
 import {withInfo} from '@storybook/addon-info';
-// import {action} from '@storybook/addon-actions';
 
 import Qrcode from 'app/components/qrcode';
 
-storiesOf('Qrcode', module).add(
+storiesOf('UI|Qrcode', module).add(
   'default',
   withInfo('Description')(() => (
     <Qrcode

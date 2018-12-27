@@ -58,17 +58,17 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         if db.is_sqlite():
             for om in OrganizationMember.objects.filter(organization=organization):
-                setattr(om.flags, 'sso:linked', False)
-                setattr(om.flags, 'sso:invalid', False)
+                om.flags['sso:linked'] = False
+                om.flags['sso:invalid'] = False
                 om.save()
         else:
             OrganizationMember.objects.filter(
                 organization=organization,
             ).update(
                 flags=F('flags').bitand(
-                    ~getattr(OrganizationMember.flags, 'sso:linked'),
+                    ~OrganizationMember.flags['sso:linked'],
                 ).bitand(
-                    ~getattr(OrganizationMember.flags, 'sso:invalid'),
+                    ~OrganizationMember.flags['sso:invalid'],
                 ),
             )
 
@@ -139,7 +139,7 @@ class OrganizationAuthSettingsView(OrganizationView):
 
         pending_links_count = OrganizationMember.objects.filter(
             organization=organization,
-            flags=~getattr(OrganizationMember.flags, 'sso:linked'),
+            flags=F('flags').bitand(~OrganizationMember.flags['sso:linked']),
         ).count()
 
         context = {
@@ -182,7 +182,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         if request.method == 'POST':
             provider_key = request.POST.get('provider')
             if not manager.exists(provider_key):
-                raise ValueError('Provider not found: {}'.format(provider_key))
+                raise ValueError(u'Provider not found: {}'.format(provider_key))
 
             helper = AuthHelper(
                 request=request,

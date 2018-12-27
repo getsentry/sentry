@@ -251,6 +251,7 @@ const AssigneeSelectorComponent = createReactClass({
             itemSize="small"
             searchPlaceholder={t('Filter teams and people')}
             menuWithArrow
+            emptyHidesInput
             menuHeader={
               assignedTo && (
                 <MenuItemWrapper
