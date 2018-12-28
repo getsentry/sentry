@@ -77,7 +77,7 @@ class OrganizationUserFeedback extends AsyncView {
   renderEmpty() {
     return (
       <EmptyStateWarning>
-        <p>{t('Sorry, no results match your serch query.')}</p>
+        <p>{t('Sorry, no results match your search query.')}</p>
       </EmptyStateWarning>
     );
   }
