@@ -1,6 +1,8 @@
 import {pick} from 'lodash';
 import qs from 'query-string';
 
+import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
+
 const DEFAULT_STATUS = 'unresolved';
 
 /**
@@ -16,15 +18,7 @@ export function getQuery(search) {
 
   const queryParams = {
     status,
-    ...pick(query, [
-      'cursor',
-      'project',
-      'environment',
-      'statsPeriod',
-      'start',
-      'end',
-      'utc',
-    ]),
+    ...pick(query, ['cursor', ...Object.values(URL_PARAM)]),
   };
 
   return queryParams;
