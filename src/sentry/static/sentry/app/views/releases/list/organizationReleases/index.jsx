@@ -37,7 +37,7 @@ class OrganizationReleases extends AsyncView {
       [
         'releaseList',
         `/organizations/${organization.slug}/releases/`,
-        {query: getQuery(location.search)},
+        {query: getQuery(location.query)},
       ],
     ];
   }

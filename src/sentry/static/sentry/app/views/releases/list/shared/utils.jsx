@@ -1,5 +1,3 @@
-import qs from 'query-string';
-
 /**
  * Get query term for API given location.search
  *
@@ -7,9 +5,7 @@ import qs from 'query-string';
  * @returns {Object}
  */
 
-export function getQuery(search) {
-  const query = qs.parse(search);
-
+export function getQuery(query) {
   return {
     per_page: 50,
     cursor: query.cursor,
