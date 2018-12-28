@@ -32,6 +32,7 @@ class Sidebar extends React.Component {
     organization: SentryTypes.Organization,
     collapsed: PropTypes.bool,
     location: PropTypes.object,
+    router: PropTypes.object,
   };
 
   constructor(props) {
@@ -50,11 +51,20 @@ class Sidebar extends React.Component {
   }
 
   componentDidMount() {
-    let {organization} = this.props;
+    let {organization, router} = this.props;
     jQuery(document.body).addClass('body-sidebar');
     jQuery(document).on('click', this.documentClickHandler);
 
     loadIncidents();
+
+    // router can potentially not exist in server side (django) views
+    // Otherwise when we change routes using collapsed sidebar, the tooltips will remain after
+    // route changes.
+    this.routerListener =
+      router &&
+      router.listen(() => {
+        $('.tooltip').tooltip('hide');
+      });
 
     // If there is no organization (i.e. no org in context, or error loading org)
     // then sidebar should default to collapsed state
@@ -65,9 +75,10 @@ class Sidebar extends React.Component {
     let {collapsed, location} = this.props;
     let nextLocation = nextProps.location;
 
-    // Close active panel if we navigated anywhere
+    // Close active panel and tooltips if we navigated anywhere
     if (nextLocation && location && location.pathname !== nextLocation.pathname) {
       this.hidePanel();
+      $('.tooltip').tooltip('hide');
     }
 
     if (collapsed === nextProps.collapsed) return;
@@ -95,6 +106,11 @@ class Sidebar extends React.Component {
     if (this.mq) {
       this.mq.removeListener(this.handleMediaQueryChange);
       this.mq = null;
+    }
+
+    // Unlisten to router changes
+    if (this.routerListener) {
+      this.routerListener();
     }
   }
 
