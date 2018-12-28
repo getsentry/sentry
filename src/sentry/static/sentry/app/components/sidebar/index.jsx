@@ -19,6 +19,7 @@ import PreferencesStore from 'app/stores/preferencesStore';
 import theme from 'app/utils/theme';
 import space from 'app/styles/space';
 import withLatestContext from 'app/utils/withLatestContext';
+import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
 
 import Broadcasts from './broadcasts';
 import Incidents from './incidents';
@@ -176,14 +177,8 @@ class Sidebar extends React.Component {
 
   // Get link that preserves global selection values in path
   withGlobalSelectionInPath = path => {
-    const query = pick(qs.parse(this.props.location.search), [
-      'project',
-      'environment',
-      'statsPeriod',
-      'start',
-      'end',
-      'utc',
-    ]);
+    const query = pick(this.props.location.query, Object.values(URL_PARAM));
+
     return `${path}?${qs.stringify(query)}`;
   };
 
