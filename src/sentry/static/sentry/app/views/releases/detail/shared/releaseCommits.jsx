@@ -92,7 +92,7 @@ const ReleaseCommits = createReactClass({
     let activeCommits = commitsByRepository[repo];
 
     return (
-      <Panel>
+      <Panel key={repo}>
         <PanelHeader>{repo}</PanelHeader>
         <PanelBody>
           {activeCommits.map(commit => {
