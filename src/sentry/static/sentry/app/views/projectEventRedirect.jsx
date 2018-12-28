@@ -4,9 +4,14 @@ import PropTypes from 'prop-types';
 import {t} from 'app/locale';
 
 /**
- * This component performs a client-side redirect to issue details -> event
- * details, given that it is loaded at the same URL (via the router) as the
- * server-side 302 redirect.
+ * This component performs a client-side redirect to Event Details given only
+ * an event ID (which normally additionally requires the event's Issue/Group ID).
+ * It does this by using an XHR against the identically-named ProjectEventRedirect
+ * _Django_ view, which responds with a 302 with the Location of the corresponding
+ * Event Details page (if it exists).
+ *
+ * See:
+ * https://github.com/getsentry/sentry/blob/824c03089907ad22a9282303a5eaca33989ce481/src/sentry/web/urls.py#L578
  */
 class ProjectEventRedirect extends React.Component {
   static propTypes = {
@@ -17,8 +22,9 @@ class ProjectEventRedirect extends React.Component {
     super(props);
     const {router} = props;
 
-    // This presumes that this component/view is only reachable at
-    // /:org/:project/events/:eventId.
+    // This presumes that _this_ React view/route is only reachable at
+    // /:org/:project/events/:eventId (the same URL which serves the ProjectEventRedirect
+    // Django view).
     const endpoint = router.location.pathname;
 
     // Use XmlHttpRequest directly instead of our client API helper (jQuery),
