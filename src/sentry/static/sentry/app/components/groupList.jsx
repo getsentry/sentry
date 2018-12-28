@@ -2,8 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import jQuery from 'jquery';
 import {isEqual} from 'lodash';
+import qs from 'query-string';
 
 import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -105,7 +105,7 @@ const GroupList = createReactClass({
       ? `/projects/${orgId}/${projectId}/issues/`
       : `/organizations/${orgId}/issues/`;
 
-    return `${path}?${jQuery.param(this.getQueryParams())}`;
+    return `${path}?${qs.stringify(this.getQueryParams())}`;
   },
 
   getQueryParams() {
@@ -130,7 +130,7 @@ const GroupList = createReactClass({
   onGroupChange() {
     const groups = this._streamManager.getAllItems();
 
-    if (!utils.valueIsEqual(groups, this.state.groups)) {
+    if (!isEqual(groups, this.state.groups)) {
       this.setState({
         groups,
       });
