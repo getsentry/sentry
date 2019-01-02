@@ -12,7 +12,11 @@ function defaultFormatAxisLabel(value, isTimestamp, utc) {
 }
 
 function valueFormatter(value) {
-  return value.toLocaleString();
+  if (typeof value === 'number') {
+    return value.toLocaleString();
+  }
+
+  return value;
 }
 
 function getFormatter({filter, isGroupedByDate, truncate, formatAxisLabel, utc}) {
