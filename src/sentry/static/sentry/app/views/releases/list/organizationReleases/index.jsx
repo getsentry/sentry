@@ -87,10 +87,6 @@ class OrganizationReleases extends AsyncView {
     );
   }
 
-  renderError() {
-    return this.renderBody();
-  }
-
   renderLoading() {
     return this.renderBody();
   }
