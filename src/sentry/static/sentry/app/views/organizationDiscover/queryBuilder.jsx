@@ -174,12 +174,10 @@ export default function createQueryBuilder(initial = {}, organization) {
    * @param {Object} [data] Optional field to provide data to fetch
    * @returns {Promise<Object|Error>}
    */
-  function fetch(data, cursor = '0:0:1') {
+  function fetch(data = getExternal(), cursor = '0:0:1') {
     const api = new Client();
     const limit = data.limit || 1000;
     const endpoint = `/organizations/${organization.slug}/discover/query/?per_page=${limit}&cursor=${cursor}`;
-
-    data = data || getExternal();
 
     // Reject immediately if no projects are available
     if (!data.projects.length) {
