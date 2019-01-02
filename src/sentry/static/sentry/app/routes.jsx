@@ -464,7 +464,7 @@ function routes() {
         path="auth/"
         name="Auth Providers"
         componentPromise={() =>
-          import(/*webpackChunkName: OrganizationAuth*/ './views/settings/organizationAuth')}
+          import(/*webpackChunkName: "OrganizationAuth"*/ './views/settings/organizationAuth')}
         component={errorHandler(LazyLoad)}
       />
 
