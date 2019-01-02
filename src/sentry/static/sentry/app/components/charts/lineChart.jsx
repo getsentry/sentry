@@ -16,11 +16,12 @@ export default class LineChart extends React.Component {
     return (
       <BaseChart
         {...props}
-        series={series.map(s => {
+        series={series.map(({seriesName, data, ...options}) => {
           return LineSeries({
             ...seriesOptions,
-            name: s.seriesName,
-            data: s.data.map(({value, name}) => [name, value]),
+            ...options,
+            name: seriesName,
+            data: data.map(({value, name}) => [name, value]),
           });
         })}
       />
