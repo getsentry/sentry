@@ -124,24 +124,6 @@ var appConfig = {
           },
         ],
       },
-      // loader for dynamic styles imported into components (embedded as js)
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'style-loader',
-          },
-          {
-            loader: 'css-loader',
-            options: {
-              minimize: IS_PRODUCTION,
-            },
-          },
-          {
-            loader: 'less-loader',
-          },
-        ],
-      },
       {
         test: /\.css/,
         use: [
@@ -214,7 +196,7 @@ var appConfig = {
         : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json'),
     },
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],
-    extensions: ['.less', '.jsx', '.js', '.json'],
+    extensions: ['.jsx', '.js', '.json'],
   },
   output: {
     path: distPath,
