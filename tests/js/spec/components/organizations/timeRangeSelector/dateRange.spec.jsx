@@ -2,6 +2,7 @@ import React from 'react';
 import {mount} from 'enzyme';
 import MockDate from 'mockdate';
 
+import ConfigStore from 'app/stores/configStore';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 
 // 2017-10-14T02:38:00.000Z
@@ -38,6 +39,9 @@ describe('DateRange', function() {
 
   beforeAll(function() {
     MockDate.set(new Date('2017-10-16T23:41:20.000Z'));
+    ConfigStore.loadInitialData({
+      user: {options: {timezone: 'America/New_York'}},
+    });
   });
 
   afterAll(function() {

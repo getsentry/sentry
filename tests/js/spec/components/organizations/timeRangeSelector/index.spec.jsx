@@ -1,6 +1,7 @@
 import React from 'react';
-
 import {mount} from 'enzyme';
+
+import ConfigStore from 'app/stores/configStore';
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 
 describe('TimeRangeSelector', function() {
@@ -15,6 +16,9 @@ describe('TimeRangeSelector', function() {
     );
 
   beforeEach(function() {
+    ConfigStore.loadInitialData({
+      user: {options: {timezone: 'America/New_York'}},
+    });
     onChange.mockReset();
   });
 
