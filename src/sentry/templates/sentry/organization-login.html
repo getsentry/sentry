@@ -121,26 +121,30 @@
         </div>
       </div>
       <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">
-        <form class="form-stacked" action="" method="post" autocomplete="off">
-          {% csrf_token %}
+        <div class="auth-container">
+          <div class="auth-form-column">
+            <form class="form-stacked" action="" method="post" autocomplete="off">
+              {% csrf_token %}
 
-          <input type="hidden" name="op" value="register" />
+              <input type="hidden" name="op" value="register" />
 
-          {{ register_form|as_crispy_errors }}
+              {{ register_form|as_crispy_errors }}
 
-          {% for field in register_form %}
-            {{ field|as_crispy_field }}
-          {% endfor %}
+              {% for field in register_form %}
+                {{ field|as_crispy_field }}
+              {% endfor %}
 
-          <div class="password-strength"></div>
+              <div class="password-strength"></div>
 
-          <fieldset class="form-actions">
-            <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
-            <a class="pull-right" style="margin-top: 9px" href="https://sentry.io/privacy/" target="_blank">
-              {% trans "Privacy Policy" %}
-            </a>
-          </fieldset>
-        </form>
+              <fieldset class="form-actions">
+                <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
+                <a class="pull-right" style="margin-top: 9px" href="https://sentry.io/privacy/" target="_blank">
+                  {% trans "Privacy Policy" %}
+                </a>
+              </fieldset>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   {% endif %}
