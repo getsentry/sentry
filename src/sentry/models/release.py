@@ -280,18 +280,11 @@ class Release(Model):
                 'commit': 'previous_commit..commit',
             }
         ]
+        Note: Overwrites 'previousCommit' and 'commit'
         """
-        def is_commit_range(commit):
-            return COMMIT_RANGE_DELIMITER in commit
-
-        def parse_commit_range(commit_range):
-            previous_commit, commit = commit_range.split(COMMIT_RANGE_DELIMITER)
-            return previous_commit, commit
-
         for ref in refs:
-            if is_commit_range(ref['commit']):
-                # TODO(lb): I'm just going to assume previous commit is None
-                ref['previousCommit'], ref['commit'] = parse_commit_range(ref['commit'])
+            if COMMIT_RANGE_DELIMITER in ref['commit']:
+                ref['previousCommit'], ref['commit'] = ref['commit'].split(COMMIT_RANGE_DELIMITER)
 
     def set_refs(self, refs, user, fetch=False):
         from sentry.api.exceptions import InvalidRepository
