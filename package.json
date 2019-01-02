@@ -45,7 +45,6 @@
     "jed": "^1.1.0",
     "jquery": "2.1.4",
     "js-cookie": "2.0.4",
-    "json-loader": "0.5.3",
     "less": "2.5.3",
     "less-loader": "^4.0.3",
     "lodash": "^4.17.4",

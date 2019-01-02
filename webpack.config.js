@@ -114,10 +114,6 @@ var appConfig = {
         },
       },
       {
-        test: /\.json$/,
-        loader: 'json-loader',
-      },
-      {
         test: /app\/icons\/.*\.svg$/,
         use: [
           {
