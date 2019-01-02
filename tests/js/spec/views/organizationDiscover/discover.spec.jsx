@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 import React from 'react';
 
 import {mount} from 'enzyme';
+import ConfigStore from 'app/stores/configStore';
 import Discover from 'app/views/organizationDiscover/discover';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import createQueryBuilder from 'app/views/organizationDiscover/queryBuilder';
@@ -609,6 +610,10 @@ describe('Discover', function() {
     });
 
     it('switches between UTC and local dates', async function() {
+      ConfigStore.loadInitialData({
+        user: {options: {timezone: 'America/New_York'}},
+      });
+
       // Select absolute date
       wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
       wrapper.find('SelectorItem[value="absolute"]').simulate('click');
