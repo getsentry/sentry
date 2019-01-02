@@ -88,9 +88,8 @@ class RepositoryRow extends React.Component {
                 )}
               </RepositoryTitle>
               <Box>
-                {showProvider && (
-                  <small>{repository.provider.name}&nbsp;&mdash;&nbsp;</small>
-                )}
+                {showProvider && <small>{repository.provider.name}</small>}
+                {showProvider && repository.url && <span>&nbsp;&mdash;&nbsp;</span>}
                 {repository.url && (
                   <small>
                     <a href={repository.url}>{repository.url.replace('https://', '')}</a>
