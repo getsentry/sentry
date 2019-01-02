@@ -36,6 +36,7 @@ _sha1_re = re.compile(r'^[a-f0-9]{40}$')
 _dotted_path_prefix_re = re.compile(r'^([a-zA-Z][a-zA-Z0-9-]+)(\.[a-zA-Z][a-zA-Z0-9-]+)+-')
 BAD_RELEASE_CHARS = '\n\f\t/'
 DB_VERSION_LENGTH = 250
+COMMIT_RANGE_DELIMITER = '..'
 
 
 class ReleaseProject(Model):
@@ -270,6 +271,21 @@ class Release(Model):
         else:
             return True
 
+    def handle_commit_ranges(self, refs):
+        """
+        Takes commit refs of the form:
+        [
+            {
+                'previousCommit': None,
+                'commit': 'previous_commit..commit',
+            }
+        ]
+        Note: Overwrites 'previousCommit' and 'commit'
+        """
+        for ref in refs:
+            if COMMIT_RANGE_DELIMITER in ref['commit']:
+                ref['previousCommit'], ref['commit'] = ref['commit'].split(COMMIT_RANGE_DELIMITER)
+
     def set_refs(self, refs, user, fetch=False):
         from sentry.api.exceptions import InvalidRepository
         from sentry.models import Commit, ReleaseHeadCommit, Repository
@@ -295,6 +311,8 @@ class Release(Model):
         invalid_repos = names - set(repos_by_name.keys())
         if invalid_repos:
             raise InvalidRepository('Invalid repository names: %s' % ','.join(invalid_repos))
+
+        self.handle_commit_ranges(refs)
 
         for ref in refs:
             repo = repos_by_name[ref['repository']]

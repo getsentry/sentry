@@ -14,17 +14,19 @@ from sentry.models import (
     Activity,
     ApiKey,
     ApiToken,
+    Commit,
     CommitAuthor,
     CommitFileChange,
     Environment,
     Release,
     ReleaseCommit,
+    ReleaseHeadCommit,
     ReleaseProjectEnvironment,
     ReleaseProject,
     Repository,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
-from sentry.testutils import APITestCase, ReleaseCommitPatchTest
+from sentry.testutils import APITestCase, ReleaseCommitPatchTest, SetRefsTestCase
 
 
 class OrganizationReleaseListTest(APITestCase):
@@ -649,7 +651,8 @@ class OrganizationReleaseCreateTest(APITestCase):
                     },
                 ],
                 'projects': [project.slug]
-            }
+            },
+            format='json',
         )
 
         mock_fetch_commits.apply_async.assert_called_with(
@@ -909,6 +912,132 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         assert response.status_code == 400
         assert response.data == {'refs': [u'Invalid repository names: not_a_repo']}
+
+
+class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
+    def setUp(self):
+        super(OrganizationReleaseCommitRangesTest, self).setUp()
+        self.url = reverse('sentry-api-0-organization-releases',
+                           kwargs={'organization_slug': self.org.slug})
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_simple(self, mock_fetch_commits):
+        refs = [
+            {
+                'repository': 'test/repo',
+                'previousCommit': None,
+                'commit': 'previous-commit-id..current-commit-id',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-will-be-ignored',
+                'commit': 'previous-commit-id-2..current-commit-id-2',
+            },
+            {
+                'repository': 'test/repo',
+                'commit': 'previous-commit-id-3..current-commit-id-3',
+            },
+        ]
+
+        response = self.client.post(
+            self.url,
+            data={
+                'version': '1',
+                'refs': refs,
+                'projects': [self.project.slug]
+            },
+        )
+
+        assert response.status_code == 201
+
+        release = Release.objects.get(version='1', organization=self.org)
+
+        commits = Commit.objects.all().order_by('id')
+        self.assert_commit(commits[0], 'current-commit-id')
+        self.assert_commit(commits[1], 'current-commit-id-2')
+        self.assert_commit(commits[2], 'current-commit-id-3')
+
+        head_commits = ReleaseHeadCommit.objects.all()
+        self.assert_head_commit(head_commits[0], 'current-commit-id-3', release_id=release.id)
+
+        refs_expected = [
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id-3',
+                'commit': 'current-commit-id-3',
+            },
+        ]
+        self.assert_fetch_commits(mock_fetch_commits, None, release.id, refs_expected)
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_head_commit(self, mock_fetch_commits):
+        headCommits = [
+            {
+                'currentId': 'current-commit-id',
+                'previousId': 'previous-commit-id',
+                'repository': self.repo.name
+            },
+            {
+                'currentId': 'current-commit-id-2',
+                'previousId': 'previous-commit-id-2',
+                'repository': self.repo.name
+            },
+            {
+                'currentId': 'current-commit-id-3',
+                'previousId': 'previous-commit-id-3',
+                'repository': self.repo.name
+            },
+        ]
+
+        response = self.client.post(
+            self.url,
+            data={
+                'version': '1',
+                'headCommits': headCommits,
+                'projects': [self.project.slug]
+            },
+        )
+
+        assert response.status_code == 201
+
+        release = Release.objects.get(version='1', organization=self.org)
+
+        commits = Commit.objects.all().order_by('id')
+        self.assert_commit(commits[0], 'current-commit-id')
+        self.assert_commit(commits[1], 'current-commit-id-2')
+        self.assert_commit(commits[2], 'current-commit-id-3')
+
+        head_commits = ReleaseHeadCommit.objects.all()
+        self.assert_head_commit(head_commits[0], 'current-commit-id-3', release_id=release.id)
+
+        refs_expected = [
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id-3',
+                'commit': 'current-commit-id-3',
+            },
+        ]
+        self.assert_fetch_commits(mock_fetch_commits, None, release.id, refs_expected)
 
 
 class OrganizationReleaseListEnvironmentsTest(APITestCase):
