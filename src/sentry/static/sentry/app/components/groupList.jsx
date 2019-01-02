@@ -2,7 +2,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
-import jQuery from 'jquery';
+import {isEqual} from 'lodash';
+import qs from 'query-string';
 
 import SentryTypes from 'app/sentryTypes';
 import ApiMixin from 'app/mixins/apiMixin';
@@ -10,7 +11,6 @@ import GroupListHeader from 'app/components/groupListHeader';
 import GroupStore from 'app/stores/groupStore';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import ProjectState from 'app/mixins/projectState';
 import StreamGroup from 'app/components/stream/group';
 import utils from 'app/utils';
 import {t} from 'app/locale';
@@ -24,7 +24,8 @@ const GroupList = createReactClass({
     query: PropTypes.string.isRequired,
     canSelectGroups: PropTypes.bool,
     orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
+    // Provided in the project version, not in org version
+    projectId: PropTypes.string,
     environment: SentryTypes.Environment,
   },
 
@@ -32,7 +33,7 @@ const GroupList = createReactClass({
     location: PropTypes.object,
   },
 
-  mixins: [ProjectState, Reflux.listenTo(GroupStore, 'onGroupChange'), ApiMixin],
+  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange'), ApiMixin],
 
   getDefaultProps() {
     return {
@@ -44,7 +45,7 @@ const GroupList = createReactClass({
     return {
       loading: true,
       error: false,
-      groupIds: [],
+      groups: [],
     };
   },
 
@@ -54,8 +55,8 @@ const GroupList = createReactClass({
     this.fetchData();
   },
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return !utils.valueIsEqual(this.state, nextState, true);
+  shouldComponentUpdate(_nextProps, nextState) {
+    return !isEqual(this.state, nextState);
   },
 
   componentDidUpdate(prevProps) {
@@ -99,28 +100,39 @@ const GroupList = createReactClass({
   },
 
   getGroupListEndpoint() {
-    let queryParams = this.context.location.query;
+    const {orgId, projectId} = this.props;
+    const path = projectId
+      ? `/projects/${orgId}/${projectId}/issues/`
+      : `/organizations/${orgId}/issues/`;
+
+    return `${path}?${qs.stringify(this.getQueryParams())}`;
+  },
+
+  getQueryParams() {
+    const {projectId, query, environment} = this.props;
+
+    const queryParams = this.context.location.query;
     queryParams.limit = 50;
     queryParams.sort = 'new';
-    queryParams.query = this.props.query;
+    queryParams.query = query;
 
-    if (this.props.environment) {
-      queryParams.environment = this.props.environment.name;
-    } else {
-      delete queryParams.environment;
+    if (projectId) {
+      if (environment) {
+        queryParams.environment = environment.name;
+      } else {
+        delete queryParams.environment;
+      }
     }
 
-    let querystring = jQuery.param(queryParams);
-
-    let props = this.props;
-    return '/projects/' + props.orgId + '/' + props.projectId + '/issues/?' + querystring;
+    return queryParams;
   },
 
   onGroupChange() {
-    let groupIds = this._streamManager.getAllItems().map(item => item.id);
-    if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
+    const groups = this._streamManager.getAllItems();
+
+    if (!isEqual(groups, this.state.groups)) {
       this.setState({
-        groupIds,
+        groups,
       });
     }
   },
@@ -128,7 +140,7 @@ const GroupList = createReactClass({
   render() {
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.groupIds.length === 0)
+    else if (this.state.groups.length === 0)
       return (
         <Panel>
           <PanelBody>
@@ -139,19 +151,19 @@ const GroupList = createReactClass({
         </Panel>
       );
 
-    let {orgId, projectId} = this.props;
+    let {orgId} = this.props;
 
     return (
       <Panel>
         <GroupListHeader />
         <PanelBody>
-          {this.state.groupIds.map(id => {
+          {this.state.groups.map(({id, project}) => {
             return (
               <StreamGroup
                 key={id}
                 id={id}
                 orgId={orgId}
-                projectId={projectId}
+                projectId={project.slug}
                 canSelect={this.props.canSelectGroups}
               />
             );
