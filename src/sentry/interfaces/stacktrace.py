@@ -23,7 +23,7 @@ from sentry.app import env
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.schemas import validate_and_default_interface
 from sentry.models import UserOption
-from sentry.utils.safe import trim, trim_dict
+from sentry.utils.safe import RUST_ENABLE_TRIMMING, trim, trim_dict
 from sentry.web.helpers import render_to_string
 
 _ruby_anon_func = re.compile(r'_\d{2,}')
@@ -209,6 +209,9 @@ def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAME
     Removes various excess metadata from middle frames which go beyond
     ``frame_allowance``.
     """
+    if not RUST_ENABLE_TRIMMING:
+        return
+
     frames_len = 0
     app_frames = []
     system_frames = []
