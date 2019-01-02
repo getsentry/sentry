@@ -83,7 +83,7 @@ class EventsTableChart extends React.Component {
             <BarWrapper>
               <Bar width={percentage} />
             </BarWrapper>
-            <span>{percentage}%</span>
+            <Percentage>{percentage}%</Percentage>
           </React.Fragment>,
         ])}
         renderRow={({items, rowIndex, ...other}) => (
@@ -134,9 +134,14 @@ const PercentageContainer = styled(Flex)`
 `;
 
 const BarWrapper = styled('div')`
-  width: 85%;
+  flex: 1;
   margin-right: ${space(1)};
   background-color: ${p => p.theme.whiteDark};
+`;
+
+const Percentage = styled('div')`
+  width: 60px;
+  flex-shrink: 0;
 `;
 
 const Bar = styled(({width, ...props}) => <div {...props} />)`
