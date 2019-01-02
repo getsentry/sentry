@@ -80,9 +80,9 @@ export default class Condition extends React.Component {
         return !stringOnlyOperators.has(operator);
       }
 
-      // We currently only support = and != on array fields
+      // We currently only support =, !=, LIKE and NOT LIKE on array fields
       if (ARRAY_FIELD_PREFIXES.some(prefix => colName.startsWith(prefix))) {
-        return ['=', '!='].includes(operator);
+        return ['=', '!=', 'LIKE', 'NOT LIKE'].includes(operator);
       }
 
       // Treat everything else like a string

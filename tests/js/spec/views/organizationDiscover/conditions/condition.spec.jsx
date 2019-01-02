@@ -78,9 +78,11 @@ describe('Condition', function() {
     it('limits operators to = and != for array fields', function() {
       wrapper.setState({inputValue: 'error.type'});
       const options = wrapper.instance().filterOptions([]);
-      expect(options).toHaveLength(2);
+      expect(options).toHaveLength(4);
       expect(options[0].value).toEqual('error.type =');
       expect(options[1].value).toEqual('error.type !=');
+      expect(options[2].value).toEqual('error.type LIKE');
+      expect(options[3].value).toEqual('error.type NOT LIKE');
     });
   });
 
