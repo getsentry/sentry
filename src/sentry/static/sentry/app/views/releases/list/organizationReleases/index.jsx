@@ -11,8 +11,9 @@ import Pagination from 'app/components/pagination';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
-import AsyncView from 'app/views/asyncView';
 import Feature from 'app/components/acl/feature';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import AsyncView from 'app/views/asyncView';
 
 import withOrganization from 'app/utils/withOrganization';
 
@@ -95,12 +96,20 @@ class OrganizationReleases extends AsyncView {
   }
 
   renderBody() {
+    const {organization, location} = this.props;
+
     return (
       <Feature
         features={['organizations:sentry10']}
-        organization={this.props.organization}
+        organization={organization}
         renderDisabled={this.renderNoAccess}
       >
+        <GlobalSelectionHeader
+          organization={organization}
+          projects={organization.projects.filter(project => project.isMember)}
+          showAbsolute={true}
+          showRelative={true}
+        />
         <Content>
           <Header>
             <HeaderTitle>{t('Releases')}</HeaderTitle>
@@ -108,7 +117,7 @@ class OrganizationReleases extends AsyncView {
               <SearchBar
                 defaultQuery=""
                 placeholder={t('Search for a release')}
-                query={this.props.location.query.query}
+                query={location.query.query}
                 onSearch={this.onSearch}
               />
             </div>
