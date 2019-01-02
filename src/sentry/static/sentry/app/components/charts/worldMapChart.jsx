@@ -9,6 +9,7 @@ export default class WorldMapChart extends React.Component {
     ...BaseChart.propTypes,
     seriesOptions: PropTypes.object,
   };
+
   constructor(props) {
     super(props);
     this.state = {
