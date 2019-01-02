@@ -1,15 +1,18 @@
 from __future__ import absolute_import
 
+import pytest
 import six
+
 from mock import patch
 
+from sentry.api.exceptions import InvalidRepository
 from sentry.models import (
     Commit, CommitAuthor, Environment, Group, GroupRelease, GroupResolution, GroupLink, GroupStatus,
     ExternalIssue, Integration, OrganizationIntegration, Release, ReleaseCommit, ReleaseEnvironment,
     ReleaseHeadCommit, ReleaseProject, ReleaseProjectEnvironment, Repository
 )
 
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, SetRefsTestCase
 
 
 class MergeReleasesTest(TestCase):
@@ -543,3 +546,115 @@ class SetCommitsTestCase(TestCase):
         assert resolution.actor_id is None
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+
+
+class SetRefsTest(SetRefsTestCase):
+
+    def setUp(self):
+        super(SetRefsTest, self).setUp()
+        self.release = Release.objects.create(version='abcdabc', organization=self.org)
+        self.release.add_project(self.project)
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_simple(self, mock_fetch_commit):
+        refs = [
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            }
+        ]
+
+        self.release.set_refs(refs, self.user, True)
+
+        commits = Commit.objects.all().order_by('id')
+        self.assert_commit(commits[0], refs[0]['commit'])
+        self.assert_commit(commits[1], refs[1]['commit'])
+
+        head_commits = ReleaseHeadCommit.objects.all()
+        self.assert_head_commit(head_commits[0], refs[1]['commit'])
+
+        self.assert_fetch_commits(mock_fetch_commit, None, self.release.id, refs)
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_invalid_repos(self, mock_fetch_commit):
+        refs = [
+            {
+                'repository': 'unknown-repository-name',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'unknown-repository-name',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            }
+        ]
+
+        with pytest.raises(InvalidRepository):
+            self.release.set_refs(refs, self.user)
+
+        assert len(Commit.objects.all()) == 0
+        assert len(ReleaseHeadCommit.objects.all()) == 0
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_handle_commit_ranges(self, mock_fetch_commit):
+        refs = [
+            {
+                'repository': 'test/repo',
+                'previousCommit': None,
+                'commit': 'previous-commit-id..current-commit-id',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-will-be-ignored',
+                'commit': 'previous-commit-id-2..current-commit-id-2',
+            },
+            {
+                'repository': 'test/repo',
+                'commit': 'previous-commit-id-3..current-commit-id-3',
+            },
+        ]
+
+        self.release.set_refs(refs, self.user, True)
+
+        commits = Commit.objects.all().order_by('id')
+        self.assert_commit(commits[0], 'current-commit-id')
+        self.assert_commit(commits[1], 'current-commit-id-2')
+        self.assert_commit(commits[2], 'current-commit-id-3')
+
+        head_commits = ReleaseHeadCommit.objects.all()
+        self.assert_head_commit(head_commits[0], 'current-commit-id-3')
+
+        self.assert_fetch_commits(mock_fetch_commit, None, self.release.id, refs)
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_fetch_false(self, mock_fetch_commit):
+        refs = [
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id',
+                'commit': 'current-commit-id',
+            },
+            {
+                'repository': 'test/repo',
+                'previousCommit': 'previous-commit-id-2',
+                'commit': 'current-commit-id-2',
+            }
+        ]
+
+        self.release.set_refs(refs, self.user, False)
+
+        commits = Commit.objects.all().order_by('id')
+        self.assert_commit(commits[0], refs[0]['commit'])
+        self.assert_commit(commits[1], refs[1]['commit'])
+
+        head_commits = ReleaseHeadCommit.objects.all()
+        self.assert_head_commit(head_commits[0], refs[1]['commit'])
+
+        assert len(mock_fetch_commit.method_calls) == 0
