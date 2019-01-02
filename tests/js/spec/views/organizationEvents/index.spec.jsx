@@ -1,7 +1,7 @@
 import React from 'react';
 
-import {initializeOrg} from 'app-test-helpers/initializeOrg';
-import {mockRouterPush} from 'app-test-helpers/mockRouterPush';
+import {initializeOrg} from 'app-test/helpers/initializeOrg';
+import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
 import {mount} from 'enzyme';
 import {setActiveOrganization} from 'app/actionCreators/organizations';
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';

@@ -3,10 +3,10 @@ import React from 'react';
 import {EventsChart} from 'app/views/organizationEvents/eventsChart';
 import {EventsTable} from 'app/views/organizationEvents/eventsTable';
 import {OrganizationEvents, parseRowFromLinks} from 'app/views/organizationEvents/events';
-import {chart, doZoom} from 'app-test-helpers/charts';
-import {initializeOrg} from 'app-test-helpers/initializeOrg';
+import {chart, doZoom} from 'app-test/helpers/charts';
+import {initializeOrg} from 'app-test/helpers/initializeOrg';
 import {getLocalDateObject} from 'app/utils/dates';
-import {mockRouterPush} from 'app-test-helpers/mockRouterPush';
+import {mockRouterPush} from 'app-test/helpers/mockRouterPush';
 import {mount} from 'enzyme';
 import OrganizationEventsContainer from 'app/views/organizationEvents';
 
