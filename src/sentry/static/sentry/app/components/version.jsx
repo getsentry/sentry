@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import ProjectLink from 'app/components/projectLink';
+import Link from 'app/components/link';
 import {getShortVersion} from 'app/utils';
 
 class Version extends React.Component {
@@ -19,18 +20,25 @@ class Version extends React.Component {
   };
 
   render() {
-    let {orgId, projectId, showShortVersion, version, anchor} = this.props;
-    let versionTitle = showShortVersion ? getShortVersion(version) : version;
+    const {orgId, projectId, showShortVersion, version, anchor} = this.props;
+    const versionTitle = showShortVersion ? getShortVersion(version) : version;
 
-    if (anchor && projectId) {
+    if (anchor) {
+      if (projectId) {
+        return (
+          // NOTE: version is encoded because it can contain slashes "/",
+          //       which can interfere with URL construction
+          <ProjectLink
+            to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}
+          >
+            <span title={version}>{versionTitle}</span>
+          </ProjectLink>
+        );
+      }
       return (
-        // NOTE: version is encoded because it can contain slashes "/",
-        //       which can interfere with URL construction
-        <ProjectLink
-          to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}
-        >
+        <Link to={`/organizations/${orgId}/releases/${encodeURIComponent(version)}`}>
           <span title={version}>{versionTitle}</span>
-        </ProjectLink>
+        </Link>
       );
     }
     return <span title={version}>{versionTitle}</span>;
