@@ -112,7 +112,7 @@ def trim_pairs(iterable, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwarg
     for idx, item in enumerate(iterable):
         key, value = item
         result.append((key, trim(value, **kwargs)))
-        if idx > max_items:
+        if idx > max_items and RUST_ENABLE_TRIMMING:
             return result
     return result
 
@@ -121,7 +121,7 @@ def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
     max_items -= 1
     for idx, key in enumerate(list(iter(value))):
         value[key] = trim(value[key], **kwargs)
-        if idx > max_items:
+        if idx > max_items and RUST_ENABLE_TRIMMING:
             del value[key]
     return value
 
