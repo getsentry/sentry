@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import mock
 import six
 
 from datetime import timedelta
@@ -10,9 +11,9 @@ from django.utils import timezone
 from mock import patch
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import GroupSerializerSnuba
+from sentry.api.serializers.models.group import GroupSerializerSnuba, StreamGroupSerializerSnuba, snuba_tsdb
 from sentry.models import (
-    GroupLink, GroupResolution, GroupSnooze, GroupStatus,
+    Environment, GroupLink, GroupResolution, GroupSnooze, GroupStatus,
     GroupSubscription, UserOption, UserOptionValue
 )
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -325,3 +326,38 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result['lastSeen'] == self.min_ago - timedelta(microseconds=self.min_ago.microsecond)
         assert result['firstSeen'] == self.day_ago - \
             timedelta(microseconds=self.day_ago.microsecond)
+
+
+class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
+    def test_environment(self):
+        group = self.group
+
+        environment = Environment.get_or_create(group.project, 'production')
+
+        with mock.patch(
+                'sentry.api.serializers.models.group.snuba_tsdb.get_range',
+                side_effect=snuba_tsdb.get_range) as get_range:
+            serialize(
+                [group],
+                serializer=StreamGroupSerializerSnuba(
+                    environment_ids=[environment.id],
+                    stats_period='14d',
+                ),
+            )
+            assert get_range.call_count == 1
+            for args, kwargs in get_range.call_args_list:
+                assert kwargs['environment_ids'] == [environment.id]
+
+        with mock.patch(
+                'sentry.api.serializers.models.group.snuba_tsdb.get_range',
+                side_effect=snuba_tsdb.get_range) as get_range:
+            serialize(
+                [group],
+                serializer=StreamGroupSerializerSnuba(
+                    environment_ids=None,
+                    stats_period='14d',
+                )
+            )
+            assert get_range.call_count == 1
+            for args, kwargs in get_range.call_args_list:
+                assert kwargs['environment_ids'] is None

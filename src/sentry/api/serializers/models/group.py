@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 import six
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils import timezone
@@ -20,6 +21,7 @@ from sentry.models import (
     UserOptionValue
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
+from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -34,6 +36,10 @@ SUBSCRIPTION_REASON_MAP = {
 
 
 disabled = object()
+
+
+# TODO(jess): remove when snuba is primary backend
+snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
 
 
 class GroupSerializerBase(Serializer):
@@ -440,26 +446,16 @@ class GroupSerializer(GroupSerializerBase):
         return attrs
 
 
-class StreamGroupSerializer(GroupSerializer):
+class GroupStatsMixin(object):
     STATS_PERIOD_CHOICES = {
         '14d': StatsPeriod(14, timedelta(hours=24)),
         '24h': StatsPeriod(24, timedelta(hours=1)),
     }
 
-    def __init__(self, environment_func=None, stats_period=None,
-                 matching_event_id=None, matching_event_environment=None):
-        super(StreamGroupSerializer, self).__init__(environment_func)
+    def query_tsdb(self, group_ids, query_params):
+        raise NotImplementedError
 
-        if stats_period is not None:
-            assert stats_period in self.STATS_PERIOD_CHOICES
-
-        self.stats_period = stats_period
-        self.matching_event_id = matching_event_id
-        self.matching_event_environment = matching_event_environment
-
-    def get_attrs(self, item_list, user):
-        attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
-
+    def get_stats(self, item_list, user):
         if self.stats_period:
             # we need to compute stats at 1d (1h resolution), and 14d
             group_ids = [g.id for g in item_list]
@@ -472,20 +468,43 @@ class StreamGroupSerializer(GroupSerializer):
                 'rollup': int(interval.total_seconds()),
             }
 
-            try:
-                environment = self.environment_func()
-            except Environment.DoesNotExist:
-                stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
-            else:
-                stats = tsdb.get_range(
-                    model=tsdb.models.group,
-                    keys=group_ids,
-                    environment_ids=environment and [environment.id],
-                    **query_params
-                )
+            return self.query_tsdb(group_ids, query_params)
 
+
+class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
+
+    def __init__(self, environment_func=None, stats_period=None,
+                 matching_event_id=None, matching_event_environment=None):
+        super(StreamGroupSerializer, self).__init__(environment_func)
+
+        if stats_period is not None:
+            assert stats_period in self.STATS_PERIOD_CHOICES
+
+        self.stats_period = stats_period
+        self.matching_event_id = matching_event_id
+        self.matching_event_environment = matching_event_environment
+
+    def query_tsdb(self, group_ids, query_params):
+        try:
+            environment = self.environment_func()
+        except Environment.DoesNotExist:
+            stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
+        else:
+            stats = tsdb.get_range(
+                model=tsdb.models.group,
+                keys=group_ids,
+                environment_ids=environment and [environment.id],
+                **query_params
+            )
+
+        return stats
+
+    def get_attrs(self, item_list, user):
+        attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
+
+        if self.stats_period:
+            stats = self.get_stats(item_list, user)
             for item in item_list:
-
                 attrs[item].update({
                     'stats': stats[item.id],
                 })
@@ -572,3 +591,43 @@ class GroupSerializerSnuba(GroupSerializerBase):
             }
 
         return attrs
+
+
+class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
+    def __init__(self, environment_ids=None, stats_period=None):
+        super(StreamGroupSerializerSnuba, self).__init__(environment_ids)
+
+        if stats_period is not None:
+            assert stats_period in self.STATS_PERIOD_CHOICES
+
+        self.stats_period = stats_period
+
+    def query_tsdb(self, group_ids, query_params):
+        return snuba_tsdb.get_range(
+            model=snuba_tsdb.models.group,
+            keys=group_ids,
+            environment_ids=self.environment_ids,
+            **query_params
+        )
+
+    def get_attrs(self, item_list, user):
+        attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
+
+        if self.stats_period:
+            stats = self.get_stats(item_list, user)
+            for item in item_list:
+                attrs[item].update({
+                    'stats': stats[item.id],
+                })
+
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        result = super(StreamGroupSerializerSnuba, self).serialize(obj, attrs, user)
+
+        if self.stats_period:
+            result['stats'] = {
+                self.stats_period: attrs['stats'],
+            }
+
+        return result

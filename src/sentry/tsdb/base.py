@@ -148,7 +148,7 @@ class BaseTSDB(Service):
         models.users_affected_by_project,
     ])
 
-    def __init__(self, rollups=None, legacy_rollups=None):
+    def __init__(self, rollups=None, legacy_rollups=None, **options):
         if rollups is None:
             rollups = settings.SENTRY_TSDB_ROLLUPS
 
