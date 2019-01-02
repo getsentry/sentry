@@ -140,8 +140,9 @@ const BarWrapper = styled('div')`
 `;
 
 const Percentage = styled('div')`
-  width: 60px;
   flex-shrink: 0;
+  text-align: right;
+  width: 60px;
 `;
 
 const Bar = styled(({width, ...props}) => <div {...props} />)`
