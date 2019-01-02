@@ -1,15 +1,12 @@
-import React from 'react';
-import classNames from 'classnames';
-import 'app/../less/components/toolbar.less';
+import styled from 'react-emotion';
 
-const Toolbar = ({className, children, ...otherProps}) => {
-  let cx = classNames('toolbar', className);
-
-  return (
-    <div className={cx} {...otherProps}>
-      {children}
-    </div>
-  );
-};
+const Toolbar = styled('div')`
+  background: ${p => p.theme.whiteDark};
+  border: 1px solid ${p => p.theme.borderLight};
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  box-shadow: 0 1px 0 ${p => p.theme.borderLight};
+  margin: 0;
+`;
 
 export default Toolbar;

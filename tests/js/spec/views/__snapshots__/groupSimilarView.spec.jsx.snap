@@ -380,7 +380,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
             className="similar-toolbar"
           >
             <div
-              className="toolbar similar-toolbar"
+              className="similar-toolbar css-o93ry2-Toolbar ehkx0bi0"
             >
               <SpreadLayout
                 center={true}
@@ -398,7 +398,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                     truncate={true}
                   >
                     <div
-                      className="flow-layout is-truncated"
+                      className="css-gmt0em-FlowLayout envzszi0"
                       style={
                         Object {
                           "flex": 1,
@@ -409,7 +409,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                         truncate={true}
                       >
                         <div
-                          className="flow-layout is-truncated"
+                          className="css-gmt0em-FlowLayout envzszi0"
                         >
                           <div
                             className="similar-toolbar-actions"
@@ -509,7 +509,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       className="similar-score-column event-count-header"
                     >
                       <div
-                        className="toolbar-header similar-score-column event-count-header"
+                        className="similar-score-column event-count-header css-j72n3c-ToolbarHeader eiwl27k0"
                       >
                         Events
                       </div>
@@ -518,7 +518,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       className="similar-score-column event-similar-header"
                     >
                       <div
-                        className="toolbar-header similar-score-column event-similar-header"
+                        className="similar-score-column event-similar-header css-j72n3c-ToolbarHeader eiwl27k0"
                       >
                         Exception
                       </div>
@@ -527,7 +527,7 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                       className="similar-score-column event-similar-header"
                     >
                       <div
-                        className="toolbar-header similar-score-column event-similar-header"
+                        className="similar-score-column event-similar-header css-j72n3c-ToolbarHeader eiwl27k0"
                       >
                         Message
                       </div>
@@ -619,13 +619,13 @@ exports[`Issues Similar View renders with mocked data 1`] = `
                   truncate={true}
                 >
                   <div
-                    className="flow-layout is-truncated"
+                    className="css-gmt0em-FlowLayout envzszi0"
                   >
                     <FlowLayout
                       truncate={true}
                     >
                       <div
-                        className="flow-layout is-truncated"
+                        className="css-gmt0em-FlowLayout envzszi0"
                       >
                         <div
                           className="action-column"

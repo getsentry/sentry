@@ -1,15 +1,10 @@
-import React from 'react';
-import classNames from 'classnames';
-import 'app/../less/components/toolbarHeader.less';
+import styled from 'react-emotion';
 
-const ToolbarHeader = ({className, children, ...otherProps}) => {
-  let cx = classNames('toolbar-header', className);
-
-  return (
-    <div className={cx} {...otherProps}>
-      {children}
-    </div>
-  );
-};
+const ToolbarHeader = styled('div')`
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: ${p => p.theme.gray3};
+`;
 
 export default ToolbarHeader;
