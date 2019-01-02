@@ -161,8 +161,13 @@ class MatchCommitsPathTestCase(CommitTestCase):
             self.create_commitfilechange(filename='world/hello/app.py', type='A'),
             self.create_commitfilechange(filename='template/hello/app.py', type='A')
         ]
-        commits = [(fc.commit, 2) for fc in file_changes]
-        assert commits == _match_commits_path(file_changes, 'hello/app.py')
+
+        commits = sorted([(fc.commit, 2) for fc in file_changes], key=lambda fc: fc[0].id)
+        assert commits == sorted(
+            _match_commits_path(
+                file_changes,
+                'hello/app.py'),
+            key=lambda fc: fc[0].id)
 
 
 class GetPreviousReleasesTestCase(TestCase):
