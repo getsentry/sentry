@@ -1,89 +1,42 @@
 import React from 'react';
-// import PropTypes from 'prop-types';
 import styled from 'react-emotion';
-import {isEqual} from 'lodash';
 
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 import SentryTypes from 'app/sentryTypes';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
-import LoadingError from 'app/components/loadingError';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import CompactIssue from 'app/components/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import space from 'app/styles/space';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import AsyncView from 'app/views/asyncView';
 
 import UserFeedbackContainer from './container';
-import {fetchUserFeedback, getQuery} from './utils';
+import {getQuery} from './utils';
 
-class OrganizationUserFeedback extends React.Component {
+class OrganizationUserFeedback extends AsyncView {
   static propTypes = {
     organization: SentryTypes.Organization,
-    // selection: PropTypes.object,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {reportList: [], loading: true, error: false, pageLinks: ''};
+  getEndpoints() {
+    const {organization, location: {search}} = this.props;
+
+    return [
+      [
+        'reportList',
+        `/organizations/${organization.slug}/user-feedback/`,
+        {
+          query: getQuery(search),
+        },
+      ],
+    ];
   }
 
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  componentDidUpdate(prevProps) {
-    if (
-      !isEqual(getQuery(prevProps.location.search), getQuery(this.props.location.search))
-    ) {
-      this.fetchData();
-    }
-  }
-
-  fetchData = () => {
-    this.setState({loading: true, error: false});
-
-    const query = getQuery(this.props.location.search);
-
-    fetchUserFeedback(this.props.organization, query)
-      .then(([reportList, _, jqXHR]) => {
-        this.setState({
-          reportList,
-          loading: false,
-          pageLinks: jqXHR.getResponseHeader('Link'),
-        });
-      })
-      .catch(() => this.setState({error: true, loading: false}));
-  };
-
-  renderNoAccess() {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
-  }
-
-  renderEmpty() {
-    return (
-      <EmptyStateWarning>
-        <p>{t('Sorry, no results match your serch query.')}</p>
-      </EmptyStateWarning>
-    );
-  }
-
-  renderList() {
-    if (this.state.loading) {
-      return <LoadingIndicator />;
-    }
-
-    if (this.state.error) {
-      return <LoadingError onRetry={this.fetchData} />;
-    }
-
-    if (this.state.reportList.length === 0) {
-      return this.renderEmpty();
-    }
-
-    return this.renderResults();
+  getTitle() {
+    return `${t('User Feedback')} - ${this.props.organization.slug}`;
   }
 
   renderResults() {
@@ -113,24 +66,58 @@ class OrganizationUserFeedback extends React.Component {
     return children;
   }
 
-  render() {
-    const {status} = getQuery(this.props.location.search);
+  renderList() {
+    if (this.state.reportList.length === 0) {
+      return this.renderEmpty();
+    }
+
+    return this.renderResults();
+  }
+
+  renderEmpty() {
+    return (
+      <EmptyStateWarning>
+        <p>{t('Sorry, no results match your search query.')}</p>
+      </EmptyStateWarning>
+    );
+  }
+
+  renderNoAccess() {
     return (
       <Content>
-        <Feature
-          features={['organizations:sentry10']}
-          organization={this.props.organization}
-          renderDisabled={this.renderNoAccess}
-        >
-          <UserFeedbackContainer
-            location={this.props.location}
-            pageLinks={this.state.pageLinks}
-            status={status}
-          >
-            {this.renderList()}
-          </UserFeedbackContainer>
-        </Feature>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
       </Content>
+    );
+  }
+
+  renderBody() {
+    const {organization, location, params} = this.props;
+    const {status} = getQuery(location.search);
+    const {reportList, reportListPageLinks} = this.state;
+
+    return (
+      <Feature
+        features={['organizations:sentry10']}
+        organization={organization}
+        renderDisabled={this.renderNoAccess}
+      >
+        <GlobalSelectionHeader
+          organization={organization}
+          projects={organization.projects.filter(project => project.isMember)}
+          showAbsolute={true}
+          showRelative={true}
+        />
+        <Content>
+          <UserFeedbackContainer
+            pageLinks={reportListPageLinks}
+            status={status}
+            location={location}
+            params={params}
+          >
+            {reportList.length ? this.renderResults() : this.renderEmpty()}
+          </UserFeedbackContainer>
+        </Content>
+      </Feature>
     );
   }
 }
@@ -144,4 +131,5 @@ const Content = styled('div')`
   margin-bottom: -20px; /* <footer> has margin-top: 20px; */
 `;
 
-export default withOrganization(withGlobalSelection(OrganizationUserFeedback));
+export {OrganizationUserFeedback};
+export default withOrganization(OrganizationUserFeedback);
