@@ -41,7 +41,7 @@ def create_new_org_release_commit_scenario(runner):
         method='POST',
         path='/organizations/%s/releases/' % (runner.org.slug, ),
         data={
-            'version': '2.0rc2',
+            'version': '2.0rc3',
             'projects': [runner.default_project.slug],
             'commits': [
                 {
