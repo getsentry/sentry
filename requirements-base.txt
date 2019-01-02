@@ -68,5 +68,5 @@ toronado>=0.0.11,<0.1.0
 ua-parser>=0.6.1,<0.8.0
 # for bitbucket client
 unidiff>=0.5.4
-urllib3>=1.22,<1.23
+urllib3==1.24.1
 uwsgi>2.0.0,<2.1.0
