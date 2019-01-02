@@ -62,7 +62,7 @@ metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
     features=FEATURE_DESCRIPTIONS,
     author='The Sentry Team',
-    noun=_('Instance'),
+    noun=_('Installation'),
     issue_url='https://github.com/getsentry/sentry/issues/new?title=Jira%20Server%20Integration:%20&labels=Component%3A%20Integrations',
     source_url='https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira_server',
     aspects={},
