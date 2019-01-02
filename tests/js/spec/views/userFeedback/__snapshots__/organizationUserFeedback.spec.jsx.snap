@@ -166,9 +166,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                 "teams": Array [],
               }
             }
-            projects={Array []}
-            showAbsolute={true}
-            showRelative={true}
           >
             <withGlobalSelection(GlobalSelectionHeader)
               location={
@@ -205,7 +202,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                   "teams": Array [],
                 }
               }
-              projects={Array []}
               router={
                 Object {
                   "createHref": [MockFunction] {
@@ -297,8 +293,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                   "setRouteLeaveHook": [MockFunction],
                 }
               }
-              showAbsolute={true}
-              showRelative={true}
             >
               <GlobalSelectionHeader
                 hasCustomRouting={false}
@@ -336,7 +330,6 @@ exports[`OrganizationUserFeedback renders 1`] = `
                     "teams": Array [],
                   }
                 }
-                projects={Array []}
                 resetParamsOnChange={Array []}
                 router={
                   Object {
@@ -441,16 +434,14 @@ exports[`OrganizationUserFeedback renders 1`] = `
                     "projects": Array [],
                   }
                 }
-                showAbsolute={true}
                 showEnvironmentSelector={true}
-                showRelative={true}
               >
                 <Header>
                   <Base
-                    className="css-1xc47v8-Header e10yv9i90"
+                    className="css-1651jh1-Header e10yv9i90"
                   >
                     <div
-                      className="css-1xc47v8-Header e10yv9i90"
+                      className="css-1651jh1-Header e10yv9i90"
                       is={null}
                     >
                       <HeaderItemPosition>
