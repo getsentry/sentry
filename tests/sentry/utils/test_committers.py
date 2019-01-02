@@ -7,7 +7,9 @@ from uuid import uuid4
 
 from sentry.models import Commit, CommitAuthor, CommitFileChange, Release, Repository
 from sentry.testutils import TestCase
-from sentry.utils.committers import _get_commit_file_changes, _get_frame_paths, get_previous_releases, score_path_match_length, tokenize_path
+from sentry.utils.committers import _get_commit_file_changes, _get_frame_paths, get_previous_releases, _match_commits_path, score_path_match_length, tokenize_path
+
+# TODO(lb): Tests are still needed for _get_committers and _get_vent_file_commiters
 
 
 class CommitTestCase(TestCase):
@@ -62,9 +64,7 @@ class TokenizePathTestCase(TestCase):
         assert list(tokenize_path('/foo/bar')) == ['bar', 'foo']
         assert list(tokenize_path('\\foo\\bar')) == ['bar', 'foo']
 
-    def test_additional_slash_with_dot_in_front(self):
-        # TODO(lb): better name for this?
-        # TOOD(lb): Also.... I'm not sure we should be capturing '.'
+    def test_relative_paths(self):
         assert list(tokenize_path('./')) == ['.']
         assert list(tokenize_path('./../')) == ['..', '.']
         assert list(tokenize_path('./foo/bar')) == ['bar', 'foo', '.']
@@ -86,7 +86,6 @@ class ScorePathMatchLengthTest(TestCase):
         assert score_path_match_length('foo/bar/baz', 'baz') == 1
 
     def test_why_is_this_zero(self):
-        # TODO(lb): huh?
         assert score_path_match_length('foo/bar/baz', 'foo') == 0
 
     def test_path_with_empty_path_segment(self):
@@ -140,22 +139,30 @@ class GetCommitFileChangesTestCase(CommitTestCase):
 
 
 class MatchCommitsPathTestCase(CommitTestCase):
-    pass
-
-
-class GetCommittersTestCase(CommitTestCase):
-    def setUp(self):
-        super(GetCommittersTestCase, self).setUp()
-
-    def test_get_commits_committer(self):
-        pass
-
     def test_simple(self):
-        pass
+        file_change = self.create_commitfilechange(filename='hello/app.py', type='A')
+        file_changes = [
+            file_change,
+            self.create_commitfilechange(filename='goodbye/app.js', type='A'),
+        ]
+        assert [(file_change.commit, 2)] == _match_commits_path(file_changes, 'hello/app.py')
 
+    def test_skip_one_score_match_longer_than_one_token(self):
+        file_changes = [
+            self.create_commitfilechange(filename='hello/app.py', type='A'),
+            self.create_commitfilechange(filename='hello/world/app.py', type='A'),
+            self.create_commitfilechange(filename='hello/world/template/app.py', type='A')
+        ]
+        assert [] == _match_commits_path(file_changes, 'app.py')
 
-class GetEventFileCommittersTestCase(TestCase):
-    pass
+    def test_similar_paths(self):
+        file_changes = [
+            self.create_commitfilechange(filename='hello/app.py', type='A'),
+            self.create_commitfilechange(filename='world/hello/app.py', type='A'),
+            self.create_commitfilechange(filename='template/hello/app.py', type='A')
+        ]
+        commits = [(fc.commit, 2) for fc in file_changes]
+        assert commits == _match_commits_path(file_changes, 'hello/app.py')
 
 
 class GetPreviousReleasesTestCase(TestCase):
