@@ -173,6 +173,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, Environment
                            (the HEAD sha). They can optionally include ``previousCommit``
                            (the sha of the HEAD of the previous release), which should
                            be specified if this is the first time you've sent commit data.
+                           ``commit`` may contain a range in the form of ``previousCommit..commit``
         :auth: required
         """
         serializer = ReleaseSerializerWithProjects(data=request.DATA)
