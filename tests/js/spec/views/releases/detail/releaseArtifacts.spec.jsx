@@ -2,7 +2,7 @@ import React from 'react';
 import {shallow} from 'enzyme';
 
 import {Client} from 'app/api';
-import ReleaseArtifacts from 'app/views/releases/detail/project/releaseArtifacts';
+import ReleaseArtifacts from 'app/views/releases/detail/shared/releaseArtifacts';
 
 describe('ReleaseArtifacts', function() {
   let sandbox;
@@ -147,11 +147,20 @@ describe('ReleaseArtifacts', function() {
   });
 
   describe('fetchData()', function() {
-    it('should append the location query string to the request URL', function() {
+    it('fetches data for project releases', function() {
       wrapper.instance().fetchData();
 
       let apiArgs = stubbedApiRequest.lastCall.args;
       expect(apiArgs[0]).toEqual('/projects/123/456/releases/abcdef/files/');
+      expect(apiArgs[1].data).toHaveProperty('cursor', '0:0:100');
+    });
+
+    it('fetches data for orgazniation releases', function() {
+      wrapper.setProps({params: {orgId: '123', version: 'abcdef'}});
+      wrapper.instance().fetchData();
+
+      let apiArgs = stubbedApiRequest.lastCall.args;
+      expect(apiArgs[0]).toEqual('/organizations/123/releases/abcdef/files/');
       expect(apiArgs[1].data).toHaveProperty('cursor', '0:0:100');
     });
   });

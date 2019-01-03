@@ -46,10 +46,12 @@ const ReleaseArtifacts = createReactClass({
   },
 
   getFilesEndpoint() {
-    let params = this.props.params;
-    return `/projects/${params.orgId}/${params.projectId}/releases/${encodeURIComponent(
-      params.version
-    )}/files/`;
+    let {orgId, projectId, version} = this.props.params;
+    let encodedVersion = encodeURIComponent(version);
+
+    return projectId
+      ? `/projects/${orgId}/${projectId}/releases/${encodedVersion}/files/`
+      : `/organizations/${orgId}/releases/${encodedVersion}/files/`;
   },
 
   fetchData() {
