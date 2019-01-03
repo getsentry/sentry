@@ -46,23 +46,33 @@ class EventCommon(object):
         """
         return md5('{}:{}'.format(project_id, event_id)).hexdigest()
 
+    # TODO (alex) We need a better way to cache these properties. functools32
+    # doesn't quite do the trick as there is a reference bug with unsaved
+    # models. But the current _group_cache thing is also clunky because these
+    # properties need to be stripped out in __getstate__.
     @property
     def group(self):
         from sentry.models import Group
-        return Group.objects.get(id=self.group_id)
+        if not hasattr(self, '_group_cache'):
+            self._group_cache = Group.objects.get(id=self.group_id)
+        return self._group_cache
 
     @group.setter
     def group(self, group):
-        pass
+        self.group_id = group.id
+        self._group_cache = group
 
     @property
     def project(self):
         from sentry.models import Project
-        return Project.objects.get(id=self.project_id)
+        if not hasattr(self, '_project_cache'):
+            self._project_cache = Project.objects.get(id=self.project_id)
+        return self._project_cache
 
     @project.setter
     def project(self, project):
-        pass
+        self.project_id = project.id
+        self._project_cache = project
 
     @property
     def interfaces(self):
@@ -378,16 +388,6 @@ class Event(Model, EventCommon):
         state.pop('interfaces', None)
 
         return state
-
-    @EventCommon.group.setter
-    def group(self, group):
-        self.group_id = group.id
-        self._group_cache = group
-
-    @EventCommon.project.setter
-    def project(self, project):
-        self.project_id = project.id
-        self._project_cache = project
 
     def as_dict(self):
         """Returns the data in normalized form for external consumers."""
