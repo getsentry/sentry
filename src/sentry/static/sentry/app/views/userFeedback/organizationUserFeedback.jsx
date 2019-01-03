@@ -101,12 +101,7 @@ class OrganizationUserFeedback extends AsyncView {
         organization={organization}
         renderDisabled={this.renderNoAccess}
       >
-        <GlobalSelectionHeader
-          organization={organization}
-          projects={organization.projects.filter(project => project.isMember)}
-          showAbsolute={true}
-          showRelative={true}
-        />
+        <GlobalSelectionHeader organization={organization} />
         <Content>
           <UserFeedbackContainer
             pageLinks={reportListPageLinks}

@@ -345,8 +345,6 @@ export default class OrganizationDiscover extends React.Component {
 
     const shouldDisplayResult = resultManager.shouldDisplayResult();
 
-    const projects = organization.projects.filter(project => project.isMember);
-
     const start =
       (currentQuery.start && moment.utc(currentQuery.start).toDate()) ||
       currentQuery.start;
@@ -393,11 +391,8 @@ export default class OrganizationDiscover extends React.Component {
 
         <DiscoverGlobalSelectionHeader
           organization={organization}
-          projects={projects}
           project={currentQuery.projects}
           hasCustomRouting={true}
-          showAbsolute={true}
-          showRelative={true}
           relative={currentQuery.range}
           start={start}
           end={end}

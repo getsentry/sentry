@@ -276,11 +276,17 @@ class GlobalSelectionHeader extends React.Component {
     callIfFunction(this.props.onUpdateProjects, projects);
   };
 
+  getProjects = () => {
+    return (
+      this.props.projects ||
+      this.props.organization.projects.filter(project => project.isMember)
+    );
+  };
+
   render() {
     const {
       className,
       organization,
-      projects,
       showAbsolute,
       showRelative,
       showEnvironmentSelector,
@@ -292,7 +298,7 @@ class GlobalSelectionHeader extends React.Component {
         <HeaderItemPosition>
           <MultipleProjectSelector
             organization={organization}
-            projects={projects}
+            projects={this.getProjects()}
             value={this.state.projects || this.props.selection.projects}
             onChange={this.handleChangeProjects}
             onUpdate={this.handleUpdateProjects}
