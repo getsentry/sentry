@@ -6,7 +6,7 @@ import requests
 
 from django.conf import settings
 
-from sentry.models.event import SnubaEvent
+from sentry.models.event import Event, SnubaEvent
 from sentry.testutils import SnubaTestCase
 from sentry import nodestore
 
@@ -59,6 +59,9 @@ class SnubaEventTest(SnubaTestCase):
                 group=self.proj1group1,
                 data=data,
             )
+            nodestore_data = nodestore.get(SnubaEvent.generate_node_id(self.proj1.id, self.event_id))
+            assert data['event_id'] == nodestore_data['event_id']
+            assert set(data['tags'].items()) == set(nodestore_data['tags'])
         else:
             node_id = SnubaEvent.generate_node_id(self.proj1.id, self.event_id)
             nodestore.set(node_id, data)
@@ -73,3 +76,10 @@ class SnubaEventTest(SnubaTestCase):
         assert event.project.id == self.proj1.id
         # And the event data payload from nodestore
         assert event.data['user']['id'] == u'user1'
+
+    def test_same(self):
+        django_event = Event.objects.get(project_id=self.proj1.id, event_id=self.event_id)
+        snuba_event = SnubaEvent.get_event(self.proj1.id, self.event_id)
+
+        assert django_event.group_id == snuba_event.group_id
+        assert django_event.interfaces == snuba_event.interfaces
