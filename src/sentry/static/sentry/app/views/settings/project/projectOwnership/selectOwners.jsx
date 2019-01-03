@@ -203,7 +203,6 @@ export default class SelectOwners extends React.Component {
   closeSelectMenu() {
     // Close select menu
     if (this.selectRef) {
-      // eslint-disable-next-line react/no-find-dom-node
       let input = ReactDOM.findDOMNode(this.selectRef).querySelector(
         '.Select-input input'
       );
