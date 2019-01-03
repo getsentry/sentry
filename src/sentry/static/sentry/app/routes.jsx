@@ -29,6 +29,7 @@ import OrganizationMembers from 'app/views/settings/organizationMembers';
 import OrganizationRoot from 'app/views/organizationRoot';
 import OrganizationStats from 'app/views/organizationStats';
 import ProjectEnvironments from 'app/views/projectEnvironments';
+import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import ProjectTags from 'app/views/projectTags';
 import ProjectChooser from 'app/views/projectChooser';
 import ProjectDashboard from 'app/views/projectDashboard';
@@ -865,7 +866,6 @@ function routes() {
             component={errorHandler(ProjectChooser)}
           />
         </Route>
-
         <Route
           path=":projectId/getting-started/"
           component={errorHandler(ProjectGettingStarted)}
@@ -1044,6 +1044,8 @@ function routes() {
             <Route path="similar/" component={errorHandler(GroupSimilarView)} />
             <Route path="merged/" component={errorHandler(GroupMergedView)} />
           </Route>
+
+          <Route path="events/:eventId/" component={errorHandler(ProjectEventRedirect)} />
         </Route>
       </Route>
 

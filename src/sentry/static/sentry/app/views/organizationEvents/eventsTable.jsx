@@ -33,9 +33,7 @@ class EventsTableBody extends React.PureComponent {
         <TableRow key={`${project.slug}-${event.eventID}`} first={eventIdx == 0}>
           <TableData>
             <EventTitle>
-              <Link
-                href={`/${organization.slug}/${project.slug}/events/${event.eventID}/`}
-              >
+              <Link to={`/${organization.slug}/${project.slug}/events/${event.eventID}/`}>
                 {trimmedMessage}
               </Link>
             </EventTitle>
