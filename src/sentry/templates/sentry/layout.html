@@ -37,13 +37,13 @@
     window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
     window.globalStaticUrl = '{% asset_url "sentry" "dist/" %}';
     window.__initialData = {% get_react_config %};
-    window.__languageCode = '{{ request.LANGUAGE_CODE|to_json|safe }}';
+    window.__languageCode = {{ request.LANGUAGE_CODE|to_json|safe }};
   </script>
 
   {% block scripts %}
   {% include "sentry/includes/sdk-config.html" %}
-  <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
   {% locale_js_include %}
+  <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
   <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
 
   <script>
