@@ -34,28 +34,21 @@
   <title>{% block title %}Sentry{% endblock %}</title>
 
   <script>
-  window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
-  window.globalStaticUrl = '{% asset_url "sentry" "dist/" %}';
+    window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
+    window.globalStaticUrl = '{% asset_url "sentry" "dist/" %}';
+    window.__initialData = {% get_react_config %};
+    window.__languageCode = {{ request.LANGUAGE_CODE|to_json|safe }};
   </script>
 
   {% block scripts %}
   {% include "sentry/includes/sdk-config.html" %}
-  <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
   {% locale_js_include %}
+  <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
   <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
 
   <script>
-    for (var n in window.exports.default) {
-      window[n] = window.exports.default[n];
-    }
-    window.$ = window.jQuery;
-
-    window.moment.locale({{ request.LANGUAGE_CODE|to_json|safe }});
-
     // if the ads.js file loads below it will mark this variable as false
     window.adblockSuspected = true;
-
-    SentryApp.ConfigStore.loadInitialData({% get_react_config %}, {{ request.LANGUAGE_CODE|to_json|safe }});
   </script>
   <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
   {% endblock %}

@@ -20,7 +20,7 @@ export async function loadDeviceListModule() {
 }
 
 export async function getDeviceName(model) {
-  const iOSDeviceList = await loadDeviceListModule();
+  const {default: iOSDeviceList} = await loadDeviceListModule();
 
   return deviceNameMapper(model, iOSDeviceList);
 }
