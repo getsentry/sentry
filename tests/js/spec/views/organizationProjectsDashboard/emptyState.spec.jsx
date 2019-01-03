@@ -1,7 +1,7 @@
-import React from 'react';
 import {shallow} from 'enzyme';
+import React from 'react';
 
-import EmptyState from 'app/views/organizationDashboard/emptyState';
+import EmptyState from 'app/views/organizationProjectsDashboard/emptyState';
 
 describe('EmptyState', function() {
   const org = TestStubs.Organization();

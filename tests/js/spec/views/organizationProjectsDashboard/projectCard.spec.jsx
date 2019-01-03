@@ -1,7 +1,7 @@
-import React from 'react';
 import {mount} from 'enzyme';
+import React from 'react';
 
-import {ProjectCard} from 'app/views/organizationDashboard/projectCard';
+import {ProjectCard} from 'app/views/organizationProjectsDashboard/projectCard';
 
 // NOTE: Unmocking debounce so that the actionCreator never fires
 jest.unmock('lodash/debounce');
