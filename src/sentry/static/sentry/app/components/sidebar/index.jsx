@@ -186,10 +186,7 @@ class Sidebar extends React.Component {
     let hasOrganization = !!organization;
 
     return (
-      <StyledSidebar
-        innerRef={ref => (this.sidebar = ref)}
-        collapsed={hasOrganization ? collapsed : true}
-      >
+      <StyledSidebar innerRef={ref => (this.sidebar = ref)} collapsed={collapsed}>
         <SidebarSectionGroup>
           <SidebarSection>
             <SidebarDropdown
