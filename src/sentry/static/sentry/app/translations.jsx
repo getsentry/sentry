@@ -23,13 +23,3 @@ export function getTranslations(language) {
     return require('sentry-locale/en/LC_MESSAGES/django.po');
   }
 }
-
-export function translationsExist(language) {
-  language = convertToDjangoLocaleFormat(language);
-  try {
-    require(`sentry-locale/${language}/LC_MESSAGES/django.po`);
-  } catch (e) {
-    return false;
-  }
-  return true;
-}

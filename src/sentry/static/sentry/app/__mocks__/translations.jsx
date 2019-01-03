@@ -7,7 +7,3 @@ export function getTranslations(language) {
     },
   };
 }
-
-export function translationsExist(language) {
-  return true; // no translations for tests
-}
