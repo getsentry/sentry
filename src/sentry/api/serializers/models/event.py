@@ -7,7 +7,7 @@ from django.utils import timezone
 from semaphore import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Event, EventError, EventAttachment
+from sentry.models import Event, EventError, EventAttachment, Release, UserReport
 from sentry.utils.safe import get_path
 
 
@@ -125,6 +125,30 @@ class EventSerializer(Serializer):
 
         return (message, meta_with_chunks(message, msg_meta))
 
+    def _get_release_info(self, user, event):
+        version = event.get_tag('sentry:release')
+        if not version:
+            return None
+        try:
+            release = Release.objects.get(
+                projects=event.project,
+                organization_id=event.project.organization_id,
+                version=version,
+            )
+        except Release.DoesNotExist:
+            return {'version': version}
+        return serialize(release, user)
+
+    def _get_user_report(self, user, event):
+        try:
+            user_report = UserReport.objects.get(
+                event_id=event.event_id,
+                project=event.project,
+            )
+        except UserReport.DoesNotExist:
+            user_report = None
+        return serialize(user_report, user)
+
     def get_attrs(self, item_list, user, is_public=False):
         Event.objects.bind_nodes(item_list, 'data')
 
@@ -177,7 +201,6 @@ class EventSerializer(Serializer):
             except TypeError:
                 received = None
 
-        # TODO(dcramer): move release serialization here
         d = {
             'id': six.text_type(obj.id),
             'groupID': six.text_type(obj.group_id),
@@ -214,6 +237,17 @@ class EventSerializer(Serializer):
             },
         }
         return d
+
+
+class DetailedEventSerializer(EventSerializer):
+    """
+    Adds release and user report info to the serialized event.
+    """
+    def serialize(self, obj, attrs, user):
+        result = super(DetailedEventSerializer, self).serialize(obj, attrs, user)
+        result['release'] = self._get_release_info(user, obj)
+        result['userReport'] = self._get_user_report(user, obj)
+        return result
 
 
 class SharedEventSerializer(EventSerializer):
