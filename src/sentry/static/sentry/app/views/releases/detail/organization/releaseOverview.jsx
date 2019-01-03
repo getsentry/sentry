@@ -1,7 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
-
 import {Box} from 'grid-emotion';
+
+import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
 import IconOpen from 'app/icons/icon-open';
 import HeroIcon from 'app/components/heroIcon';
@@ -18,7 +18,7 @@ import Well from 'app/components/well';
 
 export default class OrganizationReleaseOverview extends AsyncView {
   static contextTypes = {
-    release: PropTypes.object,
+    release: SentryTypes.Release,
   };
 
   getEndpoints() {
