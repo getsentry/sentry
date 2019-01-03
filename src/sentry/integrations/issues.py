@@ -259,6 +259,15 @@ class IssueBasicMixin(object):
 
         return annotations
 
+    def create_comment(self, issue_id, user_id, comment):
+        pass
+
+    def update_comment(self, issue_id, user_id, external_comment_id, comment_text):
+        pass
+
+    def delete_comment(self, issue_id, user_id, external_comment_id):
+        pass
+
 
 class IssueSyncMixin(IssueBasicMixin):
     comment_key = None

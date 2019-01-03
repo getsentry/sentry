@@ -274,8 +274,8 @@ class VstsIssueSync(IssueSyncMixin):
 
     def update_comment(self, issue_id, user_id, external_comment_id, comment_text):
         # Azure does not support updating comments
-        raise NotImplementedError
+        pass
 
     def delete_comment(self, issue_id, user_id, external_comment_id):
         # Azure does not support deleting comments
-        raise NotImplementedError
+        pass
