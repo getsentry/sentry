@@ -45,9 +45,6 @@ class OrganizationEventsContainer extends React.Component {
   render() {
     const {organization, location, selection, children} = this.props;
 
-    const projects =
-      organization.projects && organization.projects.filter(({isMember}) => isMember);
-
     return (
       <EventsContext.Provider
         value={{
@@ -60,9 +57,6 @@ class OrganizationEventsContainer extends React.Component {
           <Feature features={['global-views']} renderDisabled>
             <GlobalSelectionHeader
               organization={organization}
-              projects={projects}
-              showAbsolute={true}
-              showRelative={true}
               resetParamsOnChange={['zoom', 'cursor']}
             />
 
