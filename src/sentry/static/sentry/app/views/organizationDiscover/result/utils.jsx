@@ -51,7 +51,9 @@ export function getChartDataByDay(rawData, query) {
   // We only want to show the top 10 series
   const top10Series = getTopSeries(data, aggregate);
 
-  const dates = [...new Set(rawData.map(entry => formatDate(entry.time)))];
+  // Reverse to get ascending dates - we request descending to ensure latest
+  // day data is compplete in the case of limits being hit
+  const dates = [...new Set(rawData.map(entry => formatDate(entry.time)))].reverse();
 
   // Temporarily store series as object with series names as keys
   const seriesHash = getEmptySeriesHash(top10Series, dates);
