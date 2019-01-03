@@ -111,7 +111,9 @@ matrix:
       install:
         - python setup.py install_egg_info
         - pip install -e ".[dev,tests,optional]"
-        - pip install mysqlclient
+        # 1.3.14 causes test failures. Pinning to 1.3.13 for now, hopefully
+        # a later release resolves this.
+        - pip install mysqlclient==1.3.13
       before_script:
         - mysql -u root -e 'create database sentry;'
 
