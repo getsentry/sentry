@@ -72,7 +72,7 @@ class TimeRangeSelector extends React.PureComponent {
 
   static defaultProps = {
     showAbsolute: true,
-    showRelative: false,
+    showRelative: true,
     utc: DEFAULT_USE_UTC,
   };
 
