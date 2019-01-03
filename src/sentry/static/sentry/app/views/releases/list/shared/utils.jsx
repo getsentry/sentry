@@ -1,16 +1,16 @@
-import {Client} from 'app/api';
+import {pick} from 'lodash';
+import {URL_PARAM} from 'app/components/organizations/globalSelectionHeader/constants';
 
 /**
- * Fetch organization releases given the query filters.
+ * Get query term for API given location.query
  *
- * @param {Object} organization
- * @param {Object} query
- * @returns {Promise<Array>}
+ * @param {String} search
+ * @returns {Object}
  */
-export function fetchOrganizationReleases(organization, query) {
-  const api = new Client();
-
-  const options = {query: {query: query.query}};
-
-  return api.requestPromise(`/organizations/${organization.slug}/releases/`, options);
+export function getQuery(query) {
+  const validKeys = [...Object.values(URL_PARAM), 'cursor', 'query'];
+  return {
+    ...pick(query, validKeys),
+    per_page: 50,
+  };
 }
