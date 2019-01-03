@@ -36,7 +36,7 @@ const ReleaseProjectStatSparkline = createReactClass({
       this.getNewIssuesCount(),
       import(/*webpackChunkName "ReactSparkLines" */ 'react-sparklines'),
     ]).then(
-      ([stats, newIssues, reactSparkLines]) => {
+      ([stats, newIssues, {default: reactSparkLines}]) => {
         this.setState({
           loading: false,
           stats,
