@@ -378,7 +378,7 @@ export const EChartsData = PropTypes.arrayOf(
 );
 
 export const EChartsSeriesUnit = PropTypes.shape({
-  type: PropTypes.oneOf(['line', 'bar', 'pie']),
+  type: PropTypes.oneOf(['line', 'bar', 'pie', 'map']),
   showSymbol: PropTypes.bool,
   name: PropTypes.string,
   data: EChartsData,
