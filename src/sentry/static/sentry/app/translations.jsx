@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/browser';
+
 // zh-cn => zh_CN
 function convertToDjangoLocaleFormat(language) {
   let [left, right] = language.split('-');
@@ -6,7 +8,20 @@ function convertToDjangoLocaleFormat(language) {
 
 export function getTranslations(language) {
   language = convertToDjangoLocaleFormat(language);
-  return require(`sentry-locale/${language}/LC_MESSAGES/django.po`);
+
+  try {
+    return require(`sentry-locale/${language}/LC_MESSAGES/django.po`);
+  } catch (e) {
+    Sentry.withScope(scope => {
+      scope.setLevel('warning');
+      scope.setFingerprint(['sentry-locale-not-found']);
+      scope.setExtra('locale', language);
+      Sentry.captureException(e);
+    });
+
+    // Default locale if not found
+    return require('sentry-locale/en/LC_MESSAGES/django.po');
+  }
 }
 
 export function translationsExist(language) {
