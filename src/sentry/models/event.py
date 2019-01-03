@@ -10,9 +10,11 @@ from __future__ import absolute_import
 import six
 import string
 import warnings
+import pytz
 
 from collections import OrderedDict
 from datetime import datetime
+from dateutil.parser import parse as parse_date
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -241,6 +243,38 @@ class EventCommon(object):
 
         return self._environment_cache
 
+    def as_dict(self):
+        """Returns the data in normalized form for external consumers."""
+        # We use a OrderedDict to keep elements ordered for a potential JSON serializer
+        data = OrderedDict()
+        data['event_id'] = self.event_id
+        data['project'] = self.project_id
+        data['release'] = self.release
+        data['dist'] = self.dist
+        data['platform'] = self.platform
+        data['message'] = self.real_message
+        data['datetime'] = self.datetime
+        data['time_spent'] = self.time_spent
+        data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.tags]
+        for k, v in sorted(six.iteritems(self.data)):
+            if k in data:
+                continue
+            if k == 'sdk':
+                v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != 'client_ip'}
+            data[k] = v
+
+        # for a long time culprit was not persisted.  In those cases put
+        # the culprit in from the group.
+        if data.get('culprit') is None:
+            data['culprit'] = self.group.culprit
+
+        # Override title and location with dynamically generated data
+        data['title'] = self.title
+        data['location'] = self.location
+
+        return data
+
+
     # ============================================
     # DEPRECATED
     # ============================================
@@ -311,6 +345,7 @@ class SnubaEvent(EventCommon):
         'email',
         'timestamp',
         'group_id',
+        'platform',  # TODO could also use self.data.platform
     ]
 
     @classmethod
@@ -339,8 +374,23 @@ class SnubaEvent(EventCommon):
 
     def save(self):
         raise NotImplementedError
+
     # TODO unify with next_event/prev_event PR and create a snuba implementation
     # of those methods (can it be done without 2 extra queries?)
+
+    @property
+    def datetime(self):
+        """
+        Reconstruct the datetime of this event from the snuba timestamp
+        """
+        # dateutil seems to use tzlocal() instead of UTC even though the string
+        # ends with '+00:00', so just replace the TZ with UTC because we know
+        # all timestamps from snuba are UTC.
+        return parse_date(self.timestamp).replace(tzinfo=pytz.utc)
+
+    @property
+    def time_spent(self):
+        return None
 
 
 class Event(Model, EventCommon):
@@ -388,37 +438,6 @@ class Event(Model, EventCommon):
         state.pop('interfaces', None)
 
         return state
-
-    def as_dict(self):
-        """Returns the data in normalized form for external consumers."""
-        # We use a OrderedDict to keep elements ordered for a potential JSON serializer
-        data = OrderedDict()
-        data['event_id'] = self.event_id
-        data['project'] = self.project_id
-        data['release'] = self.release
-        data['dist'] = self.dist
-        data['platform'] = self.platform
-        data['message'] = self.real_message
-        data['datetime'] = self.datetime
-        data['time_spent'] = self.time_spent
-        data['tags'] = [(k.split('sentry:', 1)[-1], v) for (k, v) in self.tags]
-        for k, v in sorted(six.iteritems(self.data)):
-            if k in data:
-                continue
-            if k == 'sdk':
-                v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != 'client_ip'}
-            data[k] = v
-
-        # for a long time culprit was not persisted.  In those cases put
-        # the culprit in from the group.
-        if data.get('culprit') is None:
-            data['culprit'] = self.group.culprit
-
-        # Override title and location with dynamically generated data
-        data['title'] = self.title
-        data['location'] = self.location
-
-        return data
 
     # Find next and previous events based on datetime and id. We cannot
     # simply `ORDER BY (datetime, id)` as this is too slow (no index), so

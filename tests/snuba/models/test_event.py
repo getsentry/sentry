@@ -16,7 +16,7 @@ class SnubaEventTest(SnubaTestCase):
         assert requests.post(settings.SENTRY_SNUBA + '/tests/drop').status_code == 200
 
         self.event_id = 'f' * 32
-        self.now = datetime.utcnow() - timedelta(seconds=10)
+        self.now = datetime.utcnow().replace(microsecond=0) - timedelta(seconds=10)
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name='test')
         self.proj1group1 = self.create_group(
@@ -83,3 +83,7 @@ class SnubaEventTest(SnubaTestCase):
 
         assert django_event.group_id == snuba_event.group_id
         assert django_event.interfaces == snuba_event.interfaces
+        assert django_event.datetime == snuba_event.datetime
+        assert django_event.platform == snuba_event.platform
+
+        assert django_event.as_dict() == snuba_event.as_dict()
