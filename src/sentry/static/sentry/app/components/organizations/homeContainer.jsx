@@ -2,7 +2,7 @@ import React from 'react';
 import createReactClass from 'create-react-class';
 
 import OrganizationState from 'app/mixins/organizationState';
-import ProjectNav from 'app/views/organizationDashboard/projectNav';
+import ProjectNav from 'app/views/organizationProjectsDashboard/projectNav';
 
 const HomeContainer = createReactClass({
   displayName: 'HomeContainer',
