@@ -184,7 +184,11 @@ travis-test-snuba: test-snuba
 travis-test-js: test-js
 travis-test-cli: test-cli
 travis-test-dist:
-	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel
+	# NOTE: We quiet down output here to workaround an issue in travis that
+	# causes the build to fail with a EAGAIN when writing a large amount of
+	# data to STDOUT.
+	# See: https://github.com/travis-ci/travis-ci/issues/4704
+	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py -q sdist bdist_wheel
 	@ls -lh dist/
 
 .PHONY: scan-python travis-scan-sqlite travis-scan-postgres travis-scan-mysql travis-scan-acceptance travis-scan-snuba travis-scan-js travis-scan-cli travis-scan-dist
