@@ -6,7 +6,6 @@ export default class TextareaField extends InputField {
     return (
       <textarea
         id={this.getId()}
-        ref="input"
         className="form-control"
         value={this.state.value}
         disabled={this.props.disabled}
