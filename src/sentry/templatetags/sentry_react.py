@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import logging
 import sentry
 
 from django import template
@@ -12,12 +11,12 @@ from pkg_resources import parse_version
 from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer
-from sentry.models import ProjectKey
 from sentry.utils import auth, json
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.assets import get_asset_url
 from sentry.utils.functional import extract_lazy_object
 from sentry.utils.support import get_support_mail
+from sentry.templatetags.sentry_dsn import get_public_dsn
 
 register = template.Library()
 
@@ -59,17 +58,6 @@ def _needs_upgrade():
         options.set('sentry:version-configured', sentry.get_version())
 
     return False
-
-
-def _get_public_dsn():
-    try:
-        projectkey = ProjectKey.objects.filter(
-            project=settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT,
-        )[0]
-    except Exception:
-        logging.exception('Unable to fetch ProjectKey for internal project')
-        return
-    return projectkey.dsn_public
 
 
 def _get_statuspage():
@@ -120,7 +108,7 @@ def get_react_config(context):
         'features': enabled_features,
         'mediaUrl': get_asset_url('sentry', ''),
         'needsUpgrade': needs_upgrade,
-        'dsn': _get_public_dsn(),
+        'dsn': get_public_dsn(),
         'statuspage': _get_statuspage(),
         'messages': [{
             'message': msg.message,

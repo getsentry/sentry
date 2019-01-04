@@ -153,6 +153,10 @@ class ProjectKey(Model):
         else:
             urlparts = urlparse(options.get('system.url-prefix'))
 
+        # If we do not have a scheme or domain/hostname, dsn is never valid
+        if not urlparts.netloc or not urlparts.scheme:
+            return ''
+
         return '%s://%s@%s/%s' % (
             urlparts.scheme, key, urlparts.netloc + urlparts.path, self.project_id,
         )
