@@ -112,21 +112,6 @@ class OrganizationAuth extends AsyncView {
         onConfigure={this.handleConfigure}
       />
     );
-
-    /* For now this is in django
-    if (provider) {
-      return (
-        <OrganizationAuthProvider
-          orgId={orgId}
-          onDisableProvider={this.handleDisableProvider}
-          onSendReminders={this.handleSendReminders}
-          sendRemindersBusy={sendRemindersBusy}
-          disableBusy={disableBusy}
-          provider={provider}
-        />
-      );
-    }
-  */
   }
 }
 
