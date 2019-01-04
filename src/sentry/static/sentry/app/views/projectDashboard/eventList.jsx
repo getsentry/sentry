@@ -9,7 +9,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
 import {Panel, PanelHeader, PanelBody} from 'app/components/panels';
 
-import EventNode from 'app/views/projectDashboard/eventNode';
+import EventNode from './eventNode';
 
 const EventList = createReactClass({
   displayName: 'EventList',
