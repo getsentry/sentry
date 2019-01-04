@@ -4,10 +4,6 @@ import {browserHistory} from 'react-router';
 
 import {Client} from 'app/api';
 import {ProjectReleases} from 'app/views/releases/list/projectReleases';
-import SearchBar from 'app/views/stream/searchBar';
-import Pagination from 'app/components/pagination';
-
-import stubReactComponents from '../../../../helpers/stubReactComponent';
 
 describe('ProjectReleases', function() {
   let sandbox;
@@ -18,8 +14,6 @@ describe('ProjectReleases', function() {
     sandbox = sinon.sandbox.create();
 
     sandbox.stub(Client.prototype, 'request');
-    stubReactComponents(sandbox, [SearchBar, Pagination]);
-    sandbox.stub(browserHistory, 'push');
 
     props = {
       setProjectNavSection: function() {},
@@ -53,10 +47,11 @@ describe('ProjectReleases', function() {
     it('should change query string with new search parameter', function() {
       projectReleases.instance().onSearch('searchquery');
 
-      expect(browserHistory.push.calledOnce).toBeTruthy();
-      expect(browserHistory.push.args[0]).toEqual([
-        {pathname: '/123/456/releases/', query: {query: 'searchquery'}},
-      ]);
+      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/123/456/releases/',
+        query: {query: 'searchquery'},
+      });
     });
   });
 
