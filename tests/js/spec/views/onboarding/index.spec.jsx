@@ -64,7 +64,7 @@ describe('OnboardingWizard', function() {
         childContextTypes: {
           router: PropTypes.object,
           organization: PropTypes.object,
-          location: {pathname: 'http://lol/', query: {}},
+          location: PropTypes.object,
         },
       });
 
