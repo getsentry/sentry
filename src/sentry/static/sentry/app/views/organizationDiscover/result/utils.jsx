@@ -16,9 +16,11 @@ const CHART_KEY = '__CHART_KEY__';
  *
  * @param {Array} data Data returned from Snuba
  * @param {Object} query Query state corresponding to data
+ * @param {Object} [options] Options object
+ * @param {Boolean} [options.hideFieldName] (default: false) Hide field name in results set
  * @returns {Array}
  */
-export function getChartData(data, query) {
+export function getChartData(data, query, options = {}) {
   const {fields} = query;
 
   return query.aggregations.map(aggregation => {
@@ -27,7 +29,9 @@ export function getChartData(data, query) {
       data: data.map(res => {
         return {
           value: res[aggregation[2]],
-          name: fields.map(field => `${field} ${res[field]}`).join(' '),
+          name: fields
+            .map(field => `${options.hideFieldName ? '' : `${field} `}${res[field]}`)
+            .join(options.separator || ' '),
         };
       }),
     };
