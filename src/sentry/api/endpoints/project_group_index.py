@@ -374,9 +374,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     else:
                         Event.objects.bind_nodes([matching_event], 'data')
 
-            # If the query looks like a short id, we want to provide some
-            # information about where that is.  Note that this can return
-            # results for another project.  The UI deals with this.
             elif request.GET.get('shortIdLookup') == '1' and \
                     looks_like_short_id(query):
                 try:
@@ -385,6 +382,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                     )
                 except Group.DoesNotExist:
                     matching_group = None
+                else:
+                    if matching_group.project_id != project.id:
+                        matching_group = None
 
             if matching_group is not None:
                 matching_event_environment = None
