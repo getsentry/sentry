@@ -231,7 +231,7 @@ const getColor = p => {
     '#bbb7ca',
     '#c5c3d6',
     '#d0cee1',
-    'dad9ed',
+    '#dad9ed',
   ][p.index];
 };
 
