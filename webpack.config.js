@@ -18,6 +18,7 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const IS_TEST = process.env.NODE_ENV === 'test' || process.env.TEST_SUITE;
+const IS_STORYBOOK = process.env.STORYBOOK_BUILD === '1';
 const WEBPACK_DEV_PORT = process.env.WEBPACK_DEV_PORT;
 const SENTRY_DEVSERVER_PORT = process.env.SENTRY_DEVSERVER_PORT;
 const USE_HOT_MODULE_RELOAD = !IS_PRODUCTION && WEBPACK_DEV_PORT && SENTRY_DEVSERVER_PORT;
@@ -264,9 +265,10 @@ const appConfig = {
       app: path.join(__dirname, 'src', 'sentry', 'static', 'sentry', 'app'),
       'app-test': path.join(__dirname, 'tests', 'js'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
-      'integration-docs-platforms': IS_TEST
-        ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')
-        : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json'),
+      'integration-docs-platforms':
+        IS_TEST || IS_STORYBOOK
+          ? path.join(__dirname, 'tests/fixtures/integration-docs/_platforms.json')
+          : path.join(__dirname, 'src/sentry/integration-docs/_platforms.json'),
     },
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],
     extensions: ['.jsx', '.js', '.json'],
