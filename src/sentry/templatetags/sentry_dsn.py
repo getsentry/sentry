@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import re
-
 from django import template
 from django.conf import settings
 from django.db.models import F
@@ -9,7 +7,6 @@ from django.db.models import F
 from sentry.cache import default_cache
 from sentry.models import ProjectKey
 
-_dsn_re = re.compile(r'^(?:(\w+):)\/\/(?:(\w+)(?::(\w+))?@)([\w\.-]+)(?::(\d+))?\/(.+)')
 register = template.Library()
 
 
@@ -30,7 +27,7 @@ def get_public_dsn():
     result = default_cache.get(cache_key)
     if result is None:
         key = _get_project_key(project_id)
-        if key and bool(_dsn_re.match(key.dsn_public)):
+        if key:
             result = key.dsn_public
         else:
             result = ''

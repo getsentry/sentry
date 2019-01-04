@@ -17,18 +17,16 @@ class DsnTest(TestCase):
             result = self.TEMPLATE.render(Context())
 
             assert key.dsn_public in result
+            assert len(result) > 0
 
     def test_no_system_url(self):
         project = self.create_project()
-        with self.settings(SENTRY_PROJECT=project.id):
-            key = ProjectKey.objects.get_or_create(project=project)[0]
 
-            new_options = settings.SENTRY_OPTIONS.copy()
-            new_options['system.url-prefix'] = ''
-            new_options['SENTRY_FRONTEND_PROJECT'] = project.id
+        new_options = settings.SENTRY_OPTIONS.copy()
+        new_options['system.url-prefix'] = ''
 
-            with self.settings(SENTRY_OPTIONS=new_options):
-                result = self.TEMPLATE.render(Context())
+        with self.settings(SENTRY_PROJECT=project.id, SENTRY_OPTIONS=new_options):
+            result = self.TEMPLATE.render(Context())
 
-                assert key.dsn_public not in result
-                assert result == ''
+            assert not result
+            assert len(result) == 0
