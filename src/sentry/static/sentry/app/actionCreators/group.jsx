@@ -74,6 +74,9 @@ export function assignToActor({id, actor}) {
 
   let guid = uniqueId();
   let actorId;
+
+  GroupActions.assignTo(guid, id, {email: ''});
+
   switch (actor.type) {
     case 'user':
       actorId = buildUserId(actor.id);
