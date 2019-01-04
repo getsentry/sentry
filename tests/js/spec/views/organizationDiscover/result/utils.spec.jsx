@@ -231,6 +231,44 @@ describe('Utils', function() {
       expect(getChartDataByDay(raw, query, {useTimestamps: true})).toEqual(expected);
     });
 
+    it('assumes null value as 0', function() {
+      const expected = [
+        {
+          data: [
+            {name: 'Jul 9th', value: 14},
+            {name: 'Jul 10th', value: 0},
+            {name: 'Jul 20th', value: 30},
+          ],
+          seriesName: 'python,SnubaError',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: 0},
+            {name: 'Jul 20th', value: 8},
+          ],
+          seriesName: 'php,Exception',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: 0},
+            {name: 'Jul 20th', value: 5},
+          ],
+          seriesName: 'javascript,Type Error',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: 20},
+            {name: 'Jul 20th', value: 0},
+          ],
+          seriesName: 'python,ZeroDivisionError',
+        },
+      ];
+      expect(getChartDataByDay(raw, query, {assumeNullAsZero: true})).toEqual(expected);
+    });
+
     it('shows only top 10 series by default', function() {
       expect(
         getChartDataByDay(
