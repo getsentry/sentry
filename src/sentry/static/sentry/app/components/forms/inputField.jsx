@@ -10,7 +10,6 @@ export default class InputField extends FormField {
     placeholder: PropTypes.string,
   };
 
-  // XXX(dcramer): this comes from TooltipMixin
   componentDidMount() {
     super.componentDidMount();
     this.attachTooltips();
