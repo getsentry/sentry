@@ -754,6 +754,20 @@ function routes() {
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <Route component={errorHandler(OrganizationRoot)}>
           <IndexRoute component={errorHandler(OrganizationDashboard)} />
+
+          <Route
+            path="/organizations/:orgId/dashboards/"
+            componentPromise={() =>
+              import(/* webpackChunkName: "OrganizationDashboardContainer" */ './views/organizationDashboard')}
+            component={errorHandler(LazyLoad)}
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/* webpackChunkName: "OverviewDashboard" */ './views/organizationDashboard/overviewDashboard')}
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
+
           <Route
             path="/organizations/:orgId/discover/"
             componentPromise={() =>
