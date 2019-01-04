@@ -3,7 +3,7 @@ import {Box} from 'grid-emotion';
 
 import SentryTypes from 'app/sentryTypes';
 import Button from 'app/components/button';
-import IconOpen from 'app/icons/icon-open';
+import InlineSvg from 'app/components/inlineSvg';
 import HeroIcon from 'app/components/heroIcon';
 import LastCommit from 'app/components/lastCommit';
 // import IssueList from 'app/components/issueList';
@@ -186,8 +186,8 @@ export default class OrganizationReleaseOverview extends AsyncView {
                                 style={{verticalAlign: 'bottom'}}
                               >
                                 {deploy.environment}
-                                <IconOpen
-                                  className="icon-open"
+                                <InlineSvg
+                                  src="icon-open"
                                   size={11}
                                   style={{marginLeft: 6}}
                                 />
