@@ -38,7 +38,6 @@ class Tooltip extends React.Component {
 
   handleMount = ref => {
     if (ref && !this.ref) {
-      // eslint-disable-next-line react/no-find-dom-node
       this.attachTooltips(ref);
     } else if (!ref && this.ref) {
       this.removeTooltips(ref);

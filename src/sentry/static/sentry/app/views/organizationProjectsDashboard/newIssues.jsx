@@ -11,6 +11,8 @@ export default class NewIssues extends React.Component {
     pageSize: PropTypes.number,
   };
 
+  issueListRef = React.createRef();
+
   getEndpoint = () => {
     return `/organizations/${this.props.params.orgId}/issues/new/`;
   };
@@ -28,7 +30,7 @@ export default class NewIssues extends React.Component {
   };
 
   refresh = () => {
-    this.refs.issueList.remountComponent();
+    this.issueListRef.current.remountComponent();
   };
 
   render() {
@@ -53,7 +55,7 @@ export default class NewIssues extends React.Component {
           }}
           pagination={false}
           renderEmpty={this.renderEmpty}
-          ref="issueList"
+          ref={this.issueListRef}
           {...this.props}
         />
       </div>

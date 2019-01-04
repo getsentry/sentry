@@ -68,7 +68,7 @@ describe('Sentry Application Details', function() {
           isAlertable: false,
         };
 
-        expect(response).toBeCalledWith(
+        expect(response).toHaveBeenCalledWith(
           '/sentry-apps/',
           expect.objectContaining({
             data,

@@ -43,7 +43,6 @@ export default class InputField extends FormField {
         placeholder={this.props.placeholder}
         onChange={this.onChange}
         disabled={this.props.disabled}
-        ref="input"
         name={this.props.name}
         required={this.props.required}
         value={this.state.value}

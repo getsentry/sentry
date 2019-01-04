@@ -326,7 +326,6 @@ const ResultGrid = createReactClass({
                     placeholder="search"
                     style={{width: 300}}
                     name="query"
-                    ref="searchInput"
                     autoComplete="off"
                     value={this.state.query}
                     onChange={this.onQueryChange}

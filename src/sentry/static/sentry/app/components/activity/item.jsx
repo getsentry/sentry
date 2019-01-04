@@ -35,19 +35,18 @@ class ActivityItem extends React.Component {
     this.state = {
       clipped: this.props.defaultClipped,
     };
+    this.activityBubbleRef = React.createRef();
   }
 
   componentDidMount() {
-    if (this.refs.activityBubble) {
-      let bubbleHeight = this.refs.activityBubble.offsetHeight;
+    if (this.activityBubbleRef.current) {
+      let bubbleHeight = this.activityBubbleRef.current.offsetHeight;
 
       if (bubbleHeight > this.props.clipHeight) {
-        /*eslint react/no-did-mount-set-state:0*/
         // okay if this causes re-render; cannot determine until
         // rendered first anyways
-        this.setState({
-          clipped: true,
-        });
+        // eslint-disable-next-line react/no-did-mount-set-state
+        this.setState({clipped: true});
       }
     }
   }
@@ -330,7 +329,7 @@ class ActivityItem extends React.Component {
             )}
             <div
               className={bubbleClassName}
-              ref="activityBubble"
+              ref={this.activityBubbleRef}
               dangerouslySetInnerHTML={{__html: noteBody}}
             />
             <div className="activity-meta">

@@ -216,7 +216,6 @@ const ReleaseOverview = createReactClass({
                   </PanelBody>
                 </Panel>
               )}
-              ref="issueList"
               showActions={false}
               params={{orgId}}
               className="m-b-2"
@@ -238,7 +237,6 @@ const ReleaseOverview = createReactClass({
                   </PanelBody>
                 </Panel>
               )}
-              ref="issueList"
               showActions={false}
               params={{orgId}}
               className="m-b-2"
