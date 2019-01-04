@@ -56,11 +56,12 @@ class TextCopyInput extends React.Component {
 
   constructor(props) {
     super(props);
+    this.textRef = React.createRef();
   }
 
   // Select text when copy button is clicked
   handleCopyClick = e => {
-    if (!this.textRef) return;
+    if (!this.textRef.current) return;
 
     let {onCopy} = this.props;
 
@@ -72,16 +73,11 @@ class TextCopyInput extends React.Component {
   };
 
   handleSelectText = () => {
-    if (!this.textRef) return;
+    if (!this.textRef.current) return;
 
     // We use findDOMNode here because `this.textRef` is not a dom node,
     // it's a ref to AutoSelectText
-    // eslint-disable-next-line react/no-find-dom-node
-    selectText(ReactDOM.findDOMNode(this.textRef));
-  };
-
-  handleAutoMount = ref => {
-    this.textRef = ref;
+    selectText(ReactDOM.findDOMNode(this.textRef.current));
   };
 
   render() {
@@ -92,7 +88,7 @@ class TextCopyInput extends React.Component {
         <OverflowContainer>
           <StyledInput
             readOnly
-            ref={this.handleAutoMount}
+            ref={this.textRef}
             style={style}
             value={children}
             onClick={this.handleSelectText}

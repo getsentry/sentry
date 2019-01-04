@@ -22,11 +22,13 @@ export default class CustomIgnoreDurationModal extends React.Component {
     this.state = {
       dateWarning: false,
     };
+    this.snoozeDateInputRef = React.createRef();
+    this.snoozeTimeInputRef = React.createRef();
   }
 
   selectedIgnoreMinutes = () => {
-    const dateStr = this.refs.snoozeDateInput.value; // YYYY-MM-DD
-    const timeStr = this.refs.snoozeTimeInput.value; // HH:MM
+    const dateStr = this.snoozeDateInputRef.current.value; // YYYY-MM-DD
+    const timeStr = this.snoozeTimeInputRef.current.value; // HH:MM
     if (dateStr && timeStr) {
       const selectedDate = new Date(dateStr + 'T' + timeStr); // poor man's ISO datetime
       if (!isNaN(selectedDate)) {
@@ -82,7 +84,7 @@ export default class CustomIgnoreDurationModal extends React.Component {
                 type="date"
                 id="snooze-until-date"
                 defaultValue={defaultDateVal}
-                ref="snoozeDateInput"
+                ref={this.snoozeDateInputRef}
                 required={true}
                 style={{padding: '0 10px'}}
               />
@@ -94,7 +96,7 @@ export default class CustomIgnoreDurationModal extends React.Component {
                 type="time"
                 id="snooze-until-time"
                 defaultValue={defaultTimeVal}
-                ref="snoozeTimeInput"
+                ref={this.snoozeTimeInputRef}
                 style={{padding: '0 10px'}}
                 required={true}
               />
