@@ -8,33 +8,16 @@
 {{ block.super }}
 
 <script>
-  (function() {
-    var SRC = "{% asset_url 'sentry' 'dist/pwstrength.js' %}";
-
-    var async_load = function() {
-      var first, s;
-      s = document.createElement('script');
-      s.src = SRC;
-      s.type = 'text/javascript';
-      s.async = true;
-      s.addEventListener('load', function() {
-        if (window.sentrypw) {
-          window.sentrypw.addStrengthIndicator(
-            '#register #id_password',
-            '.password-strength'
-          );
-        }
-      }, false);
-      first = document.getElementsByTagName('script')[0];
-      return first.parentNode.insertBefore(s, first);
-    };
-
-    window.addEventListener('load', async_load, false);
-  })();
+  SentryApp.passwordStrength.load(function(passwordStrength) {
+    $(function() {
+      passwordStrength.attachTo({
+        input: document.querySelector('#register #id_password'),
+        element: document.querySelector('.password-strength'),
+      });
+    })
+  })
 </script>
-
 {% endblock %}
-
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
