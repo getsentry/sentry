@@ -838,3 +838,9 @@ class JiraIntegrationTest(APITestCase):
                 installation.create_comment(1, self.user.id, comment)
                 assert mock_create_comment.call_args[0][1] == \
                     'Sentry Admin wrote:\n\n{quote}%s{quote}' % comment
+
+    def test_update_comment(self):
+        pass
+
+    def test_delete_comment(self):
+        pass

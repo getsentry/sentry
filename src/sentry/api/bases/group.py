@@ -30,11 +30,6 @@ class GroupPermission(ProjectPermission):
 
 class GroupEndpoint(Endpoint):
     permission_classes = (GroupPermission, )
-    comment_sync_actions = {
-        'create': post_comment,
-        'update': update_comment,
-        'delete': delete_comment,
-    }
 
     def convert_args(self, request, issue_id, *args, **kwargs):
         # TODO(tkaemming): Ideally, this would return a 302 response, rather
@@ -70,9 +65,18 @@ class GroupEndpoint(Endpoint):
 
         return (args, kwargs)
 
-    def sync_comment(self, request, group, group_note, action):
+    def create_external_comment(self, request, group, group_note):
+        self._sync_comment(self, request, group, group_note, post_comment)
+
+    def update_external_comment(self, request, group, group_note):
+        self._sync_comment(self, request, group, group_note, update_comment)
+
+    def delete_external_comment(self, request, group, group_note):
+        self._sync_comment(self, request, group, group_note, delete_comment)
+
+    def _sync_comment(self, request, group, group_note, action):
         """
-        sync Sentry comments to external issues
+        Sync Sentry comments to external issues
         """
         external_issue_ids = GroupLink.objects.filter(
             project_id=group.project_id,
@@ -80,10 +84,8 @@ class GroupEndpoint(Endpoint):
             linked_type=GroupLink.LinkedType.issue,
         ).values_list('linked_id', flat=True)
 
-        comment_action = self.comment_sync_actions[action]
-
         for external_issue_id in external_issue_ids:
-            comment_action.apply_async(
+            action.apply_async(
                 kwargs={
                     'external_issue_id': external_issue_id,
                     'group_note_id': group_note.id,

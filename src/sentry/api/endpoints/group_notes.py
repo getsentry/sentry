@@ -102,5 +102,5 @@ class GroupNotesEndpoint(GroupEndpoint):
 
         activity.send_notification()
 
-        self.sync_comment(request, group, activity, 'create')
+        self.create_external_comment(request, group, activity)
         return Response(serialize(activity, request.user), status=201)
