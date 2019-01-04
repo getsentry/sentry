@@ -72,12 +72,17 @@ const localeCatalogPath = path.join(
 
 const localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
 
-// moment uses a lowercase  IETF language tag, while django uses the underscore
-// with uppercase syntax
-const normalizeLocale = locale => locale.toLowerCase().replace('_', '-');
+// Translates a locale name to a language code.
+//
+// * po files are kept in a directory represented by the locale name [0]
+// * moment.js locales are stored as language code files
+// * Sentry will request the user configured language from locale/{language}.js
+//
+// [0] https://docs.djangoproject.com/en/2.1/topics/i18n/#term-locale-name
+const localeToLanguage = locale => locale.toLowerCase().replace('_', '-');
 
 const supportedLocales = localeCatalog.supported_locales;
-const normalizedSuppotedLocales = supportedLocales.map(normalizeLocale);
+const supportedLanguages = supportedLocales.map(localeToLanguage);
 
 // A mapping of chunk groups used for locale code splitting
 const localeChunkGroups = {};
@@ -85,13 +90,13 @@ const localeChunkGroups = {};
 // No need to split the english locale out as it will be completely empty and
 // is not included in the django layout.html.
 supportedLocales.filter(l => l !== 'en').forEach(locale => {
-  const normalizedLocale = normalizeLocale(locale);
-  const group = `locale/${locale}`;
+  const language = localeToLanguage(locale);
+  const group = `locale/${language}`;
 
   // List of module path tests to group into locale chunks
   const localeGroupTests = [
     new RegExp(`locale\\/${locale}\\/.*\\.po$`),
-    new RegExp(`moment\\/locale\\/${normalizedLocale}\\.js$`),
+    new RegExp(`moment\\/locale\\/${language}\\.js$`),
   ];
 
   // module test taken from [0] and modified to support testing against
@@ -127,7 +132,7 @@ const localeRestrictionPlugins = [
   ),
   new webpack.ContextReplacementPlugin(
     /moment\/locale/,
-    new RegExp(`(${normalizedSuppotedLocales.join('|')})\\.js$`)
+    new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
   ),
 ];
 
