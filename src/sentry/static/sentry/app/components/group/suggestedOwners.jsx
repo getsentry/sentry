@@ -97,18 +97,17 @@ const SuggestedOwners = createReactClass({
     });
   },
 
-  assignTo(user) {
-    if (user.id !== undefined) {
-      assignToUser({id: this.props.event.groupID, user});
+  assign(actor) {
+    if (actor.id === undefined) {
+      return;
     }
-  },
 
-  assignToActor(actor) {
-    if (actor.id !== undefined) {
-      assignToActor({
-        actor,
-        id: this.props.event.groupID,
-      });
+    if (actor.type === 'user') {
+      assignToUser({id: this.props.event.groupID, user: actor});
+    }
+
+    if (actor.type === 'team') {
+      assignToActor({id: this.props.event.groupID, actor});
     }
   },
 
@@ -121,6 +120,7 @@ const SuggestedOwners = createReactClass({
    *
    * {
    *   actor: <
+   *    type,              # Either user or team
    *    SentryTypes.User,  # API expanded user object
    *    {email, id, name}  # Sentry user which is *not* expanded
    *    {email, name}      # Unidentified user (from commits)
@@ -181,12 +181,13 @@ const SuggestedOwners = createReactClass({
                   commits={owner.commits}
                   containerClassName="avatar-grid-item"
                 >
-                  <ActorAvatar
-                    style={{cursor: 'pointer'}}
-                    hasTooltip={false}
-                    actor={owner.actor}
-                    onClick={() => this.assignToActor(owner)}
-                  />
+                  <span onClick={() => this.assign(owner.actor)}>
+                    <ActorAvatar
+                      style={{cursor: 'pointer'}}
+                      hasTooltip={false}
+                      actor={owner.actor}
+                    />
+                  </span>
                 </SuggestedOwnerHovercard>
               ))}
             </div>
