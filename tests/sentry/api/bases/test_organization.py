@@ -240,7 +240,7 @@ class GetEnvironmentsTest(BaseOrganizationEndpointTest):
             self.build_request(**request_args),
             self.org,
         )
-        assert set([e.name for e in expected_envs]) == set(result)
+        assert set([e.name for e in expected_envs]) == set([e.name for e in result])
 
     def test_no_params(self):
         self.run_test([])
