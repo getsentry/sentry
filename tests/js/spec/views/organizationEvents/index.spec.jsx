@@ -59,7 +59,7 @@ describe('OrganizationEvents', function() {
     });
 
     it('renders', function() {
-      expect(wrapper.find('OrganizationEventsContent')).toHaveLength(1);
+      expect(wrapper.find('PageContent')).toHaveLength(1);
     });
 
     it('updates router when changing environments', async function() {

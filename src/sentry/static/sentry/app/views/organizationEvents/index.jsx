@@ -1,4 +1,3 @@
-import {Flex} from 'grid-emotion';
 import {withRouter} from 'react-router';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -10,9 +9,9 @@ import BetaTag from 'app/components/betaTag';
 import Feature from 'app/components/acl/feature';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryTypes from 'app/sentryTypes';
-import space from 'app/styles/space';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
+import {PageContent, PageHeader, HeaderTitle} from 'app/styles/organization';
 
 import EventsContext from './utils/eventsContext';
 import SearchBar from './searchBar';
@@ -53,15 +52,14 @@ class OrganizationEventsContainer extends React.Component {
           ...selection.datetime,
         }}
       >
-        <OrganizationEventsContent>
-          <Feature features={['global-views']} renderDisabled>
-            <GlobalSelectionHeader
-              organization={organization}
-              resetParamsOnChange={['zoom', 'cursor']}
-            />
-
+        <Feature features={['global-views']} renderDisabled>
+          <GlobalSelectionHeader
+            organization={organization}
+            resetParamsOnChange={['zoom', 'cursor']}
+          />
+          <PageContent>
             <Body>
-              <Flex align="center" justify="space-between" mb={2}>
+              <PageHeader>
                 <HeaderTitle>
                   {t('Events')} <BetaTag />
                 </HeaderTitle>
@@ -71,12 +69,12 @@ class OrganizationEventsContainer extends React.Component {
                   placeholder={t('Search for events, users, tags, and everything else.')}
                   onSearch={this.handleSearch}
                 />
-              </Flex>
+              </PageHeader>
 
               {children}
             </Body>
-          </Feature>
-        </OrganizationEventsContent>
+          </PageContent>
+        </Feature>
       </EventsContext.Provider>
     );
   }
@@ -86,27 +84,10 @@ export default withRouter(
 );
 export {OrganizationEventsContainer};
 
-const OrganizationEventsContent = styled(Flex)`
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-  margin-bottom: -20px; /* <footer> has margin-top: 20px; */
-`;
-
 const Body = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1;
-  padding: ${space(2)} ${space(4)} ${space(3)};
-`;
-
-const HeaderTitle = styled('h4')`
-  flex: 1;
-  font-size: ${p => p.theme.headerFontSize};
-  line-height: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
 `;
 
 const StyledSearchBar = styled(SearchBar)`

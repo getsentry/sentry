@@ -1551,9 +1551,9 @@ exports[`OrganizationUserFeedback renders 1`] = `
               </GlobalSelectionHeader>
             </withGlobalSelection(GlobalSelectionHeader)>
           </withRouter(withGlobalSelection(GlobalSelectionHeader))>
-          <Content>
+          <PageContent>
             <div
-              className="css-1wsl7kd-Content euo9in30"
+              className="css-rejmra-PageContent e6lvex70"
             >
               <UserFeedbackContainer
                 location={
@@ -2224,7 +2224,7 @@ exports[`OrganizationUserFeedback renders 1`] = `
                 </div>
               </UserFeedbackContainer>
             </div>
-          </Content>
+          </PageContent>
         </Feature>
       </FeatureContainer>
     </DocumentTitle>
