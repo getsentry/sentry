@@ -106,7 +106,6 @@ class EmptyDashboardTest(AcceptanceTestCase):
         self.path = u'/{}/'.format(self.org.slug)
 
     def test_new_dashboard_empty(self):
-        with self.feature('organizations:dashboard'):
-            self.browser.get(self.path)
-            self.browser.wait_until_not('.loading-indicator')
-            self.browser.snapshot('new dashboard empty')
+        self.browser.get(self.path)
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot('new dashboard empty')
