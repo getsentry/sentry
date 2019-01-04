@@ -169,7 +169,10 @@ let GroupEventToolbar = createReactClass({
           </Link>
         </h4>
         <span>
-          <Tooltip title={this.getDateTooltip()} tooltipOptions={{html: true}}>
+          <Tooltip
+            title={this.getDateTooltip()}
+            tooltipOptions={{html: true, container: false}}
+          >
             <span>
               <DateTime
                 date={getDynamicText({value: evt.dateCreated, fixed: 'Dummy timestamp'})}
