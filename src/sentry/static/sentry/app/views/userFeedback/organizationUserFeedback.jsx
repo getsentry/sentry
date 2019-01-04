@@ -9,6 +9,7 @@ import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import CompactIssue from 'app/components/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import space from 'app/styles/space';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import AsyncView from 'app/views/asyncView';
@@ -90,10 +91,33 @@ class OrganizationUserFeedback extends AsyncView {
     );
   }
 
-  renderBody() {
-    const {organization, location, params} = this.props;
+  renderLoading() {
+    return this.renderBody();
+  }
+
+  renderStreamBody() {
+    const {location, params} = this.props;
     const {status} = getQuery(location.search);
     const {reportList, reportListPageLinks} = this.state;
+
+    if (this.state.loading) {
+      return <LoadingIndicator />;
+    }
+
+    return (
+      <UserFeedbackContainer
+        pageLinks={reportListPageLinks}
+        status={status}
+        location={location}
+        params={params}
+      >
+        {reportList.length ? this.renderResults() : this.renderEmpty()}
+      </UserFeedbackContainer>
+    );
+  }
+
+  renderBody() {
+    const {organization} = this.props;
 
     return (
       <Feature
@@ -102,16 +126,7 @@ class OrganizationUserFeedback extends AsyncView {
         renderDisabled={this.renderNoAccess}
       >
         <GlobalSelectionHeader organization={organization} />
-        <Content>
-          <UserFeedbackContainer
-            pageLinks={reportListPageLinks}
-            status={status}
-            location={location}
-            params={params}
-          >
-            {reportList.length ? this.renderResults() : this.renderEmpty()}
-          </UserFeedbackContainer>
-        </Content>
+        <Content>{this.renderStreamBody()}</Content>
       </Feature>
     );
   }
