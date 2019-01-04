@@ -68,14 +68,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_simple_pagination(self):
         now = timezone.now().replace(microsecond=0)
         group1 = self.create_group(
-            checksum='a' * 32,
+            project=self.project,
             last_seen=now - timedelta(seconds=1),
         )
+        self.create_event(
+            group=group1,
+            datetime=now - timedelta(seconds=1),
+        )
         group2 = self.create_group(
-            checksum='b' * 32,
+            project=self.project,
             last_seen=now,
         )
-
+        self.create_event(
+            stacktrace=[['foo.py']],
+            group=group2,
+            datetime=now,
+        )
         self.login_as(user=self.user)
         response = self.client.get(
             u'{}?sort_by=date&limit=1'.format(self.path),
@@ -157,8 +165,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group2.id)
-
-    # TODO(jess): figure out how these all should work with multi project
 
     def test_lookup_by_event_id(self):
         project = self.project
