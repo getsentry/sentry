@@ -44,9 +44,10 @@ const StyledDelta = styled(Flex)`
     p.direction > 0 ? p.theme.green : p.direction < 0 ? p.theme.red : p.theme.gray2};
 `;
 
-class EventsTableChart extends React.Component {
+class PercentageTableChart extends React.Component {
   static propTypes = {
     title: PropTypes.node,
+    countTitle: PropTypes.node,
     onRowClick: PropTypes.func,
     data: PropTypes.arrayOf(
       PropTypes.shape({
@@ -59,6 +60,8 @@ class EventsTableChart extends React.Component {
   };
 
   static defaultProps = {
+    title: '',
+    countTitle: t('Count'),
     onRowClick: () => {},
   };
 
@@ -68,17 +71,17 @@ class EventsTableChart extends React.Component {
   };
 
   render() {
-    const {title, data} = this.props;
+    const {title, countTitle, data} = this.props;
 
     return (
       <TableChart
-        headers={[title || '', t('Events'), t('Percentage')]}
+        headers={[title, countTitle, t('Percentage')]}
         data={data.map(({value, lastValue, name, percentage}) => [
           <Name key="name">{name}</Name>,
-          <Events key="events">
+          <CountColumn key="count">
             <Delta current={value} previous={lastValue} />
             <Count value={value} />
-          </Events>,
+          </CountColumn>,
           <React.Fragment key="bar">
             <BarWrapper>
               <Bar width={percentage} />
@@ -88,10 +91,10 @@ class EventsTableChart extends React.Component {
         ])}
         renderRow={({items, rowIndex, ...other}) => (
           <Row onClick={this.handleRowClick} data={data} rowIndex={rowIndex}>
-            <NameAndEventsContainer justify="space-between" align="center">
+            <NameAndCountContainer justify="space-between" align="center">
               {items[0]}
               <div>{items[1]}</div>
-            </NameAndEventsContainer>
+            </NameAndCountContainer>
             <PercentageContainer justify="space-between" align="center">
               <Flex w={[1]} align="center">
                 {items[2]}
@@ -119,11 +122,11 @@ const Row = styled(function RowComponent({className, data, rowIndex, onClick, ch
   cursor: pointer;
 `;
 
-const StyledEventsTableChart = styled(EventsTableChart)`
+const StyledPercentageTableChart = styled(PercentageTableChart)`
   width: 100%;
 `;
 
-const NameAndEventsContainer = styled(Flex)`
+const NameAndCountContainer = styled(Flex)`
   flex-shrink: 0;
   margin-right: ${space(2)};
   width: 50%;
@@ -157,10 +160,10 @@ const Name = styled('span')`
   ${overflowEllipsis};
 `;
 
-const Events = styled(Name)`
+const CountColumn = styled(Name)`
   display: flex;
   align-items: center;
   margin-left: ${space(0.5)};
 `;
 
-export default StyledEventsTableChart;
+export default StyledPercentageTableChart;

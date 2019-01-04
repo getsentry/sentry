@@ -1,14 +1,14 @@
 import React from 'react';
 import {mount} from 'enzyme';
-import EventsTableChart from 'app/components/charts/eventsTableChart';
+import PercentageTableChart from 'app/components/charts/percentageTableChart';
 
-describe('EventsTableChart', function() {
+describe('PercentageTableChart', function() {
   let wrapper;
 
   describe('With Previous Data', function() {
     beforeEach(function() {
       wrapper = mount(
-        <EventsTableChart
+        <PercentageTableChart
           title="User"
           data={[
             {
@@ -30,11 +30,11 @@ describe('EventsTableChart', function() {
 
     it('renders headers', function() {
       expect(
-        wrapper.find('PanelHeader NameAndEventsContainer').prop('children')
+        wrapper.find('PanelHeader NameAndCountContainer').prop('children')
       ).toHaveLength(2);
 
       expect(wrapper.find('PanelHeader').text()).toContain('User');
-      expect(wrapper.find('PanelHeader').text()).toContain('Events');
+      expect(wrapper.find('PanelHeader').text()).toContain('Count');
       expect(wrapper.find('PanelHeader').text()).toContain('Percentage');
     });
 
@@ -50,7 +50,7 @@ describe('EventsTableChart', function() {
 
       expect(
         wrapper
-          .find('TableChartRow Events DeltaCaret')
+          .find('TableChartRow CountColumn DeltaCaret')
           .at(0)
           .prop('direction')
       ).toBeGreaterThan(0);
@@ -71,7 +71,7 @@ describe('EventsTableChart', function() {
 
       expect(
         wrapper
-          .find('TableChartRow Events DeltaCaret')
+          .find('TableChartRow CountColumn DeltaCaret')
           .at(1)
           .prop('direction')
       ).toBeLessThan(0);
@@ -88,7 +88,7 @@ describe('EventsTableChart', function() {
   describe('Without Previous Data', function() {
     beforeEach(function() {
       wrapper = mount(
-        <EventsTableChart
+        <PercentageTableChart
           title="User"
           data={[
             {
@@ -116,7 +116,7 @@ describe('EventsTableChart', function() {
           .text()
       ).toBe('billy');
 
-      expect(wrapper.find('TableChartRow Events DeltaCaret')).toHaveLength(0);
+      expect(wrapper.find('TableChartRow CountColumn DeltaCaret')).toHaveLength(0);
 
       expect(
         wrapper
