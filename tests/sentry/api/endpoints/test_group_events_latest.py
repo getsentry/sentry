@@ -13,12 +13,12 @@ class GroupEventsLatestTest(APITestCase):
 
         group = self.create_group()
         self.create_event(
-            event_id='a',
+            event_id='a' * 32,
             group=group,
             datetime=datetime(2013, 8, 13, 3, 8, 25),
         )
         event_2 = self.create_event(
-            event_id='b',
+            event_id='b' * 32,
             group=group,
             datetime=datetime(2013, 8, 13, 3, 8, 26),
         )
