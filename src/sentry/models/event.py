@@ -190,6 +190,10 @@ class EventCommon(object):
             # vs ((tag, foo), (tag, bar))
             return []
 
+    # For compatibility, still used by plugins.
+    def get_tags(self):
+        return self.tags
+
     def get_tag(self, key):
         for t, v in self.get_tags():
             if t == key:
