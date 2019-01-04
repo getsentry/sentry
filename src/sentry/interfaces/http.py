@@ -19,6 +19,7 @@ from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sentry.interfaces.base import Interface, InterfaceValidationError, prune_empty_keys
 from sentry.interfaces.schemas import validate_and_default_interface
+from sentry.utils import json
 from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.utils.http import heuristic_decode
 from sentry.utils.validators import validate_ip
@@ -84,6 +85,10 @@ def fix_broken_encoding(value):
     if isinstance(value, six.binary_type):
         value = value.decode('utf8', errors='replace')
     return value
+
+
+def jsonify(value):
+    return value if isinstance(value, six.string_types) else json.dumps(value)
 
 
 class Http(Interface):
@@ -152,7 +157,7 @@ class Http(Interface):
                     query_string = query_string[1:]
                 query_string = parse_qsl(query_string, keep_blank_values=True)
             elif isinstance(query_string, dict):
-                query_string = [(to_bytes(k), to_bytes(v)) for k, v in six.iteritems(query_string)]
+                query_string = [(to_bytes(k), jsonify(v)) for k, v in six.iteritems(query_string)]
             elif isinstance(query_string, list):
                 query_string = [
                     tuple(tup) for tup in query_string
