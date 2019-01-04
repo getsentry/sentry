@@ -443,22 +443,24 @@ class Release(Model):
                     patch_set = data.get('patch_set', [])
                     for patched_file in patch_set:
                         try:
-                            CommitFileChange.objects.create(
-                                organization_id=self.organization.id,
-                                commit=commit,
-                                filename=patched_file['path'],
-                                type=patched_file['type'],
-                            )
+                            with transaction.atomic():
+                                CommitFileChange.objects.create(
+                                    organization_id=self.organization.id,
+                                    commit=commit,
+                                    filename=patched_file['path'],
+                                    type=patched_file['type'],
+                                )
                         except IntegrityError:
                             pass
 
                     try:
-                        ReleaseCommit.objects.create(
-                            organization_id=self.organization_id,
-                            release=self,
-                            commit=commit,
-                            order=idx,
-                        )
+                        with transaction.atomic():
+                            ReleaseCommit.objects.create(
+                                organization_id=self.organization_id,
+                                release=self,
+                                commit=commit,
+                                order=idx,
+                            )
                     except IntegrityError:
                         pass
 
