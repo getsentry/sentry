@@ -1,4 +1,3 @@
-import DocumentTitle from 'react-document-title';
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'react-emotion';
@@ -11,11 +10,11 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import withOrganization from 'app/utils/withOrganization';
 import space from 'app/styles/space';
+import AsyncView from 'app/views/asyncView';
 
 import ReleaseHeader from '../shared/releaseHeader';
-import {getRelease} from '../shared/utils';
 
-class OrganizationReleaseDetails extends React.Component {
+class OrganizationReleaseDetails extends AsyncView {
   static propTypes = {
     organization: SentryTypes.Organization,
   };
@@ -24,23 +23,10 @@ class OrganizationReleaseDetails extends React.Component {
     release: PropTypes.object,
   };
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      release: null,
-      loading: true,
-      error: false,
-    };
-  }
-
   getChildContext() {
     return {
       release: this.state.release,
     };
-  }
-
-  componentDidMount() {
-    this.fetchData();
   }
 
   getTitle() {
@@ -48,34 +34,20 @@ class OrganizationReleaseDetails extends React.Component {
     return `Release ${version} | ${organization.slug}`;
   }
 
-  fetchData() {
-    this.setState({
-      loading: true,
-      error: false,
-    });
-
+  getEndpoints() {
     const {orgId, version} = this.props.params;
-
-    getRelease(orgId, version)
-      .then(release => {
-        this.setState({loading: false, release});
-      })
-      .catch(() => {
-        this.setState({loading: false, error: true});
-      });
+    return [
+      ['release', `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`],
+    ];
   }
 
   renderNoAccess() {
-    return (
-      <Content>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </Content>
-    );
+    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
   }
 
-  renderContent() {
+  renderBody() {
     const release = this.state.release;
-    const {orgId, projectId} = this.props.params;
+    const {orgId} = this.props.params;
 
     if (this.state.loading) return <LoadingIndicator />;
     if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
@@ -87,18 +59,13 @@ class OrganizationReleaseDetails extends React.Component {
           organization={this.props.organization}
           renderDisabled={this.renderNoAccess}
         >
-          <ReleaseHeader release={release} orgId={orgId} projectId={projectId} />
-          {/*React.cloneElement(this.props.children, {
-          release,
-          environment: this.props.environment,
-        })*/}
+          <ReleaseHeader release={release} orgId={orgId} />
+          {React.cloneElement(this.props.children, {
+            release,
+          })}
         </Feature>
       </Content>
     );
-  }
-
-  render() {
-    return <DocumentTitle title={this.getTitle()}>{this.renderContent()}</DocumentTitle>;
   }
 }
 

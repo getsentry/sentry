@@ -268,6 +268,41 @@ describe('Utils', function() {
       ];
       expect(getChartDataByDay(raw, query, {assumeNullAsZero: true})).toEqual(expected);
     });
+
+    it('shows only top 10 series by default', function() {
+      expect(
+        getChartDataByDay(
+          [
+            ...raw,
+            ...[...new Array(10)].map(() => ({
+              'error.type': 'Exeption',
+              platform: `${Math.random()}`,
+              count: 10,
+              time: 1532070000,
+            })),
+          ],
+          query
+        )
+      ).toHaveLength(10);
+    });
+
+    it('shows all series', function() {
+      expect(
+        getChartDataByDay(
+          [
+            ...raw,
+            ...[...new Array(10)].map(() => ({
+              'error.type': 'Exeption',
+              platform: `${Math.random()}`,
+              count: 10,
+              time: 1532070000,
+            })),
+          ],
+          query,
+          {allSeries: true}
+        )
+      ).toHaveLength(14);
+    });
   });
 
   it('getDisplayValue()', function() {

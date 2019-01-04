@@ -798,9 +798,15 @@ function routes() {
           <Route
             path="/organizations/:orgId/releases/:version/"
             componentPromise={() =>
-              import(/* webpackChunkName: "OrganizationReleasesDetail" */ './views/releases/detail/organization')}
+              import(/*webpackChunkName: "OrganizationReleaseDetail"*/ './views/releases/detail/organization')}
             component={errorHandler(LazyLoad)}
-          />
+          >
+            <IndexRoute
+              componentPromise={() =>
+                import(/*webpackChunkName:"OrganizationReleaseOverview"*/ './views/releases/detail/organization/releaseOverview')}
+              component={errorHandler(LazyLoad)}
+            />
+          </Route>
 
           <Route
             path="/organizations/:orgId/teams/new/"
@@ -893,19 +899,19 @@ function routes() {
           <Route
             path="releases/:version/"
             componentPromise={() =>
-              import(/* webpackChunkName: "ReleaseDetails" */ './views/releases/detail/project')}
+              import(/*webpackChunkName:"ProjectReleaseDetails"*/ './views/releases/detail/project')}
             component={errorHandler(LazyLoad)}
           >
             <IndexRoute
               componentPromise={() =>
-                import(/* webpackChunkName: "ReleaseOverview" */ './views/releases/detail/project/releaseOverview')}
+                import(/*webpackChunkName:"ProjectReleaseOverview"*/ './views/releases/detail/project/releaseOverview')}
               component={errorHandler(LazyLoad)}
             />
 
             <Route
               path="new-events/"
               componentPromise={() =>
-                import(/* webpackChunkName: "ReleaseNewEvents" */ './views/releases/detail/project/releaseNewEvents')}
+                import(/*webpackChunkName:"ProjectReleaseNewEvents"*/ './views/releases/detail/project/releaseNewEvents')}
               component={errorHandler(LazyLoad)}
             />
 
