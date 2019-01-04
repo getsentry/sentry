@@ -65,6 +65,8 @@ class Sidebar extends React.Component {
       router.listen(() => {
         $('.tooltip').tooltip('hide');
       });
+
+    this.doCollapse(this.props.collapsed);
   }
 
   componentWillReceiveProps(nextProps) {
