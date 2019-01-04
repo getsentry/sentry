@@ -38,6 +38,8 @@ export function getChartData(data, query) {
  * Returns time series data formatted for line and bar charts, with each day
  * along the x-axis
  *
+ * TODO(billy): Investigate making `useTimestamps` the default behavior and remove the option
+ *
  * @param {Array} data Data returned from Snuba
  * @param {Object} query Query state corresponding to data
  * @param {Object} [options] Options object
