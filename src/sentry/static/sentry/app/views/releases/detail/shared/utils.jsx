@@ -17,22 +17,3 @@ export function deleteRelease(orgId, version) {
     }
   );
 }
-
-/**
- * Get release version
- *
- * @param {String} orgId Organization slug
- * @param {String} version Version
- * @param {Object} query Query params
- * @returns {Promise}
- */
-export function getRelease(orgId, version, query = {}) {
-  const api = new Client();
-
-  return api.requestPromise(
-    `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`,
-    {
-      query,
-    }
-  );
-}

@@ -30,7 +30,7 @@ export default class ReleaseHeader extends React.Component {
 
     const releasePath = projectId
       ? `/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}`
-      : `/organizations/releases/${encodeURIComponent(release.version)}`;
+      : `/organizations/${orgId}/releases/${encodeURIComponent(release.version)}`;
 
     return (
       <div className="release-details">
