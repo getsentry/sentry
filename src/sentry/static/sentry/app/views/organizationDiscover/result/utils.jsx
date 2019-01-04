@@ -41,16 +41,18 @@ export function getChartData(data, query, options = {}) {
     return {
       seriesName: aggregation[2],
       data: data.map(res => {
-        return {
+        const obj = {
           value: res[aggregation[2]],
-          percentage:
-            options.includePercentages && total
-              ? Math.round(res[aggregation[2]] / total * 10000) / 100
-              : undefined,
           name: fields
             .map(field => `${options.hideFieldName ? '' : `${field} `}${res[field]}`)
             .join(options.separator || ' '),
         };
+
+        if (options.includePercentages && total) {
+          obj.percentage = Math.round(res[aggregation[2]] / total * 10000) / 100;
+        }
+
+        return obj;
       }),
     };
   });
