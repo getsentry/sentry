@@ -38,11 +38,15 @@ export function getChartData(data, query) {
  * Returns time series data formatted for line and bar charts, with each day
  * along the x-axis
  *
+ * TODO(billy): Investigate making `useTimestamps` the default behavior and remove the option
+ *
  * @param {Array} data Data returned from Snuba
  * @param {Object} query Query state corresponding to data
+ * @param {Object} [options] Options object
+ * @param {Boolean} [options.useTimestamps] (default: false) Return raw timestamps instead of formatting dates
  * @returns {Array}
  */
-export function getChartDataByDay(rawData, query) {
+export function getChartDataByDay(rawData, query, options = {}) {
   // We only chart the first aggregation for now
   const aggregate = query.aggregations[0][2];
 
@@ -53,7 +57,9 @@ export function getChartDataByDay(rawData, query) {
 
   // Reverse to get ascending dates - we request descending to ensure latest
   // day data is compplete in the case of limits being hit
-  const dates = [...new Set(rawData.map(entry => formatDate(entry.time)))].reverse();
+  const dates = [
+    ...new Set(rawData.map(entry => formatDate(entry.time, !options.useTimestamps))),
+  ].reverse();
 
   // Temporarily store series as object with series names as keys
   const seriesHash = getEmptySeriesHash(top10Series, dates);
@@ -62,7 +68,7 @@ export function getChartDataByDay(rawData, query) {
   data.forEach(row => {
     const key = row[CHART_KEY];
 
-    const dateIdx = dates.indexOf(formatDate(row.time));
+    const dateIdx = dates.indexOf(formatDate(row.time, !options.useTimestamps));
 
     if (top10Series.has(key)) {
       seriesHash[key][dateIdx].value = row[aggregate];
@@ -143,8 +149,14 @@ function getDataWithKeys(data, query) {
   });
 }
 
-function formatDate(datetime) {
-  return moment.utc(datetime * 1000).format('MMM Do');
+function formatDate(datetime, enabled = true) {
+  const timestamp = datetime * 1000;
+
+  if (!enabled) {
+    return timestamp;
+  }
+
+  return moment.utc(timestamp).format('MMM Do');
 }
 
 // Converts a value to a string for the chart label. This could
