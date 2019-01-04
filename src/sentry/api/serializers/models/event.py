@@ -35,6 +35,7 @@ def get_crash_files(events):
     return rv
 
 
+@register(SnubaEvent)
 @register(Event)
 class EventSerializer(Serializer):
     _reserved_keys = frozenset(

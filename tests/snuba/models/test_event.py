@@ -6,6 +6,7 @@ import requests
 
 from django.conf import settings
 
+from sentry.api.serializers import serialize
 from sentry.models.event import Event, SnubaEvent
 from sentry.testutils import SnubaTestCase
 from sentry import nodestore
@@ -87,3 +88,9 @@ class SnubaEventTest(SnubaTestCase):
         assert django_event.platform == snuba_event.platform
 
         assert django_event.as_dict() == snuba_event.as_dict()
+
+        django_serialized = serialize(django_event)
+        snuba_serialized = serialize(snuba_event)
+        del django_serialized['id']
+        del snuba_serialized['id']
+        assert django_serialized == snuba_serialized
