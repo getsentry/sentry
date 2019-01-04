@@ -90,7 +90,7 @@ class GlobalSelectionHeader extends React.Component {
 
     if (defined(project) && Array.isArray(project)) {
       project = project.map(p => parseInt(p, 10));
-    } else if (defined(project)) {
+    } else {
       const projectIdInt = parseInt(project, 10);
       project = isNaN(projectIdInt) ? [] : [projectIdInt];
     }
