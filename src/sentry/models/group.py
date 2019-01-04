@@ -149,6 +149,21 @@ class GroupManager(BaseManager):
 
         return Group.objects.get(id=group_id)
 
+    def filter_by_event_id(self, project_ids, event_id):
+        from sentry.models import EventMapping, Event
+        group_ids = set()
+        # see above for explanation as to why we're
+        # looking at both Event and EventMapping
+        for model in Event, EventMapping:
+            group_ids.update(
+                model.objects.filter(
+                    project_id__in=project_ids,
+                    event_id=event_id,
+                ).values_list('group_id', flat=True)
+            )
+
+        return Group.objects.filter(id__in=group_ids)
+
     def add_tags(self, group, environment, tags):
         project_id = group.project_id
         date = group.last_seen

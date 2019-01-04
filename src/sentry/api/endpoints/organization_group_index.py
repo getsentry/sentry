@@ -8,14 +8,11 @@ from django.conf import settings
 from rest_framework.response import Response
 
 from sentry.api.bases import OrganizationEventsEndpointBase
+from sentry.api.helpers.group_search import build_query_params_from_request, get_by_short_id, ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
-from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.models import Environment, Group, GroupStatus, Project
-from sentry.models.group import looks_like_short_id
 from sentry.search.snuba.backend import SnubaSearchBackend
-from sentry.search.utils import InvalidQuery, parse_query
-from sentry.utils.cursors import Cursor
 
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
@@ -24,44 +21,16 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 search = SnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 
-class ValidationError(Exception):
-    pass
-
-
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
     def _build_query_params_from_request(self, request, organization):
         # TODO(jess): handle No projects
-        projects = list(Project.objects.filter(id__in=self.get_project_ids(request, organization)))
-
-        query_kwargs = {
-            'projects': projects,
-            'sort_by': request.GET.get('sort', DEFAULT_SORT_OPTION),
-        }
-
-        limit = request.GET.get('limit')
-        if limit:
-            try:
-                query_kwargs['limit'] = int(limit)
-            except ValueError:
-                raise ValidationError('invalid limit')
-
-        # TODO: proper pagination support
-        cursor = request.GET.get('cursor')
-        if cursor:
-            query_kwargs['cursor'] = Cursor.from_string(cursor)
-
-        query = request.GET.get('query', 'is:unresolved').strip()
-        if query:
-            try:
-                query_kwargs.update(parse_query(projects, query, request.user))
-            except InvalidQuery as e:
-                raise ValidationError(
-                    u'Your search query could not be parsed: {}'.format(
-                        e.message)
-                )
-
-        return query_kwargs
+        projects = list(
+            Project.objects.filter(
+                id__in=self.get_project_ids(request, organization),
+            )
+        )
+        return build_query_params_from_request(request, projects)
 
     def _search(self, request, organization, environments, extra_query_kwargs=None):
         query_kwargs = self._build_query_params_from_request(request, organization)
@@ -127,40 +96,23 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         query = request.GET.get('query', '').strip()
         if query:
-            matching_group = None
-            # TODO(jess): How should we handle event id searches since we don't have project?
-            # matching_event = None
-            # if len(query) == 32:
-            #     # check to see if we've got an event ID
-            #     try:
-            #         matching_group = Group.objects.from_event_id(project, query)
-            #     except Group.DoesNotExist:
-            #         pass
-            #     else:
-            #         try:
-            #             matching_event = Event.objects.get(
-            #                 event_id=query, project_id=project.id)
-            #         except Event.DoesNotExist:
-            #             pass
-            #         else:
-            #             Event.objects.bind_nodes([matching_event], 'data')
-
-            # If the query looks like a short id, we want to provide some
-            # information about where that is.  Note that this can return
-            # results for another project.  The UI deals with this.
-            if request.GET.get('shortIdLookup') == '1' and \
-                    looks_like_short_id(query):
-                try:
-                    matching_group = Group.objects.by_qualified_short_id(
-                        organization.id, query
+            # check to see if we've got an event ID
+            if len(query) == 32:
+                groups = list(
+                    Group.objects.filter_by_event_id(
+                        self.get_project_ids(request, organization),
+                        query,
                     )
-                except Group.DoesNotExist:
-                    matching_group = None
+                )
 
-            if matching_group is not None:
+                if groups:
+                    return Response(serialize(groups, request.user, serializer()))
+
+            group = get_by_short_id(organization.id, request.GET.get('shortIdLookup'), query)
+            if group is not None:
                 response = Response(
                     serialize(
-                        [matching_group], request.user, serializer()
+                        [group], request.user, serializer()
                     )
                 )
                 response['X-Sentry-Direct-Hit'] = '1'

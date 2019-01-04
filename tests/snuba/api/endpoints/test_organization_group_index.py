@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse
 from django.utils import timezone
 from exam import fixture
 
-from sentry.models import ApiToken, GroupStatus, Release
+from sentry.models import ApiToken, Event, EventMapping, GroupStatus, Release
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from six.moves.urllib.parse import quote
@@ -100,39 +100,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert links['previous']['results'] == 'true'
         assert links['next']['results'] == 'false'
 
-        # TODO(dcramer): not working correctly
-        # print(links['previous']['cursor'])
-        # response = self.client.get(links['previous']['href'], format='json')
-        # assert response.status_code == 200
-        # assert len(response.data) == 1
-        # assert response.data[0]['id'] == six.text_type(group2.id)
-
-        # links = self._parse_links(response['Link'])
-
-        # assert links['previous']['results'] == 'false'
-        # assert links['next']['results'] == 'true'
-
-        # print(links['previous']['cursor'])
-        # response = self.client.get(links['previous']['href'], format='json')
-        # assert response.status_code == 200
-        # assert len(response.data) == 0
-
-        # group3 = self.create_group(
-        #     checksum='c' * 32,
-        #     last_seen=now + timedelta(seconds=1),
-        # )
-
-        # links = self._parse_links(response['Link'])
-
-        # assert links['previous']['results'] == 'false'
-        # assert links['next']['results'] == 'true'
-
-        # print(links['previous']['cursor'])
-        # response = self.client.get(links['previous']['href'], format='json')
-        # assert response.status_code == 200
-        # assert len(response.data) == 1
-        # assert response.data[0]['id'] == six.text_type(group3.id)
-
     def test_stats_period(self):
         # TODO(dcramer): this test really only checks if validation happens
         # on statsPeriod
@@ -193,80 +160,55 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     # TODO(jess): figure out how these all should work with multi project
 
-    # def test_lookup_by_event_id(self):
-    #     project = self.project
-    #     project.update_option('sentry:resolve_age', 1)
-    #     group = self.create_group(checksum='a' * 32)
-    #     self.create_group(checksum='b' * 32)
-    #     event_id = 'c' * 32
-    #     event = Event.objects.create(project_id=self.project.id, event_id=event_id)
-    #     EventMapping.objects.create(
-    #         event_id=event_id,
-    #         project=group.project,
-    #         group=group,
-    #     )
+    def test_lookup_by_event_id(self):
+        project = self.project
+        project.update_option('sentry:resolve_age', 1)
+        group = self.create_group(checksum='a' * 32)
+        self.create_group(checksum='b' * 32)
+        event_id = 'c' * 32
+        Event.objects.create(project_id=self.project.id, event_id=event_id)
+        EventMapping.objects.create(
+            event_id=event_id,
+            project=group.project,
+            group=group,
+        )
 
-    #     self.login_as(user=self.user)
+        self.login_as(user=self.user)
 
-    #     response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
-    #     assert response.status_code == 200
-    #     assert len(response.data) == 1
-    #     assert response.data[0]['id'] == six.text_type(group.id)
-    #     assert response.data[0]['matchingEventId'] == event.id
+        response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(group.id)
 
-    # def test_lookup_by_event_with_matching_environment(self):
-    #     project = self.project
-    #     project.update_option('sentry:resolve_age', 1)
-    #     self.create_environment(name="test", project=project)
-    #     group = self.create_group(checksum='a' * 32)
-    #     self.create_group(checksum='b' * 32)
-    #     event_id = 'c' * 32
-    #     event = self.create_event(
-    #         project_id=self.project.id,
-    #         group=group,
-    #         event_id=event_id,
-    #         tags={
-    #             'environment': 'test'})
-    #     self.login_as(user=self.user)
+    def test_lookup_by_event_id_with_whitespace(self):
+        project = self.project
+        project.update_option('sentry:resolve_age', 1)
+        group = self.create_group(checksum='a' * 32)
+        self.create_group(checksum='b' * 32)
+        EventMapping.objects.create(
+            event_id='c' * 32,
+            project=group.project,
+            group=group,
+        )
 
-    #     response = self.client.get(
-    #         u'{}?query={}&environment=test'.format(
-    #             self.path, 'c' * 32), format='json')
-    #     assert response.status_code == 200
-    #     assert len(response.data) == 1
-    #     assert response.data[0]['id'] == six.text_type(group.id)
-    #     assert response.data[0]['matchingEventId'] == event.id
-    #     assert response.data[0]['matchingEventEnvironment'] == 'test'
+        self.login_as(user=self.user)
+        response = self.client.get(
+            u'{}?query=%20%20{}%20%20'.format(self.path, 'c' * 32), format='json'
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(group.id)
 
-    # def test_lookup_by_event_id_with_whitespace(self):
-    #     project = self.project
-    #     project.update_option('sentry:resolve_age', 1)
-    #     group = self.create_group(checksum='a' * 32)
-    #     self.create_group(checksum='b' * 32)
-    #     EventMapping.objects.create(
-    #         event_id='c' * 32,
-    #         project=group.project,
-    #         group=group,
-    #     )
+    def test_lookup_by_unknown_event_id(self):
+        project = self.project
+        project.update_option('sentry:resolve_age', 1)
+        self.create_group(checksum='a' * 32)
+        self.create_group(checksum='b' * 32)
 
-    #     self.login_as(user=self.user)
-    #     response = self.client.get(
-    #         u'{}?query=%20%20{}%20%20'.format(self.path, 'c' * 32), format='json'
-    #     )
-    #     assert response.status_code == 200
-    #     assert len(response.data) == 1
-    #     assert response.data[0]['id'] == six.text_type(group.id)
-
-    # def test_lookup_by_unknown_event_id(self):
-    #     project = self.project
-    #     project.update_option('sentry:resolve_age', 1)
-    #     self.create_group(checksum='a' * 32)
-    #     self.create_group(checksum='b' * 32)
-
-    #     self.login_as(user=self.user)
-    #     response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
-    #     assert response.status_code == 200
-    #     assert len(response.data) == 0
+        self.login_as(user=self.user)
+        response = self.client.get(u'{}?query={}'.format(self.path, 'c' * 32), format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
     def test_lookup_by_first_release(self):
         self.login_as(self.user)

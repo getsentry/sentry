@@ -15,11 +15,11 @@ from sentry import analytics, eventstream, features, search
 from sentry.api.base import DocSection, EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import ActorField, Actor
+from sentry.api.helpers.group_search import build_query_params_from_request, get_by_short_id, ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.group import (
     SUBSCRIPTION_REASON_MAP, StreamGroupSerializer)
-from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, Commit, Environment, Group, GroupAssignee, GroupBookmark, GroupLink, GroupHash, GroupResolution,
@@ -27,16 +27,14 @@ from sentry.models import (
     GroupTombstone, Release, Repository, TOMBSTONE_FIELDS_FROM_GROUP, UserOption, User, Team
 )
 from sentry.models.event import Event
-from sentry.models.group import looks_like_short_id
 from sentry.receivers import DEFAULT_SAVED_SEARCHES
-from sentry.search.utils import InvalidQuery, parse_query
 from sentry.signals import advanced_search, issue_ignored, issue_resolved_in_release, issue_deleted, resolved_with_commit
 from sentry.tasks.deletion import delete_groups
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.utils import metrics
 from sentry.utils.apidocs import attach_scenarios, scenario
-from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.cursors import CursorResult
 from sentry.utils.functional import extract_lazy_object
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -88,10 +86,6 @@ STATUS_CHOICES = {
     # TODO(dcramer): remove in 9.0
     'muted': GroupStatus.IGNORED,
 }
-
-
-class ValidationError(Exception):
-    pass
 
 
 class InCommitValidator(serializers.Serializer):
@@ -242,34 +236,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectEventPermission, )
 
     def _build_query_params_from_request(self, request, project):
-        query_kwargs = {
-            'projects': [project],
-            'sort_by': request.GET.get('sort', DEFAULT_SORT_OPTION),
-        }
-
-        limit = request.GET.get('limit')
-        if limit:
-            try:
-                query_kwargs['limit'] = int(limit)
-            except ValueError:
-                raise ValidationError('invalid limit')
-
-        # TODO: proper pagination support
-        cursor = request.GET.get('cursor')
-        if cursor:
-            query_kwargs['cursor'] = Cursor.from_string(cursor)
-
-        query = request.GET.get('query', 'is:unresolved').strip()
-        if query:
-            try:
-                query_kwargs.update(parse_query([project], query, request.user))
-            except InvalidQuery as e:
-                raise ValidationError(
-                    u'Your search query could not be parsed: {}'.format(
-                        e.message)
-                )
-
-        return query_kwargs
+        return build_query_params_from_request(request, [project])
 
     def _search(self, request, project, extra_query_kwargs=None):
         query_kwargs = self._build_query_params_from_request(request, project)
@@ -373,18 +340,14 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                         pass
                     else:
                         Event.objects.bind_nodes([matching_event], 'data')
-
-            elif request.GET.get('shortIdLookup') == '1' and \
-                    looks_like_short_id(query):
-                try:
-                    matching_group = Group.objects.by_qualified_short_id(
-                        project.organization_id, query
-                    )
-                except Group.DoesNotExist:
+            elif matching_group is None:
+                matching_group = get_by_short_id(
+                    project.organization_id,
+                    request.GET.get('shortIdLookup'),
+                    query,
+                )
+                if matching_group is not None and matching_group.project_id != project.id:
                     matching_group = None
-                else:
-                    if matching_group.project_id != project.id:
-                        matching_group = None
 
             if matching_group is not None:
                 matching_event_environment = None
