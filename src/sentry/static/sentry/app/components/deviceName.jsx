@@ -16,7 +16,7 @@ export function deviceNameMapper(model, iOSDeviceList) {
 }
 
 export async function loadDeviceListModule() {
-  return import(/*webpackChunkName: "iOSDeviceList"*/ 'ios-device-list');
+  return import(/* webpackChunkName: "iOSDeviceList" */ 'ios-device-list');
 }
 
 export async function getDeviceName(model) {
