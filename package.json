@@ -1,6 +1,7 @@
 {
   "name": "Sentry",
   "version": "0.0.0",
+  "private": true,
   "repository": {
     "type": "git",
     "url": "git://github.com/getsentry/sentry.git"
@@ -93,68 +94,6 @@
     "webpack-cli": "^3.1.2",
     "zxcvbn": "^4.4.2"
   },
-  "private": true,
-  "APIMethod": "stub",
-  "proxyURL": "http://localhost:8000",
-  "scripts": {
-    "test": "node scripts/test.js",
-    "test-precommit": "yarn test --findRelatedTests --bail",
-    "test-ci": "yarn test --runInBand --ci --coverage --testResultsProcessor=jest-junit",
-    "test-debug": "node --inspect-brk scripts/test.js --runInBand",
-    "test-staged": "yarn test --findRelatedTests $(git diff --name-only --cached)",
-    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .js,.jsx",
-    "lint:css": "stylelint 'src/sentry/static/sentry/app/**/*.jsx'",
-    "dev-proxy": "node scripts/devproxy.js",
-    "dev-server": "webpack-dev-server",
-    "storybook": "start-storybook -p 9001 -c .storybook",
-    "storybook-build": "build-storybook -c .storybook -o .storybook-out",
-    "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=1280",
-    "webpack-profile": "yarn -s webpack --profile --json > stats.json"
-  },
-  "jest": {
-    "verbose": false,
-    "collectCoverageFrom": [
-      "tests/js/spec/**/*.{js,jsx}",
-      "src/sentry/static/sentry/app/**/*.{js,jsx}"
-    ],
-    "coverageReporters": [
-      "html",
-      "lcov",
-      "cobertura"
-    ],
-    "coverageDirectory": ".artifacts/coverage/",
-    "snapshotSerializers": [
-      "enzyme-to-json/serializer"
-    ],
-    "moduleNameMapper": {
-      "^app-test/(.*)": "<rootDir>/tests/js/$1",
-      "^app-test-helpers(.*)": "<rootDir>/tests/js/helpers$1",
-      "\\.(css|less|png)$": "<rootDir>/tests/js/helpers/importStyleMock.js",
-      "\\.(svg)$": "<rootDir>/tests/js/helpers/svgMock.js",
-      "jquery": "<rootDir>/src/sentry/static/sentry/__mocks__/jquery.jsx",
-      "integration-docs-platforms": "<rootDir>/tests/fixtures/integration-docs/_platforms.json"
-    },
-    "modulePaths": [
-      "<rootDir>/src/sentry/static/sentry"
-    ],
-    "setupFiles": [
-      "<rootDir>/tests/js/setup.js"
-    ],
-    "setupTestFrameworkScriptFile": "<rootDir>/tests/js/setupFramework.js",
-    "testMatch": [
-      "<rootDir>/tests/js/**/?(*.)(spec|test).js?(x)"
-    ],
-    "testPathIgnorePatterns": [
-      "<rootDir>/tests/sentry/lang/javascript/"
-    ],
-    "unmockedModulePathPatterns": [
-      "<rootDir>/node_modules/react",
-      "<rootDir>/node_modules/reflux"
-    ]
-  },
-  "jest-junit": {
-    "output": ".artifacts/jest.junit.xml"
-  },
   "devDependencies": {
     "@storybook/addon-a11y": "^4.1.3",
     "@storybook/addon-actions": "^4.1.3",
@@ -188,5 +127,22 @@
   },
   "optionalDependencies": {
     "fsevents": "^1.1.2"
+  },
+  "APIMethod": "stub",
+  "proxyURL": "http://localhost:8000",
+  "scripts": {
+    "test": "node scripts/test.js",
+    "test-precommit": "yarn test --findRelatedTests --bail",
+    "test-ci": "JEST_JUNIT_OUTPUT=.artifacts/jest.junit.xml yarn test --runInBand --ci --coverage --testResultsProcessor=jest-junit",
+    "test-debug": "node --inspect-brk scripts/test.js --runInBand",
+    "test-staged": "yarn test --findRelatedTests $(git diff --name-only --cached)",
+    "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .js,.jsx",
+    "lint:css": "stylelint 'src/sentry/static/sentry/app/**/*.jsx'",
+    "dev-proxy": "node scripts/devproxy.js",
+    "dev-server": "webpack-dev-server",
+    "storybook": "start-storybook -p 9001 -c .storybook",
+    "storybook-build": "build-storybook -c .storybook -o .storybook-out",
+    "snapshot": "build-storybook && PERCY_TOKEN=$STORYBOOK_PERCY_TOKEN PERCY_PROJECT=$STORYBOOK_PERCY_PROJECT percy-storybook --widths=1280",
+    "webpack-profile": "yarn -s webpack --profile --json > stats.json"
   }
 }
