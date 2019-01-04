@@ -105,7 +105,7 @@ requested or loaded. When either the <code>style-src</code> or the
 unless you specify 'unsafe-inline'.`
   ),
   'style-src-elem': t(
-    `The <code>style-src-elem</code> directive applies to all style except
+    `The <code>style-src-elem</code> directive applies to all styles except
     those defined in inline attributes.`
   ),
   'style-src-attr': t(
