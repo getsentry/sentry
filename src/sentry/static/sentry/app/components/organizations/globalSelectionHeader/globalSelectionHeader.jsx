@@ -90,7 +90,7 @@ class GlobalSelectionHeader extends React.Component {
 
     if (defined(project) && Array.isArray(project)) {
       project = project.map(p => parseInt(p, 10));
-    } else {
+    } else if (defined(project)) {
       const projectIdInt = parseInt(project, 10);
       project = isNaN(projectIdInt) ? [] : [projectIdInt];
     }
@@ -134,8 +134,10 @@ class GlobalSelectionHeader extends React.Component {
 
       // This will update store with values from URL parameters
       updateDateTime({start, end, period, utc});
-      updateEnvironments(environment);
-      updateProjects(project);
+
+      // environment/project here can be null i.e. if only period is set in url params
+      updateEnvironments(environment || []);
+      updateProjects(project || []);
     } else {
       // Otherwise, we can update URL with values from store
       //
