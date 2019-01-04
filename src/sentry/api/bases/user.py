@@ -20,7 +20,7 @@ class UserPermission(SentryPermission):
         return False
 
 
-class RelaxedUserPermission(UserPermission):
+class OrganizationUserPermission(UserPermission):
     scope_map = {
         'DELETE': ['member:admin'],
     }
@@ -45,7 +45,7 @@ class RelaxedUserPermission(UserPermission):
             return False
 
     def has_object_permission(self, request, view, user=None):
-        if super(RelaxedUserPermission, self).has_object_permission(request, view, user):
+        if super(OrganizationUserPermission, self).has_object_permission(request, view, user):
             return True
         return self.has_org_permission(request, user)
 

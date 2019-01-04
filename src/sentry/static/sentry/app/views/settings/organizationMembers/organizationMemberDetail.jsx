@@ -14,6 +14,7 @@ import Field from 'app/views/settings/components/forms/field';
 import IndicatorStore from 'app/stores/indicatorStore';
 import NotFound from 'app/components/errors/notFound';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
+import {removeAuthenticator} from 'app/actionCreators/account';
 import SentryTypes from 'app/sentryTypes';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import Tooltip from 'app/components/tooltip';
@@ -155,21 +156,12 @@ class OrganizationMemberDetail extends AsyncView {
     });
   };
 
-  removeAuthenticator = (userId, authId) => {
-    let endpoint = `/users/${userId}/authenticators/${authId}/`;
-
-    return this.api.requestPromise(endpoint, {
-      method: 'DELETE',
-    });
-  };
-
   handle2faReset = () => {
-    let {member} = this.state;
+    let {user} = this.state.member;
     let {slug} = this.getOrganization();
 
-    let user = member.user;
     let requests = user.authenticators.map(auth =>
-      this.removeAuthenticator(user.id, auth.id)
+      removeAuthenticator(this.api, user.id, auth.id)
     );
 
     Promise.all(requests)
@@ -341,7 +333,7 @@ class OrganizationMemberDetail extends AsyncView {
                       onConfirm={this.handle2faReset}
                       data-test-id="reset-2fa-confirm"
                     >
-                      <Button data-test-id="reset-2fa">
+                      <Button data-test-id="reset-2fa" priority="danger">
                         {t('Reset two-factor authentication')}
                       </Button>
                     </Confirm>
