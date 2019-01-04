@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from 'react-emotion';
 import {browserHistory} from 'react-router';
 
 import SentryTypes from 'app/sentryTypes';
@@ -17,7 +16,7 @@ import AsyncView from 'app/views/asyncView';
 
 import withOrganization from 'app/utils/withOrganization';
 
-import space from 'app/styles/space';
+import {PageContent, PageHeader, HeaderTitle} from 'app/styles/organization';
 
 import ReleaseList from '../shared/releaseList';
 import ReleaseListHeader from '../shared/releaseListHeader';
@@ -81,9 +80,9 @@ class OrganizationReleases extends AsyncView {
 
   renderNoAccess() {
     return (
-      <Content>
+      <PageContent>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </Content>
+      </PageContent>
     );
   }
 
@@ -101,8 +100,8 @@ class OrganizationReleases extends AsyncView {
         renderDisabled={this.renderNoAccess}
       >
         <GlobalSelectionHeader organization={organization} />
-        <Content>
-          <Header>
+        <PageContent>
+          <PageHeader>
             <HeaderTitle>{t('Releases')}</HeaderTitle>
             <div>
               <SearchBar
@@ -112,45 +111,18 @@ class OrganizationReleases extends AsyncView {
                 onSearch={this.onSearch}
               />
             </div>
-          </Header>
-          <Body>
+          </PageHeader>
+          <div>
             <Panel>
               <ReleaseListHeader />
               <PanelBody>{this.renderStreamBody()}</PanelBody>
             </Panel>
             <Pagination pageLinks={this.state.releaseListPageLinks} />
-          </Body>
-        </Content>
+          </div>
+        </PageContent>
       </Feature>
     );
   }
 }
-
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-  padding: ${space(2)} ${space(4)} ${space(3)};
-  margin-bottom: -20px; /* <footer> has margin-top: 20px; */
-`;
-
-const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(2)};
-  align-items: center;
-`;
-
-const HeaderTitle = styled('h4')`
-  flex: 1;
-  font-size: ${p => p.theme.headerFontSize};
-  line-height: ${p => p.theme.headerFontSize};
-  font-weight: normal;
-  color: ${p => p.theme.gray4};
-  margin: 0;
-`;
-
-const Body = styled('div')``;
 
 export default withOrganization(OrganizationReleases);

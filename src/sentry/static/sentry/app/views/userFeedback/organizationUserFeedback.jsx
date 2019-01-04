@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from 'react-emotion';
 
 import {t} from 'app/locale';
 import withOrganization from 'app/utils/withOrganization';
@@ -10,9 +9,9 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import CompactIssue from 'app/components/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import space from 'app/styles/space';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import AsyncView from 'app/views/asyncView';
+import {PageContent} from 'app/styles/organization';
 
 import UserFeedbackContainer from './container';
 import {getQuery} from './utils';
@@ -85,9 +84,9 @@ class OrganizationUserFeedback extends AsyncView {
 
   renderNoAccess() {
     return (
-      <Content>
+      <PageContent>
         <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </Content>
+      </PageContent>
     );
   }
 
@@ -126,20 +125,11 @@ class OrganizationUserFeedback extends AsyncView {
         renderDisabled={this.renderNoAccess}
       >
         <GlobalSelectionHeader organization={organization} />
-        <Content>{this.renderStreamBody()}</Content>
+        <PageContent>{this.renderStreamBody()}</PageContent>
       </Feature>
     );
   }
 }
-
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-  padding: ${space(2)} ${space(4)} ${space(3)};
-  margin-bottom: -20px; /* <footer> has margin-top: 20px; */
-`;
 
 export {OrganizationUserFeedback};
 export default withOrganization(OrganizationUserFeedback);
