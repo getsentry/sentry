@@ -303,6 +303,48 @@ describe('Utils', function() {
         )
       ).toHaveLength(14);
     });
+
+    it('maps field value to label', function() {
+      const expected = [
+        {
+          data: [
+            {name: 'Jul 9th', value: 14},
+            {name: 'Jul 10th', value: null},
+            {name: 'Jul 20th', value: 30},
+          ],
+          seriesName: 'SNAKES,SnubaError',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: null},
+            {name: 'Jul 20th', value: 8},
+          ],
+          seriesName: 'PHP,Exception',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: null},
+            {name: 'Jul 20th', value: 5},
+          ],
+          seriesName: 'NOT JAVA,Type Error',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: 20},
+            {name: 'Jul 20th', value: null},
+          ],
+          seriesName: 'SNAKES,ZeroDivisionError',
+        },
+      ];
+      expect(
+        getChartDataByDay(raw, query, {
+          fieldLabelMap: {python: 'SNAKES', php: 'PHP', javascript: 'NOT JAVA'},
+        })
+      ).toEqual(expected);
+    });
   });
 
   it('getDisplayValue()', function() {
