@@ -150,7 +150,6 @@ const globals = {
     Button: require('app/components/button').default,
     mixins: {
       ApiMixin: require('app/mixins/apiMixin').default,
-      TooltipMixin: require('app/mixins/tooltip').default,
     },
     BarChart: require('app/components/barChart').default,
     i18n: il8n,
