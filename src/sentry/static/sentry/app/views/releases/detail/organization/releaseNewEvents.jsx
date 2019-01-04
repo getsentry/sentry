@@ -1,13 +1,13 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {Link} from 'react-router';
 
+import SentryTypes from 'app/sentryTypes';
 import GroupList from 'app/components/groupList';
 import {t} from 'app/locale';
 
 export default class OrganizationReleaseNewEvents extends React.Component {
   static contextTypes = {
-    release: PropTypes.object,
+    release: SentryTypes.Release,
   };
 
   render() {
