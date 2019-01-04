@@ -32,7 +32,6 @@ import ProjectEnvironments from 'app/views/projectEnvironments';
 import ProjectEventRedirect from 'app/views/projectEventRedirect';
 import ProjectTags from 'app/views/projectTags';
 import ProjectChooser from 'app/views/projectChooser';
-import ProjectDashboard from 'app/views/projectDashboard';
 import ProjectDataForwarding from 'app/views/projectDataForwarding';
 import ProjectDebugFiles from 'app/views/projectDebugFiles';
 import ProjectDetails from 'app/views/projectDetails';
@@ -879,7 +878,12 @@ function routes() {
           <Route path="issues/" component={errorHandler(Stream)} />
 
           <Route path="searches/:searchId/" component={errorHandler(Stream)} />
-          <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
+          <Route
+            path="dashboard/"
+            componentPromise={() =>
+              import(/*webpackChunkName: "ProjectDashboard"*/ './views/projectDashboard')}
+            component={errorHandler(LazyLoad)}
+          />
           <Route
             path="releases/"
             componentPromise={() =>
