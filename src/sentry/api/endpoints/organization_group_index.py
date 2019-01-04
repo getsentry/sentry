@@ -23,17 +23,17 @@ search = SnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
-    def _build_query_params_from_request(self, request, organization):
-        # TODO(jess): handle No projects
+    def _build_query_params_from_request(self, request, organization, project_ids):
         projects = list(
             Project.objects.filter(
-                id__in=self.get_project_ids(request, organization),
+                id__in=project_ids,
+                organization=organization,
             )
         )
         return build_query_params_from_request(request, projects)
 
-    def _search(self, request, organization, environments, extra_query_kwargs=None):
-        query_kwargs = self._build_query_params_from_request(request, organization)
+    def _search(self, request, organization, project_ids, environments, extra_query_kwargs=None):
+        query_kwargs = self._build_query_params_from_request(request, organization, project_ids)
         if extra_query_kwargs is not None:
             assert 'environment' not in extra_query_kwargs
             query_kwargs.update(extra_query_kwargs)
@@ -94,13 +94,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             stats_period=stats_period,
         )
 
+        project_ids = self.get_project_ids(request, organization)
+
+        if not project_ids:
+            return Response([])
+
         query = request.GET.get('query', '').strip()
         if query:
             # check to see if we've got an event ID
             if len(query) == 32:
                 groups = list(
                     Group.objects.filter_by_event_id(
-                        self.get_project_ids(request, organization),
+                        project_ids,
                         query,
                     )
                 )
@@ -110,17 +115,19 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
             group = get_by_short_id(organization.id, request.GET.get('shortIdLookup'), query)
             if group is not None:
-                response = Response(
-                    serialize(
-                        [group], request.user, serializer()
+                # check to make sure user has access to project
+                if group.project_id in project_ids:
+                    response = Response(
+                        serialize(
+                            [group], request.user, serializer()
+                        )
                     )
-                )
-                response['X-Sentry-Direct-Hit'] = '1'
-                return response
+                    response['X-Sentry-Direct-Hit'] = '1'
+                    return response
 
         try:
             cursor_result, query_kwargs = self._search(
-                request, organization, environments, {'count_hits': True})
+                request, organization, project_ids, environments, {'count_hits': True})
         except ValidationError as exc:
             return Response({'detail': six.text_type(exc)}, status=400)
 

@@ -216,6 +216,41 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
+    def test_lookup_by_short_id(self):
+        group = self.group
+        short_id = group.qualified_short_id
+
+        self.login_as(user=self.user)
+        response = self.client.get(
+            u'{}?query={}&shortIdLookup=1'.format(
+                self.path, short_id), format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+
+    def test_lookup_by_short_id_no_perms(self):
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        project2 = self.create_project(organization=organization)
+        team = self.create_team(organization=organization)
+        project2.add_team(team)
+        group = self.create_group(project=project)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, teams=[team])
+
+        short_id = group.qualified_short_id
+
+        self.login_as(user=user)
+
+        path = reverse(
+            'sentry-api-0-organization-group-index',
+            args=[organization.slug]
+        )
+        response = self.client.get(
+            u'{}?query={}&shortIdLookup=1'.format(
+                path, short_id), format='json')
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
     def test_lookup_by_first_release(self):
         self.login_as(self.user)
         project = self.project
