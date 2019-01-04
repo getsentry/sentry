@@ -9,7 +9,6 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import CompactIssue from 'app/components/compactIssue';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import space from 'app/styles/space';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import AsyncView from 'app/views/asyncView';
 import {PageContent} from 'app/styles/organization';
