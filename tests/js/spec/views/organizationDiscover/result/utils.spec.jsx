@@ -66,10 +66,6 @@ describe('Utils', function() {
             {value: 10, name: 'project.id 5, environment production'},
           ],
         },
-        {
-          seriesName: 'uniq_id',
-          data: [],
-        },
       ];
 
       expect(getChartData(raw, query, {separator: ', '})).toEqual(expected);
