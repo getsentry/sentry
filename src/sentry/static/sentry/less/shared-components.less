@@ -813,56 +813,6 @@ table.integrations {
 }
 
 /**
-* Auth providers
-* ============================================================================
-*/
-
-.auth-options {
-  .list-unstyled;
-  .clearfix;
-  margin-bottom: 0;
-
-  li {
-    float: left;
-    margin: 0 15px 15px 0;
-  }
-
-  .auth-btn {
-    padding-left: 33px;
-    position: relative;
-
-    .auth-icon {
-      position: absolute;
-      left: 10px;
-      top: 10px;
-      display: block;
-      .square(16px);
-      background-size: cover;
-    }
-
-    &.auth-github .auth-icon {
-      background-image: url(../images/auth-providers/github.ico);
-    }
-
-    &.auth-bitbucket .auth-icon {
-      background-image: url(../images/auth-providers/bitbucket.ico);
-    }
-
-    &.auth-twitter .auth-icon {
-      background-image: url(../images/auth-providers/twitter.ico);
-    }
-
-    &.auth-google .auth-icon {
-      background-image: url(../images/auth-providers/google.ico);
-    }
-
-    &.auth-facebook .auth-icon {
-      background-image: url(../images/auth-providers/facebook.ico);
-    }
-  }
-}
-
-/**
 * Search
 * ============================================================================
 */
@@ -1150,7 +1100,6 @@ table.integrations {
 .innerColumn(@columnSpan: 1) {
   width: ((@gridColumnWidth) * @columnSpan) + (@gridGutterWidth * (@columnSpan - 1)) - 10;
 }
-
 
 /**
 * Faces
