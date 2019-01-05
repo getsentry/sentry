@@ -217,6 +217,41 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
         assert(response.data['data'][0]['project.name']) == 'bar'
         assert(response.data['data'][0]['count']) == 1
 
+    def test_zerofilled_dates_when_rollup_relative(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'aggregations': [['count()', '', 'count']],
+                'fields': ['project.name'],
+                'groupby': ['time'],
+                'orderby': '-time',
+                'range': '5d',
+                'rollup': 86400,
+            })
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 7
+        assert(response.data['data'][6]['project.name']) == 'bar'
+        assert(response.data['data'][6]['count']) == 1
+
+    def test_zerofilled_dates_when_rollup_absolute(self):
+        with self.feature('organizations:discover'):
+            url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])
+            response = self.client.post(url, {
+                'projects': [self.project.id],
+                'aggregations': [['count()', '', 'count']],
+                'fields': ['project.name'],
+                'groupby': ['time'],
+                'orderby': '-time',
+                'start': (datetime.now() - timedelta(seconds=5)).strftime('%Y-%m-%dT%H:%M:%S'),
+                'end': (datetime.now()).strftime('%Y-%m-%dT%H:%M:%S'),
+                'rollup': 1,
+            })
+        assert response.status_code == 200, response.content
+        assert len(response.data['data']) == 7
+        assert(response.data['data'][6]['project.name']) == 'bar'
+        assert(response.data['data'][6]['count']) == 1
+
     def test_uniq_project_name(self):
         with self.feature('organizations:discover'):
             url = reverse('sentry-api-0-organization-discover-query', args=[self.org.slug])

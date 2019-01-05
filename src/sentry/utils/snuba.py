@@ -216,6 +216,38 @@ _snuba_pool = connection_from_url(
 )
 
 
+epoch_naive = datetime(1970, 1, 1, tzinfo=None)
+
+
+def to_naive_timestamp(value):
+    """
+    Convert a time zone aware datetime to a POSIX timestamp (with fractional
+    component.)
+    """
+    return (value - epoch_naive).total_seconds()
+
+
+def zerofill(data, start, end, rollup):
+    rv = []
+    start = ((int(to_naive_timestamp(naiveify_datetime(start))) / rollup) * rollup) - rollup
+    end = ((int(to_naive_timestamp(naiveify_datetime(end))) / rollup) * rollup) + rollup
+    data_by_time = {}
+    for obj in data:
+        if obj['time'] in data_by_time:
+            data_by_time[obj['time']].append(obj)
+        else:
+            data_by_time[obj['time']] = [obj]
+
+    for key in six.moves.xrange(start, end, rollup):
+        if key in data_by_time and len(data_by_time[key]) > 0:
+            rv = rv + data_by_time[key]
+            data_by_time[key] = []
+        else:
+            rv.append({'time': key})
+
+    return rv
+
+
 def get_snuba_column_name(name):
     """
     Get corresponding Snuba column name from Sentry snuba map, if not found
@@ -306,6 +338,12 @@ def transform_aliases_and_query(**kwargs):
 
     if len(translated_columns):
         result['data'] = [get_row(row) for row in result['data']]
+        if kwargs['rollup'] > 0:
+            result['data'] = zerofill(
+                result['data'],
+                kwargs['start'],
+                kwargs['end'],
+                kwargs['rollup'])
 
     return result
 

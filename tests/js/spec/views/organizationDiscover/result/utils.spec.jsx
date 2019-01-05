@@ -182,7 +182,7 @@ describe('Utils', function() {
       expect(getChartDataByDay(raw, query)).toEqual(expected);
     });
 
-    it('assumes null value as 0', function() {
+    it('assumes null or defined value as 0', function() {
       const expected = [
         {
           data: [
@@ -217,7 +217,80 @@ describe('Utils', function() {
           seriesName: 'python,ZeroDivisionError',
         },
       ];
-      expect(getChartDataByDay(raw, query, {assumeNullAsZero: true})).toEqual(expected);
+      expect(getChartDataByDay(raw, query, {assumeEmptyAsZero: true})).toEqual(expected);
+    });
+
+    it('returns chart data with zero filled dates', function() {
+      const zeroFilledRaw = [
+        {
+          'error.type': 'Type Error',
+          platform: 'javascript',
+          count: 5,
+          time: 1531465200,
+        },
+        {
+          'error.type': 'Exception',
+          platform: 'php',
+          count: 8,
+          time: 1531465200,
+        },
+        {
+          'error.type': 'SnubaError',
+          platform: 'python',
+          count: 30,
+          time: 1531465200,
+        },
+        {time: 1531378800},
+        {time: 1531292400},
+        ...raw.slice(-5),
+      ];
+
+      const expected = [
+        {
+          data: [
+            {name: 'Jul 9th', value: 14},
+            {name: 'Jul 10th', value: 0},
+            {name: 'Jul 11th', value: 0},
+            {name: 'Jul 12th', value: 0},
+            {name: 'Jul 13th', value: 30},
+          ],
+          seriesName: 'python,SnubaError',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: 0},
+            {name: 'Jul 11th', value: 0},
+            {name: 'Jul 12th', value: 0},
+            {name: 'Jul 13th', value: 8},
+          ],
+          seriesName: 'php,Exception',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: 0},
+            {name: 'Jul 11th', value: 0},
+            {name: 'Jul 12th', value: 0},
+            {name: 'Jul 13th', value: 5},
+          ],
+          seriesName: 'javascript,Type Error',
+        },
+        {
+          data: [
+            {name: 'Jul 9th', value: 6},
+            {name: 'Jul 10th', value: 20},
+            {name: 'Jul 11th', value: 0},
+            {name: 'Jul 12th', value: 0},
+            {name: 'Jul 13th', value: 0},
+          ],
+          seriesName: 'python,ZeroDivisionError',
+        },
+      ];
+
+      expect(getChartDataByDay(zeroFilledRaw, query, {assumeEmptyAsZero: true})).toEqual(
+        expected
+      );
     });
 
     it('shows only top 10 series by default', function() {
