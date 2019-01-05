@@ -9,3 +9,4 @@ class OverviewDashboard extends React.Component {
   }
 }
 export default OverviewDashboard;
+export {OverviewDashboard};

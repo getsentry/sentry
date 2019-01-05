@@ -260,7 +260,7 @@ class EventsChart extends React.Component {
                 seriesOptions={{
                   showSymbol: false,
                 }}
-                previousPeriod={previousTimeseriesData}
+                previousPeriod={previousTimeseriesData ? [previousTimeseriesData] : null}
                 grid={{
                   left: '30px',
                   right: '18px',
