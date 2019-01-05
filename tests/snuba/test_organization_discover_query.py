@@ -225,12 +225,13 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
                 'aggregations': [['count()', '', 'count']],
                 'fields': ['project.name'],
                 'groupby': ['time'],
-                'orderby': '-time',
+                'orderby': 'time',
                 'range': '5d',
                 'rollup': 86400,
             })
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 7
+        assert(response.data['data'][6]['time']) == 'bar'
         assert(response.data['data'][6]['project.name']) == 'bar'
         assert(response.data['data'][6]['count']) == 1
 
@@ -249,6 +250,7 @@ class OrganizationDiscoverQueryTest(APITestCase, SnubaTestCase):
             })
         assert response.status_code == 200, response.content
         assert len(response.data['data']) == 7
+        assert(response.data['data'][6]['time']) == 'bar'
         assert(response.data['data'][6]['project.name']) == 'bar'
         assert(response.data['data'][6]['count']) == 1
 

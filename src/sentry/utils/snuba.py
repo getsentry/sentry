@@ -227,11 +227,16 @@ def to_naive_timestamp(value):
     return (value - epoch_naive).total_seconds()
 
 
-def zerofill(data, start, end, rollup):
+def zerofill(data, start, end, rollup, orderby):
     rv = []
     start = ((int(to_naive_timestamp(naiveify_datetime(start))) / rollup) * rollup) - rollup
     end = ((int(to_naive_timestamp(naiveify_datetime(end))) / rollup) * rollup) + rollup
     data_by_time = {}
+
+    if orderby.startswith('-'):
+        (end, start) = (start, end)
+        rollup = rollup * -1
+
     for obj in data:
         if obj['time'] in data_by_time:
             data_by_time[obj['time']].append(obj)
@@ -343,7 +348,9 @@ def transform_aliases_and_query(**kwargs):
                 result['data'],
                 kwargs['start'],
                 kwargs['end'],
-                kwargs['rollup'])
+                kwargs['rollup'],
+                kwargs['orderby'],
+            )
 
     return result
 
