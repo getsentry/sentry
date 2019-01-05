@@ -16,7 +16,11 @@ const BAD_ERRORS_REGEX = new RegExp(BAD_ERRORS.join('|'));
 
 // eslint-disable-next-line no-console
 console.error = (message, ...args) => {
-  if (message.indexOf(REPEATED_ERROR) !== 0 && BAD_ERRORS_REGEX.test(message)) {
+  if (
+    typeof message === 'string' &&
+    message.indexOf(REPEATED_ERROR) !== 0 &&
+    BAD_ERRORS_REGEX.test(message)
+  ) {
     originalConsoleError(message, ...args);
     throw new Error(message);
   } else if (!BAD_ERRORS_REGEX.test(message)) {
