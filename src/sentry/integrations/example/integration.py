@@ -62,10 +62,10 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_issue_url(self, key):
         return u'https://example/issues/{}'.format(key)
 
-    def create_comment(self, issue_id, user_id, comment):
+    def create_comment(self, issue_id, user_id, group_note):
         user = User.objects.get(id=user_id)
         attribution = '%s wrote:\n\n' % user.name
-        quoted_comment = '%s<blockquote>%s</blockquote>' % (attribution, comment)
+        quoted_comment = '%s<blockquote>%s</blockquote>' % (attribution, group_note.data['text'])
         return quoted_comment
 
     def get_persisted_default_config_fields(self):

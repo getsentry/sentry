@@ -257,7 +257,8 @@ class VstsIssueSync(IssueSyncMixin):
             return ''
         return external_issue.metadata['display_name']
 
-    def create_comment(self, issue_id, user_id, comment):
+    def create_comment(self, issue_id, user_id, group_note):
+        comment = group_note.data['text']
         quoted_comment = self.create_comment_attribution(user_id, comment)
         self.get_client().update_work_item(self.instance, issue_id, comment=quoted_comment)
 

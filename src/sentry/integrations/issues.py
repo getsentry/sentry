@@ -259,13 +259,13 @@ class IssueBasicMixin(object):
 
         return annotations
 
-    def create_comment(self, issue_id, user_id, comment):
+    def create_comment(self, issue_id, user_id, group_note):
         pass
 
-    def update_comment(self, issue_id, user_id, external_comment_id, comment_text):
+    def update_comment(self, issue_id, user_id, group_note):
         pass
 
-    def delete_comment(self, issue_id, user_id, external_comment_id):
+    def delete_comment(self, issue_id, user_id, group_note):
         pass
 
 

@@ -7,6 +7,7 @@ import six
 
 from django.core.urlresolvers import reverse
 from exam import fixture
+from mock import Mock
 
 from sentry.integrations.exceptions import IntegrationError
 from sentry.models import (
@@ -840,7 +841,28 @@ class JiraIntegrationTest(APITestCase):
                     'Sentry Admin wrote:\n\n{quote}%s{quote}' % comment
 
     def test_update_comment(self):
-        pass
+        org = self.organization
 
-    def test_delete_comment(self):
-        pass
+        self.user.name = 'Sentry Admin'
+        self.user.save()
+        self.login_as(self.user)
+
+        integration = Integration.objects.create(
+            provider='jira',
+            name='Example Jira',
+        )
+        integration.add_organization(org, self.user)
+        installation = integration.get_installation(org.id)
+
+        group_note = Mock()
+        comment = 'hello world\nThis is a comment.\n\n\n    I\'ve changed it'
+        group_note.data['text'] = comment
+        group_note.data['external_id'] = '123'
+        with mock.patch.object(MockJiraApiClient, 'update_comment') as mock_update_comment:
+            def get_client():
+                return MockJiraApiClient()
+
+            with mock.patch.object(installation, 'get_client', get_client):
+                installation.update_comment(1, self.user.id, comment)
+                assert mock_update_comment.call_args[0] == \
+                    [1, '123', 'Sentry Admin wrote:\n\n{quote}%s{quote}' % comment]

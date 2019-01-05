@@ -287,8 +287,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             'description': issue['fields']['description'],
         }
 
-    def create_comment(self, issue_id, user_id, comment):
+    def create_comment(self, issue_id, user_id, group_note):
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
+        comment = group_note.data['text']
         quoted_comment = self.create_comment_attribution(user_id, comment)
         return self.get_client().create_comment(issue_id, quoted_comment)
 
@@ -301,12 +302,13 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         quoted_comment = '%s{quote}%s{quote}' % (attribution, comment_text)
         return quoted_comment
 
-    def update_comment(self, issue_id, user_id, external_comment_id, comment_text):
-        quoted_comment = self.create_comment_attribution(user_id, comment_text)
-        return self.get_client().update_comment(issue_id, external_comment_id, quoted_comment)
+    def update_comment(self, issue_id, user_id, group_note):
+        quoted_comment = self.create_comment_attribution(user_id, group_note.data['text'])
+        return self.get_client().update_comment(
+            issue_id, group_note.data['external_id'], quoted_comment)
 
-    def delete_comment(self, issue_id, user_id, external_comment_id):
-        return self.get_client().delete_comment(issue_id, external_comment_id)
+    def delete_comment(self, issue_id, user_id, group_note):
+        return self.get_client().delete_comment(issue_id, group_note.data['external_id'])
 
     def search_issues(self, query):
         try:
